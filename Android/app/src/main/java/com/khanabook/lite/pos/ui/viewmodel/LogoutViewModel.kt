@@ -18,7 +18,10 @@ import javax.inject.Inject
 sealed class LogoutState {
     object Idle : LogoutState()
     object AttemptingPush : LogoutState()
-    data class WarningOfflineData(val count: Int) : LogoutState()
+    data class WarningOfflineData(
+        val totalCount: Int,
+        val summary: String
+    ) : LogoutState()
     object LoggedOut : LogoutState()
 }
 
@@ -32,6 +35,11 @@ class LogoutViewModel @Inject constructor(
 ) : ViewModel() {
     private val debugTag = "KhanaBookDebugAuth"
 
+    private data class UnsyncedDataSummary(
+        val totalCount: Int,
+        val summary: String
+    )
+
     private val _logoutState = MutableStateFlow<LogoutState>(LogoutState.Idle)
     val logoutState: StateFlow<LogoutState> = _logoutState.asStateFlow()
 
@@ -40,22 +48,30 @@ class LogoutViewModel @Inject constructor(
             _logoutState.value = LogoutState.AttemptingPush
 
             try {
-                val initialCount = appDatabase.billDao().getUnsyncedCountOnce()
-                if (initialCount > 0) {
+                val initialSummary = getUnsyncedDataSummary()
+                if (initialSummary.totalCount > 0) {
                     syncManager.pushUnsyncedDataImmediately()
-                    val remainingCount = appDatabase.billDao().getUnsyncedCountOnce()
-                    if (remainingCount == 0) {
+                    val remainingSummary = getUnsyncedDataSummary()
+                    if (remainingSummary.totalCount == 0) {
                         performHardLogout()
                     } else {
-                        _logoutState.value = LogoutState.WarningOfflineData(remainingCount)
+                        _logoutState.value =
+                            LogoutState.WarningOfflineData(
+                                totalCount = remainingSummary.totalCount,
+                                summary = remainingSummary.summary
+                            )
                     }
                 } else {
                     performHardLogout()
                 }
             } catch (e: Exception) {
-                val remainingCount = appDatabase.billDao().getUnsyncedCountOnce()
-                if (remainingCount > 0) {
-                    _logoutState.value = LogoutState.WarningOfflineData(remainingCount)
+                val remainingSummary = getUnsyncedDataSummary()
+                if (remainingSummary.totalCount > 0) {
+                    _logoutState.value =
+                        LogoutState.WarningOfflineData(
+                            totalCount = remainingSummary.totalCount,
+                            summary = remainingSummary.summary
+                        )
                 } else {
                     performHardLogout()
                 }
@@ -81,5 +97,36 @@ class LogoutViewModel @Inject constructor(
             Log.d(debugTag, "performHardLogout: completed clearSession + cleared DB")
             _logoutState.value = LogoutState.LoggedOut
         }
+    }
+
+    private suspend fun getUnsyncedDataSummary(): UnsyncedDataSummary {
+        val profileCount = appDatabase.restaurantDao().getUnsyncedRestaurantProfiles().size
+        val userCount = appDatabase.userDao().getUnsyncedUsers().size
+        val categoryCount = appDatabase.categoryDao().getUnsyncedCategories().size
+        val menuItemCount = appDatabase.menuDao().getUnsyncedMenuItems().size
+        val variantCount = appDatabase.menuDao().getUnsyncedItemVariants().size
+        val stockLogCount = appDatabase.inventoryDao().getUnsyncedStockLogs().size
+        val billCount = appDatabase.billDao().getUnsyncedBills().size
+        val billItemCount = appDatabase.billDao().getUnsyncedBillItems().size
+        val billPaymentCount = appDatabase.billDao().getUnsyncedBillPayments().size
+
+        val parts = buildList {
+            if (profileCount > 0) add("$profileCount settings")
+            if (userCount > 0) add("$userCount users")
+            if (categoryCount > 0) add("$categoryCount categories")
+            if (menuItemCount > 0) add("$menuItemCount menu items")
+            if (variantCount > 0) add("$variantCount variants")
+            if (stockLogCount > 0) add("$stockLogCount stock logs")
+            if (billCount > 0) add("$billCount bills")
+            if (billItemCount > 0) add("$billItemCount bill items")
+            if (billPaymentCount > 0) add("$billPaymentCount bill payments")
+        }
+
+        return UnsyncedDataSummary(
+            totalCount = parts.sumOf {
+                it.substringBefore(' ').toIntOrNull() ?: 0
+            },
+            summary = parts.joinToString(", ")
+        )
     }
 }

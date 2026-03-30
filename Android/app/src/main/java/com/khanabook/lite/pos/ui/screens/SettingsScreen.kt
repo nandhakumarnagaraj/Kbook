@@ -1305,11 +1305,15 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
     }
 
     if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData) {
-        val count = (logoutState as com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData).count
+        val warningState = logoutState as com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData
         AlertDialog(
             onDismissRequest = { viewModel.cancelLogout() },
             title = { Text("Offline Data Warning", color = Color.Red) },
-            text = { Text("You have $count unsynced bills. Logging out will delete them. Proceed?") },
+            text = {
+                Text(
+                    "You have ${warningState.totalCount} unsynced records: ${warningState.summary}. Logging out will delete them. Proceed?"
+                )
+            },
             confirmButton = {
                 TextButton(onClick = { viewModel.forceLogoutDespiteWarning() }) {
                     Text("Logout Anyway", color = Color.Red, fontWeight = FontWeight.Bold)

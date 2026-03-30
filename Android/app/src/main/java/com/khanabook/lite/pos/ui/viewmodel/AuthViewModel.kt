@@ -309,6 +309,7 @@ constructor(
     }
 
     fun logout() {
+        sessionManager.clearSession()
         userRepository.setCurrentUser(null)
         failedLoginAttempts = 0
         lockoutUntilMs = 0L
