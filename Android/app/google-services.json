@@ -1,0 +1,47 @@
+﻿{
+  "project_info": {
+    "project_number": "836086274000",
+    "project_id": "new-khanabook-li",
+    "storage_bucket": "new-khanabook-li.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:836086274000:android:3f78339ef7eb074f4e8bd5",
+        "android_client_info": {
+          "package_name": "com.khanabook.lite.pos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "836086274000-vq8nlv6gtpk7vt4l09ijs071k8qek082.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_client_info": {
+            "package_name": "com.khanabook.lite.pos",
+            "certificate_hash": "1b075d99cf1bcb02961299bbdad78ce58018ada9"
+          }
+        },
+        {
+          "client_id": "836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGp7pbYCV7RBLecpXmq5VUoTznreNZnKY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

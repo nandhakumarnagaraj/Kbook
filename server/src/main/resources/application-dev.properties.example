@@ -1,0 +1,20 @@
+# Local development overrides — DO NOT COMMIT with real values
+# Copy this file to application-dev.properties and fill in your local values
+
+spring.datasource.url=jdbc:postgresql://localhost:5432/kbook_saas
+spring.datasource.username=postgres
+spring.datasource.password=your_local_dev_password_here
+
+whatsapp.meta.access-token=${WHATSAPP_META_ACCESS_TOKEN:}
+whatsapp.meta.phone-number-id=${WHATSAPP_META_PHONE_NUMBER_ID:}
+whatsapp.meta.otp-template-name=${WHATSAPP_META_OTP_TEMPLATE_NAME:verification_otp}
+
+jwt.secret=replace_with_a_strong_random_secret_of_at_least_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Flyway should manage schema even in dev
+spring.flyway.enabled=true
+spring.jpa.hibernate.ddl-auto=validate
+
+# Enable SQL logging only in dev
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true

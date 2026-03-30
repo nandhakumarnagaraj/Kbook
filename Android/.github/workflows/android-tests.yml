@@ -1,0 +1,256 @@
+name: Android UI Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  ANDROID_COMPILE_SDK: '35'
+  ANDROID_BUILD_TOOLS: '35.0.0'
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: app/build/reports/tests/testDebugUnitTest/
+
+  instrumentation-tests:
+    name: Instrumentation Tests (Espresso)
+    runs-on: macos-latest
+    timeout-minutes: 60
+    
+    strategy:
+      matrix:
+        device:
+          - model: Pixel7
+            version: 34
+            orientation: portrait
+          - model: Pixel7
+            version: 34
+            orientation: landscape
+          - model: Pixel6a
+            version: 33
+            orientation: portrait
+          - model: UniversalTablet10
+            version: 30
+            orientation: portrait
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebugAndroidTest --no-daemon
+
+      - name: Run instrumentation tests on Firebase Test Lab
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.device.version }}
+          target: google_apis
+          profile: ${{ matrix.device.model }}
+          orientation: ${{ matrix.device.orientation }}
+          instrumented: true
+          file: app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instrumentation-test-results-${{ matrix.device.model }}-${{ matrix.device.version }}
+          path: app/build/reports/androidTests/
+
+  firebase-test-lab:
+    name: Firebase Test Lab (Full Matrix)
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 120
+    
+    strategy:
+      matrix:
+        device:
+          - model: Pixel7
+            version: 34
+            locale: en_US
+          - model: Pixel6a
+            version: 33
+            locale: en_US
+          - model: Pixel5
+            version: 32
+            locale: en_US
+          - model: SamsungGalaxyS21
+            version: 31
+            locale: en_US
+          - model: XiaomiRedmiNote10
+            version: 30
+            locale: en_US
+          - model: UniversalTablet10
+            version: 30
+            locale: en_US
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug assembleDebugAndroidTest --no-daemon
+
+      - name: Store Google Services key
+        if: env.GOOGLE_SERVICES_KEY != ''
+        run: echo $GOOGLE_SERVICES_KEY | base64 -d > app/google-services.json
+
+      - name: Run tests on Firebase Test Lab
+        uses: asadmansood/firebase-test-lab-action@v1.0.0
+        with:
+          credentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          test-spec: app/src/androidTest/androidTest.xml
+          device-type: ${{ matrix.device.model }}
+          android-version: ${{ matrix.device.version }}
+          locale: ${{ matrix.device.locale }}
+          auto-google-login: true
+
+      - name: Upload Firebase results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-results-${{ matrix.device.model }}-${{ matrix.device.version }}
+          path: firebase-results/
+
+  code-coverage:
+    name: Code Coverage Report
+    runs-on: ubuntu-latest
+    needs: [unit-tests, instrumentation-tests]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Download coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          path: coverage-reports
+
+      - name: Generate combined coverage report
+        run: |
+          echo "## Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Unit Tests: $(find coverage-reports -name '*.xml' | wc -l) reports found"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage-reports/**/*.xml
+          flags: android
+          name: kh-book-android
+          fail_ci_if_error: false
+
+  notify:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [unit-tests, instrumentation-tests, firebase-test-lab]
+    if: failure()
+    
+    steps:
+      - name: Send Slack notification
+        if: env.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "KhanaBook Android Tests Failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":x: *KhanaBook Android Tests Failed*\n\n Commit: ${{ github.sha }}\n Workflow: ${{ github.workflow }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

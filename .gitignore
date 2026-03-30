@@ -1,0 +1,32 @@
+##########################
+# Repository-wide ignores
+##########################
+# Backend build artifacts
+/server/target/
+/server/*.log
+/server/*.pid
+
+# Backend IDE metadata (Eclipse)
+/server/.settings/
+/server/.classpath
+/server/.factorypath
+/server/.project
+
+# Java class files (just in case another directory sneaks them in)
+*.class
+
+# Android local/generated files
+/Android/*.log
+/Android/local.properties
+/Android/.gradle/
+/Android/.kotlin/
+/Android/build/
+
+# Editor temp files
+*.swp
+*.swo
+*~
+
+# Node.js
+node_modules/
+package-lock.json

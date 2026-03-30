@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+    <testTargets>
+        <!-- P0 Critical Tests -->
+        <testTarget name="com.khanabook.lite.pos.test.screens.LoginScreenTest">
+            <testMethod>TC-API-001_Login_Success_ValidCredentials</testMethod>
+            <testMethod>TC-API-002_Login_Failure_InvalidCredentials</testMethod>
+            <testMethod>TC-LAYOUT-002_LoginScreen_LayoutValid_Portrait</testMethod>
+        </testTarget>
+        
+        <testTarget name="com.khanabook.lite.pos.test.screens.NewBillScreenTest">
+            <testMethod>TC-JOURNEY-001_NewBillScreen_CompleteSaleFlow_CashPayment</testMethod>
+            <testMethod>TC-JOURNEY-001_NewBillScreen_CompleteSaleFlow_CardPayment</testMethod>
+            <testMethod>TC-LAYOUT-007_NewBillScreen_LayoutValid</testMethod>
+            <testMethod>TC-STATE-001_NewBillScreen_CartState_AfterRotation</testMethod>
+        </testTarget>
+        
+        <testTarget name="com.khanabook.lite.pos.test.screens.HomeScreenTest">
+            <testMethod>TC-LAYOUT-005_MainScreen_BottomNavigationVisible</testMethod>
+            <testMethod>TC-LAYOUT-006_HomeScreen_DashboardCardsVisible</testMethod>
+            <testMethod>TC-NAV-007_HomeScreen_TabNavigation_OrdersTab</testMethod>
+        </testTarget>
+        
+        <testTarget name="com.khanabook.lite.pos.test.screens.NavigationFlowTest">
+            <testMethod>TC-NAV-001_AuthFlow_LoginToMain</testMethod>
+            <testMethod>TC-NAV-007_Navigation_AllTabsAccessible</testMethod>
+        </testTarget>
+        
+        <!-- P1 High Priority Tests -->
+        <testTarget name="com.khanabook.lite.pos.test.screens.OrdersScreenTest">
+            <testMethod>TC-LAYOUT-009_OrdersScreen_LayoutValid</testMethod>
+            <testMethod>TC-NAV-004_OrdersScreen_NavigateToDetail</testMethod>
+            <testMethod>TC-JOURNEY-003_OrdersScreen_ViewAndUpdateStatus</testMethod>
+        </testTarget>
+        
+        <testTarget name="com.khanabook.lite.pos.test.screens.ReportsScreenTest">
+            <testMethod>TC-LAYOUT-010_ReportsScreen_LayoutValid</testMethod>
+            <testMethod>TC-API-012_ReportsScreen_FilterToday</testMethod>
+        </testTarget>
+        
+        <testTarget name="com.khanabook.lite.pos.test.screens.SettingsScreenTest">
+            <testMethod>TC-LAYOUT-012_SettingsScreen_LayoutValid</testMethod>
+            <testMethod>TC-SEC-001_SettingsScreen_LogoutFlow</testMethod>
+        </testTarget>
+        
+        <testTarget name="com.khanabook.lite.pos.test.screens.SecurityTest">
+            <testMethod>TC-SEC-001_TokenSecurity_NoTokenInSharedPreferences</testMethod>
+            <testMethod>TC-SEC-003_NetworkSecurity_AllApiCallsOverHttps</testMethod>
+        </testTarget>
+        
+        <testTarget name="com.khanabook.lite.pos.test.screens.OfflineTest">
+            <testMethod>TC-OFFLINE-001_Login_FailsGracefully_Offline</testMethod>
+            <testMethod>TC-OFFLINE-001_HomeScreen_CachedData_Offline</testMethod>
+        </testTarget>
+    </testTargets>
+</configuration>
