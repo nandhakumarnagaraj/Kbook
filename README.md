@@ -44,11 +44,18 @@ A mobile Point of Sale (POS) app that doesn't need the internet to work and keep
 
 ### 🚀 Getting Started
 1. **Requirements:** **Android Studio (Ladybug or newer)** and **JDK 17**.
-2. **Setup Secrets:** Create a `local.properties` file in the root folder (`Android/local.properties`) and add your secure keys:
+2. **Setup Secrets:** Create `Android/local.properties` and keep credentials only there. You can copy the template from `Android/secrets.properties.example`. Required entries:
    ```properties
-   # API Keys for Retrofit Base URL
-   SERVER_URL="https://your-api-domain.com"
+   BACKEND_URL=https://your-api-domain.com/
+   META_ACCESS_TOKEN=your_meta_access_token
+   WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+   WHATSAPP_OTP_TEMPLATE_NAME=verification_otp
+   SIGNING_STORE_FILE=app/release-key.jks
+   SIGNING_STORE_PASSWORD=your_keystore_password
+   SIGNING_KEY_ALIAS=your_key_alias
+   SIGNING_KEY_PASSWORD=your_key_password
    ```
+   Do not commit `local.properties`, keystores, or signing files.
 3. **Build & Run:** Open the `Android` project in Android Studio, sync Gradle, and run on a real device (best for testing Bluetooth printing and OCR scanning).
 
 ---

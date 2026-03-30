@@ -1,6 +1,29 @@
 
 import java.util.Properties
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+
+fun localProperty(name: String, defaultValue: String = ""): String =
+    localProperties.getProperty(name)?.takeUnless { it.isBlank() } ?: defaultValue
+
+val metaToken = localProperty("META_ACCESS_TOKEN")
+val phoneId = localProperty("WHATSAPP_PHONE_NUMBER_ID")
+val templateName = localProperty("WHATSAPP_OTP_TEMPLATE_NAME")
+val backendUrl = localProperty("BACKEND_URL", "https://kbook.iadv.cloud/")
+val signingStoreFile = localProperty("SIGNING_STORE_FILE")
+val signingStorePassword = localProperty("SIGNING_STORE_PASSWORD")
+val signingKeyAlias = localProperty("SIGNING_KEY_ALIAS")
+val signingKeyPassword = localProperty("SIGNING_KEY_PASSWORD")
+val hasReleaseSigning =
+    signingStoreFile.isNotBlank() &&
+        signingStorePassword.isNotBlank() &&
+        signingKeyAlias.isNotBlank() &&
+        signingKeyPassword.isNotBlank()
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -33,18 +56,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "com.khanabook.lite.pos.test.util.HiltTestRunner"
-        
-        // ── Meta / WhatsApp API Config ───────────────────────────────────
-        val localProperties = Properties()
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            localProperties.load(localPropertiesFile.inputStream())
-        }
-
-        val metaToken = localProperties.getProperty("META_ACCESS_TOKEN") ?: ""
-        val phoneId = localProperties.getProperty("WHATSAPP_PHONE_NUMBER_ID") ?: ""
-        val templateName = localProperties.getProperty("WHATSAPP_OTP_TEMPLATE_NAME") ?: ""
-        val backendUrl = localProperties.getProperty("BACKEND_URL") ?: "https://kbook.iadv.cloud/"
 
         buildConfigField("String", "META_ACCESS_TOKEN", "\"$metaToken\"")
         buildConfigField("String", "WHATSAPP_PHONE_NUMBER_ID", "\"$phoneId\"")
@@ -54,21 +65,22 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("release-key.jks")
-            storePassword = "Advocacy@Kbook2026"
-            keyAlias = "khanabook"
-            keyPassword = "Advocacy@Kbook2026"
+            if (hasReleaseSigning) {
+                storeFile = file(signingStoreFile)
+                storePassword = signingStorePassword
+                keyAlias = signingKeyAlias
+                keyPassword = signingKeyPassword
+            }
         }
     }
 
     buildTypes {
-        debug {
-            signingConfig = signingConfigs.getByName("release")
-        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -180,5 +192,4 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
-
 
