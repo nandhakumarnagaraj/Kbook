@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.layout.Box
@@ -8,13 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.ui.screens.HomeScreen
 import com.khanabook.lite.pos.ui.screens.ReportsScreen
 import com.khanabook.lite.pos.ui.screens.OrdersScreen
 import com.khanabook.lite.pos.ui.screens.SettingsScreen
-import com.khanabook.lite.pos.ui.theme.DarkBrown1
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
-import com.khanabook.lite.pos.ui.theme.TextLight
+import com.khanabook.lite.pos.ui.theme.*
 
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
@@ -53,6 +54,7 @@ fun MainScreen(
     }
     
     Scaffold(
+        containerColor = DarkBackground,
         bottomBar = {
             AppBottomBar(
                 visibleTabs = visibleTabs,
@@ -90,20 +92,21 @@ fun AppBottomBar(
 ) {
     NavigationBar(
         containerColor = DarkBrown1,
-        modifier = Modifier.navigationBarsPadding()
+        modifier = Modifier.navigationBarsPadding(),
+        tonalElevation = 8.dp
     ) {
         visibleTabs.forEachIndexed { index, item ->
             NavigationBarItem(
                 selected = currentSelectedIndex == index,
                 onClick = { onTabSelected(index) },
                 icon = { Icon(item.icon, contentDescription = null) },
-                label = { Text(item.label) },
+                label = { Text(item.label, style = MaterialTheme.typography.labelSmall) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = PrimaryGold,
-                    unselectedIconColor = TextLight,
+                    unselectedIconColor = TextLight.copy(alpha = 0.6f),
                     selectedTextColor = PrimaryGold,
-                    unselectedTextColor = TextLight,
-                    indicatorColor = DarkBrown1
+                    unselectedTextColor = TextLight.copy(alpha = 0.6f),
+                    indicatorColor = PrimaryGold.copy(alpha = 0.1f)
                 )
             )
         }

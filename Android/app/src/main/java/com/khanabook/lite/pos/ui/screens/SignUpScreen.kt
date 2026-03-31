@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
 package com.khanabook.lite.pos.ui.screens
 
@@ -44,6 +44,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.theme.*
+import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 
@@ -67,14 +68,13 @@ fun SignUpScreen(
     val otpFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
     val confirmPasswordFocusRequester = remember { FocusRequester() }
+    val spacing = KhanaBookTheme.spacing
 
     
     val isNameValid = ValidationUtils.isValidName(shopName)
     val isPhoneValid = ValidationUtils.isValidPhone(phoneNumber)
     val isPasswordValid = ValidationUtils.isValidPassword(newPassword)
     val passwordsMatch = newPassword == confirmPassword && newPassword.isNotEmpty()
-    @Suppress("UNUSED_VARIABLE")
-    val isOtpValid = ValidationUtils.isValidOtp(otp) 
 
     var otpSent by remember { mutableStateOf(false) }
     var otpTimer by remember { mutableIntStateOf(120) }
@@ -110,15 +110,12 @@ fun SignUpScreen(
         }
     }
 
-    // Clear user check error if phone changes
     LaunchedEffect(phoneNumber) {
         if (phoneNumber.length < 10) {
             viewModel.clearUserCheck()
         }
     }
 
-    // Handle the auto-login success separately if needed, 
-    // though MainActivity observes currentUser.
     LaunchedEffect(loginStatus) {
         if (loginStatus is AuthViewModel.LoginResult.Success) {
             onSignUpSuccess()
@@ -141,6 +138,7 @@ fun SignUpScreen(
 
     Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
+            containerColor = DarkBackground
     ) { padding ->
         Box(
                 modifier =
@@ -153,35 +151,34 @@ fun SignUpScreen(
                             Modifier.fillMaxSize()
                                     .verticalScroll(rememberScrollState())
                                     .imePadding()
-                                    .padding(horizontal = 32.dp)
-                                    .padding(top = 24.dp, bottom = 24.dp),
+                                    .padding(horizontal = spacing.large)
+                                    .padding(top = spacing.large, bottom = spacing.large),
                     horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
                         painter = painterResource(id = R.drawable.khanabook_logo),
                         contentDescription = "KhanaBook Lite logo",
-                        modifier = Modifier.size(130.dp).padding(bottom = 8.dp),
+                        modifier = Modifier.size(130.dp).padding(bottom = spacing.small),
                         contentScale = ContentScale.Fit
                 )
 
                 Text(
                         text = "Sign Up",
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineLarge,
                         color = PrimaryGold
                 )
 
                 Text(
                         text =
                                 "Create your account to start managing\nbilling with KhanaBook Lite.",
-                        fontSize = 10.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         color = TextLight.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 25.dp)
+                        modifier = Modifier.padding(top = spacing.small, bottom = spacing.large)
                 )
 
                 
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
                     
                     OutlinedTextField(
                             value = shopName,
@@ -210,7 +207,7 @@ fun SignUpScreen(
                             isError = shopName.isNotEmpty() && !isNameValid,
                             supportingText = {
                                 if (shopName.isNotEmpty() && !isNameValid)
-                                        Text("Shop name too short", color = DangerRed)
+                                        Text("Shop name too short", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                             }
                     )
 
@@ -249,9 +246,9 @@ fun SignUpScreen(
                             isError = (phoneNumber.isNotEmpty() && !isPhoneValid) || userExistsError != null,
                             supportingText = {
                                 if (userExistsError != null) {
-                                    Text(userExistsError!!, color = DangerRed)
+                                    Text(userExistsError!!, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                                 } else if (phoneNumber.isNotEmpty() && !isPhoneValid) {
-                                    Text("Enter 10-digit number", color = DangerRed)
+                                    Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                                 }
                             },
                             trailingIcon = {
@@ -281,8 +278,7 @@ fun SignUpScreen(
                                         Text(
                                                 "Send OTP",
                                                 color = DarkBrown1,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold
+                                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                                         )
                                     }
                                 }
@@ -331,7 +327,7 @@ fun SignUpScreen(
                                         Text(
                                                 text = formatTime(otpTimer),
                                                 color = TextLight,
-                                                fontSize = 14.sp,
+                                                style = MaterialTheme.typography.labelLarge,
                                                 modifier = Modifier.padding(end = 16.dp)
                                         )
                                     }
@@ -387,7 +383,8 @@ fun SignUpScreen(
                                 if (newPassword.isNotEmpty() && !isPasswordValid)
                                         Text(
                                                 "Min 8 chars, uppercase, digit & special character",
-                                                color = DangerRed
+                                                color = ErrorPink,
+                                                style = MaterialTheme.typography.labelSmall
                                         )
                             }
                     )
@@ -448,12 +445,12 @@ fun SignUpScreen(
                             isError = confirmPassword.isNotEmpty() && !passwordsMatch,
                             supportingText = {
                                 if (confirmPassword.isNotEmpty() && !passwordsMatch)
-                                        Text("Passwords do not match", color = DangerRed)
+                                        Text("Passwords do not match", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                             }
                     )
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(spacing.large))
 
                 
                 val isFormValid =
@@ -478,7 +475,7 @@ fun SignUpScreen(
                         shape = RoundedCornerShape(28.dp),
                         enabled = isFormValid
                 ) {
-                    if (isLoading) {
+                    if (isLoading && signUpStatus is AuthViewModel.SignUpResult.Loading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
                             color = DarkBrown1,
@@ -487,26 +484,24 @@ fun SignUpScreen(
                     } else {
                         Text(
                                 "Sign Up",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 18.sp
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
                         )
                     }
                 }
 
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(spacing.large))
 
                 Row(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Already have an account? ", color = TextLight, fontSize = 14.sp)
+                    Text("Already have an account? ", color = TextLight, style = MaterialTheme.typography.bodySmall)
                     Text(
                             text = "Log In",
                             color = PrimaryGold,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.clickable(enabled = !isLoading) { onLoginClick() }
                     )
                 }
@@ -518,24 +513,24 @@ fun SignUpScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.5f))
-                        .pointerInput(Unit) {}, // This consumes all touch events
+                        .pointerInput(Unit) {},
                     contentAlignment = Alignment.Center
                 ) {
-                    Card(
+                    KhanaBookCard(
+                        modifier = Modifier.padding(spacing.large),
                         colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(32.dp),
+                            modifier = Modifier.padding(spacing.extraLarge),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             CircularProgressIndicator(color = PrimaryGold)
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(spacing.medium))
                             Text(
                                 text = if (signUpStatus is AuthViewModel.SignUpResult.Loading) "Creating Account..." else "Logging in...",
                                 color = TextLight,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                     }
@@ -554,5 +549,7 @@ private fun outlinedTextFieldColors() =
                 focusedBorderColor = PrimaryGold,
                 cursorColor = PrimaryGold,
                 focusedTextColor = TextLight,
-                unfocusedTextColor = TextLight
+                unfocusedTextColor = TextLight,
+                errorBorderColor = ErrorPink,
+                errorLabelColor = ErrorPink
         )

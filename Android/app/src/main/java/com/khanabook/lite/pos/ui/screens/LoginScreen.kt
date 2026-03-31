@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
 package com.khanabook.lite.pos.ui.screens
 
@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.theme.*
+import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 
@@ -46,7 +47,6 @@ import kotlinx.coroutines.delay
 fun LoginScreen(
         onLoginSuccess: () -> Unit,
         onSignUpClick: () -> Unit = {},
-
         viewModel: AuthViewModel = hiltViewModel()
 ) {
     var phone by remember { mutableStateOf("") }
@@ -62,6 +62,7 @@ fun LoginScreen(
     val haptic = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
     val passwordFocusRequester = remember { FocusRequester() }
+    val spacing = KhanaBookTheme.spacing
 
     LaunchedEffect(loginStatus) {
         when (val s = loginStatus) {
@@ -93,22 +94,22 @@ fun LoginScreen(
                         Modifier.fillMaxSize()
                                 .verticalScroll(rememberScrollState())
                                 .imePadding()
-                                .padding(horizontal = 24.dp, vertical = 40.dp),
+                                .padding(horizontal = spacing.large, vertical = spacing.extraHuge),
                 horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
                     painter = painterResource(id = R.drawable.khanabook_logo),
                     contentDescription = "KhanaBook Lite logo",
-                    modifier = Modifier.size(180.dp).padding(top = 12.dp, bottom = 20.dp),
+                    modifier = Modifier.size(180.dp).padding(top = spacing.medium, bottom = spacing.large),
                     contentScale = ContentScale.Fit
             )
 
             Text(
                     text = "Smart Billing for Restaurants",
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = TextGold,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = 48.dp)
+                    modifier = Modifier.padding(bottom = spacing.huge)
             )
 
             
@@ -142,7 +143,7 @@ fun LoginScreen(
                                     cursorColor = PrimaryGold,
                                     errorContainerColor = DarkBrown2
                             ),
-                    textStyle = LocalTextStyle.current.copy(color = TextLight),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextLight),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Phone,
@@ -154,12 +155,12 @@ fun LoginScreen(
                     isError = (phone.isNotEmpty() && !isPhoneValid) || (phone.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
                     supportingText = {
                         if (phone.isNotEmpty() && !isPhoneValid) {
-                            Text("Enter 10-digit number", color = ErrorPink)
+                            Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                         }
                     }
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(spacing.medium))
 
             
             TextField(
@@ -199,7 +200,7 @@ fun LoginScreen(
                                     cursorColor = PrimaryGold,
                                     errorContainerColor = DarkBrown2
                             ),
-                    textStyle = LocalTextStyle.current.copy(color = TextLight),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextLight),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
@@ -219,26 +220,26 @@ fun LoginScreen(
                     isError = password.isBlank() && loginStatus is AuthViewModel.LoginResult.Error
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(spacing.small))
 
             
             Text(
                     text = "Forgot Password?",
                     color = PrimaryGold,
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.align(Alignment.End).clickable { showForgotDialog = true },
                     fontWeight = FontWeight.Medium
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(spacing.large))
 
             
             if (loginStatus is AuthViewModel.LoginResult.Error) {
                 Text(
                         text = (loginStatus as AuthViewModel.LoginResult.Error).message,
                         color = ErrorPink,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(bottom = 16.dp).fillMaxWidth(),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = spacing.medium).fillMaxWidth(),
                         textAlign = TextAlign.Center
                 )
             }
@@ -262,18 +263,18 @@ fun LoginScreen(
                     shape = RoundedCornerShape(12.dp),
                     enabled = isLoginEnabled
             ) {
-                if (isLoading) {
+                if (isLoading && !isGoogleLogin) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         color = DarkBrown1,
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Log In", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Log In", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(spacing.medium))
 
             
             Row(
@@ -281,28 +282,25 @@ fun LoginScreen(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Don't have an account? ", color = TextLight, fontSize = 14.sp)
+                Text(text = "Don't have an account? ", color = TextLight, style = MaterialTheme.typography.bodyMedium)
                 Text(
                         text = "Sign Up",
                         color = PrimaryGold,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         modifier = Modifier.clickable { onSignUpClick() }
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(spacing.large))
 
-            Text(text = "or Continue with", color = TextGold, fontSize = 13.sp)
+            Text(text = "or Continue with", color = TextGold, style = MaterialTheme.typography.labelMedium)
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(spacing.medium))
 
             Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.medium),
                     verticalAlignment = Alignment.CenterVertically
             ) {
-
-
                 Surface(
                         modifier =
                                 Modifier.size(52.dp)
@@ -328,15 +326,14 @@ fun LoginScreen(
                             Text(
                                     text = "G",
                                     color = GoogleRed,
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold
+                                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(spacing.large))
         }
 
         // Full-screen Loading Overlay
@@ -345,24 +342,24 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.5f))
-                    .pointerInput(Unit) {}, // This consumes all touch events
+                    .pointerInput(Unit) {},
                 contentAlignment = Alignment.Center
             ) {
-                Card(
+                KhanaBookCard(
+                    modifier = Modifier.padding(spacing.large),
                     colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(32.dp),
+                        modifier = Modifier.padding(spacing.extraLarge),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         CircularProgressIndicator(color = PrimaryGold)
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(spacing.medium))
                         Text(
                             text = if (isGoogleLogin) "Connecting to Google..." else "Logging in...",
                             color = TextLight,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
                     }
                 }
@@ -393,6 +390,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
     var step by remember { mutableIntStateOf(1) }
     var resendTimer by remember { mutableIntStateOf(0) }
     val isPhoneValid = ValidationUtils.isValidPhone(phone)
+    val spacing = KhanaBookTheme.spacing
 
     val resetStatus by viewModel.resetPasswordStatus.collectAsState()
     val isResetLoading = resetStatus is AuthViewModel.ResetPasswordResult.Loading
@@ -424,33 +422,32 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(
-                modifier = Modifier.fillMaxWidth().imePadding().padding(16.dp),
+        KhanaBookCard(
+                modifier = Modifier.fillMaxWidth().imePadding().padding(spacing.medium),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = DarkBrown1)
         ) {
             Column(
-                    modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                    modifier = Modifier.padding(spacing.large).fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                         text = "Forgot Password",
                         color = PrimaryGold,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.headlineSmall
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(spacing.medium))
 
                 when (step) {
                     1 -> {
                         Text(
                                 text = "Enter your registered WhatsApp number to receive an OTP.",
                                 color = TextLight,
-                                fontSize = 14.sp,
+                                style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(spacing.medium))
                         OutlinedTextField(
                                 value = phone,
                                 onValueChange = { phone = it.filter { ch -> ch.isDigit() }.take(10) },
@@ -465,7 +462,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 isError = phone.isNotEmpty() && !isPhoneValid,
                                 supportingText = {
                                     if (phone.isNotEmpty() && !isPhoneValid) {
-                                        Text("Enter 10-digit number", color = Color.Red, fontSize = 12.sp)
+                                        Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                         )
@@ -474,10 +471,10 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                         Text(
                                 text = "Enter the 6-digit OTP sent to $phone via WhatsApp.",
                                 color = TextLight,
-                                fontSize = 14.sp,
+                                style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(spacing.medium))
                         OutlinedTextField(
                                 value = otp,
                                 onValueChange = { if (it.length <= 6) otp = it },
@@ -494,10 +491,10 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                         Text(
                                 text = "Create a new strong password for your account.",
                                 color = TextLight,
-                                fontSize = 14.sp,
+                                style = MaterialTheme.typography.bodyMedium,
                                 textAlign = TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(spacing.medium))
                         OutlinedTextField(
                                 value = newPassword,
                                 onValueChange = { newPassword = it },
@@ -521,7 +518,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                     )
                                 }
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(spacing.small))
                         val passwordsMatch = confirmPassword.isEmpty() || newPassword == confirmPassword
                         OutlinedTextField(
                                 value = confirmPassword,
@@ -548,7 +545,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 },
                                 supportingText = {
                                     if (!passwordsMatch) {
-                                        Text("Passwords do not match", color = Color.Red, fontSize = 12.sp)
+                                        Text("Passwords do not match", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                         )
@@ -556,15 +553,15 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                 }
 
                 if (resetStatus is AuthViewModel.ResetPasswordResult.Error) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(spacing.small))
                     Text(
                             text = (resetStatus as AuthViewModel.ResetPasswordResult.Error).message,
-                            color = Color.Red,
-                            fontSize = 12.sp
+                            color = ErrorPink,
+                            style = MaterialTheme.typography.labelSmall
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(spacing.large))
 
                 Button(
                         onClick = {
@@ -586,13 +583,13 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors =
                                 ButtonDefaults.buttonColors(
                                         containerColor = PrimaryGold,
                                         contentColor = DarkBrown1
                                 ),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(12.dp),
                         enabled =
                                 when (step) {
                                     1 -> isPhoneValid && !isResetLoading
@@ -605,7 +602,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                     if (step == 1 && isResetLoading) {
                         CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
-                                color = PrimaryGold,
+                                color = DarkBrown1,
                                 strokeWidth = 2.dp
                         )
                     } else {
@@ -617,7 +614,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                             3 -> "Reset Password"
                                             else -> ""
                                         },
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
                     }
                 }
@@ -635,12 +632,13 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 text =
                                         if (resendTimer > 0) "Resend OTP in ${resendTimer}s"
                                         else "Resend OTP",
+                                style = MaterialTheme.typography.labelLarge,
                                 color = if (resendTimer > 0 || isResetLoading) Color.Gray else PrimaryGold
                         )
                     }
                 }
 
-                TextButton(onClick = onDismiss) { Text("Cancel", color = TextGold) }
+                TextButton(onClick = onDismiss) { Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge) }
             }
         }
     }
@@ -654,5 +652,7 @@ fun loginTextFieldColors() =
                 focusedTextColor = TextLight,
                 unfocusedTextColor = TextLight,
                 focusedLabelColor = PrimaryGold,
-                unfocusedLabelColor = Color.Gray
+                unfocusedLabelColor = Color.Gray,
+                errorBorderColor = ErrorPink,
+                errorLabelColor = ErrorPink
         )

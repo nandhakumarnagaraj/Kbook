@@ -1,3 +1,4 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 package com.khanabook.lite.pos.ui.screens
 
 import android.Manifest

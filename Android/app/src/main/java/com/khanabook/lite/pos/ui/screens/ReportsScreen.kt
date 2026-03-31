@@ -1,3 +1,4 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.BorderStroke
@@ -36,6 +37,7 @@ import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
+import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -54,10 +56,10 @@ fun ReportsScreen(
     val orderLevelRows by viewModel.orderLevelRows.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val spacing = KhanaBookTheme.spacing
     
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
     val selectedBillDetails by viewModel.selectedBillDetails.collectAsState()
-    
     
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
@@ -74,18 +76,16 @@ fun ReportsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 8.dp)
+                .padding(bottom = spacing.small)
         ) {
             
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(spacing.medium),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = onBack
-                ) {
+                IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
@@ -96,20 +96,18 @@ fun ReportsScreen(
                     text = "Report Details",
                     modifier = Modifier.weight(1f),
                     color = PrimaryGold,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineMedium,
                     textAlign = TextAlign.Center
                 )
-                
-                Spacer(modifier = Modifier.width(48.dp))
+                Spacer(modifier = Modifier.width(spacing.huge))
             }
 
             
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = spacing.medium),
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
                 listOf("Daily", "Weekly", "Monthly", "Custom").forEach { filter ->
                     FilterChip(
@@ -127,7 +125,7 @@ fun ReportsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(spacing.medium))
 
             
             if (showDateRangePicker) {
@@ -155,7 +153,7 @@ fun ReportsScreen(
                     },
                     colors = DatePickerDefaults.colors(containerColor = DarkBrown2)
                 ) {
-                    Box(modifier = Modifier.padding(horizontal = 8.dp)) {
+                    Box(modifier = Modifier.padding(horizontal = spacing.small)) {
                         DateRangePicker(
                             state = dateRangePickerState,
                             modifier = Modifier.fillMaxWidth(),
@@ -164,11 +162,10 @@ fun ReportsScreen(
                                     text = "Select Custom Range",
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = 16.dp, bottom = 8.dp),
+                                        .padding(top = spacing.medium, bottom = spacing.small),
                                     textAlign = TextAlign.Center,
                                     color = PrimaryGold,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp
+                                    style = MaterialTheme.typography.titleMedium
                                 )
                             },
                             headline = {
@@ -179,7 +176,7 @@ fun ReportsScreen(
                                     dateFormatter = DatePickerDefaults.dateFormatter(),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(start = 8.dp, bottom = 16.dp)
+                                        .padding(start = spacing.small, bottom = spacing.medium)
                                 )
                             },
                             colors = DatePickerDefaults.colors(
@@ -201,8 +198,8 @@ fun ReportsScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = spacing.medium),
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
                 ReportTypeToggle(
                     label = "Payment Level Report",
@@ -218,9 +215,8 @@ fun ReportsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(spacing.medium))
 
-            
             
             if (reportType == "Payment") {
                 PaymentLevelView(paymentBreakdown, settingsViewModel)
@@ -272,8 +268,7 @@ fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier
         Box(contentAlignment = Alignment.Center) {
             Text(
                 text = label,
-                fontSize = 12.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                style = if (isSelected) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelMedium
             )
         }
     }
@@ -292,8 +287,7 @@ fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, mo
         Box(contentAlignment = Alignment.Center) {
             Text(
                 text = label,
-                fontSize = 13.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                style = if (isSelected) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
@@ -304,9 +298,9 @@ fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, mo
 @Composable
 fun PaymentLevelView(breakdown: Map<String, String>, settingsViewModel: com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel) {
     val profile by settingsViewModel.profile.collectAsState()
+    val spacing = KhanaBookTheme.spacing
     
     val enabledModes = profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)
-    
     
     val mainModes = enabledModes.filter { !com.khanabook.lite.pos.domain.manager.PaymentModeManager.isPartPayment(it) }
     val partModes = enabledModes.filter { com.khanabook.lite.pos.domain.manager.PaymentModeManager.isPartPayment(it) }
@@ -314,9 +308,9 @@ fun PaymentLevelView(breakdown: Map<String, String>, settingsViewModel: com.khan
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(bottom = 16.dp)
+            .padding(horizontal = spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.small),
+        contentPadding = PaddingValues(bottom = spacing.medium)
     ) {
         items(mainModes) { mode ->
             PaymentModeItem(
@@ -330,16 +324,14 @@ fun PaymentLevelView(breakdown: Map<String, String>, settingsViewModel: com.khan
                 Text(
                     "Part-Payment",
                     color = TextGold,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(top = spacing.small, bottom = spacing.extraSmall)
                 )
             }
 
-            
-            
             val chunkedPartModes = partModes.chunked(2)
             items(chunkedPartModes) { rowModes ->
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
                     rowModes.forEach { mode ->
                         val labels = com.khanabook.lite.pos.domain.manager.PaymentModeManager.getPartLabels(mode)
                         PartPaymentCard(
@@ -366,28 +358,26 @@ fun PaymentLevelView(breakdown: Map<String, String>, settingsViewModel: com.khan
 
 @Composable
 fun PaymentModeItem(mode: String, amount: Double) {
-    Card(
+    val spacing = KhanaBookTheme.spacing
+    KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardBG.copy(alpha = 0.4f)),
-        border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f)),
-        shape = RoundedCornerShape(8.dp)
+        colors = CardDefaults.cardColors(containerColor = CardBG.copy(alpha = 0.4f))
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(spacing.medium)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            
-            Surface(
-                modifier = Modifier.size(24.dp),
-                color = Color.Transparent
-            ) {
-                
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(mode, color = TextLight, fontSize = 16.sp, modifier = Modifier.weight(1f))
-            Text("₹${"%.0f".format(amount)}", color = TextLight, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Icon(
+                Icons.Default.Description,
+                contentDescription = null,
+                tint = PrimaryGold.copy(alpha = 0.5f),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(spacing.medium))
+            Text(mode, color = TextLight, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(CurrencyUtils.formatPrice(amount), color = PrimaryGold, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
@@ -408,19 +398,19 @@ fun PartPaymentCard(
     part2Label: String,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    val spacing = KhanaBookTheme.spacing
+    KhanaBookCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = GreenReportBg.copy(alpha = 0.4f)),
-        border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f)),
         shape = RoundedCornerShape(8.dp)
     ) {
-        Column(modifier = Modifier.padding(8.dp)) {
-            Text("$label | ₹${"%.0f".format(totalAmount)}", color = VegGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Column(modifier = Modifier.padding(spacing.small)) {
+            Text("$label | ${CurrencyUtils.formatPrice(totalAmount)}", color = VegGreen, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                "₹${"%.0f".format(part1Amount)} ($part1Label) + ₹${"%.0f".format(part2Amount)} ($part2Label)",
+                "${CurrencyUtils.formatPrice(part1Amount)} ($part1Label) + ${CurrencyUtils.formatPrice(part2Amount)} ($part2Label)",
                 color = TextLight.copy(alpha = 0.8f),
-                fontSize = 9.sp
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp)
             )
         }
     }
@@ -428,12 +418,13 @@ fun PartPaymentCard(
 
 @Composable
 fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>, onViewDetails: (Long) -> Unit) {
+    val spacing = KhanaBookTheme.spacing
     Column(modifier = Modifier.fillMaxWidth()) {
         
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = spacing.medium, vertical = spacing.small),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             HeaderCell("D.ID", Modifier.weight(0.8f))
@@ -446,7 +437,7 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = spacing.small),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items(rows) { row ->
@@ -462,8 +453,7 @@ fun HeaderCell(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         color = TextGold,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
+        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
         modifier = modifier,
         textAlign = TextAlign.Center
     )
@@ -471,20 +461,21 @@ fun HeaderCell(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewDetails: (Long) -> Unit) {
-    Card(
+    val spacing = KhanaBookTheme.spacing
+    KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
+        onClick = { onViewDetails(row.billId) },
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.2f)),
         shape = RoundedCornerShape(4.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp),
+                .padding(vertical = spacing.medium),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(row.dailyId, color = TextLight, fontSize = 13.sp, modifier = Modifier.weight(0.8f), textAlign = TextAlign.Center)
+            Text(row.dailyId, color = TextLight, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(0.8f), textAlign = TextAlign.Center)
             
             Box(modifier = Modifier.weight(1.8f), contentAlignment = Alignment.Center) {
                 val (color, label) = when (row.paymentMode) {
@@ -502,7 +493,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
                     Text(
                         label,
                         color = Color.White,
-                        fontSize = 10.sp,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
                         lineHeight = 10.sp
@@ -523,8 +514,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
                 Text(
                     statusText,
                     color = statusColor,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium)
                 )
             }
             
@@ -532,13 +522,12 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
                 Surface(
                     color = Color.Transparent,
                     border = BorderStroke(1.dp, PrimaryGold),
-                    shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.clickable { onViewDetails(row.billId) }
+                    shape = RoundedCornerShape(4.dp)
                 ) {
                     Text(
                         "View",
                         color = TextLight,
-                        fontSize = 11.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
                     )
                 }
@@ -547,7 +536,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
             Text(
                 formatDate(row.date),
                 color = TextLight,
-                fontSize = 11.sp,
+                style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.weight(1.2f),
                 textAlign = TextAlign.Center
             )
@@ -560,18 +549,18 @@ fun OrderDetailsDialog(
     billWithItems: BillWithItems?, 
     onDismiss: () -> Unit
 ) {
+    val spacing = KhanaBookTheme.spacing
     Dialog(onDismissRequest = onDismiss) {
-        Card(
+        KhanaBookCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(spacing.medium),
             colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-            border = BorderStroke(1.dp, PrimaryGold),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(spacing.medium)
                     .fillMaxWidth()
             ) {
                 Box(
@@ -581,8 +570,7 @@ fun OrderDetailsDialog(
                     Text(
                         text = "Order Details",
                         color = PrimaryGold,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleLarge
                     )
                     IconButton(
                         onClick = onDismiss,
@@ -593,7 +581,7 @@ fun OrderDetailsDialog(
                 }
                 
                 HorizontalDivider(color = BorderGold.copy(alpha = 0.5f), thickness = 1.dp)
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(spacing.medium))
 
                 if (billWithItems == null) {
                     CircularProgressIndicator(
@@ -605,19 +593,19 @@ fun OrderDetailsDialog(
                     val items = billWithItems.items
 
                     DetailRow("Order ID:", "#${bill.dailyOrderDisplay.split("-").last()}")
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(spacing.small))
                     DetailRow("Date:", DateUtils.formatDisplay(bill.createdAt))
                     
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("Items:", color = TextGold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(spacing.medium))
+                    Text("Items:", color = TextGold, style = MaterialTheme.typography.titleSmall)
+                    Spacer(modifier = Modifier.height(spacing.small))
                     
                     if (items.isEmpty()) {
                         Text(
                             text = "No items found in this order.",
                             color = TextLight.copy(alpha = 0.5f),
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(vertical = 16.dp).align(Alignment.CenterHorizontally)
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(vertical = spacing.medium).align(Alignment.CenterHorizontally)
                         )
                     } else {
                         Box(
@@ -629,7 +617,7 @@ fun OrderDetailsDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(max = 200.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalArrangement = Arrangement.spacedBy(spacing.small)
                             ) {
                                 items(items) { item ->
                                     Row(
@@ -640,14 +628,13 @@ fun OrderDetailsDialog(
                                         Text(
                                             text = "${item.itemName} x${item.quantity}",
                                             color = TextLight.copy(alpha = 0.9f),
-                                            fontSize = 13.sp,
-                                            modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.weight(1f).padding(end = spacing.small)
                                         )
                                         Text(
                                             text = CurrencyUtils.formatPrice(item.itemTotal),
                                             color = TextLight,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.SemiBold,
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                             textAlign = TextAlign.End
                                         )
                                     }
@@ -656,13 +643,13 @@ fun OrderDetailsDialog(
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(spacing.medium))
                     HorizontalDivider(color = BorderGold.copy(alpha = 0.3f), thickness = 0.5.dp)
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(spacing.medium))
                     
                     DetailRow("Total Amount:", CurrencyUtils.formatPrice(bill.totalAmount), PrimaryGold, FontWeight.Bold)
                     
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(spacing.medium))
                     
                     val statusValue = OrderStatus.fromDbValue(bill.orderStatus)
                     val statusText = when(statusValue) {
@@ -676,18 +663,19 @@ fun OrderDetailsDialog(
                     }
                     DetailRow("Status:", statusText, statusColor)
                     
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(spacing.medium))
                     
                     DetailRow("Payment Mode:", PaymentMode.fromDbValue(bill.paymentMode).displayLabel)
                 }
                 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(spacing.large))
                 Button(
                     onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Close", color = DarkBrown1)
+                    Text("Close", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
                 }
             }
         }
@@ -704,15 +692,13 @@ fun DetailRow(label: String, value: String, valueColor: Color = TextLight, fontW
         Text(
             text = label,
             color = TextGold,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
             modifier = Modifier.padding(end = 8.dp)
         )
         Text(
             text = value,
             color = valueColor,
-            fontSize = 14.sp,
-            fontWeight = fontWeight,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = fontWeight),
             textAlign = TextAlign.End,
             modifier = Modifier.weight(1f)
         )
@@ -720,10 +706,7 @@ fun DetailRow(label: String, value: String, valueColor: Color = TextLight, fontW
 }
 
 fun formatDate(date: String): String {
-    
     if (date.contains(",")) return date.substringBefore(",").trim() 
-    
-    
     return try {
         val datePart = date.split(" ").getOrNull(0) ?: return date
         val parts = datePart.split("-")
@@ -733,5 +716,3 @@ fun formatDate(date: String): String {
         date
     }
 }
-
-

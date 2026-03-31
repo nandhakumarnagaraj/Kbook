@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
 package com.khanabook.lite.pos.ui.screens
 
@@ -29,6 +29,7 @@ import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
 import com.khanabook.lite.pos.ui.theme.*
+import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
@@ -54,6 +55,7 @@ fun SearchScreen(
     val hasSearched by viewModel.hasSearched.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val context = LocalContext.current
+    val spacing = KhanaBookTheme.spacing
 
     Scaffold(
         modifier = modifier,
@@ -63,8 +65,7 @@ fun SearchScreen(
                     Text(
                         title,
                         color = PrimaryGold,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleLarge
                     )
                 },
                 navigationIcon = {
@@ -97,27 +98,28 @@ fun SearchScreen(
                 .fillMaxSize()
                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
                 .imePadding()
-                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .padding(horizontal = spacing.large, vertical = spacing.medium)
         ) {
             Column(modifier = Modifier.wrapContentHeight()) {
                 TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = DarkBrown1,
-                    contentColor = PrimaryGold
+                    contentColor = PrimaryGold,
+                    divider = {}
                 ) {
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("Daily ID") }
+                        text = { Text("Daily ID", style = MaterialTheme.typography.labelLarge) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("Lifetime ID") }
+                        text = { Text("Lifetime ID", style = MaterialTheme.typography.labelLarge) }
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(spacing.medium))
 
                 if (selectedTab == 0) {
                     OutlinedTextField(
@@ -127,18 +129,13 @@ fun SearchScreen(
                                 dailyId = it
                             }
                         },
-                        label = { Text("Daily Order ID", color = TextGold) },
+                        label = { Text("Daily Order ID") },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextLight,
-                            unfocusedTextColor = TextLight,
-                            focusedBorderColor = PrimaryGold,
-                            unfocusedBorderColor = BorderGold
-                        ),
+                        colors = outlinedSearchFieldColors(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(spacing.small))
 
                     KhanaDatePickerField(
                         label = "Select Date",
@@ -146,7 +143,7 @@ fun SearchScreen(
                         onDateSelected = { dailyDate = it }
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(spacing.medium))
 
                     Button(
                         onClick = {
@@ -154,7 +151,7 @@ fun SearchScreen(
                                 viewModel.searchByDailyId(dailyId, dailyDate)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                         shape = RoundedCornerShape(12.dp),
                         enabled = dailyId.isNotEmpty()
@@ -163,10 +160,10 @@ fun SearchScreen(
                             Icons.Default.Search,
                             contentDescription = null,
                             tint = DarkBrown1,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Search Order", color = DarkBrown1, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(spacing.small))
+                        Text("Search Order", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                     }
                 } else {
                     OutlinedTextField(
@@ -178,25 +175,20 @@ fun SearchScreen(
                                 android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
                             }
                         },
-                        label = { Text("Lifetime Order ID", color = TextGold) },
+                        label = { Text("Lifetime Order ID") },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextLight,
-                            unfocusedTextColor = TextLight,
-                            focusedBorderColor = PrimaryGold,
-                            unfocusedBorderColor = BorderGold
-                        ),
+                        colors = outlinedSearchFieldColors(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(spacing.medium))
                     Button(
                         onClick = {
                             lifetimeQuery.toLongOrNull()?.let {
                                 viewModel.searchByLifetimeId(it)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                         shape = RoundedCornerShape(12.dp),
                         enabled = lifetimeQuery.isNotEmpty()
@@ -205,26 +197,25 @@ fun SearchScreen(
                             Icons.Default.Search,
                             contentDescription = null,
                             tint = DarkBrown1,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Search Order", color = DarkBrown1, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(spacing.small))
+                        Text("Search Order", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(spacing.large))
 
             val currentResult = result
             if (currentResult != null) {
-                Card(
+                KhanaBookCard(
                     modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                     colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.5f))
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp).wrapContentHeight()) {
-                        // Header Section: Phone and Date in single line
+                    Column(modifier = Modifier.padding(spacing.medium).wrapContentHeight()) {
+                        
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -232,12 +223,11 @@ fun SearchScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Phone, null, tint = TextGold, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(spacing.extraSmall))
                                 Text(
                                     currentResult.bill.customerWhatsapp ?: "N/A",
                                     color = TextLight,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
                                 )
                             }
                             
@@ -245,11 +235,11 @@ fun SearchScreen(
                             
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Event, null, tint = TextGold, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(spacing.extraSmall))
                                 Text(
                                     DateUtils.formatDisplay(currentResult.bill.createdAt),
                                     color = TextGold,
-                                    fontSize = 11.sp
+                                    style = MaterialTheme.typography.labelSmall
                                 )
                             }
                             
@@ -264,36 +254,35 @@ fun SearchScreen(
                                 Text(
                                     currentResult.bill.paymentStatus.uppercase(),
                                     color = if (currentResult.bill.paymentStatus == "success") SuccessGreen else DangerRed,
-                                    fontSize = 10.sp,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    fontWeight = FontWeight.Bold
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
                         }
 
                         HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 12.dp),
+                            modifier = Modifier.padding(vertical = spacing.medium),
                             color = BorderGold.copy(alpha = 0.2f)
                         )
 
-                        // Scrollable Items Section
+                        
                         if (currentResult.items.isEmpty()) {
                             Text(
                                 text = "No items found in this order.",
                                 color = TextLight.copy(alpha = 0.5f),
-                                fontSize = 13.sp,
-                                modifier = Modifier.padding(vertical = 16.dp).align(Alignment.CenterHorizontally)
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(vertical = spacing.medium).align(Alignment.CenterHorizontally)
                             )
                         } else {
                             Box(
                                 modifier = Modifier
-                                    .weight(1f, fill = false) // Allow it to take available space but not force it
+                                    .weight(1f, fill = false) 
                                     .fillMaxWidth()
-                                    .heightIn(max = 240.dp) // Responsive limit for smaller screens
+                                    .heightIn(max = 240.dp) 
                             ) {
                                 LazyColumn(
                                     modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    verticalArrangement = Arrangement.spacedBy(spacing.small)
                                 ) {
                                     items(currentResult.items) { item ->
                                         Row(
@@ -304,14 +293,13 @@ fun SearchScreen(
                                             Text(
                                                 "${item.itemName} x${item.quantity}",
                                                 color = TextLight,
-                                                fontSize = 13.sp,
+                                                style = MaterialTheme.typography.bodySmall,
                                                 modifier = Modifier.weight(1f)
                                             )
                                             Text(
                                                 CurrencyUtils.formatPrice(item.itemTotal),
                                                 color = TextLight,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.SemiBold
+                                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
                                             )
                                         }
                                     }
@@ -320,11 +308,11 @@ fun SearchScreen(
                         }
 
                         HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 12.dp),
+                            modifier = Modifier.padding(vertical = spacing.medium),
                             color = BorderGold.copy(alpha = 0.2f)
                         )
 
-                        // Fixed Footer Section
+                        
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -334,26 +322,24 @@ fun SearchScreen(
                                 Text(
                                     "Total Amount",
                                     color = PrimaryGold,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                                 Text(
-                                    "${CurrencyUtils.formatPrice(currentResult.bill.totalAmount)}",
+                                    CurrencyUtils.formatPrice(currentResult.bill.totalAmount),
                                     color = PrimaryGold,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 18.sp
+                                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold)
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(spacing.medium))
 
                             if (title.contains("Status", ignoreCase = true)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(spacing.medium)
                                 ) {
                                     Column(modifier = Modifier.weight(1.3f)) {
-                                        Text("Payment Mode", color = TextGold, fontSize = 10.sp, modifier = Modifier.padding(bottom = 4.dp))
+                                        Text("Payment Mode", color = TextGold, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp))
                                         Surface(
                                             color = Color.Black.copy(alpha = 0.3f),
                                             shape = RoundedCornerShape(6.dp),
@@ -362,40 +348,37 @@ fun SearchScreen(
                                             Text(
                                                 PaymentMode.fromDbValue(currentResult.bill.paymentMode).displayLabel,
                                                 color = TextLight,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp,
+                                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                                             )
                                         }
                                     }
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("Order ID", color = TextGold, fontSize = 10.sp, modifier = Modifier.padding(bottom = 4.dp))
+                                        Text("Order ID", color = TextGold, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp))
                                         Text(
                                             "#${currentResult.bill.dailyOrderDisplay.split("-").last()}",
                                             color = TextLight,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                         )
                                     }
                                 }
                             } else {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
                                 ) {
                                     Button(
                                         onClick = {
                                             result?.let { shareBillOnWhatsApp(context, it, profile) }
                                         },
                                         enabled = currentResult.items.isNotEmpty(),
-                                        modifier = Modifier.weight(1f).height(44.dp),
+                                        modifier = Modifier.weight(1f).height(48.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                                        shape = RoundedCornerShape(10.dp),
-                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
                                         Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("WhatsApp", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.width(spacing.extraSmall))
+                                        Text("WhatsApp", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                     }
                                     OutlinedButton(
                                         onClick = {
@@ -404,14 +387,14 @@ fun SearchScreen(
                                             }
                                         },
                                         enabled = currentResult.items.isNotEmpty(),
-                                        modifier = Modifier.weight(1f).height(44.dp),
-                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.weight(1f).height(48.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
                                         border = BorderStroke(1.5.dp, PrimaryGold)
                                     ) {
                                         Icon(Icons.Default.Print, null, tint = PrimaryGold, modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Print Bill", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.width(spacing.extraSmall))
+                                        Text("Print Bill", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                     }
                                 }
                             }
@@ -430,10 +413,11 @@ fun SearchScreen(
                             tint = TextGold.copy(alpha = 0.3f),
                             modifier = Modifier.size(64.dp)
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(spacing.medium))
                         Text(
                             if (hasSearched) "No Order Found" else "Search for an order to view details",
-                            color = TextGold.copy(alpha = 0.5f)
+                            color = TextGold.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
                 }
@@ -441,3 +425,14 @@ fun SearchScreen(
         }
     }
 }
+
+@Composable
+private fun outlinedSearchFieldColors() =
+    OutlinedTextFieldDefaults.colors(
+        focusedTextColor = TextLight,
+        unfocusedTextColor = TextLight,
+        focusedBorderColor = PrimaryGold,
+        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+        focusedLabelColor = PrimaryGold,
+        unfocusedLabelColor = TextGold
+    )

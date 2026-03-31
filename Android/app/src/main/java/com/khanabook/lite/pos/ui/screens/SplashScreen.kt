@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.background
@@ -16,10 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.khanabook.lite.pos.R
-import com.khanabook.lite.pos.ui.theme.DarkBrown1
-import com.khanabook.lite.pos.ui.theme.DarkBrown2
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
-import com.khanabook.lite.pos.ui.theme.TextGold
+import com.khanabook.lite.pos.ui.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SplashViewModel
 
@@ -31,6 +30,7 @@ fun SplashScreen(
     viewModel: SplashViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val spacing = KhanaBookTheme.spacing
 
     Box(
         modifier = Modifier
@@ -42,21 +42,21 @@ fun SplashScreen(
             Text(
                 text = stringResource(id = R.string.khanabook),
                 color = PrimaryGold,
-                fontSize = 40.sp,
+                style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = stringResource(id = R.string.lite),
                 color = TextGold,
-                fontSize = 20.sp,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Light,
                 letterSpacing = 4.sp
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(spacing.medium))
             Text(
                 text = stringResource(id = R.string.smart_billing_slogan),
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 14.sp
+                color = TextLight,
+                style = MaterialTheme.typography.bodyMedium
             )
         }
     }
@@ -70,4 +70,3 @@ fun SplashScreen(
         }
     }
 }
-

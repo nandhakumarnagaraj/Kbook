@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package com.khanabook.lite.pos.ui.screens
 
 import android.content.Intent
@@ -22,9 +24,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.theme.*
+import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CallCustomerScreen(
         onBack: () -> Unit,
@@ -42,13 +44,14 @@ fun CallCustomerScreen(
     }
     val result by viewModel.searchResult.collectAsState()
     val context = LocalContext.current
+    val spacing = KhanaBookTheme.spacing
 
     Scaffold(
             modifier = modifier,
             topBar = {
                 CenterAlignedTopAppBar(
                         title = {
-                            Text("Call Customer", color = PrimaryGold, fontWeight = FontWeight.Bold)
+                            Text("Call Customer", color = PrimaryGold, style = MaterialTheme.typography.titleLarge)
                         },
                         navigationIcon = {
                             IconButton(onClick = onBack) {
@@ -84,26 +87,27 @@ fun CallCustomerScreen(
                                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
                                 .imePadding()
                                 .navigationBarsPadding()
-                                .padding(24.dp)
+                                .padding(spacing.large)
         ) {
             TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = DarkBrown1,
-                    contentColor = PrimaryGold
+                    contentColor = PrimaryGold,
+                    divider = {}
             ) {
                 Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("Daily ID") }
+                        text = { Text("Daily ID", style = MaterialTheme.typography.labelLarge) }
                 )
                 Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("Lifetime ID") }
+                        text = { Text("Lifetime ID", style = MaterialTheme.typography.labelLarge) }
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(spacing.large))
 
             if (selectedTab == 0) {
                 OutlinedTextField(
@@ -115,19 +119,13 @@ fun CallCustomerScreen(
                                 android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
                             }
                         },
-                        label = { Text("Daily Order ID", color = TextGold) },
+                        label = { Text("Daily Order ID") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        colors =
-                                OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = TextLight,
-                                        unfocusedTextColor = TextLight,
-                                        focusedBorderColor = PrimaryGold,
-                                        unfocusedBorderColor = BorderGold
-                                ),
+                        colors = outlinedSearchFieldColors(),
                         singleLine = true
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(spacing.medium))
 
                 Box(modifier = Modifier.fillMaxWidth()) {
                     KhanaDatePickerField(
@@ -137,7 +135,7 @@ fun CallCustomerScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(spacing.medium))
 
                 Button(
                         onClick = {
@@ -150,9 +148,9 @@ fun CallCustomerScreen(
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                         enabled = dailyId.isNotEmpty()
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Search Customer", color = DarkBrown1, fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Text("Search Customer", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 }
             } else {
                 OutlinedTextField(
@@ -164,15 +162,9 @@ fun CallCustomerScreen(
                                 android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
                             }
                         },
-                        label = { Text("Lifetime Order ID", color = TextGold) },
+                        label = { Text("Lifetime Order ID") },
                         modifier = Modifier.fillMaxWidth(),
-                        colors =
-                                OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = TextLight,
-                                        unfocusedTextColor = TextLight,
-                                        focusedBorderColor = PrimaryGold,
-                                        unfocusedBorderColor = BorderGold
-                                ),
+                        colors = outlinedSearchFieldColors(),
                         singleLine = true,
                         keyboardOptions =
                                 androidx.compose.foundation.text.KeyboardOptions(
@@ -180,7 +172,7 @@ fun CallCustomerScreen(
                                                 androidx.compose.ui.text.input.KeyboardType.Number
                                 )
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(spacing.medium))
                 Button(
                         onClick = {
                             lifetimeId.toLongOrNull()?.let { viewModel.searchByLifetimeId(it) }
@@ -190,28 +182,23 @@ fun CallCustomerScreen(
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                         enabled = lifetimeId.isNotEmpty()
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Search Customer", color = DarkBrown1, fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Text("Search Customer", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(spacing.extraLarge))
 
             val currentResult = result
             if (currentResult != null) {
-                Card(
+                KhanaBookCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                        border =
-                                androidx.compose.foundation.BorderStroke(
-                                        1.dp,
-                                        BorderGold.copy(alpha = 0.5f)
-                                )
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
                 ) {
                     Column(
-                            modifier = Modifier.padding(24.dp),
+                            modifier = Modifier.padding(spacing.large),
                             horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
@@ -225,38 +212,34 @@ fun CallCustomerScreen(
                                 Text(
                                         text = initial,
                                         color = PrimaryGold,
-                                        fontSize = 32.sp,
-                                        fontWeight = FontWeight.Bold
+                                        style = MaterialTheme.typography.headlineLarge
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(spacing.medium))
 
                         Text(
                                 text = currentResult.bill.customerName?.takeIf { it != "Walking Customer" } ?: "Guest",
                                 color = TextLight,
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.headlineSmall
                         )
 
                         Text(
-                                text =
-                                        "Phone: ${currentResult.bill.customerWhatsapp ?: "Not Provided"}",
+                                text = "Phone: ${currentResult.bill.customerWhatsapp ?: "Not Provided"}",
                                 color = TextGold,
-                                fontSize = 16.sp
+                                style = MaterialTheme.typography.bodyLarge
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(spacing.small))
 
                         Text(
-                                text =
-                                        "Last Order: #${currentResult.bill.lifetimeOrderId} on ${DateUtils.formatDateOnly(currentResult.bill.createdAt)}",
+                                text = "Last Order: #${currentResult.bill.dailyOrderDisplay.split("-").last()} on ${DateUtils.formatDateOnly(currentResult.bill.createdAt)}",
                                 color = TextGold.copy(alpha = 0.7f),
-                                fontSize = 12.sp
+                                style = MaterialTheme.typography.labelSmall
                         )
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(spacing.large))
 
                         Button(
                                 onClick = {
@@ -272,8 +255,8 @@ fun CallCustomerScreen(
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
                         ) {
                             Icon(Icons.Default.Call, contentDescription = null, tint = Color.White)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Call Customer", color = Color.White, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(spacing.small))
+                            Text("Call Customer", color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                         }
                     }
                 }
@@ -289,10 +272,11 @@ fun CallCustomerScreen(
                                 tint = TextGold.copy(alpha = 0.3f),
                                 modifier = Modifier.size(64.dp)
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(spacing.medium))
                         Text(
                                 "Enter order details to find customer",
-                                color = TextGold.copy(alpha = 0.5f)
+                                color = TextGold.copy(alpha = 0.5f),
+                                style = MaterialTheme.typography.bodyMedium
                         )
                     }
                 }
@@ -300,3 +284,14 @@ fun CallCustomerScreen(
         }
     }
 }
+
+@Composable
+private fun outlinedSearchFieldColors() =
+    OutlinedTextFieldDefaults.colors(
+        focusedTextColor = TextLight,
+        unfocusedTextColor = TextLight,
+        focusedBorderColor = PrimaryGold,
+        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+        focusedLabelColor = PrimaryGold,
+        unfocusedLabelColor = TextGold
+    )
