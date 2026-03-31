@@ -88,19 +88,25 @@ fun LoginScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(DarkBackground)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkBackground),
+        contentAlignment = Alignment.Center
+    ) {
         Column(
                 modifier =
-                        Modifier.fillMaxSize()
+                        Modifier.fillMaxWidth()
                                 .verticalScroll(rememberScrollState())
                                 .imePadding()
-                                .padding(horizontal = spacing.large, vertical = spacing.extraHuge),
-                horizontalAlignment = Alignment.CenterHorizontally
+                                .padding(horizontal = spacing.large, vertical = spacing.medium),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
         ) {
             Image(
                     painter = painterResource(id = R.drawable.khanabook_logo),
                     contentDescription = "KhanaBook Lite logo",
-                    modifier = Modifier.size(180.dp).padding(top = spacing.medium, bottom = spacing.large),
+                    modifier = Modifier.size(160.dp).padding(bottom = spacing.medium),
                     contentScale = ContentScale.Fit
             )
 
@@ -109,7 +115,7 @@ fun LoginScreen(
                     style = MaterialTheme.typography.bodyLarge,
                     color = TextGold,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = spacing.huge)
+                    modifier = Modifier.padding(bottom = spacing.extraLarge)
             )
 
             
@@ -265,7 +271,7 @@ fun LoginScreen(
             ) {
                 if (isLoading && !isGoogleLogin) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(24.dp),
                         color = DarkBrown1,
                         strokeWidth = 2.dp
                     )
@@ -291,15 +297,16 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(spacing.large))
+            Spacer(modifier = Modifier.height(spacing.extraLarge))
 
             Text(text = "or Continue with", color = TextGold, style = MaterialTheme.typography.labelMedium)
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
             Row(
-                    horizontalArrangement = Arrangement.spacedBy(spacing.medium),
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
             ) {
                 Surface(
                         modifier =
@@ -318,7 +325,7 @@ fun LoginScreen(
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         if (isLoading && isGoogleLogin) {
                             CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(24.dp),
                                     color = GoogleRed,
                                     strokeWidth = 2.dp
                             )

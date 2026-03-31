@@ -144,21 +144,22 @@ fun SignUpScreen(
                 modifier =
                         Modifier.fillMaxSize()
                                 .background(Brush.verticalGradient(listOf(DarkBrown1, Color.Black)))
-                                .padding(padding)
+                                .padding(padding),
+                contentAlignment = Alignment.Center
         ) {
             Column(
                     modifier =
-                            Modifier.fillMaxSize()
+                            Modifier.fillMaxWidth()
                                     .verticalScroll(rememberScrollState())
                                     .imePadding()
-                                    .padding(horizontal = spacing.large)
-                                    .padding(top = spacing.large, bottom = spacing.large),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                                    .padding(horizontal = spacing.large, vertical = spacing.medium),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
             ) {
                 Image(
                         painter = painterResource(id = R.drawable.khanabook_logo),
                         contentDescription = "KhanaBook Lite logo",
-                        modifier = Modifier.size(130.dp).padding(bottom = spacing.small),
+                        modifier = Modifier.size(120.dp).padding(bottom = spacing.small),
                         contentScale = ContentScale.Fit
                 )
 
