@@ -128,7 +128,7 @@ fun LoginScreen(
                             passwordFocusRequester.requestFocus()
                         }
                     },
-                    placeholder = { Text("Phone Number", color = TextGold.copy(alpha = 0.5f)) },
+                    placeholder = { Text("Phone Number", color = TextGold.copy(alpha = 0.8f)) },
                     leadingIcon = {
                         Icon(
                                 imageVector = Icons.Default.Phone,
@@ -142,12 +142,14 @@ fun LoginScreen(
                             TextFieldDefaults.colors(
                                     unfocusedContainerColor = DarkBrown2,
                                     focusedContainerColor = DarkBrown2,
-                                    unfocusedLabelColor = Color.Gray,
+                                    unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
                                     focusedLabelColor = PrimaryGold,
                                     focusedIndicatorColor = Color.Transparent,
                                     unfocusedIndicatorColor = Color.Transparent,
                                     cursorColor = PrimaryGold,
-                                    errorContainerColor = DarkBrown2
+                                    errorContainerColor = DarkBrown2,
+                                    unfocusedPlaceholderColor = TextGold.copy(alpha = 0.8f),
+                                    focusedPlaceholderColor = PrimaryGold.copy(alpha = 0.5f)
                             ),
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextLight),
                     singleLine = true,
@@ -172,7 +174,7 @@ fun LoginScreen(
             TextField(
                     value = password,
                     onValueChange = { password = it },
-                    placeholder = { Text("Password", color = TextGold.copy(alpha = 0.5f)) },
+                    placeholder = { Text("Password", color = TextGold.copy(alpha = 0.8f)) },
                     leadingIcon = {
                         Icon(
                                 imageVector = Icons.Default.Lock,
@@ -199,12 +201,14 @@ fun LoginScreen(
                             TextFieldDefaults.colors(
                                     unfocusedContainerColor = DarkBrown2,
                                     focusedContainerColor = DarkBrown2,
-                                    unfocusedLabelColor = Color.Gray,
+                                    unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
                                     focusedLabelColor = PrimaryGold,
                                     focusedIndicatorColor = Color.Transparent,
                                     unfocusedIndicatorColor = Color.Transparent,
                                     cursorColor = PrimaryGold,
-                                    errorContainerColor = DarkBrown2
+                                    errorContainerColor = DarkBrown2,
+                                    unfocusedPlaceholderColor = TextGold.copy(alpha = 0.8f),
+                                    focusedPlaceholderColor = PrimaryGold.copy(alpha = 0.5f)
                             ),
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextLight),
                     singleLine = true,
