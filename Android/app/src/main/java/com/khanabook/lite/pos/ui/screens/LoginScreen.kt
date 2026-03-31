@@ -128,7 +128,7 @@ fun LoginScreen(
                             passwordFocusRequester.requestFocus()
                         }
                     },
-                    placeholder = { Text("Phone Number", color = Color.Gray) },
+                    placeholder = { Text("Phone Number", color = TextGold.copy(alpha = 0.5f)) },
                     leadingIcon = {
                         Icon(
                                 imageVector = Icons.Default.Phone,
@@ -172,7 +172,7 @@ fun LoginScreen(
             TextField(
                     value = password,
                     onValueChange = { password = it },
-                    placeholder = { Text("Password", color = Color.Gray) },
+                    placeholder = { Text("Password", color = TextGold.copy(alpha = 0.5f)) },
                     leadingIcon = {
                         Icon(
                                 imageVector = Icons.Default.Lock,
