@@ -85,9 +85,9 @@ class InvoiceFormatterTest {
         val bytes = InvoiceFormatter.formatForThermalPrinter(bill, profile)
         val output = String(bytes, Charset.forName("GBK"))
         
-        // 80mm = 48 chars
-        val expectedLine = "-".repeat(48)
-        val expectedDoubleLine = "=".repeat(48)
+        // 80mm = 42 chars (Font A standard)
+        val expectedLine = "-".repeat(42)
+        val expectedDoubleLine = "=".repeat(42)
         
         assertTrue("80mm single line missing", output.contains(expectedLine))
         assertTrue("80mm double line missing", output.contains(expectedDoubleLine))
