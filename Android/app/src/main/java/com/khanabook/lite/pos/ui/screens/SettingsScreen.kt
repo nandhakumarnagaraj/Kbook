@@ -822,6 +822,50 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
 }
 
 @Composable
+fun DeviceRow(
+    device: BluetoothDevice, 
+    isConnecting: Boolean, 
+    isSelected: Boolean = false, 
+    isConnected: Boolean = false, 
+    onClick: () -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    @Suppress("MissingPermission")
+    val name = device.name ?: "Unknown"
+    val border = if (isSelected) BorderStroke(2.dp, PrimaryGold) else null
+    val backgroundColor = if (isSelected) DarkBrown1 else DarkBrown1.copy(alpha = 0.5f)
+    
+    KhanaBookCard(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), 
+        onClick = if (!isConnecting) onClick else null,
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        if (border != null) {
+            Modifier.border(border, RoundedCornerShape(8.dp))
+        }
+        Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                if (isConnected) Icons.Default.BluetoothConnected else Icons.Default.Bluetooth, 
+                null, 
+                tint = if (isSelected) PrimaryGold else TextGold,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(spacing.medium))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(name, color = TextLight, style = MaterialTheme.typography.titleMedium.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium))
+                Text(device.address, color = if (isSelected) PrimaryGold.copy(alpha = 0.7f) else TextGold, style = MaterialTheme.typography.labelSmall)
+            }
+            if (isConnecting) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = PrimaryGold, strokeWidth = 2.dp)
+            } else if (isConnected) {
+                Box(modifier = Modifier.size(8.dp).background(SuccessGreen, CircleShape))
+            }
+        }
+    }
+}
+
+@Composable
 private fun PrinterOptionRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
         Checkbox(checked = checked, onCheckedChange = onCheckedChange, colors = CheckboxDefaults.colors(checkedColor = PrimaryGold))
