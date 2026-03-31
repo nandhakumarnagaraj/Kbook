@@ -5,15 +5,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.khanabook.saas.entity.OtpRequest;
+import com.khanabook.saas.repository.OtpRequestRepository;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
 
 @Service
 public class PasswordResetOtpService {
@@ -25,8 +29,12 @@ public class PasswordResetOtpService {
 	private static final String PASSWORD_RESET_PREFIX = "password-reset:";
 	private static final String MOBILE_UPDATE_PREFIX = "mobile-update:";
 
-	private final Map<String, OtpChallenge> challenges = new ConcurrentHashMap<>();
+	private final OtpRequestRepository otpRequestRepository;
 	private final HttpClient httpClient = HttpClient.newHttpClient();
+
+	public PasswordResetOtpService(OtpRequestRepository otpRequestRepository) {
+		this.otpRequestRepository = otpRequestRepository;
+	}
 
 	@Value("${whatsapp.meta.access-token:}")
 	private String metaAccessToken;
@@ -40,26 +48,32 @@ public class PasswordResetOtpService {
 	@Value("${whatsapp.meta.fixed-otp:}")
 	private String fixedOtp;
 
+	@Transactional
 	public void issueOtp(String phoneNumber) {
 		issueOtp(PASSWORD_RESET_PREFIX + phoneNumber, phoneNumber);
 	}
 
+	@Transactional
 	public void issueSignupOtp(String phoneNumber) {
 		issueOtp(SIGNUP_PREFIX + phoneNumber, phoneNumber);
 	}
 
+	@Transactional
 	public void validateSignupOtpOrThrow(String phoneNumber, String otp) {
 		validateOtpOrThrow(SIGNUP_PREFIX + phoneNumber, phoneNumber, otp);
 	}
 
+	@Transactional
 	public void validateOtpOrThrow(String phoneNumber, String otp) {
 		validateOtpOrThrow(PASSWORD_RESET_PREFIX + phoneNumber, phoneNumber, otp);
 	}
 
+	@Transactional
 	public void issueMobileUpdateOtp(Long tenantId, String phoneNumber) {
 		issueOtp(MOBILE_UPDATE_PREFIX + tenantId, phoneNumber);
 	}
 
+	@Transactional
 	public void validateMobileUpdateOtpOrThrow(Long tenantId, String phoneNumber, String otp) {
 		validateOtpOrThrow(MOBILE_UPDATE_PREFIX + tenantId, phoneNumber, otp);
 	}
@@ -68,40 +82,63 @@ public class PasswordResetOtpService {
 		String otp = (fixedOtp != null && fixedOtp.matches("^\\d{6}$"))
 				? fixedOtp
 				: String.format("%06d", java.util.concurrent.ThreadLocalRandom.current().nextInt(0, 1_000_000));
-		challenges.put(challengeKey, new OtpChallenge(otp, System.currentTimeMillis() + OTP_TTL_MILLIS, 0, phoneNumber));
+
+		long now = System.currentTimeMillis();
+		OtpRequest request = otpRequestRepository.findByChallengeKey(challengeKey)
+				.orElseGet(() -> OtpRequest.builder().challengeKey(challengeKey).build());
+
+		request.setPhoneNumber(phoneNumber);
+		request.setOtp(otp);
+		request.setExpiresAt(now + OTP_TTL_MILLIS);
+		request.setAttempts(0);
+		request.setCreatedAt(now);
+
+		otpRequestRepository.save(request);
 		sendOtp(challengeKey, phoneNumber, otp);
 	}
 
 	private void validateOtpOrThrow(String challengeKey, String phoneNumber, String otp) {
-		OtpChallenge challenge = challenges.get(challengeKey);
-		if (challenge == null || challenge.expiresAtMillis() < System.currentTimeMillis()) {
-			challenges.remove(challengeKey);
+		OtpRequest challenge = otpRequestRepository.findByChallengeKey(challengeKey).orElse(null);
+
+		if (challenge == null || challenge.getExpiresAt() < System.currentTimeMillis()) {
+			if (challenge != null) {
+				otpRequestRepository.delete(challenge);
+			}
 			throw new IllegalArgumentException("OTP expired. Please request a new code.");
 		}
 
-		if (challenge.attempts() >= MAX_ATTEMPTS) {
-			challenges.remove(challengeKey);
+		if (challenge.getAttempts() >= MAX_ATTEMPTS) {
+			otpRequestRepository.delete(challenge);
 			throw new IllegalArgumentException("Too many invalid OTP attempts. Please request a new code.");
 		}
 
-		if (!challenge.phoneNumber().equals(phoneNumber)) {
-			challenges.remove(challengeKey);
+		if (!challenge.getPhoneNumber().equals(phoneNumber)) {
+			otpRequestRepository.delete(challenge);
 			throw new IllegalArgumentException("OTP requested for a different mobile number. Please request a new code.");
 		}
 
-		if (!challenge.otp().equals(otp)) {
-			challenges.put(challengeKey, challenge.withAttempts(challenge.attempts() + 1));
+		if (!challenge.getOtp().equals(otp)) {
+			challenge.setAttempts(challenge.getAttempts() + 1);
+			otpRequestRepository.save(challenge);
 			throw new IllegalArgumentException("Invalid OTP.");
 		}
 
-		challenges.remove(challengeKey);
+		otpRequestRepository.delete(challenge);
+	}
+
+	@Scheduled(fixedDelay = 3600000) // Every hour
+	@Transactional
+	public void cleanupExpiredOtps() {
+		long now = System.currentTimeMillis();
+		otpRequestRepository.deleteByExpiresAtBefore(now);
 	}
 
 	private void sendOtp(String challengeKey, String phoneNumber, String otp) {
 		if (metaAccessToken == null || metaAccessToken.isBlank()
 				|| phoneNumberId == null || phoneNumberId.isBlank()
 				|| otpTemplateName == null || otpTemplateName.isBlank()) {
-			log.warn("WhatsApp OTP config missing. Password reset OTP for {} is {}", phoneNumber, otp);
+			log.warn("WhatsApp OTP config missing for challengeType={} phone={}. OTP={}",
+					describeChallenge(challengeKey), phoneNumber, otp);
 			return;
 		}
 
@@ -145,26 +182,51 @@ public class PasswordResetOtpService {
 
 		try {
 			HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-				if (response.statusCode() >= 300) {
-					throw new IllegalStateException("WhatsApp OTP send failed with status " + response.statusCode());
-				}
-			} catch (Exception e) {
-			challenges.remove(challengeKey);
+			if (response.statusCode() >= 300) {
+				log.error(
+						"WhatsApp OTP send failed for challengeType={} phone={} formattedPhone={} status={} body={}",
+						describeChallenge(challengeKey),
+						phoneNumber,
+						formattedPhoneNumber,
+						response.statusCode(),
+						response.body());
+				throw new IllegalStateException("WhatsApp OTP send failed with status " + response.statusCode());
+			}
+			log.info("WhatsApp OTP sent for challengeType={} phone={} formattedPhone={}",
+					describeChallenge(challengeKey), phoneNumber, formattedPhoneNumber);
+		} catch (Exception e) {
+			otpRequestRepository.deleteByChallengeKey(challengeKey);
+			log.error("Failed to send OTP for challengeType={} phone={} formattedPhone={}",
+					describeChallenge(challengeKey), phoneNumber, formattedPhoneNumber, e);
 			throw new IllegalStateException("Failed to send OTP. Please try again.", e);
 		}
 	}
 
 	private String formatWhatsappPhoneNumber(String phoneNumber) {
-		return "91" + phoneNumber;
+		String digits = phoneNumber == null ? "" : phoneNumber.replaceAll("[^0-9]", "");
+		if (digits.length() == 10) {
+			return "91" + digits;
+		}
+		if (digits.startsWith("91") && digits.length() == 12) {
+			return digits;
+		}
+		return digits;
+	}
+
+	private String describeChallenge(String challengeKey) {
+		if (challengeKey.startsWith(SIGNUP_PREFIX)) {
+			return "signup";
+		}
+		if (challengeKey.startsWith(PASSWORD_RESET_PREFIX)) {
+			return "password-reset";
+		}
+		if (challengeKey.startsWith(MOBILE_UPDATE_PREFIX)) {
+			return "mobile-update";
+		}
+		return "unknown";
 	}
 
 	private String escapeJson(String input) {
 		return input.replace("\\", "\\\\").replace("\"", "\\\"");
-	}
-
-	private record OtpChallenge(String otp, long expiresAtMillis, int attempts, String phoneNumber) {
-		private OtpChallenge withAttempts(int nextAttempts) {
-			return new OtpChallenge(otp, expiresAtMillis, nextAttempts, phoneNumber);
-		}
 	}
 }

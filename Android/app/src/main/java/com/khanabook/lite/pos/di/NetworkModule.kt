@@ -1,7 +1,6 @@
 package com.khanabook.lite.pos.di
 
 import com.khanabook.lite.pos.BuildConfig
-import com.khanabook.lite.pos.data.remote.WhatsAppApiService
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.interceptor.AuthInterceptor
 import com.khanabook.lite.pos.domain.util.NetworkMonitor
@@ -22,7 +21,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val META_BASE_URL = "https://graph.facebook.com/v17.0/"
     private const val BACKEND_BASE_URL = BuildConfig.BACKEND_URL
 
     @Provides
@@ -67,17 +65,6 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    @Named("MetaRetrofit")
-    fun provideMetaRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(META_BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(okHttpClient)
-            .build()
-    }
-
-    @Provides
-    @Singleton
     @Named("BackendRetrofit")
     fun provideBackendRetrofit(@Named("AuthOkHttpClient") okHttpClient: OkHttpClient): Retrofit {
         val baseUrlWithPrefix = if (BACKEND_BASE_URL.endsWith("/")) {
@@ -90,12 +77,6 @@ object NetworkModule {
             .addConverterFactory(GsonConverterFactory.create())
             .client(okHttpClient)
             .build()
-    }
-
-    @Provides
-    @Singleton
-    fun provideWhatsAppApiService(@Named("MetaRetrofit") retrofit: Retrofit): WhatsAppApiService {
-        return retrofit.create(WhatsAppApiService::class.java)
     }
 
     @Provides
