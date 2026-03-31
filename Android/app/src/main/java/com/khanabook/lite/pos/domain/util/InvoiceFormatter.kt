@@ -43,7 +43,7 @@ object InvoiceFormatter {
     }
 
     fun formatForThermalPrinter(bill: BillWithItems, profile: RestaurantProfileEntity?): ByteArray {
-        val charsPerLine = if (profile?.paperSize == "80mm") 48 else 32
+        val charsPerLine = if (profile?.paperSize == "80mm") 42 else 32
         val currency = resolveCurrency(profile)
         val isGst = profile?.gstEnabled == true
         
@@ -112,7 +112,7 @@ object InvoiceFormatter {
 
         // 4. Itemized Table (80mm optimization)
         // Give the removed HSN width entirely to the item name column
-        val itemW = if (width > 40) 24 else 12
+        val itemW = if (width > 40) 18 else 12
         val qtyW = 4
         val rateW = if (width > 40) 8 else 7
         val amtW = width - itemW - qtyW - rateW - 3 // 3 gaps
@@ -151,7 +151,8 @@ object InvoiceFormatter {
         
         add(BOLD_ON)
         add(LARGE_FONT)
-        add(formatRow("NET AMT:", "$currency ${formatMoney(bill.bill.totalAmount)}", width))
+        val doubleWidthChars = width / 2
+        add(formatRow("NET AMT:", "$currency ${formatMoney(bill.bill.totalAmount)}", doubleWidthChars))
         add(NORMAL_FONT)
         add(BOLD_OFF)
         add("$doubleLine\n")
