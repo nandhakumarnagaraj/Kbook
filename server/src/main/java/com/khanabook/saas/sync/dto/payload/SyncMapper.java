@@ -171,6 +171,9 @@ public class SyncMapper {
                 entity.setId(dto.getId());
                 entity.setLocalId(dto.getLocalId());
                 entity.setServerUpdatedAt(dto.getServerUpdatedAt());
+                if (dto.getIsActive() == null) {
+                    entity.setIsActive(true);
+                }
             }
 
             return target;

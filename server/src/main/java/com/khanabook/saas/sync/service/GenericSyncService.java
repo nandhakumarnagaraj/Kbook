@@ -232,12 +232,16 @@ public class GenericSyncService {
 										user.setEmail(existingUser.getEmail());
 									}
 								
-								if (user.getGoogleEmail() == null || user.getGoogleEmail().trim().isEmpty()) {
-									user.setGoogleEmail(existingUser.getGoogleEmail());
-								}
+									if (user.getGoogleEmail() == null || user.getGoogleEmail().trim().isEmpty()) {
+										user.setGoogleEmail(existingUser.getGoogleEmail());
+									}
 
-								// Prevent duplicate email/phone numbers from crashing the batch sync
-									if (repository instanceof com.khanabook.saas.repository.UserRepository) {
+									if (user.getIsActive() == null) {
+										user.setIsActive(existingUser.getIsActive() != null ? existingUser.getIsActive() : true);
+									}
+
+									// Prevent duplicate email/phone numbers from crashing the batch sync
+										if (repository instanceof com.khanabook.saas.repository.UserRepository) {
 										com.khanabook.saas.repository.UserRepository userRepo = (com.khanabook.saas.repository.UserRepository) repository;
 
 										if (existingUser.getLoginId() != null && user.getLoginId() != null

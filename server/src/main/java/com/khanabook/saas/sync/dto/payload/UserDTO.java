@@ -30,5 +30,6 @@ public class UserDTO {
     private String passwordHash;
     private String whatsappNumber;
     private UserRole role;
+    @JsonIgnore
     private Boolean isActive;
 }
