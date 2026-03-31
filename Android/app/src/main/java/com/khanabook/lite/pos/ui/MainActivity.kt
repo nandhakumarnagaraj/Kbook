@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -76,27 +77,31 @@ class MainActivity : ComponentActivity() {
                     navController = navController, 
                     startDestination = "splash",
                     enterTransition = { 
-                        fadeIn(tween(400)) + slideInHorizontally(
+                        fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + 
+                        slideInHorizontally(
                             initialOffsetX = { fullWidth -> fullWidth }, 
-                            animationSpec = tween(400)
+                            animationSpec = tween(500, easing = FastOutSlowInEasing)
                         ) 
                     },
                     exitTransition = { 
-                        fadeOut(tween(400)) + slideOutHorizontally(
+                        fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + 
+                        slideOutHorizontally(
                             targetOffsetX = { fullWidth -> -fullWidth }, 
-                            animationSpec = tween(400)
+                            animationSpec = tween(500, easing = FastOutSlowInEasing)
                         ) 
                     },
                     popEnterTransition = { 
-                        fadeIn(tween(400)) + slideInHorizontally(
+                        fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + 
+                        slideInHorizontally(
                             initialOffsetX = { fullWidth -> -fullWidth }, 
-                            animationSpec = tween(400)
+                            animationSpec = tween(500, easing = FastOutSlowInEasing)
                         ) 
                     },
                     popExitTransition = { 
-                        fadeOut(tween(400)) + slideOutHorizontally(
+                        fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + 
+                        slideOutHorizontally(
                             targetOffsetX = { fullWidth -> fullWidth },
-                            animationSpec = tween(400)
+                            animationSpec = tween(500, easing = FastOutSlowInEasing)
                         ) 
                     }
                 ) {
