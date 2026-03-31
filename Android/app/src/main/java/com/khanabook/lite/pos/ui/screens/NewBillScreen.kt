@@ -65,6 +65,7 @@ fun NewBillScreen(
 ) {
     var step by remember { mutableIntStateOf(1) }
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
+    val spacing = KhanaBookTheme.spacing
 
     // Intercept system back gesture to navigate through steps
     androidx.activity.compose.BackHandler(enabled = step > 1) {
@@ -102,7 +103,7 @@ fun NewBillScreen(
         topBar = {
             Column(modifier = Modifier.background(DarkBrown1)) {
                 CenterAlignedTopAppBar(
-                    title = { Text("New Bill", color = PrimaryGold, fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+                    title = { Text("New Bill", color = PrimaryGold, style = MaterialTheme.typography.titleLarge) },
                     navigationIcon = {
                         IconButton(onClick = { if (step == 1) onBack() else if (step == 2) step = 1 else if (step == 3) step = 2 else onBack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
@@ -180,15 +181,15 @@ fun NewBillScreen(
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(32.dp),
+                            modifier = Modifier.padding(spacing.extraLarge),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             CircularProgressIndicator(color = PrimaryGold)
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(spacing.medium))
                             Text(
                                 text = "Saving Bill...",
                                 color = TextLight,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.titleMedium
                             )
                         }
                     }
@@ -202,6 +203,7 @@ fun NewBillScreen(
 fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideHeader: Boolean = false) {
     var name by remember { mutableStateOf("") }
     var whatsapp by remember { mutableStateOf("") }
+    val spacing = KhanaBookTheme.spacing
 
     
     val isWhatsappValid = whatsapp.isNotEmpty() && ValidationUtils.isValidPhone(whatsapp)
@@ -212,7 +214,7 @@ fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideH
                     Modifier.fillMaxSize()
                             .imePadding()
                             .verticalScroll(rememberScrollState())
-                            .padding(24.dp)
+                            .padding(spacing.large)
     ) {
         if (!hideHeader) {
             
@@ -228,13 +230,12 @@ fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideH
                     Text(
                             "New Bill",
                             color = PrimaryGold,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.headlineMedium
                     )
-                    Text("Customer Details", color = TextGold, fontSize = 14.sp)
+                    Text("Customer Details", color = TextGold, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(spacing.extraLarge))
         }
 
         val showPhoneError = whatsapp.isNotEmpty() && !ValidationUtils.isValidPhone(whatsapp)
@@ -254,7 +255,7 @@ fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideH
                                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
                         )
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(spacing.medium))
         OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -264,7 +265,7 @@ fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideH
                 leadingIcon = { Icon(Icons.Default.Person, null, tint = PrimaryGold) }
         )
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(spacing.huge))
         Button(
             onClick = { if (isNextEnabled) onNext(name, whatsapp) },
             modifier = Modifier
@@ -280,8 +281,7 @@ fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideH
             Text(
                     "Continue",
                     color = if (isNextEnabled) DarkBrown1 else Color.LightGray,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+                    style = MaterialTheme.typography.titleMedium
             )
         }
     }
@@ -302,7 +302,7 @@ fun OrderTypeButton(text: String, isSelected: Boolean, modifier: Modifier, onCli
         Text(
                 text,
                 color = if (isSelected) DarkBrown1 else TextGold,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                style = if (isSelected) MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge
         )
     }
 }
@@ -322,12 +322,13 @@ fun MenuSelectionStep(
     val items by menuViewModel.menuItems.collectAsStateWithLifecycle()
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
-    val context = androidx.compose.ui.platform.LocalContext.current
     val configuration = LocalConfiguration.current
+    val spacing = KhanaBookTheme.spacing
     
-    // Adaptive grid columns: 1 for phones, 2 for tablets/landscape, 3 for large tablets
+    // Adaptive split-view: Categories on left, Cart on right for tablets
+    val isWideScreen = configuration.screenWidthDp >= 840
     val gridColumns = when {
-        configuration.screenWidthDp >= 900 -> 3
+        configuration.screenWidthDp >= 1200 -> 3
         configuration.screenWidthDp >= 600 -> 2
         else -> 1
     }
@@ -342,11 +343,12 @@ fun MenuSelectionStep(
         derivedStateOf { cartItems.sumOf { it.quantity } }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+    Row(modifier = Modifier.fillMaxSize()) {
+        // Main Menu Area
+        Column(modifier = Modifier.weight(if (isWideScreen) 0.65f else 1f).fillMaxHeight()) {
             if (!hideHeader) {
                 Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(spacing.medium),
                         verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -355,8 +357,8 @@ fun MenuSelectionStep(
                             tint = PrimaryGold,
                             modifier = Modifier.clickable { onBack() }
                     )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text("New Bill", color = PrimaryGold, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(spacing.medium))
+                    Text("New Bill", color = PrimaryGold, style = MaterialTheme.typography.titleLarge)
                 }
             }
 
@@ -367,7 +369,7 @@ fun MenuSelectionStep(
                         selectedTabIndex = selectedIndex,
                         containerColor = PrimaryGold,
                         contentColor = DarkBrown1,
-                        edgePadding = 16.dp,
+                        edgePadding = spacing.medium,
                         divider = {},
                         indicator = { tabPositions ->
                             if (selectedIndex < tabPositions.size) {
@@ -388,11 +390,9 @@ fun MenuSelectionStep(
                                 text = {
                                     Text(
                                             category.name,
-                                            fontSize = 13.sp,
-                                            fontWeight =
-                                                    if (category.id == selectedCategoryId)
-                                                            FontWeight.Bold
-                                                    else FontWeight.Medium
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontWeight = if (category.id == selectedCategoryId) FontWeight.Bold else FontWeight.Medium
+                                            )
                                     )
                                 },
                                 selectedContentColor = DarkBrown1,
@@ -404,9 +404,9 @@ fun MenuSelectionStep(
 
             LazyVerticalGrid(
                     columns = GridCells.Fixed(gridColumns),
-                    modifier = Modifier.weight(1f).padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.weight(1f).padding(spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(spacing.small + spacing.extraSmall),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small + spacing.extraSmall)
             ) {
                 items(items, key = { it.menuItem.id }) { menuWithVariants ->
                     val item = menuWithVariants.menuItem
@@ -423,19 +423,18 @@ fun MenuSelectionStep(
                             val cartItem =
                                     cartItems.find { it.item.id == item.id && it.variant == null }
                             Row(
-                                    modifier = Modifier.padding(12.dp),
+                                    modifier = Modifier.padding(spacing.small + spacing.extraSmall),
                                     verticalAlignment = Alignment.CenterVertically
                             ) {
                                 FoodTypeIcon(item.foodType)
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(spacing.small + spacing.extraSmall))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                             item.name,
                                             color = TextLight,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp
+                                            style = MaterialTheme.typography.titleSmall
                                     )
-                                    Text("₹${item.basePrice}", color = TextGold, fontSize = 12.sp)
+                                    Text("₹${item.basePrice}", color = TextGold, style = MaterialTheme.typography.bodySmall)
                                 }
                                 QuantitySelector(
                                         quantity = cartItem?.quantity ?: 0,
@@ -445,49 +444,46 @@ fun MenuSelectionStep(
                             }
                         } else {
 
-                            Column(modifier = Modifier.padding(12.dp)) {
+                            Column(modifier = Modifier.padding(spacing.small + spacing.extraSmall)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     FoodTypeIcon(item.foodType)
-                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Spacer(modifier = Modifier.width(spacing.small + spacing.extraSmall))
                                     Column {
                                         Text(
                                                 item.name,
                                                 color = TextLight,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 14.sp
+                                                style = MaterialTheme.typography.titleSmall
                                         )
                                         Text(
                                                 "${variants.size} Variants",
                                                 color = PrimaryGold,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Medium
+                                                style = MaterialTheme.typography.labelSmall
                                         )
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(10.dp))
                                 HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(spacing.small))
                                 variants.forEach { variant ->
                                     val variantCartItem =
                                             cartItems.find {
                                                 it.item.id == item.id && it.variant?.id == variant.id
                                             }
                                     Row(
-                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),
                                             verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
                                                 variant.variantName,
                                                 color = TextGold,
-                                                fontSize = 13.sp,
+                                                style = MaterialTheme.typography.bodySmall,
                                                 modifier = Modifier.weight(1f)
                                         )
                                         Text(
                                                 CurrencyUtils.formatPrice(variant.price),
                                                 color = PrimaryGold,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 13.sp,
-                                                modifier = Modifier.padding(end = 12.dp)
+                                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                                modifier = Modifier.padding(end = spacing.small + spacing.extraSmall)
                                         )
                                         QuantitySelector(
                                                 quantity = variantCartItem?.quantity ?: 0,
@@ -516,51 +512,121 @@ fun MenuSelectionStep(
                 }
                 
                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(gridColumns) }) {
-                    Spacer(modifier = Modifier.height(100.dp))
+                    Spacer(modifier = Modifier.height(if (isWideScreen) spacing.medium else 100.dp))
                 }
             }
 
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = PrimaryGold),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+            if (!isWideScreen) {
+                // Bottom Floating Cart Card for Phones
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium, vertical = spacing.small),
+                    colors = CardDefaults.cardColors(containerColor = PrimaryGold),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                                "$derivedItemCount Items Added",
-                                color = DarkBrown1,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                                CurrencyUtils.formatPrice(total),
-                                color = DarkBrown1,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 22.sp
-                        )
-                    }
-                    Button(
-                            onClick = onProceedToPayment,
-                            colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-                            enabled = derivedItemCount > 0
+                    Row(
+                            modifier = Modifier.padding(spacing.small + spacing.extraSmall),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                                "Proceed",
-                                color = PrimaryGold,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                    "$derivedItemCount Items Added",
+                                    color = DarkBrown1,
+                                    style = MaterialTheme.typography.labelSmall
+                            )
+                            Text(
+                                    CurrencyUtils.formatPrice(total),
+                                    color = DarkBrown1,
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
+                            )
+                        }
+                        Button(
+                                onClick = onProceedToPayment,
+                                colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.small + spacing.extraSmall),
+                                enabled = derivedItemCount > 0
+                        ) {
+                            Text(
+                                    "Proceed",
+                                    color = PrimaryGold,
+                                    style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Side Cart Area for Wide Screens
+        if (isWideScreen) {
+            Surface(
+                modifier = Modifier
+                    .weight(0.35f)
+                    .fillMaxHeight(),
+                color = DarkBrown2,
+                tonalElevation = 2.dp
+            ) {
+                Column(modifier = Modifier.padding(spacing.medium)) {
+                    Text(
+                        "Order Summary", 
+                        color = PrimaryGold, 
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Spacer(modifier = Modifier.height(spacing.medium))
+                    
+                    LazyColumn(modifier = Modifier.weight(1f)) {
+                        items(cartItems) { cartItem ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = spacing.small),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(cartItem.item.name, color = TextLight, style = MaterialTheme.typography.bodyMedium)
+                                    if (cartItem.variant != null) {
+                                        Text(cartItem.variant.variantName, color = TextGold, style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                                Text(
+                                    "${cartItem.quantity} x ${CurrencyUtils.formatPrice(cartItem.variant?.price ?: cartItem.item.basePrice)}",
+                                    color = TextLight,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            HorizontalDivider(color = BorderGold.copy(alpha = 0.1f))
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(spacing.medium))
+                    
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = DarkBrown1),
+                        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f))
+                    ) {
+                        Column(modifier = Modifier.padding(spacing.medium)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Total Amount", color = TextGold, style = MaterialTheme.typography.bodyMedium)
+                                Text(CurrencyUtils.formatPrice(total), color = PrimaryGold, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                            }
+                            Spacer(modifier = Modifier.height(spacing.medium))
+                            Button(
+                                onClick = onProceedToPayment,
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                                shape = RoundedCornerShape(12.dp),
+                                enabled = derivedItemCount > 0
+                            ) {
+                                Text("Proceed to Payment", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
+                            }
+                        }
                     }
                 }
             }
@@ -570,14 +636,15 @@ fun MenuSelectionStep(
 
 @Composable
 fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
+    val spacing = KhanaBookTheme.spacing
     if (quantity == 0) {
         OutlinedButton(
                 onClick = onAdd,
                 modifier = Modifier.height(32.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
                 border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold),
-                contentPadding = PaddingValues(horizontal = 12.dp)
-        ) { Text("Add", fontSize = 12.sp) }
+                contentPadding = PaddingValues(horizontal = spacing.small + spacing.extraSmall)
+        ) { Text("Add", style = MaterialTheme.typography.labelMedium) }
     } else {
         Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -586,7 +653,7 @@ fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
             IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
                 Icon(Icons.Default.Remove, null, tint = DarkBrown1, modifier = Modifier.size(16.dp))
             }
-            Text("$quantity", color = DarkBrown1, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("$quantity", color = DarkBrown1, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
             IconButton(onClick = onAdd, modifier = Modifier.size(32.dp)) {
                 Icon(Icons.Default.Add, null, tint = DarkBrown1, modifier = Modifier.size(16.dp))
             }
@@ -598,6 +665,7 @@ fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
 fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewModel, onBackToMenu: () -> Unit, onComplete: () -> Unit, onFailed: () -> Unit = {}) {
     val summary by viewModel.billSummary.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
+    val spacing = KhanaBookTheme.spacing
     val enabledModes =
             remember(profile) {
                 profile?.let { PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)
@@ -651,13 +719,13 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
     Column(
             modifier = Modifier.fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(24.dp)
+                    .padding(spacing.large)
                     .imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (isUpiMode) {
-            Text("Scan to Pay", color = PrimaryGold, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(16.dp))
+            Text("Scan to Pay", color = PrimaryGold, style = MaterialTheme.typography.headlineSmall)
+            Spacer(modifier = Modifier.height(spacing.medium))
 
             
             Box(
@@ -665,7 +733,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                             Modifier.size(200.dp)
                                     .background(Color.White, RoundedCornerShape(12.dp))
                                     .border(2.dp, PrimaryGold, RoundedCornerShape(12.dp))
-                                    .padding(12.dp)
+                                    .padding(spacing.small + spacing.extraSmall)
                                     .clickable { showQrModal = true },
                     contentAlignment = Alignment.Center
             ) {
@@ -687,68 +755,66 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
             Text(
                     "Tap to Enlarge",
                     color = PrimaryGold.copy(alpha = 0.7f),
-                    fontSize = 10.sp,
-                    modifier = Modifier.padding(top = 4.dp)
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(top = spacing.extraSmall)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(spacing.large))
         } else {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(spacing.large))
             Icon(
                     Icons.Default.Payment,
                     null,
                     tint = PrimaryGold.copy(alpha = 0.3f),
                     modifier = Modifier.size(80.dp)
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(spacing.medium))
             Text(
                     "Complete Payment",
                     color = TextLight,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleLarge
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(spacing.large))
         }
         
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .bringIntoViewRequester(relocationRequester)
-                .padding(vertical = 8.dp)
+                .padding(vertical = spacing.small)
         ) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = spacing.small),
                 colors = CardDefaults.cardColors(containerColor = DarkBrown2),
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f))
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(spacing.medium)) {
                     Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Payable Amount", color = TextGold, fontSize = 14.sp)
+                        Text("Payable Amount", color = TextGold, style = MaterialTheme.typography.bodyMedium)
                         Text(
                                 "₹${"%.2f".format(summary.total.toDoubleOrNull() ?: 0.0)}",
                                 color = PrimaryGold,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 20.sp
+                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(spacing.medium))
 
             Text(
                     "Select Payment Mode:",
                     color = TextLight,
                     modifier = Modifier.align(Alignment.Start),
-                    fontSize = 14.sp
+                    style = MaterialTheme.typography.bodyMedium
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(spacing.small))
             Box(
                     modifier =
                             Modifier.fillMaxWidth()
@@ -756,7 +822,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                                     .background(DarkBrown2, RoundedCornerShape(8.dp))
                                     .border(1.dp, BorderGold)
                                     .clickable { expanded = true }
-                                    .padding(horizontal = 16.dp),
+                                    .padding(horizontal = spacing.medium),
                     contentAlignment = Alignment.CenterStart
             ) {
                 Row(
@@ -764,7 +830,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(selectedMode.displayLabel, color = PrimaryGold)
+                    Text(selectedMode.displayLabel, color = PrimaryGold, style = MaterialTheme.typography.bodyLarge)
                     Icon(Icons.Default.ArrowDropDown, null, tint = PrimaryGold)
                 }
                 DropdownMenu(
@@ -785,7 +851,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
             }
 
             if (isSplitMode) {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(spacing.large))
                 val labels =
                         when (selectedMode) {
                             PaymentMode.PART_CASH_UPI -> "Cash Amount" to "UPI Amount"
@@ -796,7 +862,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
 
                 Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small + spacing.extraSmall)
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
                         ParchmentTextField(
@@ -842,8 +908,8 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     Text(
                             "Sum must equal ${CurrencyUtils.formatPrice(summary.total)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
                             color = DangerRed,
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(top = 4.dp).align(Alignment.Start)
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(top = spacing.extraSmall).align(Alignment.Start)
                     )
                 }
             }
@@ -851,7 +917,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
 
         val scope = rememberCoroutineScope()
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(spacing.extraLarge))
         Button(
                 onClick = {
                     if (isAmountValid) {
@@ -876,11 +942,10 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
             Text(
                     "Payment Successful",
                     color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    style = MaterialTheme.typography.titleMedium
             )
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(spacing.small + spacing.extraSmall))
         TextButton(
                 onClick = {
                     scope.launch {
@@ -890,7 +955,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(48.dp)
-        ) { Text("Payment Failed / Cancelled", color = DangerRed, fontSize = 14.sp) }
+        ) { Text("Payment Failed / Cancelled", color = DangerRed, style = MaterialTheme.typography.bodyMedium) }
     }
 
     if (showQrModal) {
@@ -903,14 +968,13 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            modifier = Modifier.fillMaxWidth().padding(spacing.medium),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                                 "UPI Payment",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
+                                style = MaterialTheme.typography.titleLarge,
                                 color = Color.Black
                         )
                         IconButton(onClick = { showQrModal = false }) {
@@ -923,12 +987,12 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     )
 
                     Column(
-                            modifier = Modifier.fillMaxWidth().padding(24.dp),
+                            modifier = Modifier.fillMaxWidth().padding(spacing.large),
                             horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(
                                 modifier =
-                                        Modifier.size(280.dp).background(Color.White).padding(8.dp),
+                                        Modifier.size(280.dp).background(Color.White).padding(spacing.small),
                                 contentAlignment = Alignment.Center
                         ) {
                             if (!profile?.upiQrPath.isNullOrBlank()) {
@@ -947,21 +1011,20 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(spacing.medium))
                         Text(
                                 "₹${"%.2f".format(summary.total.toDoubleOrNull() ?: 0.0)}",
                                 color = Color.Black,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.ExtraBold
+                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
                         )
-                        Text(profile?.shopName ?: "", color = Color.Gray, fontSize = 14.sp)
+                        Text(profile?.shopName ?: "", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
                     }
 
                     Button(
                             onClick = { showQrModal = false },
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            modifier = Modifier.fillMaxWidth().padding(spacing.medium),
                             colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1)
-                    ) { Text("CLOSE", color = PrimaryGold, fontWeight = FontWeight.Bold) }
+                    ) { Text("CLOSE", color = PrimaryGold, style = MaterialTheme.typography.titleMedium) }
                 }
             }
         }
@@ -977,13 +1040,13 @@ fun FailedStep(
     val lastBill by viewModel.lastBill.collectAsState()
     val totalAmount = lastBill?.bill?.totalAmount?.toDoubleOrNull() ?: 0.0
     val orderDisplay = lastBill?.bill?.dailyOrderDisplay ?: "-"
-    val paymentMode = lastBill?.bill?.paymentMode ?: "-"
+    val spacing = KhanaBookTheme.spacing
 
     Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(spacing.large),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
     ) {
@@ -1008,29 +1071,30 @@ fun FailedStep(
         Text(
             "Payment Failed / Cancelled",
             color = DangerRed,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineSmall
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(spacing.small))
 
         Text(
             "Order #$orderDisplay · ₹${"%.2f".format(totalAmount)}",
             color = TextGold,
-            fontSize = 14.sp
+            style = MaterialTheme.typography.bodyLarge
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(spacing.small))
 
         Text(
             "The payment was not completed. The order has been recorded as failed.",
             color = TextLight.copy(alpha = 0.7f),
-            fontSize = 13.sp,
+            style = MaterialTheme.typography.bodySmall,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 8.dp)
+            modifier = Modifier.padding(horizontal = spacing.small)
         )
 
-        // "Back to Home" button (onNewBill navigates back to Home screen per MainScreen.kt)
+        Spacer(modifier = Modifier.height(spacing.extraLarge))
+
+        // "Back to Home" button
         OutlinedButton(
             onClick = onNewBill,
             modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -1038,8 +1102,8 @@ fun FailedStep(
             shape = RoundedCornerShape(12.dp)
         ) {
             Icon(Icons.Default.Home, null, tint = PrimaryGold)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Back to Home", color = TextGold, fontSize = 15.sp)
+            Spacer(modifier = Modifier.width(spacing.small))
+            Text("Back to Home", color = TextGold, style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -1053,9 +1117,10 @@ fun SuccessStep(
     val context = LocalContext.current
     val lastBill by viewModel.lastBill.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
+    val spacing = KhanaBookTheme.spacing
 
     Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(spacing.large),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
     ) {
@@ -1063,19 +1128,18 @@ fun SuccessStep(
         Text(
                 "Payment Successful!",
                 color = TextLight,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.headlineSmall
         )
 
         val totalAmount = lastBill?.bill?.totalAmount?.toDoubleOrNull() ?: 0.0
         Text(
                 "Payment of ₹${"%.2f".format(totalAmount)} received successfully.",
                 color = TextGold,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(vertical = 12.dp)
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(vertical = spacing.small + spacing.extraSmall)
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(spacing.extraLarge))
         Button(
                 onClick = {
                     lastBill?.let { shareBillOnWhatsApp(context, it, profile) }
@@ -1086,10 +1150,10 @@ fun SuccessStep(
                 enabled = lastBill != null
         ) {
             Icon(Icons.Default.Share, null, tint = Color.White)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Share Invoice on WhatsApp", color = Color.White)
+            Spacer(modifier = Modifier.width(spacing.small))
+            Text("Share Invoice on WhatsApp", color = Color.White, style = MaterialTheme.typography.titleMedium)
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(spacing.medium))
         Button(
                 onClick = {
                     lastBill?.let { directPrint(context, it, profile, viewModel.printerManager) }
@@ -1100,16 +1164,16 @@ fun SuccessStep(
                 enabled = lastBill != null
         ) {
             Icon(Icons.Default.Print, null, tint = DarkBrown1)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Print Bill", color = DarkBrown1)
+            Spacer(modifier = Modifier.width(spacing.small))
+            Text("Print Bill", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
         }
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(spacing.extraLarge))
         OutlinedButton(
                 onClick = onDone,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
                 shape = RoundedCornerShape(12.dp)
-        ) { Text("Back", color = TextGold) }
+        ) { Text("Back to Home", color = TextGold, style = MaterialTheme.typography.titleMedium) }
     }
 }
 
@@ -1120,13 +1184,14 @@ fun VariantPickerDialog(
         onDismiss: () -> Unit,
         onSelect: (ItemVariantEntity) -> Unit
 ) {
+    val spacing = KhanaBookTheme.spacing
     AlertDialog(
             onDismissRequest = onDismiss,
             containerColor = DarkBrown2,
             title = {
                 Column {
-                    Text("Choose Variant", color = PrimaryGold, fontWeight = FontWeight.Bold)
-                    Text(itemName, color = TextGold, fontSize = 13.sp)
+                    Text("Choose Variant", color = PrimaryGold, style = MaterialTheme.typography.titleLarge)
+                    Text(itemName, color = TextGold, style = MaterialTheme.typography.bodySmall)
                 }
             },
             text = {
@@ -1134,7 +1199,7 @@ fun VariantPickerDialog(
                     variants.forEach { variant ->
                         Card(
                                 modifier =
-                                        Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable {
+                                        Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall).clickable {
                                             onSelect(variant)
                                         },
                                 colors =
@@ -1146,21 +1211,19 @@ fun VariantPickerDialog(
                             Row(
                                     modifier =
                                             Modifier.fillMaxWidth()
-                                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                                    .padding(horizontal = spacing.medium, vertical = spacing.small + spacing.extraSmall),
                                     verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                         variant.variantName,
                                         color = TextLight,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp,
+                                        style = MaterialTheme.typography.titleSmall,
                                         modifier = Modifier.weight(1f)
                                 )
                                 Text(
                                         "₹${"%.0f".format(variant.price)}",
                                         color = PrimaryGold,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                             }
                         }
@@ -1169,7 +1232,7 @@ fun VariantPickerDialog(
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(onClick = onDismiss) { Text("Cancel", color = PrimaryGold) }
+                TextButton(onClick = onDismiss) { Text("Cancel", color = PrimaryGold, style = MaterialTheme.typography.labelLarge) }
             }
     )
 }
@@ -1194,10 +1257,11 @@ private fun menuTextFieldColors() =
 
 @Composable
 fun BillStepper(currentStep: Int) {
+    val spacing = KhanaBookTheme.spacing
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 16.dp, start = 32.dp, end = 32.dp),
+            .padding(bottom = spacing.medium, start = spacing.extraLarge, end = spacing.extraLarge),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
@@ -1240,19 +1304,20 @@ fun StepItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: Strin
                 }
             }
         }
-        Text(label, color = color, fontSize = 9.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = color, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp))
     }
 }
 
 @Composable
 fun RowScope.StepConnector(isCompleted: Boolean) {
     val color = if (isCompleted) PrimaryGold else Color.Gray
+    val spacing = KhanaBookTheme.spacing
     Box(
         modifier = Modifier
             .weight(1f)
             .height(1.dp)
-            .padding(horizontal = 4.dp)
-            .padding(bottom = 12.dp)
+            .padding(horizontal = spacing.extraSmall)
+            .padding(bottom = spacing.small + spacing.extraSmall)
             .background(color)
     )
 }

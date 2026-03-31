@@ -29,6 +29,7 @@ import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.domain.util.DateUtils
 import com.khanabook.lite.pos.domain.util.shareBillOnWhatsApp
 import com.khanabook.lite.pos.ui.theme.*
+import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
@@ -46,6 +47,7 @@ fun OrdersScreen(
     val allRows by viewModel.orderDetailsTable.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val haptic = LocalHapticFeedback.current
+    val spacing = KhanaBookTheme.spacing
     val enabledModes = remember(profile) { 
         profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH) 
     }
@@ -90,7 +92,7 @@ fun OrdersScreen(
             },
             colors = DatePickerDefaults.colors(containerColor = DarkBrown2)
         ) {
-            Box(modifier = Modifier.padding(horizontal = 8.dp)) {
+            Box(modifier = Modifier.padding(horizontal = spacing.small)) {
                 DateRangePicker(
                     state = dateRangePickerState,
                     modifier = Modifier.fillMaxWidth(),
@@ -99,11 +101,10 @@ fun OrdersScreen(
                             text = "Select Custom Range",
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 16.dp, bottom = 8.dp),
+                                .padding(top = spacing.medium, bottom = spacing.small),
                             textAlign = TextAlign.Center,
                             color = PrimaryGold,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
+                            style = MaterialTheme.typography.titleMedium
                         )
                     },
                     headline = {
@@ -114,7 +115,7 @@ fun OrdersScreen(
                             dateFormatter = DatePickerDefaults.dateFormatter(),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = 8.dp, bottom = 16.dp)
+                                .padding(start = spacing.small, bottom = spacing.medium)
                         )
                     },
                 colors = DatePickerDefaults.colors(
@@ -141,7 +142,7 @@ fun OrdersScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(spacing.medium),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
@@ -151,12 +152,10 @@ fun OrdersScreen(
                     text = "Order Details",
                     modifier = Modifier.weight(1f),
                     color = PrimaryGold,
-                    fontSize = 28.sp,
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineMedium,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.width(48.dp))
+                Spacer(modifier = Modifier.width(spacing.huge))
             }
 
             PeriodTabs(
@@ -167,7 +166,7 @@ fun OrdersScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(spacing.medium))
 
             TableHeader()
 
@@ -175,8 +174,8 @@ fun OrdersScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 4.dp),
-                contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp)
+                    .padding(horizontal = spacing.extraSmall),
+                contentPadding = PaddingValues(top = spacing.small, bottom = spacing.medium)
             ) {
                 items(allRows) { row ->
                     OrderTableRow(
@@ -205,9 +204,10 @@ fun OrdersScreen(
 @Composable
 fun PeriodTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
     val tabs = listOf("Daily", "Weekly", "Monthly", "Custom")
+    val spacing = KhanaBookTheme.spacing
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium),
+        horizontalArrangement = Arrangement.spacedBy(spacing.small)
     ) {
         tabs.forEachIndexed { index, title ->
             OrderFilterChip(
@@ -233,8 +233,7 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
         Box(contentAlignment = Alignment.Center) {
             Text(
                 text = label,
-                fontSize = 12.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                style = if (isSelected) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelMedium
             )
         }
     }
@@ -244,11 +243,12 @@ private const val TABLE_TOTAL_WEIGHT = 9.2f
 
 @Composable
 fun TableHeader() {
+    val spacing = KhanaBookTheme.spacing
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.Black.copy(alpha = 0.4f))
-            .padding(vertical = 12.dp, horizontal = 4.dp),
+            .padding(vertical = spacing.medium, horizontal = spacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         HeaderCell("D.No", 1f / TABLE_TOTAL_WEIGHT)
@@ -267,8 +267,7 @@ fun RowScope.HeaderCell(text: String, weight: Float) {
         text = text,
         modifier = Modifier.weight(weight),
         color = TextGold,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Bold,
+        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
         textAlign = TextAlign.Center,
         lineHeight = 12.sp
     )
@@ -284,13 +283,14 @@ fun OrderTableRow(
 ) {
     var statusExpanded by remember { mutableStateOf(false) }
     var payModeExpanded by remember { mutableStateOf(false) }
+    val spacing = KhanaBookTheme.spacing
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 1.dp)
             .background(ParchmentBG)
-            .padding(horizontal = 4.dp, vertical = 8.dp),
+            .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
         verticalAlignment = Alignment.CenterVertically
     ) {
         TableCell(row.dailyNo, 1f / TABLE_TOTAL_WEIGHT)
@@ -309,8 +309,7 @@ fun OrderTableRow(
                 Text(
                     text = row.payMode.displayLabel,
                     color = Color.White,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                     maxLines = 1
@@ -324,7 +323,7 @@ fun OrderTableRow(
             ) {
                 enabledModes.forEach { mode ->
                     DropdownMenuItem(
-                        text = { Text(mode.displayLabel, color = DarkBrown1, fontSize = 12.sp) },
+                        text = { Text(mode.displayLabel, color = DarkBrown1, style = MaterialTheme.typography.bodySmall) },
                         onClick = {
                             onPayModeChange(mode)
                             payModeExpanded = false
@@ -349,7 +348,7 @@ fun OrderTableRow(
                     Text(
                         text = if (row.orderStatus == OrderStatus.COMPLETED) "Completed" else "Cancelled",
                         color = Color.White,
-                        fontSize = 8.sp,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                         textAlign = TextAlign.Center,
                         lineHeight = 10.sp
                     )
@@ -362,14 +361,14 @@ fun OrderTableRow(
                 modifier = Modifier.background(ParchmentBG)
             ) {
                 DropdownMenuItem(
-                    text = { Text("Completed", color = DarkBrown1, fontSize = 12.sp) },
+                    text = { Text("Completed", color = DarkBrown1, style = MaterialTheme.typography.bodySmall) },
                     onClick = {
                         onStatusChange(OrderStatus.COMPLETED.dbValue)
                         statusExpanded = false
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Cancelled", color = DarkBrown1, fontSize = 12.sp) },
+                    text = { Text("Cancelled", color = DarkBrown1, style = MaterialTheme.typography.bodySmall) },
                     onClick = {
                         onStatusChange(OrderStatus.CANCELLED.dbValue)
                         statusExpanded = false
@@ -379,22 +378,6 @@ fun OrderTableRow(
         }
 
         TableCell(DateUtils.formatDisplayDate(row.salesDate), 1.5f / TABLE_TOTAL_WEIGHT, fontSize = 9.sp)
-
-        /*
-        Box(modifier = Modifier.weight(0.8f), contentAlignment = Alignment.Center) {
-            IconButton(
-                onClick = onShare,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(
-                    Icons.Default.Share,
-                    contentDescription = "Share",
-                    tint = SuccessGreen,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
-        */
     }
 }
 
@@ -409,8 +392,7 @@ fun RowScope.TableCell(
         text = text,
         modifier = Modifier.weight(weight),
         color = Color.Black,
-        fontSize = fontSize,
-        fontWeight = fontWeight,
+        style = MaterialTheme.typography.bodySmall.copy(fontSize = fontSize, fontWeight = fontWeight),
         textAlign = TextAlign.Center,
         lineHeight = 12.sp
     )

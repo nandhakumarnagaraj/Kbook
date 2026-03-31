@@ -21,11 +21,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
+import com.khanabook.lite.pos.ui.designsystem.*
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -47,6 +47,7 @@ fun HomeScreen(
     val unsyncedCount by viewModel.unsyncedCount.collectAsState()
     val configuration = LocalConfiguration.current
     val isWideScreen = configuration.screenWidthDp >= 600
+    val spacing = KhanaBookTheme.spacing
 
     Box(
         modifier = Modifier
@@ -57,19 +58,20 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(spacing.medium)
         ) {
             
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = spacing.medium),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Dashboard",
                     color = PrimaryGold,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.headlineMedium
                 )
                 
                 SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
@@ -79,26 +81,24 @@ fun HomeScreen(
             Text(
                 text = "Welcome back! Manage your restaurant billing efficiently.",
                 color = TextGold,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(bottom = 24.dp)
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = spacing.large)
             )
 
             
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                shape = RoundedCornerShape(12.dp)
+            KhanaBookCard(
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(spacing.medium)
                 ) {
                     Text(
                         text = "Today's Summary",
                         color = PrimaryGold,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleSmall
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -110,21 +110,21 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(spacing.large))
 
             
-            Card(
+            KhanaBookCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
-                    .clickable { onNewBill() },
+                    .height(120.dp),
+                onClick = { onNewBill() },
                 colors = CardDefaults.cardColors(containerColor = PrimaryGold),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(20.dp),
+                        .padding(spacing.large),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -132,32 +132,31 @@ fun HomeScreen(
                         Text(
                             text = "Create New Bill",
                             color = DarkBrown1,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleLarge
                         )
                         Text(
                             text = "Start taking orders",
                             color = DarkBrown2,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(top = 4.dp)
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(top = spacing.extraSmall)
                         )
                     }
                     Icon(
                         imageVector = Icons.Default.AddCircle,
                         contentDescription = null,
                         tint = DarkBrown1,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(spacing.huge)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(spacing.large))
 
             if (isWideScreen) {
                 // Adaptive grid for tablets/landscape
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(spacing.medium)
                 ) {
                     HomeActionCard(
                         text = "Print/Share",
@@ -174,10 +173,10 @@ fun HomeScreen(
                         onClick = onOrderStatus
                     )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(spacing.medium))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(spacing.medium)
                 ) {
                     HomeActionCard(
                         text = "Call Customers",
@@ -192,7 +191,7 @@ fun HomeScreen(
                 // Vertical list for phones
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(spacing.small + spacing.extraSmall) // 12.dp
                 ) {
                     HomeActionCard(
                         text = "Print/Share",
@@ -220,7 +219,7 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(spacing.medium))
         }
     }
 }
@@ -232,7 +231,7 @@ fun SyncStatusHeader(
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 ) {
     val isOnline = connectionStatus == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available
-    
+    val spacing = KhanaBookTheme.spacing
     val currentUser by authViewModel.currentUser.collectAsState()
     val isSessionValid = currentUser != null
     val shouldShowSync = isOnline && isSessionValid && unsyncedCount > 0
@@ -272,7 +271,7 @@ fun SyncStatusHeader(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
     ) {
-        // Subtle "Bluk"/Blur glow effect behind the pill when syncing
+        // Subtle glow effect behind the pill when syncing
         if (unsyncedCount > 0 && isOnline && isSessionValid) {
             Box(
                 modifier = Modifier
@@ -286,7 +285,7 @@ fun SyncStatusHeader(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .background(containerColor.copy(alpha = if (unsyncedCount > 0) pulseAlpha else 0.15f))
-                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .padding(horizontal = spacing.small + spacing.extraSmall, vertical = spacing.extraSmall + 2.dp)
         ) {
             Icon(
                 imageVector = when {
@@ -306,7 +305,7 @@ fun SyncStatusHeader(
                     )
             )
             
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(spacing.small))
             
             // Animated countdown text
             AnimatedContent(
@@ -326,16 +325,14 @@ fun SyncStatusHeader(
                         Text(
                             text = "Syncing... ",
                             color = TextLight,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium
+                            style = MaterialTheme.typography.labelSmall
                         )
                     }
                     Text(
                         text = targetText,
                         color = if (unsyncedCount > 0 || !isOnline || !isSessionValid) containerColor else TextLight,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        style = androidx.compose.ui.text.TextStyle(
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
                             shadow = if (unsyncedCount > 0) androidx.compose.ui.graphics.Shadow(
                                 color = containerColor.copy(alpha = 0.5f),
                                 blurRadius = 4f
@@ -356,17 +353,18 @@ fun HomeActionCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    Card(
+    val spacing = KhanaBookTheme.spacing
+    KhanaBookCard(
         modifier = modifier
-            .height(70.dp)
-            .clickable { onClick() },
+            .height(70.dp),
+        onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(spacing.medium),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -380,41 +378,19 @@ fun HomeActionCard(
                     tint = PrimaryGold,
                     modifier = Modifier.size(28.dp)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(spacing.small + spacing.extraSmall))
                 Text(
                     text = text,
                     color = TextLight,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium
+                    style = MaterialTheme.typography.titleMedium
                 )
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = PrimaryGold,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(spacing.large)
             )
         }
-    }
-}
-
-@Composable
-fun StatItem(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = value,
-            color = PrimaryGold,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = label,
-            color = TextGold,
-            fontSize = 11.sp,
-            modifier = Modifier.padding(top = 4.dp)
-        )
     }
 }

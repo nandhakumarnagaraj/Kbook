@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import android.app.Activity
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
@@ -27,6 +28,12 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = TextLight,
 )
 
+object KhanaBookTheme {
+    val spacing: Spacing
+        @Composable
+        get() = LocalSpacing.current
+}
+
 @Composable
 fun KhanaBookLiteTheme(
     content: @Composable () -> Unit
@@ -40,11 +47,13 @@ fun KhanaBookLiteTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = DarkColorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalSpacing provides Spacing()) {
+        MaterialTheme(
+            colorScheme = DarkColorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }
 
 
