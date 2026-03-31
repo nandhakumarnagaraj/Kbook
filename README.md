@@ -47,16 +47,14 @@ A mobile Point of Sale (POS) app that doesn't need the internet to work and keep
 2. **Setup Secrets:** Create `Android/local.properties` and keep credentials only there. You can copy the template from `Android/secrets.properties.example`. Required entries:
    ```properties
    BACKEND_URL=https://your-api-domain.com/
-   META_ACCESS_TOKEN=your_meta_access_token
-   WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
-   WHATSAPP_OTP_TEMPLATE_NAME=verification_otp
+   GOOGLE_WEB_CLIENT_ID=your_google_web_client_id.apps.googleusercontent.com
    SIGNING_STORE_FILE=app/release-key.jks
    SIGNING_STORE_PASSWORD=your_keystore_password
    SIGNING_KEY_ALIAS=your_key_alias
    SIGNING_KEY_PASSWORD=your_key_password
    ```
    Do not commit `local.properties`, keystores, or signing files.
-3. **Build & Run:** Open the `Android` project in Android Studio, sync Gradle, and run on a real device (best for testing Bluetooth printing and OCR scanning).
+3. **Build & Run:** Open the `Android` project in Android Studio, sync Gradle, and run on a real device.
 
 ---
 
@@ -65,8 +63,9 @@ A mobile Point of Sale (POS) app that doesn't need the internet to work and keep
 The engine that receives synced offline data, handles conflict resolution, and ensures strict multi-tenant cloud storage.
 
 ### 🛠️ Tech Stack
-- **Framework:** Java 17 & Spring Boot 3.2.3
+- **Framework:** Java 17 & Spring Boot 3.5.x
 - **Database:** PostgreSQL with Spring Data JPA & Hibernate
+- **Migrations:** Flyway
 - **Security:** Spring Security & stateless JWT Authentication
 - **Rate Limiting:** Bucket4j (Protects Auth & Sync endpoints from brute force)
 - **API Documentation:** SpringDoc OpenAPI (Swagger UI)
@@ -74,6 +73,11 @@ The engine that receives synced offline data, handles conflict resolution, and e
 ---
 
 ## 🍱 Recent Improvements & Stability Updates
+
+### 🛡️ Security & Architecture (Latest)
+- **Centralized OTP Handling:** Moved all WhatsApp OTP generation and delivery logic to the server. Android clients no longer require Meta/WhatsApp API tokens, reducing the APK's attack surface and secret exposure.
+- **Persistent OTP Storage:** Implemented a dedicated `otp_requests` table on the server with automated hourly cleanup. This ensures OTPs survive server restarts and support multi-instance deployments.
+- **Android Secret Hardening:** Removed hardcoded Backend URLs and Google Client IDs from the app resources. These are now injected via `local.properties` and `BuildConfig`/`resValue` during the build process.
 
 ### 🧾 Billing & Reports
 - **Clean Order Numbering:** Optimized Daily Order IDs to show only the 3-digit counter (e.g., `001`, `002`) in tables and reports for better readability.
@@ -84,13 +88,8 @@ The engine that receives synced offline data, handles conflict resolution, and e
 - **Unified Printer State:** Implemented a Singleton manager for Bluetooth connectivity, ensuring your printer stays connected across all screens (Settings, Billing, etc.).
 
 ### 📲 WhatsApp Smart Sharing
-- **Smart Two-Step Flow:** Overhauled the sharing logic to support **unsaved numbers**. The app now automatically opens the correct customer chat and then prompts to attach the PDF invoice, bypassing WhatsApp's security restrictions for new contacts.
+- **Smart Two-Step Flow:** Overhauled the sharing logic to support **unsaved numbers**. The app now automatically opens the correct customer chat and then prompts to attach the PDF invoice.
 - **Android 14 Compatibility:** Fixed PDF attachment issues by implementing explicit URI permission granting (`ClipData`) required by newer Android versions.
-
-### 🛡️ Core Stability
-- **Security Hardening:** Standardized encryption and removed sensitive plaintext logging.
-- **Data Integrity:** Standardized all primary keys to `Long` and migrated monetary fields to `BigDecimal` for absolute financial precision.
-- **Crash Recovery:** Hardened `GlobalCrashHandler` with recursive crash detection and loop protection.
 
 ---
 
@@ -100,6 +99,5 @@ The engine that receives synced offline data, handles conflict resolution, and e
 **KhanaBook Lite (Android):** Internal/private project. All rights reserved.
 
 Happy Billing! ☕🥡
-# CI/CD Test: Tue Mar 24 06:45:44 UTC 2026
-# Final CI/CD Verification: Tue Mar 24 07:42:40 UTC 2026
-# CI/CD Final Test: Tue Mar 24 07:55:10 UTC 2026
+
+# Final Verification: Tue Mar 31 12:43:10 UTC 2026
