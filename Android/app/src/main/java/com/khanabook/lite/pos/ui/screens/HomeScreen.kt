@@ -23,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.gson.Gson
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
@@ -33,7 +32,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
 
 @Composable
 fun HomeScreen(
@@ -420,4 +418,3 @@ fun StatItem(label: String, value: String, modifier: Modifier = Modifier) {
         )
     }
 }
-

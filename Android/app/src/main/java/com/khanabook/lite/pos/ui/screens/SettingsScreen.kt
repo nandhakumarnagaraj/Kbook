@@ -7,8 +7,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
@@ -18,7 +16,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,14 +31,12 @@ import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -53,9 +48,6 @@ import com.khanabook.lite.pos.domain.util.ValidationUtils
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.*
-import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
-import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
-import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
@@ -86,7 +78,7 @@ fun SettingsScreen(
     val isWideScreen = configuration.screenWidthDp >= 600
 
     // Improved default gesture support:
-    // If we are in a sub-section, swiping back returns to the main Settings list.
+    // If we are in a subsection, swiping back returns to the main Settings list.
     // If we are already in the main Settings list, swiping back returns to the Home tab.
     BackHandler {
         if (section != "menu") {
@@ -1287,10 +1279,6 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
 
 private fun copyUriToInternalStorage(context: Context, uri: Uri, fileName: String): String? {
     return try { context.contentResolver.openInputStream(uri)?.use { input -> File(context.filesDir, fileName).let { file -> FileOutputStream(file).use { output -> input.copyTo(output) }; file.absolutePath } } } catch (_: Exception) { null }
-}
-
-private fun loadBitmap(path: String): Bitmap? {
-    return try { BitmapFactory.decodeFile(path) } catch (_: Exception) { null }
 }
 
 @Composable

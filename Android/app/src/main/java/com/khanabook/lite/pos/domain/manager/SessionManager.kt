@@ -3,8 +3,6 @@ package com.khanabook.lite.pos.domain.manager
 import android.content.Context
 import android.util.Log
 import android.content.SharedPreferences
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
