@@ -62,9 +62,23 @@ public class JwtUtility {
 	}
 
 	public String generateToken(String username, Long restaurantId, String role) {
-		return Jwts.builder().setSubject(username).claim("restaurantId", restaurantId).claim("role", role)
-				.setIssuedAt(new Date()).setExpiration(new Date(System.currentTimeMillis() + expirationMs))
-				.signWith(getSigningKey()).compact();
+		return Jwts.builder()
+				.setId(java.util.UUID.randomUUID().toString())
+				.setSubject(username)
+				.claim("restaurantId", restaurantId)
+				.claim("role", role)
+				.setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + expirationMs))
+				.signWith(getSigningKey())
+				.compact();
+	}
+
+	public String extractJti(String token) {
+		return extractClaim(token, Claims::getId);
+	}
+
+	public Date extractExpiration(String token) {
+		return extractClaim(token, Claims::getExpiration);
 	}
 
 	public Boolean isTokenExpired(String token) {

@@ -4,6 +4,7 @@ import com.khanabook.saas.debug.DebugNDJSONLogger;
 import com.khanabook.saas.utility.JwtUtility;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.repository.UserRepository;
+import com.khanabook.saas.repository.TokenBlocklistRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +29,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 	private final JwtUtility jwtUtility;
 	private final UserRepository userRepository;
+	private final TokenBlocklistRepository tokenBlocklistRepository;
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -35,18 +37,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 		final String authorizationHeader = request.getHeader("Authorization");
 		final String path = request.getRequestURI();
-
-		// Temporary bypass for testing
-		if ("Bearer TEST_MODE".equals(authorizationHeader)) {
-			com.khanabook.saas.security.TenantContext.setCurrentTenant(5874635834291080177L);
-			com.khanabook.saas.security.TenantContext.setCurrentRole("OWNER");
-			org.springframework.security.core.authority.SimpleGrantedAuthority authority = new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_OWNER");
-			UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken("test@example.com", null, java.util.Collections.singletonList(authority));
-			authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-			SecurityContextHolder.getContext().setAuthentication(authToken);
-			chain.doFilter(request, response);
-			return;
-		}
 
 		if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
 			String jwt = authorizationHeader.substring(7);
@@ -59,6 +49,13 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 			try {
 				tokenExpired = jwtUtility.isTokenExpired(jwt);
 				if (!tokenExpired) {
+					// Check token revocation blocklist
+					String jti = jwtUtility.extractJti(jwt);
+					if (jti != null && tokenBlocklistRepository.existsByJti(jti)) {
+						response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token has been revoked");
+						return;
+					}
+
 					Long restaurantId = jwtUtility.extractRestaurantId(jwt);
 					String username = jwtUtility.extractUsername(jwt);
 					jwtExtractOk = true;

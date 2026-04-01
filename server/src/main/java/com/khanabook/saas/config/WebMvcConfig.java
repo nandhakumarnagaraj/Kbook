@@ -19,7 +19,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
 	@Override
 	public void addInterceptors(InterceptorRegistry registry) {
 		if (!Arrays.asList(env.getActiveProfiles()).contains("test")) {
-			registry.addInterceptor(rateLimitingInterceptor).addPathPatterns("/auth/**");
+			registry.addInterceptor(rateLimitingInterceptor)
+					.addPathPatterns("/auth/**", "/sync/**");
 		}
 	}
 }

@@ -31,9 +31,20 @@ public class SecurityConfig {
 
 				.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
-
-						.requestMatchers("/auth/**", "/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/error")
+						// Public auth endpoints (rate-limited separately)
+						.requestMatchers("/auth/login", "/auth/signup", "/auth/signup/request",
+								"/auth/google", "/auth/check-user",
+								"/auth/reset-password", "/auth/reset-password/request",
+								"/error")
 						.permitAll()
+						// API docs — require authentication in production
+						.requestMatchers("/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
+						.hasAnyRole("OWNER", "KBOOK_ADMIN")
+						// Actuator: health/readiness open, everything else authenticated
+						.requestMatchers("/actuator/health", "/actuator/health/**")
+						.permitAll()
+						.requestMatchers("/actuator/**")
+						.hasRole("KBOOK_ADMIN")
 						.requestMatchers("/admin/**").hasRole("KBOOK_ADMIN")
 						.requestMatchers("/sync/**").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.anyRequest().authenticated())

@@ -15,6 +15,11 @@ public abstract class BaseSyncEntity {
 	@JsonProperty("serverId")
 	private Long id;
 
+	@Version
+	@Column(name = "version", nullable = false)
+	@JsonProperty("version")
+	private Long version = 0L;
+
 	@Column(name = "local_id", nullable = false)
 	@JsonProperty("localId")
 	@JsonAlias({ "id", "localId" })

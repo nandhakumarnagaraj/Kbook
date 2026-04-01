@@ -35,22 +35,28 @@ abstract class AppDatabase : RoomDatabase() {
 	        const val DATABASE_NAME = "khanabook_lite_db"
 
             val MIGRATION_30_31 = object : Migration(30, 31) {
+                private val log = android.util.Log
+
                 override fun migrate(db: SupportSQLiteDatabase) {
                     try {
                         db.execSQL("ALTER TABLE `users` ADD COLUMN `login_id` TEXT")
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        log.w("AppDatabase", "MIGRATION_30_31: login_id column may already exist: ${e.message}")
                     }
                     try {
                         db.execSQL("ALTER TABLE `users` ADD COLUMN `google_email` TEXT")
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        log.w("AppDatabase", "MIGRATION_30_31: google_email column may already exist: ${e.message}")
                     }
                     try {
                         db.execSQL("ALTER TABLE `users` ADD COLUMN `auth_provider` TEXT NOT NULL DEFAULT 'PHONE'")
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        log.w("AppDatabase", "MIGRATION_30_31: auth_provider column may already exist: ${e.message}")
                     }
                     try {
                         db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `barcode` TEXT")
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        log.w("AppDatabase", "MIGRATION_30_31: barcode column may already exist: ${e.message}")
                     }
                     db.execSQL("UPDATE `users` SET `login_id` = COALESCE(NULLIF(`login_id`, ''), `email`) WHERE `login_id` IS NULL OR `login_id` = ''")
                     db.execSQL("UPDATE `users` SET `auth_provider` = COALESCE(NULLIF(`auth_provider`, ''), 'PHONE')")

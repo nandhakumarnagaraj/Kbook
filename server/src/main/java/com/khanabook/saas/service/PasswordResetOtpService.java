@@ -45,9 +45,6 @@ public class PasswordResetOtpService {
 	@Value("${whatsapp.meta.otp-template-name:}")
 	private String otpTemplateName;
 
-	@Value("${whatsapp.meta.fixed-otp:}")
-	private String fixedOtp;
-
 	@Transactional
 	public void issueOtp(String phoneNumber) {
 		issueOtp(PASSWORD_RESET_PREFIX + phoneNumber, phoneNumber);
@@ -79,9 +76,7 @@ public class PasswordResetOtpService {
 	}
 
 	private void issueOtp(String challengeKey, String phoneNumber) {
-		String otp = (fixedOtp != null && fixedOtp.matches("^\\d{6}$"))
-				? fixedOtp
-				: String.format("%06d", java.util.concurrent.ThreadLocalRandom.current().nextInt(0, 1_000_000));
+		String otp = String.format("%06d", java.util.concurrent.ThreadLocalRandom.current().nextInt(0, 1_000_000));
 
 		long now = System.currentTimeMillis();
 		OtpRequest request = otpRequestRepository.findByChallengeKey(challengeKey)
@@ -137,8 +132,8 @@ public class PasswordResetOtpService {
 		if (metaAccessToken == null || metaAccessToken.isBlank()
 				|| phoneNumberId == null || phoneNumberId.isBlank()
 				|| otpTemplateName == null || otpTemplateName.isBlank()) {
-			log.warn("WhatsApp OTP config missing for challengeType={} phone={}. OTP={}",
-					describeChallenge(challengeKey), phoneNumber, otp);
+			log.warn("WhatsApp OTP config missing for challengeType={} phone={}",
+					describeChallenge(challengeKey), phoneNumber);
 			return;
 		}
 

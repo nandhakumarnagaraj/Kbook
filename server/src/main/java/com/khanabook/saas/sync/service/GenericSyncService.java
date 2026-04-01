@@ -15,10 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -101,6 +98,9 @@ public class GenericSyncService {
 		for (Map.Entry<String, List<T>> entry : recordsByDevice.entrySet()) {
 			String deviceId = entry.getKey();
 			List<T> devicePayload = entry.getValue();
+
+			// Build bulk ID maps once per device batch — eliminates N+1 queries
+			RelationalIdMaps idMaps = buildRelationalIdMaps(devicePayload, tenantId, deviceId);
 
 			List<Long> incomingLocalIds = devicePayload.stream().map(BaseSyncEntity::getLocalId)
 					.filter(java.util.Objects::nonNull).distinct().collect(Collectors.toList());
@@ -266,7 +266,7 @@ public class GenericSyncService {
 							}
 							
 							// Relational ID Resolution for Updates
-							resolveRelationalIds(incomingRecord, targetTenantId, deviceId);
+							resolveRelationalIds(incomingRecord, idMaps);
 
 							incomingRecord.setId(existingRecord.getId());
 
@@ -280,7 +280,7 @@ public class GenericSyncService {
 						}
 					} else {
 						// Relational ID Resolution for New Records
-						resolveRelationalIds(incomingRecord, targetTenantId, deviceId);
+						resolveRelationalIds(incomingRecord, idMaps);
 
 						T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
 						if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {
@@ -289,8 +289,10 @@ public class GenericSyncService {
 						successfulLocalIds.add(incomingRecord.getLocalId());
 					}
 				} catch (Exception e) {
-					log.error("Sync Error for record class {}: {}", incomingRecord.getClass().getSimpleName(), e.getMessage());
-					e.printStackTrace();
+					log.error("Sync Error for record class {}: {}", incomingRecord.getClass().getSimpleName(), e.getMessage(), e);
+					if (incomingRecord.getLocalId() != null) {
+						failedLocalIds.add(incomingRecord.getLocalId());
+					}
 					DebugNDJSONLogger.log(
 							"pre-debug",
 							"H4_PUSH_MERGE_ENGINE",
@@ -331,89 +333,127 @@ public class GenericSyncService {
 		return new PushSyncResponse(successfulLocalIds, failedLocalIds);
 	}
 
-	private void resolveRelationalIds(BaseSyncEntity record, Long tenantId, String deviceId) {
+	/**
+	 * Builds lookup maps for all FK localIds present in a device batch.
+	 * ONE bulk query per entity type instead of one query per record —
+	 * reduces 1500 queries (500 BillItems × 3 FKs) to ~8 queries total.
+	 */
+	private RelationalIdMaps buildRelationalIdMaps(List<? extends BaseSyncEntity> devicePayload,
+			Long tenantId, String deviceId) {
+
+		// Collect all referenced localIds from the payload by type
+		Set<Long> billLocalIds      = new HashSet<>();
+		Set<Long> menuItemLocalIds  = new HashSet<>();
+		Set<Long> variantLocalIds   = new HashSet<>();
+		Set<Long> categoryLocalIds  = new HashSet<>();
+
+		for (BaseSyncEntity record : devicePayload) {
+			if (record instanceof BillItem bi) {
+				if (bi.getBillId()     != null) billLocalIds.add(bi.getBillId());
+				if (bi.getMenuItemId() != null) menuItemLocalIds.add(bi.getMenuItemId());
+				if (bi.getVariantId()  != null) variantLocalIds.add(bi.getVariantId());
+			} else if (record instanceof BillPayment bp) {
+				if (bp.getBillId()     != null) billLocalIds.add(bp.getBillId());
+			} else if (record instanceof ItemVariant iv) {
+				if (iv.getMenuItemId() != null) menuItemLocalIds.add(iv.getMenuItemId());
+			} else if (record instanceof MenuItem mi) {
+				if (mi.getCategoryId() != null) categoryLocalIds.add(mi.getCategoryId());
+			} else if (record instanceof StockLog sl) {
+				if (sl.getMenuItemId() != null) menuItemLocalIds.add(sl.getMenuItemId());
+				if (sl.getVariantId()  != null) variantLocalIds.add(sl.getVariantId());
+			}
+		}
+
+		// Bulk fetch — device-specific lookup first, then cross-device fallback,
+		// merged so device-specific wins on collision.
+		RelationalIdMaps maps = new RelationalIdMaps();
+
+		if (!billLocalIds.isEmpty()) {
+			maps.billLocalToServerId = buildMergedMap(
+					billRepository.findByRestaurantIdAndLocalIdIn(tenantId, new ArrayList<>(billLocalIds)),
+					billRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(tenantId, deviceId, new ArrayList<>(billLocalIds)));
+		}
+		if (!menuItemLocalIds.isEmpty()) {
+			maps.menuItemLocalToServerId = buildMergedMap(
+					menuItemRepository.findByRestaurantIdAndLocalIdIn(tenantId, new ArrayList<>(menuItemLocalIds)),
+					menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(tenantId, deviceId, new ArrayList<>(menuItemLocalIds)));
+		}
+		if (!variantLocalIds.isEmpty()) {
+			maps.variantLocalToServerId = buildMergedMap(
+					itemVariantRepository.findByRestaurantIdAndLocalIdIn(tenantId, new ArrayList<>(variantLocalIds)),
+					itemVariantRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(tenantId, deviceId, new ArrayList<>(variantLocalIds)));
+		}
+		if (!categoryLocalIds.isEmpty()) {
+			maps.categoryLocalToServerId = buildMergedMap(
+					categoryRepository.findByRestaurantIdAndLocalIdIn(tenantId, new ArrayList<>(categoryLocalIds)),
+					categoryRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(tenantId, deviceId, new ArrayList<>(categoryLocalIds)));
+		}
+
+		return maps;
+	}
+
+	/** Cross-device results first (lower priority), device-specific second (higher priority). */
+	private Map<Long, Long> buildMergedMap(List<? extends BaseSyncEntity> crossDevice,
+			List<? extends BaseSyncEntity> deviceSpecific) {
+		Map<Long, Long> map = new HashMap<>();
+		for (BaseSyncEntity e : crossDevice) {
+			if (e.getLocalId() != null && e.getId() != null) map.put(e.getLocalId(), e.getId());
+		}
+		for (BaseSyncEntity e : deviceSpecific) {
+			if (e.getLocalId() != null && e.getId() != null) map.put(e.getLocalId(), e.getId());
+		}
+		return map;
+	}
+
+	private static class RelationalIdMaps {
+		Map<Long, Long> billLocalToServerId      = Collections.emptyMap();
+		Map<Long, Long> menuItemLocalToServerId  = Collections.emptyMap();
+		Map<Long, Long> variantLocalToServerId   = Collections.emptyMap();
+		Map<Long, Long> categoryLocalToServerId  = Collections.emptyMap();
+	}
+
+	private void resolveRelationalIds(BaseSyncEntity record, RelationalIdMaps maps) {
 		try {
 			if (record instanceof MenuItem menuItem) {
 				if (menuItem.getCategoryId() != null && menuItem.getServerCategoryId() == null) {
-					log.info("Resolving Category for MenuItem: localId={}, categoryId={}", menuItem.getLocalId(), menuItem.getCategoryId());
-					categoryRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, menuItem.getCategoryId())
-							.or(() -> categoryRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(menuItem.getCategoryId())).stream().findFirst())
-							.ifPresent(cat -> {
-								menuItem.setServerCategoryId(cat.getId());
-								log.info("Resolved Category: serverId={}", cat.getId());
-							});
+					Long serverId = maps.categoryLocalToServerId.get(menuItem.getCategoryId());
+					if (serverId != null) menuItem.setServerCategoryId(serverId);
 				}
 			} else if (record instanceof ItemVariant variant) {
 				if (variant.getMenuItemId() != null && variant.getServerMenuItemId() == null) {
-					log.info("Resolving MenuItem for ItemVariant: localId={}, menuItemId={}", variant.getLocalId(), variant.getMenuItemId());
-					menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, variant.getMenuItemId())
-							.or(() -> menuItemRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(variant.getMenuItemId())).stream().findFirst())
-							.ifPresent(item -> {
-								variant.setServerMenuItemId(item.getId());
-								log.info("Resolved MenuItem: serverId={}", item.getId());
-							});
+					Long serverId = maps.menuItemLocalToServerId.get(variant.getMenuItemId());
+					if (serverId != null) variant.setServerMenuItemId(serverId);
 				}
 			} else if (record instanceof BillItem billItem) {
-				log.info("Resolving for BillItem: localId={}, billId={}, menuItemId={}, variantId={}", 
-						billItem.getLocalId(), billItem.getBillId(), billItem.getMenuItemId(), billItem.getVariantId());
-				
 				if (billItem.getBillId() != null && billItem.getServerBillId() == null) {
-					billRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, billItem.getBillId())
-							.or(() -> billRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(billItem.getBillId())).stream().findFirst())
-							.ifPresent(bill -> {
-								billItem.setServerBillId(bill.getId());
-								log.info("Resolved Bill: serverId={}", bill.getId());
-							});
+					Long serverId = maps.billLocalToServerId.get(billItem.getBillId());
+					if (serverId != null) billItem.setServerBillId(serverId);
 				}
 				if (billItem.getMenuItemId() != null && billItem.getServerMenuItemId() == null) {
-					menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, billItem.getMenuItemId())
-							.or(() -> menuItemRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(billItem.getMenuItemId())).stream().findFirst())
-							.ifPresent(item -> {
-								billItem.setServerMenuItemId(item.getId());
-								log.info("Resolved MenuItem: serverId={}", item.getId());
-							});
+					Long serverId = maps.menuItemLocalToServerId.get(billItem.getMenuItemId());
+					if (serverId != null) billItem.setServerMenuItemId(serverId);
 				}
 				if (billItem.getVariantId() != null && billItem.getServerVariantId() == null) {
-					itemVariantRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, billItem.getVariantId())
-							.or(() -> itemVariantRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(billItem.getVariantId())).stream().findFirst())
-							.ifPresent(v -> {
-								billItem.setServerVariantId(v.getId());
-								log.info("Resolved Variant: serverId={}", v.getId());
-							});
+					Long serverId = maps.variantLocalToServerId.get(billItem.getVariantId());
+					if (serverId != null) billItem.setServerVariantId(serverId);
 				}
 			} else if (record instanceof BillPayment payment) {
 				if (payment.getBillId() != null && payment.getServerBillId() == null) {
-					log.info("Resolving Bill for BillPayment: localId={}, billId={}", payment.getLocalId(), payment.getBillId());
-					billRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, payment.getBillId())
-							.or(() -> billRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(payment.getBillId())).stream().findFirst())
-							.ifPresent(bill -> {
-								payment.setServerBillId(bill.getId());
-								log.info("Resolved Bill: serverId={}", bill.getId());
-							});
+					Long serverId = maps.billLocalToServerId.get(payment.getBillId());
+					if (serverId != null) payment.setServerBillId(serverId);
 				}
 			} else if (record instanceof StockLog logRecord) {
 				if (logRecord.getMenuItemId() != null && logRecord.getServerMenuItemId() == null) {
-					log.info("Resolving MenuItem for StockLog: localId={}, menuItemId={}", logRecord.getLocalId(), logRecord.getMenuItemId());
-					menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, logRecord.getMenuItemId())
-							.or(() -> menuItemRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(logRecord.getMenuItemId())).stream().findFirst())
-							.ifPresent(item -> {
-								logRecord.setServerMenuItemId(item.getId());
-								log.info("Resolved MenuItem: serverId={}", item.getId());
-							});
+					Long serverId = maps.menuItemLocalToServerId.get(logRecord.getMenuItemId());
+					if (serverId != null) logRecord.setServerMenuItemId(serverId);
 				}
 				if (logRecord.getVariantId() != null && logRecord.getServerVariantId() == null) {
-					log.info("Resolving Variant for StockLog: localId={}, variantId={}", logRecord.getLocalId(), logRecord.getVariantId());
-					itemVariantRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, logRecord.getVariantId())
-							.or(() -> itemVariantRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(logRecord.getVariantId())).stream().findFirst())
-							.ifPresent(v -> {
-								logRecord.setServerVariantId(v.getId());
-								log.info("Resolved Variant: serverId={}", v.getId());
-							});
+					Long serverId = maps.variantLocalToServerId.get(logRecord.getVariantId());
+					if (serverId != null) logRecord.setServerVariantId(serverId);
 				}
 			}
 		} catch (Exception e) {
-			log.error("Resolution Failed: {}", e.getMessage());
-			e.printStackTrace();
+			log.error("Resolution Failed: {}", e.getMessage(), e);
 		}
 	}
 }

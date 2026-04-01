@@ -1,7 +1,10 @@
 package com.khanabook.saas.controller;
 
 import com.khanabook.saas.debug.DebugNDJSONLogger;
+import com.khanabook.saas.entity.TokenBlocklist;
+import com.khanabook.saas.repository.TokenBlocklistRepository;
 import com.khanabook.saas.service.AuthService;
+import com.khanabook.saas.utility.JwtUtility;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -22,6 +25,8 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
 	private final AuthService authService;
+	private final JwtUtility jwtUtility;
+	private final TokenBlocklistRepository tokenBlocklistRepository;
 
 	@PostMapping("/login")
 	public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -77,7 +82,7 @@ public class AuthController {
 
 	@GetMapping("/check-user")
 	public ResponseEntity<Boolean> checkUser(@RequestParam String phoneNumber) {
-		if (phoneNumber == null || phoneNumber.length() != 10) {
+		if (phoneNumber == null || !phoneNumber.matches("^\\d{10}$")) {
 			return ResponseEntity.ok(false);
 		}
 		DebugNDJSONLogger.log(
@@ -104,6 +109,24 @@ public class AuthController {
 				)
 		);
 		authService.resetPassword(request.getPhoneNumber(), request.getOtp(), request.getNewPassword());
+		return ResponseEntity.ok().build();
+	}
+
+	@PostMapping("/logout")
+	public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authHeader) {
+		if (authHeader != null && authHeader.startsWith("Bearer ")) {
+			String jwt = authHeader.substring(7);
+			try {
+				String jti = jwtUtility.extractJti(jwt);
+				long expiresAt = jwtUtility.extractExpiration(jwt).getTime();
+				if (jti != null) {
+					tokenBlocklistRepository.save(
+							new TokenBlocklist(jti, expiresAt, System.currentTimeMillis()));
+				}
+			} catch (Exception ignored) {
+				// Token may already be expired — logout is still successful
+			}
+		}
 		return ResponseEntity.ok().build();
 	}
 
