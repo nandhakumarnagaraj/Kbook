@@ -116,7 +116,7 @@ class AuthViewModelTest {
         val password = "owner123"
 
         coEvery { userRepository.remoteLogin(email, password) } returns Result.failure(java.io.IOException("Network error"))
-        coEvery { userRepository.getUserByEmail(email) } returns null
+        coEvery { userRepository.getUserByLoginId(email) } returns null
 
         viewModel.login(email, password)
         advanceUntilIdle()

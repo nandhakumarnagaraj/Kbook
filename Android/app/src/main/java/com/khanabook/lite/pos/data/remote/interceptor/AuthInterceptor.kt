@@ -14,16 +14,13 @@ class AuthInterceptor @Inject constructor(private val sessionManager: SessionMan
 
     val requestBuilder = request.newBuilder()
 
-    // Public auth endpoints that don't require a token
-    val isPublicAuthPath = path.contains("/auth/login") ||
-            path.contains("/auth/signup") ||
-            path.contains("/auth/google") ||
-            path.contains("/auth/check-user") ||
-            path.contains("/auth/reset-password")
+    // Public endpoints — any path under /auth/ or containing /login
+    val isPublicAuthPath = path.contains("/auth/") || path.contains("/login")
 
     if (!isPublicAuthPath) {
         val token = sessionManager.getAuthToken()
-        if (!token.isNullOrBlank()) {
+        // Only attach structurally-valid JWTs (header.payload.signature = 2 dots minimum)
+        if (!token.isNullOrBlank() && token.count { it == '.' } >= 2) {
             requestBuilder.addHeader("Authorization", "Bearer $token")
         }
     }

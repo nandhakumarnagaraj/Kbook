@@ -44,6 +44,7 @@ import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.PaymentModeManager
+import com.khanabook.lite.pos.domain.manager.QrCodeManager
 import com.khanabook.lite.pos.domain.model.*
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
@@ -718,6 +719,16 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
     val relocationRequester = remember { BringIntoViewRequester() }
     val scope = rememberCoroutineScope()
 
+    // Generate a live UPI QR with the exact bill amount when upiHandle is configured
+    // but no static QR image has been saved. Regenerates whenever the total changes.
+    val dynamicUpiQrBitmap = remember(profile?.upiHandle, summary.total) {
+        val handle = profile?.upiHandle
+        if (!handle.isNullOrBlank()) {
+            val amount = summary.total.toDoubleOrNull() ?: 0.0
+            QrCodeManager.generateUpiQr(handle, profile?.shopName ?: "RESTAURANT", amount, 512)
+        } else null
+    }
+
     Column(
             modifier = Modifier.fillMaxSize()
                     .verticalScroll(rememberScrollState())
@@ -739,14 +750,18 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                                     .clickable { showQrModal = true },
                     contentAlignment = Alignment.Center
             ) {
-                if (!profile?.upiQrPath.isNullOrBlank()) {
-                    AsyncImage(
+                when {
+                    dynamicUpiQrBitmap != null -> Image(
+                        bitmap = dynamicUpiQrBitmap.asImageBitmap(),
+                        contentDescription = "Scan to pay ${profile?.upiHandle}",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    !profile?.upiQrPath.isNullOrBlank() -> AsyncImage(
                         model = profile?.upiQrPath,
                         contentDescription = "QR Code",
                         modifier = Modifier.fillMaxSize()
                     )
-                } else {
-                    Icon(
+                    else -> Icon(
                         Icons.Default.QrCode,
                         null,
                         modifier = Modifier.size(100.dp),
@@ -997,14 +1012,18 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                                         Modifier.size(280.dp).background(Color.White).padding(spacing.small),
                                 contentAlignment = Alignment.Center
                         ) {
-                            if (!profile?.upiQrPath.isNullOrBlank()) {
-                                AsyncImage(
+                            when {
+                                dynamicUpiQrBitmap != null -> Image(
+                                    bitmap = dynamicUpiQrBitmap.asImageBitmap(),
+                                    contentDescription = "Scan to pay ${profile?.upiHandle}",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                !profile?.upiQrPath.isNullOrBlank() -> AsyncImage(
                                     model = profile?.upiQrPath,
                                     contentDescription = "QR Code",
                                     modifier = Modifier.fillMaxSize()
                                 )
-                            } else {
-                                Icon(
+                                else -> Icon(
                                     Icons.Default.QrCode,
                                     null,
                                     modifier = Modifier.size(180.dp),

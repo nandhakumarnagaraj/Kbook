@@ -26,6 +26,7 @@ class InvoiceFormatterTest {
         every { QrCodeManager.generateQr(any(), any()) } returns mockBitmap
         every { QrCodeManager.generateUpiQr(any(), any(), any(), any()) } returns mockBitmap
         every { BitmapFactory.decodeFile(any()) } returns mockBitmap
+        every { BitmapFactory.decodeFile(any(), any()) } returns mockBitmap
         every { Bitmap.createScaledBitmap(any(), any(), any(), any()) } returns mockBitmap
     }
 
@@ -73,8 +74,9 @@ class InvoiceFormatterTest {
         assertTrue("58mm single line missing", output.contains(expectedLine))
         assertTrue("58mm double line missing", output.contains(expectedDoubleLine))
         assertTrue(output.contains("ITEM"))
-        assertTrue(output.contains("NET AMT:"))
-        assertTrue(!output.contains("SCAN TO PAY"))
+        assertTrue(output.contains("Sub-total:"))
+        // UPI QR is shown on both paper sizes when upiHandle is configured
+        assertTrue(output.contains("SCAN TO PAY"))
     }
 
     @Test
@@ -92,7 +94,7 @@ class InvoiceFormatterTest {
         assertTrue("80mm single line missing", output.contains(expectedLine))
         assertTrue("80mm double line missing", output.contains(expectedDoubleLine))
         assertTrue(output.contains("ITEM"))
-        assertTrue(output.contains("NET AMT:"))
+        assertTrue(output.contains("Sub-total:"))
     }
 
     @Test

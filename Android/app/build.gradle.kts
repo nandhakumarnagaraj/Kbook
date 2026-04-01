@@ -79,18 +79,24 @@ android {
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
-                // Fail the build if release is assembled without signing credentials
-                // (avoids accidentally publishing an unsigned APK/AAB)
-                tasks.whenTaskAdded {
-                    if (name.startsWith("assemble") || name.startsWith("bundle")) {
-                        doFirst {
-                            throw GradleException(
-                                "Release signing not configured. " +
-                                "Add SIGNING_STORE_FILE, SIGNING_STORE_PASSWORD, " +
-                                "SIGNING_KEY_ALIAS and SIGNING_KEY_PASSWORD to local.properties."
-                            )
+                // Fail fast if someone tries to assemble/bundle a release without signing configured.
+                // Only applies to release tasks — debug/test builds are unaffected.
+                gradle.taskGraph.whenReady {
+                    allTasks
+                        .filter { task ->
+                            task.project == project &&
+                            (task.name.startsWith("assemble") || task.name.startsWith("bundle")) &&
+                            task.name.contains("Release", ignoreCase = true)
                         }
-                    }
+                        .forEach { task ->
+                            task.doFirst {
+                                throw GradleException(
+                                    "Release signing not configured. " +
+                                    "Add SIGNING_STORE_FILE, SIGNING_STORE_PASSWORD, " +
+                                    "SIGNING_KEY_ALIAS and SIGNING_KEY_PASSWORD to local.properties."
+                                )
+                            }
+                        }
                 }
             }
             proguardFiles(
