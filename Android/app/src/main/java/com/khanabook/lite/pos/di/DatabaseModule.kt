@@ -96,18 +96,10 @@ object DatabaseModule {
         @Singleton
         fun provideUserRepository(
                 userDao: UserDao,
-                @ApplicationContext context: Context,
                 sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
                 workManager: androidx.work.WorkManager,
                 api: com.khanabook.lite.pos.data.remote.api.KhanaBookApi
-        ) =
-                UserRepository(
-                        userDao,
-                        context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE),
-                        sessionManager,
-                        workManager,
-                        api
-                )
+        ) = UserRepository(userDao, sessionManager, workManager, api)
 
         @Provides
         @Singleton

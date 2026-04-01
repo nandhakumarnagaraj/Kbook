@@ -1,21 +1,17 @@
 package com.khanabook.lite.pos
 
 import android.app.Application
-import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.khanabook.lite.pos.di.SessionManagerEntryPoint
+import com.khanabook.lite.pos.domain.util.GlobalCrashHandler
+import com.khanabook.lite.pos.worker.MasterSyncWorker
+import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class KhanaBookApplication : Application(), Configuration.Provider {
-
-    companion object {
-        lateinit var instance: KhanaBookApplication
-            private set
-    }
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
 
@@ -24,26 +20,14 @@ class KhanaBookApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        instance = this
 
-        
-        com.khanabook.lite.pos.domain.util.GlobalCrashHandler.initialize(this)
+        GlobalCrashHandler.initialize(this)
 
-        
-        val sessionManager = dagger.hilt.android.EntryPointAccessors.fromApplication(this, com.khanabook.lite.pos.di.SessionManagerEntryPoint::class.java).sessionManager()
-        sessionManager.getDeviceId()
+        // Eagerly generate and persist the device ID so sync workers always have it
+        EntryPointAccessors.fromApplication(this, SessionManagerEntryPoint::class.java)
+            .sessionManager()
+            .getDeviceId()
 
-        
-        com.khanabook.lite.pos.worker.MasterSyncWorker.schedule(this)
-
-        
-        val exceptionHandler =
-                kotlinx.coroutines.CoroutineExceptionHandler { _, throwable ->
-                    Log.e("KhanaBookApp", "Coroutine Exception", throwable)
-                }
-
-        MainScope().launch(exceptionHandler) {
-            
-        }
+        MasterSyncWorker.schedule(this)
     }
 }

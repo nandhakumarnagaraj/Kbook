@@ -1,10 +1,13 @@
 package com.khanabook.lite.pos.domain.manager
 
+import android.util.Log
 import org.mindrot.jbcrypt.BCrypt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private const val TAG = "AuthManager"
 
 @Singleton
 class AuthManager @Inject constructor() {
@@ -17,9 +20,8 @@ class AuthManager @Inject constructor() {
         try {
             BCrypt.checkpw(password, hash)
         } catch (e: Exception) {
-            false 
+            Log.e(TAG, "BCrypt verification error", e)
+            false
         }
     }
 }
-
-

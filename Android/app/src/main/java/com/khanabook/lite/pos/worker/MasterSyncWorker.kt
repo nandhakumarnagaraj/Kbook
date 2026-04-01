@@ -76,16 +76,9 @@ constructor(
             val lastSyncTimestamp = sessionManager.getLastSyncTimestamp()
 
               try {
-              Log.d("MasterSyncWorker", "Starting sync.")
-
-              
               masterSyncProcessor.pushAll()
 
-              
-              Log.d("MasterSyncWorker", "Performing Master Pull")
               val masterData = api.pullMasterSync(lastSyncTimestamp, deviceId)
-
-              
               masterSyncProcessor.insertMasterData(masterData)
 
               if (masterData.serverTimestamp > 0) {
@@ -93,7 +86,7 @@ constructor(
               } else {
                   sessionManager.saveLastSyncTimestamp(System.currentTimeMillis())
               }
-              Log.d("MasterSyncWorker", "Sync completed successfully")
+              Log.i("MasterSyncWorker", "Sync completed successfully")
 
               Result.success()
             } catch (e: Exception) {

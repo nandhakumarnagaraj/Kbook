@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import android.util.Log
@@ -32,12 +33,8 @@ class SplashViewModel @Inject constructor(
 
     private fun checkSession() {
         viewModelScope.launch {
-            
-            kotlinx.coroutines.delay(1000)
-            
             val token = sessionManager.getAuthToken()
             val isSyncCompleted = sessionManager.isInitialSyncCompleted()
-            val activeUserId = sessionManager.getActiveUserId()
 
             val chosen = when {
                 token == null -> SplashState.NavigateToLogin
@@ -45,10 +42,9 @@ class SplashViewModel @Inject constructor(
                 else -> SplashState.NavigateToMain
             }
 
-            Log.d(
-                debugTag,
-                "Splash navigation chosen=${chosen::class.simpleName} tokenPresent=${token != null} isSyncCompleted=$isSyncCompleted activeUserId=$activeUserId"
-            )
+            if (BuildConfig.DEBUG) {
+                Log.d(debugTag, "Splash → ${chosen::class.simpleName} tokenPresent=${token != null} syncDone=$isSyncCompleted")
+            }
             _state.value = chosen
         }
     }

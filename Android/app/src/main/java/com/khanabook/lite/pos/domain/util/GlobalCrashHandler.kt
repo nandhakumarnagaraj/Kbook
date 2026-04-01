@@ -3,6 +3,7 @@ package com.khanabook.lite.pos.domain.util
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.ui.MainActivity
 import kotlin.system.exitProcess
 
@@ -11,30 +12,25 @@ class GlobalCrashHandler(private val context: Context) : Thread.UncaughtExceptio
   private val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
 
   override fun uncaughtException(thread: Thread, throwable: Throwable) {
-    
-    val stackTrace = Log.getStackTraceString(throwable)
-    Log.e("KhanaBookCrash", "CRITICAL ERROR: Uncaught exception in thread ${thread.name}")
-    Log.e("KhanaBookCrash", stackTrace)
+    Log.e("KhanaBookCrash", "CRITICAL: Uncaught exception in thread ${thread.name}", throwable)
 
-    
-    try {
-        saveCrashLog(stackTrace)
-    } catch (e: Exception) {
-        Log.e("KhanaBookCrash", "Secondary error in saveCrashLog: ${e.message}")
+    // Only persist stack traces in debug builds — stack traces may contain internal paths
+    if (BuildConfig.DEBUG) {
+        try {
+            saveCrashLog(Log.getStackTraceString(throwable))
+        } catch (e: Exception) {
+            Log.e("KhanaBookCrash", "Secondary error in saveCrashLog: ${e.message}")
+        }
     }
 
-    
+    // Crash loop detection — fall back to system handler if crashing repeatedly
     try {
         val prefs = context.getSharedPreferences("crash_reports", Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()
         val lastCrashTime = prefs.getLong("last_crash_time", 0L)
         val crashCount = prefs.getInt("crash_count", 0)
 
-        val newCrashCount = if (now - lastCrashTime < 10000) {
-            crashCount + 1
-        } else {
-            1
-        }
+        val newCrashCount = if (now - lastCrashTime < 10_000L) crashCount + 1 else 1
 
         prefs.edit().apply {
             putLong("last_crash_time", now)
@@ -43,21 +39,18 @@ class GlobalCrashHandler(private val context: Context) : Thread.UncaughtExceptio
         }
 
         if (newCrashCount >= 3) {
-            Log.e("KhanaBookCrash", "Crash loop detected. Falling back to default system handler.")
-            
+            Log.e("KhanaBookCrash", "Crash loop detected — delegating to system handler.")
             prefs.edit().putInt("crash_count", 0).apply()
             defaultHandler?.uncaughtException(thread, throwable)
             return
         }
     } catch (e: Exception) {
-        Log.e("KhanaBookCrash", "Secondary error in crash loop detection: ${e.message}")
-        
+        Log.e("KhanaBookCrash", "Error in crash loop detection: ${e.message}")
         defaultHandler?.uncaughtException(thread, throwable)
         return
     }
 
-    
-    
+    // OOM and SOE cannot be recovered from — let the system handle them
     if (throwable is OutOfMemoryError || throwable is StackOverflowError) {
         defaultHandler?.uncaughtException(thread, throwable)
         return
@@ -66,7 +59,6 @@ class GlobalCrashHandler(private val context: Context) : Thread.UncaughtExceptio
     try {
       restartApp()
     } catch (e: Exception) {
-      
       defaultHandler?.uncaughtException(thread, throwable)
     }
   }
@@ -85,23 +77,17 @@ class GlobalCrashHandler(private val context: Context) : Thread.UncaughtExceptio
   }
 
   private fun restartApp() {
-    val intent =
-            Intent(context, MainActivity::class.java).apply {
-              addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            }
+    val intent = Intent(context, MainActivity::class.java).apply {
+      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+    }
     context.startActivity(intent)
-
-    
     android.os.Process.killProcess(android.os.Process.myPid())
     exitProcess(10)
   }
 
   companion object {
     fun initialize(context: Context) {
-      val handler = GlobalCrashHandler(context)
-      Thread.setDefaultUncaughtExceptionHandler(handler)
+      Thread.setDefaultUncaughtExceptionHandler(GlobalCrashHandler(context))
     }
   }
 }
-
-

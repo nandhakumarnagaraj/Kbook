@@ -120,7 +120,6 @@ constructor(
         val result = userRepository.remoteLogin(email, password)
 
         result.onSuccess { user ->
-            Log.d(TAG, "Remote login success for: $email")
             val setupResult = handleLoginSuccess(user)
             if (setupResult.isSuccess) {
                 _loginStatus.value = LoginResult.Success(user)

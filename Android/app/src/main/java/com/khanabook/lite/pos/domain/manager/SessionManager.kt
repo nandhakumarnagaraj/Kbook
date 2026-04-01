@@ -179,6 +179,11 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().remove("active_user_id").remove("active_user_role").apply()
     }
 
+    // Login identity stored encrypted so it can survive clearSession for re-auth prefill
+    fun getPersistedLoginId(): String? = securePrefs.getString("persisted_login_id", null)
+    fun savePersistedLoginId(loginId: String) { securePrefs.edit().putString("persisted_login_id", loginId).apply() }
+    fun clearPersistedLoginId() { securePrefs.edit().remove("persisted_login_id").apply() }
+
     // Brute-force lockout persistence — survives process kill
     fun getFailedLoginAttempts(): Int = prefs.getInt("failed_login_attempts", 0)
     fun setFailedLoginAttempts(count: Int) { prefs.edit().putInt("failed_login_attempts", count).apply() }

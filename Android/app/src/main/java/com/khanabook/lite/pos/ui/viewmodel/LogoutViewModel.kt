@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.data.local.AppDatabase
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.repository.BillRepository
@@ -93,7 +94,7 @@ class LogoutViewModel @Inject constructor(
 
     private fun performHardLogout() {
         viewModelScope.launch {
-            Log.d(debugTag, "performHardLogout: starting server-side logout + clearing DB")
+            if (BuildConfig.DEBUG) Log.d(debugTag, "performHardLogout: starting server-side logout + clearing DB")
             // Revoke token server-side so it can't be replayed
             try {
                 api.logout()
@@ -103,7 +104,7 @@ class LogoutViewModel @Inject constructor(
             sessionManager.clearSession()
             appDatabase.clearAllTables()
             userRepository.setCurrentUser(null)
-            Log.d(debugTag, "performHardLogout: completed clearSession + cleared DB")
+            if (BuildConfig.DEBUG) Log.d(debugTag, "performHardLogout: completed clearSession + cleared DB")
             _logoutState.value = LogoutState.LoggedOut
         }
     }

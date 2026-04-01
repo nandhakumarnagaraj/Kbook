@@ -1,6 +1,5 @@
 package com.khanabook.lite.pos.data.repository
 
-import android.content.SharedPreferences
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
@@ -23,11 +22,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-private const val KEY_USER_LOGIN_ID = "logged_in_user_login_id"
-
 class UserRepository(
         private val userDao: UserDao,
-        private val prefs: SharedPreferences,
         private val sessionManager: SessionManager,
         private val workManager: WorkManager,
         private val api: KhanaBookApi
@@ -210,31 +206,33 @@ class UserRepository(
     }
 
     suspend fun loadPersistedUser() {
-        val loginId = prefs.getString(KEY_USER_LOGIN_ID, null)
         val activeUserId = sessionManager.getActiveUserId()
 
         if (activeUserId != null) {
             val user = userDao.getUserById(activeUserId)
             _currentUser.value = user
             if (user != null) {
-                prefs.edit().putString(KEY_USER_LOGIN_ID, user.persistedLoginIdentity()).apply()
+                sessionManager.savePersistedLoginId(user.persistedLoginIdentity())
             }
-        } else if (loginId != null) {
-            val user = userDao.getUserByLoginId(loginId) ?: userDao.getUserByEmail(loginId)
-            _currentUser.value = user
-            user?.let { sessionManager.saveActiveUserId(it.id); sessionManager.saveActiveUserRole(it.role) }
+        } else {
+            val loginId = sessionManager.getPersistedLoginId()
+            if (loginId != null) {
+                val user = userDao.getUserByLoginId(loginId) ?: userDao.getUserByEmail(loginId)
+                _currentUser.value = user
+                user?.let { sessionManager.saveActiveUserId(it.id); sessionManager.saveActiveUserRole(it.role) }
+            }
         }
     }
 
     fun setCurrentUser(user: UserEntity?) {
         _currentUser.value = user
         if (user != null) {
-            prefs.edit().putString(KEY_USER_LOGIN_ID, user.persistedLoginIdentity()).apply()
+            sessionManager.savePersistedLoginId(user.persistedLoginIdentity())
             sessionManager.saveActiveUserId(user.id)
             sessionManager.saveActiveUserRole(user.role)
             triggerBackgroundSync()
         } else {
-            prefs.edit().remove(KEY_USER_LOGIN_ID).apply()
+            sessionManager.clearPersistedLoginId()
             sessionManager.clearLocalUserSession()
         }
     }
