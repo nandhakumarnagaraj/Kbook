@@ -144,16 +144,18 @@ object InvoiceFormatter {
         add(formatRow("Sub-total:", formatMoney(bill.bill.subtotal), width))
         
         if (isGst) {
-            val halfGstAmt = formatMoney(bill.bill.cgstAmount)
-            add(formatRow("CGST (2.5%):", halfGstAmt, width))
-            add(formatRow("SGST (2.5%):", halfGstAmt, width))
+            val gstPct = try {
+                java.math.BigDecimal(bill.bill.gstPercentage)
+                    .divide(java.math.BigDecimal("2"), 1, java.math.RoundingMode.HALF_UP)
+                    .stripTrailingZeros().toPlainString()
+            } catch (e: Exception) { "2.5" }
+            add(formatRow("CGST ($gstPct%):", formatMoney(bill.bill.cgstAmount), width))
+            add(formatRow("SGST ($gstPct%):", formatMoney(bill.bill.sgstAmount), width))
         }
         
         add(BOLD_ON)
-        add(LARGE_FONT)
-        val doubleWidthChars = width / 2
-        add(formatRow("NET AMT:", "$currency ${formatMoney(bill.bill.totalAmount)}", doubleWidthChars))
-        add(NORMAL_FONT)
+        add("$doubleLine\n")
+        add(formatRow("TOTAL:", "$currency ${formatMoney(bill.bill.totalAmount)}", width))
         add(BOLD_OFF)
         add("$doubleLine\n")
 
