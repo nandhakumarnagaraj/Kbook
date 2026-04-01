@@ -72,24 +72,64 @@ The engine that receives synced offline data, handles conflict resolution, and e
 
 ---
 
-## 🍱 Recent Improvements & Stability Updates
+## 🔒 Production Hardening (Latest)
 
-### 🛡️ Security & Architecture (Latest)
-- **Centralized OTP Handling:** Moved all WhatsApp OTP generation and delivery logic to the server. Android clients no longer require Meta/WhatsApp API tokens, reducing the APK's attack surface and secret exposure.
-- **Persistent OTP Storage:** Implemented a dedicated `otp_requests` table on the server with automated hourly cleanup. This ensures OTPs survive server restarts and support multi-instance deployments.
-- **Android Secret Hardening:** Removed hardcoded Backend URLs and Google Client IDs from the app resources. These are now injected via `local.properties` and `BuildConfig`/`resValue` during the build process.
+A full security, performance, and reliability overhaul was applied to the server and database. Here's what changed and why it matters.
 
-### 🧾 Billing & Reports
-- **Clean Order Numbering:** Optimized Daily Order IDs to show only the 3-digit counter (e.g., `001`, `002`) in tables and reports for better readability.
-- **Integrated Sharing:** Added a dedicated WhatsApp share button to every row in the **Order Details** screen, allowing instant invoice delivery for any past order.
+### Database Integrity
+- **Foreign Key Constraints:** All `server_*_id` relationship columns now have proper FK constraints (`DEFERRABLE INITIALLY DEFERRED` so batch sync inserts don't trip constraints mid-transaction). Orphaned records are no longer possible at the DB level.
+- **CHECK Constraints:** Non-negative prices, positive quantity, and valid `auth_provider` enum values are enforced by the database — invalid data is rejected before it reaches the app layer.
+- **24 New Indexes:** Added composite indexes for soft-delete filters (`restaurant_id, is_deleted`), FK join columns (partial, where set), `server_updated_at` for pull queries, and missing indexes on `menu_extraction_jobs` and OTP lookup.
+- **Optimistic Locking:** A `version` column on every sync entity table. Hibernate now throws a `409 Conflict` if two devices try to overwrite the same record simultaneously — no more silent data loss.
+- **Atomic Order Counter:** Daily order counter reset is now a single atomic SQL `UPDATE` — eliminates the race condition where two concurrent bill creates could both try to reset the counter on a new day.
 
-### 🔌 Hardware & Connectivity
-- **Robust Printer Discovery:** Enhanced Bluetooth scanning to reliably detect new/unpaired thermal printers. Added automatic Location/GPS status checks required for Android hardware discovery.
-- **Unified Printer State:** Implemented a Singleton manager for Bluetooth connectivity, ensuring your printer stays connected across all screens (Settings, Billing, etc.).
+### Security
+- **JWT Revocation (Logout):** `POST /auth/logout` now revokes the token server-side via a `token_blocklist` table. Stolen tokens stop working immediately. Expired blocklist entries are cleaned up hourly.
+- **JTI Claim in JWT:** Every token now carries a unique `jti` (JWT ID). The auth filter checks this against the blocklist on every authenticated request.
+- **Rate Limiting on Sync:** `/sync/**` endpoints are now rate-limited (30 req/min per IP), separate from `/auth/**` (5 req/min). The limiter respects `X-Forwarded-For` for reverse proxy deployments.
+- **Secured API Docs:** Swagger UI / OpenAPI docs now require authentication — not publicly browsable in production.
+- **Actuator Access Control:** `/actuator/health` is public (for load balancer probes); all other actuator endpoints require the `KBOOK_ADMIN` role.
+- **OTP Hardening:** Fixed OTP values via config (`fixed-otp`) removed entirely. OTPs are always random. OTP values are never written to logs.
 
-### 📲 WhatsApp Smart Sharing
-- **Smart Two-Step Flow:** Overhauled the sharing logic to support **unsaved numbers**. The app now automatically opens the correct customer chat and then prompts to attach the PDF invoice.
-- **Android 14 Compatibility:** Fixed PDF attachment issues by implementing explicit URI permission granting (`ClipData`) required by newer Android versions.
+### Performance
+- **N+1 Query Fix:** The sync engine used to fire 2–3 DB queries per record to resolve foreign key IDs (e.g., 1,500 queries for a 500-item BillItem sync). It now bulk pre-loads all referenced IDs once per device batch — ~8 queries total regardless of payload size.
+- **Open-In-View Disabled:** `spring.jpa.open-in-view=false` — lazy-loaded relationships no longer trigger hidden DB queries during JSON serialization.
+- **Flyway Out-of-Order Disabled:** `spring.flyway.out-of-order=false` — prevents schema divergence during rolling deployments.
+- **HikariCP Leak Detection:** Connection leak threshold set to 60 seconds — leaks are logged before they exhaust the pool.
+
+### Reliability
+- **TenantContext in Async Threads:** `AsyncConfig` now propagates `TenantContext` (tenant ID + role) into async worker threads via a `TaskDecorator`. Previously, `@Async` methods had no tenant context and would NPE under load.
+- **Paginated Sync Pull:** `SyncRepository` now has `Page<T>` variants for all pull queries — ready for chunked sync responses to prevent OOM on large datasets.
+- **Structured Error Responses:** All error responses now include `path` and a short `errorId` (logged server-side) to make support and debugging tractable.
+
+### Observability
+- **Actuator + Prometheus:** `spring-boot-starter-actuator` and `micrometer-registry-prometheus` added. `/actuator/health`, `/actuator/metrics`, and `/actuator/prometheus` are live.
+- **Liveness/Readiness Probes:** Enabled for Kubernetes and Docker health check integration.
+- **Logging Configuration:** Log levels set for `com.khanabook` (INFO), Spring Security (WARN), Hibernate SQL (WARN). Console pattern includes timestamp and thread name.
+
+### Android
+- **Migration Failure Visibility:** Silent `catch (_: Exception) {}` in `MIGRATION_30_31` replaced with `android.util.Log.w(...)` so schema migration issues appear in Logcat instead of being swallowed silently.
+
+---
+
+## 🍱 Previous Improvements
+
+### Security & Architecture
+- **Centralized OTP Handling:** All WhatsApp OTP generation and delivery logic lives on the server. Android clients no longer carry Meta/WhatsApp API tokens.
+- **Persistent OTP Storage:** Dedicated `otp_requests` table with hourly cleanup. OTPs survive server restarts and work across multi-instance deployments.
+- **Android Secret Hardening:** Backend URLs and Google Client IDs injected via `local.properties` and `BuildConfig` — not hardcoded in APK resources.
+
+### Billing & Reports
+- **Clean Order Numbering:** Daily Order IDs show as 3-digit counters (`001`, `002`) in tables and reports.
+- **Integrated Sharing:** WhatsApp share button on every Order Details row for instant invoice delivery.
+
+### Hardware & Connectivity
+- **Robust Printer Discovery:** Bluetooth scanning reliably detects new/unpaired thermal printers. Automatic Location/GPS status checks for Android hardware discovery.
+- **Unified Printer State:** Singleton Bluetooth manager keeps printer connected across all screens.
+
+### WhatsApp Smart Sharing
+- **Smart Two-Step Flow:** Supports unsaved numbers — opens correct customer chat and prompts to attach the PDF invoice.
+- **Android 14 Compatibility:** Fixed PDF attachment issues via explicit URI permission granting (`ClipData`).
 
 ---
 
@@ -99,5 +139,3 @@ The engine that receives synced offline data, handles conflict resolution, and e
 **KhanaBook Lite (Android):** Internal/private project. All rights reserved.
 
 Happy Billing! ☕🥡
-
-# Final Verification: Tue Mar 31 12:43:10 UTC 2026
