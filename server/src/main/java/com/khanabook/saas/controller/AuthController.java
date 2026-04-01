@@ -14,6 +14,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +25,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
+
+	private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
 	private final AuthService authService;
 	private final JwtUtility jwtUtility;
@@ -123,8 +127,9 @@ public class AuthController {
 					tokenBlocklistRepository.save(
 							new TokenBlocklist(jti, expiresAt, System.currentTimeMillis()));
 				}
-			} catch (Exception ignored) {
-				// Token may already be expired — logout is still successful
+			} catch (Exception e) {
+				// Token may already be expired — logout is still considered successful
+				log.warn("Logout: could not extract JTI from token ({}), skipping blocklist entry", e.getClass().getSimpleName());
 			}
 		}
 		return ResponseEntity.ok().build();

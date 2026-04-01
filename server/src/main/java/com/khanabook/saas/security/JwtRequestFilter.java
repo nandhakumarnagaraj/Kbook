@@ -88,8 +88,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 					}
 				}
 			} catch (Exception e) {
-
-				logger.debug("JWT validation failed: " + e.getClass().getSimpleName());
+				logger.warn("JWT validation failed: {}", e.getClass().getSimpleName());
 			}
 
 			DebugNDJSONLogger.log(

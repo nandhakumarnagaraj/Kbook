@@ -8,6 +8,8 @@ import java.util.function.Function;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +19,8 @@ import io.jsonwebtoken.security.Keys;
 
 @Component
 public class JwtUtility {
+
+	private static final Logger log = LoggerFactory.getLogger(JwtUtility.class);
 
 	@Value("${jwt.secret}")
 	private String secret;
@@ -30,6 +34,9 @@ public class JwtUtility {
 			return Keys.hmacShaKeyFor(secretBytes);
 		}
 
+		// Secret is shorter than 256 bits — stretch it with SHA-256 so JJWT accepts it.
+		// This is a fallback: JWT_SECRET should be at least 32 cryptographically random bytes.
+		log.warn("JWT_SECRET is only {} bytes — minimum 32 bytes recommended for production", secretBytes.length);
 		try {
 			byte[] hashedSecret = MessageDigest.getInstance("SHA-256").digest(secretBytes);
 			return Keys.hmacShaKeyFor(hashedSecret);

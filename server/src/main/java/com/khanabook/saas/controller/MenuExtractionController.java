@@ -33,11 +33,21 @@ public class MenuExtractionController {
     @Value("${storage.upload-dir}")
     private String uploadDir;
 
+    private static final long MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
     @PostMapping("/upload")
     public ResponseEntity<?> uploadMenu(@RequestParam("file") MultipartFile file) {
         Long restaurantId = TenantContext.getCurrentTenant();
         if (restaurantId == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File must not be empty"));
+        }
+
+        if (file.getSize() > MAX_UPLOAD_BYTES) {
+            return ResponseEntity.status(413).body(Map.of("error", "File exceeds maximum allowed size of 10 MB"));
         }
 
         try {
