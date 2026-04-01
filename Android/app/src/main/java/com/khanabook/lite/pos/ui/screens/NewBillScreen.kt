@@ -527,7 +527,9 @@ fun MenuSelectionStep(
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
                     Row(
-                            modifier = Modifier.padding(spacing.small + spacing.extraSmall),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(spacing.small + spacing.extraSmall),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -1262,7 +1264,7 @@ fun BillStepper(currentStep: Int) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = spacing.medium, start = spacing.extraLarge, end = spacing.extraLarge),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.Center
     ) {
         StepItem(icon = Icons.Default.Person, label = "Customer", isActive = currentStep >= 1, isCompleted = currentStep > 1)
@@ -1312,12 +1314,12 @@ fun StepItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: Strin
 fun RowScope.StepConnector(isCompleted: Boolean) {
     val color = if (isCompleted) PrimaryGold else Color.Gray
     val spacing = KhanaBookTheme.spacing
+    // padding(top=17.dp) aligns the 1dp line with the center of the 36dp icon circle
     Box(
         modifier = Modifier
             .weight(1f)
+            .padding(top = 17.dp, start = spacing.extraSmall, end = spacing.extraSmall)
             .height(1.dp)
-            .padding(horizontal = spacing.extraSmall)
-            .padding(bottom = spacing.small + spacing.extraSmall)
             .background(color)
     )
 }
