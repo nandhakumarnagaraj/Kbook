@@ -43,6 +43,15 @@ class InvoicePDFGenerator(private val context: Context) {
         return maxOf(count, 1)
     }
 
+    private fun decodeSampledBitmap(path: String, maxWidth: Int): Bitmap? {
+        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(path, opts)
+        if (opts.outWidth <= 0) return null
+        opts.inSampleSize = maxOf(1, opts.outWidth / maxWidth)
+        opts.inJustDecodeBounds = false
+        return BitmapFactory.decodeFile(path, opts)
+    }
+
     fun generatePDF(
             bill: BillWithItems,
             profile: RestaurantProfileEntity?,
@@ -56,7 +65,7 @@ class InvoicePDFGenerator(private val context: Context) {
         var logoBitmap: Bitmap? = null
         try {
             logoBitmap = profile?.logoPath?.let { path ->
-                try { BitmapFactory.decodeFile(path) } catch (e: Exception) { null }
+                try { decodeSampledBitmap(path, pageWidth * 2) } catch (e: Exception) { null }
             }
 
             val includeLogo      = profile?.includeLogoInPrint == true

@@ -2,11 +2,14 @@ package com.khanabook.lite.pos.domain.manager
 
 
 import android.graphics.Bitmap
+import android.util.Log
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 import com.journeyapps.barcodescanner.BarcodeEncoder
 
 object QrCodeManager {
+
+    private const val TAG = "QrCodeManager"
 
     /**
      * Generates a generic QR code from the given text.
@@ -19,7 +22,7 @@ object QrCodeManager {
             val barcodeEncoder = BarcodeEncoder()
             barcodeEncoder.createBitmap(bitMatrix)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Failed to generate QR code", e)
             null
         }
     }

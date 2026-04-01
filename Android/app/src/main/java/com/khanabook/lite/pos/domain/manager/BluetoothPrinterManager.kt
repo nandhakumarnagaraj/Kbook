@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +25,7 @@ import java.util.UUID
 class BluetoothPrinterManager(private val context: Context) {
 
     companion object {
+        private const val TAG = "BluetoothPrinter"
         // Standard SPP UUID for Bluetooth Serial Port Profile
         private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
     }
@@ -214,7 +216,7 @@ class BluetoothPrinterManager(private val context: Context) {
             _isConnected.value = true
             true
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Failed to connect to printer", e)
             disconnect()
             false
         } finally {
@@ -236,7 +238,7 @@ class BluetoothPrinterManager(private val context: Context) {
             outputStream?.flush()
             true
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Failed to send data to printer", e)
             false
         }
     }

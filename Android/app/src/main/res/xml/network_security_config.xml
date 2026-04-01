@@ -1,10 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    
+
+    <!-- Block all cleartext traffic app-wide -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
-    
+
+    <!-- Production backend: only trust system CAs for this domain.
+         TODO: Add certificate pinning once the production cert is stable:
+         <pin-set expiration="YYYY-MM-DD">
+             <pin digest="SHA-256">BASE64_PRIMARY_CERT_HASH==</pin>
+             <pin digest="SHA-256">BASE64_BACKUP_CERT_HASH==</pin>
+         </pin-set>
+         Generate hash: openssl s_client -connect kbook.iadv.cloud:443 | \
+           openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | \
+           openssl dgst -sha256 -binary | openssl enc -base64
+    -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">kbook.iadv.cloud</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
 </network-security-config>

@@ -13,6 +13,7 @@ fun localProperty(name: String, defaultValue: String = ""): String =
 // WhatsApp/Meta tokens removed — OTP delivery is now handled entirely server-side.
 // The server's PasswordResetOtpService holds and uses these credentials.
 val backendUrl = localProperty("BACKEND_URL", "https://kbook.iadv.cloud/")
+val googleWebClientId = localProperty("GOOGLE_WEB_CLIENT_ID")
 val signingStoreFile = localProperty("SIGNING_STORE_FILE")
 val signingStorePassword = localProperty("SIGNING_STORE_PASSWORD")
 val signingKeyAlias = localProperty("SIGNING_KEY_ALIAS")
@@ -57,6 +58,7 @@ android {
         testInstrumentationRunner = "com.khanabook.lite.pos.test.util.HiltTestRunner"
 
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
 
     signingConfigs {
@@ -76,6 +78,20 @@ android {
             isShrinkResources = true
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
+            } else {
+                // Fail the build if release is assembled without signing credentials
+                // (avoids accidentally publishing an unsigned APK/AAB)
+                tasks.whenTaskAdded {
+                    if (name.startsWith("assemble") || name.startsWith("bundle")) {
+                        doFirst {
+                            throw GradleException(
+                                "Release signing not configured. " +
+                                "Add SIGNING_STORE_FILE, SIGNING_STORE_PASSWORD, " +
+                                "SIGNING_KEY_ALIAS and SIGNING_KEY_PASSWORD to local.properties."
+                            )
+                        }
+                    }
+                }
             }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

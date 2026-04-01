@@ -28,6 +28,15 @@ object InvoiceFormatter {
     private val NORMAL_FONT= byteArrayOf(GS, 0x21, 0x00)
     private val CUT_PAPER  = byteArrayOf(GS, 0x56, 0x42, 0x00) 
 
+    private fun decodeSampledBitmap(path: String, maxWidth: Int): Bitmap? {
+        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(path, opts)
+        if (opts.outWidth <= 0) return null
+        opts.inSampleSize = maxOf(1, opts.outWidth / maxWidth)
+        opts.inJustDecodeBounds = false
+        return BitmapFactory.decodeFile(path, opts)
+    }
+
     private fun resolveCurrency(profile: RestaurantProfileEntity?): String {
         return if (profile?.currency == "INR" || profile?.currency == "Rupee") "Rs." else profile?.currency ?: ""
     }
@@ -64,10 +73,11 @@ object InvoiceFormatter {
         // 1. Logo (if enabled)
         if (profile?.includeLogoInPrint == true && !profile.logoPath.isNullOrBlank()) {
             try {
-                val bitmap = BitmapFactory.decodeFile(profile.logoPath)
+                val targetWidth = if (width > 40) 384 else 256
+                val bitmap = decodeSampledBitmap(profile.logoPath, targetWidth)
                 if (bitmap != null) {
                     try {
-                        add(decodeBitmapToESC_POS(bitmap, if(width > 40) 384 else 256))
+                        add(decodeBitmapToESC_POS(bitmap, targetWidth))
                         add("\n")
                     } finally {
                         bitmap.recycle()

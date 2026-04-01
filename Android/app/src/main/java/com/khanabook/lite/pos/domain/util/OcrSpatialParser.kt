@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.domain.util
 
 import android.util.Log
 import com.google.mlkit.vision.text.Text
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel.DraftMenuItem
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel.DraftVariant
 import java.util.regex.Pattern
@@ -33,7 +34,7 @@ object OcrSpatialParser {
         val lines = visionText.textBlocks.flatMap { it.lines }
         if (lines.isEmpty()) return emptyList()
 
-        Log.d(TAG, "parse start: lines=${lines.size} blocks=${visionText.textBlocks.size}")
+        if (BuildConfig.DEBUG) Log.d(TAG, "parse start: lines=${lines.size} blocks=${visionText.textBlocks.size}")
 
         val rows = groupLinesIntoRows(lines, config.yThresholdRatio)
         
@@ -52,7 +53,7 @@ object OcrSpatialParser {
 
                 val priceInfos = findPricesWithCoordinates(sortedRow, config)
 
-                if (rowIdx < maxRowsToLog) {
+                if (BuildConfig.DEBUG && rowIdx < maxRowsToLog) {
                     Log.d(TAG, "row[$rowIdx] text='${rowText.take(180)}' currentCategory=$currentCategory priceInfos=${priceInfos.size} headers=${currentHeaders.size}")
                 }
                 
@@ -67,7 +68,7 @@ object OcrSpatialParser {
                         if (categoryFromHeaderLine != null) {
                             currentCategory = categoryFromHeaderLine
                         }
-                        if (rowIdx < maxRowsToLog) {
+                        if (BuildConfig.DEBUG && rowIdx < maxRowsToLog) {
                             Log.d(TAG, "row[$rowIdx] header detected: headers=${currentHeaders.map { it.name }} categoryNow=$currentCategory")
                         }
                         continue
@@ -80,7 +81,7 @@ object OcrSpatialParser {
                             currentCategory = detectedCategory
                             val clearing = config.variantHeaderKeywords.none { lower.contains(it) }
                             if (clearing) currentHeaders.clear()
-                            if (rowIdx < maxRowsToLog) {
+                            if (BuildConfig.DEBUG && rowIdx < maxRowsToLog) {
                                 Log.d(TAG, "row[$rowIdx] category detected: categoryNow=$currentCategory clearedHeaders=$clearing")
                             }
                         }
@@ -91,7 +92,7 @@ object OcrSpatialParser {
 
                 val draftItem = extractMenuItem(sortedRow, rowText, priceInfos, currentHeaders, currentCategory, config)
                 if (draftItem != null) {
-                    if (rowIdx < maxRowsToLog) {
+                    if (BuildConfig.DEBUG && rowIdx < maxRowsToLog) {
                         Log.d(TAG, "row[$rowIdx] item: name='${draftItem.name.take(120)}' categoryNow=$currentCategory priceInfos=${priceInfos.size} headers=${currentHeaders.size} variantLabels=${draftItem.variants.map { it.name }}")
                     }
                     drafts.add(draftItem)
@@ -101,18 +102,18 @@ object OcrSpatialParser {
                         val lastItem = drafts.last()
                         if (lastItem.description == null) {
                             drafts[drafts.size - 1] = lastItem.copy(description = rowText)
-                            Log.d(TAG, "row[$rowIdx] detected as description for: ${lastItem.name}")
+                            if (BuildConfig.DEBUG) Log.d(TAG, "row[$rowIdx] detected as description for: ${lastItem.name}")
                         }
                     }
                 }
 
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "Error parsing row[$rowIdx]", e)
             }
             rowIdx++
         }
 
-        Log.d(TAG, "parse end: drafts=${drafts.size} categories=${drafts.mapNotNull { it.categoryName }.distinct()}")
+        if (BuildConfig.DEBUG) Log.d(TAG, "parse end: drafts=${drafts.size} categories=${drafts.mapNotNull { it.categoryName }.distinct()}")
         return drafts
     }
 

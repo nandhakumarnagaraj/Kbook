@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.local.entity.*
@@ -29,6 +30,11 @@ class BillingViewModel @Inject constructor(
     private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
     val printerManager: com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 ) : ViewModel() {
+
+    companion object {
+        private const val TAG = "BillingViewModel"
+    }
+
     private val orderMutex = Mutex()
 
     // Cache the restaurant profile reactively — avoids repeated DB reads in updateSummary
@@ -300,7 +306,7 @@ class BillingViewModel @Inject constructor(
             _isLoading.value = false
             return true
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Failed to save bill", e)
             _error.value = "Failed to save bill: ${e.message}"
             _isLoading.value = false
             return false
