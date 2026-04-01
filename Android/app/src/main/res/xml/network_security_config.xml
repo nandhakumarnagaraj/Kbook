@@ -8,21 +8,29 @@
         </trust-anchors>
     </base-config>
 
-    <!-- Production backend: only trust system CAs for this domain.
-         TODO: Add certificate pinning once the production cert is stable:
-         <pin-set expiration="YYYY-MM-DD">
-             <pin digest="SHA-256">BASE64_PRIMARY_CERT_HASH==</pin>
-             <pin digest="SHA-256">BASE64_BACKUP_CERT_HASH==</pin>
-         </pin-set>
-         Generate hash: openssl s_client -connect kbook.iadv.cloud:443 | \
-           openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | \
-           openssl dgst -sha256 -binary | openssl enc -base64
+    <!--
+        Certificate pinning for kbook.iadv.cloud.
+
+        Pin 1: leaf certificate public key (current cert, expires 2026-05-03)
+        Pin 2: Let's Encrypt E8 intermediate CA — stays valid across 90-day cert renewals.
+
+        Renewal checklist (run before expiration="..." date):
+          openssl s_client -connect kbook.iadv.cloud:443 | \
+            openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | \
+            openssl dgst -sha256 -binary | openssl enc -base64
+        Update pin 1 with the new hash and push a release before the old cert expires.
     -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">kbook.iadv.cloud</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
+        <pin-set expiration="2026-05-01">
+            <!-- Leaf: kbook.iadv.cloud (expires 2026-05-03) -->
+            <pin digest="SHA-256">8GBU/+YGP4f5GSeK8TKF4j/oJ1dY0x3ZTTFJyXi0DmU=</pin>
+            <!-- Backup: Let's Encrypt E8 intermediate CA -->
+            <pin digest="SHA-256">iFvwVyJSxnQdyaUvUERIf+8qk7gRze3612JMwoO3zdU=</pin>
+        </pin-set>
     </domain-config>
 
 </network-security-config>
