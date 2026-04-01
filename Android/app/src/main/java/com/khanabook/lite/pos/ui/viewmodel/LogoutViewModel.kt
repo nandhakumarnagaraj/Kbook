@@ -3,12 +3,15 @@ package com.khanabook.lite.pos.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.local.AppDatabase
+import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import android.util.Log
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,7 +34,8 @@ class LogoutViewModel @Inject constructor(
     private val appDatabase: AppDatabase,
     private val billRepository: BillRepository,
     private val syncManager: SyncManager,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val api: KhanaBookApi
 ) : ViewModel() {
     private val debugTag = "KhanaBookDebugAuth"
 
@@ -89,9 +93,14 @@ class LogoutViewModel @Inject constructor(
 
     private fun performHardLogout() {
         viewModelScope.launch {
-            Log.d(debugTag, "performHardLogout: starting clearSession + clearing DB")
+            Log.d(debugTag, "performHardLogout: starting server-side logout + clearing DB")
+            // Revoke token server-side so it can't be replayed
+            try {
+                api.logout()
+            } catch (e: Exception) {
+                Log.w(debugTag, "Server logout failed (continuing local logout): ${e.message}")
+            }
             sessionManager.clearSession()
-            
             appDatabase.clearAllTables()
             userRepository.setCurrentUser(null)
             Log.d(debugTag, "performHardLogout: completed clearSession + cleared DB")
@@ -99,30 +108,40 @@ class LogoutViewModel @Inject constructor(
         }
     }
 
-    private suspend fun getUnsyncedDataSummary(): UnsyncedDataSummary {
-        val profileCount = appDatabase.restaurantDao().getUnsyncedRestaurantProfiles().size
-        val userCount = appDatabase.userDao().getUnsyncedUsers().size
-        val categoryCount = appDatabase.categoryDao().getUnsyncedCategories().size
-        val menuItemCount = appDatabase.menuDao().getUnsyncedMenuItems().size
-        val variantCount = appDatabase.menuDao().getUnsyncedItemVariants().size
-        val stockLogCount = appDatabase.inventoryDao().getUnsyncedStockLogs().size
-        val billCount = appDatabase.billDao().getUnsyncedBills().size
-        val billItemCount = appDatabase.billDao().getUnsyncedBillItems().size
-        val billPaymentCount = appDatabase.billDao().getUnsyncedBillPayments().size
+    private suspend fun getUnsyncedDataSummary(): UnsyncedDataSummary = coroutineScope {
+        val profileCount = async { appDatabase.restaurantDao().getUnsyncedRestaurantProfiles().size }
+        val userCount = async { appDatabase.userDao().getUnsyncedUsers().size }
+        val categoryCount = async { appDatabase.categoryDao().getUnsyncedCategories().size }
+        val menuItemCount = async { appDatabase.menuDao().getUnsyncedMenuItems().size }
+        val variantCount = async { appDatabase.menuDao().getUnsyncedItemVariants().size }
+        val stockLogCount = async { appDatabase.inventoryDao().getUnsyncedStockLogs().size }
+        val billCount = async { appDatabase.billDao().getUnsyncedBills().size }
+        val billItemCount = async { appDatabase.billDao().getUnsyncedBillItems().size }
+        val billPaymentCount = async { appDatabase.billDao().getUnsyncedBillPayments().size }
+
+        val pc = profileCount.await()
+        val uc = userCount.await()
+        val cc = categoryCount.await()
+        val mic = menuItemCount.await()
+        val vc = variantCount.await()
+        val slc = stockLogCount.await()
+        val bc = billCount.await()
+        val bic = billItemCount.await()
+        val bpc = billPaymentCount.await()
 
         val parts = buildList {
-            if (profileCount > 0) add("$profileCount settings")
-            if (userCount > 0) add("$userCount users")
-            if (categoryCount > 0) add("$categoryCount categories")
-            if (menuItemCount > 0) add("$menuItemCount menu items")
-            if (variantCount > 0) add("$variantCount variants")
-            if (stockLogCount > 0) add("$stockLogCount stock logs")
-            if (billCount > 0) add("$billCount bills")
-            if (billItemCount > 0) add("$billItemCount bill items")
-            if (billPaymentCount > 0) add("$billPaymentCount bill payments")
+            if (pc > 0) add("$pc settings")
+            if (uc > 0) add("$uc users")
+            if (cc > 0) add("$cc categories")
+            if (mic > 0) add("$mic menu items")
+            if (vc > 0) add("$vc variants")
+            if (slc > 0) add("$slc stock logs")
+            if (bc > 0) add("$bc bills")
+            if (bic > 0) add("$bic bill items")
+            if (bpc > 0) add("$bpc bill payments")
         }
 
-        return UnsyncedDataSummary(
+        UnsyncedDataSummary(
             totalCount = parts.sumOf {
                 it.substringBefore(' ').toIntOrNull() ?: 0
             },

@@ -57,7 +57,7 @@ constructor(
       WorkManager.getInstance(context)
               .enqueueUniquePeriodicWork(
                       SYNC_WORK_NAME,
-                      ExistingPeriodicWorkPolicy.KEEP,
+                      ExistingPeriodicWorkPolicy.UPDATE,
                       syncRequest
               )
     }
@@ -67,7 +67,7 @@ constructor(
           withContext(Dispatchers.IO) {
             val token = sessionManager.getAuthToken()
 
-            if (token.isNullOrBlank() || token == "null" || token.split(".").size != 3) {
+            if (token.isNullOrBlank()) {
               Log.w("MasterSyncWorker", "Aborting sync: No valid session token found.")
               return@withContext Result.success()
             }
@@ -101,7 +101,12 @@ constructor(
               
               
               if (e is HttpException) {
-                  if (e.code() == 401 || e.code() == 403) {
+                  if (e.code() == 401) {
+                      // Token revoked or expired — clear session so UI redirects to login
+                      sessionManager.clearSession()
+                      return@withContext Result.failure()
+                  }
+                  if (e.code() == 403) {
                       return@withContext Result.failure()
                   }
               }

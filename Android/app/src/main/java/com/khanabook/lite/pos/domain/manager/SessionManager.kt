@@ -3,6 +3,7 @@ package com.khanabook.lite.pos.domain.manager
 import android.content.Context
 import android.util.Log
 import android.content.SharedPreferences
+import com.khanabook.lite.pos.BuildConfig
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -105,9 +106,9 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     
     fun getAuthToken(): String? {
         val token = securePrefs.getString("auth_token", null)
-        val present = !token.isNullOrBlank()
-        val looksLikeJwt = present && token!!.length > 100 && token.split(".").size == 3
-        Log.d(debugTag, "getAuthToken present=$present looksLikeJwt=$looksLikeJwt")
+        if (BuildConfig.DEBUG) {
+            Log.d(debugTag, "getAuthToken present=${!token.isNullOrBlank()}")
+        }
         return token
     }
 
@@ -117,7 +118,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
 
     fun getDeviceId(): String {
         synchronized(this) {
-            var deviceId = prefs.getString("device_id", null)
+            var deviceId = securePrefs.getString("device_id", null)
             if (deviceId == null) {
                 deviceId = java.util.UUID.randomUUID().toString()
                 saveDeviceId(deviceId)
@@ -127,7 +128,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     }
 
     fun saveDeviceId(deviceId: String) {
-        prefs.edit().putString("device_id", deviceId).apply()
+        securePrefs.edit().putString("device_id", deviceId).apply()
     }
 
     fun getLastSyncTimestamp(): Long {
@@ -178,22 +179,29 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().remove("active_user_id").remove("active_user_role").apply()
     }
 
+    // Brute-force lockout persistence — survives process kill
+    fun getFailedLoginAttempts(): Int = prefs.getInt("failed_login_attempts", 0)
+    fun setFailedLoginAttempts(count: Int) { prefs.edit().putInt("failed_login_attempts", count).apply() }
+    fun getLockoutUntilMs(): Long = prefs.getLong("lockout_until_ms", 0L)
+    fun setLockoutUntilMs(ms: Long) { prefs.edit().putLong("lockout_until_ms", ms).apply() }
+    fun clearLockout() {
+        prefs.edit().remove("failed_login_attempts").remove("lockout_until_ms").apply()
+    }
+
     fun clearSession() {
-        val tokenBefore = securePrefs.getString("auth_token", null)
-        Log.d(
-            debugTag,
-            "clearSession tokenBeforePresent=${!tokenBefore.isNullOrBlank()}"
-        )
+        if (BuildConfig.DEBUG) {
+            val tokenBefore = securePrefs.getString("auth_token", null)
+            Log.d(debugTag, "clearSession tokenBeforePresent=${!tokenBefore.isNullOrBlank()}")
+        }
 
         sessionCheckJob?.cancel()
         securePrefs.edit().remove("auth_token").apply()
         prefs.edit().clear().apply()
         _isSessionExpired.value = true
 
-        val tokenAfter = securePrefs.getString("auth_token", null)
-        Log.d(
-            debugTag,
-            "clearSession tokenAfterPresent=${!tokenAfter.isNullOrBlank()}"
-        )
+        if (BuildConfig.DEBUG) {
+            val tokenAfter = securePrefs.getString("auth_token", null)
+            Log.d(debugTag, "clearSession tokenAfterPresent=${!tokenAfter.isNullOrBlank()}")
+        }
     }
 }

@@ -12,29 +12,29 @@ class AuthInterceptor @Inject constructor(private val sessionManager: SessionMan
     val request = chain.request()
     val path = request.url.encodedPath
 
-    
     val requestBuilder = request.newBuilder()
-    requestBuilder.addHeader("ngrok-skip-browser-warning", "true")
 
-    
-    val isExternalApi = request.url.host.contains("facebook.com") || request.url.host.contains("google")
-    val isAuthPath = path.contains("/auth/login") || path.contains("/auth/signup") || path.contains("/auth/google") || path.contains("/auth/check-user") || path.contains("/auth/reset-password")
-    
-    if (!(isAuthPath || isExternalApi)) {
-        
+    // Public auth endpoints that don't require a token
+    val isPublicAuthPath = path.contains("/auth/login") ||
+            path.contains("/auth/signup") ||
+            path.contains("/auth/google") ||
+            path.contains("/auth/check-user") ||
+            path.contains("/auth/reset-password")
+
+    if (!isPublicAuthPath) {
         val token = sessionManager.getAuthToken()
-
-        
-        
-        val isValidJwt = !token.isNullOrBlank() && 
-                         token.length > 100 && 
-                         token.split(".").size == 3
-
-        if (isValidJwt) {
+        if (!token.isNullOrBlank()) {
             requestBuilder.addHeader("Authorization", "Bearer $token")
         }
     }
 
-    return chain.proceed(requestBuilder.build())
+    val response = chain.proceed(requestBuilder.build())
+
+    // If the server rejects our token, clear the session so the UI navigates to login
+    if (response.code == 401 && !isPublicAuthPath) {
+        sessionManager.clearSession()
+    }
+
+    return response
   }
 }

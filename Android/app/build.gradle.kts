@@ -10,9 +10,8 @@ if (localPropertiesFile.exists()) {
 fun localProperty(name: String, defaultValue: String = ""): String =
     localProperties.getProperty(name)?.takeUnless { it.isBlank() } ?: defaultValue
 
-val metaToken = localProperty("META_ACCESS_TOKEN")
-val phoneId = localProperty("WHATSAPP_PHONE_NUMBER_ID")
-val templateName = localProperty("WHATSAPP_OTP_TEMPLATE_NAME")
+// WhatsApp/Meta tokens removed — OTP delivery is now handled entirely server-side.
+// The server's PasswordResetOtpService holds and uses these credentials.
 val backendUrl = localProperty("BACKEND_URL", "https://kbook.iadv.cloud/")
 val signingStoreFile = localProperty("SIGNING_STORE_FILE")
 val signingStorePassword = localProperty("SIGNING_STORE_PASSWORD")
@@ -57,9 +56,6 @@ android {
 
         testInstrumentationRunner = "com.khanabook.lite.pos.test.util.HiltTestRunner"
 
-        buildConfigField("String", "META_ACCESS_TOKEN", "\"$metaToken\"")
-        buildConfigField("String", "WHATSAPP_PHONE_NUMBER_ID", "\"$phoneId\"")
-        buildConfigField("String", "WHATSAPP_OTP_TEMPLATE_NAME", "\"$templateName\"")
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
     }
 

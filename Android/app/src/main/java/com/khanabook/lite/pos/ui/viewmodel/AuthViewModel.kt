@@ -73,7 +73,7 @@ constructor(
     val userExistsError: StateFlow<String?> = _userExistsError
 
     fun checkUserExists(phoneNumber: String) {
-        if (phoneNumber.length != 10) return
+        if (!phoneNumber.matches(Regex("^\\d{10}$"))) return
         
         viewModelScope.launch {
             _isUserChecking.value = true
@@ -97,14 +97,9 @@ constructor(
         _isUserChecking.value = false
     }
 
-    
-    
-    private var failedLoginAttempts = 0
-    private var lockoutUntilMs: Long = 0L
-
     fun login(email: String, password: String) {
-        
         val now = System.currentTimeMillis()
+        val lockoutUntilMs = sessionManager.getLockoutUntilMs()
         if (now < lockoutUntilMs) {
             val remainingSeconds = (lockoutUntilMs - now) / 1000
             _loginStatus.value =
@@ -172,8 +167,7 @@ constructor(
     }
 
     private suspend fun handleLoginSuccess(user: UserEntity): Result<Unit> {
-        failedLoginAttempts = 0
-        lockoutUntilMs = 0L
+        sessionManager.clearLockout()
 
         // Keep the existing sync cursor on routine logins. Resetting it on every login
         // forces a full pull and can overwrite newer local state with stale server data.
@@ -311,8 +305,7 @@ constructor(
     fun logout() {
         sessionManager.clearSession()
         userRepository.setCurrentUser(null)
-        failedLoginAttempts = 0
-        lockoutUntilMs = 0L
+        sessionManager.clearLockout()
         _loginStatus.value = null
         _signUpStatus.value = null
         _resetPasswordStatus.value = null
@@ -364,10 +357,6 @@ constructor(
                     val result = userRepository.remoteGoogleLogin(idToken)
                     
                     result.onSuccess { user ->
-                        failedLoginAttempts = 0
-                        lockoutUntilMs = 0L
-
-                        
                         val setupResult = handleLoginSuccess(user)
 
                         if (setupResult.isSuccess) {

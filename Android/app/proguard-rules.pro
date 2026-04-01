@@ -5,8 +5,11 @@
 -renamesourcefileattribute SourceFile
 
 # â”€â”€ Retrofit / Gson (data models must survive obfuscation) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# Keep all fields in remote data classes for Gson deserialization
--keepclassmembers class com.khanabook.lite.pos.data.remote.** { *; }
+# Keep all fields in remote DTO / API model classes for Gson deserialization
+-keepclassmembers class com.khanabook.lite.pos.data.remote.api.** { *; }
+-keepclassmembers class com.khanabook.lite.pos.data.remote.dto.** { *; }
+-keepclassmembers class com.khanabook.lite.pos.data.remote.ResetPasswordRequest { *; }
+-keepclassmembers class com.khanabook.lite.pos.data.remote.PasswordResetOtpRequest { *; }
 
 # Retain generic type info used by Retrofit/Gson
 -keepattributes Signature
@@ -43,10 +46,6 @@
 
 # â”€â”€ ZXing (QR code) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -keep class com.journeyapps.barcodescanner.** { *; }
-
-# â”€â”€ Facebook SDK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--keep class com.facebook.** { *; }
--dontwarn com.facebook.**
 
 # â”€â”€ Google Sign-In / Credential Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -keep class com.google.android.libraries.identity.googleid.** { *; }
