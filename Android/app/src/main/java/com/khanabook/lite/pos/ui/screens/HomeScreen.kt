@@ -13,9 +13,14 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -49,6 +54,26 @@ fun HomeScreen(
     val isWideScreen = configuration.screenWidthDp >= 600
     val spacing = KhanaBookTheme.spacing
 
+    var headerVisible by remember { mutableStateOf(false) }
+    var statsVisible by remember { mutableStateOf(false) }
+    var primaryVisible by remember { mutableStateOf(false) }
+    var actionsVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        headerVisible = true
+        delay(80)
+        statsVisible = true
+        delay(80)
+        primaryVisible = true
+        delay(80)
+        actionsVisible = true
+    }
+
+    val enterSpec = fadeIn(tween(350)) + slideInVertically(
+        initialOffsetY = { it / 6 },
+        animationSpec = tween(350, easing = FastOutSlowInEasing)
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -60,98 +85,101 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(spacing.medium)
         ) {
-            
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = spacing.medium),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Dashboard",
-                    color = PrimaryGold,
-                    style = MaterialTheme.typography.headlineMedium
-                )
-                
-                SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
+
+            AnimatedVisibility(visible = headerVisible, enter = enterSpec) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = spacing.medium),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Dashboard",
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
+                    }
+                    Text(
+                        text = "Welcome back! Manage your restaurant billing efficiently.",
+                        color = TextGold,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = spacing.large)
+                    )
+                }
             }
 
-
-            Text(
-                text = "Welcome back! Manage your restaurant billing efficiently.",
-                color = TextGold,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(bottom = spacing.large)
-            )
-
-            
-            KhanaBookCard(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(spacing.medium)
+            AnimatedVisibility(visible = statsVisible, enter = enterSpec) {
+                KhanaBookCard(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "Today's Summary",
-                        color = PrimaryGold,
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Spacer(modifier = Modifier.height(spacing.small))
-                    
+                    Column(
+                        modifier = Modifier.padding(spacing.medium)
+                    ) {
+                        Text(
+                            text = "Today's Summary",
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Spacer(modifier = Modifier.height(spacing.small))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            StatItem("Orders", stats.orderCount.toString(), Modifier.weight(1f))
+                            StatItem("Revenue", CurrencyUtils.formatPrice(stats.revenue), Modifier.weight(1f))
+                            StatItem("Customers", stats.customerCount.toString(), Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(spacing.large))
+
+            AnimatedVisibility(visible = primaryVisible, enter = enterSpec) {
+                KhanaBookCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    onClick = { onNewBill() },
+                    colors = CardDefaults.cardColors(containerColor = PrimaryGold),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(spacing.large),
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        StatItem("Orders", stats.orderCount.toString(), Modifier.weight(1f))
-                        StatItem("Revenue", CurrencyUtils.formatPrice(stats.revenue), Modifier.weight(1f))
-                        StatItem("Customers", stats.customerCount.toString(), Modifier.weight(1f))
+                        Column {
+                            Text(
+                                text = "Create New Bill",
+                                color = DarkBrown1,
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Text(
+                                text = "Start taking orders",
+                                color = DarkBrown2,
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.padding(top = spacing.extraSmall)
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.AddCircle,
+                            contentDescription = null,
+                            tint = DarkBrown1,
+                            modifier = Modifier.size(spacing.huge)
+                        )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(spacing.large))
 
-            
-            KhanaBookCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                onClick = { onNewBill() },
-                colors = CardDefaults.cardColors(containerColor = PrimaryGold),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(spacing.large),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "Create New Bill",
-                            color = DarkBrown1,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Text(
-                            text = "Start taking orders",
-                            color = DarkBrown2,
-                            style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.padding(top = spacing.extraSmall)
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Default.AddCircle,
-                        contentDescription = null,
-                        tint = DarkBrown1,
-                        modifier = Modifier.size(spacing.huge)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(spacing.large))
-
+            AnimatedVisibility(visible = actionsVisible, enter = enterSpec) {
             if (isWideScreen) {
                 // Adaptive grid for tablets/landscape
                 Row(
@@ -218,6 +246,7 @@ fun HomeScreen(
                     )
                 }
             }
+            } // end AnimatedVisibility(actionsVisible)
 
             Spacer(modifier = Modifier.height(spacing.medium))
         }

@@ -24,6 +24,14 @@ import com.khanabook.lite.pos.ui.navigation.TabItem
 import com.khanabook.lite.pos.ui.navigation.NavigationUtils
 import androidx.activity.compose.BackHandler
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.navigation.NavController
@@ -67,18 +75,35 @@ fun MainScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            val currentTab = visibleTabs[selectedTabIndex]
             val backToHome = { selectedTabIndex = 0 }
-            when (currentTab.label) {
-                "Home" -> HomeScreen(onNewBill, onSearchBill, onOrderStatus, onCallCustomer)
-                "Reports" -> ReportsScreen(onBack = backToHome)
-                "Orders" -> OrdersScreen(onBack = backToHome)
-                "Settings" -> SettingsScreen(
-                    onBack = backToHome,
-                    navController = navController,
-                    onScanClick = onScanClick,
-                    menuViewModel = menuViewModel
-                )
+            AnimatedContent(
+                targetState = selectedTabIndex,
+                transitionSpec = {
+                    val direction = if (targetState > initialState) 1 else -1
+                    (slideInHorizontally(
+                        initialOffsetX = { fullWidth -> direction * fullWidth / 5 },
+                        animationSpec = tween(300, easing = FastOutSlowInEasing)
+                    ) + fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing))) togetherWith
+                    (slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> -direction * fullWidth / 5 },
+                        animationSpec = tween(250, easing = FastOutSlowInEasing)
+                    ) + fadeOut(animationSpec = tween(150, easing = FastOutSlowInEasing)))
+                },
+                label = "tab_content",
+                modifier = Modifier.fillMaxSize()
+            ) { tabIndex ->
+                val currentTab = visibleTabs[tabIndex]
+                when (currentTab.label) {
+                    "Home" -> HomeScreen(onNewBill, onSearchBill, onOrderStatus, onCallCustomer)
+                    "Reports" -> ReportsScreen(onBack = backToHome)
+                    "Orders" -> OrdersScreen(onBack = backToHome)
+                    "Settings" -> SettingsScreen(
+                        onBack = backToHome,
+                        navController = navController,
+                        onScanClick = onScanClick,
+                        menuViewModel = menuViewModel
+                    )
+                }
             }
         }
     }

@@ -75,35 +75,35 @@ class MainActivity : ComponentActivity() {
                 }
 
                 NavHost(
-                    navController = navController, 
+                    navController = navController,
                     startDestination = "splash",
-                    enterTransition = { 
-                        fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + 
+                    enterTransition = {
+                        fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
                         slideInHorizontally(
-                            initialOffsetX = { fullWidth -> fullWidth }, 
-                            animationSpec = tween(500, easing = FastOutSlowInEasing)
-                        ) 
+                            initialOffsetX = { fullWidth -> fullWidth / 5 },
+                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                        )
                     },
-                    exitTransition = { 
-                        fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + 
+                    exitTransition = {
+                        fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)) +
                         slideOutHorizontally(
-                            targetOffsetX = { fullWidth -> -fullWidth }, 
-                            animationSpec = tween(500, easing = FastOutSlowInEasing)
-                        ) 
+                            targetOffsetX = { fullWidth -> -fullWidth / 5 },
+                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                        )
                     },
-                    popEnterTransition = { 
-                        fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + 
+                    popEnterTransition = {
+                        fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
                         slideInHorizontally(
-                            initialOffsetX = { fullWidth -> -fullWidth }, 
-                            animationSpec = tween(500, easing = FastOutSlowInEasing)
-                        ) 
+                            initialOffsetX = { fullWidth -> -fullWidth / 5 },
+                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                        )
                     },
-                    popExitTransition = { 
-                        fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + 
+                    popExitTransition = {
+                        fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)) +
                         slideOutHorizontally(
-                            targetOffsetX = { fullWidth -> fullWidth },
-                            animationSpec = tween(500, easing = FastOutSlowInEasing)
-                        ) 
+                            targetOffsetX = { fullWidth -> fullWidth / 5 },
+                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                        )
                     }
                 ) {
                     composable("splash") {
