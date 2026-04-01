@@ -437,7 +437,7 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = spacing.small),
+                .padding(horizontal = spacing.medium),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items(rows) { row ->

@@ -50,9 +50,9 @@ class MainActivity : ComponentActivity() {
                 val currentBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = currentBackStackEntry?.destination?.route
                 
-                // Only intercept back if we are on the Home screen or root MainScreen
-                // This ensures system gestures work for sub-screens
-                val isAtRoot = currentRoute == "main/{tab}" || currentRoute == "main/0"
+                // Only intercept back if we are on the MainScreen (any tab)
+                // Sub-screens handle their own back navigation through NavHost
+                val isAtRoot = currentRoute?.startsWith("main/") == true
                 
                 androidx.activity.compose.BackHandler(enabled = isAtRoot) {
                     val currentTime = System.currentTimeMillis()
