@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.PlaylistAddCheck
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -118,7 +119,25 @@ fun MenuConfigurationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Menu Configuration", color = PrimaryGold) },
+                title = {
+                    Column {
+                        Text(
+                            text = when (ocrUiState.configMode) {
+                                "manual" -> "Manual Entry"
+                                else -> "Menu Configuration"
+                            },
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        if (ocrUiState.configMode == "manual") {
+                            Text(
+                                text = "${categories.size} categories",
+                                color = TextGold.copy(alpha = 0.6f),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { onBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PrimaryGold)
@@ -638,10 +657,18 @@ fun ModeSelectionView(
     var isSmartAIExpanded by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.Center
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Add Menu Items", color = TextGold, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 24.dp))
+        Text(
+            "How would you like to add items?",
+            color = PrimaryGold,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
 
         // 1. Manual Entry (View & Edit)
         Card(
@@ -655,14 +682,13 @@ fun ModeSelectionView(
                     Icon(Icons.Default.Edit, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
                 }
                 Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text("Manual Entry", color = TextLight, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                    Text("View & Edit items one by one", color = TextGold.copy(alpha = 0.6f), fontSize = 14.sp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Manual Entry", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("View & edit items one by one", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
                 }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = TextGold.copy(alpha = 0.4f))
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         // 2. Smart AI
         Card(
@@ -679,13 +705,13 @@ fun ModeSelectionView(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Smart AI", color = TextLight, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                            Text("Smart AI", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(color = PrimaryGold, shape = RoundedCornerShape(4.dp)) {
                                 Text("AI", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = DarkBrown1)
                             }
                         }
-                        Text("Extract from Camera, Gallery or PDF", color = TextGold.copy(alpha = 0.6f), fontSize = 14.sp)
+                        Text("Extract from Camera, Gallery or PDF", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
                     }
                     Icon(
                         if (isSmartAIExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -802,8 +828,8 @@ fun ManualMenuView(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = category.name,
-                            fontSize = 12.sp,
+                            text = if (isSelected && menuItems.isNotEmpty()) "${category.name} (${menuItems.size})" else category.name,
+                            style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
                         if (isSelected) {
@@ -827,86 +853,163 @@ fun ManualMenuView(
             }
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 16.dp)
-        ) {
-            items(menuItems) { itemWithVariants ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .combinedClickable(
-                            onClick = { showEditItemDialog = itemWithVariants },
-                            onLongClick = { showDeleteItemDialog = itemWithVariants.menuItem }
-                        ),
-                    colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                    border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.2f))
+        if (categories.isEmpty()) {
+            // No categories empty state
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(32.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(PrimaryGold.copy(alpha = 0.1f), CircleShape)
+                            .border(1.dp, PrimaryGold.copy(alpha = 0.3f), CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                itemWithVariants.menuItem.name,
-                                color = TextLight,
-                                fontWeight = FontWeight.Bold
-                            )
-                            val variantCount = itemWithVariants.variants.size
-                            if (variantCount > 0) {
+                        Icon(Icons.Default.Add, null, tint = PrimaryGold, modifier = Modifier.size(36.dp))
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "No categories yet",
+                        color = TextLight,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Tap + above to create your first category,\nthen add your menu items.",
+                        color = TextGold.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(vertical = 8.dp, bottom = 16.dp)
+            ) {
+                if (menuItems.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                                 Text(
-                                    "$variantCount variants",
-                                    color = TextGold.copy(alpha = 0.6f),
-                                    fontSize = 11.sp
+                                    "No items in this category",
+                                    color = TextLight,
+                                    style = MaterialTheme.typography.bodyLarge
                                 )
-                            } else {
                                 Text(
-                                    "₹${itemWithVariants.menuItem.basePrice}",
-                                    color = TextGold.copy(alpha = 0.7f),
-                                    fontSize = 12.sp
+                                    "Tap \"Add New Item\" below to get started.",
+                                    color = TextGold.copy(alpha = 0.5f),
+                                    style = MaterialTheme.typography.bodySmall
                                 )
                             }
                         }
-                        
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Circle,
-                                null,
-                                tint = if (itemWithVariants.menuItem.foodType == "veg") VegGreen else NonVegRed,
-                                modifier = Modifier.size(10.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = "Edit Item",
-                                tint = PrimaryGold.copy(alpha = 0.6f),
-                                modifier = Modifier.size(18.dp)
-                            )
+                    }
+                } else {
+                    items(menuItems) { itemWithVariants ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    onClick = { showEditItemDialog = itemWithVariants },
+                                    onLongClick = { showDeleteItemDialog = itemWithVariants.menuItem }
+                                ),
+                            colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                            border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.2f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(
+                                            if (itemWithVariants.menuItem.foodType == "veg") VegGreen else NonVegRed,
+                                            CircleShape
+                                        )
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        itemWithVariants.menuItem.name,
+                                        color = TextLight,
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                    val variantCount = itemWithVariants.variants.size
+                                    if (variantCount > 0) {
+                                        Text(
+                                            "$variantCount variant${if (variantCount > 1) "s" else ""}",
+                                            color = TextGold.copy(alpha = 0.6f),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    } else {
+                                        Text(
+                                            "₹${itemWithVariants.menuItem.basePrice}",
+                                            color = PrimaryGold.copy(alpha = 0.8f),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                                Icon(
+                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = TextGold.copy(alpha = 0.35f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
-        Button(
-            onClick = { showAddItemDialog = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PrimaryGold,
-                contentColor = DarkBrown1
-            ),
-            enabled = selectedCategoryId != null,
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Icon(Icons.Default.Add, null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Add New Item", fontWeight = FontWeight.Bold)
+            if (menuItems.isNotEmpty()) {
+                Text(
+                    "Tap to edit  •  Long-press to delete",
+                    color = TextGold.copy(alpha = 0.35f),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 2.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Button(
+                onClick = { showAddItemDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryGold,
+                    contentColor = DarkBrown1
+                ),
+                enabled = selectedCategoryId != null,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Add, null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Add New Item", fontWeight = FontWeight.Bold)
+            }
         }
     }
 
