@@ -30,4 +30,27 @@
 # Node.js
 node_modules/
 package-lock.json
+package.json
 server/.env.production
+
+# Android secrets (use secrets.properties.example as template)
+Android/secrets.properties
+Android/local.properties
+
+# Android app build outputs
+Android/app/build/
+Android/app/*.apk
+Android/app/*.aab
+
+# Python scripts (one-time utilities)
+*.py
+
+# Claude Code local session data
+.claude/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Windows
+Thumbs.db
