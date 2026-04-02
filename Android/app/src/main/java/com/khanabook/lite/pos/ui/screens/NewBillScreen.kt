@@ -321,10 +321,13 @@ fun MenuSelectionStep(
 ) {
     val categories by menuViewModel.categories.collectAsStateWithLifecycle()
     val items by menuViewModel.menuItems.collectAsStateWithLifecycle()
+    val searchResults by menuViewModel.searchResults.collectAsStateWithLifecycle()
+    val searchQuery by menuViewModel.searchQuery.collectAsStateWithLifecycle()
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val configuration = LocalConfiguration.current
     val spacing = KhanaBookTheme.spacing
+    val displayItems = if (searchQuery.isNotBlank()) searchResults else items
     
     // Adaptive split-view: Categories on left, Cart on right for tablets
     val isWideScreen = configuration.screenWidthDp >= 840
@@ -363,7 +366,25 @@ fun MenuSelectionStep(
                 }
             }
 
-            if (categories.isNotEmpty()) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { menuViewModel.setSearchQuery(it) },
+                placeholder = { Text("Search items...", color = TextGold.copy(alpha = 0.5f)) },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = PrimaryGold) },
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { menuViewModel.setSearchQuery("") }) {
+                            Icon(Icons.Default.Close, null, tint = TextGold)
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium, vertical = spacing.small),
+                colors = menuTextFieldColors(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            if (searchQuery.isBlank() && categories.isNotEmpty()) {
                 val selectedIndex =
                         categories.indexOfFirst { it.id == selectedCategoryId }.coerceAtLeast(0)
                 ScrollableTabRow(
@@ -409,18 +430,20 @@ fun MenuSelectionStep(
                     verticalArrangement = Arrangement.spacedBy(spacing.small + spacing.extraSmall),
                     horizontalArrangement = Arrangement.spacedBy(spacing.small + spacing.extraSmall)
             ) {
-                items(items, key = { it.menuItem.id }) { menuWithVariants ->
+                items(displayItems, key = { it.menuItem.id }) { menuWithVariants ->
                     val item = menuWithVariants.menuItem
                     val variants = menuWithVariants.variants
                     var showVariantPicker by remember { mutableStateOf(false) }
+                    val itemAvailable = item.isAvailable
 
                     Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (itemAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
+                            ),
                             shape = RoundedCornerShape(12.dp)
                     ) {
                         if (variants.isEmpty()) {
-
                             val cartItem =
                                     cartItems.find { it.item.id == item.id && it.variant == null }
                             Row(
@@ -432,19 +455,24 @@ fun MenuSelectionStep(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                             item.name,
-                                            color = TextLight,
+                                            color = if (itemAvailable) TextLight else TextLight.copy(alpha = 0.4f),
                                             style = MaterialTheme.typography.titleSmall
                                     )
-                                    Text("₹${item.basePrice}", color = TextGold, style = MaterialTheme.typography.bodySmall)
+                                    if (itemAvailable) {
+                                        Text("₹${item.basePrice}", color = TextGold, style = MaterialTheme.typography.bodySmall)
+                                    } else {
+                                        Text("Unavailable", color = ErrorPink.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    }
                                 }
-                                QuantitySelector(
-                                        quantity = cartItem?.quantity ?: 0,
-                                        onAdd = { billingViewModel.addToCart(item) },
-                                        onRemove = { billingViewModel.removeFromCart(item) }
-                                )
+                                if (itemAvailable) {
+                                    QuantitySelector(
+                                            quantity = cartItem?.quantity ?: 0,
+                                            onAdd = { billingViewModel.addToCart(item) },
+                                            onRemove = { billingViewModel.removeFromCart(item) }
+                                    )
+                                }
                             }
                         } else {
-
                             Column(modifier = Modifier.padding(spacing.small + spacing.extraSmall)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     FoodTypeIcon(item.foodType)
@@ -452,47 +480,56 @@ fun MenuSelectionStep(
                                     Column {
                                         Text(
                                                 item.name,
-                                                color = TextLight,
+                                                color = if (itemAvailable) TextLight else TextLight.copy(alpha = 0.4f),
                                                 style = MaterialTheme.typography.titleSmall
                                         )
-                                        Text(
-                                                "${variants.size} Variants",
-                                                color = PrimaryGold,
-                                                style = MaterialTheme.typography.labelSmall
-                                        )
+                                        if (!itemAvailable) {
+                                            Text("Unavailable", color = ErrorPink.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                        } else {
+                                            Text(
+                                                    "${variants.size} Variants",
+                                                    color = PrimaryGold,
+                                                    style = MaterialTheme.typography.labelSmall
+                                            )
+                                        }
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(10.dp))
-                                HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
-                                Spacer(modifier = Modifier.height(spacing.small))
-                                variants.forEach { variant ->
-                                    val variantCartItem =
-                                            cartItems.find {
-                                                it.item.id == item.id && it.variant?.id == variant.id
-                                            }
-                                    Row(
-                                            modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),
-                                            verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                                variant.variantName,
-                                                color = TextGold,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                modifier = Modifier.weight(1f)
-                                        )
-                                        Text(
-                                                CurrencyUtils.formatPrice(variant.price),
-                                                color = PrimaryGold,
-                                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                                modifier = Modifier.padding(end = spacing.small + spacing.extraSmall)
-                                        )
-                                        QuantitySelector(
-                                                quantity = variantCartItem?.quantity ?: 0,
-                                                onAdd = { billingViewModel.addToCart(item, variant) },
-                                                onRemove = {
-                                                    billingViewModel.removeFromCart(item, variant)
+                                if (itemAvailable) {
+                                    Spacer(modifier = Modifier.height(spacing.small))
+                                    HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+                                    Spacer(modifier = Modifier.height(spacing.small))
+                                    variants.forEach { variant ->
+                                        val variantAvailable = variant.isAvailable
+                                        val variantCartItem =
+                                                cartItems.find {
+                                                    it.item.id == item.id && it.variant?.id == variant.id
                                                 }
-                                        )
+                                        Row(
+                                                modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),
+                                                verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                    variant.variantName,
+                                                    color = if (variantAvailable) TextGold else TextGold.copy(alpha = 0.35f),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    modifier = Modifier.weight(1f)
+                                            )
+                                            if (variantAvailable) {
+                                                Text(
+                                                        CurrencyUtils.formatPrice(variant.price),
+                                                        color = PrimaryGold,
+                                                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                                        modifier = Modifier.padding(end = spacing.small + spacing.extraSmall)
+                                                )
+                                                QuantitySelector(
+                                                        quantity = variantCartItem?.quantity ?: 0,
+                                                        onAdd = { billingViewModel.addToCart(item, variant) },
+                                                        onRemove = { billingViewModel.removeFromCart(item, variant) }
+                                                )
+                                            } else {
+                                                Text("Unavailable", color = ErrorPink.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -513,7 +550,7 @@ fun MenuSelectionStep(
                 }
                 
                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(gridColumns) }) {
-                    Spacer(modifier = Modifier.height(if (isWideScreen) spacing.medium else 100.dp))
+                    Spacer(modifier = Modifier.height(if (isWideScreen) spacing.medium else spacing.bottomListPadding))
                 }
             }
 
@@ -581,26 +618,54 @@ fun MenuSelectionStep(
                     )
                     Spacer(modifier = Modifier.height(spacing.medium))
                     
-                    LazyColumn(modifier = Modifier.weight(1f)) {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(bottom = spacing.bottomListPadding)
+                    ) {
                         items(cartItems) { cartItem ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = spacing.small),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(cartItem.item.name, color = TextLight, style = MaterialTheme.typography.bodyMedium)
-                                    if (cartItem.variant != null) {
-                                        Text(cartItem.variant.variantName, color = TextGold, style = MaterialTheme.typography.labelSmall)
+                            var showNoteDialog by remember { mutableStateOf(false) }
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(cartItem.item.name, color = TextLight, style = MaterialTheme.typography.bodyMedium)
+                                        if (cartItem.variant != null) {
+                                            Text(cartItem.variant.variantName, color = TextGold, style = MaterialTheme.typography.labelSmall)
+                                        }
+                                        if (cartItem.note.isNotBlank()) {
+                                            Text("Note: ${cartItem.note}", color = PrimaryGold.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+                                        }
+                                    }
+                                    Text(
+                                        "${cartItem.quantity} x ${CurrencyUtils.formatPrice(cartItem.variant?.price ?: cartItem.item.basePrice)}",
+                                        color = TextLight,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    IconButton(onClick = { showNoteDialog = true }, modifier = Modifier.size(32.dp)) {
+                                        Icon(
+                                            if (cartItem.note.isNotBlank()) Icons.Default.EditNote else Icons.AutoMirrored.Filled.NoteAdd,
+                                            contentDescription = "Add note",
+                                            tint = if (cartItem.note.isNotBlank()) PrimaryGold else TextGold.copy(alpha = 0.5f),
+                                            modifier = Modifier.size(18.dp)
+                                        )
                                     }
                                 }
-                                Text(
-                                    "${cartItem.quantity} x ${CurrencyUtils.formatPrice(cartItem.variant?.price ?: cartItem.item.basePrice)}",
-                                    color = TextLight,
-                                    style = MaterialTheme.typography.bodySmall
+                                HorizontalDivider(color = BorderGold.copy(alpha = 0.1f))
+                            }
+                            if (showNoteDialog) {
+                                CartItemNoteDialog(
+                                    initialNote = cartItem.note,
+                                    itemName = cartItem.item.name,
+                                    onDismiss = { showNoteDialog = false },
+                                    onSave = { note ->
+                                        billingViewModel.updateCartItemNote(cartItem.item, cartItem.variant, note)
+                                        showNoteDialog = false
+                                    }
                                 )
                             }
-                            HorizontalDivider(color = BorderGold.copy(alpha = 0.1f))
                         }
                     }
                     
@@ -635,6 +700,37 @@ fun MenuSelectionStep(
             }
         }
     }
+}
+
+@Composable
+private fun CartItemNoteDialog(initialNote: String, itemName: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    var noteText by remember { mutableStateOf(initialNote) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DarkBrown2,
+        title = { Text("Note for $itemName", color = PrimaryGold, style = MaterialTheme.typography.titleMedium) },
+        text = {
+            OutlinedTextField(
+                value = noteText,
+                onValueChange = { noteText = it },
+                placeholder = { Text("e.g. No onions, extra spicy...", color = TextGold.copy(alpha = 0.4f)) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = menuTextFieldColors(),
+                maxLines = 3,
+                shape = RoundedCornerShape(8.dp)
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(noteText.trim()) }) {
+                Text("Save", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    )
 }
 
 @Composable
@@ -733,7 +829,8 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
             modifier = Modifier.fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(spacing.large)
-                    .imePadding(),
+                    .imePadding()
+                    .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (isUpiMode) {
@@ -764,7 +861,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     else -> Icon(
                         Icons.Default.QrCode,
                         null,
-                        modifier = Modifier.size(100.dp),
+                        modifier = Modifier.size(KhanaBookTheme.iconSize.hero),
                         tint = Color.LightGray
                     )
                 }
@@ -783,7 +880,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     Icons.Default.Payment,
                     null,
                     tint = PrimaryGold.copy(alpha = 0.3f),
-                    modifier = Modifier.size(80.dp)
+                    modifier = Modifier.size(KhanaBookTheme.iconSize.heroCircle)
             )
             Spacer(modifier = Modifier.height(spacing.medium))
             Text(
@@ -1074,7 +1171,7 @@ fun FailedStep(
         // Error icon
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(KhanaBookTheme.iconSize.hero)
                 .background(DangerRed.copy(alpha = 0.12f), CircleShape)
                 .border(2.dp, DangerRed.copy(alpha = 0.4f), CircleShape),
             contentAlignment = Alignment.Center
@@ -1083,11 +1180,11 @@ fun FailedStep(
                 Icons.Default.Close,
                 contentDescription = "Payment Failed",
                 tint = DangerRed,
-                modifier = Modifier.size(52.dp)
+                modifier = Modifier.size(KhanaBookTheme.iconSize.avatar)
             )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(spacing.large))
 
         Text(
             "Payment Failed / Cancelled",
@@ -1145,7 +1242,7 @@ fun SuccessStep(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
     ) {
-        Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(100.dp))
+        Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(KhanaBookTheme.iconSize.hero))
         Text(
                 "Payment Successful!",
                 color = TextLight,

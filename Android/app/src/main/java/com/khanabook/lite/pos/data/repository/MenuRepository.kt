@@ -98,6 +98,11 @@ class MenuRepository(
         return menuDao.searchItems("%$query%")
     }
 
+    fun searchMenuWithVariants(query: String): Flow<List<MenuWithVariants>> {
+        return menuDao.searchMenuWithVariants("%$query%")
+            .map { list -> list.map { it.copy(variants = it.variants.filterNot(ItemVariantEntity::isDeleted)) } }
+    }
+
     suspend fun toggleItemAvailability(id: Long, isAvailable: Boolean) {
         val current = menuDao.getItemById(id) ?: return
         updateItem(current.copy(isAvailable = isAvailable))

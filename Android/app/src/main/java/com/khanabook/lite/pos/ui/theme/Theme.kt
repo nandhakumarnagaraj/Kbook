@@ -32,6 +32,9 @@ object KhanaBookTheme {
     val spacing: Spacing
         @Composable
         get() = LocalSpacing.current
+    val iconSize: IconSize
+        @Composable
+        get() = LocalIconSize.current
 }
 
 @Composable
@@ -48,7 +51,10 @@ fun KhanaBookLiteTheme(
         }
     }
 
-    CompositionLocalProvider(LocalSpacing provides Spacing()) {
+    CompositionLocalProvider(
+        LocalSpacing provides Spacing(),
+        LocalIconSize provides IconSize()
+    ) {
         MaterialTheme(
             colorScheme = DarkColorScheme,
             typography = Typography,

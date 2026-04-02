@@ -115,10 +115,11 @@ fun AppBottomBar(
     currentSelectedIndex: Int,
     onTabSelected: (Int) -> Unit
 ) {
+    HorizontalDivider(color = BorderGold.copy(alpha = 0.3f), thickness = 0.5.dp)
     NavigationBar(
         containerColor = DarkBrown1,
         modifier = Modifier.navigationBarsPadding(),
-        tonalElevation = 8.dp
+        tonalElevation = 0.dp
     ) {
         visibleTabs.forEachIndexed { index, item ->
             NavigationBarItem(

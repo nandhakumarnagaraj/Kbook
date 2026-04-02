@@ -152,7 +152,8 @@ fun SignUpScreen(
                             Modifier.fillMaxWidth()
                                     .verticalScroll(rememberScrollState())
                                     .imePadding()
-                                    .padding(horizontal = spacing.large, vertical = spacing.medium),
+                                    .navigationBarsPadding()
+                                    .padding(horizontal = spacing.medium, vertical = spacing.medium),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
             ) {
@@ -267,7 +268,7 @@ fun SignUpScreen(
                                                     viewModel.sendOtp(phoneNumber)
                                                 }
                                             },
-                                            modifier = Modifier.padding(end = 4.dp).height(36.dp),
+                                            modifier = Modifier.padding(end = 4.dp).height(56.dp),
                                             colors =
                                                     ButtonDefaults.buttonColors(
                                                             containerColor = PrimaryGold

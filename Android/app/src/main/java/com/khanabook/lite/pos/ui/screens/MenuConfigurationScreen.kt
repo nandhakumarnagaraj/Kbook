@@ -175,6 +175,7 @@ fun MenuConfigurationScreen(
                     },
                     onUpdateItem = { viewModel.updateItem(it) },
                     onDeleteItem = { viewModel.deleteItem(it) },
+                    onToggleAvailability = { id, available -> viewModel.toggleItem(id, available) },
                     onAddVariant = { itemId, name, price -> viewModel.addVariant(itemId, name, price) },
                     onUpdateVariant = { viewModel.updateVariant(it) },
                     onDeleteVariant = { viewModel.deleteVariant(it) }
@@ -248,7 +249,7 @@ fun ReviewDetectedItemsSheet(
     onToggleFoodType: (Int) -> Unit
 ) {
     val selectedCount = drafts.count { it.isSelected }
-    
+    val spacing = KhanaBookTheme.spacing
     val headerPadding = ReviewSheetLayout.HORIZONTAL_PADDING + ReviewSheetLayout.CARD_PADDING
     val checkboxPlaceholder = ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP
 
@@ -305,7 +306,7 @@ fun ReviewDetectedItemsSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(spacing.medium))
 
             Row(
                 modifier = Modifier
@@ -632,7 +633,7 @@ fun ReviewDetectedItemsSheet(
                         modifier = Modifier.weight(2f).height(56.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(24.dp))
+                        Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
                         Spacer(Modifier.width(10.dp))
                         Text(
                             "Add $selectedCount Items",
@@ -655,13 +656,15 @@ fun ModeSelectionView(
     onPdfClick: () -> Unit
 ) {
     var isSmartAIExpanded by remember { mutableStateOf(false) }
+    val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = spacing.medium, vertical = spacing.extraLarge),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
         Text(
             "How would you like to add items?",
@@ -677,11 +680,11 @@ fun ModeSelectionView(
             colors = CardDefaults.cardColors(containerColor = DarkBrown2),
             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f))
         ) {
-            Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(color = PrimaryGold.copy(alpha = 0.1f), shape = CircleShape, modifier = Modifier.size(52.dp)) {
+            Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
+                Surface(color = PrimaryGold.copy(alpha = 0.1f), shape = CircleShape, modifier = Modifier.size(iconSize.avatar)) {
                     Icon(Icons.Default.Edit, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
                 }
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(spacing.medium))
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Manual Entry", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text("View & edit items one by one", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
@@ -698,11 +701,11 @@ fun ModeSelectionView(
             border = BorderStroke(1.dp, if (isSmartAIExpanded) PrimaryGold.copy(alpha = 0.5f) else BorderGold.copy(alpha = 0.2f))
         ) {
             Column(modifier = Modifier.animateContentSize()) {
-                Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Surface(color = PrimaryGold.copy(alpha = 0.2f), shape = CircleShape, modifier = Modifier.size(52.dp)) {
+                Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(color = PrimaryGold.copy(alpha = 0.2f), shape = CircleShape, modifier = Modifier.size(iconSize.avatar)) {
                         Icon(Icons.Default.AutoAwesome, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(spacing.medium))
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Smart AI", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -772,7 +775,7 @@ fun SmartAIOption(
         ) {
             Icon(icon, null, tint = PrimaryGold, modifier = Modifier.padding(12.dp))
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.small))
         Text(label, color = TextLight, fontSize = 12.sp, fontWeight = FontWeight.Medium)
     }
 }
@@ -789,14 +792,16 @@ fun ManualMenuView(
     onAddItem: (String, Double, String) -> Unit,
     onUpdateItem: (MenuItemEntity) -> Unit,
     onDeleteItem: (MenuItemEntity) -> Unit,
+    onToggleAvailability: (Long, Boolean) -> Unit,
     onAddVariant: (Long, String, Double) -> Unit,
     onUpdateVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit,
     onDeleteVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit
 ) {
+    val spacing = KhanaBookTheme.spacing
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var showEditCategoryDialog by remember { mutableStateOf<CategoryEntity?>(null) }
     var showDeleteCategoryDialog by remember { mutableStateOf<CategoryEntity?>(null) }
-    
+
     var showAddItemDialog by remember { mutableStateOf(false) }
     var showEditItemDialog by remember { mutableStateOf<com.khanabook.lite.pos.data.local.relation.MenuWithVariants?>(null) }
     var showDeleteItemDialog by remember { mutableStateOf<MenuItemEntity?>(null) }
@@ -867,14 +872,14 @@ fun ManualMenuView(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(80.dp)
+                            .size(KhanaBookTheme.iconSize.heroCircle)
                             .background(PrimaryGold.copy(alpha = 0.1f), CircleShape)
                             .border(1.dp, PrimaryGold.copy(alpha = 0.3f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Add, null, tint = PrimaryGold, modifier = Modifier.size(36.dp))
+                        Icon(Icons.Default.Add, null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.medium))
                     Text(
                         "No categories yet",
                         color = TextLight,
@@ -896,7 +901,7 @@ fun ManualMenuView(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp)
+                contentPadding = PaddingValues(top = 8.dp, bottom = spacing.bottomListPadding)
             ) {
                 if (menuItems.isEmpty()) {
                     item {
@@ -925,56 +930,81 @@ fun ManualMenuView(
                     }
                 } else {
                     items(menuItems) { itemWithVariants ->
+                        val item = itemWithVariants.menuItem
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .combinedClickable(
                                     onClick = { showEditItemDialog = itemWithVariants },
-                                    onLongClick = { showDeleteItemDialog = itemWithVariants.menuItem }
+                                    onLongClick = { showDeleteItemDialog = item }
                                 ),
-                            colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                            border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.2f))
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (item.isAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
+                            ),
+                            border = BorderStroke(
+                                0.5.dp,
+                                if (item.isAvailable) BorderGold.copy(alpha = 0.2f) else ErrorPink.copy(alpha = 0.25f)
+                            )
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .background(
-                                            if (itemWithVariants.menuItem.foodType == "veg") VegGreen else NonVegRed,
+                                            if (item.foodType == "veg") VegGreen else NonVegRed,
                                             CircleShape
                                         )
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        itemWithVariants.menuItem.name,
-                                        color = TextLight,
-                                        style = MaterialTheme.typography.titleSmall
+                                        item.name,
+                                        color = if (item.isAvailable) TextLight else TextLight.copy(alpha = 0.4f),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        textDecoration = if (!item.isAvailable) TextDecoration.LineThrough else TextDecoration.None
                                     )
                                     val variantCount = itemWithVariants.variants.size
                                     if (variantCount > 0) {
                                         Text(
                                             "$variantCount variant${if (variantCount > 1) "s" else ""}",
-                                            color = TextGold.copy(alpha = 0.6f),
+                                            color = TextGold.copy(alpha = if (item.isAvailable) 0.6f else 0.3f),
                                             style = MaterialTheme.typography.labelSmall
                                         )
                                     } else {
                                         Text(
-                                            "₹${itemWithVariants.menuItem.basePrice}",
-                                            color = PrimaryGold.copy(alpha = 0.8f),
+                                            "₹${item.basePrice}",
+                                            color = PrimaryGold.copy(alpha = if (item.isAvailable) 0.8f else 0.3f),
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.SemiBold
                                         )
                                     }
+                                    if (!item.isAvailable) {
+                                        Text(
+                                            "Unavailable",
+                                            color = ErrorPink.copy(alpha = 0.8f),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
+                                Switch(
+                                    checked = item.isAvailable,
+                                    onCheckedChange = { onToggleAvailability(item.id, it) },
+                                    colors = SwitchDefaults.colors(
+                                        checkedTrackColor = VegGreen.copy(alpha = 0.7f),
+                                        uncheckedTrackColor = ErrorPink.copy(alpha = 0.4f),
+                                        uncheckedThumbColor = ErrorPink
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Icon(
                                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = null,
                                     tint = TextGold.copy(alpha = 0.35f),
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(KhanaBookTheme.iconSize.small)
                                 )
                             }
                         }
@@ -1292,7 +1322,7 @@ fun ItemEditDialog(
                                 colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
                             )
                             IconButton(onClick = { onDeleteVariant(variant) }) {
-                                Icon(Icons.Default.Delete, null, tint = NonVegRed.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.Delete, null, tint = NonVegRed.copy(alpha = 0.7f), modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                             }
                         }
                     }

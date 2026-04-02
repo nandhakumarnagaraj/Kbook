@@ -106,7 +106,7 @@ fun LoginScreen(
             Image(
                     painter = painterResource(id = R.drawable.khanabook_logo),
                     contentDescription = "KhanaBook Lite logo",
-                    modifier = Modifier.size(160.dp).padding(bottom = spacing.medium),
+                    modifier = Modifier.size(120.dp).padding(bottom = spacing.medium),
                     contentScale = ContentScale.Fit
             )
 
@@ -237,7 +237,7 @@ fun LoginScreen(
                     text = "Forgot Password?",
                     color = PrimaryGold,
                     style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.align(Alignment.End).clickable { showForgotDialog = true },
+                    modifier = Modifier.align(Alignment.End).clickable { showForgotDialog = true }.padding(end = spacing.medium),
                     fontWeight = FontWeight.Medium
             )
 
@@ -439,7 +439,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                 colors = CardDefaults.cardColors(containerColor = DarkBrown1)
         ) {
             Column(
-                    modifier = Modifier.padding(spacing.large).fillMaxWidth(),
+                    modifier = Modifier.systemBarsPadding().padding(spacing.large).fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(

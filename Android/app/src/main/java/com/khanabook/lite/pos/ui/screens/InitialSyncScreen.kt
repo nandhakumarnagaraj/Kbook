@@ -26,6 +26,7 @@ fun InitialSyncScreen(
 ) {
     val syncState by viewModel.syncState.collectAsState()
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
 
     LaunchedEffect(syncState) {
         if (syncState is InitialSyncState.Success) {
@@ -60,7 +61,7 @@ fun InitialSyncScreen(
                         imageVector = Icons.Default.Warning,
                         contentDescription = "Sync Error",
                         tint = ErrorPink,
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(iconSize.xxlarge)
                     )
                     Spacer(modifier = Modifier.height(spacing.large))
                     Text(

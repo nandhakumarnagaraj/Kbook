@@ -261,6 +261,7 @@ fun SyncStatusHeader(
 ) {
     val isOnline = connectionStatus == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
     val currentUser by authViewModel.currentUser.collectAsState()
     val isSessionValid = currentUser != null
     val shouldShowSync = isOnline && isSessionValid && unsyncedCount > 0
@@ -326,7 +327,7 @@ fun SyncStatusHeader(
                 contentDescription = null,
                 tint = containerColor,
                 modifier = Modifier
-                    .size(18.dp)
+                    .size(iconSize.small)
                     .then(
                         if (shouldShowSync)
                             Modifier.rotate(rotation)
@@ -383,6 +384,7 @@ fun HomeActionCard(
     onClick: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
     KhanaBookCard(
         modifier = modifier
             .height(70.dp),
@@ -405,7 +407,7 @@ fun HomeActionCard(
                     imageVector = icon,
                     contentDescription = null,
                     tint = PrimaryGold,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(iconSize.large)
                 )
                 Spacer(modifier = Modifier.width(spacing.small + spacing.extraSmall))
                 Text(
@@ -418,7 +420,7 @@ fun HomeActionCard(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = PrimaryGold,
-                modifier = Modifier.size(spacing.large)
+                modifier = Modifier.size(iconSize.medium)
             )
         }
     }

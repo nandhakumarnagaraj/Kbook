@@ -54,8 +54,10 @@ import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
+import com.khanabook.lite.pos.BuildConfig
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.request.CachePolicy
@@ -132,7 +134,8 @@ fun SettingsScreen(
                                 .verticalScroll(rememberScrollState())
                         ) {
                             Spacer(modifier = Modifier.height(spacing.small))
-                            ProfileCard(currentUser, profile)
+                            val lastSyncTs = remember { viewModel.getLastSyncTimestamp() }
+                            ProfileCard(currentUser, profile, lastSyncTs)
                             Spacer(modifier = Modifier.height(spacing.medium))
                             
                             if (isWideScreen) {
@@ -175,6 +178,7 @@ fun SettingsScreen(
                             ) {
                                 LogoutSection(logoutViewModel)
                             }
+                            AppInfoSection()
                             Spacer(modifier = Modifier.height(spacing.extraLarge))
                         }
                     }
@@ -207,10 +211,15 @@ fun SettingsScreen(
 }
 
 @Composable
-fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?) {
+fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTimestamp: Long = 0L) {
     val displayName = profile?.shopName?.takeIf { it.isNotBlank() } ?: user?.name?.takeIf { it.isNotBlank() } ?: "Guest"
     val displayPhone = profile?.whatsappNumber?.takeIf { it.isNotBlank() } ?: user?.whatsappNumber ?: ""
     val spacing = KhanaBookTheme.spacing
+    val syncLabel = remember(lastSyncTimestamp) {
+        if (lastSyncTimestamp > 0L) {
+            "Last sync: " + SimpleDateFormat("dd MMM, hh:mm a", java.util.Locale.getDefault()).format(java.util.Date(lastSyncTimestamp))
+        } else "Not synced yet"
+    }
 
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
@@ -218,7 +227,7 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?) {
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(50.dp).background(PrimaryGold, CircleShape), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.size(KhanaBookTheme.iconSize.avatar).background(PrimaryGold, CircleShape), contentAlignment = Alignment.Center) {
                 Text(text = displayName.take(1).uppercase(), color = DarkBrown1, style = MaterialTheme.typography.headlineSmall)
             }
             Spacer(modifier = Modifier.width(spacing.medium))
@@ -227,6 +236,7 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?) {
                 if (displayPhone.isNotBlank()) {
                     Text(text = displayPhone, color = TextGold, style = MaterialTheme.typography.bodySmall)
                 }
+                Text(text = syncLabel, color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
             }
         }
     }
@@ -235,6 +245,7 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?) {
 @Composable
 private fun SettingsItem(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, onClick: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         onClick = onClick,
@@ -243,7 +254,7 @@ private fun SettingsItem(icon: androidx.compose.ui.graphics.vector.ImageVector, 
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(spacing.medium), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, tint = PrimaryGold, modifier = Modifier.size(24.dp))
+                Icon(icon, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.medium))
                 Spacer(modifier = Modifier.width(spacing.medium))
                 Text(text, color = TextLight, style = MaterialTheme.typography.titleMedium)
             }
@@ -400,6 +411,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .imePadding()
+            .navigationBarsPadding()
             .padding(spacing.medium)
     ) {
         ConfigCard {
@@ -407,7 +419,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
             Spacer(modifier = Modifier.height(spacing.medium))
             
             val logoContent = @Composable {
-                Box(modifier = Modifier.size(100.dp).background(Color.White).border(1.dp, Color.LightGray), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.size(KhanaBookTheme.iconSize.hero).background(Color.White).border(1.dp, Color.LightGray), contentAlignment = Alignment.Center) {
                     if (!logoPath.isNullOrBlank()) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
@@ -420,7 +432,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                             modifier = Modifier.fillMaxSize().padding(4.dp)
                         )
                     } else {
-                        Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+                        Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge))
                     }
                 }
                 OutlinedButton(onClick = { logoLauncher.launch("image/*") }, border = BorderStroke(1.dp, PrimaryGold), shape = RoundedCornerShape(20.dp)) { Text("Change Logo", color = PrimaryGold) }
@@ -476,7 +488,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                             onClick = {
                                 if (isPhoneValid && userExistsError == null) authViewModel.sendOtp(whatsapp, "update_whatsapp")
                             },
-                            modifier = Modifier.padding(end = 4.dp).height(36.dp),
+                            modifier = Modifier.padding(end = 4.dp).height(56.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                             shape = RoundedCornerShape(20.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp),
@@ -622,6 +634,7 @@ private fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .imePadding()
+            .navigationBarsPadding()
             .padding(spacing.medium)
     ) {
         ConfigCard {
@@ -643,7 +656,7 @@ private fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
                 Spacer(modifier = Modifier.height(spacing.medium))
                 
                 val qrContent = @Composable {
-                    Box(modifier = Modifier.size(100.dp).background(Color.White).border(1.dp, Color.LightGray).padding(4.dp), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(KhanaBookTheme.iconSize.hero).background(Color.White).border(1.dp, Color.LightGray).padding(4.dp), contentAlignment = Alignment.Center) {
                         if (!qrPath.isNullOrBlank()) {
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
@@ -656,7 +669,7 @@ private fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
                                 modifier = Modifier.fillMaxSize()
                             )
                         } else {
-                            Icon(Icons.Default.QrCode, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+                            Icon(Icons.Default.QrCode, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge))
                         }
                     }
                     OutlinedButton(onClick = { qrLauncher.launch("image/*") }, border = BorderStroke(1.dp, PrimaryGold), shape = RoundedCornerShape(20.dp)) { Text("Upload QR", color = PrimaryGold) }
@@ -749,7 +762,7 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(spacing.medium)
+        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().navigationBarsPadding().padding(spacing.medium)
     ) {
         ConfigCard {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -812,7 +825,7 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
             Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(spacing.large).padding(bottom = spacing.large)) {
                 Text("Select Printer", color = PrimaryGold, style = MaterialTheme.typography.headlineSmall)
                 if (btIsScanning) LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(vertical = spacing.medium), color = PrimaryGold)
-                LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                LazyColumn(modifier = Modifier.heightIn(max = 300.dp), contentPadding = PaddingValues(bottom = spacing.small)) {
                     items(btDevices) { device ->
                         DeviceRow(device = device, isConnecting = btIsConnecting, isSelected = device.address == profile?.printerMac, isConnected = device.address == profile?.printerMac && btIsConnected) { viewModel.connectToPrinter(context, device) }
                     }
@@ -831,6 +844,7 @@ fun DeviceRow(
     onClick: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
     @Suppress("MissingPermission")
     val name = device.name ?: "Unknown"
     val border = if (isSelected) BorderStroke(2.dp, PrimaryGold) else null
@@ -847,10 +861,10 @@ fun DeviceRow(
         }
         Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                if (isConnected) Icons.Default.BluetoothConnected else Icons.Default.Bluetooth, 
-                null, 
+                if (isConnected) Icons.Default.BluetoothConnected else Icons.Default.Bluetooth,
+                null,
                 tint = if (isSelected) PrimaryGold else TextGold,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(iconSize.medium)
             )
             Spacer(modifier = Modifier.width(spacing.medium))
             Column(modifier = Modifier.weight(1f)) {
@@ -885,7 +899,7 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
     
     val isSaveEnabled = fssaiNumber.isNotBlank() && (!gstEnabled || gstNumber.isNotBlank())
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(spacing.medium)) {
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().navigationBarsPadding().padding(spacing.medium)) {
         ConfigCard {
             ParchmentTextField(value = country, onValueChange = { country = it }, label = "Country")
             Spacer(modifier = Modifier.height(spacing.medium))
@@ -908,6 +922,33 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
     }
 }
 
+@Composable
+private fun AppInfoSection() {
+    val context = LocalContext.current
+    val spacing = KhanaBookTheme.spacing
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = spacing.small, bottom = spacing.small),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+    ) {
+        Text(
+            "KhanaBook Lite v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+            color = TextGold.copy(alpha = 0.5f),
+            style = MaterialTheme.typography.labelSmall,
+            textAlign = TextAlign.Center
+        )
+        TextButton(onClick = {
+            val intent = Intent(Intent.ACTION_SENDTO).apply {
+                data = Uri.parse("mailto:support@khanabook.com")
+                putExtra(Intent.EXTRA_SUBJECT, "KhanaBook Lite Support")
+            }
+            try { context.startActivity(intent) } catch (_: Exception) {}
+        }) {
+            Text("Contact Support", color = PrimaryGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
 private fun copyUriToInternalStorage(context: Context, uri: Uri, fileName: String): String? {
     return try { context.contentResolver.openInputStream(uri)?.use { input -> File(context.filesDir, fileName).let { file -> FileOutputStream(file).use { output -> input.copyTo(output) }; file.absolutePath } } } catch (_: Exception) { null }
 }
@@ -925,10 +966,11 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
         AlertDialog(onDismissRequest = { viewModel.cancelLogout() }, title = { Text("Unsynced Data Warning", color = DangerRed) }, text = { Text("You have ${warning.totalCount} records not synced. Logging out will delete them.") }, confirmButton = { TextButton(onClick = { viewModel.forceLogoutDespiteWarning() }) { Text("Logout Anyway", color = DangerRed) } }, dismissButton = { TextButton(onClick = { viewModel.cancelLogout() }) { Text("Cancel") } })
     }
 
+    val iconSize = KhanaBookTheme.iconSize
     Column(modifier = Modifier.fillMaxWidth().padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
         Text("Account Session", color = TextLight, style = MaterialTheme.typography.titleMedium)
         Button(onClick = { viewModel.initiateLogout() }, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = DangerRed), shape = RoundedCornerShape(12.dp)) {
-            Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(20.dp))
+            Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(iconSize.small))
             Spacer(modifier = Modifier.width(spacing.small))
             Text("Sign Out", style = MaterialTheme.typography.labelLarge)
         }

@@ -45,6 +45,7 @@ fun CallCustomerScreen(
     val result by viewModel.searchResult.collectAsState()
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
 
     Scaffold(
             modifier = modifier,
@@ -148,7 +149,7 @@ fun CallCustomerScreen(
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                         enabled = dailyId.isNotEmpty()
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1, modifier = Modifier.size(iconSize.small))
                     Spacer(modifier = Modifier.width(spacing.small))
                     Text("Search Customer", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 }
@@ -182,7 +183,7 @@ fun CallCustomerScreen(
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                         enabled = lifetimeId.isNotEmpty()
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1, modifier = Modifier.size(iconSize.small))
                     Spacer(modifier = Modifier.width(spacing.small))
                     Text("Search Customer", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 }
@@ -202,7 +203,7 @@ fun CallCustomerScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
-                                modifier = Modifier.size(80.dp),
+                                modifier = Modifier.size(iconSize.heroCircle),
                                 shape = androidx.compose.foundation.shape.CircleShape,
                                 color = PrimaryGold.copy(alpha = 0.1f)
                         ) {
@@ -262,7 +263,7 @@ fun CallCustomerScreen(
                 }
             } else {
                 Box(
-                        modifier = Modifier.fillMaxSize().padding(bottom = 100.dp),
+                        modifier = Modifier.fillMaxSize().padding(bottom = spacing.bottomListPadding),
                         contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -270,7 +271,7 @@ fun CallCustomerScreen(
                                 Icons.Default.Call,
                                 contentDescription = null,
                                 tint = TextGold.copy(alpha = 0.3f),
-                                modifier = Modifier.size(64.dp)
+                                modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
                         )
                         Spacer(modifier = Modifier.height(spacing.medium))
                         Text(

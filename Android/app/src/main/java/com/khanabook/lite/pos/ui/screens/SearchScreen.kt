@@ -56,6 +56,7 @@ fun SearchScreen(
     val profile by settingsViewModel.profile.collectAsState()
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
 
     Scaffold(
         modifier = modifier,
@@ -98,7 +99,7 @@ fun SearchScreen(
                 .fillMaxSize()
                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
                 .imePadding()
-                .padding(horizontal = spacing.large, vertical = spacing.medium)
+                .padding(horizontal = spacing.medium, vertical = spacing.medium)
         ) {
             Column(modifier = Modifier.wrapContentHeight()) {
                 TabRow(
@@ -160,7 +161,7 @@ fun SearchScreen(
                             Icons.Default.Search,
                             contentDescription = null,
                             tint = DarkBrown1,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(iconSize.small)
                         )
                         Spacer(modifier = Modifier.width(spacing.small))
                         Text("Search Order", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
@@ -197,7 +198,7 @@ fun SearchScreen(
                             Icons.Default.Search,
                             contentDescription = null,
                             tint = DarkBrown1,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(iconSize.small)
                         )
                         Spacer(modifier = Modifier.width(spacing.small))
                         Text("Search Order", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
@@ -222,7 +223,7 @@ fun SearchScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Phone, null, tint = TextGold, modifier = Modifier.size(14.dp))
+                                Icon(Icons.Default.Phone, null, tint = TextGold, modifier = Modifier.size(iconSize.xsmall))
                                 Spacer(modifier = Modifier.width(spacing.extraSmall))
                                 Text(
                                     currentResult.bill.customerWhatsapp ?: "N/A",
@@ -234,7 +235,7 @@ fun SearchScreen(
                             Text(" | ", color = BorderGold.copy(alpha = 0.3f))
                             
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Event, null, tint = TextGold, modifier = Modifier.size(14.dp))
+                                Icon(Icons.Default.Event, null, tint = TextGold, modifier = Modifier.size(iconSize.xsmall))
                                 Spacer(modifier = Modifier.width(spacing.extraSmall))
                                 Text(
                                     DateUtils.formatDisplay(currentResult.bill.createdAt),
@@ -376,7 +377,7 @@ fun SearchScreen(
                                         colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                        Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                                         Spacer(modifier = Modifier.width(spacing.extraSmall))
                                         Text("WhatsApp", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                     }
@@ -392,7 +393,7 @@ fun SearchScreen(
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
                                         border = BorderStroke(1.5.dp, PrimaryGold)
                                     ) {
-                                        Icon(Icons.Default.Print, null, tint = PrimaryGold, modifier = Modifier.size(18.dp))
+                                        Icon(Icons.Default.Print, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.small))
                                         Spacer(modifier = Modifier.width(spacing.extraSmall))
                                         Text("Print Bill", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                     }
@@ -403,7 +404,7 @@ fun SearchScreen(
                 }
             } else {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(bottom = 80.dp),
+                    modifier = Modifier.fillMaxSize().padding(bottom = spacing.bottomListPadding),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -411,7 +412,7 @@ fun SearchScreen(
                             imageVector = if (hasSearched) Icons.Default.SearchOff else Icons.Default.Search,
                             contentDescription = null,
                             tint = TextGold.copy(alpha = 0.3f),
-                            modifier = Modifier.size(64.dp)
+                            modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
                         )
                         Spacer(modifier = Modifier.height(spacing.medium))
                         Text(

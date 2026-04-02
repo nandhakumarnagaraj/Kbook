@@ -391,7 +391,7 @@ private fun ScanControls(
                 }
 
                 if (errorMessage != null) {
-                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(10.dp))
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(com.khanabook.lite.pos.ui.theme.KhanaBookTheme.spacing.small))
                     Text(
                         text = errorMessage,
                         color = OcrScannerPink,
@@ -476,7 +476,7 @@ fun PermissionDeniedContent(onRequestPermission: () -> Unit) {
             color = Color.White,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(com.khanabook.lite.pos.ui.theme.KhanaBookTheme.spacing.medium))
         Button(
             onClick = onRequestPermission,
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)

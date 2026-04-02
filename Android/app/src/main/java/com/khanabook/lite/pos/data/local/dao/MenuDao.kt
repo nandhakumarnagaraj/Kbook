@@ -102,6 +102,10 @@ interface MenuDao {
     @Query("SELECT * FROM menu_items WHERE category_id = :categoryId AND is_deleted = 0 ORDER BY name ASC")
     fun getMenuWithVariantsByCategoryFlow(categoryId: Long): Flow<List<MenuWithVariants>>
 
+    @Transaction
+    @Query("SELECT * FROM menu_items WHERE is_deleted = 0 AND (name LIKE :query OR category_id IN (SELECT id FROM categories WHERE name LIKE :query AND is_deleted = 0)) ORDER BY name ASC")
+    fun searchMenuWithVariants(query: String): Flow<List<MenuWithVariants>>
+
     @Query("SELECT * FROM menu_items WHERE is_synced = 0")
     suspend fun getUnsyncedMenuItems(): List<MenuItemEntity>
 

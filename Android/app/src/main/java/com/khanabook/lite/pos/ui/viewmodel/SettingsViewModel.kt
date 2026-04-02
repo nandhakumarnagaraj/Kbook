@@ -8,6 +8,7 @@ import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.repository.*
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
+import com.khanabook.lite.pos.domain.manager.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,8 @@ class SettingsViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val menuRepository: MenuRepository,
     private val userRepository: UserRepository,
-    private val btManager: BluetoothPrinterManager
+    private val btManager: BluetoothPrinterManager,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     val profile: StateFlow<RestaurantProfileEntity?> = restaurantRepository.getProfileFlow()
@@ -276,5 +278,7 @@ class SettingsViewModel @Inject constructor(
     fun getMenuWithVariantsByCategory(categoryId: Long): kotlinx.coroutines.flow.Flow<List<MenuWithVariants>> {
         return menuRepository.getMenuWithVariantsByCategoryFlow(categoryId)
     }
+
+    fun getLastSyncTimestamp(): Long = sessionManager.getLastSyncTimestamp()
 
 }

@@ -174,8 +174,8 @@ fun OrdersScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = spacing.extraSmall),
-                contentPadding = PaddingValues(top = spacing.small, bottom = spacing.medium)
+                    .padding(horizontal = spacing.medium),
+                contentPadding = PaddingValues(top = spacing.small, bottom = spacing.bottomListPadding)
             ) {
                 items(allRows) { row ->
                     OrderTableRow(

@@ -352,13 +352,14 @@ fun PaymentLevelView(breakdown: Map<String, String>, settingsViewModel: com.khan
             }
         }
         
-        item { Spacer(modifier = Modifier.height(80.dp)) }
+        item { Spacer(modifier = Modifier.height(spacing.bottomListPadding)) }
     }
 }
 
 @Composable
 fun PaymentModeItem(mode: String, amount: Double) {
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = CardBG.copy(alpha = 0.4f))
@@ -373,7 +374,7 @@ fun PaymentModeItem(mode: String, amount: Double) {
                 Icons.Default.Description,
                 contentDescription = null,
                 tint = PrimaryGold.copy(alpha = 0.5f),
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(iconSize.medium)
             )
             Spacer(modifier = Modifier.width(spacing.medium))
             Text(mode, color = TextLight, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -382,7 +383,7 @@ fun PaymentModeItem(mode: String, amount: Double) {
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = TextGold,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(iconSize.small)
             )
         }
     }
@@ -438,12 +439,12 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            contentPadding = PaddingValues(bottom = spacing.bottomListPadding)
         ) {
             items(rows) { row ->
                 OrderRowItem(row, onViewDetails)
             }
-            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
 }

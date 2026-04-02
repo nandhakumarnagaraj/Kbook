@@ -313,12 +313,21 @@ class BillingViewModel @Inject constructor(
         }
     }
 
+    fun updateCartItemNote(item: MenuItemEntity, variant: ItemVariantEntity?, note: String) {
+        _cartItems.update { current ->
+            current.map {
+                if (it.item.id == item.id && it.variant?.id == variant?.id) it.copy(note = note)
+                else it
+            }
+        }
+    }
+
     fun clearError() {
         _error.value = null
     }
 
     @Immutable
-    data class CartItem(val item: MenuItemEntity, val variant: ItemVariantEntity? = null, val quantity: Int)
+    data class CartItem(val item: MenuItemEntity, val variant: ItemVariantEntity? = null, val quantity: Int, val note: String = "")
     
     @Immutable
     data class BillSummary(val subtotal: String = "0.0", val cgst: String = "0.0", val sgst: String = "0.0", val customTax: String = "0.0", val total: String = "0.0")

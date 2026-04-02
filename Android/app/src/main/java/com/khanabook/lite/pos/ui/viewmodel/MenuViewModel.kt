@@ -44,6 +44,15 @@ class MenuViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val searchQuery = MutableStateFlow("")
+
+    val searchResults: StateFlow<List<MenuWithVariants>> = searchQuery
+        .debounce(300L)
+        .flatMapLatest { query ->
+            if (query.isBlank()) flowOf(emptyList())
+            else menuRepository.searchMenuWithVariants(query)
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     val disabledItemsCount = MutableStateFlow(0)
     val menuAddOnsCount = MutableStateFlow(0)
 
