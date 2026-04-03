@@ -129,6 +129,15 @@ class ReportsViewModel @Inject constructor(
         return cal.timeInMillis
     }
 
+    fun cancelOrder(billId: Long, reason: String) {
+        viewModelScope.launch {
+            billRepository.cancelOrder(billId, reason)
+            if (currentFrom != 0L && currentTo != 0L) {
+                loadReports(currentFrom, currentTo)
+            }
+        }
+    }
+
     fun updateOrderStatus(billId: Long, newStatus: String) {
         viewModelScope.launch {
             billRepository.updateOrderStatus(billId, newStatus)

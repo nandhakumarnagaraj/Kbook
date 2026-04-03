@@ -18,7 +18,8 @@ data class OrderDetailRow(
     val salesAmount: String,
     val payMode: PaymentMode,
     val orderStatus: OrderStatus,
-    val salesDate: Long
+    val salesDate: Long,
+    val cancelReason: String = ""
 )
 
 data class DailySalesReport(

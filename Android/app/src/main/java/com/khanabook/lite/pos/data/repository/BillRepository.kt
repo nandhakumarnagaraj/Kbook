@@ -102,6 +102,11 @@ class BillRepository(
         triggerBackgroundSync()
     }
 
+    suspend fun cancelOrder(id: Long, reason: String) {
+        billDao.cancelBill(id, reason, System.currentTimeMillis())
+        triggerBackgroundSync()
+    }
+
     suspend fun updatePaymentMode(id: Long, mode: String) {
         val current = billDao.getBillById(id) ?: return
         billDao.updateBill(

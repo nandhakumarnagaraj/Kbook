@@ -57,6 +57,9 @@ interface BillDao {
     @Query("UPDATE bills SET payment_status = :status WHERE id = :id")
     suspend fun updatePaymentStatus(id: Long, status: String)
 
+    @Query("UPDATE bills SET order_status = 'cancelled', cancel_reason = :reason, is_synced = 0, updated_at = :updatedAt WHERE id = :id")
+    suspend fun cancelBill(id: Long, reason: String, updatedAt: Long)
+
     @Query(
             "SELECT * FROM bills WHERE created_at BETWEEN :startMillis AND :endMillis ORDER BY created_at DESC"
     )

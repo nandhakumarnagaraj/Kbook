@@ -178,6 +178,8 @@ fun OrdersScreen(
                 contentPadding = PaddingValues(top = spacing.small, bottom = spacing.bottomListPadding)
             ) {
                 items(allRows) { row ->
+                    var showCancelDialog by remember { mutableStateOf(false) }
+
                     OrderTableRow(
                         row = row,
                         enabledModes = enabledModes,
@@ -188,6 +190,7 @@ fun OrdersScreen(
                                 }
                             }
                         },
+                        onRequestCancel = { showCancelDialog = true },
                         onStatusChange = { newStatus ->
                             onStatusChange(row.billId, newStatus)
                         },
@@ -195,6 +198,16 @@ fun OrdersScreen(
                             viewModel.updatePaymentMode(row.billId, newMode.dbValue)
                         }
                     )
+
+                    if (showCancelDialog) {
+                        CancelOrderDialog(
+                            onDismiss = { showCancelDialog = false },
+                            onConfirm = { reason ->
+                                viewModel.cancelOrder(row.billId, reason)
+                                showCancelDialog = false
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -275,123 +288,215 @@ fun RowScope.HeaderCell(text: String, weight: Float) {
 
 @Composable
 fun OrderTableRow(
-    row: OrderDetailRow, 
+    row: OrderDetailRow,
     enabledModes: List<PaymentMode>,
     onShare: () -> Unit,
+    onRequestCancel: () -> Unit,
     onStatusChange: (String) -> Unit,
     onPayModeChange: (PaymentMode) -> Unit
 ) {
     var statusExpanded by remember { mutableStateOf(false) }
     var payModeExpanded by remember { mutableStateOf(false) }
     val spacing = KhanaBookTheme.spacing
+    val isCancelled = row.orderStatus == OrderStatus.CANCELLED
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 1.dp)
-            .background(ParchmentBG)
-            .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
-        verticalAlignment = Alignment.CenterVertically
+            .background(if (isCancelled) ParchmentBG.copy(alpha = 0.5f) else ParchmentBG)
     ) {
-        TableCell(row.dailyNo, 1f / TABLE_TOTAL_WEIGHT)
-        TableCell(row.lifetimeNo.toString(), 1.2f / TABLE_TOTAL_WEIGHT)
-        TableCell(row.currentStatus, 1.5f / TABLE_TOTAL_WEIGHT, fontSize = 10.sp)
-        TableCell(CurrencyUtils.formatPrice(row.salesAmount), 1.3f / TABLE_TOTAL_WEIGHT, fontWeight = FontWeight.Bold)
-        
-        Box(modifier = Modifier.weight(1.2f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
-            val color = getPayModeColor(row.payMode)
-            Surface(
-                onClick = { payModeExpanded = true },
-                color = color,
-                shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.padding(horizontal = 2.dp)
-            ) {
-                Text(
-                    text = row.payMode.displayLabel,
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                    maxLines = 1
-                )
-            }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TableCell(
+                row.dailyNo, 1f / TABLE_TOTAL_WEIGHT,
+                color = if (isCancelled) Color.Black.copy(alpha = 0.35f) else Color.Black
+            )
+            TableCell(
+                row.lifetimeNo.toString(), 1.2f / TABLE_TOTAL_WEIGHT,
+                color = if (isCancelled) Color.Black.copy(alpha = 0.35f) else Color.Black
+            )
+            TableCell(
+                row.currentStatus, 1.5f / TABLE_TOTAL_WEIGHT, fontSize = 10.sp,
+                color = if (isCancelled) Color.Black.copy(alpha = 0.35f) else Color.Black
+            )
+            TableCell(
+                CurrencyUtils.formatPrice(row.salesAmount), 1.3f / TABLE_TOTAL_WEIGHT,
+                fontWeight = FontWeight.Bold,
+                color = if (isCancelled) Color.Black.copy(alpha = 0.35f) else Color.Black
+            )
 
-            DropdownMenu(
-                expanded = payModeExpanded,
-                onDismissRequest = { payModeExpanded = false },
-                modifier = Modifier.background(ParchmentBG)
-            ) {
-                enabledModes.forEach { mode ->
-                    DropdownMenuItem(
-                        text = { Text(mode.displayLabel, color = DarkBrown1, style = MaterialTheme.typography.bodySmall) },
-                        onClick = {
-                            onPayModeChange(mode)
-                            payModeExpanded = false
-                        }
-                    )
-                }
-            }
-        }
-
-        Box(modifier = Modifier.weight(1.5f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
-            val statusColor = if (row.orderStatus == OrderStatus.COMPLETED) SuccessGreen else DangerRed
-            Surface(
-                onClick = { statusExpanded = true },
-                color = statusColor,
-                shape = RoundedCornerShape(4.dp),
-                modifier = Modifier.padding(horizontal = 4.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            Box(modifier = Modifier.weight(1.2f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
+                val color = if (isCancelled) Color.Gray else getPayModeColor(row.payMode)
+                Surface(
+                    onClick = { if (!isCancelled) payModeExpanded = true },
+                    color = color,
+                    shape = RoundedCornerShape(4.dp),
+                    modifier = Modifier.padding(horizontal = 2.dp)
                 ) {
                     Text(
-                        text = if (row.orderStatus == OrderStatus.COMPLETED) "Completed" else "Cancelled",
+                        text = row.payMode.displayLabel,
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                        maxLines = 1
+                    )
+                }
+                DropdownMenu(
+                    expanded = payModeExpanded,
+                    onDismissRequest = { payModeExpanded = false },
+                    modifier = Modifier.background(ParchmentBG)
+                ) {
+                    enabledModes.forEach { mode ->
+                        DropdownMenuItem(
+                            text = { Text(mode.displayLabel, color = DarkBrown1, style = MaterialTheme.typography.bodySmall) },
+                            onClick = { onPayModeChange(mode); payModeExpanded = false }
+                        )
+                    }
+                }
+            }
+
+            Box(modifier = Modifier.weight(1.5f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
+                val statusColor = when (row.orderStatus) {
+                    OrderStatus.COMPLETED -> SuccessGreen
+                    OrderStatus.CANCELLED -> DangerRed
+                    else -> Color.Gray
+                }
+                Surface(
+                    onClick = { if (!isCancelled) statusExpanded = true },
+                    color = statusColor,
+                    shape = RoundedCornerShape(4.dp),
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                ) {
+                    Text(
+                        text = when (row.orderStatus) {
+                            OrderStatus.COMPLETED -> "Completed"
+                            OrderStatus.CANCELLED -> "Cancelled"
+                            else -> "Draft"
+                        },
                         color = Color.White,
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                         textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
                         lineHeight = 10.sp
                     )
                 }
+                if (!isCancelled) {
+                    DropdownMenu(
+                        expanded = statusExpanded,
+                        onDismissRequest = { statusExpanded = false },
+                        modifier = Modifier.background(ParchmentBG)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Completed", color = DarkBrown1, style = MaterialTheme.typography.bodySmall) },
+                            onClick = { onStatusChange(OrderStatus.COMPLETED.dbValue); statusExpanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Cancel Order", color = DangerRed, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)) },
+                            onClick = { statusExpanded = false; onRequestCancel() }
+                        )
+                    }
+                }
             }
 
-            DropdownMenu(
-                expanded = statusExpanded,
-                onDismissRequest = { statusExpanded = false },
-                modifier = Modifier.background(ParchmentBG)
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Completed", color = DarkBrown1, style = MaterialTheme.typography.bodySmall) },
-                    onClick = {
-                        onStatusChange(OrderStatus.COMPLETED.dbValue)
-                        statusExpanded = false
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("Cancelled", color = DarkBrown1, style = MaterialTheme.typography.bodySmall) },
-                    onClick = {
-                        onStatusChange(OrderStatus.CANCELLED.dbValue)
-                        statusExpanded = false
-                    }
-                )
-            }
+            TableCell(DateUtils.formatDisplayDate(row.salesDate), 1.5f / TABLE_TOTAL_WEIGHT, fontSize = 9.sp)
         }
 
-        TableCell(DateUtils.formatDisplayDate(row.salesDate), 1.5f / TABLE_TOTAL_WEIGHT, fontSize = 9.sp)
+        if (isCancelled && row.cancelReason.isNotBlank()) {
+            Text(
+                text = "Reason: ${row.cancelReason}",
+                color = DangerRed.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(start = spacing.medium, bottom = spacing.extraSmall)
+            )
+        }
     }
 }
 
 @Composable
+fun CancelOrderDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    val presetReasons = listOf("Wrong order", "Customer left", "Duplicate bill", "Test bill", "Other")
+    var selectedReason by remember { mutableStateOf("") }
+    var customReason by remember { mutableStateOf("") }
+    val spacing = KhanaBookTheme.spacing
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DarkBrown2,
+        title = { Text("Cancel Order", color = DangerRed, style = MaterialTheme.typography.titleLarge) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                Text("Select a reason:", color = TextLight, style = MaterialTheme.typography.bodyMedium)
+                presetReasons.forEach { reason ->
+                    val isSelected = selectedReason == reason
+                    Surface(
+                        onClick = { selectedReason = reason; if (reason != "Other") customReason = "" },
+                        color = if (isSelected) DangerRed.copy(alpha = 0.15f) else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, if (isSelected) DangerRed else BorderGold.copy(alpha = 0.3f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = reason,
+                            color = if (isSelected) DangerRed else TextLight,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small)
+                        )
+                    }
+                }
+                if (selectedReason == "Other") {
+                    OutlinedTextField(
+                        value = customReason,
+                        onValueChange = { customReason = it },
+                        placeholder = { Text("Describe the reason...", color = TextGold.copy(alpha = 0.4f)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DangerRed,
+                            unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                            focusedTextColor = TextLight,
+                            unfocusedTextColor = TextLight
+                        ),
+                        maxLines = 2
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val finalReason = if (selectedReason == "Other") customReason.trim() else selectedReason
+                    if (finalReason.isNotBlank()) onConfirm(finalReason)
+                },
+                enabled = selectedReason.isNotBlank() && (selectedReason != "Other" || customReason.isNotBlank())
+            ) {
+                Text("Cancel Order", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Keep Order", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    )
+}
+
+@Composable
 fun RowScope.TableCell(
-    text: String, 
-    weight: Float, 
+    text: String,
+    weight: Float,
     fontSize: androidx.compose.ui.unit.TextUnit = 11.sp,
-    fontWeight: FontWeight = FontWeight.Normal
+    fontWeight: FontWeight = FontWeight.Normal,
+    color: Color = Color.Black
 ) {
     Text(
         text = text,
         modifier = Modifier.weight(weight),
-        color = Color.Black,
+        color = color,
         style = MaterialTheme.typography.bodySmall.copy(fontSize = fontSize, fontWeight = fontWeight),
         textAlign = TextAlign.Center,
         lineHeight = 12.sp

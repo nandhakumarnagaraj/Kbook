@@ -20,7 +20,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 31,
+        version = 32,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -33,6 +33,16 @@ abstract class AppDatabase : RoomDatabase() {
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
+
+            val MIGRATION_31_32 = object : Migration(31, 32) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    try {
+                        db.execSQL("ALTER TABLE `bills` ADD COLUMN `cancel_reason` TEXT NOT NULL DEFAULT ''")
+                    } catch (e: Exception) {
+                        android.util.Log.w("AppDatabase", "MIGRATION_31_32: cancel_reason may already exist: ${e.message}")
+                    }
+                }
+            }
 
             val MIGRATION_30_31 = object : Migration(30, 31) {
                 override fun migrate(db: SupportSQLiteDatabase) {
