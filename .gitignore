@@ -31,7 +31,8 @@
 node_modules/
 package-lock.json
 package.json
-server/.env.production
+server/.env*
+!server/.env.example
 
 # Android secrets (use secrets.properties.example as template)
 Android/secrets.properties

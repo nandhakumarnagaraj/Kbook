@@ -74,4 +74,7 @@ public class Bill extends BaseSyncEntity {
 
 	@Column(name = "last_reset_date", nullable = false)
 	private String lastResetDate;
+
+	@Column(name = "cancel_reason", columnDefinition = "TEXT DEFAULT ''")
+	private String cancelReason = "";
 }

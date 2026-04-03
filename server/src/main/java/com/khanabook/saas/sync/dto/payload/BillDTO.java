@@ -41,4 +41,5 @@ public class BillDTO {
     private Long createdBy;
     private Long paidAt;
     private String lastResetDate;
+    private String cancelReason;
 }

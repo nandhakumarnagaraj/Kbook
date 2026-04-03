@@ -37,9 +37,9 @@ public class SecurityConfig {
 								"/auth/reset-password", "/auth/reset-password/request",
 								"/error")
 						.permitAll()
-						// API docs — require authentication in production
+						// API docs — admin-only (owners must not enumerate endpoints)
 						.requestMatchers("/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
-						.hasAnyRole("OWNER", "KBOOK_ADMIN")
+						.hasRole("KBOOK_ADMIN")
 						// Actuator: health/readiness open, everything else authenticated
 						.requestMatchers("/actuator/health", "/actuator/health/**")
 						.permitAll()

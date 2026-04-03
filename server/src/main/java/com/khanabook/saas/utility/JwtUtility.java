@@ -88,6 +88,14 @@ public class JwtUtility {
 		return extractClaim(token, Claims::getExpiration);
 	}
 
+	public Date extractIssuedAt(String token) {
+		try {
+			return extractClaim(token, Claims::getIssuedAt);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
 	public Boolean isTokenExpired(String token) {
 		try {
 			return extractClaim(token, Claims::getExpiration).before(new Date());

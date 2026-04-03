@@ -63,12 +63,21 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 					if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-						User user = userRepository.findByLoginId(username)
+						User user = userRepository.findByPhoneNumber(username)
+								.or(() -> userRepository.findByLoginId(username))
 								.or(() -> userRepository.findByEmail(username))
 								.or(() -> userRepository.findByWhatsappNumber(username))
 								.orElse(null);
 
 						if (user != null && Boolean.TRUE.equals(user.getIsActive())) {
+							// Reject tokens issued before a password reset
+							if (user.getTokenInvalidatedAt() != null) {
+								java.util.Date issuedAt = jwtUtility.extractIssuedAt(jwt);
+								if (issuedAt != null && issuedAt.getTime() < user.getTokenInvalidatedAt()) {
+									response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token invalidated by password reset");
+									return;
+								}
+							}
 							if (restaurantId != null) {
 								TenantContext.setCurrentTenant(restaurantId);
 								tenantSet = true;

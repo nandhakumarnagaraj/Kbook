@@ -20,11 +20,14 @@ public class User extends BaseSyncEntity {
 	@Column(name = "name", nullable = false)
 	private String name;
 
-	@Column(name = "email", nullable = false, unique = true)
+	@Column(name = "email", unique = true)
 	private String email;
 
 	@Column(name = "login_id", nullable = false, unique = true)
 	private String loginId;
+
+	@Column(name = "phone_number", unique = true)
+	private String phoneNumber;
 
 	@Column(name = "google_email")
 	private String googleEmail;
@@ -46,4 +49,8 @@ public class User extends BaseSyncEntity {
 
 	@Column(name = "is_active", nullable = false)
 	private Boolean isActive = true;
-	}
+
+	/** Set on password reset to invalidate all tokens issued before this time. */
+	@Column(name = "token_invalidated_at")
+	private Long tokenInvalidatedAt;
+}

@@ -87,7 +87,8 @@ public class AuthServiceImpl implements AuthService {
 
 		User user = new User();
 		user.setName(request.getName());
-		user.setEmail(request.getPhoneNumber());
+		user.setEmail(null);
+		user.setPhoneNumber(request.getPhoneNumber());
 		user.setLoginId(request.getPhoneNumber());
 		user.setAuthProvider(AuthProvider.PHONE);
 		user.setWhatsappNumber(request.getPhoneNumber());
@@ -217,6 +218,7 @@ public class AuthServiceImpl implements AuthService {
 				.orElseThrow(() -> new IllegalArgumentException("User not found"));
 
 		user.setPasswordHash(passwordEncoder.encode(newPassword));
+		user.setTokenInvalidatedAt(System.currentTimeMillis());
 		user.setUpdatedAt(System.currentTimeMillis());
 		user.setServerUpdatedAt(System.currentTimeMillis());
 		userRepository.save(user);
@@ -229,7 +231,8 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	private java.util.Optional<User> findUserByLoginId(String phoneNumber) {
-		return userRepository.findByLoginId(phoneNumber)
+		return userRepository.findByPhoneNumber(phoneNumber)
+				.or(() -> userRepository.findByLoginId(phoneNumber))
 				.or(() -> userRepository.findByEmail(phoneNumber))
 				.or(() -> userRepository.findByWhatsappNumber(phoneNumber));
 	}
