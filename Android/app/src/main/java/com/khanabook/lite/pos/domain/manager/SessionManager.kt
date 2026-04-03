@@ -193,6 +193,16 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().remove("failed_login_attempts").remove("lockout_until_ms").apply()
     }
 
+    // PIN / App Lock
+    fun isPinLockEnabled(): Boolean = prefs.getBoolean("pin_lock_enabled", false)
+    fun setPinLockEnabled(enabled: Boolean) { prefs.edit().putBoolean("pin_lock_enabled", enabled).apply() }
+    fun getPinHash(): String? = securePrefs.getString("pin_hash", null)
+    fun savePinHash(hash: String) { securePrefs.edit().putString("pin_hash", hash).apply() }
+    fun clearPin() {
+        securePrefs.edit().remove("pin_hash").apply()
+        prefs.edit().putBoolean("pin_lock_enabled", false).apply()
+    }
+
     fun clearSession() {
         if (BuildConfig.DEBUG) {
             val tokenBefore = securePrefs.getString("auth_token", null)

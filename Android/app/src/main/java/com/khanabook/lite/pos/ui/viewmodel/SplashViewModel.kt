@@ -22,6 +22,7 @@ class SplashViewModel @Inject constructor(
         object NavigateToLogin : SplashState()
         object NavigateToMain : SplashState()
         object NavigateToInitialSync : SplashState()
+        object NavigateToAppLock : SplashState()
     }
 
     private val _state = MutableStateFlow<SplashState>(SplashState.Loading)
@@ -36,9 +37,13 @@ class SplashViewModel @Inject constructor(
             val token = sessionManager.getAuthToken()
             val isSyncCompleted = sessionManager.isInitialSyncCompleted()
 
+            val isPinLocked = token != null && isSyncCompleted &&
+                sessionManager.isPinLockEnabled() && sessionManager.getPinHash() != null
+
             val chosen = when {
                 token == null -> SplashState.NavigateToLogin
                 !isSyncCompleted -> SplashState.NavigateToInitialSync
+                isPinLocked -> SplashState.NavigateToAppLock
                 else -> SplashState.NavigateToMain
             }
 

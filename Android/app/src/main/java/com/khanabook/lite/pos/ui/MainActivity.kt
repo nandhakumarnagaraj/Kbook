@@ -116,6 +116,16 @@ class MainActivity : ComponentActivity() {
                             },
                             onNavigateToInitialSync = {
                                 navController.navigate("initial_sync") { popUpTo("splash") { inclusive = true } }
+                            },
+                            onNavigateToAppLock = {
+                                navController.navigate("app_lock") { popUpTo("splash") { inclusive = true } }
+                            }
+                        )
+                    }
+                    composable("app_lock") {
+                        AppLockScreen(
+                            onUnlock = {
+                                navController.navigate("main/0") { popUpTo("app_lock") { inclusive = true } }
                             }
                         )
                     }

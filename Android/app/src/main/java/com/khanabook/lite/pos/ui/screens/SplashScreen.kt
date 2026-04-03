@@ -27,6 +27,7 @@ fun SplashScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToMain: () -> Unit,
     onNavigateToInitialSync: () -> Unit,
+    onNavigateToAppLock: () -> Unit = {},
     viewModel: SplashViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -66,6 +67,7 @@ fun SplashScreen(
             is SplashViewModel.SplashState.NavigateToLogin -> onNavigateToLogin()
             is SplashViewModel.SplashState.NavigateToMain -> onNavigateToMain()
             is SplashViewModel.SplashState.NavigateToInitialSync -> onNavigateToInitialSync()
+            is SplashViewModel.SplashState.NavigateToAppLock -> onNavigateToAppLock()
             else -> {}
         }
     }

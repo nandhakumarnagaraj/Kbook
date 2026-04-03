@@ -112,6 +112,7 @@ fun SettingsScreen(
                             "payment" -> "Payment Configuration"
                             "printer" -> "Printer Configuration"
                             "tax" -> "Tax Configuration"
+                            "security" -> "App Lock"
                             "menu" -> "Settings"
                             else -> "Settings"
                         },
@@ -159,7 +160,9 @@ fun SettingsScreen(
                                     Box(modifier = Modifier.weight(1f)) {
                                         SettingsItem(icon = Icons.Filled.Settings, text = "Tax Configuration") { section = "tax" }
                                     }
-                                    Spacer(modifier = Modifier.weight(1f))
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        SettingsItem(icon = Icons.Filled.Lock, text = "App Lock (PIN / Biometric)") { section = "security" }
+                                    }
                                 }
                             } else {
                                 SettingsItem(icon = Icons.Filled.Store, text = "Shop/Restaurant Configuration") { section = "shop" }
@@ -167,6 +170,7 @@ fun SettingsScreen(
                                 SettingsItem(icon = Icons.Filled.CreditCard, text = "Payment Configuration") { section = "payment" }
                                 SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration") { section = "printer" }
                                 SettingsItem(icon = Icons.Filled.Settings, text = "Tax Configuration") { section = "tax" }
+                                SettingsItem(icon = Icons.Filled.Lock, text = "App Lock (PIN / Biometric)") { section = "security" }
                             }
                             
                             Spacer(modifier = Modifier.height(spacing.medium))
@@ -203,6 +207,9 @@ fun SettingsScreen(
                     "tax" -> {
                         val ctx = LocalContext.current
                         TaxConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, "Saved Tax Config", Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" })
+                    }
+                    "security" -> {
+                        AppLockConfigView(onBack = { section = "menu" })
                     }
                 }
             }
@@ -958,6 +965,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
     val spacing = KhanaBookTheme.spacing
     val context = LocalContext.current
     val logoutState by viewModel.logoutState.collectAsStateWithLifecycle()
+    var showConfirmDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(logoutState) { if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.LoggedOut) Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show() }
 
@@ -966,13 +974,273 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
         AlertDialog(onDismissRequest = { viewModel.cancelLogout() }, title = { Text("Unsynced Data Warning", color = DangerRed) }, text = { Text("You have ${warning.totalCount} records not synced. Logging out will delete them.") }, confirmButton = { TextButton(onClick = { viewModel.forceLogoutDespiteWarning() }) { Text("Logout Anyway", color = DangerRed) } }, dismissButton = { TextButton(onClick = { viewModel.cancelLogout() }) { Text("Cancel") } })
     }
 
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            containerColor = DarkBrown2,
+            title = { Text("Sign Out?", color = TextLight, style = MaterialTheme.typography.titleLarge) },
+            text = { Text("You will be signed out of this device.", color = TextGold.copy(alpha = 0.8f), style = MaterialTheme.typography.bodyMedium) },
+            confirmButton = {
+                TextButton(onClick = { showConfirmDialog = false; viewModel.initiateLogout() }) {
+                    Text("Sign Out", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Cancel", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        )
+    }
+
     val iconSize = KhanaBookTheme.iconSize
     Column(modifier = Modifier.fillMaxWidth().padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
         Text("Account Session", color = TextLight, style = MaterialTheme.typography.titleMedium)
-        Button(onClick = { viewModel.initiateLogout() }, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = DangerRed), shape = RoundedCornerShape(12.dp)) {
+        Button(onClick = { showConfirmDialog = true }, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = DangerRed), shape = RoundedCornerShape(12.dp)) {
             Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(iconSize.small))
             Spacer(modifier = Modifier.width(spacing.small))
             Text("Sign Out", style = MaterialTheme.typography.labelLarge)
         }
+    }
+}
+
+// ─── App Lock Configuration ──────────────────────────────────────────────────
+
+private enum class PinSetupStep { IDLE, ENTER_NEW, CONFIRM_NEW, ENTER_CURRENT }
+
+@Composable
+fun AppLockConfigView(
+    onBack: () -> Unit,
+    viewModel: com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
+
+    var isEnabled by remember { mutableStateOf(viewModel.isPinEnabled()) }
+    var showBiometric by remember { mutableStateOf(viewModel.hasBiometric(context)) }
+    var setupStep by remember { mutableStateOf(PinSetupStep.IDLE) }
+    var newPin by remember { mutableStateOf("") }
+    var currentPin by remember { mutableStateOf("") }
+    var pinError by remember { mutableStateOf<String?>(null) }
+    var successMessage by remember { mutableStateOf<String?>(null) }
+
+    fun resetPinState() {
+        setupStep = PinSetupStep.IDLE
+        newPin = ""
+        currentPin = ""
+        pinError = null
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+    ) {
+        // Status card
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(spacing.medium),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Filled.Lock,
+                    contentDescription = null,
+                    tint = if (isEnabled) SuccessGreen else TextGold.copy(alpha = 0.5f),
+                    modifier = Modifier.size(iconSize.medium)
+                )
+                Spacer(modifier = Modifier.width(spacing.medium))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("App Lock", color = TextLight, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        if (isEnabled) "PIN lock is active" else "Disabled — anyone can open the app",
+                        color = if (isEnabled) SuccessGreen else TextGold.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Switch(
+                    checked = isEnabled,
+                    onCheckedChange = { enable ->
+                        if (enable) {
+                            setupStep = PinSetupStep.ENTER_NEW
+                            pinError = null
+                            newPin = ""
+                        } else {
+                            setupStep = PinSetupStep.ENTER_CURRENT
+                            pinError = null
+                            currentPin = ""
+                        }
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = SuccessGreen,
+                        checkedTrackColor = SuccessGreen.copy(alpha = 0.4f),
+                        uncheckedThumbColor = TextGold.copy(alpha = 0.5f),
+                        uncheckedTrackColor = DarkBrown1
+                    )
+                )
+            }
+        }
+
+        if (isEnabled && setupStep == PinSetupStep.IDLE) {
+            KhanaBookCard(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBG),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                    Text("PIN Options", color = TextLight, style = MaterialTheme.typography.titleSmall)
+                    OutlinedButton(
+                        onClick = {
+                            setupStep = PinSetupStep.ENTER_CURRENT
+                            pinError = null
+                            currentPin = ""
+                            newPin = ""
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        border = BorderStroke(1.dp, BorderGold),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Filled.Lock, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.xsmall))
+                        Spacer(modifier = Modifier.width(spacing.small))
+                        Text("Change PIN", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+                    }
+                    if (showBiometric) {
+                        Text(
+                            "Biometric unlock is available on this device and will be used alongside your PIN.",
+                            color = TextGold.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
+
+        if (successMessage != null) {
+            Text(successMessage!!, color = SuccessGreen, style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.align(Alignment.CenterHorizontally))
+        }
+
+        // PIN entry steps
+        when (setupStep) {
+            PinSetupStep.ENTER_NEW -> {
+                Text(
+                    "Set a new 4-digit PIN",
+                    color = TextLight,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                InlinePinEntry(
+                    pin = newPin,
+                    onDigit = {
+                        if (newPin.length < 4) {
+                            newPin += it
+                            pinError = null
+                            if (newPin.length == 4) {
+                                setupStep = PinSetupStep.CONFIRM_NEW
+                                currentPin = newPin
+                                newPin = ""
+                            }
+                        }
+                    },
+                    onDelete = { if (newPin.isNotEmpty()) newPin = newPin.dropLast(1) },
+                    errorMessage = pinError
+                )
+                TextButton(onClick = { resetPinState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                    Text("Cancel", color = TextGold.copy(alpha = 0.6f))
+                }
+            }
+            PinSetupStep.CONFIRM_NEW -> {
+                Text(
+                    "Confirm your PIN",
+                    color = TextLight,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                InlinePinEntry(
+                    pin = newPin,
+                    onDigit = {
+                        if (newPin.length < 4) {
+                            newPin += it
+                            pinError = null
+                            if (newPin.length == 4) {
+                                if (newPin == currentPin) {
+                                    viewModel.setupPin(newPin) {
+                                        isEnabled = true
+                                        successMessage = "App Lock enabled"
+                                        resetPinState()
+                                    }
+                                } else {
+                                    newPin = ""
+                                    pinError = "PINs don't match. Try again."
+                                    setupStep = PinSetupStep.ENTER_NEW
+                                    currentPin = ""
+                                }
+                            }
+                        }
+                    },
+                    onDelete = { if (newPin.isNotEmpty()) newPin = newPin.dropLast(1) },
+                    errorMessage = pinError
+                )
+                TextButton(onClick = { resetPinState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                    Text("Cancel", color = TextGold.copy(alpha = 0.6f))
+                }
+            }
+            PinSetupStep.ENTER_CURRENT -> {
+                Text(
+                    if (!isEnabled || newPin.isNotEmpty()) "Enter current PIN to verify"
+                    else if (currentPin.isEmpty() && !isEnabled) "Enter current PIN to disable"
+                    else "Enter current PIN",
+                    color = TextLight,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                var verifyPin by remember { mutableStateOf("") }
+                InlinePinEntry(
+                    pin = verifyPin,
+                    onDigit = {
+                        if (verifyPin.length < 4) {
+                            verifyPin += it
+                            pinError = null
+                            if (verifyPin.length == 4) {
+                                val enteredCurrent = verifyPin
+                                verifyPin = ""
+                                // Determine if we're disabling or changing
+                                val isChanging = isEnabled && setupStep == PinSetupStep.ENTER_CURRENT && successMessage == null
+                                viewModel.disablePin(
+                                    currentPin = enteredCurrent,
+                                    onSuccess = {
+                                        if (isChanging) {
+                                            // After verifying current, set new
+                                            currentPin = ""
+                                            newPin = ""
+                                            setupStep = PinSetupStep.ENTER_NEW
+                                        } else {
+                                            isEnabled = false
+                                            successMessage = "App Lock disabled"
+                                            resetPinState()
+                                        }
+                                    },
+                                    onError = { pinError = "Incorrect PIN. Try again." }
+                                )
+                            }
+                        }
+                    },
+                    onDelete = { },
+                    errorMessage = pinError
+                )
+                TextButton(onClick = { resetPinState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                    Text("Cancel", color = TextGold.copy(alpha = 0.6f))
+                }
+            }
+            PinSetupStep.IDLE -> {}
+        }
+
+        Spacer(modifier = Modifier.height(spacing.extraLarge))
     }
 }

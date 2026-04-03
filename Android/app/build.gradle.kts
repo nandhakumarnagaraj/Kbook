@@ -166,6 +166,7 @@ dependencies {
     implementation(libs.sqlcipher)
     implementation(libs.androidx.sqlite.ktx)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.biometric:biometric:1.1.0")
 
     // Social Login
     implementation(libs.play.services.auth)
