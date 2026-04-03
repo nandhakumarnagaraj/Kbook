@@ -9,6 +9,7 @@ import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -52,6 +53,7 @@ public class BillServiceImpl implements BillService {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public List<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId) {
 		if (ignoreDeviceId) {
 			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp);

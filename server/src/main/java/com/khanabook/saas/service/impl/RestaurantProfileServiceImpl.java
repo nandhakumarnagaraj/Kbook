@@ -24,6 +24,7 @@ public class RestaurantProfileServiceImpl implements RestaurantProfileService {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public List<RestaurantProfile> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId) {
 		if (ignoreDeviceId) {
 			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp);

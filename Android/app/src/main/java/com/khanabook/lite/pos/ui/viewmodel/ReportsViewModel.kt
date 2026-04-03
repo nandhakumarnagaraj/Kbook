@@ -12,6 +12,7 @@ import com.khanabook.lite.pos.domain.model.OrderLevelRow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -44,6 +45,9 @@ class ReportsViewModel @Inject constructor(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
 
     private var currentFrom: Long = System.currentTimeMillis() - 86400000L
     private var currentTo: Long = System.currentTimeMillis()
@@ -112,10 +116,16 @@ class ReportsViewModel @Inject constructor(
         currentTo = to
         viewModelScope.launch {
             _isLoading.value = true
-            _paymentBreakdown.value = reportGenerator.getPaymentBreakdown(from, to)
-            _orderLevelRows.value = reportGenerator.getOrderLevelRows(from, to)
-            _orderDetailsTable.value = reportGenerator.getOrderDetailsTable(from, to)
-            _isLoading.value = false
+            _error.value = null
+            try {
+                _paymentBreakdown.value = reportGenerator.getPaymentBreakdown(from, to)
+                _orderLevelRows.value = reportGenerator.getOrderLevelRows(from, to)
+                _orderDetailsTable.value = reportGenerator.getOrderDetailsTable(from, to)
+            } catch (e: Exception) {
+                _error.value = "Failed to load reports: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
@@ -131,9 +141,29 @@ class ReportsViewModel @Inject constructor(
 
     fun cancelOrder(billId: Long, reason: String) {
         viewModelScope.launch {
-            billRepository.cancelOrder(billId, reason)
-            if (currentFrom != 0L && currentTo != 0L) {
-                loadReports(currentFrom, currentTo)
+            try {
+                billRepository.cancelOrder(billId, reason)
+                // Update in-place — avoids full reload flicker
+                _orderDetailsTable.update { rows ->
+                    rows.map { row ->
+                        if (row.billId == billId)
+                            row.copy(
+                                orderStatus = com.khanabook.lite.pos.domain.model.OrderStatus.CANCELLED,
+                                currentStatus = "cancelled",
+                                cancelReason = reason
+                            )
+                        else row
+                    }
+                }
+                _orderLevelRows.update { rows ->
+                    rows.map { row ->
+                        if (row.billId == billId)
+                            row.copy(orderStatus = com.khanabook.lite.pos.domain.model.OrderStatus.CANCELLED)
+                        else row
+                    }
+                }
+            } catch (e: Exception) {
+                _error.value = "Failed to cancel order: ${e.message}"
             }
         }
     }

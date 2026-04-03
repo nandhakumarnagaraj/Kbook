@@ -12,6 +12,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+sealed class PinSetupState {
+    object Idle : PinSetupState()
+    data class EnterNew(val pin: String = "", val error: String? = null) : PinSetupState()
+    data class ConfirmNew(val firstPin: String, val pin: String = "", val error: String? = null) : PinSetupState()
+    data class EnterCurrent(val pin: String = "", val error: String? = null, val nextStep: PinSetupState? = null) : PinSetupState()
+    data class Success(val message: String) : PinSetupState()
+}
+
 @HiltViewModel
 class AppLockViewModel @Inject constructor(
     private val sessionManager: SessionManager,
@@ -23,6 +31,95 @@ class AppLockViewModel @Inject constructor(
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
+
+    private val _pinSetupState = MutableStateFlow<PinSetupState>(PinSetupState.Idle)
+    val pinSetupState: StateFlow<PinSetupState> = _pinSetupState
+
+    fun startEnablePin() {
+        _pinSetupState.value = PinSetupState.EnterNew()
+    }
+
+    fun startDisablePin() {
+        _pinSetupState.value = PinSetupState.EnterCurrent()
+    }
+
+    fun startChangePin() {
+        _pinSetupState.value = PinSetupState.EnterCurrent(nextStep = PinSetupState.EnterNew())
+    }
+
+    fun onSetupDigit(digit: String) {
+        when (val state = _pinSetupState.value) {
+            is PinSetupState.EnterNew -> {
+                if (state.pin.length < 4) {
+                    val updated = state.pin + digit
+                    if (updated.length == 4) {
+                        _pinSetupState.value = PinSetupState.ConfirmNew(firstPin = updated)
+                    } else {
+                        _pinSetupState.value = state.copy(pin = updated, error = null)
+                    }
+                }
+            }
+            is PinSetupState.ConfirmNew -> {
+                if (state.pin.length < 4) {
+                    val updated = state.pin + digit
+                    if (updated.length == 4) {
+                        if (updated == state.firstPin) {
+                            viewModelScope.launch {
+                                val hash = authManager.hashPassword(updated)
+                                sessionManager.savePinHash(hash)
+                                sessionManager.setPinLockEnabled(true)
+                                _pinSetupState.value = PinSetupState.Success("App Lock enabled")
+                            }
+                        } else {
+                            _pinSetupState.value = PinSetupState.EnterNew(error = "PINs don't match. Try again.")
+                        }
+                    } else {
+                        _pinSetupState.value = state.copy(pin = updated)
+                    }
+                }
+            }
+            is PinSetupState.EnterCurrent -> {
+                if (state.pin.length < 4) {
+                    val updated = state.pin + digit
+                    if (updated.length == 4) {
+                        viewModelScope.launch {
+                            val hash = sessionManager.getPinHash()
+                            val valid = hash != null && authManager.verifyPassword(updated, hash)
+                            if (valid) {
+                                if (state.nextStep != null) {
+                                    _pinSetupState.value = state.nextStep
+                                } else {
+                                    sessionManager.clearPin()
+                                    _pinSetupState.value = PinSetupState.Success("App Lock disabled")
+                                }
+                            } else {
+                                _pinSetupState.value = state.copy(pin = "", error = "Incorrect PIN. Try again.")
+                            }
+                        }
+                    } else {
+                        _pinSetupState.value = state.copy(pin = updated, error = null)
+                    }
+                }
+            }
+            else -> {}
+        }
+    }
+
+    fun onSetupDelete() {
+        when (val state = _pinSetupState.value) {
+            is PinSetupState.EnterNew -> if (state.pin.isNotEmpty())
+                _pinSetupState.value = state.copy(pin = state.pin.dropLast(1))
+            is PinSetupState.ConfirmNew -> if (state.pin.isNotEmpty())
+                _pinSetupState.value = state.copy(pin = state.pin.dropLast(1))
+            is PinSetupState.EnterCurrent -> if (state.pin.isNotEmpty())
+                _pinSetupState.value = state.copy(pin = state.pin.dropLast(1))
+            else -> {}
+        }
+    }
+
+    fun resetSetupState() {
+        _pinSetupState.value = PinSetupState.Idle
+    }
 
     fun appendDigit(digit: String) {
         if (_enteredPin.value.length < 4) {

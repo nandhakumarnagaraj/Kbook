@@ -1006,30 +1006,23 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
 
 // ─── App Lock Configuration ──────────────────────────────────────────────────
 
-private enum class PinSetupStep { IDLE, ENTER_NEW, CONFIRM_NEW, ENTER_CURRENT }
-
 @Composable
 fun AppLockConfigView(
     onBack: () -> Unit,
-    viewModel: com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    viewModel: com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel = hiltViewModel()
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
 
+    val setupState by viewModel.pinSetupState.collectAsStateWithLifecycle()
     var isEnabled by remember { mutableStateOf(viewModel.isPinEnabled()) }
-    var showBiometric by remember { mutableStateOf(viewModel.hasBiometric(context)) }
-    var setupStep by remember { mutableStateOf(PinSetupStep.IDLE) }
-    var newPin by remember { mutableStateOf("") }
-    var currentPin by remember { mutableStateOf("") }
-    var pinError by remember { mutableStateOf<String?>(null) }
-    var successMessage by remember { mutableStateOf<String?>(null) }
+    val showBiometric = remember { viewModel.hasBiometric(context) }
 
-    fun resetPinState() {
-        setupStep = PinSetupStep.IDLE
-        newPin = ""
-        currentPin = ""
-        pinError = null
+    LaunchedEffect(setupState) {
+        if (setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Success) {
+            isEnabled = viewModel.isPinEnabled()
+        }
     }
 
     Column(
@@ -1067,15 +1060,8 @@ fun AppLockConfigView(
                 Switch(
                     checked = isEnabled,
                     onCheckedChange = { enable ->
-                        if (enable) {
-                            setupStep = PinSetupStep.ENTER_NEW
-                            pinError = null
-                            newPin = ""
-                        } else {
-                            setupStep = PinSetupStep.ENTER_CURRENT
-                            pinError = null
-                            currentPin = ""
-                        }
+                        if (enable) viewModel.startEnablePin()
+                        else viewModel.startDisablePin()
                     },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = SuccessGreen,
@@ -1087,7 +1073,7 @@ fun AppLockConfigView(
             }
         }
 
-        if (isEnabled && setupStep == PinSetupStep.IDLE) {
+        if (isEnabled && setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Idle) {
             KhanaBookCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = CardBG),
@@ -1096,12 +1082,7 @@ fun AppLockConfigView(
                 Column(modifier = Modifier.padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.small)) {
                     Text("PIN Options", color = TextLight, style = MaterialTheme.typography.titleSmall)
                     OutlinedButton(
-                        onClick = {
-                            setupStep = PinSetupStep.ENTER_CURRENT
-                            pinError = null
-                            currentPin = ""
-                            newPin = ""
-                        },
+                        onClick = { viewModel.startChangePin() },
                         modifier = Modifier.fillMaxWidth(),
                         border = BorderStroke(1.dp, BorderGold),
                         shape = RoundedCornerShape(8.dp)
@@ -1121,14 +1102,18 @@ fun AppLockConfigView(
             }
         }
 
-        if (successMessage != null) {
-            Text(successMessage!!, color = SuccessGreen, style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.align(Alignment.CenterHorizontally))
+        if (setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Success) {
+            Text(
+                (setupState as com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Success).message,
+                color = SuccessGreen,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
         }
 
-        // PIN entry steps
-        when (setupStep) {
-            PinSetupStep.ENTER_NEW -> {
+        // PIN entry steps driven by ViewModel state
+        when (val state = setupState) {
+            is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.EnterNew -> {
                 Text(
                     "Set a new 4-digit PIN",
                     color = TextLight,
@@ -1136,26 +1121,16 @@ fun AppLockConfigView(
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
                 InlinePinEntry(
-                    pin = newPin,
-                    onDigit = {
-                        if (newPin.length < 4) {
-                            newPin += it
-                            pinError = null
-                            if (newPin.length == 4) {
-                                setupStep = PinSetupStep.CONFIRM_NEW
-                                currentPin = newPin
-                                newPin = ""
-                            }
-                        }
-                    },
-                    onDelete = { if (newPin.isNotEmpty()) newPin = newPin.dropLast(1) },
-                    errorMessage = pinError
+                    pin = state.pin,
+                    onDigit = { viewModel.onSetupDigit(it) },
+                    onDelete = { viewModel.onSetupDelete() },
+                    errorMessage = state.error
                 )
-                TextButton(onClick = { resetPinState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                TextButton(onClick = { viewModel.resetSetupState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                     Text("Cancel", color = TextGold.copy(alpha = 0.6f))
                 }
             }
-            PinSetupStep.CONFIRM_NEW -> {
+            is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.ConfirmNew -> {
                 Text(
                     "Confirm your PIN",
                     color = TextLight,
@@ -1163,82 +1138,33 @@ fun AppLockConfigView(
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
                 InlinePinEntry(
-                    pin = newPin,
-                    onDigit = {
-                        if (newPin.length < 4) {
-                            newPin += it
-                            pinError = null
-                            if (newPin.length == 4) {
-                                if (newPin == currentPin) {
-                                    viewModel.setupPin(newPin) {
-                                        isEnabled = true
-                                        successMessage = "App Lock enabled"
-                                        resetPinState()
-                                    }
-                                } else {
-                                    newPin = ""
-                                    pinError = "PINs don't match. Try again."
-                                    setupStep = PinSetupStep.ENTER_NEW
-                                    currentPin = ""
-                                }
-                            }
-                        }
-                    },
-                    onDelete = { if (newPin.isNotEmpty()) newPin = newPin.dropLast(1) },
-                    errorMessage = pinError
+                    pin = state.pin,
+                    onDigit = { viewModel.onSetupDigit(it) },
+                    onDelete = { viewModel.onSetupDelete() },
+                    errorMessage = state.error
                 )
-                TextButton(onClick = { resetPinState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                TextButton(onClick = { viewModel.resetSetupState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                     Text("Cancel", color = TextGold.copy(alpha = 0.6f))
                 }
             }
-            PinSetupStep.ENTER_CURRENT -> {
+            is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.EnterCurrent -> {
                 Text(
-                    if (!isEnabled || newPin.isNotEmpty()) "Enter current PIN to verify"
-                    else if (currentPin.isEmpty() && !isEnabled) "Enter current PIN to disable"
-                    else "Enter current PIN",
+                    if (state.nextStep != null) "Enter current PIN to verify" else "Enter current PIN to disable",
                     color = TextLight,
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
-                var verifyPin by remember { mutableStateOf("") }
                 InlinePinEntry(
-                    pin = verifyPin,
-                    onDigit = {
-                        if (verifyPin.length < 4) {
-                            verifyPin += it
-                            pinError = null
-                            if (verifyPin.length == 4) {
-                                val enteredCurrent = verifyPin
-                                verifyPin = ""
-                                // Determine if we're disabling or changing
-                                val isChanging = isEnabled && setupStep == PinSetupStep.ENTER_CURRENT && successMessage == null
-                                viewModel.disablePin(
-                                    currentPin = enteredCurrent,
-                                    onSuccess = {
-                                        if (isChanging) {
-                                            // After verifying current, set new
-                                            currentPin = ""
-                                            newPin = ""
-                                            setupStep = PinSetupStep.ENTER_NEW
-                                        } else {
-                                            isEnabled = false
-                                            successMessage = "App Lock disabled"
-                                            resetPinState()
-                                        }
-                                    },
-                                    onError = { pinError = "Incorrect PIN. Try again." }
-                                )
-                            }
-                        }
-                    },
-                    onDelete = { },
-                    errorMessage = pinError
+                    pin = state.pin,
+                    onDigit = { viewModel.onSetupDigit(it) },
+                    onDelete = { viewModel.onSetupDelete() },
+                    errorMessage = state.error
                 )
-                TextButton(onClick = { resetPinState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                TextButton(onClick = { viewModel.resetSetupState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                     Text("Cancel", color = TextGold.copy(alpha = 0.6f))
                 }
             }
-            PinSetupStep.IDLE -> {}
+            else -> {}
         }
 
         Spacer(modifier = Modifier.height(spacing.extraLarge))

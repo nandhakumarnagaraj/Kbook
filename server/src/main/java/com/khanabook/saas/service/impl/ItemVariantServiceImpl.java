@@ -9,6 +9,7 @@ import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
@@ -51,6 +52,7 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public List<ItemVariant> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId) {
 		if (ignoreDeviceId) {
 			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp);

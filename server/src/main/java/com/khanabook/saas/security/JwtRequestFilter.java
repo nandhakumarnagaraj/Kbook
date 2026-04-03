@@ -20,6 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
@@ -30,6 +31,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 	private final JwtUtility jwtUtility;
 	private final UserRepository userRepository;
 	private final TokenBlocklistRepository tokenBlocklistRepository;
+
+	// In-memory cache: jti -> expiresAt (ms). Avoids DB hit on every request.
+	private final ConcurrentHashMap<String, Long> revokedJtiCache = new ConcurrentHashMap<>();
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -49,11 +53,23 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 			try {
 				tokenExpired = jwtUtility.isTokenExpired(jwt);
 				if (!tokenExpired) {
-					// Check token revocation blocklist
+					// Check token revocation blocklist (in-memory cache first)
 					String jti = jwtUtility.extractJti(jwt);
-					if (jti != null && tokenBlocklistRepository.existsByJti(jti)) {
-						response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token has been revoked");
-						return;
+					if (jti != null) {
+						long now = System.currentTimeMillis();
+						// Evict expired entries opportunistically
+						revokedJtiCache.entrySet().removeIf(e -> e.getValue() < now);
+						boolean revoked = revokedJtiCache.containsKey(jti);
+						if (!revoked && tokenBlocklistRepository.existsByJti(jti)) {
+							Long expiresAt = jwtUtility.extractExpiration(jwt) != null
+									? jwtUtility.extractExpiration(jwt).getTime() : now + 3600_000L;
+							revokedJtiCache.put(jti, expiresAt);
+							revoked = true;
+						}
+						if (revoked) {
+							response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token has been revoked");
+							return;
+						}
 					}
 
 					Long restaurantId = jwtUtility.extractRestaurantId(jwt);

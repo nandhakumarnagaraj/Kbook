@@ -7,6 +7,7 @@ import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
@@ -21,6 +22,7 @@ public class CategoryServiceImpl implements CategoryService {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public List<Category> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId) {
 		if (ignoreDeviceId) {
 			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp);

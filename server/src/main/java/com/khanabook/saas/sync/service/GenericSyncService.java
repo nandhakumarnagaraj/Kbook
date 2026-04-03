@@ -9,9 +9,9 @@ import com.khanabook.saas.entity.User;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import com.khanabook.saas.sync.repository.SyncRepository;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,13 +20,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class GenericSyncService {
 	private static final Logger log = LoggerFactory.getLogger(GenericSyncService.class);
 
-	@Autowired private BillRepository billRepository;
-	@Autowired private MenuItemRepository menuItemRepository;
-	@Autowired private ItemVariantRepository itemVariantRepository;
-	@Autowired private CategoryRepository categoryRepository;
+	private final BillRepository billRepository;
+	private final MenuItemRepository menuItemRepository;
+	private final ItemVariantRepository itemVariantRepository;
+	private final CategoryRepository categoryRepository;
 
 	@Transactional
 	public <T extends BaseSyncEntity> PushSyncResponse handlePushSync(Long tenantId, List<T> payload,

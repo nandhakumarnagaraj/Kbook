@@ -108,6 +108,7 @@ public class StockLogServiceImpl implements StockLogService {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public List<StockLog> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId) {
 		if (ignoreDeviceId) {
 			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp);

@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
@@ -54,6 +55,7 @@ public class BillPaymentServiceImpl implements BillPaymentService {
 	}
 
 	@Override
+	@Transactional(readOnly = true)
 	public List<BillPayment> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId) {
 		if (ignoreDeviceId) {
 			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp);
