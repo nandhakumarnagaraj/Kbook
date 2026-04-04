@@ -47,10 +47,14 @@ class HomeViewModel @Inject constructor(
             billRepository.getBillsByDateRange(start, end)
                 .map { bills ->
                     val completedBills = bills.filter { it.orderStatus == "completed" || it.orderStatus == "paid" }
+                    val totalRevenue = completedBills.sumOf { it.totalAmount.toDoubleOrNull() ?: 0.0 }
+                    val cancelledCount = bills.count { it.orderStatus == "cancelled" }
                     HomeStats(
                         orderCount = bills.size,
-                        revenue = completedBills.sumOf { it.totalAmount.toDoubleOrNull() ?: 0.0 },
-                        customerCount = completedBills.mapNotNull { it.customerWhatsapp }.distinct().size
+                        revenue = totalRevenue,
+                        customerCount = completedBills.mapNotNull { it.customerWhatsapp }.distinct().size,
+                        avgOrderValue = if (completedBills.isNotEmpty()) totalRevenue / completedBills.size else 0.0,
+                        cancelledCount = cancelledCount
                     )
                 }
         }
@@ -64,7 +68,9 @@ class HomeViewModel @Inject constructor(
     data class HomeStats(
         val orderCount: Int = 0,
         val revenue: Double = 0.0,
-        val customerCount: Int = 0
+        val customerCount: Int = 0,
+        val avgOrderValue: Double = 0.0,
+        val cancelledCount: Int = 0
     )
 }
 

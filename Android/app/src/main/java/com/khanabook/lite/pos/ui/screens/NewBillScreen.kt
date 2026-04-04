@@ -424,7 +424,28 @@ fun MenuSelectionStep(
                 }
             }
 
-            LazyVerticalGrid(
+            if (displayItems.isEmpty()) {
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            androidx.compose.material.icons.Icons.Default.SearchOff,
+                            contentDescription = null,
+                            tint = TextGold.copy(alpha = 0.3f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(Modifier.height(spacing.small))
+                        Text(
+                            if (searchQuery.isNotBlank()) "No items match \"$searchQuery\""
+                            else "No items in this category",
+                            color = TextGold.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            } else LazyVerticalGrid(
                     columns = GridCells.Fixed(gridColumns),
                     modifier = Modifier.weight(1f).padding(spacing.medium),
                     verticalArrangement = Arrangement.spacedBy(spacing.small + spacing.extraSmall),
@@ -693,6 +714,15 @@ fun MenuSelectionStep(
                                 enabled = derivedItemCount > 0
                             ) {
                                 Text("Proceed to Payment", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
+                            }
+                            if (derivedItemCount == 0) {
+                                Text(
+                                    "Add items from the menu to proceed",
+                                    color = TextGold.copy(alpha = 0.45f),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
                             }
                         }
                     }

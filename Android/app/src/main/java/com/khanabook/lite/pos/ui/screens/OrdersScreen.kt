@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -170,7 +171,27 @@ fun OrdersScreen(
 
             TableHeader()
 
-            LazyColumn(
+            if (allRows.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.Description,
+                            contentDescription = null,
+                            tint = TextGold.copy(alpha = 0.25f),
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Spacer(Modifier.height(KhanaBookTheme.spacing.small))
+                        Text(
+                            "No orders in this period",
+                            color = TextGold.copy(alpha = 0.45f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            } else LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)

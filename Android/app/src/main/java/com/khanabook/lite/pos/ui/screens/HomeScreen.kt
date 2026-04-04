@@ -132,6 +132,27 @@ fun HomeScreen(
                             StatItem("Revenue", CurrencyUtils.formatPrice(stats.revenue), Modifier.weight(1f))
                             StatItem("Customers", stats.customerCount.toString(), Modifier.weight(1f))
                         }
+                        if (stats.orderCount > 0) {
+                            Spacer(modifier = Modifier.height(spacing.small))
+                            HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+                            Spacer(modifier = Modifier.height(spacing.small))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                StatItem(
+                                    "Avg Order",
+                                    CurrencyUtils.formatPrice(stats.avgOrderValue),
+                                    Modifier.weight(1f)
+                                )
+                                StatItem(
+                                    "Cancelled",
+                                    stats.cancelledCount.toString(),
+                                    Modifier.weight(1f)
+                                )
+                                Spacer(Modifier.weight(1f))
+                            }
+                        }
                     }
                 }
             }
