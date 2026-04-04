@@ -326,7 +326,35 @@ fun ReviewDetectedItemsSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(spacing.medium))
+            // Global select / deselect all
+            val allSelected = selectedCount == drafts.size
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = {
+                    val target = !allSelected
+                    drafts.indices.forEach { i ->
+                        if (drafts[i].isSelected != target) onToggleSelection(i)
+                    }
+                }) {
+                    Icon(
+                        if (allSelected) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
+                        contentDescription = null,
+                        tint = PrimaryGold,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        if (allSelected) "Deselect All" else "Select All",
+                        color = PrimaryGold,
+                        fontSize = 13.sp
+                    )
+                }
+            }
 
             Row(
                 modifier = Modifier
@@ -499,7 +527,10 @@ fun ReviewDetectedItemsSheet(
                                     ) {
                                         Text("₹", color = PrimaryGold, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                         BasicTextField(
-                                            value = if (draft.price == 0.0) "" else draft.price.toInt().toString(),
+                                            value = if (draft.price == 0.0) "" else {
+                                                val i = draft.price.toLong()
+                                                if (draft.price == i.toDouble()) i.toString() else draft.price.toString()
+                                            },
                                             onValueChange = { raw ->
                                                 val p = raw.toDoubleOrNull() ?: 0.0
                                                 onUpdateDraft(index, draft.copy(price = p))
@@ -597,7 +628,10 @@ fun ReviewDetectedItemsSheet(
                                             ) {
                                                 Text("₹", color = if (variant.isSelected) PrimaryGold else PrimaryGold.copy(alpha = 0.3f), fontSize = 14.sp)
                                                 BasicTextField(
-                                                    value = if (variant.price == 0.0) "" else variant.price.toInt().toString(),
+                                                    value = if (variant.price == 0.0) "" else {
+                                                        val i = variant.price.toLong()
+                                                        if (variant.price == i.toDouble()) i.toString() else variant.price.toString()
+                                                    },
                                                     onValueChange = { raw ->
                                                         val p = raw.toDoubleOrNull() ?: 0.0
                                                         val newVariants = draft.variants.toMutableList()

@@ -91,7 +91,12 @@ fun OcrScannerScreen(
     val context = LocalContext.current
     val uiState by viewModel.ocrImportUiState.collectAsState()
 
-    
+    // Clear any stale drafts from a previous scan so they don't immediately
+    // trigger the back-navigation LaunchedEffect below before a new scan runs.
+    LaunchedEffect(Unit) {
+        if (!returnBarcode) viewModel.clearDrafts()
+    }
+
     LaunchedEffect(uiState.drafts) {
         if (!returnBarcode && uiState.drafts.isNotEmpty() && !uiState.isProcessing) {
             onBack()
