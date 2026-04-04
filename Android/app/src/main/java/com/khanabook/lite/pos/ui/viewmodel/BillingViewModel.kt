@@ -259,7 +259,8 @@ class BillingViewModel @Inject constructor(
                     variantName = cartItem.variant?.variantName,
                     price = price,
                     quantity = cartItem.quantity,
-                    itemTotal = itemTotal
+                    itemTotal = itemTotal,
+                    specialInstruction = cartItem.note
                 )
             }
 
