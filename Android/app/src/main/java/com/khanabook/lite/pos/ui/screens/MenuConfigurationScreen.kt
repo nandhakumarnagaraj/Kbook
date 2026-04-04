@@ -252,12 +252,32 @@ fun ReviewDetectedItemsSheet(
     val spacing = KhanaBookTheme.spacing
     val headerPadding = ReviewSheetLayout.HORIZONTAL_PADDING + ReviewSheetLayout.CARD_PADDING
     val checkboxPlaceholder = ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+
+    if (showDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            containerColor = DarkBrown2,
+            title = { Text("Discard Items?", color = PrimaryGold) },
+            text = { Text("All ${drafts.size} detected items will be discarded. Are you sure?", color = TextLight) },
+            confirmButton = {
+                TextButton(onClick = { showDiscardConfirm = false; onDismiss() }) {
+                    Text("Discard", color = NonVegRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConfirm = false }) {
+                    Text("Keep Editing", color = PrimaryGold)
+                }
+            }
+        )
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.6f))
-            .clickable { onDismiss() },
+            .clickable { showDiscardConfirm = true },
         contentAlignment = Alignment.BottomCenter
     ) {
         Column(
@@ -615,7 +635,7 @@ fun ReviewDetectedItemsSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedButton(
-                        onClick = onDismiss,
+                        onClick = { showDiscardConfirm = true },
                         border = BorderStroke(1.5.dp, NonVegRed.copy(alpha = 0.6f)),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = NonVegRed),
                         modifier = Modifier.weight(1f).height(56.dp),
