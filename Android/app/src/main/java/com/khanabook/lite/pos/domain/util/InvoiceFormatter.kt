@@ -134,8 +134,11 @@ object InvoiceFormatter {
         add("$line\n")
 
         for (item in bill.items) {
-            val name = item.itemName.uppercase()
-            
+            val name = if (!item.variantName.isNullOrBlank())
+                "${item.itemName} (${item.variantName})".uppercase()
+            else
+                item.itemName.uppercase()
+
             // Wrapping logic
             val itemLines = wrapText(name, itemW)
             val rateStr = formatMoney(item.price).take(rateW)

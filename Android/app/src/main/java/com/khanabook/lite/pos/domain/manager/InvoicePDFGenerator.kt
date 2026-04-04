@@ -78,7 +78,10 @@ class InvoicePDFGenerator(private val context: Context) {
             val measurePaint = Paint().apply { textSize = bodySize }
             var itemSectionHeight = 14  // 12f gap before first item + 2f trailing spacer
             bill.items.forEach { item ->
-                val lines = countWrappedLines(item.itemName.uppercase(), itemColWidth, measurePaint)
+                val measureName = if (!item.variantName.isNullOrBlank())
+                    "${item.itemName} (${item.variantName})".uppercase()
+                else item.itemName.uppercase()
+                val lines = countWrappedLines(measureName, itemColWidth, measurePaint)
                 itemSectionHeight += lines * 9 + 12   // 9f per line + 2f spacer + 10f row gap
             }
 
@@ -295,7 +298,9 @@ class InvoicePDFGenerator(private val context: Context) {
             bill.items.forEachIndexed { index, item ->
                 paint.color     = colorText
                 paint.textAlign = Paint.Align.LEFT
-                val displayName = item.itemName.uppercase()
+                val displayName = if (!item.variantName.isNullOrBlank())
+                    "${item.itemName} (${item.variantName})".uppercase()
+                else item.itemName.uppercase()
 
                 // Word-wrap item name into itemColWidth
                 val itemLines   = mutableListOf<String>()
