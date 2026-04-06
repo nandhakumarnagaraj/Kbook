@@ -9,6 +9,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -45,6 +47,27 @@ class MainActivity : ComponentActivity() {
                 val menuViewModel: MenuViewModel = hiltViewModel()
                 val currentUser by authViewModel.currentUser.collectAsState()
                 val context = this
+
+                // Background Lock / Grace Period Observer
+                LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) {
+                    sessionManager.onAppBackgrounded()
+                }
+
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+                    val currentDest = navController.currentDestination?.route
+                    // Only lock if we are NOT on a public/auth screen
+                    val isInPrivateArea = currentDest != null && 
+                        currentDest != "splash" && 
+                        currentDest != "login" && 
+                        currentDest != "signup" && 
+                        currentDest != "app_lock"
+
+                    if (isInPrivateArea && sessionManager.shouldShowAppLock()) {
+                        navController.navigate("app_lock")
+                    }
+                    // Always clear background time once we've checked/processed it
+                    sessionManager.clearBackgroundTime()
+                }
 
                 // Root back handling (Double Back to Exit from Home)
                 val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -125,7 +148,11 @@ class MainActivity : ComponentActivity() {
                     composable("app_lock") {
                         AppLockScreen(
                             onUnlock = {
-                                navController.navigate("main/0") { popUpTo("app_lock") { inclusive = true } }
+                                if (navController.previousBackStackEntry != null) {
+                                    navController.popBackStack()
+                                } else {
+                                    navController.navigate("main/0") { popUpTo("app_lock") { inclusive = true } }
+                                }
                             }
                         )
                     }

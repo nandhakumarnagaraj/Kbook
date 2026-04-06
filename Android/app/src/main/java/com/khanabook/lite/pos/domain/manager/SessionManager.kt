@@ -22,11 +22,13 @@ import kotlinx.coroutines.launch
 
 private const val PREFS_NAME = "session_prefs"
 private const val KEY_LAST_INTERACTION = "last_interaction_time"
+private const val KEY_LAST_BACKGROUND_TIME = "last_background_time"
 private const val SESSION_CHECK_INTERVAL_MS = 60_000L 
 
 @Singleton
 class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {
     private val debugTag = "KhanaBookDebugAuth"
+    private val appLockGracePeriodMs = TimeUnit.MINUTES.toMillis(1) // 1 minute grace period
 
     private val masterKey = MasterKey.Builder(context)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -201,6 +203,24 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     fun clearPin() {
         securePrefs.edit().remove("pin_hash").apply()
         prefs.edit().putBoolean("pin_lock_enabled", false).apply()
+    }
+
+    // Background Lock Logic
+    fun onAppBackgrounded() {
+        prefs.edit().putLong(KEY_LAST_BACKGROUND_TIME, System.currentTimeMillis()).apply()
+    }
+
+    fun shouldShowAppLock(): Boolean {
+        if (!isPinLockEnabled() || getPinHash() == null) return false
+        val lastBackground = prefs.getLong(KEY_LAST_BACKGROUND_TIME, 0L)
+        if (lastBackground == 0L) return false
+        
+        val elapsed = System.currentTimeMillis() - lastBackground
+        return elapsed > appLockGracePeriodMs
+    }
+
+    fun clearBackgroundTime() {
+        prefs.edit().remove(KEY_LAST_BACKGROUND_TIME).apply()
     }
 
     fun clearSession() {
