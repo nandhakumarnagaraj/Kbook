@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.model.OrderDetailRow
 import com.khanabook.lite.pos.domain.model.OrderStatus
@@ -76,6 +77,7 @@ fun OrdersScreen(
     if (showDateRangePicker) {
         DatePickerDialog(
             onDismissRequest = { showDateRangePicker = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
             confirmButton = {
                 TextButton(onClick = {
                     val start = dateRangePickerState.selectedStartDateMillis
@@ -95,7 +97,12 @@ fun OrdersScreen(
             },
             colors = DatePickerDefaults.colors(containerColor = DarkBrown2)
         ) {
-            Box(modifier = Modifier.padding(horizontal = spacing.small)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.94f)
+                    .widthIn(max = 900.dp)
+                    .padding(horizontal = spacing.small)
+            ) {
                 DateRangePicker(
                     state = dateRangePickerState,
                     modifier = Modifier.fillMaxWidth(),

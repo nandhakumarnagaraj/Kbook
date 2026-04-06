@@ -250,6 +250,9 @@ public class GenericSyncService {
 							resolveRelationalIds(incomingRecord, idMaps);
 
 							incomingRecord.setId(existingRecord.getId());
+							// Preserve the current row version so sync updates don't trip optimistic locking
+							// when the client payload carries a stale/default version value.
+							incomingRecord.setVersion(existingRecord.getVersion());
 
 							T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
 							if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {

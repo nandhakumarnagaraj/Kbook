@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
@@ -592,10 +593,14 @@ fun OrderDetailsDialog(
     onDismiss: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         KhanaBookCard(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.94f)
+                .widthIn(max = 900.dp)
                 .padding(spacing.medium),
             colors = CardDefaults.cardColors(containerColor = DarkBrown2),
             shape = RoundedCornerShape(16.dp)
