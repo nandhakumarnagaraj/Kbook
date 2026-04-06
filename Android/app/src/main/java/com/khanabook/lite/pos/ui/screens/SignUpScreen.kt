@@ -129,10 +129,13 @@ fun SignUpScreen(
         return String.format("%02d:%02d", min, sec)
     }
 
-    LaunchedEffect(otpSent, otpTimer) {
-        if (otpSent && otpTimer > 0) {
-            delay(1000)
-            otpTimer--
+    LaunchedEffect(otpSent) {
+        if (otpSent) {
+            otpTimer = 60
+            while (otpTimer > 0) {
+                delay(1000)
+                otpTimer--
+            }
         }
     }
 

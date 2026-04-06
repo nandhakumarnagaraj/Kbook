@@ -20,7 +20,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 32,
+        version = 34,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -33,6 +33,31 @@ abstract class AppDatabase : RoomDatabase() {
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
+
+            val MIGRATION_33_34 = object : Migration(33, 34) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    try {
+                        db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `created_at` INTEGER NOT NULL DEFAULT 0")
+                    } catch (e: Exception) {
+                        android.util.Log.w("AppDatabase", "MIGRATION_33_34: created_at may already exist: ${e.message}")
+                    }
+                }
+            }
+
+            val MIGRATION_32_33 = object : Migration(32, 33) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    try {
+                        db.execSQL("ALTER TABLE `users` ADD COLUMN `phone_number` TEXT DEFAULT NULL")
+                    } catch (e: Exception) {
+                        android.util.Log.w("AppDatabase", "MIGRATION_32_33: phone_number may already exist: ${e.message}")
+                    }
+                    try {
+                        db.execSQL("ALTER TABLE `users` ADD COLUMN `token_invalidated_at` INTEGER DEFAULT NULL")
+                    } catch (e: Exception) {
+                        android.util.Log.w("AppDatabase", "MIGRATION_32_33: token_invalidated_at may already exist: ${e.message}")
+                    }
+                }
+            }
 
             val MIGRATION_31_32 = object : Migration(31, 32) {
                 override fun migrate(db: SupportSQLiteDatabase) {

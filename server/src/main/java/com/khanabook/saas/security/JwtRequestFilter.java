@@ -1,6 +1,5 @@
 package com.khanabook.saas.security;
 
-import com.khanabook.saas.debug.DebugNDJSONLogger;
 import com.khanabook.saas.utility.JwtUtility;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.repository.UserRepository;
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -33,6 +31,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 	private final TokenBlocklistRepository tokenBlocklistRepository;
 
 	// In-memory cache: jti -> expiresAt (ms). Avoids DB hit on every request.
+	// Capped at 10 000 entries to prevent unbounded memory growth from token spam.
+	private static final int REVOKED_JTI_CACHE_MAX = 10_000;
 	private final ConcurrentHashMap<String, Long> revokedJtiCache = new ConcurrentHashMap<>();
 
 	@Override
@@ -40,19 +40,12 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 			throws ServletException, IOException {
 
 		final String authorizationHeader = request.getHeader("Authorization");
-		final String path = request.getRequestURI();
 
 		if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
 			String jwt = authorizationHeader.substring(7);
 
-			boolean tokenExpired = true;
-			boolean jwtExtractOk = false;
-			Long restaurantIdPresent = null;
-			boolean tenantSet = false;
-
 			try {
-				tokenExpired = jwtUtility.isTokenExpired(jwt);
-				if (!tokenExpired) {
+				if (!jwtUtility.isTokenExpired(jwt)) {
 					// Check token revocation blocklist (in-memory cache first)
 					String jti = jwtUtility.extractJti(jwt);
 					if (jti != null) {
@@ -63,7 +56,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 						if (!revoked && tokenBlocklistRepository.existsByJti(jti)) {
 							Long expiresAt = jwtUtility.extractExpiration(jwt) != null
 									? jwtUtility.extractExpiration(jwt).getTime() : now + 3600_000L;
-							revokedJtiCache.put(jti, expiresAt);
+							if (revokedJtiCache.size() < REVOKED_JTI_CACHE_MAX) {
+								revokedJtiCache.put(jti, expiresAt);
+							}
 							revoked = true;
 						}
 						if (revoked) {
@@ -74,8 +69,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 					Long restaurantId = jwtUtility.extractRestaurantId(jwt);
 					String username = jwtUtility.extractUsername(jwt);
-					jwtExtractOk = true;
-					restaurantIdPresent = restaurantId;
 
 					if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
@@ -96,7 +89,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 							}
 							if (restaurantId != null) {
 								TenantContext.setCurrentTenant(restaurantId);
-								tenantSet = true;
 							}
 
 							String role = user.getRole().name();
@@ -116,33 +108,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 				logger.warn("JWT validation failed: {}", e.getClass().getSimpleName());
 			}
 
-			DebugNDJSONLogger.log(
-					"pre-debug",
-					"H1_JWT_MISSING_OR_INVALID",
-					"JwtRequestFilter:doFilterInternal",
-					"JWT auth header inspected",
-					java.util.Map.of(
-							"path", path,
-							"authorizationHeaderPresent", true,
-							"tokenExpired", tokenExpired,
-							"jwtExtractOk", jwtExtractOk,
-							"restaurantIdPresent", restaurantIdPresent != null,
-							"tenantSet", tenantSet
-					)
-			);
 		}
-		else {
-			DebugNDJSONLogger.log(
-					"pre-debug",
-					"H1_JWT_MISSING_OR_INVALID",
-					"JwtRequestFilter:doFilterInternal",
-					"JWT auth header missing or not Bearer",
-					java.util.Map.of(
-							"path", path,
-							"authorizationHeaderPresent", false
-					)
-			);
-		}
+
 
 		try {
 			chain.doFilter(request, response);

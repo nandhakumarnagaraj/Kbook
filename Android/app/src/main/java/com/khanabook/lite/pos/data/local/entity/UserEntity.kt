@@ -25,6 +25,9 @@ data class UserEntity(
     @ColumnInfo(name = "auth_provider", defaultValue = "'PHONE'")
     val authProvider: String = "PHONE",
 
+    @ColumnInfo(name = "phone_number")
+    val phoneNumber: String? = null,
+
     @ColumnInfo(name = "whatsapp_number")
     val whatsappNumber: String? = null,
 
@@ -42,6 +45,9 @@ data class UserEntity(
     @ColumnInfo(name = "is_synced", defaultValue = "0") val isSynced: Boolean = false,
     @ColumnInfo(name = "updated_at", defaultValue = "0") val updatedAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "token_invalidated_at")
+    val tokenInvalidatedAt: Long? = null,
+
     @SerializedName("serverId") @ColumnInfo(name = "server_id") val serverId: Long? = null,
     @SerializedName("serverUpdatedAt") @ColumnInfo(name = "server_updated_at", defaultValue = "0") val serverUpdatedAt: Long = 0L
 )

@@ -286,8 +286,9 @@ class MenuViewModel @Inject constructor(
 
     private fun uriToBitmap(context: Context, uri: Uri): android.graphics.Bitmap? {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
-            android.graphics.BitmapFactory.decodeStream(inputStream)
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                android.graphics.BitmapFactory.decodeStream(inputStream)
+            }
         } catch (e: Exception) {
             null
         }

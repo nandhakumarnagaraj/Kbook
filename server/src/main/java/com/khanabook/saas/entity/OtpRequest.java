@@ -29,7 +29,7 @@ public class OtpRequest {
     @Column(name = "phone_number", nullable = false, length = 20)
     private String phoneNumber;
 
-    @Column(name = "otp", nullable = false, length = 10)
+    @Column(name = "otp", nullable = false, length = 60)
     private String otp;
 
     @Column(name = "expires_at", nullable = false)

@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.khanabook.saas.entity.OtpRequest;
 import com.khanabook.saas.repository.OtpRequestRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -30,10 +31,12 @@ public class PasswordResetOtpService {
 	private static final String MOBILE_UPDATE_PREFIX = "mobile-update:";
 
 	private final OtpRequestRepository otpRequestRepository;
+	private final PasswordEncoder passwordEncoder;
 	private final HttpClient httpClient = HttpClient.newHttpClient();
 
-	public PasswordResetOtpService(OtpRequestRepository otpRequestRepository) {
+	public PasswordResetOtpService(OtpRequestRepository otpRequestRepository, PasswordEncoder passwordEncoder) {
 		this.otpRequestRepository = otpRequestRepository;
+		this.passwordEncoder = passwordEncoder;
 	}
 
 	@Value("${whatsapp.meta.access-token:}")
@@ -83,7 +86,7 @@ public class PasswordResetOtpService {
 				.orElseGet(() -> OtpRequest.builder().challengeKey(challengeKey).build());
 
 		request.setPhoneNumber(phoneNumber);
-		request.setOtp(otp);
+		request.setOtp(passwordEncoder.encode(otp));
 		request.setExpiresAt(now + OTP_TTL_MILLIS);
 		request.setAttempts(0);
 		request.setCreatedAt(now);
@@ -112,7 +115,7 @@ public class PasswordResetOtpService {
 			throw new IllegalArgumentException("OTP requested for a different mobile number. Please request a new code.");
 		}
 
-		if (!challenge.getOtp().equals(otp)) {
+		if (!passwordEncoder.matches(otp, challenge.getOtp())) {
 			challenge.setAttempts(challenge.getAttempts() + 1);
 			otpRequestRepository.save(challenge);
 			throw new IllegalArgumentException("Invalid OTP.");

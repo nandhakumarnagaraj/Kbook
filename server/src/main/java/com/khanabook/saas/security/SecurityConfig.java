@@ -3,6 +3,7 @@ package com.khanabook.saas.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -17,7 +18,12 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.List;
 import java.util.Map;
 
 @Configuration
@@ -26,6 +32,26 @@ import java.util.Map;
 public class SecurityConfig {
 
 	private final JwtRequestFilter jwtRequestFilter;
+
+	@Value("${cors.allowed-origins:}")
+	private String allowedOriginsRaw;
+
+	@Bean
+	CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration config = new CorsConfiguration();
+		List<String> origins = (allowedOriginsRaw == null || allowedOriginsRaw.isBlank())
+				? List.of()
+				: List.of(allowedOriginsRaw.split(","));
+		config.setAllowedOrigins(origins.isEmpty() ? List.of("*") : origins);
+		config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+		config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Restaurant-Id"));
+		config.setExposedHeaders(List.of("X-Request-Id"));
+		config.setAllowCredentials(!origins.isEmpty()); // credentials only when origins are explicit
+		config.setMaxAge(3600L);
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", config);
+		return source;
+	}
 
 	@Bean
 	PasswordEncoder passwordEncoder() {
@@ -55,6 +81,18 @@ public class SecurityConfig {
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http.csrf(AbstractHttpConfigurer::disable)
+				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+				.headers(headers -> headers
+						.frameOptions(fo -> fo.deny())
+						.contentTypeOptions(ct -> ct.and())
+						.httpStrictTransportSecurity(hsts -> hsts
+								.includeSubDomains(true)
+								.maxAgeInSeconds(31536000))
+						.referrerPolicy(rp -> rp
+								.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+						.contentSecurityPolicy(csp -> csp
+								.policyDirectives("default-src 'none'; frame-ancestors 'none'")))
 
 				.exceptionHandling(ex -> ex
 						.authenticationEntryPoint(jsonAuthenticationEntryPoint())

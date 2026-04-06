@@ -22,28 +22,35 @@ class MasterSyncProcessor @Inject constructor(
     private fun String?.orFallback(default: String): String = this?.takeUnless { it.isBlank() } ?: default
     
     private fun Double?.toSafeString(): String {
-        if (this == null) return "0.0"
+        if (this == null) return "0.00"
         return java.math.BigDecimal.valueOf(this)
             .setScale(2, java.math.RoundingMode.HALF_UP)
-            .stripTrailingZeros()
             .toPlainString()
     }
 
     private fun String?.toSafeAmount(): String {
-        if (this.isNullOrBlank()) return "0.0"
+        if (this.isNullOrBlank()) return "0.00"
         return try {
+            // Use setScale(2) WITHOUT stripTrailingZeros so "10.00" stays "10.00"
+            // and matches server's BigDecimal serialization — avoids repeated sync loops.
             java.math.BigDecimal(this)
                 .setScale(2, java.math.RoundingMode.HALF_UP)
-                .stripTrailingZeros()
                 .toPlainString()
         } catch (e: Exception) {
-            "0.0"
+            "0.00"
         }
     }
 
     suspend fun pushAll(): Boolean {
         return try {
-            
+            // Guard: never push data with an invalid tenant — it would be written to the null bucket
+            val profile = restaurantDao.getProfile()
+            val restaurantId = profile?.restaurantId ?: 0L
+            if (restaurantId <= 0L) {
+                Log.w("MasterSyncProcessor", "Push aborted: restaurantId not set (value=$restaurantId)")
+                return false
+            }
+
             val unsyncedProfiles = restaurantDao.getUnsyncedRestaurantProfiles()
             if (unsyncedProfiles.isNotEmpty()) {
                 unsyncedProfiles.chunked(50).forEach { batch ->
@@ -132,7 +139,7 @@ class MasterSyncProcessor @Inject constructor(
             restaurantDao.insertSyncedRestaurantProfiles(
                 masterData.profiles.map { remoteProfile ->
                     RestaurantProfileEntity(
-                        id = 1,
+                        id = currentLocalProfile?.id ?: 1,
                         shopName = remoteProfile.shopName.orFallback("My Shop"),
                         shopAddress = remoteProfile.shopAddress.orFallback(""),
                         whatsappNumber = remoteProfile.whatsappNumber.orFallback(""),
@@ -197,11 +204,13 @@ class MasterSyncProcessor @Inject constructor(
                         name = remoteUser.name.orFallback("User"),
                         email = remoteUser.email.orFallback(localUser?.email ?: remoteIdentity.orFallback("")),
                         loginId = remoteUser.loginId ?: localUser?.loginId ?: remoteUser.email,
+                        phoneNumber = remoteUser.phoneNumber ?: localUser?.phoneNumber,
                         googleEmail = remoteUser.googleEmail,
                         authProvider = remoteUser.authProvider ?: "PHONE",
                         whatsappNumber = remoteUser.whatsappNumber ?: localUser?.whatsappNumber ?: "",
                         role = remoteUser.role ?: localUser?.role ?: "OWNER",
                         isActive = remoteUser.isActive ?: true,
+                        tokenInvalidatedAt = remoteUser.tokenInvalidatedAt ?: localUser?.tokenInvalidatedAt,
                         createdAt = remoteUser.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteUser.restaurantId ?: 0L,
                         deviceId = remoteUser.deviceId.orFallback(""),
@@ -248,7 +257,7 @@ class MasterSyncProcessor @Inject constructor(
                         id = remoteMenuItem.id,
                         categoryId = localCategoryId,
                         name = remoteMenuItem.name.orFallback("Unnamed Item"),
-                        basePrice = remoteMenuItem.basePrice,
+                        basePrice = remoteMenuItem.basePrice.toSafeAmount(),
                         foodType = remoteMenuItem.foodType.orFallback("veg"),
                         description = remoteMenuItem.description,
                         isAvailable = remoteMenuItem.isAvailable ?: true,
@@ -282,7 +291,7 @@ class MasterSyncProcessor @Inject constructor(
                         id = remoteVariant.id,
                         menuItemId = localMenuItemId,
                         variantName = remoteVariant.variantName.orFallback("Default"),
-                        price = remoteVariant.price,
+                        price = remoteVariant.price.toSafeAmount(),
                         isAvailable = remoteVariant.isAvailable ?: true,
                         sortOrder = remoteVariant.sortOrder ?: 0,
                         currentStock = remoteVariant.currentStock,
@@ -427,6 +436,7 @@ class MasterSyncProcessor @Inject constructor(
                         billId = localBillId,
                         paymentMode = remoteBillPayment.paymentMode.orFallback("cash"),
                         amount = remoteBillPayment.amount.toSafeAmount(),
+                        createdAt = remoteBillPayment.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteBillPayment.restaurantId ?: 0L,
                         deviceId = remoteBillPayment.deviceId.orFallback(""),
                         isSynced = true,

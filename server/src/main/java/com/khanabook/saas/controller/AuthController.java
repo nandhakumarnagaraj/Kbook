@@ -1,10 +1,11 @@
 package com.khanabook.saas.controller;
 
-import com.khanabook.saas.debug.DebugNDJSONLogger;
 import com.khanabook.saas.entity.TokenBlocklist;
 import com.khanabook.saas.repository.TokenBlocklistRepository;
 import com.khanabook.saas.service.AuthService;
+import com.khanabook.saas.service.OtpRateLimiter;
 import com.khanabook.saas.utility.JwtUtility;
+import org.springframework.http.HttpStatus;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -31,56 +32,32 @@ public class AuthController {
 	private final AuthService authService;
 	private final JwtUtility jwtUtility;
 	private final TokenBlocklistRepository tokenBlocklistRepository;
+	private final OtpRateLimiter otpRateLimiter;
 
 	@PostMapping("/login")
 	public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-		DebugNDJSONLogger.log(
-				"pre-debug",
-				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
-				"AuthController:login",
-				"Auth login endpoint called",
-				java.util.Map.of(
-						"deviceIdPresent", request.getDeviceId() != null,
-						"phoneNumberProvided", request.getPhoneNumber() != null,
-						"phoneNumberLen", request.getPhoneNumber() == null ? -1 : request.getPhoneNumber().length()
-				)
-		);
+		log.debug("Login attempt phoneLen={}", request.getPhoneNumber() == null ? 0 : request.getPhoneNumber().length());
 		return ResponseEntity.ok(authService.login(request));
 	}
 
 	@PostMapping("/signup")
 	public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
-		DebugNDJSONLogger.log(
-				"pre-debug",
-				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
-				"AuthController:signup",
-				"Auth signup endpoint called",
-				java.util.Map.of(
-						"deviceIdPresent", request.getDeviceId() != null,
-						"phoneNumberProvided", request.getPhoneNumber() != null,
-						"phoneNumberLen", request.getPhoneNumber() == null ? -1 : request.getPhoneNumber().length()
-				)
-		);
+		log.debug("Signup attempt phoneLen={}", request.getPhoneNumber() == null ? 0 : request.getPhoneNumber().length());
 		return ResponseEntity.ok(authService.signup(request));
 	}
 
 	@PostMapping("/signup/request")
 	public ResponseEntity<Void> requestSignupOtp(@Valid @RequestBody SignupOtpRequest request) {
+		if (!otpRateLimiter.tryConsume(request.getPhoneNumber())) {
+			log.warn("OTP rate limit exceeded for signup phone={}***", request.getPhoneNumber().substring(0, 3));
+			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+		}
 		authService.requestSignupOtp(request.getPhoneNumber());
 		return ResponseEntity.ok().build();
 	}
 
 	@PostMapping("/google")
 	public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
-		DebugNDJSONLogger.log(
-				"pre-debug",
-				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
-				"AuthController:google",
-				"Auth google endpoint called",
-				java.util.Map.of(
-						"deviceIdPresent", request.getDeviceId() != null
-				)
-		);
 		return ResponseEntity.ok(authService.googleLogin(request));
 	}
 
@@ -89,29 +66,11 @@ public class AuthController {
 		if (phoneNumber == null || !phoneNumber.matches("^\\d{10}$")) {
 			return ResponseEntity.ok(false);
 		}
-		DebugNDJSONLogger.log(
-				"pre-debug",
-				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
-				"AuthController:check-user",
-				"Auth check-user endpoint called",
-				java.util.Map.of(
-						"phoneNumberLen", phoneNumber == null ? -1 : phoneNumber.length()
-				)
-		);
 		return ResponseEntity.ok(authService.checkUserExists(phoneNumber));
 	}
 
 	@PostMapping("/reset-password")
 	public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-		DebugNDJSONLogger.log(
-				"pre-debug",
-				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
-				"AuthController:reset-password",
-				"Auth reset-password endpoint called",
-				java.util.Map.of(
-						"phoneNumberLen", request.getPhoneNumber() == null ? -1 : request.getPhoneNumber().length()
-				)
-		);
 		authService.resetPassword(request.getPhoneNumber(), request.getOtp(), request.getNewPassword());
 		return ResponseEntity.ok().build();
 	}
@@ -137,15 +96,10 @@ public class AuthController {
 
 	@PostMapping("/reset-password/request")
 	public ResponseEntity<Void> requestResetPasswordOtp(@Valid @RequestBody PasswordResetOtpRequest request) {
-		DebugNDJSONLogger.log(
-				"pre-debug",
-				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
-				"AuthController:reset-password-request",
-				"Auth reset-password request endpoint called",
-				java.util.Map.of(
-						"phoneNumberLen", request.getPhoneNumber() == null ? -1 : request.getPhoneNumber().length()
-				)
-		);
+		if (!otpRateLimiter.tryConsume(request.getPhoneNumber())) {
+			log.warn("OTP rate limit exceeded for reset phone={}***", request.getPhoneNumber().substring(0, 3));
+			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+		}
 		authService.requestPasswordResetOtp(request.getPhoneNumber());
 		return ResponseEntity.ok().build();
 	}

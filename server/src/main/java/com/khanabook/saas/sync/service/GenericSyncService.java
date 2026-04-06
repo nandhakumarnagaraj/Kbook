@@ -2,7 +2,6 @@ package com.khanabook.saas.sync.service;
 
 import com.khanabook.saas.entity.*;
 import com.khanabook.saas.repository.*;
-import com.khanabook.saas.debug.DebugNDJSONLogger;
 import com.khanabook.saas.entity.AuthProvider;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
@@ -53,10 +52,11 @@ public class GenericSyncService {
 			return new PushSyncResponse(new ArrayList<>(), new ArrayList<>());
 		}
 
-		// Cross-tenant guard for OWNER: ensure every record's restaurantId matches tenantId
+		// Cross-tenant guard for OWNER: every record must carry a matching restaurantId.
+		// Null restaurantId is rejected — it would let data slip into a null-tenant bucket.
 		if (!isKbookAdmin) {
 			for (T record : payload) {
-				if (record.getRestaurantId() != null && !record.getRestaurantId().equals(tenantId)) {
+				if (record.getRestaurantId() == null || !record.getRestaurantId().equals(tenantId)) {
 					throw new org.springframework.security.access.AccessDeniedException(
 							"Permission denied: Accessing other restaurant data is forbidden.");
 				}
@@ -68,17 +68,8 @@ public class GenericSyncService {
 				.distinct()
 				.count();
 
-		DebugNDJSONLogger.log(
-				"pre-debug",
-				"H4_PUSH_MERGE_ENGINE",
-				"GenericSyncService:handlePushSync",
-				"Push sync started",
-				java.util.Map.of(
-						"tenantId", tenantId != null ? tenantId : "null",
-						"payloadSize", payload.size(),
-						"distinctDevices", distinctDevices
-				)
-		);
+		log.info("Push sync started tenantId={} payloadSize={} distinctDevices={}",
+				tenantId, payload.size(), distinctDevices);
 
 		List<Long> successfulLocalIds = new ArrayList<>();
 		List<Long> failedLocalIds = new ArrayList<>();
@@ -294,18 +285,8 @@ public class GenericSyncService {
 					if (incomingRecord.getLocalId() != null) {
 						failedLocalIds.add(incomingRecord.getLocalId());
 					}
-					DebugNDJSONLogger.log(
-							"pre-debug",
-							"H4_PUSH_MERGE_ENGINE",
-							"GenericSyncService:handlePushSync",
-							"Sync Error while staging a record",
-							java.util.Map.of(
-									"deviceIdPresent", incomingRecord.getDeviceId() != null,
-									"deviceId", incomingRecord.getDeviceId() == null ? "null" : incomingRecord.getDeviceId(),
-									"exceptionClass", e.getClass().getSimpleName(),
-									"exceptionMessage", e.getMessage() == null ? "" : e.getMessage()
-							)
-					);
+					log.warn("Sync error staging record deviceId={} type={} error={}",
+							incomingRecord.getDeviceId(), incomingRecord.getClass().getSimpleName(), e.getMessage());
 				}
 			}
 			
@@ -318,18 +299,8 @@ public class GenericSyncService {
 
 		log.info("Successfully batch synced {} records for Tenant ID: {}", successfulLocalIds.size(), tenantId);
 
-		DebugNDJSONLogger.log(
-				"pre-debug",
-				"H4_PUSH_MERGE_ENGINE",
-				"GenericSyncService:handlePushSync",
-				"Push sync completed",
-				java.util.Map.of(
-						"tenantId", tenantId != null ? tenantId : "null",
-						"successfulLocalIdsSize", successfulLocalIds.size(),
-						"failedLocalIdsSize", failedLocalIds.size(),
-						"recordsSavedSize", allRecordsToSave.size()
-				)
-		);
+		log.info("Push sync completed tenantId={} success={} failed={} saved={}",
+				tenantId, successfulLocalIds.size(), failedLocalIds.size(), allRecordsToSave.size());
 
 		return new PushSyncResponse(successfulLocalIds, failedLocalIds);
 	}

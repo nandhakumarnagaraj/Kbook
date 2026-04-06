@@ -64,8 +64,13 @@ class ReportsViewModel @Inject constructor(
     fun loadBillDetails(billId: Long) {
         viewModelScope.launch {
             _isLoading.value = true
-            _selectedBillDetails.value = reportGenerator.getOrderDetail(billId)
-            _isLoading.value = false
+            try {
+                _selectedBillDetails.value = reportGenerator.getOrderDetail(billId)
+            } catch (e: Exception) {
+                _error.value = "Failed to load order details: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
@@ -170,18 +175,26 @@ class ReportsViewModel @Inject constructor(
 
     fun updateOrderStatus(billId: Long, newStatus: String) {
         viewModelScope.launch {
-            billRepository.updateOrderStatus(billId, newStatus)
-            if (currentFrom != 0L && currentTo != 0L) {
-                loadReports(currentFrom, currentTo)
+            try {
+                billRepository.updateOrderStatus(billId, newStatus)
+                if (currentFrom != 0L && currentTo != 0L) {
+                    loadReports(currentFrom, currentTo)
+                }
+            } catch (e: Exception) {
+                _error.value = "Failed to update order status: ${e.message}"
             }
         }
     }
 
     fun updatePaymentMode(billId: Long, newMode: String) {
         viewModelScope.launch {
-            billRepository.updatePaymentMode(billId, newMode)
-            if (currentFrom != 0L && currentTo != 0L) {
-                loadReports(currentFrom, currentTo)
+            try {
+                billRepository.updatePaymentMode(billId, newMode)
+                if (currentFrom != 0L && currentTo != 0L) {
+                    loadReports(currentFrom, currentTo)
+                }
+            } catch (e: Exception) {
+                _error.value = "Failed to update payment mode: ${e.message}"
             }
         }
     }

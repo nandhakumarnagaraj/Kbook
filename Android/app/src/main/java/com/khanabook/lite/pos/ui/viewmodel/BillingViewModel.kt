@@ -16,6 +16,7 @@ import androidx.compose.runtime.Immutable
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -202,6 +203,10 @@ class BillingViewModel @Inject constructor(
     }
 
     suspend fun completeOrder(status: PaymentStatus): Boolean = orderMutex.withLock {
+        if (_cartItems.value.isEmpty()) {
+            _error.value = "Add at least one item before completing the bill."
+            return false
+        }
         _isLoading.value = true
         try {
             // Use cached profile — no extra DB read needed
@@ -274,7 +279,7 @@ class BillingViewModel @Inject constructor(
                     BillPaymentEntity(billId = 0, paymentMode = PaymentMode.POS.dbValue, amount = _partAmount2.value)
                 )
                 PaymentMode.PART_UPI_POS -> listOf(
-                    BillPaymentEntity(billId = 0, paymentMode = PaymentMode.UPI.dbValue, amount = _partAmount2.value),
+                    BillPaymentEntity(billId = 0, paymentMode = PaymentMode.UPI.dbValue, amount = _partAmount1.value),
                     BillPaymentEntity(billId = 0, paymentMode = PaymentMode.POS.dbValue, amount = _partAmount2.value)
                 )
                 else -> listOf(
@@ -289,13 +294,24 @@ class BillingViewModel @Inject constructor(
             // Launch auto-print asynchronously — never blocks bill completion
             if (profile.printerEnabled && profile.autoPrintOnSuccess && inserted != null) {
                 viewModelScope.launch(Dispatchers.IO) {
-                    if (!printerManager.isConnected() && !profile.printerMac.isNullOrBlank()) {
-                        printerManager.connect(profile.printerMac)
-                    }
-                    if (printerManager.isConnected()) {
-                        val bytes = com.khanabook.lite.pos.domain.util.InvoiceFormatter
-                            .formatForThermalPrinter(inserted, profile)
-                        printerManager.printBytes(bytes)
+                    try {
+                        if (!printerManager.isConnected() && !profile.printerMac.isNullOrBlank()) {
+                            printerManager.connect(profile.printerMac)
+                        }
+                        if (printerManager.isConnected()) {
+                            val bytes = com.khanabook.lite.pos.domain.util.InvoiceFormatter
+                                .formatForThermalPrinter(inserted, profile)
+                            printerManager.printBytes(bytes)
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                _error.value = "Printer not connected. Bill saved."
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Auto-print failed", e)
+                        withContext(Dispatchers.Main) {
+                            _error.value = "Print failed: ${e.message}. Bill saved successfully."
+                        }
                     }
                 }
             }

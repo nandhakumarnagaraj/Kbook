@@ -28,6 +28,8 @@ data class BillPaymentEntity(
     @SerializedName("amount")
     val amount: String,
 
+    @SerializedName("createdAt")
+    @ColumnInfo(name = "created_at", defaultValue = "0") val createdAt: Long = System.currentTimeMillis(),
     @SerializedName("restaurantId")
     @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
     @SerializedName("deviceId")

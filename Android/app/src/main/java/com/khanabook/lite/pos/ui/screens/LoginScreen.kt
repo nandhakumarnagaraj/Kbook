@@ -406,18 +406,12 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
     val resetStatus by viewModel.resetPasswordStatus.collectAsState()
     val isResetLoading = resetStatus is AuthViewModel.ResetPasswordResult.Loading
 
-    LaunchedEffect(resendTimer) {
-        if (resendTimer > 0) {
-            delay(1000)
-            resendTimer--
-        }
-    }
-
     LaunchedEffect(resetStatus) {
         when (resetStatus) {
             is AuthViewModel.ResetPasswordResult.OtpSent -> {
                 step = 2
                 resendTimer = 60
+                while (resendTimer > 0) { delay(1000); resendTimer-- }
             }
             is AuthViewModel.ResetPasswordResult.Success -> {
                 android.widget.Toast.makeText(
@@ -495,7 +489,16 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 keyboardOptions =
                                         KeyboardOptions(keyboardType = KeyboardType.Number),
                                 textStyle =
-                                        LocalTextStyle.current.copy(textAlign = TextAlign.Center)
+                                        LocalTextStyle.current.copy(textAlign = TextAlign.Center),
+                                supportingText = {
+                                    if (otp.isNotEmpty() && otp.length < 6) {
+                                        Text(
+                                            "${6 - otp.length} more digit${if (6 - otp.length == 1) "" else "s"} required",
+                                            color = TextGold.copy(alpha = 0.6f),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
                         )
                     }
                     3 -> {

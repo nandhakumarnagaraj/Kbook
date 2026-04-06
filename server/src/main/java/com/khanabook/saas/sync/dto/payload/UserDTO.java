@@ -24,6 +24,7 @@ public class UserDTO {
     private String name;
     private String email;
     private String loginId;
+    private String phoneNumber;
     private String googleEmail;
     private AuthProvider authProvider;
     @JsonIgnore
@@ -32,4 +33,5 @@ public class UserDTO {
     private UserRole role;
     @JsonIgnore
     private Boolean isActive;
+    private Long tokenInvalidatedAt;
 }
