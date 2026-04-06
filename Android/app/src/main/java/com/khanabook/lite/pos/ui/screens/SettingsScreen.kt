@@ -934,12 +934,12 @@ private fun AppInfoSection() {
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
     Column(
-        modifier = Modifier.fillMaxWidth().padding(top = spacing.small, bottom = spacing.small),
+        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.medium),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
     ) {
         Text(
-            "KhanaBook Lite v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+            "KBook v${BuildConfig.VERSION_NAME}",
             color = TextGold.copy(alpha = 0.5f),
             style = MaterialTheme.typography.labelSmall,
             textAlign = TextAlign.Center
