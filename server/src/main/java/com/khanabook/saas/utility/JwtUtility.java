@@ -1,8 +1,6 @@
 package com.khanabook.saas.utility;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.function.Function;
 
@@ -33,16 +31,13 @@ public class JwtUtility {
 		if (secretBytes.length >= 32) {
 			return Keys.hmacShaKeyFor(secretBytes);
 		}
-
-		// Secret is shorter than 256 bits — stretch it with SHA-256 so JJWT accepts it.
-		// This is a fallback: JWT_SECRET should be at least 32 cryptographically random bytes.
-		log.warn("JWT_SECRET is only {} bytes — minimum 32 bytes recommended for production", secretBytes.length);
-		try {
-			byte[] hashedSecret = MessageDigest.getInstance("SHA-256").digest(secretBytes);
-			return Keys.hmacShaKeyFor(hashedSecret);
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException("SHA-256 algorithm unavailable for JWT key derivation", e);
-		}
+		// Refuse to start with a weak secret. Hashing a short secret with SHA-256 does not
+		// add cryptographic strength — an attacker who knows the secret space is small can
+		// brute-force the original and re-derive the hash. Fail fast instead.
+		throw new IllegalStateException(
+			"JWT_SECRET is only " + secretBytes.length + " bytes. " +
+			"A minimum of 32 cryptographically random bytes is required. " +
+			"Set a strong JWT_SECRET environment variable before starting the server.");
 	}
 
 	public Long extractRestaurantId(String token) {

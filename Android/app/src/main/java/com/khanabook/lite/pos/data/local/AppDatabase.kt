@@ -38,7 +38,8 @@ abstract class AppDatabase : RoomDatabase() {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     try {
                         db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `created_at` INTEGER NOT NULL DEFAULT 0")
-                    } catch (e: Exception) {
+                    } catch (e: android.database.sqlite.SQLiteException) {
+                        // Column already exists — safe to skip
                         android.util.Log.w("AppDatabase", "MIGRATION_33_34: created_at may already exist: ${e.message}")
                     }
                 }
@@ -48,12 +49,12 @@ abstract class AppDatabase : RoomDatabase() {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     try {
                         db.execSQL("ALTER TABLE `users` ADD COLUMN `phone_number` TEXT DEFAULT NULL")
-                    } catch (e: Exception) {
+                    } catch (e: android.database.sqlite.SQLiteException) {
                         android.util.Log.w("AppDatabase", "MIGRATION_32_33: phone_number may already exist: ${e.message}")
                     }
                     try {
                         db.execSQL("ALTER TABLE `users` ADD COLUMN `token_invalidated_at` INTEGER DEFAULT NULL")
-                    } catch (e: Exception) {
+                    } catch (e: android.database.sqlite.SQLiteException) {
                         android.util.Log.w("AppDatabase", "MIGRATION_32_33: token_invalidated_at may already exist: ${e.message}")
                     }
                 }
@@ -63,7 +64,7 @@ abstract class AppDatabase : RoomDatabase() {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     try {
                         db.execSQL("ALTER TABLE `bills` ADD COLUMN `cancel_reason` TEXT NOT NULL DEFAULT ''")
-                    } catch (e: Exception) {
+                    } catch (e: android.database.sqlite.SQLiteException) {
                         android.util.Log.w("AppDatabase", "MIGRATION_31_32: cancel_reason may already exist: ${e.message}")
                     }
                 }
@@ -73,22 +74,22 @@ abstract class AppDatabase : RoomDatabase() {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     try {
                         db.execSQL("ALTER TABLE `users` ADD COLUMN `login_id` TEXT")
-                    } catch (e: Exception) {
+                    } catch (e: android.database.sqlite.SQLiteException) {
                         android.util.Log.w("AppDatabase", "MIGRATION_30_31: login_id column may already exist: ${e.message}")
                     }
                     try {
                         db.execSQL("ALTER TABLE `users` ADD COLUMN `google_email` TEXT")
-                    } catch (e: Exception) {
+                    } catch (e: android.database.sqlite.SQLiteException) {
                         android.util.Log.w("AppDatabase", "MIGRATION_30_31: google_email column may already exist: ${e.message}")
                     }
                     try {
                         db.execSQL("ALTER TABLE `users` ADD COLUMN `auth_provider` TEXT NOT NULL DEFAULT 'PHONE'")
-                    } catch (e: Exception) {
+                    } catch (e: android.database.sqlite.SQLiteException) {
                         android.util.Log.w("AppDatabase", "MIGRATION_30_31: auth_provider column may already exist: ${e.message}")
                     }
                     try {
                         db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `barcode` TEXT")
-                    } catch (e: Exception) {
+                    } catch (e: android.database.sqlite.SQLiteException) {
                         android.util.Log.w("AppDatabase", "MIGRATION_30_31: barcode column may already exist: ${e.message}")
                     }
                     db.execSQL("UPDATE `users` SET `login_id` = COALESCE(NULLIF(`login_id`, ''), `email`) WHERE `login_id` IS NULL OR `login_id` = ''")

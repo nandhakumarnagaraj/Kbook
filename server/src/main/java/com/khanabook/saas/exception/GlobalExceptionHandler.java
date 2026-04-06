@@ -3,6 +3,7 @@ package com.khanabook.saas.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -58,6 +59,16 @@ public class GlobalExceptionHandler {
 		log.warn("Optimistic lock conflict [{}]: {}", request.getRequestURI(), e.getMessage());
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
 				"error", "This record was modified by another device. Please sync and retry.",
+				"path", request.getRequestURI()
+		));
+	}
+
+	@ExceptionHandler(DataIntegrityViolationException.class)
+	public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
+			DataIntegrityViolationException e, HttpServletRequest request) {
+		log.warn("Data integrity violation [{}]: {}", request.getRequestURI(), e.getMostSpecificCause().getMessage());
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+				"error", "A data conflict occurred. A duplicate or invalid reference was detected.",
 				"path", request.getRequestURI()
 		));
 	}

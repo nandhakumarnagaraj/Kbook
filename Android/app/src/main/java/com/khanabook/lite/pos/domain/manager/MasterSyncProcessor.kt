@@ -1,6 +1,8 @@
 package com.khanabook.lite.pos.domain.manager
 
 import android.util.Log
+import androidx.room.withTransaction
+import com.khanabook.lite.pos.data.local.AppDatabase
 import com.khanabook.lite.pos.data.local.dao.*
 import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
@@ -11,6 +13,7 @@ import javax.inject.Singleton
 @Singleton
 class MasterSyncProcessor @Inject constructor(
     private val api: KhanaBookApi,
+    private val database: AppDatabase,
     private val billDao: BillDao,
     private val restaurantDao: RestaurantDao,
     private val userDao: UserDao,
@@ -133,7 +136,7 @@ class MasterSyncProcessor @Inject constructor(
         }
     }
 
-    suspend fun insertMasterData(masterData: MasterSyncResponse) {
+    suspend fun insertMasterData(masterData: MasterSyncResponse) = database.withTransaction {
         if (masterData.profiles.isNotEmpty()) {
             val currentLocalProfile = restaurantDao.getProfile()
             restaurantDao.insertSyncedRestaurantProfiles(
@@ -249,9 +252,12 @@ class MasterSyncProcessor @Inject constructor(
         if (masterData.menuItems.isNotEmpty()) {
             menuDao.insertSyncedMenuItems(
                 masterData.menuItems.map { remoteMenuItem ->
-                    val localCategoryId = (remoteMenuItem.serverCategoryId ?: remoteMenuItem.categoryId).let { id ->
-                        categoryIdMap[id] ?: id
-                    }
+                    // categoryIdMap keys are server IDs (Long). Only look up via serverCategoryId.
+                    // Falling back to categoryId (a foreign device's local ID) would look up the
+                    // wrong key and silently link the item to a wrong or non-existent category.
+                    val localCategoryId = remoteMenuItem.serverCategoryId?.let { serverId ->
+                        categoryIdMap[serverId] ?: serverId
+                    } ?: remoteMenuItem.categoryId
 
                     MenuItemEntity(
                         id = remoteMenuItem.id,
@@ -283,9 +289,9 @@ class MasterSyncProcessor @Inject constructor(
         if (masterData.itemVariants.isNotEmpty()) {
             menuDao.insertSyncedItemVariants(
                 masterData.itemVariants.map { remoteVariant ->
-                    val localMenuItemId = (remoteVariant.serverMenuItemId ?: remoteVariant.menuItemId).let { id ->
-                        menuItemIdMap[id] ?: id
-                    }
+                    val localMenuItemId = remoteVariant.serverMenuItemId?.let { serverId ->
+                        menuItemIdMap[serverId] ?: serverId
+                    } ?: remoteVariant.menuItemId
 
                     ItemVariantEntity(
                         id = remoteVariant.id,
@@ -315,12 +321,12 @@ class MasterSyncProcessor @Inject constructor(
             inventoryDao.deleteAllSyncedStockLogs()
             inventoryDao.insertSyncedStockLogs(
                 masterData.stockLogs.map { remoteStockLog ->
-                    val localMenuItemId = (remoteStockLog.serverMenuItemId ?: remoteStockLog.menuItemId).let { id ->
-                        menuItemIdMap[id] ?: id
-                    }
-                    val localVariantId = (remoteStockLog.serverVariantId ?: remoteStockLog.variantId)?.let { id ->
-                        variantIdMap[id] ?: id
-                    }
+                    val localMenuItemId = remoteStockLog.serverMenuItemId?.let { serverId ->
+                        menuItemIdMap[serverId] ?: serverId
+                    } ?: remoteStockLog.menuItemId
+                    val localVariantId = remoteStockLog.serverVariantId?.let { serverId ->
+                        variantIdMap[serverId] ?: serverId
+                    } ?: remoteStockLog.variantId
 
                     StockLogEntity(
                         id = 0, // Auto-generate
@@ -387,15 +393,15 @@ class MasterSyncProcessor @Inject constructor(
             billDao.deleteAllSyncedBillItems()
             billDao.insertSyncedBillItems(
                 masterData.billItems.map { remoteBillItem ->
-                    val localBillId = (remoteBillItem.serverBillId ?: remoteBillItem.billId).let { id ->
-                        billServerIdMap[id] ?: id
-                    }
-                    val localMenuItemId = (remoteBillItem.serverMenuItemId ?: remoteBillItem.menuItemId)?.let { id ->
-                        menuItemIdMap[id] ?: id
-                    }
-                    val localVariantId = (remoteBillItem.serverVariantId ?: remoteBillItem.variantId)?.let { id ->
-                        variantIdMap[id] ?: id
-                    }
+                    val localBillId = remoteBillItem.serverBillId?.let { serverId ->
+                        billServerIdMap[serverId] ?: serverId
+                    } ?: remoteBillItem.billId
+                    val localMenuItemId = remoteBillItem.serverMenuItemId?.let { serverId ->
+                        menuItemIdMap[serverId] ?: serverId
+                    } ?: remoteBillItem.menuItemId
+                    val localVariantId = remoteBillItem.serverVariantId?.let { serverId ->
+                        variantIdMap[serverId] ?: serverId
+                    } ?: remoteBillItem.variantId
                     
                     BillItemEntity(
                         id = 0, // Let SQLite generate local ID
@@ -427,9 +433,9 @@ class MasterSyncProcessor @Inject constructor(
             billDao.deleteAllSyncedBillPayments()
             billDao.insertSyncedBillPayments(
                 masterData.billPayments.map { remoteBillPayment ->
-                    val localBillId = (remoteBillPayment.serverBillId ?: remoteBillPayment.billId).let { id ->
-                        billServerIdMap[id] ?: id
-                    }
+                    val localBillId = remoteBillPayment.serverBillId?.let { serverId ->
+                        billServerIdMap[serverId] ?: serverId
+                    } ?: remoteBillPayment.billId
 
                     BillPaymentEntity(
                         id = 0, // Auto-generate
@@ -449,5 +455,5 @@ class MasterSyncProcessor @Inject constructor(
                 }
             )
         }
-    }
+    } // end withTransaction
 }

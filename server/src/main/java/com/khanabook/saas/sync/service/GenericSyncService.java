@@ -160,7 +160,7 @@ public class GenericSyncService {
 
 					if (incomingRecord instanceof Bill bill) {
 						if (bill.getLastResetDate() == null || bill.getLastResetDate().isEmpty()) {
-							bill.setLastResetDate(new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()));
+							bill.setLastResetDate(java.time.LocalDate.now().toString());
 						}
 					}
 
@@ -187,17 +187,6 @@ public class GenericSyncService {
 					incomingRecord.setServerUpdatedAt(serverTime);
 					if (incomingRecord.getIsDeleted() == null) {
 						incomingRecord.setIsDeleted(false);
-					}
-
-					if (incomingRecord.getCreatedAt() == null) {
-						incomingRecord.setCreatedAt(
-								incomingRecord.getUpdatedAt() != null ? incomingRecord.getUpdatedAt() : serverTime);
-					}
-
-					if (incomingRecord instanceof Bill bill) {
-						if (bill.getLastResetDate() == null || bill.getLastResetDate().isEmpty()) {
-							bill.setLastResetDate(new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()));
-						}
 					}
 
 					if (existingRecord != null) {

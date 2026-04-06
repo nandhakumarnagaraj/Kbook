@@ -97,7 +97,7 @@ fun AppLockScreen(
 
             Icon(
                 Icons.Default.Lock,
-                contentDescription = null,
+                contentDescription = "App locked",
                 tint = PrimaryGold,
                 modifier = Modifier.size(48.dp)
             )

@@ -421,7 +421,7 @@ fun PartPaymentCard(
 fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>, onViewDetails: (Long) -> Unit) {
     val spacing = KhanaBookTheme.spacing
     Column(modifier = Modifier.fillMaxWidth()) {
-        
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -435,15 +435,39 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
             HeaderCell("Date", Modifier.weight(1.2f))
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            contentPadding = PaddingValues(bottom = spacing.bottomListPadding)
-        ) {
-            items(rows) { row ->
-                OrderRowItem(row, onViewDetails)
+        if (rows.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = spacing.extraLarge),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Default.Description,
+                        contentDescription = null,
+                        tint = TextGold.copy(alpha = 0.25f),
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    Text(
+                        "No orders in this period",
+                        color = TextGold.copy(alpha = 0.45f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.medium),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                contentPadding = PaddingValues(bottom = spacing.bottomListPadding)
+            ) {
+                items(rows) { row ->
+                    OrderRowItem(row, onViewDetails)
+                }
             }
         }
     }

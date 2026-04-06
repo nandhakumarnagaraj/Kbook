@@ -88,9 +88,11 @@ fun MenuConfigurationScreen(
                 val bitmapCopy = bitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
                 if (bitmapCopy != null) {
                     viewModel.processMenuImage(context, bitmapCopy)
+                } else {
+                    viewModel.setError("Couldn't read image. Try a clearer photo.")
                 }
             } catch (t: Throwable) {
-                // Error handling could be added to viewModel or snackbar
+                viewModel.setError("Couldn't read image. Try a clearer photo.")
             }
         }
     }
@@ -111,6 +113,13 @@ fun MenuConfigurationScreen(
         ocrUiState.successMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearSuccessMessage()
+        }
+    }
+
+    LaunchedEffect(ocrUiState.error) {
+        ocrUiState.error?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.setError(null)
         }
     }
 
