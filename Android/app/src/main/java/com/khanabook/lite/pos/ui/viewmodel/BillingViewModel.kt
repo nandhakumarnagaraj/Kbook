@@ -295,9 +295,18 @@ class BillingViewModel @Inject constructor(
             // Trigger sync immediately so UI doesn't sit on "Syncing..." for 15 minutes
             viewModelScope.launch(Dispatchers.IO) {
                 try {
-                    syncManager.pushUnsyncedDataImmediately()
+                    val synced = syncManager.pushUnsyncedDataImmediately()
+                    if (!synced) {
+                        Log.w(TAG, "Bill saved locally but immediate sync did not complete")
+                        withContext(Dispatchers.Main) {
+                            _error.value = "Bill saved locally. Sync is pending."
+                        }
+                    }
                 } catch (e: Exception) {
-                    // Ignore failures; MasterSyncWorker will retry later
+                    Log.w(TAG, "Immediate bill sync failed after save", e)
+                    withContext(Dispatchers.Main) {
+                        _error.value = "Bill saved locally. Sync failed and will retry."
+                    }
                 }
             }
 

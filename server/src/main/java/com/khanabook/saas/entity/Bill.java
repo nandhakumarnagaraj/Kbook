@@ -5,11 +5,15 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Index;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "bills", indexes = { @Index(name = "idx_bills_tenant_updated", columnList = "restaurant_id, updated_at"),
+@Table(name = "bills", uniqueConstraints = {
+		@UniqueConstraint(name = "bills_restaurant_id_device_id_local_id_key", columnNames = {
+				"restaurant_id", "device_id", "local_id" }) }, indexes = {
+		@Index(name = "idx_bills_tenant_updated", columnList = "restaurant_id, updated_at"),
 		@Index(name = "idx_bills_device", columnList = "restaurant_id, device_id, local_id") })
 @Getter
 @Setter

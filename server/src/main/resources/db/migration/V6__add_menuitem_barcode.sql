@@ -1,2 +1,0 @@
-ALTER TABLE menuitems
-    ADD COLUMN IF NOT EXISTS barcode VARCHAR(255);

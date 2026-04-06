@@ -11,12 +11,8 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.khanabook.lite.pos.data.local.dao.*
-import com.khanabook.lite.pos.data.local.entity.*
-import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
-import com.khanabook.lite.pos.data.remote.api.MasterSyncResponse
-import com.khanabook.lite.pos.domain.manager.MasterSyncProcessor
 import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.domain.manager.SyncManager
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
@@ -31,8 +27,7 @@ constructor(
         @Assisted private val context: Context,
         @Assisted private val workerParams: WorkerParameters,
         private val sessionManager: SessionManager,
-        private val api: KhanaBookApi,
-        private val masterSyncProcessor: MasterSyncProcessor
+        private val syncManager: SyncManager
 ) : CoroutineWorker(context, workerParams) {
 
   companion object {
@@ -72,46 +67,33 @@ constructor(
               return@withContext Result.success()
             }
 
-            val deviceId = sessionManager.getDeviceId() ?: return@withContext Result.failure()
-            val lastSyncTimestamp = sessionManager.getLastSyncTimestamp()
+            sessionManager.getDeviceId()
 
-              try {
-              val pushSucceeded = masterSyncProcessor.pushAll()
-              if (!pushSucceeded) {
-                  Log.w("MasterSyncWorker", "Push phase aborted before completion")
-                  return@withContext Result.failure()
-              }
+            val result = syncManager.performFullSync()
+            result.fold(
+                onSuccess = {
+                    Log.i("MasterSyncWorker", "Sync completed successfully")
+                    Result.success()
+                },
+                onFailure = { e ->
+                    Log.e("MasterSyncWorker", "Sync failed: ${e.message}", e)
 
-              val masterData = api.pullMasterSync(lastSyncTimestamp, deviceId)
-              masterSyncProcessor.insertMasterData(masterData)
+                    if (e is HttpException) {
+                        if (e.code() == 401) {
+                            sessionManager.clearSession()
+                            return@withContext Result.failure()
+                        }
+                        if (e.code() == 403) {
+                            return@withContext Result.failure()
+                        }
+                    }
 
-              if (masterData.serverTimestamp > 0) {
-                  sessionManager.saveLastSyncTimestamp(masterData.serverTimestamp)
-              } else {
-                  sessionManager.saveLastSyncTimestamp(System.currentTimeMillis())
-              }
-              Log.i("MasterSyncWorker", "Sync completed successfully")
-
-              Result.success()
-            } catch (e: Exception) {
-              Log.e("MasterSyncWorker", "Sync failed: ${e.message}", e)
-              
-              
-              if (e is HttpException) {
-                  if (e.code() == 401) {
-                      // Token revoked or expired — clear session so UI redirects to login
-                      sessionManager.clearSession()
-                      return@withContext Result.failure()
-                  }
-                  if (e.code() == 403) {
-                      return@withContext Result.failure()
-                  }
-              }
-              
-              if (runAttemptCount > 3) {
-                  return@withContext Result.failure()
-              }
-              Result.retry()
+                    if (runAttemptCount > 3) {
+                        return@withContext Result.failure()
+                    }
+                    Result.retry()
+                }
+            )
             }
           }
 }
