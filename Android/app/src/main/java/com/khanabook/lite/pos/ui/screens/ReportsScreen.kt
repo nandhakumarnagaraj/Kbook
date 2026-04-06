@@ -22,6 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -79,13 +84,13 @@ fun ReportsScreen(
                 .padding(bottom = spacing.small)
         ) {
             
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(spacing.medium),
-                verticalAlignment = Alignment.CenterVertically
+                contentAlignment = Alignment.CenterStart
             ) {
-                IconButton(onClick = onBack) {
+                IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
@@ -94,12 +99,10 @@ fun ReportsScreen(
                 }
                 Text(
                     text = "Report Details",
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.align(Alignment.Center),
                     color = PrimaryGold,
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center
+                    style = MaterialTheme.typography.headlineMedium
                 )
-                Spacer(modifier = Modifier.width(spacing.huge))
             }
 
             
@@ -230,7 +233,11 @@ fun ReportsScreen(
             }
         }
 
-        if (isLoading) {
+        AnimatedVisibility(
+            visible = isLoading,
+            enter = fadeIn(animationSpec = tween(200)),
+            exit = fadeOut(animationSpec = tween(200))
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -257,13 +264,23 @@ fun ReportsScreen(
 
 @Composable
 fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val containerColor by animateColorAsState(
+        targetValue = if (isSelected) PrimaryGold else Color.Transparent,
+        animationSpec = tween(200),
+        label = "chip_container"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isSelected) DarkBrown1 else TextLight,
+        animationSpec = tween(200),
+        label = "chip_content"
+    )
     Surface(
         onClick = onClick,
         modifier = modifier.height(36.dp),
         shape = RoundedCornerShape(8.dp),
-        color = if (isSelected) PrimaryGold else Color.Transparent,
+        color = containerColor,
         border = if (isSelected) null else BorderStroke(1.dp, BorderGold),
-        contentColor = if (isSelected) DarkBrown1 else TextLight
+        contentColor = contentColor
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
@@ -648,7 +665,7 @@ fun OrderDetailsDialog(
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.Top
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
                                             text = "${item.itemName} x${item.quantity}",
@@ -712,7 +729,7 @@ fun DetailRow(label: String, value: String, valueColor: Color = TextLight, fontW
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,

@@ -73,6 +73,7 @@ fun HomeScreen(
         initialOffsetY = { it / 6 },
         animationSpec = tween(350, easing = FastOutSlowInEasing)
     )
+    val exitSpec = fadeOut(tween(200))
 
     Box(
         modifier = Modifier
@@ -86,7 +87,7 @@ fun HomeScreen(
                 .padding(spacing.medium)
         ) {
 
-            AnimatedVisibility(visible = headerVisible, enter = enterSpec) {
+            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                 Column {
                     Row(
                         modifier = Modifier
@@ -111,7 +112,7 @@ fun HomeScreen(
                 }
             }
 
-            AnimatedVisibility(visible = statsVisible, enter = enterSpec) {
+            AnimatedVisibility(visible = statsVisible, enter = enterSpec, exit = exitSpec) {
                 KhanaBookCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -159,7 +160,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(spacing.large))
 
-            AnimatedVisibility(visible = primaryVisible, enter = enterSpec) {
+            AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
                 KhanaBookCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -200,7 +201,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(spacing.large))
 
-            AnimatedVisibility(visible = actionsVisible, enter = enterSpec) {
+            AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
             if (isWideScreen) {
                 // Adaptive grid for tablets/landscape
                 Row(
@@ -336,7 +337,7 @@ fun SyncStatusHeader(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .background(containerColor.copy(alpha = if (unsyncedCount > 0) pulseAlpha else 0.15f))
-                .padding(horizontal = spacing.small + spacing.extraSmall, vertical = spacing.extraSmall + 2.dp)
+                .padding(horizontal = spacing.small + spacing.extraSmall, vertical = 6.dp)
         ) {
             Icon(
                 imageVector = when {
@@ -430,7 +431,7 @@ fun HomeActionCard(
                     tint = PrimaryGold,
                     modifier = Modifier.size(iconSize.large)
                 )
-                Spacer(modifier = Modifier.width(spacing.small + spacing.extraSmall))
+                Spacer(modifier = Modifier.width(spacing.small))
                 Text(
                     text = text,
                     color = TextLight,

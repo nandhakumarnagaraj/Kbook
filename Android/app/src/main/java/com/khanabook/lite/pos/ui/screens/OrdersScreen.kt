@@ -36,6 +36,8 @@ import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 import java.util.*
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 
@@ -140,23 +142,21 @@ fun OrdersScreen(
             .background(Brush.verticalGradient(colors = listOf(DarkBrown1, DarkBrown2)))
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(spacing.medium),
-                verticalAlignment = Alignment.CenterVertically
+                contentAlignment = Alignment.CenterStart
             ) {
-                IconButton(onClick = onBack) {
+                IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
                 }
                 Text(
                     text = "Order Details",
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.align(Alignment.Center),
                     color = PrimaryGold,
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center
+                    style = MaterialTheme.typography.headlineMedium
                 )
-                Spacer(modifier = Modifier.width(spacing.huge))
             }
 
             PeriodTabs(
@@ -256,13 +256,23 @@ fun PeriodTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
 
 @Composable
 fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val containerColor by animateColorAsState(
+        targetValue = if (isSelected) PrimaryGold else Color.Transparent,
+        animationSpec = tween(200),
+        label = "chip_container"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isSelected) DarkBrown1 else TextLight,
+        animationSpec = tween(200),
+        label = "chip_content"
+    )
     Surface(
         onClick = onClick,
         modifier = modifier.height(36.dp),
         shape = RoundedCornerShape(8.dp),
-        color = if (isSelected) PrimaryGold else Color.Transparent,
+        color = containerColor,
         border = if (isSelected) null else BorderStroke(1.dp, BorderGold),
-        contentColor = if (isSelected) DarkBrown1 else TextLight
+        contentColor = contentColor
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
