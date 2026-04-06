@@ -7,6 +7,7 @@ import com.khanabook.lite.pos.data.local.dao.*
 import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.api.MasterSyncResponse
+import com.khanabook.lite.pos.data.remote.dto.PushSyncResponse
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,6 +22,44 @@ class MasterSyncProcessor @Inject constructor(
     private val menuDao: MenuDao,
     private val inventoryDao: InventoryDao
 ) {
+
+    private suspend fun <T> pushBatches(
+        label: String,
+        records: List<T>,
+        push: suspend (List<T>) -> PushSyncResponse,
+        markSynced: suspend (List<Long>) -> Unit
+    ) {
+        if (records.isEmpty()) return
+
+        val batches = records.chunked(50)
+        Log.i("MasterSyncProcessor", "Pushing ${records.size} $label record(s) in ${batches.size} batch(es)")
+
+        batches.forEachIndexed { index, batch ->
+            try {
+                val response = push(batch)
+                markSynced(response.successfulLocalIds)
+
+                Log.i(
+                    "MasterSyncProcessor",
+                    "Pushed $label batch ${index + 1}/${batches.size}: success=${response.successfulLocalIds.size}, failed=${response.failedLocalIds.size}"
+                )
+
+                if (response.failedLocalIds.isNotEmpty()) {
+                    Log.w(
+                        "MasterSyncProcessor",
+                        "Server rejected $label localIds=${response.failedLocalIds.joinToString(",")}"
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(
+                    "MasterSyncProcessor",
+                    "Failed pushing $label batch ${index + 1}/${batches.size}",
+                    e
+                )
+                throw e
+            }
+        }
+    }
 
     private fun String?.orFallback(default: String): String = this?.takeUnless { it.isBlank() } ?: default
     
@@ -45,95 +84,78 @@ class MasterSyncProcessor @Inject constructor(
     }
 
     suspend fun pushAll(): Boolean {
-        return try {
-            // Guard: never push data with an invalid tenant — it would be written to the null bucket
-            val profile = restaurantDao.getProfile()
-            val restaurantId = profile?.restaurantId ?: 0L
-            if (restaurantId <= 0L) {
-                Log.w("MasterSyncProcessor", "Push aborted: restaurantId not set (value=$restaurantId)")
-                return false
-            }
-
-            val unsyncedProfiles = restaurantDao.getUnsyncedRestaurantProfiles()
-            if (unsyncedProfiles.isNotEmpty()) {
-                unsyncedProfiles.chunked(50).forEach { batch ->
-                    val response = api.pushRestaurantProfiles(batch)
-                    restaurantDao.markRestaurantProfilesAsSynced(response.successfulLocalIds)
-                }
-            }
-
-            val unsyncedUsers = userDao.getUnsyncedUsers()
-            if (unsyncedUsers.isNotEmpty()) {
-                unsyncedUsers.chunked(50).forEach { batch ->
-                    val response = api.pushUsers(batch)
-                    userDao.markUsersAsSynced(response.successfulLocalIds)
-                }
-            }
-
-            
-            val unsyncedCategories = categoryDao.getUnsyncedCategories()
-            if (unsyncedCategories.isNotEmpty()) {
-                unsyncedCategories.chunked(50).forEach { batch ->
-                    val response = api.pushCategories(batch)
-                    categoryDao.markCategoriesAsSynced(response.successfulLocalIds)
-                }
-            }
-
-            val unsyncedMenuItems = menuDao.getUnsyncedMenuItems()
-            if (unsyncedMenuItems.isNotEmpty()) {
-                unsyncedMenuItems.chunked(50).forEach { batch ->
-                    val response = api.pushMenuItems(batch)
-                    menuDao.markMenuItemsAsSynced(response.successfulLocalIds)
-                }
-            }
-
-            val unsyncedVariants = menuDao.getUnsyncedItemVariants()
-            if (unsyncedVariants.isNotEmpty()) {
-                unsyncedVariants.chunked(50).forEach { batch ->
-                    val response = api.pushItemVariants(batch)
-                    menuDao.markItemVariantsAsSynced(response.successfulLocalIds)
-                }
-            }
-
-            
-            val unsyncedStockLogs = inventoryDao.getUnsyncedStockLogs()
-            if (unsyncedStockLogs.isNotEmpty()) {
-                unsyncedStockLogs.chunked(50).forEach { batch ->
-                    val response = api.pushStockLogs(batch)
-                    inventoryDao.markStockLogsAsSynced(response.successfulLocalIds)
-                }
-            }
-
-            
-            val unsyncedBills = billDao.getUnsyncedBills()
-            if (unsyncedBills.isNotEmpty()) {
-                unsyncedBills.chunked(50).forEach { batch ->
-                    val response = api.pushBills(batch)
-                    billDao.markBillsAsSynced(response.successfulLocalIds)
-                }
-            }
-
-            val unsyncedBillItems = billDao.getUnsyncedBillItems()
-            if (unsyncedBillItems.isNotEmpty()) {
-                unsyncedBillItems.chunked(50).forEach { batch ->
-                    val response = api.pushBillItems(batch)
-                    billDao.markBillItemsAsSynced(response.successfulLocalIds)
-                }
-            }
-
-            val unsyncedBillPayments = billDao.getUnsyncedBillPayments()
-            if (unsyncedBillPayments.isNotEmpty()) {
-                unsyncedBillPayments.chunked(50).forEach { batch ->
-                    val response = api.pushBillPayments(batch)
-                    billDao.markBillPaymentsAsSynced(response.successfulLocalIds)
-                }
-            }
-
-            true
-        } catch (e: Exception) {
-            Log.e("MasterSyncProcessor", "Push failed", e)
-            false
+        // Guard: never push data with an invalid tenant — it would be written to the null bucket
+        val profile = restaurantDao.getProfile()
+        val restaurantId = profile?.restaurantId ?: 0L
+        if (restaurantId <= 0L) {
+            Log.w("MasterSyncProcessor", "Push aborted: restaurantId not set (value=$restaurantId)")
+            return false
         }
+
+        pushBatches(
+            label = "restaurant profiles",
+            records = restaurantDao.getUnsyncedRestaurantProfiles(),
+            push = api::pushRestaurantProfiles,
+            markSynced = restaurantDao::markRestaurantProfilesAsSynced
+        )
+
+        pushBatches(
+            label = "users",
+            records = userDao.getUnsyncedUsers(),
+            push = api::pushUsers,
+            markSynced = userDao::markUsersAsSynced
+        )
+
+        pushBatches(
+            label = "categories",
+            records = categoryDao.getUnsyncedCategories(),
+            push = api::pushCategories,
+            markSynced = categoryDao::markCategoriesAsSynced
+        )
+
+        pushBatches(
+            label = "menu items",
+            records = menuDao.getUnsyncedMenuItems(),
+            push = api::pushMenuItems,
+            markSynced = menuDao::markMenuItemsAsSynced
+        )
+
+        pushBatches(
+            label = "item variants",
+            records = menuDao.getUnsyncedItemVariants(),
+            push = api::pushItemVariants,
+            markSynced = menuDao::markItemVariantsAsSynced
+        )
+
+        pushBatches(
+            label = "stock logs",
+            records = inventoryDao.getUnsyncedStockLogs(),
+            push = api::pushStockLogs,
+            markSynced = inventoryDao::markStockLogsAsSynced
+        )
+
+        pushBatches(
+            label = "bills",
+            records = billDao.getUnsyncedBills(),
+            push = api::pushBills,
+            markSynced = billDao::markBillsAsSynced
+        )
+
+        pushBatches(
+            label = "bill items",
+            records = billDao.getUnsyncedBillItems(),
+            push = api::pushBillItems,
+            markSynced = billDao::markBillItemsAsSynced
+        )
+
+        pushBatches(
+            label = "bill payments",
+            records = billDao.getUnsyncedBillPayments(),
+            push = api::pushBillPayments,
+            markSynced = billDao::markBillPaymentsAsSynced
+        )
+
+        return true
     }
 
     suspend fun insertMasterData(masterData: MasterSyncResponse) = database.withTransaction {

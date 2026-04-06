@@ -76,7 +76,11 @@ constructor(
             val lastSyncTimestamp = sessionManager.getLastSyncTimestamp()
 
               try {
-              masterSyncProcessor.pushAll()
+              val pushSucceeded = masterSyncProcessor.pushAll()
+              if (!pushSucceeded) {
+                  Log.w("MasterSyncWorker", "Push phase aborted before completion")
+                  return@withContext Result.failure()
+              }
 
               val masterData = api.pullMasterSync(lastSyncTimestamp, deviceId)
               masterSyncProcessor.insertMasterData(masterData)
