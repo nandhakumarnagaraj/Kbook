@@ -1,12 +1,9 @@
 package com.khanabook.lite.pos.di
 
 import android.content.Context
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
 import android.util.Base64
 import android.util.Log
 import androidx.room.Room
-import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.data.local.AppDatabase
 import com.khanabook.lite.pos.data.local.dao.*
 import com.khanabook.lite.pos.data.repository.*
@@ -15,39 +12,42 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import java.security.KeyStore
-import javax.crypto.KeyGenerator
 import javax.inject.Singleton
 import net.sqlcipher.database.SupportFactory
 
 private const val TAG = "DatabaseModule"
-private const val KEYSTORE_ALIAS = "KhanaBookDbKey"
+private const val SECURE_DB_PREFS = "secure_db_prefs"
+private const val DB_KEY_PREF = "db_key"
 
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+        private fun getSecureDbPrefs(context: Context): android.content.SharedPreferences {
+                val mainKey = androidx.security.crypto.MasterKey.Builder(context)
+                    .setKeyScheme(androidx.security.crypto.MasterKey.KeyScheme.AES256_GCM)
+                    .build()
+
+                return androidx.security.crypto.EncryptedSharedPreferences.create(
+                    context,
+                    SECURE_DB_PREFS,
+                    mainKey,
+                    androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                )
+        }
+
         private fun getOrCreateDbPassphrase(context: Context): ByteArray {
                 try {
-                    val mainKey = androidx.security.crypto.MasterKey.Builder(context)
-                        .setKeyScheme(androidx.security.crypto.MasterKey.KeyScheme.AES256_GCM)
-                        .build()
+                    val sharedPrefs = getSecureDbPrefs(context)
 
-                    val sharedPrefs = androidx.security.crypto.EncryptedSharedPreferences.create(
-                        context,
-                        "secure_db_prefs",
-                        mainKey,
-                        androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                        androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-                    )
-
-                    var dbKey = sharedPrefs.getString("db_key", null)
+                    var dbKey = sharedPrefs.getString(DB_KEY_PREF, null)
                     if (dbKey == null) {
                         val secureRandom = java.security.SecureRandom()
                         val bytes = ByteArray(32)
                         secureRandom.nextBytes(bytes)
                         dbKey = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                        sharedPrefs.edit().putString("db_key", dbKey).apply()
+                        sharedPrefs.edit().putString(DB_KEY_PREF, dbKey).apply()
                     }
 
                     return Base64.decode(dbKey, Base64.NO_WRAP)
@@ -57,35 +57,84 @@ object DatabaseModule {
                 }
         }
 
+        private fun clearDbPassphrase(context: Context) {
+                runCatching {
+                        getSecureDbPrefs(context).edit().remove(DB_KEY_PREF).apply()
+                }.onFailure {
+                        Log.e(TAG, "Failed to clear stored DB passphrase during recovery.", it)
+                }
+        }
+
+        private fun shouldRecoverFromDbOpenFailure(error: Throwable): Boolean {
+                var current: Throwable? = error
+                while (current != null) {
+                        val message = current.message?.lowercase().orEmpty()
+                        if (
+                            "file is not a database" in message ||
+                            "sqlite_master" in message ||
+                            "not an error" in message && "cipher" in message
+                        ) {
+                                return true
+                        }
+                        current = current.cause
+                }
+                return false
+        }
+
+        private fun deleteDatabaseFiles(context: Context) {
+                context.deleteDatabase(AppDatabase.DATABASE_NAME)
+                context.getDatabasePath("${AppDatabase.DATABASE_NAME}-wal").delete()
+                context.getDatabasePath("${AppDatabase.DATABASE_NAME}-shm").delete()
+                context.getDatabasePath("${AppDatabase.DATABASE_NAME}-journal").delete()
+        }
+
+        private fun buildDatabase(context: Context, passphrase: ByteArray): AppDatabase {
+                val factory = SupportFactory(passphrase)
+
+                return Room.databaseBuilder(
+                                context,
+                                AppDatabase::class.java,
+                                AppDatabase.DATABASE_NAME
+                        )
+                        .openHelperFactory(factory)
+                        .addMigrations(
+                            AppDatabase.MIGRATION_17_18,
+                            AppDatabase.MIGRATION_18_19,
+                            AppDatabase.MIGRATION_21_22,
+                            AppDatabase.MIGRATION_23_24,
+                            AppDatabase.MIGRATION_26_27,
+                            AppDatabase.MIGRATION_27_28,
+                            AppDatabase.MIGRATION_28_29,
+                            AppDatabase.MIGRATION_29_30,
+                            AppDatabase.MIGRATION_30_31,
+                            AppDatabase.MIGRATION_31_32,
+                            AppDatabase.MIGRATION_32_33,
+                            AppDatabase.MIGRATION_33_34
+                        )
+                        .build()
+        }
+
         @Provides
         @Singleton
         fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
-                val passphrase = getOrCreateDbPassphrase(context)
-                val factory = SupportFactory(passphrase)
+                return try {
+                        val database = buildDatabase(context, getOrCreateDbPassphrase(context))
+                        database.openHelper.writableDatabase
+                        database
+                } catch (e: Exception) {
+                        if (!shouldRecoverFromDbOpenFailure(e)) {
+                                throw e
+                        }
 
-                val builder =
-                        Room.databaseBuilder(
-                                        context,
-                                        AppDatabase::class.java,
-                                        AppDatabase.DATABASE_NAME
-                                )
-                                .openHelperFactory(factory)
-                                .addMigrations(
-                                    AppDatabase.MIGRATION_17_18,
-                                    AppDatabase.MIGRATION_18_19,
-                                    AppDatabase.MIGRATION_21_22,
-                                    AppDatabase.MIGRATION_23_24,
-                                    AppDatabase.MIGRATION_26_27,
-                                    AppDatabase.MIGRATION_27_28,
-                                    AppDatabase.MIGRATION_28_29,
-                                    AppDatabase.MIGRATION_29_30,
-                                    AppDatabase.MIGRATION_30_31,
-                                    AppDatabase.MIGRATION_31_32,
-                                    AppDatabase.MIGRATION_32_33,
-                                    AppDatabase.MIGRATION_33_34
-                                )
+                        Log.w(TAG, "Detected unusable encrypted database. Resetting local DB and passphrase.", e)
+                        runCatching { deleteDatabaseFiles(context) }
+                            .onFailure { Log.e(TAG, "Failed to delete local DB files during recovery.", it) }
+                        clearDbPassphrase(context)
 
-                return builder.build()
+                        val recoveredDb = buildDatabase(context, getOrCreateDbPassphrase(context))
+                        recoveredDb.openHelper.writableDatabase
+                        recoveredDb
+                }
         }
 
         @Provides fun provideUserDao(database: AppDatabase) = database.userDao()
