@@ -138,4 +138,19 @@ public class RestaurantProfile extends BaseSyncEntity {
 
 	@Column(name = "mask_customer_phone")
 	private Boolean maskCustomerPhone = true;
+
+	@Column(name = "last_reset_date_proper")
+	private java.time.LocalDate lastResetDateProper;
+
+	@jakarta.persistence.PrePersist
+	@jakarta.persistence.PreUpdate
+	public void syncDates() {
+		if (lastResetDate != null && !lastResetDate.isEmpty()) {
+			try {
+				lastResetDateProper = java.time.LocalDate.parse(lastResetDate);
+			} catch (Exception e) {
+				// ignore parsing errors
+			}
+		}
+	}
 }

@@ -32,12 +32,11 @@ interface RestaurantDao {
         val zoneId = java.time.ZoneId.of(profile.timezone ?: "Asia/Kolkata")
         val today = java.time.LocalDate.now(zoneId).toString()
         val isNewDay = profile.lastResetDate != today
-        val hadOrdersYesterday = profile.dailyOrderCounter > 0 && isNewDay
         val now = System.currentTimeMillis()
         
         if (isNewDay) {
-            // Continue from where we left off (don't reset to 1 if there were orders)
-            val nextDailyCounter = if (hadOrdersYesterday) profile.dailyOrderCounter + 1 else 1L
+            // Reset to 1 on a new day
+            val nextDailyCounter = 1L
             resetDailyCounter(nextDailyCounter, today, now)
             incrementLifetimeCounterOnly(now)
             
