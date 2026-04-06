@@ -376,41 +376,65 @@ public class GenericSyncService {
 	private void resolveRelationalIds(BaseSyncEntity record, RelationalIdMaps maps) {
 		try {
 			if (record instanceof MenuItem menuItem) {
-				if (menuItem.getCategoryId() != null && menuItem.getServerCategoryId() == null) {
+				if (menuItem.getCategoryId() != null) {
 					Long serverId = maps.categoryLocalToServerId.get(menuItem.getCategoryId());
-					if (serverId != null) menuItem.setServerCategoryId(serverId);
+					if (serverId != null) {
+						menuItem.setServerCategoryId(serverId);
+						menuItem.setCategoryId(serverId); // CRITICAL: Update FK column
+					}
 				}
 			} else if (record instanceof ItemVariant variant) {
-				if (variant.getMenuItemId() != null && variant.getServerMenuItemId() == null) {
+				if (variant.getMenuItemId() != null) {
 					Long serverId = maps.menuItemLocalToServerId.get(variant.getMenuItemId());
-					if (serverId != null) variant.setServerMenuItemId(serverId);
+					if (serverId != null) {
+						variant.setServerMenuItemId(serverId);
+						variant.setMenuItemId(serverId); // CRITICAL: Update FK column
+					}
 				}
 			} else if (record instanceof BillItem billItem) {
-				if (billItem.getBillId() != null && billItem.getServerBillId() == null) {
+				if (billItem.getBillId() != null) {
 					Long serverId = maps.billLocalToServerId.get(billItem.getBillId());
-					if (serverId != null) billItem.setServerBillId(serverId);
+					if (serverId != null) {
+						billItem.setServerBillId(serverId);
+						billItem.setBillId(serverId); // CRITICAL: Update FK column
+					}
 				}
-				if (billItem.getMenuItemId() != null && billItem.getServerMenuItemId() == null) {
+				if (billItem.getMenuItemId() != null) {
 					Long serverId = maps.menuItemLocalToServerId.get(billItem.getMenuItemId());
-					if (serverId != null) billItem.setServerMenuItemId(serverId);
+					if (serverId != null) {
+						billItem.setServerMenuItemId(serverId);
+						billItem.setMenuItemId(serverId); // CRITICAL: Update FK column
+					}
 				}
-				if (billItem.getVariantId() != null && billItem.getServerVariantId() == null) {
+				if (billItem.getVariantId() != null) {
 					Long serverId = maps.variantLocalToServerId.get(billItem.getVariantId());
-					if (serverId != null) billItem.setServerVariantId(serverId);
+					if (serverId != null) {
+						billItem.setServerVariantId(serverId);
+						billItem.setVariantId(serverId); // CRITICAL: Update FK column
+					}
 				}
 			} else if (record instanceof BillPayment payment) {
-				if (payment.getBillId() != null && payment.getServerBillId() == null) {
+				if (payment.getBillId() != null) {
 					Long serverId = maps.billLocalToServerId.get(payment.getBillId());
-					if (serverId != null) payment.setServerBillId(serverId);
+					if (serverId != null) {
+						payment.setServerBillId(serverId);
+						payment.setBillId(serverId); // CRITICAL: Update FK column
+					}
 				}
 			} else if (record instanceof StockLog logRecord) {
-				if (logRecord.getMenuItemId() != null && logRecord.getServerMenuItemId() == null) {
+				if (logRecord.getMenuItemId() != null) {
 					Long serverId = maps.menuItemLocalToServerId.get(logRecord.getMenuItemId());
-					if (serverId != null) logRecord.setServerMenuItemId(serverId);
+					if (serverId != null) {
+						logRecord.setServerMenuItemId(serverId);
+						logRecord.setMenuItemId(serverId); // CRITICAL: Update FK column
+					}
 				}
-				if (logRecord.getVariantId() != null && logRecord.getServerVariantId() == null) {
+				if (logRecord.getVariantId() != null) {
 					Long serverId = maps.variantLocalToServerId.get(logRecord.getVariantId());
-					if (serverId != null) logRecord.setServerVariantId(serverId);
+					if (serverId != null) {
+						logRecord.setServerVariantId(serverId);
+						logRecord.setVariantId(serverId); // CRITICAL: Update FK column
+					}
 				}
 			}
 		} catch (Exception e) {
