@@ -9,6 +9,7 @@ import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.domain.manager.ReportGenerator
 import com.khanabook.lite.pos.domain.model.OrderDetailRow
 import com.khanabook.lite.pos.domain.model.OrderLevelRow
+import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -67,7 +68,10 @@ class ReportsViewModel @Inject constructor(
             try {
                 _selectedBillDetails.value = reportGenerator.getOrderDetail(billId)
             } catch (e: Exception) {
-                _error.value = "Failed to load order details: ${e.message}"
+                _error.value = UserMessageSanitizer.sanitize(
+                    e,
+                    "Failed to load order details."
+                )
             } finally {
                 _isLoading.value = false
             }
@@ -127,7 +131,10 @@ class ReportsViewModel @Inject constructor(
                 _orderLevelRows.value = reportGenerator.getOrderLevelRows(from, to)
                 _orderDetailsTable.value = reportGenerator.getOrderDetailsTable(from, to)
             } catch (e: Exception) {
-                _error.value = "Failed to load reports: ${e.message}"
+                _error.value = UserMessageSanitizer.sanitize(
+                    e,
+                    "Failed to load reports."
+                )
             } finally {
                 _isLoading.value = false
             }
@@ -168,7 +175,10 @@ class ReportsViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                _error.value = "Failed to cancel order: ${e.message}"
+                _error.value = UserMessageSanitizer.sanitize(
+                    e,
+                    "Failed to cancel order."
+                )
             }
         }
     }
@@ -181,7 +191,10 @@ class ReportsViewModel @Inject constructor(
                     loadReports(currentFrom, currentTo)
                 }
             } catch (e: Exception) {
-                _error.value = "Failed to update order status: ${e.message}"
+                _error.value = UserMessageSanitizer.sanitize(
+                    e,
+                    "Failed to update order status."
+                )
             }
         }
     }
@@ -194,7 +207,10 @@ class ReportsViewModel @Inject constructor(
                     loadReports(currentFrom, currentTo)
                 }
             } catch (e: Exception) {
-                _error.value = "Failed to update payment mode: ${e.message}"
+                _error.value = UserMessageSanitizer.sanitize(
+                    e,
+                    "Failed to update payment mode."
+                )
             }
         }
     }

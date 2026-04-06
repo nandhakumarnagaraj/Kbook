@@ -12,6 +12,7 @@ import com.khanabook.lite.pos.data.repository.MenuRepository
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.OrderIdManager
 import com.khanabook.lite.pos.domain.model.*
+import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import androidx.compose.runtime.Immutable
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -329,7 +330,10 @@ class BillingViewModel @Inject constructor(
                     } catch (e: Exception) {
                         Log.w(TAG, "Auto-print failed", e)
                         withContext(Dispatchers.Main) {
-                            _error.value = "Print failed: ${e.message}. Bill saved successfully."
+                            _error.value = UserMessageSanitizer.sanitize(
+                                e,
+                                "Unable to print invoice. Bill saved successfully."
+                            )
                         }
                     }
                 }
@@ -343,7 +347,10 @@ class BillingViewModel @Inject constructor(
             return true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to save bill", e)
-            _error.value = "Failed to save bill: ${e.message}"
+            _error.value = UserMessageSanitizer.sanitize(
+                e,
+                "Failed to save bill. Please try again."
+            )
             _isLoading.value = false
             return false
         }

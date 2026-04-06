@@ -18,6 +18,7 @@ import com.khanabook.lite.pos.data.repository.UserRepository
 import com.khanabook.lite.pos.domain.manager.AuthManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
 import com.khanabook.lite.pos.domain.util.findActivity
+import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -181,7 +182,9 @@ constructor(
                     _signUpStatus.value = SignUpResult.OtpSent
                 } catch (e: Exception) {
                     _signUpStatus.value =
-                        SignUpResult.Error(e.message ?: "Failed to send OTP. Please try again.")
+                        SignUpResult.Error(
+                            UserMessageSanitizer.sanitize(e, "Failed to send OTP. Please try again.")
+                        )
                 }
                 return@launch
             }
@@ -206,7 +209,9 @@ constructor(
                     _resetPasswordStatus.value = ResetPasswordResult.OtpSent
                 } catch (e: Exception) {
                     _resetPasswordStatus.value =
-                        ResetPasswordResult.Error(e.message ?: "Failed to send OTP. Please try again.")
+                        ResetPasswordResult.Error(
+                            UserMessageSanitizer.sanitize(e, "Failed to send OTP. Please try again.")
+                        )
                 }
                 return@launch
             }
@@ -217,7 +222,9 @@ constructor(
                     _otpVerificationStatus.value = OtpVerificationResult.OtpSent
                 }.onFailure { e ->
                     _otpVerificationStatus.value =
-                        OtpVerificationResult.Error(e.message ?: "Failed to send OTP. Please try again.")
+                        OtpVerificationResult.Error(
+                            UserMessageSanitizer.sanitize(e, "Failed to send OTP. Please try again.")
+                        )
                 }
                 return@launch
             }
@@ -231,7 +238,9 @@ constructor(
                 _otpVerificationStatus.value = OtpVerificationResult.Success
             }.onFailure { e ->
                 _otpVerificationStatus.value =
-                    OtpVerificationResult.Error(e.message ?: "Failed to verify OTP.")
+                    OtpVerificationResult.Error(
+                        UserMessageSanitizer.sanitize(e, "Failed to verify OTP.")
+                    )
             }
         }
     }
@@ -277,13 +286,19 @@ constructor(
                         _signUpStatus.value = SignUpResult.Success
                     } else if (_loginStatus.value is LoginResult.Error) {
                         val error = _loginStatus.value as LoginResult.Error
-                        _signUpStatus.value = SignUpResult.Error("Signup successful but Login failed: ${error.message}")
+                        _signUpStatus.value = SignUpResult.Error(
+                            "Signup successful but login failed. Please sign in and try again."
+                        )
                     }
                 }.onFailure { e ->
-                    _signUpStatus.value = SignUpResult.Error(e.message ?: "Registration failed")
+                    _signUpStatus.value = SignUpResult.Error(
+                        UserMessageSanitizer.sanitize(e, "Registration failed")
+                    )
                 }
             } catch (e: Exception) {
-                _signUpStatus.value = SignUpResult.Error(e.message ?: "Registration failed")
+                _signUpStatus.value = SignUpResult.Error(
+                    UserMessageSanitizer.sanitize(e, "Registration failed")
+                )
             }
         }
     }
@@ -296,7 +311,9 @@ constructor(
                 _resetPasswordStatus.value = ResetPasswordResult.Success
             } catch (e: Exception) {
                 _resetPasswordStatus.value =
-                        ResetPasswordResult.Error(e.message ?: "Failed to reset password")
+                        ResetPasswordResult.Error(
+                            UserMessageSanitizer.sanitize(e, "Failed to reset password")
+                        )
             }
         }
     }
@@ -369,7 +386,10 @@ constructor(
                     }.onFailure { e ->
                         Log.e(TAG, "Remote Google login failed", e)
                         _loginStatus.value = loginError(
-                            "Google sync failed: ${e.message}",
+                            UserMessageSanitizer.sanitize(
+                                e,
+                                "Google sign-in failed. Please try again."
+                            ),
                             LoginErrorCode.GOOGLE_SYNC_FAILED
                         )
                     }

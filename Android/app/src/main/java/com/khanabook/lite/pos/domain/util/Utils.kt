@@ -169,7 +169,11 @@ fun shareBillOnWhatsApp(
         }
 
     } catch (e: Exception) {
-        android.widget.Toast.makeText(context, "Share failed: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+        android.widget.Toast.makeText(
+            context,
+            UserMessageSanitizer.sanitize(e, "Unable to share invoice."),
+            android.widget.Toast.LENGTH_SHORT
+        ).show()
     }
 }
 
@@ -222,7 +226,11 @@ fun openBillToPrint(context: Context, billWithItems: BillWithItems, profile: Res
         }
         context.startActivity(Intent.createChooser(intent, "Open PDF to Print"))
     } catch (e: Exception) {
-        Toast.makeText(context, "Error opening PDF: ${e.message}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            context,
+            UserMessageSanitizer.sanitize(e, "Unable to open invoice."),
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }
 
