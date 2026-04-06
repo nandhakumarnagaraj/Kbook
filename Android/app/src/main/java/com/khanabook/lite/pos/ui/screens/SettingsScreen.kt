@@ -965,13 +965,103 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
     val spacing = KhanaBookTheme.spacing
     val context = LocalContext.current
     val logoutState by viewModel.logoutState.collectAsStateWithLifecycle()
+    val appLockViewModel: com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel = hiltViewModel()
+    val enteredPin by appLockViewModel.enteredPin.collectAsStateWithLifecycle()
+    val pinError by appLockViewModel.errorMessage.collectAsStateWithLifecycle()
     var showConfirmDialog by remember { mutableStateOf(false) }
+    var showPinDialog by remember { mutableStateOf(false) }
+    val isPinEnabled = remember(logoutState) { appLockViewModel.isPinEnabled() }
 
     LaunchedEffect(logoutState) { if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.LoggedOut) Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show() }
 
+    LaunchedEffect(enteredPin, showPinDialog) {
+        if (showPinDialog && enteredPin.length == 4) {
+            appLockViewModel.verifyPin(
+                onSuccess = {
+                    appLockViewModel.clearPin()
+                    showPinDialog = false
+                    viewModel.forceLogoutDespiteWarning()
+                }
+            )
+        }
+    }
+
     if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData) {
         val warning = logoutState as com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData
-        AlertDialog(onDismissRequest = { viewModel.cancelLogout() }, title = { Text("Unsynced Data Warning", color = DangerRed) }, text = { Text("You have ${warning.totalCount} records not synced. Logging out will delete them.") }, confirmButton = { TextButton(onClick = { viewModel.forceLogoutDespiteWarning() }) { Text("Logout Anyway", color = DangerRed) } }, dismissButton = { TextButton(onClick = { viewModel.cancelLogout() }) { Text("Cancel") } })
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelLogout() },
+            title = { Text("Unsynced Data Warning", color = DangerRed) },
+            text = {
+                Text(
+                    if (isPinEnabled) {
+                        "You have ${warning.totalCount} records not synced. Signing out now will remove them from this device. Enter your app PIN to continue."
+                    } else {
+                        "You have ${warning.totalCount} records not synced. Signing out now will remove them from this device."
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (isPinEnabled) {
+                            appLockViewModel.clearPin()
+                            showPinDialog = true
+                        } else {
+                            viewModel.forceLogoutDespiteWarning()
+                        }
+                    }
+                ) {
+                    Text(if (isPinEnabled) "Enter PIN" else "Logout Anyway", color = DangerRed)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showPinDialog = false
+                        appLockViewModel.clearPin()
+                        viewModel.cancelLogout()
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showPinDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showPinDialog = false
+                appLockViewModel.clearPin()
+            },
+            title = { Text("Enter App PIN", color = TextLight) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                    Text(
+                        "Unsynced data will be removed from this device after sign out.",
+                        color = TextGold.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    InlinePinEntry(
+                        pin = enteredPin,
+                        onDigit = { appLockViewModel.appendDigit(it) },
+                        onDelete = { appLockViewModel.deleteDigit() },
+                        errorMessage = pinError
+                    )
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showPinDialog = false
+                        appLockViewModel.clearPin()
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (showConfirmDialog) {

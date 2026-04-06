@@ -58,42 +58,39 @@ constructor(
     }
   }
 
-  override suspend fun doWork(): Result =
-          withContext(Dispatchers.IO) {
-            val token = sessionManager.getAuthToken()
+  override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+    val token = sessionManager.getAuthToken()
 
-            if (token.isNullOrBlank()) {
-              Log.w("MasterSyncWorker", "Aborting sync: No valid session token found.")
-              return@withContext Result.success()
+    if (token.isNullOrBlank()) {
+      Log.w("MasterSyncWorker", "Aborting sync: No valid session token found.")
+      return@withContext Result.success()
+    }
+
+    sessionManager.getDeviceId()
+
+    syncManager.performFullSync().fold(
+        onSuccess = {
+          Log.i("MasterSyncWorker", "Sync completed successfully")
+          Result.success()
+        },
+        onFailure = { e ->
+          Log.e("MasterSyncWorker", "Sync failed: ${e.message}", e)
+
+          if (e is HttpException) {
+            if (e.code() == 401) {
+              sessionManager.clearSession()
+              return@withContext Result.failure()
             }
-
-            sessionManager.getDeviceId()
-
-            val result = syncManager.performFullSync()
-            result.fold(
-                onSuccess = {
-                    Log.i("MasterSyncWorker", "Sync completed successfully")
-                    Result.success()
-                },
-                onFailure = { e ->
-                    Log.e("MasterSyncWorker", "Sync failed: ${e.message}", e)
-
-                    if (e is HttpException) {
-                        if (e.code() == 401) {
-                            sessionManager.clearSession()
-                            return@withContext Result.failure()
-                        }
-                        if (e.code() == 403) {
-                            return@withContext Result.failure()
-                        }
-                    }
-
-                    if (runAttemptCount > 3) {
-                        return@withContext Result.failure()
-                    }
-                    Result.retry()
-                }
-            )
+            if (e.code() == 403) {
+              return@withContext Result.failure()
             }
           }
+
+          if (runAttemptCount > 3) {
+            return@withContext Result.failure()
+          }
+          Result.retry()
+        }
+    )
+  }
 }
