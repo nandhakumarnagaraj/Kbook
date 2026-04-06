@@ -190,6 +190,8 @@ public class PasswordResetOtpService {
 						response.body());
 				throw new IllegalStateException("WhatsApp OTP send failed with status " + response.statusCode());
 			}
+			log.info("WhatsApp API Response (SUCCESS) for {} phone={}: {}", 
+					describeChallenge(challengeKey), formattedPhoneNumber, response.body());
 			log.info("WhatsApp OTP sent for challengeType={} phone={} formattedPhone={}",
 					describeChallenge(challengeKey), phoneNumber, formattedPhoneNumber);
 		} catch (Exception e) {
@@ -203,6 +205,9 @@ public class PasswordResetOtpService {
 	private String formatWhatsappPhoneNumber(String phoneNumber) {
 		String digits = phoneNumber == null ? "" : phoneNumber.replaceAll("[^0-9]", "");
 		if (digits.length() == 10) {
+			if (digits.startsWith("91")) {
+				return digits; // 10-digit number already starting with 91
+			}
 			return "91" + digits;
 		}
 		if (digits.startsWith("91") && digits.length() == 12) {

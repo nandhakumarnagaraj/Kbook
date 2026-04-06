@@ -29,6 +29,7 @@ class BillingViewModel @Inject constructor(
     private val menuRepository: MenuRepository,
     private val restaurantRepository: RestaurantRepository,
     private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
+    private val syncManager: com.khanabook.lite.pos.domain.manager.SyncManager,
     val printerManager: com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 ) : ViewModel() {
 
@@ -290,6 +291,15 @@ class BillingViewModel @Inject constructor(
             billRepository.insertFullBill(bill, items, payments)
             val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
             _lastBill.value = inserted
+
+            // Trigger sync immediately so UI doesn't sit on "Syncing..." for 15 minutes
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    syncManager.pushUnsyncedDataImmediately()
+                } catch (e: Exception) {
+                    // Ignore failures; MasterSyncWorker will retry later
+                }
+            }
 
             // Launch auto-print asynchronously — never blocks bill completion
             if (profile.printerEnabled && profile.autoPrintOnSuccess && inserted != null) {
