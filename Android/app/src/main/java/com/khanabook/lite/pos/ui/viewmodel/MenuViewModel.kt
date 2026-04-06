@@ -275,7 +275,7 @@ class MenuViewModel @Inject constructor(
                     }
                 } catch (e: Exception) {
                     withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        _ocrImportUiState.update { it.copy(isProcessing = false, error = "Error loading image: ${e.message}") }
+                        _ocrImportUiState.update { it.copy(isProcessing = false, error = com.khanabook.lite.pos.domain.util.UserMessageSanitizer.sanitize(e, "Error loading image. Please try again.")) }
                     }
                 }
             }
@@ -381,7 +381,7 @@ class MenuViewModel @Inject constructor(
                 withContext(kotlinx.coroutines.Dispatchers.Main) {
                     _ocrImportUiState.update { it.copy(
                         isProcessing = false,
-                        error = "Failed to process PDF: ${e.message?.take(80)}"
+                        error = com.khanabook.lite.pos.domain.util.UserMessageSanitizer.sanitize(e, "Failed to process PDF. Please try again.")
                     )}
                 }
             }
@@ -569,7 +569,7 @@ class MenuViewModel @Inject constructor(
                 withContext(kotlinx.coroutines.Dispatchers.Main) {
                     _ocrImportUiState.update { it.copy(
                         isProcessing = false, 
-                        error = "Failed to save: ${e.localizedMessage ?: "Unknown error"}"
+                        error = com.khanabook.lite.pos.domain.util.UserMessageSanitizer.sanitize(e, "Failed to save. Please try again.")
                     )}
                 }
             }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
+import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,13 +46,13 @@ class InitialSyncViewModel @Inject constructor(
                 } else {
                     val error = result.exceptionOrNull()
                     _syncState.value = InitialSyncState.Error(
-                        error?.localizedMessage ?: "Network error. Please check your connection."
+                        UserMessageSanitizer.sanitize(error, "Network error. Please check your connection.")
                     )
                 }
             } catch (e: Exception) {
                 
                 _syncState.value = InitialSyncState.Error(
-                    e.localizedMessage ?: "Unexpected error occurred."
+                    UserMessageSanitizer.sanitize(e, "Unexpected error occurred. Please try again.")
                 )
             }
         }

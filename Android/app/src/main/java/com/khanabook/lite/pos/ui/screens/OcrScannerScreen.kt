@@ -150,7 +150,7 @@ fun OcrScannerScreen(
                         errorMessage = "Failed to process image: Out of memory"
                     }
                 } catch (t: Throwable) {
-                    errorMessage = "Failed to load image: ${t.message}"
+                    errorMessage = com.khanabook.lite.pos.domain.util.UserMessageSanitizer.sanitize(t, "Failed to load image. Please try again.")
                 }
             }
         }
