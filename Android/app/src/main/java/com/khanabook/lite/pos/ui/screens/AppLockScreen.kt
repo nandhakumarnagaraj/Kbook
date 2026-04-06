@@ -179,11 +179,14 @@ fun PinNumpad(
         listOf("7", "8", "9"),
         listOf("bio", "0", "del")
     )
-    Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(spacing.small),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         rows.forEach { row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(spacing.large),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                horizontalArrangement = Arrangement.spacedBy(spacing.large)
             ) {
                 row.forEach { key ->
                     when (key) {
@@ -252,7 +255,8 @@ fun InlinePinEntry(
     val spacing = KhanaBookTheme.spacing
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        verticalArrangement = Arrangement.spacedBy(spacing.medium),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             repeat(4) { index ->
