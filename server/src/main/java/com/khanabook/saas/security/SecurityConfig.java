@@ -92,7 +92,7 @@ public class SecurityConfig {
 						.referrerPolicy(rp -> rp
 								.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
 						.contentSecurityPolicy(csp -> csp
-								.policyDirectives("default-src 'none'; frame-ancestors 'none'")))
+								.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'")))
 
 				.exceptionHandling(ex -> ex
 						.authenticationEntryPoint(jsonAuthenticationEntryPoint())
@@ -105,9 +105,9 @@ public class SecurityConfig {
 								"/auth/reset-password", "/auth/reset-password/request",
 								"/error")
 						.permitAll()
-						// API docs — admin-only (owners must not enumerate endpoints)
+						// API docs — public
 						.requestMatchers("/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
-						.hasRole("KBOOK_ADMIN")
+						.permitAll()
 						// Actuator: health/readiness open, everything else authenticated
 						.requestMatchers("/actuator/health", "/actuator/health/**")
 						.permitAll()
