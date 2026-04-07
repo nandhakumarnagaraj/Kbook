@@ -29,7 +29,6 @@ private const val SESSION_CHECK_INTERVAL_MS = 60_000L
 class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {
     private val debugTag = "KhanaBookDebugAuth"
     private val appLockGracePeriodMs = 30_000L // 30-second Smart Lock grace period
-    private var lastBackgroundTimestamp: Long = 0L
 
     private val masterKey = MasterKey.Builder(context)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -207,19 +206,21 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     }
 
     // Background Lock Logic — Smart Lock with 30s grace period
+    // Uses SharedPreferences so the timestamp survives process kill
     fun onAppBackgrounded() {
-        lastBackgroundTimestamp = System.currentTimeMillis()
+        prefs.edit().putLong(KEY_LAST_BACKGROUND_TIME, System.currentTimeMillis()).apply()
     }
 
     fun shouldShowAppLock(): Boolean {
         if (!isPinLockEnabled() || getPinHash() == null) return false
-        if (lastBackgroundTimestamp == 0L) return false
-        val elapsed = System.currentTimeMillis() - lastBackgroundTimestamp
+        val lastBackground = prefs.getLong(KEY_LAST_BACKGROUND_TIME, 0L)
+        if (lastBackground == 0L) return false
+        val elapsed = System.currentTimeMillis() - lastBackground
         return elapsed > appLockGracePeriodMs
     }
 
     fun clearBackgroundTime() {
-        lastBackgroundTimestamp = 0L
+        prefs.edit().remove(KEY_LAST_BACKGROUND_TIME).apply()
     }
 
     fun clearSession() {

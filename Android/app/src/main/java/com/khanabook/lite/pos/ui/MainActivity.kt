@@ -67,17 +67,20 @@ class MainActivity : FragmentActivity() {
                 LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
                     val currentDest = navController.currentDestination?.route
                     // Only lock if we are NOT on a public/auth screen
-                    val isInPrivateArea = currentDest != null && 
-                        currentDest != "splash" && 
-                        currentDest != "login" && 
-                        currentDest != "signup" && 
+                    val isInPrivateArea = currentDest != null &&
+                        currentDest != "splash" &&
+                        currentDest != "login" &&
+                        currentDest != "signup" &&
                         currentDest != "app_lock"
 
                     if (isInPrivateArea && sessionManager.shouldShowAppLock()) {
+                        sessionManager.clearBackgroundTime()
                         navController.navigate("app_lock")
+                    } else if (isInPrivateArea) {
+                        // Only clear if we're in a private area and decided NOT to lock.
+                        // Don't clear on splash/login — SplashViewModel handles that path.
+                        sessionManager.clearBackgroundTime()
                     }
-                    // Always clear background time once we've checked/processed it
-                    sessionManager.clearBackgroundTime()
                 }
 
                 // Root back handling (Double Back to Exit from Home)

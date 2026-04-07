@@ -43,7 +43,10 @@ class SplashViewModel @Inject constructor(
             val chosen = when {
                 token == null -> SplashState.NavigateToLogin
                 !isSyncCompleted -> SplashState.NavigateToInitialSync
-                isPinLocked -> SplashState.NavigateToAppLock
+                isPinLocked -> {
+                    sessionManager.clearBackgroundTime()
+                    SplashState.NavigateToAppLock
+                }
                 else -> SplashState.NavigateToMain
             }
 
