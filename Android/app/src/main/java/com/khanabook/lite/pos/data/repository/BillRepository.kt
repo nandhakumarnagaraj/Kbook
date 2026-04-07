@@ -109,9 +109,7 @@ class BillRepository(
 
     suspend fun updatePaymentMode(id: Long, mode: String) {
         val current = billDao.getBillById(id) ?: return
-        // Don't allow payment mode change on finalized or cancelled orders
-        if (current.orderStatus.equals("cancelled", ignoreCase = true) ||
-            current.paymentStatus.equals("SUCCESS", ignoreCase = true)) return
+        if (current.orderStatus.equals("cancelled", ignoreCase = true)) return
         billDao.updateBill(
             current.copy(
                 paymentMode = mode,
