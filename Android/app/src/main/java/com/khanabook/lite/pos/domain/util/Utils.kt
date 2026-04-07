@@ -124,15 +124,17 @@ fun shareBillOnWhatsApp(
         }
 
         if (formattedPhone != null) {
-            // Two-phase share — works for saved and unsaved contacts.
-            // Phase 1: open WhatsApp to the contact's chat via wa.me deep link.
-            // Phase 2: fire PDF share targeting WhatsApp; user picks the chat from Phase 1.
-            val waLaunched = tryWhatsAppDeepLink(context, formattedPhone)
-            if (waLaunched) {
-                launchPdfShareToWhatsApp(context, pdfUri)
+            // Copy number to clipboard so user can paste it in WhatsApp's search bar.
+            copyTextToClipboard(context, "WhatsApp Number", formattedPhone)
+
+            // Open WhatsApp's contact picker with the PDF already attached.
+            // User pastes/searches the number, picks the chat — PDF is sent in one step.
+            // Works for saved and unsaved contacts without any extra permissions.
+            val sent = launchWhatsAppWithPdf(context, pdfUri)
+            if (sent) {
                 android.widget.Toast.makeText(
                     context,
-                    "Select the chat from the share sheet to send the PDF.",
+                    "Number copied — paste it in the search bar to find the contact.",
                     android.widget.Toast.LENGTH_LONG
                 ).show()
             } else {
@@ -186,30 +188,14 @@ private fun copyTextToClipboard(context: Context, label: String, text: String) {
 }
 
 /**
- * Opens WhatsApp directly to the chat for [phone] using the wa.me deep link.
- * Works for both saved and unsaved contacts.
- * Returns true if WhatsApp handled the intent, false if it is not installed.
+ * Opens WhatsApp's contact picker with the PDF already attached.
+ * The caller should copy the phone number to clipboard before calling this so the user
+ * can paste it into WhatsApp's search bar to locate an unsaved contact.
+ * Returns true if WhatsApp accepted the intent, false if it is not installed.
  */
-private fun tryWhatsAppDeepLink(context: Context, phone: String): Boolean {
-    return try {
-        val intent = Intent(Intent.ACTION_VIEW,
-            android.net.Uri.parse("https://wa.me/$phone")).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(intent)
-        true
-    } catch (_: Exception) {
-        false
-    }
-}
-
-/**
- * Launches a PDF share intent locked to WhatsApp so the user can attach the invoice
- * PDF in the chat they just opened via [tryWhatsAppDeepLink].
- */
-private fun launchPdfShareToWhatsApp(context: Context, pdfUri: android.net.Uri) {
+private fun launchWhatsAppWithPdf(context: Context, pdfUri: android.net.Uri): Boolean {
     val packages = listOf("com.whatsapp", "com.whatsapp.w4b")
-    val pdfIntent = Intent(Intent.ACTION_SEND).apply {
+    val intent = Intent(Intent.ACTION_SEND).apply {
         type = "application/pdf"
         putExtra(Intent.EXTRA_STREAM, pdfUri)
         clipData = android.content.ClipData.newRawUri("Invoice PDF", pdfUri)
@@ -219,12 +205,11 @@ private fun launchPdfShareToWhatsApp(context: Context, pdfUri: android.net.Uri) 
     for (pkg in packages) {
         try {
             context.packageManager.getPackageInfo(pkg, 0)
-            context.startActivity(pdfIntent.apply { `package` = pkg })
-            return
+            context.startActivity(intent.apply { `package` = pkg })
+            return true
         } catch (_: Exception) {}
     }
-    // WhatsApp not found — show generic share sheet for PDF
-    context.startActivity(Intent.createChooser(pdfIntent, "Share Invoice PDF"))
+    return false
 }
 
 /**
