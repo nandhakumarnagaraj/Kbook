@@ -53,9 +53,11 @@ fun OrdersScreen(
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val allRows by viewModel.orderDetailsTable.collectAsState()
+    val selectedBillDetails by viewModel.selectedBillDetails.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val haptic = LocalHapticFeedback.current
     val spacing = KhanaBookTheme.spacing
+    var selectedBillId by remember { mutableStateOf<Long?>(null) }
     val enabledModes = remember(profile) { 
         profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH) 
     }
@@ -161,6 +163,16 @@ fun OrdersScreen(
             .fillMaxSize()
             .background(Brush.verticalGradient(colors = listOf(DarkBrown1, DarkBrown2)))
     ) {
+        selectedBillId?.let {
+            OrderDetailsDialog(
+                billWithItems = selectedBillDetails,
+                onDismiss = {
+                    selectedBillId = null
+                    viewModel.clearBillDetails()
+                }
+            )
+        }
+
         Column(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
@@ -224,6 +236,10 @@ fun OrdersScreen(
                     OrderTableRow(
                         row = row,
                         enabledModes = enabledModes,
+                        onViewDetails = {
+                            selectedBillId = row.billId
+                            viewModel.loadBillDetails(row.billId)
+                        },
                         onShare = {
                             scope.launch {
                                 viewModel.getOrderDetail(row.billId)?.let { detail ->
@@ -349,6 +365,7 @@ fun RowScope.HeaderCell(text: String, weight: Float) {
 fun OrderTableRow(
     row: OrderDetailRow,
     enabledModes: List<PaymentMode>,
+    onViewDetails: () -> Unit,
     onShare: () -> Unit,
     onRequestCancel: () -> Unit,
     onStatusChange: (String) -> Unit,
@@ -364,6 +381,7 @@ fun OrderTableRow(
             .fillMaxWidth()
             .padding(vertical = 1.dp)
             .background(if (isCancelled) ParchmentBG.copy(alpha = 0.5f) else ParchmentBG)
+            .combinedClickable(onLongClick = { onViewDetails() }, onClick = {})
     ) {
         Row(
             modifier = Modifier

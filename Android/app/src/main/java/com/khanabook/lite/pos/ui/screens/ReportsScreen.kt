@@ -257,12 +257,6 @@ fun ReportsScreen(
                 onDismiss = {
                     selectedBillId = null
                     viewModel.clearBillDetails()
-                },
-                onModeChange = { billId, newMode ->
-                    viewModel.updatePaymentMode(billId, newMode)
-                },
-                onCancelOrder = { billId, reason ->
-                    viewModel.cancelOrder(billId, reason)
                 }
             )
         }
@@ -598,14 +592,9 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
 @Composable
 fun OrderDetailsDialog(
     billWithItems: BillWithItems?,
-    onDismiss: () -> Unit,
-    onModeChange: (Long, String) -> Unit,
-    onCancelOrder: (Long, String) -> Unit
+    onDismiss: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
-    var showModeSelector by remember { mutableStateOf(false) }
-    var showCancelDialog by remember { mutableStateOf(false) }
-
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -651,8 +640,6 @@ fun OrderDetailsDialog(
                 } else {
                     val bill = billWithItems.bill
                     val items = billWithItems.items
-                    val statusValue = OrderStatus.fromDbValue(bill.orderStatus)
-                    val isCancelled = statusValue == OrderStatus.CANCELLED
 
                     DetailRow("Order ID:", "#${bill.dailyOrderDisplay.split("-").last()}")
                     Spacer(modifier = Modifier.height(spacing.small))
@@ -710,231 +697,36 @@ fun OrderDetailsDialog(
                     Spacer(modifier = Modifier.height(spacing.medium))
 
                     DetailRow("Total Amount:", CurrencyUtils.formatPrice(bill.totalAmount), PrimaryGold, FontWeight.Bold)
-
                     Spacer(modifier = Modifier.height(spacing.medium))
 
-                    val statusText = when(statusValue) {
+                    val statusValue = OrderStatus.fromDbValue(bill.orderStatus)
+                    val statusText = when (statusValue) {
                         OrderStatus.DRAFT -> "Pending"
                         else -> statusValue.name.lowercase().replaceFirstChar { it.uppercase() }
                     }
-                    val statusColor = when(statusValue) {
+                    val statusColor = when (statusValue) {
                         OrderStatus.COMPLETED -> VegGreen
                         OrderStatus.CANCELLED -> ZomatoRed
                         else -> TextGold
                     }
                     DetailRow("Status:", statusText, statusColor)
-
                     Spacer(modifier = Modifier.height(spacing.medium))
 
-                    // Payment Mode row — tappable to change when order is not cancelled
-                    val currentMode = PaymentMode.fromDbValue(bill.paymentMode)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Payment Mode:",
-                            color = TextGold,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                        )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = if (!isCancelled) Modifier.clickable { showModeSelector = true } else Modifier
-                        ) {
-                            Text(
-                                text = currentMode.displayLabel,
-                                color = TextLight,
-                                style = MaterialTheme.typography.bodyMedium,
-                                textAlign = TextAlign.End
-                            )
-                            if (!isCancelled) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    Icons.Default.ArrowDropDown,
-                                    contentDescription = "Change mode",
-                                    tint = PrimaryGold,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                    }
+                    DetailRow("Payment Mode:", PaymentMode.fromDbValue(bill.paymentMode).displayLabel)
+                }
 
-                    Spacer(modifier = Modifier.height(spacing.large))
-
-                    // Cancel Order button — only when not already cancelled
-                    if (!isCancelled) {
-                        Button(
-                            onClick = { showCancelDialog = true },
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = DangerRed.copy(alpha = 0.15f)),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, DangerRed)
-                        ) {
-                            Text("Cancel Order", color = DangerRed, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                        }
-                        Spacer(modifier = Modifier.height(spacing.small))
-                    }
-
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Close", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
-                    }
+                Spacer(modifier = Modifier.height(spacing.large))
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Close", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
                 }
             }
         }
     }
-
-    // Mode selector sub-dialog
-    if (showModeSelector && billWithItems != null) {
-        ModeSelectDialog(
-            currentMode = PaymentMode.fromDbValue(billWithItems.bill.paymentMode),
-            onDismiss = { showModeSelector = false },
-            onConfirm = { newMode ->
-                onModeChange(billWithItems.bill.id, newMode.dbValue)
-                showModeSelector = false
-                onDismiss()
-            }
-        )
-    }
-
-    // Cancel order sub-dialog
-    if (showCancelDialog && billWithItems != null) {
-        ReportCancelOrderDialog(
-            onDismiss = { showCancelDialog = false },
-            onConfirm = { reason ->
-                onCancelOrder(billWithItems.bill.id, reason)
-                showCancelDialog = false
-                onDismiss()
-            }
-        )
-    }
-}
-
-@Composable
-fun ModeSelectDialog(
-    currentMode: PaymentMode,
-    onDismiss: () -> Unit,
-    onConfirm: (PaymentMode) -> Unit
-) {
-    val spacing = KhanaBookTheme.spacing
-    var selected by remember { mutableStateOf(currentMode) }
-    val allModes = PaymentMode.values().toList()
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = DarkBrown2,
-        title = {
-            Text("Change Payment Mode", color = PrimaryGold, style = MaterialTheme.typography.titleLarge)
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-                allModes.forEach { mode ->
-                    val isSelected = selected == mode
-                    Surface(
-                        onClick = { selected = mode },
-                        color = if (isSelected) PrimaryGold.copy(alpha = 0.15f) else Color.Transparent,
-                        shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, if (isSelected) PrimaryGold else BorderGold.copy(alpha = 0.3f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = mode.displayLabel,
-                            color = if (isSelected) PrimaryGold else TextLight,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            ),
-                            modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small)
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(selected) },
-                enabled = selected != currentMode
-            ) {
-                Text("Update", color = PrimaryGold, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextGold)
-            }
-        }
-    )
-}
-
-@Composable
-fun ReportCancelOrderDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    val presetReasons = listOf("Wrong order", "Customer left", "Duplicate bill", "Test bill", "Other")
-    var selectedReason by remember { mutableStateOf("") }
-    var customReason by remember { mutableStateOf("") }
-    val spacing = KhanaBookTheme.spacing
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = DarkBrown2,
-        title = { Text("Cancel Order", color = DangerRed, style = MaterialTheme.typography.titleLarge) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-                Text("Select a reason:", color = TextLight, style = MaterialTheme.typography.bodyMedium)
-                presetReasons.forEach { reason ->
-                    val isSelected = selectedReason == reason
-                    Surface(
-                        onClick = { selectedReason = reason; if (reason != "Other") customReason = "" },
-                        color = if (isSelected) DangerRed.copy(alpha = 0.15f) else Color.Transparent,
-                        shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, if (isSelected) DangerRed else BorderGold.copy(alpha = 0.3f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = reason,
-                            color = if (isSelected) DangerRed else TextLight,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small)
-                        )
-                    }
-                }
-                if (selectedReason == "Other") {
-                    OutlinedTextField(
-                        value = customReason,
-                        onValueChange = { customReason = it },
-                        placeholder = { Text("Describe the reason...", color = TextGold.copy(alpha = 0.4f)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = DangerRed,
-                            unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                            focusedTextColor = TextLight,
-                            unfocusedTextColor = TextLight
-                        ),
-                        maxLines = 2
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val finalReason = if (selectedReason == "Other") customReason.trim() else selectedReason
-                    if (finalReason.isNotBlank()) onConfirm(finalReason)
-                },
-                enabled = selectedReason.isNotBlank() && (selectedReason != "Other" || customReason.isNotBlank())
-            ) {
-                Text("Cancel Order", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Go Back", color = TextGold)
-            }
-        }
-    )
 }
 
 @Composable
