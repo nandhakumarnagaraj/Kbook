@@ -199,10 +199,10 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
-    fun updatePaymentMode(billId: Long, newMode: String) {
+    fun updatePaymentMode(billId: Long, newMode: String, partAmount1: String = "0.0", partAmount2: String = "0.0") {
         viewModelScope.launch {
             try {
-                billRepository.updatePaymentMode(billId, newMode)
+                billRepository.updatePaymentMode(billId, newMode, partAmount1, partAmount2)
                 if (currentFrom != 0L && currentTo != 0L) {
                     loadReports(currentFrom, currentTo)
                 }

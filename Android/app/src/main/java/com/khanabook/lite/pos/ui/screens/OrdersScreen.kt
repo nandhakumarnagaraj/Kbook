@@ -45,6 +45,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import com.khanabook.lite.pos.domain.manager.BillCalculator
+import com.khanabook.lite.pos.domain.manager.PaymentModeManager
 
 @Composable
 fun OrdersScreen(
@@ -232,6 +234,7 @@ fun OrdersScreen(
             ) {
                 items(allRows) { row ->
                     var showCancelDialog by remember { mutableStateOf(false) }
+                    var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
 
                     OrderTableRow(
                         row = row,
@@ -260,7 +263,11 @@ fun OrdersScreen(
                             onStatusChange(row.billId, newStatus)
                         },
                         onPayModeChange = { newMode ->
-                            viewModel.updatePaymentMode(row.billId, newMode.dbValue)
+                            if (PaymentModeManager.isPartPayment(newMode)) {
+                                pendingPartMode = newMode
+                            } else {
+                                viewModel.updatePaymentMode(row.billId, newMode.dbValue)
+                            }
                         }
                     )
 
@@ -270,6 +277,18 @@ fun OrdersScreen(
                             onConfirm = { reason ->
                                 viewModel.cancelOrder(row.billId, reason)
                                 showCancelDialog = false
+                            }
+                        )
+                    }
+
+                    pendingPartMode?.let { mode ->
+                        PartAmountDialog(
+                            mode = mode,
+                            totalAmount = row.salesAmount,
+                            onDismiss = { pendingPartMode = null },
+                            onConfirm = { p1, p2 ->
+                                viewModel.updatePaymentMode(row.billId, mode.dbValue, p1, p2)
+                                pendingPartMode = null
                             }
                         )
                     }
@@ -557,6 +576,94 @@ fun CancelOrderDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Keep Order", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    )
+}
+
+@Composable
+fun PartAmountDialog(
+    mode: PaymentMode,
+    totalAmount: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    val labels = PaymentModeManager.getPartLabels(mode)
+    val totalVal = totalAmount.toDoubleOrNull() ?: 0.0
+    val half = totalVal / 2.0
+    var p1Text by remember { mutableStateOf("%.2f".format(half)) }
+    var p2Text by remember { mutableStateOf("%.2f".format(totalVal - half)) }
+
+    val p1 = p1Text.toDoubleOrNull() ?: 0.0
+    val p2 = p2Text.toDoubleOrNull() ?: 0.0
+    val isValid = BillCalculator.validatePartPayment(p1Text, p2Text, totalAmount)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DarkBrown2,
+        title = { Text(mode.displayLabel, color = PrimaryGold, style = MaterialTheme.typography.titleLarge) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                Text(
+                    "Total: ${CurrencyUtils.formatPrice(totalAmount)}",
+                    color = TextLight,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = p1Text,
+                    onValueChange = { p1Text = it },
+                    label = { Text("${labels.first} Amount", color = TextGold.copy(alpha = 0.6f)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = !isValid,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PrimaryGold,
+                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                        focusedTextColor = TextLight,
+                        unfocusedTextColor = TextLight
+                    ),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                    ),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = p2Text,
+                    onValueChange = { p2Text = it },
+                    label = { Text("${labels.second} Amount", color = TextGold.copy(alpha = 0.6f)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = !isValid,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PrimaryGold,
+                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                        focusedTextColor = TextLight,
+                        unfocusedTextColor = TextLight
+                    ),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                    ),
+                    singleLine = true
+                )
+                if (!isValid) {
+                    Text(
+                        "Sum must equal ${CurrencyUtils.formatPrice(totalAmount)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
+                        color = DangerRed,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(p1Text, p2Text) },
+                enabled = isValid
+            ) {
+                Text("Confirm", color = PrimaryGold, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
             }
         }
     )

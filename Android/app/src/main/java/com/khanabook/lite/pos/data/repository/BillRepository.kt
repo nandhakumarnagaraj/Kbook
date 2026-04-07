@@ -107,12 +107,14 @@ class BillRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun updatePaymentMode(id: Long, mode: String) {
+    suspend fun updatePaymentMode(id: Long, mode: String, partAmount1: String = "0.0", partAmount2: String = "0.0") {
         val current = billDao.getBillById(id) ?: return
         if (current.orderStatus.equals("cancelled", ignoreCase = true)) return
         billDao.updateBill(
             current.copy(
                 paymentMode = mode,
+                partAmount1 = partAmount1,
+                partAmount2 = partAmount2,
                 isSynced = false,
                 updatedAt = System.currentTimeMillis()
             )
