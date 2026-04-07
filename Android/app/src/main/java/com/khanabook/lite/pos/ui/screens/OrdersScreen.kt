@@ -163,7 +163,7 @@ fun OrdersScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(colors = listOf(DarkBrown1, DarkBrown2)))
+            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, Color.Black)))
     ) {
         selectedBillId?.let {
             OrderDetailsDialog(
@@ -398,8 +398,11 @@ fun OrderTableRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 1.dp)
-            .background(if (isCancelled) ParchmentBG.copy(alpha = 0.5f) else ParchmentBG)
+            .padding(vertical = 2.dp)
+            .background(
+                if (isCancelled) Color.Black.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.2f),
+                RoundedCornerShape(4.dp)
+            )
             .combinedClickable(onLongClick = { onViewDetails() }, onClick = {})
     ) {
         Row(
@@ -410,20 +413,20 @@ fun OrderTableRow(
         ) {
             TableCell(
                 row.dailyNo, 1f / TABLE_TOTAL_WEIGHT,
-                color = if (isCancelled) Color.Black.copy(alpha = 0.35f) else Color.Black
+                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )
             TableCell(
                 row.lifetimeNo.toString(), 1.2f / TABLE_TOTAL_WEIGHT,
-                color = if (isCancelled) Color.Black.copy(alpha = 0.35f) else Color.Black
+                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )
             TableCell(
                 row.currentStatus, 1.5f / TABLE_TOTAL_WEIGHT, fontSize = 10.sp,
-                color = if (isCancelled) Color.Black.copy(alpha = 0.35f) else Color.Black
+                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )
             TableCell(
                 CurrencyUtils.formatPrice(row.salesAmount), 1.3f / TABLE_TOTAL_WEIGHT,
                 fontWeight = FontWeight.Bold,
-                color = if (isCancelled) Color.Black.copy(alpha = 0.35f) else Color.Black
+                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )
 
             Box(modifier = Modifier.weight(1.2f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
@@ -446,11 +449,11 @@ fun OrderTableRow(
                 DropdownMenu(
                     expanded = payModeExpanded,
                     onDismissRequest = { payModeExpanded = false },
-                    modifier = Modifier.background(ParchmentBG)
+                    modifier = Modifier.background(DarkBrown2)
                 ) {
                     enabledModes.forEach { mode ->
                         DropdownMenuItem(
-                            text = { Text(mode.displayLabel, color = DarkBrown1, style = MaterialTheme.typography.bodySmall) },
+                            text = { Text(mode.displayLabel, color = TextLight, style = MaterialTheme.typography.bodySmall) },
                             onClick = { onPayModeChange(mode); payModeExpanded = false }
                         )
                     }
@@ -486,10 +489,10 @@ fun OrderTableRow(
                     DropdownMenu(
                         expanded = statusExpanded,
                         onDismissRequest = { statusExpanded = false },
-                        modifier = Modifier.background(ParchmentBG)
+                        modifier = Modifier.background(DarkBrown2)
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Completed", color = DarkBrown1, style = MaterialTheme.typography.bodySmall) },
+                            text = { Text("Completed", color = TextLight, style = MaterialTheme.typography.bodySmall) },
                             onClick = { onStatusChange(OrderStatus.COMPLETED.dbValue); statusExpanded = false }
                         )
                         DropdownMenuItem(
@@ -675,7 +678,7 @@ fun RowScope.TableCell(
     weight: Float,
     fontSize: androidx.compose.ui.unit.TextUnit = 11.sp,
     fontWeight: FontWeight = FontWeight.Normal,
-    color: Color = Color.Black
+    color: Color = TextLight
 ) {
     Text(
         text = text,
