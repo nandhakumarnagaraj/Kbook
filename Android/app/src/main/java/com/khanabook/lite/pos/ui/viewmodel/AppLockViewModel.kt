@@ -192,7 +192,8 @@ class AppLockViewModel @Inject constructor(
 
     fun hasBiometric(context: Context): Boolean {
         val manager = BiometricManager.from(context)
-        return manager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
-            BiometricManager.BIOMETRIC_SUCCESS
+        val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG or 
+                            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        return manager.canAuthenticate(authenticators) == BiometricManager.BIOMETRIC_SUCCESS
     }
 }

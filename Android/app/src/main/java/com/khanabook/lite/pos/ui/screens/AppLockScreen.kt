@@ -1,12 +1,14 @@
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.biometric.BiometricPrompt
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.Fingerprint
@@ -15,7 +17,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -37,6 +38,7 @@ fun AppLockScreen(
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
     val showBiometric = remember { viewModel.hasBiometric(context) }
+    val scrollState = rememberScrollState()
 
     // Shake animation on error
     val shakeOffset = remember { Animatable(0f) }
@@ -55,32 +57,40 @@ fun AppLockScreen(
         if (enteredPin.length == 4) viewModel.verifyPin(onSuccess = onUnlock)
     }
 
-    // Biometric prompt
+    // Biometric prompt setup
     val executor = remember { ContextCompat.getMainExecutor(context) }
-    val biometricPrompt = remember {
-        BiometricPrompt(
-            context as FragmentActivity,
-            executor,
-            object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    onUnlock()
+    val biometricPrompt = remember(context) {
+        if (context is FragmentActivity) {
+            BiometricPrompt(
+                context,
+                executor,
+                object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                        onUnlock()
+                    }
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {}
+                    override fun onAuthenticationFailed() {}
                 }
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {}
-                override fun onAuthenticationFailed() {}
-            }
-        )
+            )
+        } else null
     }
+
     val promptInfo = remember {
         BiometricPrompt.PromptInfo.Builder()
             .setTitle("Unlock KhanaBook Lite")
-            .setSubtitle("Use biometric to unlock")
-            .setNegativeButtonText("Use PIN")
+            .setSubtitle("Use biometric or device lock")
+            .setAllowedAuthenticators(
+                androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or 
+                androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            )
             .build()
     }
 
     // Auto-show biometric on launch
-    LaunchedEffect(Unit) {
-        if (showBiometric) biometricPrompt.authenticate(promptInfo)
+    LaunchedEffect(showBiometric, biometricPrompt) {
+        if (showBiometric && biometricPrompt != null) {
+            biometricPrompt.authenticate(promptInfo)
+        }
     }
 
     Box(
@@ -91,7 +101,11 @@ fun AppLockScreen(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(spacing.medium)
         ) {
             Spacer(modifier = Modifier.height(spacing.extraLarge))
 
@@ -99,22 +113,26 @@ fun AppLockScreen(
                 Icons.Default.Lock,
                 contentDescription = "App locked",
                 tint = PrimaryGold,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(64.dp)
             )
+
+            Spacer(modifier = Modifier.height(spacing.medium))
 
             Text(
                 "KhanaBook Lite",
                 color = PrimaryGold,
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
             )
 
             Spacer(modifier = Modifier.height(spacing.small))
 
             Text(
-                "Enter your PIN",
+                "Enter your PIN to continue",
                 color = TextLight,
                 style = MaterialTheme.typography.bodyLarge
             )
+
+            Spacer(modifier = Modifier.height(spacing.extraLarge))
 
             // Dot indicators with shake
             Row(
@@ -125,13 +143,13 @@ fun AppLockScreen(
                     val filled = index < enteredPin.length
                     Box(
                         modifier = Modifier
-                            .size(16.dp)
+                            .size(20.dp)
                             .background(
                                 color = if (filled) PrimaryGold else Color.Transparent,
                                 shape = CircleShape
                             )
                             .border(
-                                width = 1.5.dp,
+                                width = 2.dp,
                                 color = if (filled) PrimaryGold else BorderGold,
                                 shape = CircleShape
                             )
@@ -140,24 +158,28 @@ fun AppLockScreen(
             }
 
             // Error message
-            Box(modifier = Modifier.height(20.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.height(32.dp), contentAlignment = Alignment.Center) {
                 if (errorMessage != null) {
                     Text(
                         errorMessage!!,
                         color = ErrorPink,
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(spacing.small))
+            Spacer(modifier = Modifier.height(spacing.medium))
 
             // Numpad
             PinNumpad(
                 onDigit = { viewModel.appendDigit(it) },
                 onDelete = { viewModel.deleteDigit() },
-                onBiometric = { if (showBiometric) biometricPrompt.authenticate(promptInfo) },
-                showBiometric = showBiometric
+                onBiometric = { 
+                    if (showBiometric && biometricPrompt != null) {
+                        biometricPrompt.authenticate(promptInfo)
+                    }
+                },
+                showBiometric = showBiometric && biometricPrompt != null
             )
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
@@ -229,7 +251,6 @@ fun PinKey(
     enabled: Boolean = true,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val scale = remember { Animatable(1f) }
     Surface(
         onClick = {
             if (enabled) onClick()
@@ -242,8 +263,6 @@ fun PinKey(
         Box(contentAlignment = Alignment.Center, content = content)
     }
 }
-
-// ─── Mini PIN pad for dialogs (Settings) ────────────────────────────────────
 
 @Composable
 fun InlinePinEntry(
