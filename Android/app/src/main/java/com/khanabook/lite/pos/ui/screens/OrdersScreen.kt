@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+@file:OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 
 package com.khanabook.lite.pos.ui.screens
 
