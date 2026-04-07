@@ -57,7 +57,7 @@ object UserMessageSanitizer {
         Regex("(https?://)?[\\w.-]+\\.[a-z]{2,}(/[\\w./-]*)?", RegexOption.IGNORE_CASE),
         Regex("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}(:\\d+)?"),
         Regex("[a-zA-Z0-9.-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"),
-        Regex("""at [a-zA-Z0-9.$_]+\([^)]+\)""")
+        Regex("""at [a-zA-Z0-9.${'$'}_]+\([^)]+\)""")
     )
 
     fun sanitize(error: Throwable?, fallback: String): String {
