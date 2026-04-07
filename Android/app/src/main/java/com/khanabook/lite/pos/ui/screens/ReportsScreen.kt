@@ -443,8 +443,10 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = spacing.medium, vertical = spacing.small),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = spacing.medium)
+                .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             HeaderCell("D.ID", Modifier.weight(0.8f))
             HeaderCell("Mode", Modifier.weight(1.8f))
@@ -508,15 +510,14 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = { onViewDetails(row.billId) },
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.2f)),
         shape = RoundedCornerShape(4.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = spacing.medium),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = spacing.extraSmall, vertical = spacing.medium),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(row.dailyId, color = TextLight, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(0.8f), textAlign = TextAlign.Center)
             

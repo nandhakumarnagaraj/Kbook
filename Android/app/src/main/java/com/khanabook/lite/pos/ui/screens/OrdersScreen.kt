@@ -203,7 +203,9 @@ fun OrdersScreen(
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            TableHeader()
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium)) {
+                TableHeader()
+            }
 
             if (allRows.isEmpty()) {
                 Box(
@@ -354,8 +356,8 @@ fun TableHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.4f))
-            .padding(vertical = spacing.medium, horizontal = spacing.extraSmall),
+            .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+            .padding(vertical = spacing.small, horizontal = spacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         HeaderCell("D.No", 1f / TABLE_TOTAL_WEIGHT)
@@ -398,9 +400,9 @@ fun OrderTableRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp)
+            .padding(vertical = 1.dp)
             .background(
-                if (isCancelled) Color.Black.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.2f),
+                Color.Black.copy(alpha = if (isCancelled) 0.15f else 0.25f),
                 RoundedCornerShape(4.dp)
             )
             .combinedClickable(onLongClick = { onViewDetails() }, onClick = {})
