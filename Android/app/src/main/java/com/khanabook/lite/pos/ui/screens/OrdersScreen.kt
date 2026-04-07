@@ -23,7 +23,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.model.OrderDetailRow
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
@@ -57,6 +61,15 @@ fun OrdersScreen(
     }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    var pendingShareBill by remember { mutableStateOf<BillWithItems?>(null) }
+    val contactPermLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        pendingShareBill?.let { bill ->
+            shareBillOnWhatsApp(context, bill, profile)
+            pendingShareBill = null
+        }
+    }
     var selectedPeriod by remember { mutableIntStateOf(0) }
     
     var showDateRangePicker by remember { mutableStateOf(false) }
@@ -214,7 +227,15 @@ fun OrdersScreen(
                         onShare = {
                             scope.launch {
                                 viewModel.getOrderDetail(row.billId)?.let { detail ->
-                                    shareBillOnWhatsApp(context, detail, profile)
+                                    val granted = ContextCompat.checkSelfPermission(
+                                        context, android.Manifest.permission.WRITE_CONTACTS
+                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                    if (granted) {
+                                        shareBillOnWhatsApp(context, detail, profile)
+                                    } else {
+                                        pendingShareBill = detail
+                                        contactPermLauncher.launch(android.Manifest.permission.WRITE_CONTACTS)
+                                    }
                                 }
                             }
                         },

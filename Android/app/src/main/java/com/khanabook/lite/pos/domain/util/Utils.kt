@@ -124,22 +124,33 @@ fun shareBillOnWhatsApp(
         }
 
         if (formattedPhone != null) {
-            // Copy number to clipboard so user can paste it in WhatsApp's search bar.
-            copyTextToClipboard(context, "WhatsApp Number", formattedPhone)
+            val hasContactPerm = androidx.core.content.ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.WRITE_CONTACTS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
-            // Open WhatsApp's contact picker with the PDF already attached.
-            // User pastes/searches the number, picks the chat — PDF is sent in one step.
-            // Works for saved and unsaved contacts without any extra permissions.
-            val sent = launchWhatsAppWithPdf(context, pdfUri)
-            if (sent) {
+            if (hasContactPerm) {
+                // Reliable path: save temp contact → jid + PDF → delete contact.
+                // Saving the contact ensures WhatsApp can resolve the number even if
+                // it has never been chatted with before.
+                val rawContactUri = insertTempContact(context, formattedPhone, billWithItems.bill.customerName)
+                val sent = tryJidWhatsApp(context, formattedPhone, pdfUri)
+                // Delete temp contact after 3 s — WhatsApp has already opened the chat by then.
+                rawContactUri?.let { uri ->
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        try { context.contentResolver.delete(uri, null, null) } catch (_: Exception) {}
+                    }, 3000)
+                }
+                if (!sent) launchInvoiceShare(context, pdfUri, preferWhatsApp = true)
+            } else {
+                // No contact permission — fallback: copy number + WhatsApp picker with PDF.
+                copyTextToClipboard(context, "WhatsApp Number", formattedPhone)
+                val sent = launchWhatsAppWithPdf(context, pdfUri)
+                if (!sent) launchInvoiceShare(context, pdfUri, preferWhatsApp = false)
                 android.widget.Toast.makeText(
                     context,
                     "Number copied — paste it in the search bar to find the contact.",
                     android.widget.Toast.LENGTH_LONG
                 ).show()
-            } else {
-                // WhatsApp not installed — fall back to generic share
-                launchInvoiceShare(context, pdfUri, preferWhatsApp = false)
             }
         } else {
             // No phone number — generic share
@@ -188,10 +199,68 @@ private fun copyTextToClipboard(context: Context, label: String, text: String) {
 }
 
 /**
- * Opens WhatsApp's contact picker with the PDF already attached.
- * The caller should copy the phone number to clipboard before calling this so the user
- * can paste it into WhatsApp's search bar to locate an unsaved contact.
- * Returns true if WhatsApp accepted the intent, false if it is not installed.
+ * Inserts a minimal temporary contact for [phone] so WhatsApp can resolve the number
+ * via its Android-contacts sync. Returns the raw-contact URI for later deletion.
+ */
+private fun insertTempContact(context: Context, phone: String, name: String?): android.net.Uri? {
+    val displayName = name?.ifBlank { phone } ?: phone
+    val ops = arrayListOf(
+        android.content.ContentProviderOperation
+            .newInsert(android.provider.ContactsContract.RawContacts.CONTENT_URI)
+            .withValue(android.provider.ContactsContract.RawContacts.ACCOUNT_TYPE, null)
+            .withValue(android.provider.ContactsContract.RawContacts.ACCOUNT_NAME, null)
+            .build(),
+        android.content.ContentProviderOperation
+            .newInsert(android.provider.ContactsContract.Data.CONTENT_URI)
+            .withValueBackReference(android.provider.ContactsContract.Data.RAW_CONTACT_ID, 0)
+            .withValue(android.provider.ContactsContract.Data.MIMETYPE,
+                android.provider.ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+            .withValue(android.provider.ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, displayName)
+            .build(),
+        android.content.ContentProviderOperation
+            .newInsert(android.provider.ContactsContract.Data.CONTENT_URI)
+            .withValueBackReference(android.provider.ContactsContract.Data.RAW_CONTACT_ID, 0)
+            .withValue(android.provider.ContactsContract.Data.MIMETYPE,
+                android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+            .withValue(android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER, "+$phone")
+            .withValue(android.provider.ContactsContract.CommonDataKinds.Phone.TYPE,
+                android.provider.ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)
+            .build()
+    )
+    return try {
+        context.contentResolver.applyBatch(android.provider.ContactsContract.AUTHORITY, ops)[0].uri
+    } catch (_: Exception) { null }
+}
+
+/**
+ * Opens WhatsApp directly to the chat for [phone] using the jid extra with PDF attached.
+ * Requires the contact to be saved in Android contacts for reliable routing.
+ * Returns true if WhatsApp accepted the intent.
+ */
+private fun tryJidWhatsApp(context: Context, phone: String, pdfUri: android.net.Uri): Boolean {
+    val packages = listOf("com.whatsapp", "com.whatsapp.w4b")
+    for (pkg in packages) {
+        try {
+            context.packageManager.getPackageInfo(pkg, 0)
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, pdfUri)
+                putExtra("jid", "$phone@s.whatsapp.net")
+                `package` = pkg
+                clipData = android.content.ClipData.newRawUri("Invoice PDF", pdfUri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            return true
+        } catch (_: Exception) {}
+    }
+    return false
+}
+
+/**
+ * Opens WhatsApp's contact picker with the PDF already attached (fallback for no contact permission).
+ * Returns true if WhatsApp accepted the intent.
  */
 private fun launchWhatsAppWithPdf(context: Context, pdfUri: android.net.Uri): Boolean {
     val packages = listOf("com.whatsapp", "com.whatsapp.w4b")
