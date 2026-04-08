@@ -27,7 +27,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -512,35 +511,11 @@ fun SignUpScreen(
                 }
             }
 
-            // Full-screen Loading Overlay
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .pointerInput(Unit) {},
-                    contentAlignment = Alignment.Center
-                ) {
-                    KhanaBookCard(
-                        modifier = Modifier.padding(spacing.large),
-                        colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(spacing.extraLarge),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator(color = PrimaryGold)
-                            Spacer(modifier = Modifier.height(spacing.medium))
-                            Text(
-                                text = if (signUpStatus is AuthViewModel.SignUpResult.Loading) "Creating Account..." else "Logging in...",
-                                color = TextLight,
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-                }
-            }
+            KhanaBookLoadingOverlay(
+                visible = isLoading,
+                type = LoadingType.SIGNUP,
+                message = if (signUpStatus is AuthViewModel.SignUpResult.Loading) "Creating Account..." else "Logging in..."
+            )
         }
     }
 }

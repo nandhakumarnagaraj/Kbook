@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -52,6 +51,7 @@ import com.khanabook.lite.pos.domain.model.*
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
+import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
@@ -171,34 +171,10 @@ fun NewBillScreen(
                         )
             }
 
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .pointerInput(Unit) {},
-                    contentAlignment = Alignment.Center
-                ) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(spacing.extraLarge),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator(color = PrimaryGold)
-                            Spacer(modifier = Modifier.height(spacing.medium))
-                            Text(
-                                text = "Saving Bill...",
-                                color = TextLight,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
-                    }
-                }
-            }
+            KhanaBookLoadingOverlay(
+                visible = isLoading,
+                type = LoadingType.SAVING
+            )
         }
     }
 }
@@ -427,7 +403,10 @@ fun MenuSelectionStep(
                 }
             }
 
-            if (displayItems.isEmpty()) {
+            if (categories.isEmpty() && displayItems.isEmpty()) {
+                // Skeleton while menu data loads
+                SkeletonMenuScreen(modifier = Modifier.weight(1f))
+            } else if (displayItems.isEmpty()) {
                 Box(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentAlignment = Alignment.Center

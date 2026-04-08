@@ -194,6 +194,7 @@ dependencies {
     implementation(libs.pdfbox.android)
     implementation(libs.accompanist.pager)
     implementation(libs.accompanist.pager.indicators)
+    implementation(libs.lottie.compose)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

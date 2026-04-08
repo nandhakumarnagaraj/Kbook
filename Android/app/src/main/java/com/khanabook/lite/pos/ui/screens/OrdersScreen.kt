@@ -56,6 +56,7 @@ fun OrdersScreen(
 ) {
     val allRows by viewModel.orderDetailsTable.collectAsState()
     val selectedBillDetails by viewModel.selectedBillDetails.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val haptic = LocalHapticFeedback.current
     val spacing = KhanaBookTheme.spacing
@@ -207,7 +208,20 @@ fun OrdersScreen(
                 TableHeader()
             }
 
-            if (allRows.isEmpty()) {
+            if (isLoading && allRows.isEmpty()) {
+                // Skeleton loading while data loads
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = spacing.medium)
+                ) {
+                    repeat(8) {
+                        SkeletonTableRow()
+                        Spacer(modifier = Modifier.height(2.dp))
+                    }
+                }
+            } else if (allRows.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     contentAlignment = Alignment.Center

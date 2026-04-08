@@ -27,7 +27,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -234,21 +233,11 @@ fun ReportsScreen(
             }
         }
 
-        AnimatedVisibility(
+        KhanaBookLoadingOverlay(
             visible = isLoading,
-            enter = fadeIn(animationSpec = tween(200)),
-            exit = fadeOut(animationSpec = tween(200))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.4f))
-                    .pointerInput(Unit) {},
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = PrimaryGold)
-            }
-        }
+            type = LoadingType.GENERAL,
+            message = "Loading reports..."
+        )
 
         
         selectedBillId?.let {
@@ -634,10 +623,21 @@ fun OrderDetailsDialog(
                 Spacer(modifier = Modifier.height(spacing.medium))
 
                 if (billWithItems == null) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                        color = PrimaryGold
-                    )
+                    // Skeleton loading for bill details
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        ShimmerBox(height = 14.dp, modifier = Modifier.fillMaxWidth(0.5f))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ShimmerBox(height = 14.dp, modifier = Modifier.fillMaxWidth(0.4f))
+                        Spacer(modifier = Modifier.height(16.dp))
+                        ShimmerBox(height = 12.dp, modifier = Modifier.fillMaxWidth(0.3f))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        repeat(3) {
+                            SkeletonListItem()
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        ShimmerBox(height = 20.dp, modifier = Modifier.fillMaxWidth(0.5f))
+                    }
                 } else {
                     val bill = billWithItems.bill
                     val items = billWithItems.items

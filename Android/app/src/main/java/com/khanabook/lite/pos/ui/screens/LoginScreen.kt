@@ -23,7 +23,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -40,6 +39,8 @@ import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
+import com.khanabook.lite.pos.ui.designsystem.LoadingType
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 
@@ -347,35 +348,10 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(spacing.large))
         }
 
-        // Full-screen Loading Overlay
-        if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f))
-                    .pointerInput(Unit) {},
-                contentAlignment = Alignment.Center
-            ) {
-                KhanaBookCard(
-                    modifier = Modifier.padding(spacing.large),
-                    colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(spacing.extraLarge),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        CircularProgressIndicator(color = PrimaryGold)
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                        Text(
-                            text = if (isGoogleLogin) "Connecting to Google..." else "Logging in...",
-                            color = TextLight,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
-                }
-            }
-        }
+        KhanaBookLoadingOverlay(
+            visible = isLoading,
+            type = if (isGoogleLogin) LoadingType.GOOGLE_LOGIN else LoadingType.LOGIN
+        )
 
         if (showForgotDialog) {
             ForgotPasswordDialog(
