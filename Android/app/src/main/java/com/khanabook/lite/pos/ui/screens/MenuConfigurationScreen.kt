@@ -304,12 +304,10 @@ fun ReviewDetectedItemsSheet(
                 decorFitsSystemWindows = false
             )
         ) {
-            BoxWithConstraints(
+            Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                val sheetMaxHeight = maxHeight
-                
                 // Dimmed background
                 Box(
                     modifier = Modifier
@@ -326,13 +324,12 @@ fun ReviewDetectedItemsSheet(
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = sheetMaxHeight)
-                            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                            .fillMaxSize()
                             .background(DarkBrown1)
                             .clickable(enabled = false) { }
-                            .statusBarsPadding()
                     ) {
+                        Spacer(modifier = Modifier.statusBarsPadding())
+
                         Box(
                             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                             contentAlignment = Alignment.Center
