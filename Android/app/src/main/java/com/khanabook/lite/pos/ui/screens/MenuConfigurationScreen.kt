@@ -41,6 +41,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.CategoryEntity
 import com.khanabook.lite.pos.data.local.entity.MenuItemEntity
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
+import com.khanabook.lite.pos.ui.designsystem.LoadingType
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 
@@ -214,6 +216,13 @@ fun MenuConfigurationScreen(
                 )
             }
 
+            KhanaBookLoadingOverlay(
+                visible = ocrUiState.isProcessing,
+                type = LoadingType.PROCESSING,
+                message = ocrUiState.processingLabel,
+                subtitle = "Please wait..."
+            )
+
             if (showOverwriteDialog) {
                 AlertDialog(
                     onDismissRequest = { showOverwriteDialog = false },
@@ -292,7 +301,7 @@ fun ReviewDetectedItemsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(1.0f) // FULL SCREEN
+                .fillMaxHeight(0.88f)
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
@@ -321,13 +330,13 @@ fun ReviewDetectedItemsSheet(
                     Text(
                         "Review Detected Items",
                         color = PrimaryGold,
-                        fontSize = 24.sp, // Increased
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         "${drafts.size} items found · $selectedCount selected",
                         color = TextGold.copy(alpha = 0.7f),
-                        fontSize = 15.sp // Increased
+                        fontSize = 13.sp
                     )
                 }
                 IconButton(onClick = onDismiss) {
@@ -461,7 +470,7 @@ fun ReviewDetectedItemsSheet(
                                     shape = RoundedCornerShape(12.dp)
                                 )
                                 .clickable { onToggleSelection(index) }
-                                .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 14.dp)
+                                .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 10.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -499,7 +508,7 @@ fun ReviewDetectedItemsSheet(
                                         onValueChange = { onUpdateDraft(index, draft.copy(name = it)) },
                                         textStyle = TextStyle(
                                             color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
-                                            fontSize = 18.sp, // INCREASED
+                                            fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
                                             textDecoration = if (!draft.isSelected) TextDecoration.LineThrough else null
                                         ),
@@ -534,7 +543,7 @@ fun ReviewDetectedItemsSheet(
                                             .padding(horizontal = 10.dp, vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("₹", color = PrimaryGold, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                        Text("₹", color = PrimaryGold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                         BasicTextField(
                                             value = if (draft.price == 0.0) "" else {
                                                 val i = draft.price.toLong()
@@ -546,7 +555,7 @@ fun ReviewDetectedItemsSheet(
                                             },
                                             textStyle = TextStyle(
                                                 color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
-                                                fontSize = 16.sp, // INCREASED
+                                                fontSize = 14.sp,
                                                 textAlign = TextAlign.End
                                             ),
                                             cursorBrush = SolidColor(PrimaryGold),
@@ -673,7 +682,7 @@ fun ReviewDetectedItemsSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
