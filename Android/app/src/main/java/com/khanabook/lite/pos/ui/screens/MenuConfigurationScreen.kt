@@ -679,7 +679,7 @@ fun DraftItemRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP - 4.dp, top = 12.dp, end = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 draft.variants.forEachIndexed { vIndex, variant ->
                     Row(

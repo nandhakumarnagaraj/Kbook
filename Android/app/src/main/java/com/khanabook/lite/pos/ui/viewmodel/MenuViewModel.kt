@@ -214,7 +214,12 @@ class MenuViewModel @Inject constructor(
     fun toggleDraftSelection(index: Int) {
         val current = _ocrImportUiState.value.drafts.toMutableList()
         if (index in current.indices) {
-            current[index] = current[index].copy(isSelected = !current[index].isSelected)
+            val target = !current[index].isSelected
+            val updatedVariants = current[index].variants.map { it.copy(isSelected = target) }
+            current[index] = current[index].copy(
+                isSelected = target,
+                variants = updatedVariants
+            )
             _ocrImportUiState.update { it.copy(drafts = current) }
         }
     }
@@ -247,7 +252,12 @@ class MenuViewModel @Inject constructor(
 
     fun selectAllDrafts(select: Boolean) {
         _ocrImportUiState.update { state ->
-            state.copy(drafts = state.drafts.map { it.copy(isSelected = select) })
+            state.copy(drafts = state.drafts.map { draft ->
+                draft.copy(
+                    isSelected = select,
+                    variants = draft.variants.map { it.copy(isSelected = select) }
+                )
+            })
         }
     }
 
