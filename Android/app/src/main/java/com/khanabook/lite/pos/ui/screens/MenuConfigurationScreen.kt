@@ -361,7 +361,6 @@ fun ReviewDetectedItemsSheet(
                             .background(DarkBrown1)
                             .imePadding()
                             .clickable(enabled = false) { }
-                            .navigationBarsPadding()
                     ) {
                         Box(
                             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
@@ -531,6 +530,7 @@ fun ReviewDetectedItemsSheet(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .navigationBarsPadding()
                                     .padding(horizontal = 20.dp, vertical = 10.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
