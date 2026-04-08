@@ -36,7 +36,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import android.view.WindowManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -304,6 +308,31 @@ fun ReviewDetectedItemsSheet(
                 decorFitsSystemWindows = false
             )
         ) {
+            val view = LocalView.current
+            SideEffect {
+                // Walk up the view tree to reliably find DialogWindowProvider
+                // regardless of Compose version internals
+                var dialogWindow: android.view.Window? = null
+                if (view is DialogWindowProvider) {
+                    dialogWindow = view.window
+                } else {
+                    var parent: android.view.ViewParent? = view.parent
+                    while (parent != null && dialogWindow == null) {
+                        if (parent is DialogWindowProvider) {
+                            dialogWindow = parent.window
+                        }
+                        parent = (parent as? android.view.View)?.parent
+                    }
+                }
+                dialogWindow?.let { window ->
+                    WindowCompat.setDecorFitsSystemWindows(window, false)
+                    window.setLayout(
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                        WindowManager.LayoutParams.MATCH_PARENT
+                    )
+                }
+            }
+
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter
