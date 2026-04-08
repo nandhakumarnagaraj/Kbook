@@ -391,10 +391,10 @@ fun ReviewDetectedItemsSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = headerPadding, vertical = 4.dp),
+                        .padding(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING + ReviewSheetLayout.CARD_PADDING, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Spacer(modifier = Modifier.width(checkboxPlaceholder))
+                    Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP))
                     Text("Item Name", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, modifier = Modifier.weight(1f))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Price", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH))
@@ -404,10 +404,9 @@ fun ReviewDetectedItemsSheet(
                 LazyColumn(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth()
-                        .padding(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING),
+                        .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp)
+                    contentPadding = PaddingValues(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING, vertical = 12.dp)
                 ) {
                     val groupedDrafts = drafts.withIndex().groupBy { it.value.categoryName ?: "Uncategorized" }
                     
@@ -418,12 +417,12 @@ fun ReviewDetectedItemsSheet(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 12.dp, horizontal = 4.dp),
+                                    .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(24.dp)
+                                        .size(ReviewSheetLayout.CHECKBOX_WIDTH)
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(
                                             if (allInCategorySelected) PrimaryGold else Color.Transparent
@@ -453,12 +452,12 @@ fun ReviewDetectedItemsSheet(
                                     }
                                 }
                                 
-                                Spacer(modifier = Modifier.width(16.dp))
+                                Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_GAP))
                                 
                                 Text(
                                     categoryName.uppercase(),
                                     color = PrimaryGold,
-                                    fontSize = 14.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     modifier = Modifier.weight(1f)
                                 )
@@ -596,25 +595,24 @@ fun ReviewDetectedItemsSheet(
                                     Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(start = 44.dp, top = 12.dp, end = 24.dp),
+                                            .padding(start = ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP, top = 12.dp, end = 12.dp),
                                         verticalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        draft.variants.forEachIndexed { vIndex, variant ->
+                                    ) {                                        draft.variants.forEachIndexed { vIndex, variant ->
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Box(
                                                     modifier = Modifier
-                                                        .size(22.dp)
-                                                        .clip(RoundedCornerShape(5.dp))
+                                                        .size(ReviewSheetLayout.CHECKBOX_WIDTH)
+                                                        .clip(RoundedCornerShape(6.dp))
                                                         .background(
                                                             if (variant.isSelected) PrimaryGold.copy(alpha = 0.8f) else Color.Transparent
                                                         )
                                                         .border(
-                                                            1.dp,
+                                                            1.5.dp,
                                                             if (variant.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
-                                                            RoundedCornerShape(5.dp)
+                                                            RoundedCornerShape(6.dp)
                                                         )
                                                         .clickable { 
                                                             val newVariants = draft.variants.toMutableList()
@@ -633,7 +631,7 @@ fun ReviewDetectedItemsSheet(
                                                     }
                                                 }
 
-                                                Spacer(modifier = Modifier.width(14.dp))
+                                                Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_GAP))
 
                                                 BasicTextField(
                                                     value = variant.name,
