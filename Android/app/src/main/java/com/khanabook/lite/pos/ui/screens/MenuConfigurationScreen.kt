@@ -5,9 +5,16 @@ package com.khanabook.lite.pos.ui.screens
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,18 +48,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.CategoryEntity
 import com.khanabook.lite.pos.data.local.entity.MenuItemEntity
+import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
 import com.khanabook.lite.pos.ui.designsystem.LoadingType
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 
 object ReviewSheetLayout {
-    val PRICE_WIDTH = 90.dp
-    val CHECKBOX_WIDTH = 26.dp
-    val CHECKBOX_GAP = 14.dp
-    val FOOD_ICON_WIDTH = 40.dp
     val HORIZONTAL_PADDING = 16.dp
-    val CARD_PADDING = 16.dp
+    val CARD_PADDING = 12.dp
+    val CHECKBOX_WIDTH = 24.dp
+    val CHECKBOX_GAP = 12.dp
+    val PRICE_WIDTH = 80.dp
+    val FOOD_ICON_WIDTH = 40.dp
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,7 +75,7 @@ fun MenuConfigurationScreen(
     val menuItems by viewModel.menuItems.collectAsState()
     val ocrUiState by viewModel.ocrImportUiState.collectAsState()
     val context = LocalContext.current
-    
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     val pdfLauncher = rememberLauncherForActivityResult(
@@ -181,7 +189,7 @@ fun MenuConfigurationScreen(
                     onAddCategory = { viewModel.addCategory(it, true) },
                     onUpdateCategory = { viewModel.updateCategory(it) },
                     onDeleteCategory = { viewModel.deleteCategory(it) },
-                    onAddItem = { name, price, type -> 
+                    onAddItem = { name, price, type ->
                         selectedCategoryId?.let { viewModel.addItem(it, name, price, type) }
                     },
                     onUpdateItem = { viewModel.updateItem(it) },
@@ -193,28 +201,26 @@ fun MenuConfigurationScreen(
                 )
             }
 
-            if (ocrUiState.drafts.isNotEmpty()) {
-                ReviewDetectedItemsSheet(
-                    drafts = ocrUiState.drafts,
-                    onDismiss = { viewModel.clearDrafts() },
-                    onConfirm = { 
-                        viewModel.checkForConflicts(selectedCategoryId) { hasConflict ->
-                            if (hasConflict) {
-                                showOverwriteDialog = true
-                            } else {
-                                viewModel.saveImportedMenu(selectedCategoryId, false)
-                            }
+            ReviewDetectedItemsSheet(
+                drafts = ocrUiState.drafts,
+                onDismiss = { viewModel.clearDrafts() },
+                onConfirm = {
+                    viewModel.checkForConflicts(selectedCategoryId) { hasConflict ->
+                        if (hasConflict) {
+                            showOverwriteDialog = true
+                        } else {
+                            viewModel.saveImportedMenu(selectedCategoryId, false)
                         }
-                    },
-                    onConfirmOverwrite = {
-                        viewModel.saveImportedMenu(selectedCategoryId, true)
-                        showOverwriteDialog = false
-                    },
-                    onToggleSelection = { viewModel.toggleDraftSelection(it) },
-                    onUpdateDraft = { index, draft -> viewModel.updateDraft(index, draft) },
-                    onToggleFoodType = { viewModel.toggleDraftFoodType(it) }
-                )
-            }
+                    }
+                },
+                onConfirmOverwrite = {
+                    viewModel.saveImportedMenu(selectedCategoryId, true)
+                    showOverwriteDialog = false
+                },
+                onToggleSelection = { viewModel.toggleDraftSelection(it) },
+                onUpdateDraft = { index, draft -> viewModel.updateDraft(index, draft) },
+                onToggleFoodType = { viewModel.toggleDraftFoodType(it) }
+            )
 
             KhanaBookLoadingOverlay(
                 visible = ocrUiState.isProcessing,
@@ -291,380 +297,388 @@ fun ReviewDetectedItemsSheet(
         )
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.6f))
-            .clickable { showDiscardConfirm = true },
-        contentAlignment = Alignment.BottomCenter
+    androidx.compose.animation.AnimatedVisibility(
+        visible = drafts.isNotEmpty(),
+        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.88f)
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                .background(DarkBrown1)
-                .clickable(enabled = false) { }
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.6f))
+                .clickable { showDiscardConfirm = true },
+            contentAlignment = Alignment.BottomCenter
         ) {
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.95f)
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .background(DarkBrown1)
+                    .clickable(enabled = false) { }
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
             ) {
                 Box(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .height(4.dp)
+                            .background(PrimaryGold.copy(alpha = 0.4f), CircleShape)
+                    )
+                }
+
+                Row(
                     modifier = Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .background(PrimaryGold.copy(alpha = 0.4f), CircleShape)
-                )
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Review Detected Items",
-                        color = PrimaryGold,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "${drafts.size} items found · $selectedCount selected",
-                        color = TextGold.copy(alpha = 0.7f),
-                        fontSize = 13.sp
-                    )
-                }
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = TextGold)
-                }
-            }
-
-            // Global select / deselect all
-            val allSelected = selectedCount == drafts.size
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
-            ) {
-                TextButton(onClick = {
-                    val target = !allSelected
-                    drafts.indices.forEach { i ->
-                        if (drafts[i].isSelected != target) onToggleSelection(i)
-                    }
-                }) {
-                    Icon(
-                        if (allSelected) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
-                        contentDescription = null,
-                        tint = PrimaryGold,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        if (allSelected) "Deselect All" else "Select All",
-                        color = PrimaryGold,
-                        fontSize = 13.sp
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = headerPadding, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Spacer(modifier = Modifier.width(checkboxPlaceholder))
-                Text("Item Name", color = TextGold.copy(alpha = 0.6f), fontSize = 13.sp, modifier = Modifier.weight(1f))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Price", color = TextGold.copy(alpha = 0.6f), fontSize = 13.sp, textAlign = TextAlign.End, modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH))
-                Spacer(modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
-            }
-
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING),
-                verticalArrangement = Arrangement.spacedBy(12.dp), // Increased spacing
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                val groupedDrafts = drafts.withIndex().groupBy { it.value.categoryName ?: "Uncategorized" }
-                
-                groupedDrafts.forEach { (categoryName, indexedItems) ->
-                    val allInCategorySelected = indexedItems.all { it.value.isSelected }
-                    
-                    item(key = "header_$categoryName") {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 12.dp, horizontal = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(
-                                        if (allInCategorySelected) PrimaryGold else Color.Transparent
-                                    )
-                                    .border(
-                                        1.5.dp,
-                                        if (allInCategorySelected) PrimaryGold else TextGold.copy(alpha = 0.5f),
-                                        RoundedCornerShape(6.dp)
-                                    )
-                                    .clickable { 
-                                        val targetSelection = !allInCategorySelected
-                                        indexedItems.forEach { indexed ->
-                                            if (indexed.value.isSelected != targetSelection) {
-                                                onToggleSelection(indexed.index)
-                                            }
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (allInCategorySelected) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = DarkBrown1,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                            
-                            Spacer(modifier = Modifier.width(16.dp))
-                            
-                            Text(
-                                categoryName.uppercase(),
-                                color = PrimaryGold,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-
-                    items(indexedItems.size) { i ->
-                        val index = indexedItems[i].index
-                        val draft = indexedItems[i].value
-                        val bgColor by animateColorAsState(
-                            targetValue = if (draft.isSelected) DarkBrown2 else Color.Transparent,
-                            animationSpec = tween(200),
-                            label = "item_bg"
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Review Detected Items",
+                            color = PrimaryGold,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(bgColor)
-                                .border(
-                                    width = 0.5.dp,
-                                    color = if (draft.isSelected) BorderGold else BorderGold.copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .clickable { onToggleSelection(index) }
-                                .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 10.dp)
-                        ) {
+                        Text(
+                            "${drafts.size} items found · $selectedCount selected",
+                            color = TextGold.copy(alpha = 0.7f),
+                            fontSize = 12.sp
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = TextGold)
+                    }
+                }
+
+                // Global select / deselect all
+                val allSelected = selectedCount == drafts.size
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = {
+                            val target = !allSelected
+                            drafts.indices.forEach { i ->
+                                if (drafts[i].isSelected != target) onToggleSelection(i)
+                            }
+                        },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            if (allSelected) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
+                            contentDescription = null,
+                            tint = PrimaryGold,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            if (allSelected) "Deselect All" else "Select All",
+                            color = PrimaryGold,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = headerPadding, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(modifier = Modifier.width(checkboxPlaceholder))
+                    Text("Item Name", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Price", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH))
+                    Spacer(modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    val groupedDrafts = drafts.withIndex().groupBy { it.value.categoryName ?: "Uncategorized" }
+                    
+                    groupedDrafts.forEach { (categoryName, indexedItems) ->
+                        val allInCategorySelected = indexedItems.all { it.value.isSelected }
+                        
+                        item(key = "header_$categoryName") {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp, horizontal = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(ReviewSheetLayout.CHECKBOX_WIDTH)
+                                        .size(24.dp)
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(
-                                            if (draft.isSelected) PrimaryGold else Color.Transparent
+                                            if (allInCategorySelected) PrimaryGold else Color.Transparent
                                         )
                                         .border(
                                             1.5.dp,
-                                            if (draft.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
+                                            if (allInCategorySelected) PrimaryGold else TextGold.copy(alpha = 0.5f),
                                             RoundedCornerShape(6.dp)
-                                        ),
+                                        )
+                                        .clickable { 
+                                            val targetSelection = !allInCategorySelected
+                                            indexedItems.forEach { indexed ->
+                                                if (indexed.value.isSelected != targetSelection) {
+                                                    onToggleSelection(indexed.index)
+                                                }
+                                            }
+                                        },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (draft.isSelected) {
+                                    if (allInCategorySelected) {
                                         Icon(
                                             Icons.Default.Check,
                                             contentDescription = null,
                                             tint = DarkBrown1,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_GAP))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    BasicTextField(
-                                        value = draft.name,
-                                        onValueChange = { onUpdateDraft(index, draft.copy(name = it)) },
-                                        textStyle = TextStyle(
-                                            color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            textDecoration = if (!draft.isSelected) TextDecoration.LineThrough else null
-                                        ),
-                                        cursorBrush = SolidColor(PrimaryGold)
-                                    )
-                                    
-                                    BasicTextField(
-                                        value = draft.categoryName ?: "",
-                                        onValueChange = { onUpdateDraft(index, draft.copy(categoryName = it.ifBlank { null })) },
-                                        textStyle = TextStyle(
-                                            color = PrimaryGold.copy(alpha = 0.7f),
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        decorationBox = { innerTextField ->
-                                            if (draft.categoryName.isNullOrBlank()) {
-                                                Text("Tap to set category", color = PrimaryGold.copy(alpha = 0.3f), fontSize = 12.sp)
-                                            }
-                                            innerTextField()
-                                        },
-                                        cursorBrush = SolidColor(PrimaryGold)
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                if (draft.variants.size <= 1) {
-                                    Row(
-                                        modifier = Modifier
-                                            .width(ReviewSheetLayout.PRICE_WIDTH)
-                                            .background(DarkBrown1.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("₹", color = PrimaryGold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                        BasicTextField(
-                                            value = if (draft.price == 0.0) "" else {
-                                                val i = draft.price.toLong()
-                                                if (draft.price == i.toDouble()) i.toString() else draft.price.toString()
-                                            },
-                                            onValueChange = { raw ->
-                                                val p = raw.toDoubleOrNull() ?: 0.0
-                                                onUpdateDraft(index, draft.copy(price = p))
-                                            },
-                                            textStyle = TextStyle(
-                                                color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
-                                                fontSize = 14.sp,
-                                                textAlign = TextAlign.End
-                                            ),
-                                            cursorBrush = SolidColor(PrimaryGold),
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            modifier = Modifier.weight(1f)
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
                                 
-                                IconButton(
-                                    onClick = { onToggleFoodType(index) },
-                                    modifier = Modifier.size(ReviewSheetLayout.FOOD_ICON_WIDTH)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Circle,
-                                        contentDescription = null,
-                                        tint = if (draft.foodType == "veg") VegGreen else NonVegRed,
-                                        modifier = Modifier.size(16.dp).border(1.dp, Color.White, CircleShape)
-                                    )
-                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                
+                                Text(
+                                    categoryName.uppercase(),
+                                    color = PrimaryGold,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
+                        }
 
-                            if (draft.variants.isNotEmpty()) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(start = 44.dp, top = 12.dp, end = 24.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        items(indexedItems.size) { i ->
+                            val index = indexedItems[i].index
+                            val draft = indexedItems[i].value
+                            val bgColor by animateColorAsState(
+                                targetValue = if (draft.isSelected) DarkBrown2 else Color.Transparent,
+                                animationSpec = tween(200),
+                                label = "item_bg"
+                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(bgColor)
+                                    .border(
+                                        width = 0.5.dp,
+                                        color = if (draft.isSelected) BorderGold else BorderGold.copy(alpha = 0.15f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable { onToggleSelection(index) }
+                                    .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    draft.variants.forEachIndexed { vIndex, variant ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(ReviewSheetLayout.CHECKBOX_WIDTH)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(
+                                                if (draft.isSelected) PrimaryGold else Color.Transparent
+                                            )
+                                            .border(
+                                                1.5.dp,
+                                                if (draft.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
+                                                RoundedCornerShape(6.dp)
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (draft.isSelected) {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = DarkBrown1,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_GAP))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        BasicTextField(
+                                            value = draft.name,
+                                            onValueChange = { onUpdateDraft(index, draft.copy(name = it)) },
+                                            textStyle = TextStyle(
+                                                color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                textDecoration = if (!draft.isSelected) TextDecoration.LineThrough else null
+                                            ),
+                                            cursorBrush = SolidColor(PrimaryGold)
+                                        )
+                                        
+                                        BasicTextField(
+                                            value = draft.categoryName ?: "",
+                                            onValueChange = { onUpdateDraft(index, draft.copy(categoryName = it.ifBlank { null })) },
+                                            textStyle = TextStyle(
+                                                color = PrimaryGold.copy(alpha = 0.7f),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Medium
+                                            ),
+                                            decorationBox = { innerTextField ->
+                                                if (draft.categoryName.isNullOrBlank()) {
+                                                    Text("Tap to set category", color = PrimaryGold.copy(alpha = 0.3f), fontSize = 12.sp)
+                                                }
+                                                innerTextField()
+                                            },
+                                            cursorBrush = SolidColor(PrimaryGold)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    if (draft.variants.size <= 1) {
                                         Row(
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier = Modifier
+                                                .width(ReviewSheetLayout.PRICE_WIDTH)
+                                                .background(DarkBrown1.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 10.dp, vertical = 8.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(22.dp)
-                                                    .clip(RoundedCornerShape(5.dp))
-                                                    .background(
-                                                        if (variant.isSelected) PrimaryGold.copy(alpha = 0.8f) else Color.Transparent
-                                                    )
-                                                    .border(
-                                                        1.dp,
-                                                        if (variant.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
-                                                        RoundedCornerShape(5.dp)
-                                                    )
-                                                    .clickable { 
-                                                        val newVariants = draft.variants.toMutableList()
-                                                        newVariants[vIndex] = variant.copy(isSelected = !variant.isSelected)
-                                                        onUpdateDraft(index, draft.copy(variants = newVariants))
-                                                    },
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                if (variant.isSelected) {
-                                                    Icon(
-                                                        Icons.Default.Check,
-                                                        contentDescription = null,
-                                                        tint = DarkBrown1,
-                                                        modifier = Modifier.size(14.dp)
-                                                    )
-                                                }
-                                            }
-
-                                            Spacer(modifier = Modifier.width(14.dp))
-
+                                            Text("₹", color = PrimaryGold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                             BasicTextField(
-                                                value = variant.name,
-                                                onValueChange = { newName ->
-                                                    val newVariants = draft.variants.toMutableList()
-                                                    newVariants[vIndex] = variant.copy(name = newName)
-                                                    onUpdateDraft(index, draft.copy(variants = newVariants))
+                                                value = if (draft.price == 0.0) "" else {
+                                                    val i = draft.price.toLong()
+                                                    if (draft.price == i.toDouble()) i.toString() else draft.price.toString()
+                                                },
+                                                onValueChange = { raw ->
+                                                    val p = raw.toDoubleOrNull() ?: 0.0
+                                                    onUpdateDraft(index, draft.copy(price = p))
                                                 },
                                                 textStyle = TextStyle(
-                                                    color = if (variant.isSelected) TextGold.copy(alpha = 0.8f) else TextGold.copy(alpha = 0.3f),
-                                                    fontSize = 15.sp,
-                                                    textDecoration = if (!variant.isSelected) TextDecoration.LineThrough else null
+                                                    color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
+                                                    fontSize = 14.sp,
+                                                    textAlign = TextAlign.End
                                                 ),
                                                 cursorBrush = SolidColor(PrimaryGold),
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                                 modifier = Modifier.weight(1f)
                                             )
-                                            
+                                        }
+                                    }
+                                    
+                                    IconButton(
+                                        onClick = { onToggleFoodType(index) },
+                                        modifier = Modifier.size(ReviewSheetLayout.FOOD_ICON_WIDTH)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Circle,
+                                            contentDescription = null,
+                                            tint = if (draft.foodType == "veg") VegGreen else NonVegRed,
+                                            modifier = Modifier.size(16.dp).border(1.dp, Color.White, CircleShape)
+                                        )
+                                    }
+                                }
+
+                                if (draft.variants.isNotEmpty()) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 44.dp, top = 12.dp, end = 24.dp),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        draft.variants.forEachIndexed { vIndex, variant ->
                                             Row(
-                                                modifier = Modifier
-                                                    .width(80.dp)
-                                                    .background(DarkBrown1.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                                modifier = Modifier.fillMaxWidth(),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text("₹", color = if (variant.isSelected) PrimaryGold else PrimaryGold.copy(alpha = 0.3f), fontSize = 14.sp)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(22.dp)
+                                                        .clip(RoundedCornerShape(5.dp))
+                                                        .background(
+                                                            if (variant.isSelected) PrimaryGold.copy(alpha = 0.8f) else Color.Transparent
+                                                        )
+                                                        .border(
+                                                            1.dp,
+                                                            if (variant.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
+                                                            RoundedCornerShape(5.dp)
+                                                        )
+                                                        .clickable { 
+                                                            val newVariants = draft.variants.toMutableList()
+                                                            newVariants[vIndex] = variant.copy(isSelected = !variant.isSelected)
+                                                            onUpdateDraft(index, draft.copy(variants = newVariants))
+                                                        },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    if (variant.isSelected) {
+                                                        Icon(
+                                                            Icons.Default.Check,
+                                                            contentDescription = null,
+                                                            tint = DarkBrown1,
+                                                            modifier = Modifier.size(14.dp)
+                                                        )
+                                                    }
+                                                }
+
+                                                Spacer(modifier = Modifier.width(14.dp))
+
                                                 BasicTextField(
-                                                    value = if (variant.price == 0.0) "" else {
-                                                        val i = variant.price.toLong()
-                                                        if (variant.price == i.toDouble()) i.toString() else variant.price.toString()
-                                                    },
-                                                    onValueChange = { raw ->
-                                                        val p = raw.toDoubleOrNull() ?: 0.0
+                                                    value = variant.name,
+                                                    onValueChange = { newName ->
                                                         val newVariants = draft.variants.toMutableList()
-                                                        newVariants[vIndex] = variant.copy(price = p)
+                                                        newVariants[vIndex] = variant.copy(name = newName)
                                                         onUpdateDraft(index, draft.copy(variants = newVariants))
                                                     },
                                                     textStyle = TextStyle(
-                                                        color = if (variant.isSelected) TextLight.copy(alpha = 0.9f) else TextLight.copy(alpha = 0.3f),
-                                                        fontSize = 14.sp,
-                                                        textAlign = TextAlign.End
+                                                        color = if (variant.isSelected) TextGold.copy(alpha = 0.8f) else TextGold.copy(alpha = 0.3f),
+                                                        fontSize = 15.sp,
+                                                        textDecoration = if (!variant.isSelected) TextDecoration.LineThrough else null
                                                     ),
                                                     cursorBrush = SolidColor(PrimaryGold),
-                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                                     modifier = Modifier.weight(1f)
                                                 )
+                                                
+                                                Row(
+                                                    modifier = Modifier
+                                                        .width(80.dp)
+                                                        .background(DarkBrown1.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text("₹", color = PrimaryGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                    BasicTextField(
+                                                        value = if (variant.price == 0.0) "" else {
+                                                            val i = variant.price.toLong()
+                                                            if (variant.price == i.toDouble()) i.toString() else variant.price.toString()
+                                                        },
+                                                        onValueChange = { p ->
+                                                            val newVariants = draft.variants.toMutableList()
+                                                            newVariants[vIndex] = variant.copy(price = p.toDoubleOrNull() ?: 0.0)
+                                                            onUpdateDraft(index, draft.copy(variants = newVariants))
+                                                        },
+                                                        textStyle = TextStyle(
+                                                            color = if (variant.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
+                                                            fontSize = 13.sp,
+                                                            textAlign = TextAlign.End
+                                                        ),
+                                                        cursorBrush = SolidColor(PrimaryGold),
+                                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -673,45 +687,46 @@ fun ReviewDetectedItemsSheet(
                         }
                     }
                 }
-            }
 
-            Surface(
-                color = DarkBrown2,
-                border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = DarkBrown2,
+                    border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f))
                 ) {
-                    OutlinedButton(
-                        onClick = { showDiscardConfirm = true },
-                        border = BorderStroke(1.5.dp, NonVegRed.copy(alpha = 0.6f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = NonVegRed),
-                        modifier = Modifier.weight(1f).height(56.dp),
-                        shape = RoundedCornerShape(12.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Discard", maxLines = 1, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Button(
-                        onClick = onConfirm,
-                        enabled = selectedCount > 0,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryGold,
-                            contentColor = DarkBrown1
-                        ),
-                        modifier = Modifier.weight(2f).height(56.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            "Add $selectedCount Items",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
+                        OutlinedButton(
+                            onClick = { showDiscardConfirm = true },
+                            border = BorderStroke(1.5.dp, NonVegRed.copy(alpha = 0.6f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = NonVegRed),
+                            modifier = Modifier.weight(1f).height(56.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Discard", maxLines = 1, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = onConfirm,
+                            enabled = selectedCount > 0,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PrimaryGold,
+                                contentColor = DarkBrown1
+                            ),
+                            modifier = Modifier.weight(2f).height(56.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                "Add $selectedCount Items",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
                     }
                 }
             }
@@ -772,7 +787,7 @@ fun ModeSelectionView(
             colors = CardDefaults.cardColors(containerColor = DarkBrown2),
             border = BorderStroke(1.dp, if (isSmartAIExpanded) PrimaryGold.copy(alpha = 0.5f) else BorderGold.copy(alpha = 0.2f))
         ) {
-            Column(modifier = Modifier.animateContentSize()) {
+            Column {
                 Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
                     Surface(color = PrimaryGold.copy(alpha = 0.2f), shape = CircleShape, modifier = Modifier.size(iconSize.avatar)) {
                         Icon(Icons.Default.AutoAwesome, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
@@ -795,29 +810,35 @@ fun ModeSelectionView(
                     )
                 }
 
-                if (isSmartAIExpanded) {
-                    HorizontalDivider(color = BorderGold.copy(alpha = 0.1f), modifier = Modifier.padding(horizontal = 20.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        SmartAIOption(
-                            icon = Icons.Default.CameraAlt,
-                            label = "Camera",
-                            onClick = onSmartImportClick
-                        )
-                        SmartAIOption(
-                            icon = Icons.Default.PhotoLibrary,
-                            label = "Gallery",
-                            onClick = onGalleryClick
-                        )
-                        SmartAIOption(
-                            icon = Icons.Default.PictureAsPdf,
-                            label = "PDF",
-                            onClick = onPdfClick
-                        )
+                AnimatedVisibility(
+                    visible = isSmartAIExpanded,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column {
+                        HorizontalDivider(color = BorderGold.copy(alpha = 0.1f), modifier = Modifier.padding(horizontal = 20.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            SmartAIOption(
+                                icon = Icons.Default.CameraAlt,
+                                label = "Camera",
+                                onClick = onSmartImportClick
+                            )
+                            SmartAIOption(
+                                icon = Icons.Default.PhotoLibrary,
+                                label = "Gallery",
+                                onClick = onGalleryClick
+                            )
+                            SmartAIOption(
+                                icon = Icons.Default.PictureAsPdf,
+                                label = "PDF",
+                                onClick = onPdfClick
+                            )
+                        }
                     }
                 }
             }
@@ -856,7 +877,7 @@ fun SmartAIOption(
 fun ManualMenuView(
     categories: List<CategoryEntity>,
     selectedCategoryId: Long?,
-    menuItems: List<com.khanabook.lite.pos.data.local.relation.MenuWithVariants>,
+    menuItems: List<MenuWithVariants>,
     onCategorySelect: (Long) -> Unit,
     onAddCategory: (String) -> Unit,
     onUpdateCategory: (CategoryEntity) -> Unit,
@@ -875,7 +896,7 @@ fun ManualMenuView(
     var showDeleteCategoryDialog by remember { mutableStateOf<CategoryEntity?>(null) }
 
     var showAddItemDialog by remember { mutableStateOf(false) }
-    var showEditItemDialog by remember { mutableStateOf<com.khanabook.lite.pos.data.local.relation.MenuWithVariants?>(null) }
+    var showEditItemDialog by remember { mutableStateOf<MenuWithVariants?>(null) }
     var showDeleteItemDialog by remember { mutableStateOf<MenuItemEntity?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -931,7 +952,6 @@ fun ManualMenuView(
         }
 
         if (categories.isEmpty()) {
-            // No categories empty state
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -1002,115 +1022,46 @@ fun ManualMenuView(
                     }
                 } else {
                     items(menuItems) { itemWithVariants ->
-                        val item = itemWithVariants.menuItem
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .combinedClickable(
-                                    onClick = { showEditItemDialog = itemWithVariants },
-                                    onLongClick = { showDeleteItemDialog = item }
-                                ),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (item.isAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
-                            ),
-                            border = BorderStroke(
-                                0.5.dp,
-                                if (item.isAvailable) BorderGold.copy(alpha = 0.2f) else ErrorPink.copy(alpha = 0.25f)
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .background(
-                                            if (item.foodType == "veg") VegGreen else NonVegRed,
-                                            CircleShape
-                                        )
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        item.name,
-                                        color = if (item.isAvailable) TextLight else TextLight.copy(alpha = 0.4f),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        textDecoration = if (!item.isAvailable) TextDecoration.LineThrough else TextDecoration.None
-                                    )
-                                    val variantCount = itemWithVariants.variants.size
-                                    if (variantCount > 0) {
-                                        Text(
-                                            "$variantCount variant${if (variantCount > 1) "s" else ""}",
-                                            color = TextGold.copy(alpha = if (item.isAvailable) 0.6f else 0.3f),
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    } else {
-                                        Text(
-                                            "₹${item.basePrice}",
-                                            color = PrimaryGold.copy(alpha = if (item.isAvailable) 0.8f else 0.3f),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
-                                    if (!item.isAvailable) {
-                                        Text(
-                                            "Unavailable",
-                                            color = ErrorPink.copy(alpha = 0.8f),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                                Switch(
-                                    checked = item.isAvailable,
-                                    onCheckedChange = { onToggleAvailability(item.id, it) },
-                                    colors = SwitchDefaults.colors(
-                                        checkedTrackColor = VegGreen.copy(alpha = 0.7f),
-                                        uncheckedTrackColor = ErrorPink.copy(alpha = 0.4f),
-                                        uncheckedThumbColor = ErrorPink
-                                    )
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription = null,
-                                    tint = TextGold.copy(alpha = 0.35f),
-                                    modifier = Modifier.size(KhanaBookTheme.iconSize.small)
-                                )
-                            }
-                        }
+                        MenuItemRow(
+                            itemWithVariants = itemWithVariants,
+                            onToggleAvailability = onToggleAvailability,
+                            onEditClick = { showEditItemDialog = it },
+                            onDeleteClick = { showDeleteItemDialog = it }
+                        )
                     }
                 }
-            }
 
-            if (menuItems.isNotEmpty()) {
-                Text(
-                    "Tap to edit  •  Long-press to delete",
-                    color = TextGold.copy(alpha = 0.35f),
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 2.dp),
-                    textAlign = TextAlign.Center
-                )
-            }
+                item {
+                    Spacer(modifier = Modifier.height(spacing.medium))
+                    Text(
+                        "Tap to edit  •  Long-press to delete",
+                        color = TextGold.copy(alpha = 0.35f),
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 2.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
 
-            Button(
-                onClick = { showAddItemDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryGold,
-                    contentColor = DarkBrown1
-                ),
-                enabled = selectedCategoryId != null,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Add, null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Add New Item", fontWeight = FontWeight.Bold)
+                item {
+                    Button(
+                        onClick = { showAddItemDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryGold,
+                            contentColor = DarkBrown1
+                        ),
+                        enabled = selectedCategoryId != null,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Add, null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Add New Item", fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }
@@ -1120,7 +1071,7 @@ fun ManualMenuView(
         CategoryEditDialog(
             title = "Add Category",
             onDismiss = { showAddCategoryDialog = false },
-            onConfirm = { name -> 
+            onConfirm = { name ->
                 onAddCategory(name)
                 showAddCategoryDialog = false
             }
@@ -1218,6 +1169,77 @@ fun ManualMenuView(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun MenuItemRow(
+    itemWithVariants: MenuWithVariants,
+    onToggleAvailability: (Long, Boolean) -> Unit,
+    onEditClick: (MenuWithVariants) -> Unit,
+    onDeleteClick: (MenuItemEntity) -> Unit
+) {
+    val item = itemWithVariants.menuItem
+    val variants = itemWithVariants.variants
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = { onEditClick(itemWithVariants) },
+                onLongClick = { onDeleteClick(item) }
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = if (item.isAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
+        ),
+        border = BorderStroke(
+            0.5.dp, 
+            if (item.isAvailable) BorderGold.copy(alpha = 0.2f) else BorderGold.copy(alpha = 0.1f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.Circle,
+                contentDescription = null,
+                tint = if (item.foodType == "veg") VegGreen else NonVegRed,
+                modifier = Modifier.size(12.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.name,
+                    color = if (item.isAvailable) TextLight else TextLight.copy(alpha = 0.5f),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                if (variants.isNotEmpty()) {
+                    Text(
+                        text = "${variants.size} variants • Starts from ₹${variants.minOf { it.price.toDoubleOrNull() ?: 0.0 }.toInt()}",
+                        color = TextGold.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                } else {
+                    Text(
+                        text = "₹${item.basePrice.toDoubleOrNull()?.toInt() ?: item.basePrice}",
+                        color = TextGold.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+            Switch(
+                checked = item.isAvailable,
+                onCheckedChange = { onToggleAvailability(item.id, it) },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = PrimaryGold,
+                    checkedTrackColor = PrimaryGold.copy(alpha = 0.3f),
+                    uncheckedThumbColor = Color.Gray,
+                    uncheckedTrackColor = Color.DarkGray
+                )
+            )
+        }
     }
 }
 
