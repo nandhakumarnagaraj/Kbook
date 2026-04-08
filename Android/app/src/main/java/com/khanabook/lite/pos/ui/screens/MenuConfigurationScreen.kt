@@ -333,10 +333,12 @@ fun ReviewDetectedItemsSheet(
                 }
             }
 
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter
             ) {
+                val sheetMaxHeight = maxHeight * 0.97f
+                
                 // Dimmed background
                 Box(
                     modifier = Modifier
@@ -353,13 +355,14 @@ fun ReviewDetectedItemsSheet(
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
+                            .heightIn(max = sheetMaxHeight)
+                            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                             .background(DarkBrown1)
                             .imePadding()
                             .clickable(enabled = false) { }
+                            .navigationBarsPadding()
                     ) {
-                        Spacer(modifier = Modifier.statusBarsPadding())
-
                         Box(
                             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                             contentAlignment = Alignment.Center
@@ -528,8 +531,7 @@ fun ReviewDetectedItemsSheet(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .navigationBarsPadding()
-                                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                                    .padding(horizontal = 20.dp, vertical = 10.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -706,7 +708,7 @@ fun DraftItemRow(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP - 4.dp, top = 12.dp, end = 8.dp),
+                    .padding(start = ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP - 4.dp, top = 8.dp, end = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 draft.variants.forEachIndexed { vIndex, variant ->
