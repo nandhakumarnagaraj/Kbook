@@ -308,7 +308,7 @@ fun ReviewDetectedItemsSheet(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                val sheetMaxHeight = maxHeight * 0.97f
+                val sheetMaxHeight = maxHeight
                 
                 // Dimmed background
                 Box(
@@ -331,7 +331,7 @@ fun ReviewDetectedItemsSheet(
                             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                             .background(DarkBrown1)
                             .clickable(enabled = false) { }
-                            .navigationBarsPadding()
+                            .statusBarsPadding()
                     ) {
                         Box(
                             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
@@ -501,6 +501,7 @@ fun ReviewDetectedItemsSheet(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .navigationBarsPadding()
                                     .padding(horizontal = 20.dp, vertical = 14.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
