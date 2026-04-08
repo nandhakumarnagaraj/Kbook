@@ -355,6 +355,7 @@ fun ReviewDetectedItemsSheet(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(DarkBrown1)
+                            .imePadding()
                             .clickable(enabled = false) { }
                     ) {
                         Spacer(modifier = Modifier.statusBarsPadding())
