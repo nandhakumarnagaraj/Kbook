@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -55,56 +56,72 @@ fun MainScreen(
         val initialVisibleIndex = visibleTabs.indexOfFirst { it.originalIndex == initialTab }
         mutableIntStateOf(if (initialVisibleIndex != -1) initialVisibleIndex else 0) 
     }
+    var showBottomBar by rememberSaveable { mutableStateOf(true) }
 
     // Intercept back gesture to return to Home tab if not already there
     BackHandler(enabled = selectedTabIndex != 0) {
         selectedTabIndex = 0
     }
-    
-    Scaffold(
-        containerColor = DarkBackground,
-        bottomBar = {
-            AppBottomBar(
-                visibleTabs = visibleTabs,
-                currentSelectedIndex = selectedTabIndex, 
-                onTabSelected = { 
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    selectedTabIndex = it 
-                }
-            )
-        }
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            val backToHome = { selectedTabIndex = 0 }
-            AnimatedContent(
-                targetState = selectedTabIndex,
-                transitionSpec = {
-                    val direction = if (targetState > initialState) 1 else -1
-                    (slideInHorizontally(
-                        initialOffsetX = { fullWidth -> direction * fullWidth / 5 },
-                        animationSpec = tween(300, easing = FastOutSlowInEasing)
-                    ) + fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing))) togetherWith
-                    (slideOutHorizontally(
-                        targetOffsetX = { fullWidth -> -direction * fullWidth / 5 },
-                        animationSpec = tween(250, easing = FastOutSlowInEasing)
-                    ) + fadeOut(animationSpec = tween(150, easing = FastOutSlowInEasing)))
-                },
-                label = "tab_content",
-                modifier = Modifier.fillMaxSize()
-            ) { tabIndex ->
-                val currentTab = visibleTabs[tabIndex]
-                when (currentTab.label) {
-                    "Home" -> HomeScreen(onNewBill, onSearchBill, onOrderStatus, onCallCustomer)
-                    "Reports" -> ReportsScreen(onBack = backToHome)
-                    "Orders" -> OrdersScreen(onBack = backToHome)
-                    "Settings" -> SettingsScreen(
-                        onBack = backToHome,
-                        navController = navController,
-                        onScanClick = onScanClick,
-                        menuViewModel = menuViewModel
-                    )
-                }
+
+    val content: @Composable (Modifier) -> Unit = { modifier ->
+        val backToHome = { selectedTabIndex = 0 }
+        AnimatedContent(
+            targetState = selectedTabIndex,
+            transitionSpec = {
+                val direction = if (targetState > initialState) 1 else -1
+                (slideInHorizontally(
+                    initialOffsetX = { fullWidth -> direction * fullWidth / 5 },
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing))) togetherWith
+                (slideOutHorizontally(
+                    targetOffsetX = { fullWidth -> -direction * fullWidth / 5 },
+                    animationSpec = tween(250, easing = FastOutSlowInEasing)
+                ) + fadeOut(animationSpec = tween(150, easing = FastOutSlowInEasing)))
+            },
+            label = "tab_content",
+            modifier = modifier
+        ) { tabIndex ->
+            val currentTab = visibleTabs[tabIndex]
+            when (currentTab.label) {
+                "Home" -> HomeScreen(onNewBill, onSearchBill, onOrderStatus, onCallCustomer)
+                "Reports" -> ReportsScreen(onBack = backToHome)
+                "Orders" -> OrdersScreen(onBack = backToHome)
+                "Settings" -> SettingsScreen(
+                    onBack = backToHome,
+                    navController = navController,
+                    onScanClick = onScanClick,
+                    menuViewModel = menuViewModel,
+                    onBottomBarVisibilityChange = { visible -> showBottomBar = visible }
+                )
             }
+        }
+    }
+
+    if (showBottomBar) {
+        Scaffold(
+            containerColor = DarkBackground,
+            bottomBar = {
+                AppBottomBar(
+                    visibleTabs = visibleTabs,
+                    currentSelectedIndex = selectedTabIndex,
+                    onTabSelected = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        selectedTabIndex = it
+                    }
+                )
+            }
+        ) { padding ->
+            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                content(Modifier.fillMaxSize())
+            }
+        }
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(DarkBackground)
+        ) {
+            content(Modifier.fillMaxSize())
         }
     }
 }

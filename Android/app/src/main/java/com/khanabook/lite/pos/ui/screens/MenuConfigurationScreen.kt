@@ -2,6 +2,9 @@
 
 package com.khanabook.lite.pos.ui.screens
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,9 +16,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -36,10 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import android.view.WindowManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.window.DialogWindowProvider
+import androidx.compose.ui.platform.testTag
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -48,8 +48,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.CategoryEntity
@@ -67,6 +65,27 @@ object ReviewSheetLayout {
     val CHECKBOX_GAP = 12.dp
     val PRICE_WIDTH = 80.dp
     val FOOD_ICON_WIDTH = 40.dp
+}
+
+object MenuConfigurationTags {
+    const val modeSelectionRoot = "menu_config_mode_selection_root"
+    const val manualEntryCard = "menu_config_manual_entry"
+    const val smartAiCard = "menu_config_smart_ai"
+    const val smartAiCamera = "menu_config_smart_ai_camera"
+    const val smartAiGallery = "menu_config_smart_ai_gallery"
+    const val smartAiPdf = "menu_config_smart_ai_pdf"
+    const val manualMenuRoot = "menu_config_manual_menu_root"
+    const val addCategoryButton = "menu_config_add_category"
+    const val addItemButton = "menu_config_add_item"
+    const val reviewOverlayRoot = "menu_config_review_overlay_root"
+    const val reviewOverlayBackground = "menu_config_review_overlay_background"
+    const val reviewOverlaySheet = "menu_config_review_overlay_sheet"
+    const val reviewOverlayClose = "menu_config_review_overlay_close"
+    const val reviewOverlayDiscard = "menu_config_review_overlay_discard"
+    const val reviewOverlayConfirm = "menu_config_review_overlay_confirm"
+    const val reviewOverlayConflictOverwrite = "menu_config_review_overlay_conflict_overwrite"
+    const val reviewOverlayConflictMerge = "menu_config_review_overlay_conflict_merge"
+    const val reviewOverlayConflictCancel = "menu_config_review_overlay_conflict_cancel"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,6 +144,14 @@ fun MenuConfigurationScreen(
 
     BackHandler(onBack = onBack)
 
+    val activity = remember(context) { context.findActivity() }
+    DisposableEffect(activity) {
+        activity?.let { WindowCompat.setDecorFitsSystemWindows(it.window, true) }
+        onDispose {
+            activity?.let { WindowCompat.setDecorFitsSystemWindows(it.window, false) }
+        }
+    }
+
     LaunchedEffect(ocrUiState.successMessage) {
         ocrUiState.successMessage?.let {
             snackbarHostState.showSnackbar(it)
@@ -139,7 +166,7 @@ fun MenuConfigurationScreen(
         }
     }
 
-    var showOverwriteDialog by remember { mutableStateOf(false) }
+    var showOverwritePrompt by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -207,27 +234,6 @@ fun MenuConfigurationScreen(
                 )
             }
 
-            ReviewDetectedItemsSheet(
-                drafts = ocrUiState.drafts,
-                onDismiss = { viewModel.clearDrafts() },
-                onConfirm = {
-                    viewModel.checkForConflicts(selectedCategoryId) { hasConflict ->
-                        if (hasConflict) {
-                            showOverwriteDialog = true
-                        } else {
-                            viewModel.saveImportedMenu(selectedCategoryId, false)
-                        }
-                    }
-                },
-                onConfirmOverwrite = {
-                    viewModel.saveImportedMenu(selectedCategoryId, true)
-                    showOverwriteDialog = false
-                },
-                onToggleSelection = { viewModel.toggleDraftSelection(it) },
-                onUpdateDraft = { index, draft -> viewModel.updateDraft(index, draft) },
-                onToggleFoodType = { viewModel.toggleDraftFoodType(it) }
-            )
-
             KhanaBookLoadingOverlay(
                 visible = ocrUiState.isProcessing,
                 type = LoadingType.PROCESSING,
@@ -235,33 +241,28 @@ fun MenuConfigurationScreen(
                 subtitle = "Please wait..."
             )
 
-            if (showOverwriteDialog) {
-                AlertDialog(
-                    onDismissRequest = { showOverwriteDialog = false },
-                    containerColor = DarkBrown2,
-                    title = { Text("Items Already Exist", color = PrimaryGold) },
-                    text = { Text("Some items you are adding already exist in your menu. Do you want to overwrite them or skip duplicates?", color = TextLight) },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            viewModel.saveImportedMenu(selectedCategoryId, true)
-                            showOverwriteDialog = false
-                        }) {
-                            Text("Overwrite All", color = Color.Red, fontWeight = FontWeight.Bold)
+            if (ocrUiState.drafts.isNotEmpty()) {
+                ReviewDetectedItemsOverlay(
+                    drafts = ocrUiState.drafts,
+                    onDismiss = { viewModel.clearDrafts() },
+                    onConfirm = {
+                        viewModel.checkForConflicts(selectedCategoryId) { hasConflict ->
+                            if (hasConflict) {
+                                showOverwritePrompt = true
+                            } else {
+                                viewModel.saveImportedMenu(selectedCategoryId, false)
+                            }
                         }
                     },
-                    dismissButton = {
-                        Row {
-                            TextButton(onClick = {
-                                viewModel.saveImportedMenu(selectedCategoryId, false)
-                                showOverwriteDialog = false
-                            }) {
-                                Text("Merge & Skip", color = SuccessGreen)
-                            }
-                            TextButton(onClick = { showOverwriteDialog = false }) {
-                                Text("Cancel", color = TextGold)
-                            }
-                        }
-                    }
+                    onConfirmOverwrite = {
+                        viewModel.saveImportedMenu(selectedCategoryId, true)
+                        showOverwritePrompt = false
+                    },
+                    showOverwritePrompt = showOverwritePrompt,
+                    onDismissOverwritePrompt = { showOverwritePrompt = false },
+                    onToggleSelection = { viewModel.toggleDraftSelection(it) },
+                    onUpdateDraft = { index, draft -> viewModel.updateDraft(index, draft) },
+                    onToggleFoodType = { viewModel.toggleDraftFoodType(it) }
                 )
             }
         }
@@ -269,11 +270,13 @@ fun MenuConfigurationScreen(
 }
 
 @Composable
-fun ReviewDetectedItemsSheet(
+fun ReviewDetectedItemsScreen(
     drafts: List<MenuViewModel.DraftMenuItem>,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
     onConfirmOverwrite: () -> Unit,
+    showOverwritePrompt: Boolean,
+    onDismissOverwritePrompt: () -> Unit,
     onToggleSelection: (Int) -> Unit,
     onUpdateDraft: (Int, MenuViewModel.DraftMenuItem) -> Unit,
     onToggleFoodType: (Int) -> Unit
@@ -281,103 +284,33 @@ fun ReviewDetectedItemsSheet(
     val selectedCount = drafts.count { it.isSelected }
     var showDiscardConfirm by remember { mutableStateOf(false) }
 
-    if (showDiscardConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDiscardConfirm = false },
-            containerColor = DarkBrown2,
-            title = { Text("Discard Items?", color = PrimaryGold) },
-            text = { Text("All ${drafts.size} detected items will be discarded. Are you sure?", color = TextLight) },
-            confirmButton = {
-                TextButton(onClick = { showDiscardConfirm = false; onDismiss() }) {
-                    Text("Discard", color = NonVegRed, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDiscardConfirm = false }) {
-                    Text("Keep Editing", color = PrimaryGold)
-                }
-            }
-        )
-    }
-
     if (drafts.isNotEmpty()) {
-        Dialog(
-            onDismissRequest = { showDiscardConfirm = true },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-                decorFitsSystemWindows = false
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(DarkBrown1)
         ) {
-            val view = LocalView.current
-            SideEffect {
-                // Walk up the view tree to reliably find DialogWindowProvider
-                // regardless of Compose version internals
-                var dialogWindow: android.view.Window? = null
-                if (view is DialogWindowProvider) {
-                    dialogWindow = view.window
-                } else {
-                    var parent: android.view.ViewParent? = view.parent
-                    while (parent != null && dialogWindow == null) {
-                        if (parent is DialogWindowProvider) {
-                            dialogWindow = parent.window
-                        }
-                        parent = (parent as? android.view.View)?.parent
-                    }
-                }
-                dialogWindow?.let { window ->
-                    WindowCompat.setDecorFitsSystemWindows(window, false)
-                    window.setLayout(
-                        WindowManager.LayoutParams.MATCH_PARENT,
-                        WindowManager.LayoutParams.MATCH_PARENT
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .height(4.dp)
+                            .background(PrimaryGold.copy(alpha = 0.4f), CircleShape)
                     )
                 }
-            }
-
-            BoxWithConstraints(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.BottomCenter
-            ) {
-                val sheetMaxHeight = maxHeight * 0.97f
-                
-                // Dimmed background
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .clickable { showDiscardConfirm = true }
-                )
-
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = true,
-                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = sheetMaxHeight)
-                            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                            .background(DarkBrown1)
-                            .imePadding()
-                            .clickable(enabled = false) { }
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(40.dp)
-                                    .height(4.dp)
-                                    .background(PrimaryGold.copy(alpha = 0.4f), CircleShape)
-                            )
-                        }
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
@@ -398,39 +331,6 @@ fun ReviewDetectedItemsSheet(
                             }
                         }
 
-                        // Global select / deselect all
-                        val allSelected = selectedCount == drafts.size
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            TextButton(
-                                onClick = {
-                                    val target = !allSelected
-                                    drafts.indices.forEach { i ->
-                                        if (drafts[i].isSelected != target) onToggleSelection(i)
-                                    }
-                                },
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Icon(
-                                    if (allSelected) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
-                                    contentDescription = null,
-                                    tint = PrimaryGold,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    if (allSelected) "Deselect All" else "Select All",
-                                    color = PrimaryGold,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -443,127 +343,475 @@ fun ReviewDetectedItemsSheet(
                             Text("Price", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH))
                             Spacer(modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
                         }
+                    }
 
-                        LazyColumn(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING, vertical = 12.dp)
-                        ) {
-                            val groupedDrafts = drafts.withIndex().groupBy { it.value.categoryName ?: "Uncategorized" }
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING, vertical = 12.dp)
+                    ) {
+                        val groupedDrafts = drafts.withIndex().groupBy { it.value.categoryName ?: "Uncategorized" }
 
-                            groupedDrafts.forEach { (categoryName, indexedItems) ->
-                                val allInCategorySelected = indexedItems.all { it.value.isSelected }
+                        groupedDrafts.forEach { (categoryName, indexedItems) ->
+                            val allInCategorySelected = indexedItems.all { it.value.isSelected }
 
-                                item(key = "header_$categoryName") {
-                                    Row(
+                            item(key = "header_$categoryName") {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(ReviewSheetLayout.CHECKBOX_WIDTH)
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(
-                                                    if (allInCategorySelected) PrimaryGold else Color.Transparent
-                                                )
-                                                .border(
-                                                    1.5.dp,
-                                                    if (allInCategorySelected) PrimaryGold else TextGold.copy(alpha = 0.5f),
-                                                    RoundedCornerShape(6.dp)
-                                                )
-                                                .clickable { 
-                                                    val targetSelection = !allInCategorySelected
-                                                    indexedItems.forEach { indexed ->
-                                                        if (indexed.value.isSelected != targetSelection) {
-                                                            onToggleSelection(indexed.index)
-                                                        }
+                                            .size(ReviewSheetLayout.CHECKBOX_WIDTH)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(
+                                                if (allInCategorySelected) PrimaryGold else Color.Transparent
+                                            )
+                                            .border(
+                                                1.5.dp,
+                                                if (allInCategorySelected) PrimaryGold else TextGold.copy(alpha = 0.5f),
+                                                RoundedCornerShape(6.dp)
+                                            )
+                                            .clickable {
+                                                val targetSelection = !allInCategorySelected
+                                                indexedItems.forEach { indexed ->
+                                                    if (indexed.value.isSelected != targetSelection) {
+                                                        onToggleSelection(indexed.index)
                                                     }
-                                                },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            if (allInCategorySelected) {
-                                                Icon(
-                                                    Icons.Default.Check,
-                                                    contentDescription = null,
-                                                    tint = DarkBrown1,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
+                                                }
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (allInCategorySelected) {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = DarkBrown1,
+                                                modifier = Modifier.size(16.dp)
+                                            )
                                         }
+                                    }
 
-                                        Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_GAP))
+                                    Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_GAP))
 
-                                        Text(
-                                            categoryName.uppercase(),
-                                            color = PrimaryGold,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            modifier = Modifier.weight(1f)
+                                    Text(
+                                        categoryName.uppercase(),
+                                        color = PrimaryGold,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+
+                            items(indexedItems.size) { i ->
+                                val index = indexedItems[i].index
+                                val draft = indexedItems[i].value
+
+                                DraftItemRow(
+                                    index = index,
+                                    draft = draft,
+                                    onToggleSelection = { onToggleSelection(index) },
+                                    onUpdateDraft = { onUpdateDraft(index, it) },
+                                    onToggleFoodType = { onToggleFoodType(index) }
+                                )
+                            }
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = DarkBrown2,
+                        border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedButton(
+                                onClick = { showDiscardConfirm = true },
+                                border = BorderStroke(1.5.dp, NonVegRed.copy(alpha = 0.6f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = NonVegRed),
+                                modifier = Modifier.weight(1f).height(56.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Discard", maxLines = 1, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Button(
+                                onClick = onConfirm,
+                                enabled = selectedCount > 0,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PrimaryGold,
+                                    contentColor = DarkBrown1
+                                ),
+                                modifier = Modifier.weight(2f).height(56.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    "Add $selectedCount Items",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+@Composable
+internal fun ReviewDetectedItemsOverlay(
+    drafts: List<MenuViewModel.DraftMenuItem>,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    onConfirmOverwrite: () -> Unit,
+    showOverwritePrompt: Boolean,
+    onDismissOverwritePrompt: () -> Unit,
+    onToggleSelection: (Int) -> Unit,
+    onUpdateDraft: (Int, MenuViewModel.DraftMenuItem) -> Unit,
+    onToggleFoodType: (Int) -> Unit
+) {
+    if (drafts.isEmpty()) return
+
+    val selectedCount = drafts.count { it.isSelected }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+    val dismissInteractionSource = remember { MutableInteractionSource() }
+
+    Box(modifier = Modifier.fillMaxSize().testTag(MenuConfigurationTags.reviewOverlayRoot)) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .testTag(MenuConfigurationTags.reviewOverlayBackground)
+                .background(Color.Black.copy(alpha = 0.58f))
+                .clickable(
+                    interactionSource = dismissInteractionSource,
+                    indication = null,
+                    onClick = {
+                        onDismissOverwritePrompt()
+                        showDiscardConfirm = false
+                        onDismiss()
+                    }
+                )
+        )
+
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .fillMaxHeight(0.9f)
+                .imePadding()
+                .testTag(MenuConfigurationTags.reviewOverlaySheet),
+            color = DarkBrown1,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .height(4.dp)
+                            .background(PrimaryGold.copy(alpha = 0.4f), CircleShape)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Review Detected Items",
+                            color = PrimaryGold,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "${drafts.size} items found · $selectedCount selected",
+                            color = TextGold.copy(alpha = 0.7f),
+                            fontSize = 12.sp
+                        )
+                    }
+                    IconButton(onClick = {
+                        onDismissOverwritePrompt()
+                        showDiscardConfirm = false
+                        onDismiss()
+                    }, modifier = Modifier.testTag(MenuConfigurationTags.reviewOverlayClose)) {
+                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = TextGold)
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = ReviewSheetLayout.HORIZONTAL_PADDING + ReviewSheetLayout.CARD_PADDING,
+                            vertical = 4.dp
+                        ),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP))
+                    Text("Item Name", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Price",
+                        color = TextGold.copy(alpha = 0.6f),
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH)
+                    )
+                    Spacer(modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING, vertical = 12.dp)
+                ) {
+                    val groupedDrafts = drafts.withIndex().groupBy { it.value.categoryName ?: "Uncategorized" }
+
+                    groupedDrafts.forEach { (categoryName, indexedItems) ->
+                        val allInCategorySelected = indexedItems.all { it.value.isSelected }
+
+                        item(key = "header_$categoryName") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(ReviewSheetLayout.CHECKBOX_WIDTH)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (allInCategorySelected) PrimaryGold else Color.Transparent)
+                                        .border(
+                                            1.5.dp,
+                                            if (allInCategorySelected) PrimaryGold else TextGold.copy(alpha = 0.5f),
+                                            RoundedCornerShape(6.dp)
+                                        )
+                                        .clickable {
+                                            val targetSelection = !allInCategorySelected
+                                            indexedItems.forEach { indexed ->
+                                                if (indexed.value.isSelected != targetSelection) {
+                                                    onToggleSelection(indexed.index)
+                                                }
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (allInCategorySelected) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = DarkBrown1,
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
 
-                                items(indexedItems.size) { i ->
-                                    val index = indexedItems[i].index
-                                    val draft = indexedItems[i].value
-                                    
-                                    DraftItemRow(
-                                        index = index,
-                                        draft = draft,
-                                        onToggleSelection = { onToggleSelection(index) },
-                                        onUpdateDraft = { onUpdateDraft(index, it) },
-                                        onToggleFoodType = { onToggleFoodType(index) }
-                                    )
-                                }
+                                Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_GAP))
+
+                                Text(
+                                    categoryName.uppercase(),
+                                    color = PrimaryGold,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
                         }
 
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = DarkBrown2,
-                            border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f))
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .navigationBarsPadding()
-                                    .padding(horizontal = 20.dp, vertical = 10.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                OutlinedButton(
-                                    onClick = { showDiscardConfirm = true },
-                                    border = BorderStroke(1.5.dp, NonVegRed.copy(alpha = 0.6f)),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = NonVegRed),
-                                    modifier = Modifier.weight(1f).height(56.dp),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text("Discard", maxLines = 1, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                }
-                                Button(
-                                    onClick = onConfirm,
-                                    enabled = selectedCount > 0,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = PrimaryGold,
-                                        contentColor = DarkBrown1
-                                    ),
-                                    modifier = Modifier.weight(2f).height(56.dp),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
-                                    Spacer(Modifier.width(10.dp))
-                                    Text(
-                                        "Add $selectedCount Items",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp
-                                    )
-                                }
-                            }
+                        items(indexedItems.size) { i ->
+                            val index = indexedItems[i].index
+                            val draft = indexedItems[i].value
+
+                            DraftItemRow(
+                                index = index,
+                                draft = draft,
+                                onToggleSelection = { onToggleSelection(index) },
+                                onUpdateDraft = { onUpdateDraft(index, it) },
+                                onToggleFoodType = { onToggleFoodType(index) }
+                            )
                         }
+                    }
+                }
+
+                if (showOverwritePrompt) {
+                    InlineDecisionBar(
+                        title = "Items Already Exist",
+                        message = "Some selected items already exist in your menu.",
+                        primaryLabel = "Overwrite All",
+                        primaryColor = NonVegRed,
+                        secondaryLabel = "Merge & Skip",
+                        secondaryColor = SuccessGreen,
+                        tertiaryLabel = "Cancel",
+                        onPrimaryClick = onConfirmOverwrite,
+                        onSecondaryClick = {
+                            onDismissOverwritePrompt()
+                            onConfirm()
+                        },
+                        onTertiaryClick = onDismissOverwritePrompt,
+                        primaryTag = MenuConfigurationTags.reviewOverlayConflictOverwrite,
+                        secondaryTag = MenuConfigurationTags.reviewOverlayConflictMerge,
+                        tertiaryTag = MenuConfigurationTags.reviewOverlayConflictCancel
+                    )
+                } else if (showDiscardConfirm) {
+                    InlineDecisionBar(
+                        title = "Discard Items?",
+                        message = "All ${drafts.size} detected items will be discarded.",
+                        primaryLabel = "Discard",
+                        primaryColor = NonVegRed,
+                        secondaryLabel = "Keep Editing",
+                        secondaryColor = PrimaryGold,
+                        onPrimaryClick = {
+                            showDiscardConfirm = false
+                            onDismiss()
+                        },
+                        onSecondaryClick = { showDiscardConfirm = false }
+                    )
+                }
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = DarkBrown2,
+                    border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                onDismissOverwritePrompt()
+                                showDiscardConfirm = true
+                            },
+                            border = BorderStroke(1.5.dp, NonVegRed.copy(alpha = 0.6f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = NonVegRed),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
+                                .testTag(MenuConfigurationTags.reviewOverlayDiscard),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                if (showDiscardConfirm) "Confirming..." else "Discard",
+                                maxLines = 1,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                showDiscardConfirm = false
+                                onConfirm()
+                            },
+                            enabled = selectedCount > 0,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PrimaryGold,
+                                contentColor = DarkBrown1
+                            ),
+                            modifier = Modifier
+                                .weight(2f)
+                                .height(56.dp)
+                                .testTag(MenuConfigurationTags.reviewOverlayConfirm),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                if (showOverwritePrompt) "Resolve Conflicts" else "Add $selectedCount Items",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InlineDecisionBar(
+    title: String,
+    message: String,
+    primaryLabel: String,
+    primaryColor: Color,
+    secondaryLabel: String,
+    secondaryColor: Color,
+    onPrimaryClick: () -> Unit,
+    onSecondaryClick: () -> Unit,
+    tertiaryLabel: String? = null,
+    onTertiaryClick: (() -> Unit)? = null,
+    primaryTag: String? = null,
+    secondaryTag: String? = null,
+    tertiaryTag: String? = null
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = DarkBrown1.copy(alpha = 0.96f),
+        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(title, color = PrimaryGold, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+            Text(message, color = TextLight, style = MaterialTheme.typography.bodySmall)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = onPrimaryClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = DarkBrown1),
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(if (primaryTag != null) Modifier.testTag(primaryTag) else Modifier)
+                ) {
+                    Text(primaryLabel, fontWeight = FontWeight.Bold)
+                }
+                OutlinedButton(
+                    onClick = onSecondaryClick,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = secondaryColor),
+                    border = BorderStroke(1.dp, secondaryColor.copy(alpha = 0.7f)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(if (secondaryTag != null) Modifier.testTag(secondaryTag) else Modifier)
+                ) {
+                    Text(secondaryLabel, fontWeight = FontWeight.Bold)
+                }
+                if (tertiaryLabel != null && onTertiaryClick != null) {
+                    TextButton(
+                        onClick = onTertiaryClick,
+                        modifier = if (tertiaryTag != null) Modifier.testTag(tertiaryTag) else Modifier
+                    ) {
+                        Text(tertiaryLabel, color = TextGold)
                     }
                 }
             }
@@ -584,7 +832,7 @@ fun DraftItemRow(
         animationSpec = tween(200),
         label = "item_bg"
     )
-    
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -728,7 +976,7 @@ fun DraftItemRow(
                                     if (variant.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
                                     RoundedCornerShape(5.dp)
                                 )
-                                .clickable { 
+                                .clickable {
                                     val newVariants = draft.variants.toMutableList()
                                     newVariants[vIndex] = variant.copy(isSelected = !variant.isSelected)
                                     onUpdateDraft(draft.copy(variants = newVariants))
@@ -814,6 +1062,7 @@ fun ModeSelectionView(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            .testTag(MenuConfigurationTags.modeSelectionRoot)
             .padding(horizontal = spacing.medium, vertical = spacing.extraLarge),
         verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
@@ -827,7 +1076,9 @@ fun ModeSelectionView(
         // 1. Manual Entry (View & Edit)
         Card(
             onClick = onManualClick,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(MenuConfigurationTags.manualEntryCard),
             colors = CardDefaults.cardColors(containerColor = DarkBrown2),
             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f))
         ) {
@@ -847,7 +1098,9 @@ fun ModeSelectionView(
         // 2. Smart AI
         Card(
             onClick = { isSmartAIExpanded = !isSmartAIExpanded },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(MenuConfigurationTags.smartAiCard),
             colors = CardDefaults.cardColors(containerColor = DarkBrown2),
             border = BorderStroke(1.dp, if (isSmartAIExpanded) PrimaryGold.copy(alpha = 0.5f) else BorderGold.copy(alpha = 0.2f))
         ) {
@@ -890,17 +1143,20 @@ fun ModeSelectionView(
                             SmartAIOption(
                                 icon = Icons.Default.CameraAlt,
                                 label = "Camera",
-                                onClick = onSmartImportClick
+                                onClick = onSmartImportClick,
+                                testTag = MenuConfigurationTags.smartAiCamera
                             )
                             SmartAIOption(
                                 icon = Icons.Default.PhotoLibrary,
                                 label = "Gallery",
-                                onClick = onGalleryClick
+                                onClick = onGalleryClick,
+                                testTag = MenuConfigurationTags.smartAiGallery
                             )
                             SmartAIOption(
                                 icon = Icons.Default.PictureAsPdf,
                                 label = "PDF",
-                                onClick = onPdfClick
+                                onClick = onPdfClick,
+                                testTag = MenuConfigurationTags.smartAiPdf
                             )
                         }
                     }
@@ -914,12 +1170,14 @@ fun ModeSelectionView(
 fun SmartAIOption(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    testTag: String? = null
 ) {
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() }
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -935,6 +1193,12 @@ fun SmartAIOption(
         Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.small))
         Text(label, color = TextLight, fontSize = 12.sp, fontWeight = FontWeight.Medium)
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 @Composable
@@ -963,7 +1227,7 @@ fun ManualMenuView(
     var showEditItemDialog by remember { mutableStateOf<MenuWithVariants?>(null) }
     var showDeleteItemDialog by remember { mutableStateOf<MenuItemEntity?>(null) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().testTag(MenuConfigurationTags.manualMenuRoot)) {
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1009,7 +1273,10 @@ fun ManualMenuView(
                 }
             }
             item {
-                IconButton(onClick = { showAddCategoryDialog = true }) {
+                IconButton(
+                    onClick = { showAddCategoryDialog = true },
+                    modifier = Modifier.testTag(MenuConfigurationTags.addCategoryButton)
+                ) {
                     Icon(Icons.Default.Add, null, tint = PrimaryGold)
                 }
             }
@@ -1113,6 +1380,7 @@ fun ManualMenuView(
                         onClick = { showAddItemDialog = true },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .testTag(MenuConfigurationTags.addItemButton)
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = PrimaryGold,
@@ -1245,7 +1513,7 @@ fun MenuItemRow(
 ) {
     val item = itemWithVariants.menuItem
     val variants = itemWithVariants.variants
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1257,7 +1525,7 @@ fun MenuItemRow(
             containerColor = if (item.isAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
         ),
         border = BorderStroke(
-            0.5.dp, 
+            0.5.dp,
             if (item.isAvailable) BorderGold.copy(alpha = 0.2f) else BorderGold.copy(alpha = 0.1f)
         )
     ) {
@@ -1315,7 +1583,7 @@ fun CategoryEditDialog(
     onConfirm: (String) -> Unit
 ) {
     var name by remember { mutableStateOf(initialName) }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = DarkBrown2,
@@ -1367,7 +1635,7 @@ fun ItemEditDialog(
     var name by remember { mutableStateOf(initialName) }
     var price by remember { mutableStateOf(if (initialPrice == 0.0) "" else initialPrice.toInt().toString()) }
     var foodType by remember { mutableStateOf(initialType) }
-    
+
     var showAddVariantDialog by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -1450,7 +1718,7 @@ fun ItemEditDialog(
                     variants.forEach { variant ->
                         var vName by remember { mutableStateOf(variant.variantName) }
                         var vPrice by remember { mutableStateOf(variant.price.toDoubleOrNull()?.toInt()?.toString() ?: "") }
-                        
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -1458,7 +1726,7 @@ fun ItemEditDialog(
                         ) {
                             OutlinedTextField(
                                 value = vName,
-                                onValueChange = { 
+                                onValueChange = {
                                     vName = it
                                     onUpdateVariant(variant.copy(variantName = it))
                                 },
@@ -1468,7 +1736,7 @@ fun ItemEditDialog(
                             )
                             OutlinedTextField(
                                 value = vPrice,
-                                onValueChange = { 
+                                onValueChange = {
                                     vPrice = it
                                     it.toDoubleOrNull()?.let { p ->
                                         onUpdateVariant(variant.copy(price = p.toString()))
@@ -1505,7 +1773,7 @@ fun ItemEditDialog(
     if (showAddVariantDialog) {
         var newVName by remember { mutableStateOf("") }
         var newVPrice by remember { mutableStateOf("") }
-        
+
         AlertDialog(
             onDismissRequest = { showAddVariantDialog = false },
             containerColor = DarkBrown2,

@@ -71,6 +71,7 @@ fun SettingsScreen(
     navController: NavController,
     onScanClick: (String?) -> Unit = {},
     menuViewModel: MenuViewModel,
+    onBottomBarVisibilityChange: (Boolean) -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
     logoutViewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel = hiltViewModel()
@@ -90,6 +91,29 @@ fun SettingsScreen(
         }
     }
 
+    if (section == "menu_config") {
+        DisposableEffect(Unit) {
+            onBottomBarVisibilityChange(false)
+            onDispose {
+                onBottomBarVisibilityChange(true)
+            }
+        }
+
+        MenuConfigurationScreen(
+            navController = navController,
+            onBackClick = { section = "menu" },
+            viewModel = menuViewModel
+        )
+        return
+    }
+
+    DisposableEffect(Unit) {
+        onBottomBarVisibilityChange(true)
+        onDispose {
+            onBottomBarVisibilityChange(true)
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -97,32 +121,29 @@ fun SettingsScreen(
             .imePadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            
-            if (section != "menu_config") {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(spacing.medium),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = { if (section == "menu") onBack() else section = "menu" }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PrimaryGold)
-                    }
-                    Text(
-                        text = when (section) {
-                            "shop" -> "Shop Configuration"
-                            "payment" -> "Payment Configuration"
-                            "printer" -> "Printer Configuration"
-                            "tax" -> "Tax Configuration"
-                            "security" -> "App Lock"
-                            "menu" -> "Settings"
-                            else -> "Settings"
-                        },
-                        modifier = Modifier.weight(1f),
-                        color = PrimaryGold,
-                        style = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.width(spacing.huge))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(spacing.medium),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { if (section == "menu") onBack() else section = "menu" }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PrimaryGold)
                 }
+                Text(
+                    text = when (section) {
+                        "shop" -> "Shop Configuration"
+                        "payment" -> "Payment Configuration"
+                        "printer" -> "Printer Configuration"
+                        "tax" -> "Tax Configuration"
+                        "security" -> "App Lock"
+                        "menu" -> "Settings"
+                        else -> "Settings"
+                    },
+                    modifier = Modifier.weight(1f),
+                    color = PrimaryGold,
+                    style = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.width(spacing.huge))
             }
 
             Box(modifier = Modifier.weight(1f)) {
