@@ -503,12 +503,13 @@ internal fun ReviewDetectedItemsOverlay(
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .fillMaxHeight(0.9f)
+                .fillMaxWidth(0.96f)
+                .fillMaxHeight(0.75f)
+                .padding(bottom = 16.dp)
                 .imePadding()
                 .testTag(MenuConfigurationTags.reviewOverlaySheet),
             color = DarkBrown1,
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            shape = RoundedCornerShape(28.dp),
             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
