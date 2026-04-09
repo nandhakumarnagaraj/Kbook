@@ -85,28 +85,29 @@ class LogoutViewModel @Inject constructor(
     }
 
     fun forceLogoutDespiteWarning() {
-        performHardLogout()
+        viewModelScope.launch {
+            _logoutState.value = LogoutState.AttemptingPush
+            performHardLogout()
+        }
     }
 
     fun cancelLogout() {
         _logoutState.value = LogoutState.Idle
     }
 
-    private fun performHardLogout() {
-        viewModelScope.launch {
-            if (BuildConfig.DEBUG) Log.d(debugTag, "performHardLogout: starting server-side logout + clearing DB")
-            // Revoke token server-side so it can't be replayed
-            try {
-                api.logout()
-            } catch (e: Exception) {
-                Log.w(debugTag, "Server logout failed (continuing local logout): ${e.message}")
-            }
-            sessionManager.clearSession()
-            appDatabase.clearAllTables()
-            userRepository.setCurrentUser(null)
-            if (BuildConfig.DEBUG) Log.d(debugTag, "performHardLogout: completed clearSession + cleared DB")
-            _logoutState.value = LogoutState.LoggedOut
+    private suspend fun performHardLogout() {
+        if (BuildConfig.DEBUG) Log.d(debugTag, "performHardLogout: starting server-side logout + clearing DB")
+        // Revoke token server-side so it can't be replayed
+        try {
+            api.logout()
+        } catch (e: Exception) {
+            Log.w(debugTag, "Server logout failed (continuing local logout): ${e.message}")
         }
+        sessionManager.clearSession()
+        appDatabase.clearAllTables()
+        userRepository.setCurrentUser(null)
+        if (BuildConfig.DEBUG) Log.d(debugTag, "performHardLogout: completed clearSession + cleared DB")
+        _logoutState.value = LogoutState.LoggedOut
     }
 
     private suspend fun getUnsyncedDataSummary(): UnsyncedDataSummary = coroutineScope {
