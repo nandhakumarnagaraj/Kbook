@@ -48,6 +48,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.focus.onFocusChanged
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.CategoryEntity
@@ -431,6 +435,7 @@ fun ReviewDetectedItemsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .navigationBarsPadding()
                                 .padding(horizontal = 20.dp, vertical = 10.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -833,9 +838,13 @@ fun DraftItemRow(
         label = "item_bg"
     )
 
+    val rowRequester = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .bringIntoViewRequester(rowRequester)
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
             .border(
@@ -886,7 +895,10 @@ fun DraftItemRow(
                         fontWeight = FontWeight.Bold,
                         textDecoration = if (!draft.isSelected) TextDecoration.LineThrough else null
                     ),
-                    cursorBrush = SolidColor(PrimaryGold)
+                    cursorBrush = SolidColor(PrimaryGold),
+                    modifier = Modifier.onFocusChanged {
+                        if (it.isFocused) scope.launch { rowRequester.bringIntoView() }
+                    }
                 )
 
                 BasicTextField(
@@ -903,11 +915,14 @@ fun DraftItemRow(
                         }
                         innerTextField()
                     },
-                    cursorBrush = SolidColor(PrimaryGold)
+                    cursorBrush = SolidColor(PrimaryGold),
+                    modifier = Modifier.onFocusChanged {
+                        if (it.isFocused) scope.launch { rowRequester.bringIntoView() }
+                    }
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             if (draft.variants.size <= 1) {
                 Row(
@@ -934,7 +949,9 @@ fun DraftItemRow(
                         ),
                         cursorBrush = SolidColor(PrimaryGold),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f).onFocusChanged {
+                            if (it.isFocused) scope.launch { rowRequester.bringIntoView() }
+                        }
                     )
                 }
             }
@@ -1008,7 +1025,9 @@ fun DraftItemRow(
                                 textDecoration = if (!variant.isSelected) TextDecoration.LineThrough else null
                             ),
                             cursorBrush = SolidColor(PrimaryGold),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).onFocusChanged {
+                                if (it.isFocused) scope.launch { rowRequester.bringIntoView() }
+                            }
                         )
 
                         Row(
@@ -1036,7 +1055,9 @@ fun DraftItemRow(
                                 ),
                                 cursorBrush = SolidColor(PrimaryGold),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f).onFocusChanged {
+                                    if (it.isFocused) scope.launch { rowRequester.bringIntoView() }
+                                }
                             )
                         }
                     }

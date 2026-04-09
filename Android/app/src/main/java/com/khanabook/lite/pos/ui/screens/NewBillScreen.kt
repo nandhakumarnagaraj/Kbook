@@ -986,18 +986,21 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                             else -> "" to ""
                         }
 
+                val p1Requester = remember { BringIntoViewRequester() }
+                val p2Requester = remember { BringIntoViewRequester() }
+
                 Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(spacing.small + spacing.extraSmall)
                 ) {
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.weight(1f).bringIntoViewRequester(p1Requester)) {
                         ParchmentTextField(
                                 value = p1Text,
                                 onValueChange = { p1Text = it },
                                 label = labels.first,
-                                modifier = Modifier.onFocusChanged { 
+                                modifier = Modifier.onFocusChanged {
                                     if (it.isFocused) {
-                                        scope.launch { relocationRequester.bringIntoView() }
+                                        scope.launch { p1Requester.bringIntoView() }
                                     }
                                 },
                                 isError = !isAmountValid,
@@ -1009,14 +1012,14 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                                         )
                         )
                     }
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(modifier = Modifier.weight(1f).bringIntoViewRequester(p2Requester)) {
                         ParchmentTextField(
                                 value = p2Text,
                                 onValueChange = { p2Text = it },
                                 label = labels.second,
-                                modifier = Modifier.onFocusChanged { 
+                                modifier = Modifier.onFocusChanged {
                                     if (it.isFocused) {
-                                        scope.launch { relocationRequester.bringIntoView() }
+                                        scope.launch { p2Requester.bringIntoView() }
                                     }
                                 },
                                 isError = !isAmountValid,
