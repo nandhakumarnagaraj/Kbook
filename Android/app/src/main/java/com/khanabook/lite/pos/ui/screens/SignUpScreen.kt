@@ -187,8 +187,9 @@ fun SignUpScreen(
                     OutlinedTextField(
                             value = shopName,
                             onValueChange = { shopName = it },
+                            label = { Text("Shop Name") },
                             placeholder = {
-                                Text("Shop Name", color = TextGold.copy(alpha = 0.5f))
+                                Text("Enter your shop/restaurant name", color = TextGold.copy(alpha = 0.7f))
                             },
                             leadingIcon = {
                                 Icon(
@@ -225,8 +226,9 @@ fun SignUpScreen(
                                     viewModel.checkUserExists(filtered)
                                 }
                             },
+                            label = { Text("WhatsApp Number") },
                             placeholder = {
-                                Text("WhatsApp Number", color = TextGold.copy(alpha = 0.5f))
+                                Text("Enter your 10-digit number", color = TextGold.copy(alpha = 0.7f))
                             },
                             leadingIcon = {
                                 Icon(
@@ -302,8 +304,9 @@ fun SignUpScreen(
                                         }
                                     }
                                 },
+                                label = { Text("Enter OTP") },
                                 placeholder = {
-                                    Text("Enter OTP", color = TextGold.copy(alpha = 0.5f))
+                                    Text("6-digit code sent to you", color = TextGold.copy(alpha = 0.7f))
                                 },
                                 leadingIcon = {
                                     Icon(
@@ -343,8 +346,9 @@ fun SignUpScreen(
                     OutlinedTextField(
                             value = newPassword,
                             onValueChange = { newPassword = it },
+                            label = { Text("Create New Password") },
                             placeholder = {
-                                Text("Create New Password", color = TextGold.copy(alpha = 0.5f))
+                                Text("Min 8 chars with symbols", color = TextGold.copy(alpha = 0.7f))
                             },
                             leadingIcon = {
                                 Icon(
@@ -397,8 +401,9 @@ fun SignUpScreen(
                     OutlinedTextField(
                             value = confirmPassword,
                             onValueChange = { confirmPassword = it },
+                            label = { Text("Confirm New Password") },
                             placeholder = {
-                                Text("Confirm New Password", color = TextGold.copy(alpha = 0.5f))
+                                Text("Repeat your password", color = TextGold.copy(alpha = 0.7f))
                             },
                             leadingIcon = {
                                 Icon(

@@ -131,7 +131,8 @@ fun LoginScreen(
                             passwordFocusRequester.requestFocus()
                         }
                     },
-                    placeholder = { Text("Phone Number", color = TextGold.copy(alpha = 0.8f)) },
+                    label = { Text("Phone Number") },
+                    placeholder = { Text("Enter your 10-digit number") },
                     leadingIcon = {
                         Icon(
                                 imageVector = Icons.Default.Phone,
@@ -177,7 +178,8 @@ fun LoginScreen(
             TextField(
                     value = password,
                     onValueChange = { password = it },
-                    placeholder = { Text("Password", color = TextGold.copy(alpha = 0.8f)) },
+                    label = { Text("Password") },
+                    placeholder = { Text("Enter your password") },
                     leadingIcon = {
                         Icon(
                                 imageVector = Icons.Default.Lock,
@@ -435,6 +437,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 value = phone,
                                 onValueChange = { phone = it.filter { ch -> ch.isDigit() }.take(10) },
                                 label = { Text("WhatsApp Number") },
+                                placeholder = { Text("Enter your 10-digit number", color = TextGold.copy(alpha = 0.7f)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = loginTextFieldColors(),
                                 keyboardOptions =
@@ -462,6 +465,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 value = otp,
                                 onValueChange = { if (it.length <= 6) otp = it },
                                 label = { Text("Enter OTP") },
+                                placeholder = { Text("6-digit code", color = TextGold.copy(alpha = 0.7f)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = loginTextFieldColors(),
                                 keyboardOptions =
@@ -491,6 +495,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 value = newPassword,
                                 onValueChange = { newPassword = it },
                                 label = { Text("New Password") },
+                                placeholder = { Text("Min 8 chars with symbols", color = TextGold.copy(alpha = 0.7f)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = loginTextFieldColors(),
                                 visualTransformation =
@@ -516,6 +521,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 value = confirmPassword,
                                 onValueChange = { confirmPassword = it },
                                 label = { Text("Confirm Password") },
+                                placeholder = { Text("Repeat new password", color = TextGold.copy(alpha = 0.7f)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = loginTextFieldColors(),
                                 isError = !passwordsMatch,
