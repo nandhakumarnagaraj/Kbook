@@ -204,7 +204,7 @@ class BillingViewModel @Inject constructor(
         _partAmount2.value = p2.ifBlank { "0.0" }
     }
 
-    suspend fun completeOrder(status: PaymentStatus): Boolean = orderMutex.withLock {
+    suspend fun completeOrder(status: PaymentStatus, cancelReason: String = ""): Boolean = orderMutex.withLock {
         if (_cartItems.value.isEmpty()) {
             _error.value = "Add at least one item before completing the bill."
             return false
@@ -247,6 +247,7 @@ class BillingViewModel @Inject constructor(
                 partAmount2 = _partAmount2.value,
                 paymentStatus = status.dbValue,
                 orderStatus = if (status == PaymentStatus.SUCCESS) OrderStatus.COMPLETED.dbValue else OrderStatus.CANCELLED.dbValue,
+                cancelReason = if (status == PaymentStatus.FAILED) cancelReason else "",
                 createdBy = sessionManager.getActiveUserId(),
                 createdAt = System.currentTimeMillis(),
                 paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null,

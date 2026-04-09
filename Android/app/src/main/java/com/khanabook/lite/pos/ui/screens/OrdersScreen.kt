@@ -536,7 +536,7 @@ fun OrderTableRow(
 @Composable
 fun CancelOrderDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     val presetReasons = listOf("Wrong order", "Customer left", "Duplicate bill", "Test bill", "Other")
-    var selectedReason by remember { mutableStateOf("") }
+    var selectedReason by remember { mutableStateOf("Customer left") }
     var customReason by remember { mutableStateOf("") }
     val spacing = KhanaBookTheme.spacing
 

@@ -1079,7 +1079,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                 onClick = {
                     scope.launch {
                         viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                        viewModel.completeOrder(PaymentStatus.FAILED)
+                        viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
                         onFailed()
                     }
                 },
