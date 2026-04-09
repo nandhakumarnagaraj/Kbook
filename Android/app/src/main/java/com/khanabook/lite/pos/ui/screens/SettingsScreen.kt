@@ -91,27 +91,22 @@ fun SettingsScreen(
         }
     }
 
-    if (section == "menu_config") {
-        DisposableEffect(Unit) {
-            onBottomBarVisibilityChange(false)
-            onDispose {
+    DisposableEffect(section) {
+        onBottomBarVisibilityChange(section != "menu_config")
+        onDispose {
+            if (section == "menu_config") {
                 onBottomBarVisibilityChange(true)
             }
         }
+    }
 
+    if (section == "menu_config") {
         MenuConfigurationScreen(
             navController = navController,
             onBackClick = { section = "menu" },
             viewModel = menuViewModel
         )
         return
-    }
-
-    DisposableEffect(Unit) {
-        onBottomBarVisibilityChange(true)
-        onDispose {
-            onBottomBarVisibilityChange(true)
-        }
     }
 
     Box(
@@ -209,13 +204,6 @@ fun SettingsScreen(
                     }
                     "shop" -> {
                         ShopConfigView(profile, viewModel, authViewModel) { section = "menu" }
-                    }
-                    "menu_config" -> {
-                        MenuConfigurationScreen(
-                            navController = navController,
-                            onBackClick = { section = "menu" },
-                            viewModel = menuViewModel
-                        )
                     }
                     "payment" -> {
                         val ctx = LocalContext.current

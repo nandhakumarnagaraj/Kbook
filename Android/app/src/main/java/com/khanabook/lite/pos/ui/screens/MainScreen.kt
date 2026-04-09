@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.background
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -97,10 +98,10 @@ fun MainScreen(
         }
     }
 
-    if (showBottomBar) {
-        Scaffold(
-            containerColor = DarkBackground,
-            bottomBar = {
+    Scaffold(
+        containerColor = DarkBackground,
+        bottomBar = {
+            if (showBottomBar) {
                 AppBottomBar(
                     visibleTabs = visibleTabs,
                     currentSelectedIndex = selectedTabIndex,
@@ -110,16 +111,12 @@ fun MainScreen(
                     }
                 )
             }
-        ) { padding ->
-            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                content(Modifier.fillMaxSize())
-            }
         }
-    } else {
+    ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DarkBackground)
+                .padding(if (showBottomBar) padding else PaddingValues(0.dp))
         ) {
             content(Modifier.fillMaxSize())
         }
