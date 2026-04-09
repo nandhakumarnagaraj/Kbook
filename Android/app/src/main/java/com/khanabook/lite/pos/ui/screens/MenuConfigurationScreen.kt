@@ -504,7 +504,7 @@ internal fun ReviewDetectedItemsOverlay(
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxWidth(0.96f)
-                .fillMaxHeight(0.85f)
+                .fillMaxHeight(0.92f)
                 .padding(bottom = 16.dp, top = 16.dp)
                 .imePadding()
                 .testTag(MenuConfigurationTags.reviewOverlaySheet),
