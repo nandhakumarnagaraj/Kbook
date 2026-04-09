@@ -406,9 +406,21 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(
+            usePlatformDefaultWidth = false
+        )
+    ) {
         KhanaBookCard(
-                modifier = Modifier.fillMaxWidth().imePadding().padding(spacing.medium),
+                modifier = Modifier
+                    .widthIn(max = 400.dp)
+                    .fillMaxWidth(0.9f)
+                    .imePadding()
+                    .padding(spacing.medium),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = DarkBrown1)
         ) {
