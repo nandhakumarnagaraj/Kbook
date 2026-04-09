@@ -376,10 +376,9 @@ fun TableHeader() {
     ) {
         HeaderCell("D.No", 1f / TABLE_TOTAL_WEIGHT)
         HeaderCell("L.No", 1.2f / TABLE_TOTAL_WEIGHT)
-        HeaderCell("Current\nStatus", 1.5f / TABLE_TOTAL_WEIGHT)
         HeaderCell("Amount", 1.3f / TABLE_TOTAL_WEIGHT)
-        HeaderCell("Mode", 1.2f / TABLE_TOTAL_WEIGHT)
-        HeaderCell("Status", 1.5f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Mode", 2.0f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Status", 2.2f / TABLE_TOTAL_WEIGHT)
         HeaderCell("Date", 1.5f / TABLE_TOTAL_WEIGHT)
     }
 }
@@ -436,16 +435,12 @@ fun OrderTableRow(
                 color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )
             TableCell(
-                row.currentStatus, 1.5f / TABLE_TOTAL_WEIGHT, fontSize = 10.sp,
-                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
-            )
-            TableCell(
                 CurrencyUtils.formatPrice(row.salesAmount), 1.3f / TABLE_TOTAL_WEIGHT,
                 fontWeight = FontWeight.Bold,
                 color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )
 
-            Box(modifier = Modifier.weight(1.2f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(2.0f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
                 val color = if (isCancelled) Color.Gray else getPayModeColor(row.payMode)
                 Surface(
                     onClick = { if (!isCancelled) payModeExpanded = true },
@@ -476,7 +471,7 @@ fun OrderTableRow(
                 }
             }
 
-            Box(modifier = Modifier.weight(1.5f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(2.2f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
                 val statusColor = when (row.orderStatus) {
                     OrderStatus.COMPLETED -> SuccessGreen
                     OrderStatus.CANCELLED -> DangerRed
