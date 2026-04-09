@@ -62,9 +62,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.request.CachePolicy
 
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
-import com.khanabook.lite.pos.ui.designsystem.LoadingType
-
 import androidx.compose.ui.platform.LocalConfiguration
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -997,13 +994,6 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
             )
         }
     }
-
-    KhanaBookLoadingOverlay(
-        visible = logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.AttemptingPush,
-        type = LoadingType.LOGOUT,
-        message = "Syncing your data before logout...",
-        subtitle = "Please do not close the app"
-    )
 
     if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData) {
         val warning = logoutState as com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData

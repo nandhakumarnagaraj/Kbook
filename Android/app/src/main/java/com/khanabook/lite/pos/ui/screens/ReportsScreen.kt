@@ -437,11 +437,10 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            HeaderCell("D.ID", Modifier.weight(0.8f))
-            HeaderCell("Mode", Modifier.weight(1.8f))
-            HeaderCell("Status", Modifier.weight(1.2f))
-            HeaderCell("Action", Modifier.weight(1f))
-            HeaderCell("Date", Modifier.weight(1.2f))
+            HeaderCell("Bill.No", Modifier.weight(1.2f))
+            HeaderCell("Status", Modifier.weight(1.8f))
+            HeaderCell("Action", Modifier.weight(1.2f))
+            HeaderCell("Date", Modifier.weight(1.8f))
         }
 
         if (rows.isEmpty()) {
@@ -508,33 +507,9 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.medium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(row.dailyId, color = TextLight, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(0.8f), textAlign = TextAlign.Center)
+            Text(row.dailyId, color = TextLight, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.2f), textAlign = TextAlign.Center)
             
             Box(modifier = Modifier.weight(1.8f), contentAlignment = Alignment.Center) {
-                val (color, label) = when (row.paymentMode) {
-                    PaymentMode.ZOMATO -> ZomatoRed to "Zomato"
-                    PaymentMode.SWIGGY -> SwiggyOrange to "Swiggy"
-                    PaymentMode.CASH -> CashBrown to "Cash"
-                    PaymentMode.UPI -> UpiPurple to "UPI"
-                    PaymentMode.PART_CASH_UPI -> PartPaymentGreen to "Part-Payment\n(Cash+UPI)"
-                    else -> UnknownPaymentGrey to row.paymentMode.displayLabel
-                }
-                Surface(
-                    color = color,
-                    shape = RoundedCornerShape(4.dp)
-                ) {
-                    Text(
-                        label,
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                        lineHeight = 10.sp
-                    )
-                }
-            }
-            
-            Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
                 val statusText = when(row.orderStatus) {
                     OrderStatus.DRAFT -> "Pending"
                     else -> row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
@@ -553,7 +528,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
                 )
             }
             
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
                 Surface(
                     color = Color.Transparent,
                     border = BorderStroke(1.dp, PrimaryGold),
@@ -572,7 +547,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
                 formatDate(row.date),
                 color = TextLight,
                 style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.weight(1.2f),
+                modifier = Modifier.weight(1.8f),
                 textAlign = TextAlign.Center
             )
         }
