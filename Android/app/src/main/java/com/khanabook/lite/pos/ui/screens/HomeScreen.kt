@@ -117,7 +117,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(spacing.medium)
+                        modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.medium + 4.dp)
                     ) {
                         Text(
                             text = "Today's Summary",
