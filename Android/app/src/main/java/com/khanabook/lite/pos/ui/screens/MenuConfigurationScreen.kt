@@ -65,7 +65,7 @@ object ReviewSheetLayout {
     val CHECKBOX_WIDTH = 22.dp
     val CHECKBOX_GAP = 10.dp
     val PRICE_WIDTH = 76.dp
-    val FOOD_ICON_WIDTH = 28.dp
+    val FOOD_ICON_WIDTH = 32.dp
 }
 
 object MenuConfigurationTags {
@@ -503,8 +503,9 @@ internal fun ReviewDetectedItemsOverlay(
         Surface(
             modifier = Modifier
                 .align(Alignment.Center)
-                .fillMaxSize()
-                .padding(16.dp)
+                .fillMaxWidth(0.96f)
+                .fillMaxHeight(0.85f)
+                .padding(bottom = 16.dp, top = 16.dp)
                 .imePadding()
                 .testTag(MenuConfigurationTags.reviewOverlaySheet),
             color = DarkBrown1,
@@ -564,8 +565,8 @@ internal fun ReviewDetectedItemsOverlay(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP))
-                    Text("Type", color = TextGold.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.width(14.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Type", color = TextGold.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text("Item Name", color = TextGold.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.weight(1f))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
@@ -696,8 +697,7 @@ internal fun ReviewDetectedItemsOverlay(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(horizontal = 20.dp, vertical = 10.dp),
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -879,23 +879,29 @@ fun DraftItemRow(
 
             Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_GAP))
 
-            // Food Type Indicator
+            // Food Type Indicator - aligned with Type header
             Box(
                 modifier = Modifier
-                    .size(14.dp)
-                    .border(1.dp, if (draft.foodType == "veg") VegGreen else NonVegRed, RoundedCornerShape(2.dp))
-                    .padding(2.dp)
+                    .width(ReviewSheetLayout.FOOD_ICON_WIDTH)
                     .clickable { onToggleFoodType() },
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
-                        .size(6.dp)
-                        .background(if (draft.foodType == "veg") VegGreen else NonVegRed, CircleShape)
-                )
+                        .size(14.dp)
+                        .border(1.dp, if (draft.foodType == "veg") VegGreen else NonVegRed, RoundedCornerShape(2.dp))
+                        .padding(2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .background(if (draft.foodType == "veg") VegGreen else NonVegRed, CircleShape)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 BasicTextField(
