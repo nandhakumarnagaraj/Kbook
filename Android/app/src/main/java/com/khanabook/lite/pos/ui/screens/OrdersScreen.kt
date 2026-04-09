@@ -166,16 +166,6 @@ fun OrdersScreen(
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, Color.Black)))
     ) {
-        selectedBillId?.let {
-            OrderDetailsDialog(
-                billWithItems = selectedBillDetails,
-                onDismiss = {
-                    selectedBillId = null
-                    viewModel.clearBillDetails()
-                }
-            )
-        }
-
         Column(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
@@ -255,10 +245,6 @@ fun OrdersScreen(
                     OrderTableRow(
                         row = row,
                         enabledModes = enabledModes,
-                        onViewDetails = {
-                            selectedBillId = row.billId
-                            viewModel.loadBillDetails(row.billId)
-                        },
                         onShare = {
                             scope.launch {
                                 viewModel.getOrderDetail(row.billId)?.let { detail ->
@@ -399,7 +385,6 @@ fun RowScope.HeaderCell(text: String, weight: Float) {
 fun OrderTableRow(
     row: OrderDetailRow,
     enabledModes: List<PaymentMode>,
-    onViewDetails: () -> Unit,
     onShare: () -> Unit,
     onRequestCancel: () -> Unit,
     onStatusChange: (String) -> Unit,
@@ -418,9 +403,7 @@ fun OrderTableRow(
                 Color.Black.copy(alpha = if (isCancelled) 0.15f else 0.25f),
                 RoundedCornerShape(4.dp)
             )
-            .combinedClickable(onLongClick = { onViewDetails() }, onClick = { onViewDetails() })
-    ) {
-        Row(
+    ) {        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
