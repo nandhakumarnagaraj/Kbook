@@ -502,10 +502,9 @@ internal fun ReviewDetectedItemsOverlay(
 
         Surface(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth(0.96f)
-                .fillMaxHeight(0.75f)
-                .padding(bottom = 16.dp)
+                .align(Alignment.Center)
+                .fillMaxSize()
+                .padding(16.dp)
                 .imePadding()
                 .testTag(MenuConfigurationTags.reviewOverlaySheet),
             color = DarkBrown1,
