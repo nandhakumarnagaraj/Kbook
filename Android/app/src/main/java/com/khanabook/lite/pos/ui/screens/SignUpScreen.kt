@@ -270,7 +270,7 @@ fun SignUpScreen(
                                                     viewModel.sendOtp(phoneNumber)
                                                 }
                                             },
-                                            modifier = Modifier.padding(end = 4.dp).height(56.dp),
+                                            modifier = Modifier.padding(end = 4.dp).height(40.dp),
                                             colors =
                                                     ButtonDefaults.buttonColors(
                                                             containerColor = PrimaryGold

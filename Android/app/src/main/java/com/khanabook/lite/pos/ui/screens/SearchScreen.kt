@@ -109,6 +109,7 @@ fun SearchScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
+                .consumeWindowInsets(padding)
                 .fillMaxSize()
                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
                 .imePadding()

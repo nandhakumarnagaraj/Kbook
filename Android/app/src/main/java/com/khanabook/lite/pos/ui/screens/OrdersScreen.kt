@@ -419,7 +419,7 @@ fun OrderTableRow(
                 Color.Black.copy(alpha = if (isCancelled) 0.15f else 0.25f),
                 RoundedCornerShape(4.dp)
             )
-            .combinedClickable(onLongClick = { onViewDetails() }, onClick = {})
+            .combinedClickable(onLongClick = { onViewDetails() }, onClick = { onViewDetails() })
     ) {
         Row(
             modifier = Modifier

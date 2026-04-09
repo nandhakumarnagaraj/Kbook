@@ -2,9 +2,7 @@
 
 package com.khanabook.lite.pos.ui.screens
 
-import android.app.Activity
 import android.content.Context
-import android.content.ContextWrapper
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,7 +38,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -148,13 +145,9 @@ fun MenuConfigurationScreen(
 
     BackHandler(onBack = onBack)
 
-    val activity = remember(context) { context.findActivity() }
-    DisposableEffect(activity) {
-        activity?.let { WindowCompat.setDecorFitsSystemWindows(it.window, true) }
-        onDispose {
-            activity?.let { WindowCompat.setDecorFitsSystemWindows(it.window, false) }
-        }
-    }
+    // Edge-to-edge is handled by enableEdgeToEdge() + manual inset modifiers.
+    // Do NOT toggle setDecorFitsSystemWindows — it conflicts with edge-to-edge
+    // and causes double padding on navigation bars.
 
     LaunchedEffect(ocrUiState.successMessage) {
         ocrUiState.successMessage?.let {
@@ -1216,11 +1209,6 @@ fun SmartAIOption(
     }
 }
 
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
-}
 
 @Composable
 fun ManualMenuView(

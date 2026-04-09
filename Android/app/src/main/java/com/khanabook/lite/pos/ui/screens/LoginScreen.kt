@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -99,6 +100,7 @@ fun LoginScreen(
                 modifier =
                         Modifier.fillMaxWidth()
                                 .verticalScroll(rememberScrollState())
+                                .navigationBarsPadding()
                                 .imePadding()
                                 .padding(horizontal = spacing.large, vertical = spacing.medium),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -409,7 +411,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                 colors = CardDefaults.cardColors(containerColor = DarkBrown1)
         ) {
             Column(
-                    modifier = Modifier.systemBarsPadding().padding(spacing.large).fillMaxWidth(),
+                    modifier = Modifier.padding(spacing.large).fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
