@@ -60,12 +60,12 @@ import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 
 object ReviewSheetLayout {
-    val HORIZONTAL_PADDING = 16.dp
-    val CARD_PADDING = 12.dp
-    val CHECKBOX_WIDTH = 24.dp
-    val CHECKBOX_GAP = 12.dp
-    val PRICE_WIDTH = 80.dp
-    val FOOD_ICON_WIDTH = 40.dp
+    val HORIZONTAL_PADDING = 12.dp
+    val CARD_PADDING = 10.dp
+    val CHECKBOX_WIDTH = 22.dp
+    val CHECKBOX_GAP = 10.dp
+    val PRICE_WIDTH = 76.dp
+    val FOOD_ICON_WIDTH = 28.dp
 }
 
 object MenuConfigurationTags {
@@ -564,24 +564,25 @@ internal fun ReviewDetectedItemsOverlay(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP))
-                    Text("Item Name", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    Text("Type", color = TextGold.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.width(14.dp))
                     Spacer(modifier = Modifier.width(8.dp))
+                    Text("Item Name", color = TextGold.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         "Price",
-                        color = TextGold.copy(alpha = 0.6f),
-                        fontSize = 11.sp,
+                        color = TextGold.copy(alpha = 0.5f),
+                        fontSize = 10.sp,
                         textAlign = TextAlign.End,
                         modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH)
                     )
-                    Spacer(modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
                 }
 
                 LazyColumn(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING, vertical = 12.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = ReviewSheetLayout.HORIZONTAL_PADDING, vertical = 8.dp)
                 ) {
                     val groupedDrafts = drafts.withIndex().groupBy { it.value.categoryName ?: "Uncategorized" }
 
@@ -846,7 +847,7 @@ fun DraftItemRow(
                 shape = RoundedCornerShape(12.dp)
             )
             .clickable { onToggleSelection() }
-            .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 10.dp)
+            .padding(horizontal = ReviewSheetLayout.CARD_PADDING, vertical = 8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -860,7 +861,7 @@ fun DraftItemRow(
                         if (draft.isSelected) PrimaryGold else Color.Transparent
                     )
                     .border(
-                        1.5.dp,
+                        1.2.dp,
                         if (draft.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
                         RoundedCornerShape(6.dp)
                     ),
@@ -871,20 +872,38 @@ fun DraftItemRow(
                         Icons.Default.Check,
                         contentDescription = null,
                         tint = DarkBrown1,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_GAP))
 
+            // Food Type Indicator
+            Box(
+                modifier = Modifier
+                    .size(14.dp)
+                    .border(1.dp, if (draft.foodType == "veg") VegGreen else NonVegRed, RoundedCornerShape(2.dp))
+                    .padding(2.dp)
+                    .clickable { onToggleFoodType() },
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(if (draft.foodType == "veg") VegGreen else NonVegRed, CircleShape)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 BasicTextField(
                     value = draft.name,
                     onValueChange = { onUpdateDraft(draft.copy(name = it)) },
                     textStyle = TextStyle(
-                        color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
-                        fontSize = 15.sp,
+                        color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.5f),
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         textDecoration = if (!draft.isSelected) TextDecoration.LineThrough else null
                     ),
@@ -898,13 +917,13 @@ fun DraftItemRow(
                     value = draft.categoryName ?: "",
                     onValueChange = { onUpdateDraft(draft.copy(categoryName = it.ifBlank { null })) },
                     textStyle = TextStyle(
-                        color = PrimaryGold.copy(alpha = 0.7f),
-                        fontSize = 12.sp,
+                        color = PrimaryGold.copy(alpha = 0.6f),
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
                     ),
                     decorationBox = { innerTextField ->
                         if (draft.categoryName.isNullOrBlank()) {
-                            Text("Tap to set category", color = PrimaryGold.copy(alpha = 0.3f), fontSize = 12.sp)
+                            Text("No Category", color = PrimaryGold.copy(alpha = 0.2f), fontSize = 11.sp)
                         }
                         innerTextField()
                     },
@@ -915,17 +934,17 @@ fun DraftItemRow(
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(4.dp))
 
             if (draft.variants.size <= 1) {
                 Row(
                     modifier = Modifier
                         .width(ReviewSheetLayout.PRICE_WIDTH)
-                        .background(DarkBrown1.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                        .background(DarkBrown1.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("₹", color = PrimaryGold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text("₹", color = PrimaryGold.copy(alpha = 0.8f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     BasicTextField(
                         value = if (draft.price == 0.0) "" else {
                             val i = draft.price.toLong()
@@ -937,8 +956,9 @@ fun DraftItemRow(
                         },
                         textStyle = TextStyle(
                             color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
-                            fontSize = 14.sp,
-                            textAlign = TextAlign.End
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.End,
+                            fontWeight = FontWeight.Bold
                         ),
                         cursorBrush = SolidColor(PrimaryGold),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -947,18 +967,6 @@ fun DraftItemRow(
                         }
                     )
                 }
-            }
-
-            IconButton(
-                onClick = { onToggleFoodType() },
-                modifier = Modifier.size(ReviewSheetLayout.FOOD_ICON_WIDTH)
-            ) {
-                Icon(
-                    Icons.Default.Circle,
-                    contentDescription = null,
-                    tint = if (draft.foodType == "veg") VegGreen else NonVegRed,
-                    modifier = Modifier.size(16.dp).border(1.dp, Color.White, CircleShape)
-                )
             }
         }
 
