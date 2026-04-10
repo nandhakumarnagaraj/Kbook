@@ -24,11 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
@@ -61,16 +57,6 @@ fun SearchScreen(
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
-    var pendingShareBill by remember { mutableStateOf<BillWithItems?>(null) }
-    val contactPermLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { _ ->
-        pendingShareBill?.let { bill ->
-            shareBillOnWhatsApp(context, bill, profile)
-            pendingShareBill = null
-        }
-    }
-
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -384,15 +370,7 @@ fun SearchScreen(
                                 ) {
                                     Button(
                                         onClick = {
-                                            val granted = ContextCompat.checkSelfPermission(
-                                                context, android.Manifest.permission.WRITE_CONTACTS
-                                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                                            if (granted) {
-                                                result?.let { shareBillOnWhatsApp(context, it, profile) }
-                                            } else {
-                                                pendingShareBill = result
-                                                contactPermLauncher.launch(android.Manifest.permission.WRITE_CONTACTS)
-                                            }
+                                            result?.let { shareBillOnWhatsApp(context, it, profile) }
                                         },
                                         enabled = currentResult.items.isNotEmpty(),
                                         modifier = Modifier.weight(1f).height(48.dp),

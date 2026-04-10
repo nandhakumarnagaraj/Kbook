@@ -38,9 +38,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
@@ -1251,12 +1248,6 @@ fun SuccessStep(
     val lastBill by viewModel.lastBill.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val spacing = KhanaBookTheme.spacing
-    val contactPermLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { _ ->
-        lastBill?.let { bill -> shareBillOnWhatsApp(context, bill, profile) }
-    }
-
     Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(spacing.large),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -1280,14 +1271,7 @@ fun SuccessStep(
         Spacer(modifier = Modifier.height(spacing.extraLarge))
         Button(
                 onClick = {
-                    val granted = ContextCompat.checkSelfPermission(
-                        context, android.Manifest.permission.WRITE_CONTACTS
-                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                    if (granted) {
-                        lastBill?.let { shareBillOnWhatsApp(context, it, profile) }
-                    } else {
-                        contactPermLauncher.launch(android.Manifest.permission.WRITE_CONTACTS)
-                    }
+                    lastBill?.let { shareBillOnWhatsApp(context, it, profile) }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),

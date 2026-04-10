@@ -162,7 +162,13 @@ fun shareBillTextOnWhatsApp(context: Context, billWithItems: BillWithItems, prof
 
 /**
  * Shares a bill/invoice via WhatsApp.
- * Handles both saved and unsaved numbers using a smart fallback mechanism.
+ * Works for both saved and unsaved contacts without needing WRITE_CONTACTS permission.
+ *
+ * Strategy:
+ * 1. Try ACTION_SEND with jid extra + PDF (works on modern WhatsApp for unsaved numbers)
+ * 2. Fallback: api.whatsapp.com/send deep link with text-only invoice (officially supported,
+ *    guaranteed to work for unsaved numbers)
+ * 3. Last resort: generic share sheet with PDF
  */
 fun shareBillOnWhatsApp(
     context: Context,
@@ -197,33 +203,22 @@ fun shareBillOnWhatsApp(
         }
 
         if (formattedPhone != null) {
-            val hasContactPerm = androidx.core.content.ContextCompat.checkSelfPermission(
-                context, android.Manifest.permission.WRITE_CONTACTS
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-            if (hasContactPerm) {
-                // Reliable path: save temp contact → jid + PDF → delete contact.
-                // Saving the contact ensures WhatsApp can resolve the number even if
-                // it has never been chatted with before.
-                val rawContactUri = insertTempContact(context, formattedPhone, billWithItems.bill.customerName)
-                val sent = tryJidWhatsApp(context, formattedPhone, pdfUri)
-                // Delete temp contact after 3 s — WhatsApp has already opened the chat by then.
-                rawContactUri?.let { uri ->
-                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        try { context.contentResolver.delete(uri, null, null) } catch (_: Exception) {}
-                    }, 3000)
+            // Primary: send PDF directly to the number via jid extra (works for unsaved contacts
+            // on WhatsApp v2.21+ which covers practically all active installs)
+            val sent = tryJidWhatsApp(context, formattedPhone, pdfUri)
+            if (!sent) {
+                // Fallback: open the correct chat via api.whatsapp.com deep link with text invoice.
+                // This is WhatsApp's official API and works reliably for unsaved numbers.
+                val text = generateBillText(billWithItems, profile)
+                val url = "https://api.whatsapp.com/send?phone=$formattedPhone&text=${android.net.Uri.encode(text)}"
+                val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                try {
+                    context.startActivity(intent)
+                } catch (_: Exception) {
+                    // Last resort: generic share with PDF
+                    launchInvoiceShare(context, pdfUri, preferWhatsApp = false)
                 }
-                if (!sent) launchInvoiceShare(context, pdfUri, preferWhatsApp = true)
-            } else {
-                // No contact permission — fallback: copy number + WhatsApp picker with PDF.
-                copyTextToClipboard(context, "WhatsApp Number", formattedPhone)
-                val sent = launchWhatsAppWithPdf(context, pdfUri)
-                if (!sent) launchInvoiceShare(context, pdfUri, preferWhatsApp = false)
-                android.widget.Toast.makeText(
-                    context,
-                    "Number copied — paste it in the search bar to find the contact.",
-                    android.widget.Toast.LENGTH_LONG
-                ).show()
             }
         } else {
             // No phone number — generic share
@@ -266,48 +261,9 @@ private fun launchInvoiceShare(
     context.startActivity(Intent.createChooser(baseIntent, "Share Invoice"))
 }
 
-private fun copyTextToClipboard(context: Context, label: String, text: String) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-    clipboard?.setPrimaryClip(android.content.ClipData.newPlainText(label, text))
-}
-
-/**
- * Inserts a minimal temporary contact for [phone] so WhatsApp can resolve the number
- * via its Android-contacts sync. Returns the raw-contact URI for later deletion.
- */
-private fun insertTempContact(context: Context, phone: String, name: String?): android.net.Uri? {
-    val displayName = name?.ifBlank { phone } ?: phone
-    val ops = arrayListOf(
-        android.content.ContentProviderOperation
-            .newInsert(android.provider.ContactsContract.RawContacts.CONTENT_URI)
-            .withValue(android.provider.ContactsContract.RawContacts.ACCOUNT_TYPE, null)
-            .withValue(android.provider.ContactsContract.RawContacts.ACCOUNT_NAME, null)
-            .build(),
-        android.content.ContentProviderOperation
-            .newInsert(android.provider.ContactsContract.Data.CONTENT_URI)
-            .withValueBackReference(android.provider.ContactsContract.Data.RAW_CONTACT_ID, 0)
-            .withValue(android.provider.ContactsContract.Data.MIMETYPE,
-                android.provider.ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-            .withValue(android.provider.ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, displayName)
-            .build(),
-        android.content.ContentProviderOperation
-            .newInsert(android.provider.ContactsContract.Data.CONTENT_URI)
-            .withValueBackReference(android.provider.ContactsContract.Data.RAW_CONTACT_ID, 0)
-            .withValue(android.provider.ContactsContract.Data.MIMETYPE,
-                android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-            .withValue(android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER, "+$phone")
-            .withValue(android.provider.ContactsContract.CommonDataKinds.Phone.TYPE,
-                android.provider.ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)
-            .build()
-    )
-    return try {
-        context.contentResolver.applyBatch(android.provider.ContactsContract.AUTHORITY, ops)[0].uri
-    } catch (_: Exception) { null }
-}
 
 /**
  * Opens WhatsApp directly to the chat for [phone] using the jid extra with PDF attached.
- * Requires the contact to be saved in Android contacts for reliable routing.
  * Returns true if WhatsApp accepted the intent.
  */
 private fun tryJidWhatsApp(context: Context, phone: String, pdfUri: android.net.Uri): Boolean {
@@ -325,29 +281,6 @@ private fun tryJidWhatsApp(context: Context, phone: String, pdfUri: android.net.
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
-            return true
-        } catch (_: Exception) {}
-    }
-    return false
-}
-
-/**
- * Opens WhatsApp's contact picker with the PDF already attached (fallback for no contact permission).
- * Returns true if WhatsApp accepted the intent.
- */
-private fun launchWhatsAppWithPdf(context: Context, pdfUri: android.net.Uri): Boolean {
-    val packages = listOf("com.whatsapp", "com.whatsapp.w4b")
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "application/pdf"
-        putExtra(Intent.EXTRA_STREAM, pdfUri)
-        clipData = android.content.ClipData.newRawUri("Invoice PDF", pdfUri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
-    for (pkg in packages) {
-        try {
-            context.packageManager.getPackageInfo(pkg, 0)
-            context.startActivity(intent.apply { `package` = pkg })
             return true
         } catch (_: Exception) {}
     }
