@@ -1248,6 +1248,7 @@ fun SuccessStep(
     val lastBill by viewModel.lastBill.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
     Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(spacing.large),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -1269,18 +1270,37 @@ fun SuccessStep(
         )
 
         Spacer(modifier = Modifier.height(spacing.extraLarge))
-        Button(
-                onClick = {
-                    lastBill?.let { shareBillOnWhatsApp(context, it, profile) }
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                shape = RoundedCornerShape(12.dp),
-                enabled = lastBill != null
+        Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
-            Icon(Icons.Default.Share, null, tint = Color.White)
-            Spacer(modifier = Modifier.width(spacing.small))
-            Text("Share Invoice on WhatsApp", color = Color.White, style = MaterialTheme.typography.titleMedium)
+            Button(
+                    onClick = {
+                        lastBill?.let { shareBillOnWhatsApp(context, it, profile) }
+                    },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = lastBill != null
+            ) {
+                Icon(Icons.Default.PictureAsPdf, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text("PDF", color = Color.White, style = MaterialTheme.typography.titleMedium)
+            }
+
+            Button(
+                    onClick = {
+                        lastBill?.let { shareBillTextOnWhatsApp(context, it, profile) }
+                    },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = lastBill != null
+            ) {
+                Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text("Text", color = Color.White, style = MaterialTheme.typography.titleMedium)
+            }
         }
         Spacer(modifier = Modifier.height(spacing.medium))
         Button(
