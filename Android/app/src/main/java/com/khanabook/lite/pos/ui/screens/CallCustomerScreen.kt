@@ -98,12 +98,12 @@ fun CallCustomerScreen(
                 Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("Daily ID", style = MaterialTheme.typography.labelLarge) }
+                        text = { Text("Order No", style = MaterialTheme.typography.labelLarge) }
                 )
                 Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("Lifetime ID", style = MaterialTheme.typography.labelLarge) }
+                        text = { Text("Invoice No", style = MaterialTheme.typography.labelLarge) }
                 )
             }
 
@@ -119,7 +119,7 @@ fun CallCustomerScreen(
                                 android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
                             }
                         },
-                        label = { Text("Daily Order ID") },
+                        label = { Text("Order No") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         colors = outlinedSearchFieldColors(),
@@ -156,13 +156,15 @@ fun CallCustomerScreen(
                 OutlinedTextField(
                         value = lifetimeId,
                         onValueChange = { 
-                            if (it.isEmpty() || it.all { char -> char.isDigit() }) {
-                                lifetimeId = it
+                            val invoiceNo = it.removePrefix("INV").removePrefix("inv")
+                            if (invoiceNo.isEmpty() || invoiceNo.all { char -> char.isDigit() }) {
+                                lifetimeId = invoiceNo
                             } else {
                                 android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
                             }
                         },
-                        label = { Text("Lifetime Order ID") },
+                        label = { Text("Invoice No") },
+                        prefix = { Text("INV") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,

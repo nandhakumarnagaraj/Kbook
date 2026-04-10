@@ -111,12 +111,12 @@ fun SearchScreen(
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("Daily ID", style = MaterialTheme.typography.labelLarge) }
+                        text = { Text("Order No", style = MaterialTheme.typography.labelLarge) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("Lifetime ID", style = MaterialTheme.typography.labelLarge) }
+                        text = { Text("Invoice No", style = MaterialTheme.typography.labelLarge) }
                     )
                 }
 
@@ -130,7 +130,7 @@ fun SearchScreen(
                                 dailyId = it
                             }
                         },
-                        label = { Text("Daily Order ID") },
+                        label = { Text("Order No") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
@@ -170,13 +170,15 @@ fun SearchScreen(
                     OutlinedTextField(
                         value = lifetimeQuery,
                         onValueChange = { 
-                            if (it.isEmpty() || it.all { char -> char.isDigit() }) {
-                                lifetimeQuery = it
+                            val invoiceNo = it.removePrefix("INV").removePrefix("inv")
+                            if (invoiceNo.isEmpty() || invoiceNo.all { char -> char.isDigit() }) {
+                                lifetimeQuery = invoiceNo
                             } else {
                                 android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
                             }
                         },
-                        label = { Text("Lifetime Order ID") },
+                        label = { Text("Invoice No") },
+                        prefix = { Text("INV") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
