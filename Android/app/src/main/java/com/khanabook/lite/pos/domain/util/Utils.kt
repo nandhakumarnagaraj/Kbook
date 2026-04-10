@@ -162,16 +162,16 @@ fun shareBillTextOnWhatsApp(context: Context, billWithItems: BillWithItems, prof
 
 /**
  * Shares a bill/invoice via WhatsApp.
- * Uses WhatsApp's official click-to-chat link so unsaved numbers open reliably
- * without READ_CONTACTS/WRITE_CONTACTS permission.
+ * Shares the PDF through the best available WhatsApp path without
+ * READ_CONTACTS/WRITE_CONTACTS permission.
  *
  * Strategy:
- * 1. Open the exact WhatsApp chat with a pre-filled text invoice.
- * 2. If the number is missing/invalid, or the official link cannot be handled,
- *    fall back to a generic PDF share sheet.
+ * 1. Try direct PDF targeting via WhatsApp jid.
+ * 2. If that cannot launch, copy the number and open WhatsApp's PDF picker so
+ *    the user can paste the number into WhatsApp search and select the unsaved chat.
+ * 3. Last resort: generic PDF share sheet.
  *
- * WhatsApp does not provide a guaranteed public Android API for sending a PDF
- * directly to an unsaved phone number, so the reliable targeted path is text.
+ * Text-only WhatsApp sharing is kept as the separate shareBillTextOnWhatsApp feature.
  */
 fun shareBillOnWhatsApp(
     context: Context,
@@ -179,6 +179,14 @@ fun shareBillOnWhatsApp(
     profile: RestaurantProfileEntity?
 ) {
     try {
+        val pdfGenerator = InvoicePDFGenerator(context)
+        val pdfFile = pdfGenerator.generatePDF(billWithItems, profile)
+        val pdfUri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.provider",
+            pdfFile
+        )
+
         val rawPhone = billWithItems.bill.customerWhatsapp
         val digits = rawPhone?.replace(Regex("[^0-9]"), "") ?: ""
         val formattedPhone = when {
@@ -188,13 +196,21 @@ fun shareBillOnWhatsApp(
         }
 
         if (formattedPhone != null) {
-            val text = generateBillText(billWithItems, profile)
-            if (openWhatsAppChatWithText(context, formattedPhone, text)) {
+            if (tryJidWhatsApp(context, formattedPhone, pdfUri)) {
+                return
+            }
+
+            if (launchWhatsAppPdfSearchFallback(context, formattedPhone, pdfUri)) {
+                Toast.makeText(
+                    context,
+                    "Number copied. Paste it in WhatsApp search, select the chat, then send the invoice.",
+                    Toast.LENGTH_LONG
+                ).show()
                 return
             }
         }
 
-        launchInvoicePdfShare(context, billWithItems, profile)
+        launchInvoiceShare(context, pdfUri)
     } catch (e: Exception) {
         android.widget.Toast.makeText(
             context,
@@ -204,33 +220,61 @@ fun shareBillOnWhatsApp(
     }
 }
 
-private fun openWhatsAppChatWithText(context: Context, phone: String, text: String): Boolean {
-    val url = "https://api.whatsapp.com/send?phone=$phone&text=${android.net.Uri.encode(text)}"
-    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
-    return try {
-        context.startActivity(intent)
-        true
-    } catch (_: Exception) {
-        false
-    }
+private fun copyTextToClipboard(context: Context, label: String, text: String) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+    clipboard?.setPrimaryClip(android.content.ClipData.newPlainText(label, text))
 }
 
-private fun launchInvoicePdfShare(
-    context: Context,
-    billWithItems: BillWithItems,
-    profile: RestaurantProfileEntity?
-) {
-    val pdfGenerator = InvoicePDFGenerator(context)
-    val pdfFile = pdfGenerator.generatePDF(billWithItems, profile)
-    val pdfUri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.provider",
-        pdfFile
-    )
+private fun tryJidWhatsApp(context: Context, phone: String, pdfUri: android.net.Uri): Boolean {
+    val packages = listOf("com.whatsapp", "com.whatsapp.w4b")
+    for (pkg in packages) {
+        try {
+            context.packageManager.getPackageInfo(pkg, 0)
+            context.grantUriPermission(pkg, pdfUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, pdfUri)
+                putExtra("jid", "$phone@s.whatsapp.net")
+                clipData = android.content.ClipData.newRawUri("Invoice PDF", pdfUri)
+                `package` = pkg
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            return true
+        } catch (_: Exception) {}
+    }
+    return false
+}
 
-    launchInvoiceShare(context, pdfUri)
+private fun launchWhatsAppPdfSearchFallback(
+    context: Context,
+    phone: String,
+    pdfUri: android.net.Uri
+): Boolean {
+    copyTextToClipboard(context, "WhatsApp Number", "+$phone")
+    return launchWhatsAppPdfPicker(context, pdfUri)
+}
+
+private fun launchWhatsAppPdfPicker(context: Context, pdfUri: android.net.Uri): Boolean {
+    val packages = listOf("com.whatsapp", "com.whatsapp.w4b")
+    for (pkg in packages) {
+        try {
+            context.packageManager.getPackageInfo(pkg, 0)
+            context.grantUriPermission(pkg, pdfUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, pdfUri)
+                clipData = android.content.ClipData.newRawUri("Invoice PDF", pdfUri)
+                `package` = pkg
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            return true
+        } catch (_: Exception) {}
+    }
+    return false
 }
 
 private fun launchInvoiceShare(
