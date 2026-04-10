@@ -166,10 +166,11 @@ fun shareBillTextOnWhatsApp(context: Context, billWithItems: BillWithItems, prof
  * READ_CONTACTS/WRITE_CONTACTS permission.
  *
  * Strategy:
- * 1. Try direct PDF targeting via WhatsApp jid.
- * 2. If that cannot launch, copy the number and open WhatsApp's PDF picker so
+ * 1. Copy the number so it is ready if WhatsApp opens search.
+ * 2. Try direct PDF targeting via WhatsApp jid.
+ * 3. If that cannot launch, open WhatsApp's PDF picker so
  *    the user can paste the number into WhatsApp search and select the unsaved chat.
- * 3. Last resort: generic PDF share sheet.
+ * 4. Last resort: generic PDF share sheet.
  *
  * Text-only WhatsApp sharing is kept as the separate shareBillTextOnWhatsApp feature.
  */
@@ -196,7 +197,13 @@ fun shareBillOnWhatsApp(
         }
 
         if (formattedPhone != null) {
+            copyTextToClipboard(context, "WhatsApp Number", "+$formattedPhone")
             if (tryJidWhatsApp(context, formattedPhone, pdfUri)) {
+                Toast.makeText(
+                    context,
+                    "Number copied. If WhatsApp shows search, paste it to find the unsaved chat.",
+                    Toast.LENGTH_LONG
+                ).show()
                 return
             }
 
@@ -252,7 +259,6 @@ private fun launchWhatsAppPdfSearchFallback(
     phone: String,
     pdfUri: android.net.Uri
 ): Boolean {
-    copyTextToClipboard(context, "WhatsApp Number", "+$phone")
     return launchWhatsAppPdfPicker(context, pdfUri)
 }
 
