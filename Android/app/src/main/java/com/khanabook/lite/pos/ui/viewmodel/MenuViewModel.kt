@@ -34,6 +34,14 @@ class MenuViewModel @Inject constructor(
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategoriesFlow()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    val totalCategoriesCount: StateFlow<Int> = categoryRepository.getAllCategoriesFlow()
+        .map { it.size }
+        .stateIn(viewModelScope, SharingStarted.Lazily, 0)
+
+    val totalItemsCount: StateFlow<Int> = menuRepository.getAllItemsFlow()
+        .map { it.filter { item -> !item.isDeleted }.size }
+        .stateIn(viewModelScope, SharingStarted.Lazily, 0)
+
     val selectedCategoryId = MutableStateFlow<Long?>(null)
 
     val menuItems: StateFlow<List<MenuWithVariants>> = selectedCategoryId
@@ -104,6 +112,35 @@ class MenuViewModel @Inject constructor(
                     createdAt = System.currentTimeMillis()
                 )
             )
+        }
+    }
+
+    fun addItemWithVariants(
+        categoryId: Long,
+        name: String,
+        basePrice: Double,
+        foodType: String,
+        variants: List<Pair<String, Double>>
+    ) {
+        viewModelScope.launch {
+            val itemId = menuRepository.insertItem(
+                MenuItemEntity(
+                    categoryId = categoryId,
+                    name = name,
+                    basePrice = basePrice.toString(),
+                    foodType = foodType,
+                    createdAt = System.currentTimeMillis()
+                )
+            )
+            variants.forEach { (vName, vPrice) ->
+                menuRepository.insertVariant(
+                    ItemVariantEntity(
+                        menuItemId = itemId,
+                        variantName = vName,
+                        price = vPrice.toString()
+                    )
+                )
+            }
         }
     }
 

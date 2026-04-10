@@ -117,7 +117,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.medium + 4.dp)
+                        modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.mediumLarge)
                     ) {
                         Text(
                             text = "Today's Summary",
@@ -241,7 +241,7 @@ fun HomeScreen(
                 // Vertical list for phones
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(spacing.small + spacing.extraSmall) // 12.dp
+                    verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
                 ) {
                     HomeActionCard(
                         text = "Print/Share",
@@ -337,7 +337,7 @@ fun SyncStatusHeader(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .background(containerColor.copy(alpha = if (unsyncedCount > 0) pulseAlpha else 0.15f))
-                .padding(horizontal = spacing.small + spacing.extraSmall, vertical = 6.dp)
+                .padding(horizontal = spacing.smallMedium, vertical = spacing.small - spacing.hairline)
         ) {
             Icon(
                 imageVector = when {

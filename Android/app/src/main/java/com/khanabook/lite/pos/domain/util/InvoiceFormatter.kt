@@ -102,10 +102,9 @@ object InvoiceFormatter {
         val invLabel = if (isGst) "TAX INVOICE NO" else "INVOICE NO"
         add("$invLabel: INV${bill.bill.lifetimeOrderId}\n")
         add("$line\n")
-
         // 3. Transaction Details (Left/Right split)
         add(ALIGN_LEFT)
-        val billNo = "Bill: ${bill.bill.lifetimeOrderId}"
+        val billNo = "Bill: ${bill.bill.dailyOrderId}"
         val dateStr = DateUtils.formatDateOnly(bill.bill.createdAt)
         
         // Customer Masking

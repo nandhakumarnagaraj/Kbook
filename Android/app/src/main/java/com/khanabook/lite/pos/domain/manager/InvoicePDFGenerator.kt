@@ -190,7 +190,6 @@ class InvoicePDFGenerator(private val context: Context) {
             }
 
             // ── Divider + INVOICE title ───────────────────────────────────────────
-            y += 4f
             paint.strokeWidth = 0.5f
             paint.color       = colorText
             canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
@@ -223,7 +222,7 @@ class InvoicePDFGenerator(private val context: Context) {
             val billLabelW  = paint.measureText(billLabel)
             canvas.drawText(billLabel, 5f, y, paint)
             paint.typeface  = normalTypeface
-            canvas.drawText("${bill.bill.lifetimeOrderId}", 5f + billLabelW, y, paint)
+            canvas.drawText("${bill.bill.dailyOrderId}", 5f + billLabelW, y, paint)
 
             val dateStr = com.khanabook.lite.pos.domain.util.DateUtils.formatDateOnly(bill.bill.createdAt)
             paint.typeface  = boldTypeface

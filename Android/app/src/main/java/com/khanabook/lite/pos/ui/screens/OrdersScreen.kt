@@ -347,7 +347,7 @@ fun TableHeader(isGstEnabled: Boolean) {
             .padding(vertical = spacing.small, horizontal = spacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        HeaderCell("Order Id", 1.0f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Order No", 1.0f / TABLE_TOTAL_WEIGHT)
         HeaderCell(invoiceHeader, 2.0f / TABLE_TOTAL_WEIGHT)
         HeaderCell("Mode", 1.6f / TABLE_TOTAL_WEIGHT)
         HeaderCell("Status", 1.8f / TABLE_TOTAL_WEIGHT)
@@ -389,7 +389,7 @@ fun OrderTableRow(
                 onClick = { /* already handled by internal buttons */ },
                 onLongClick = onShareText
             )
-            .padding(vertical = 1.dp)
+            .padding(vertical = spacing.hairline)
             .background(
                 Color.Black.copy(alpha = if (isCancelled) 0.15f else 0.25f),
                 RoundedCornerShape(4.dp)
@@ -417,14 +417,14 @@ fun OrderTableRow(
                     onClick = { if (!isCancelled) payModeExpanded = true },
                     color = color,
                     shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.padding(horizontal = 2.dp)
+                    modifier = Modifier.padding(horizontal = spacing.hairline)
                 ) {
                     Text(
                         text = row.payMode.displayLabel,
                         color = Color.White,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
                         maxLines = 1
                     )
                 }
@@ -452,7 +452,7 @@ fun OrderTableRow(
                     onClick = { if (!isCancelled) statusExpanded = true },
                     color = statusColor,
                     shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    modifier = Modifier.padding(horizontal = spacing.extraSmall)
                 ) {
                     Text(
                         text = when (row.orderStatus) {
@@ -463,7 +463,7 @@ fun OrderTableRow(
                         color = Color.White,
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
                         lineHeight = 10.sp
                     )
                 }

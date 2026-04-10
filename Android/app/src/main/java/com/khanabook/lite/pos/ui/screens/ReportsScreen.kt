@@ -285,6 +285,7 @@ fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier
 
 @Composable
 fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val spacing = KhanaBookTheme.spacing
     Surface(
         onClick = onClick,
         modifier = modifier.height(44.dp),
@@ -298,7 +299,7 @@ fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, mo
                 text = label,
                 style = if (isSelected) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelMedium,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 4.dp)
+                modifier = Modifier.padding(horizontal = spacing.extraSmall)
             )
         }
     }
@@ -416,7 +417,7 @@ fun PartPaymentCard(
     ) {
         Column(modifier = Modifier.padding(spacing.small)) {
             Text("$label | ${CurrencyUtils.formatPrice(totalAmount)}", color = VegGreen, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(spacing.hairline))
             Text(
                 "${CurrencyUtils.formatPrice(part1Amount)} ($part1Label) + ${CurrencyUtils.formatPrice(part2Amount)} ($part2Label)",
                 color = TextLight.copy(alpha = 0.8f),
@@ -439,7 +440,7 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            HeaderCell("Order Id", Modifier.weight(1.2f))
+            HeaderCell("Order No", Modifier.weight(1.2f))
             HeaderCell("Status", Modifier.weight(1.8f))
             HeaderCell("Action", Modifier.weight(1.2f))
             HeaderCell("Date", Modifier.weight(1.8f))
@@ -472,7 +473,7 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = spacing.medium),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
                 contentPadding = PaddingValues(bottom = spacing.bottomListPadding)
             ) {
                 items(rows) { row ->
@@ -551,7 +552,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
                         "View",
                         color = TextLight,
                         style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                        modifier = Modifier.padding(horizontal = spacing.small - spacing.hairline, vertical = spacing.hairline)
                     )
                 }
             }
@@ -615,23 +616,23 @@ fun OrderDetailsDialog(
                     // Skeleton loading for bill details
                     Column(modifier = Modifier.fillMaxWidth()) {
                         ShimmerBox(height = 14.dp, modifier = Modifier.fillMaxWidth(0.5f))
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(spacing.small))
                         ShimmerBox(height = 14.dp, modifier = Modifier.fillMaxWidth(0.4f))
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(spacing.medium))
                         ShimmerBox(height = 12.dp, modifier = Modifier.fillMaxWidth(0.3f))
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(spacing.small))
                         repeat(3) {
                             SkeletonListItem()
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(spacing.extraSmall))
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(spacing.smallMedium))
                         ShimmerBox(height = 20.dp, modifier = Modifier.fillMaxWidth(0.5f))
                     }
                 } else {
                     val bill = billWithItems.bill
                     val items = billWithItems.items
 
-                    DetailRow("Order Id:", "#${bill.dailyOrderDisplay.split("-").last()}")
+                    DetailRow("Order No:", "#${bill.dailyOrderDisplay.split("-").last()}")
                     Spacer(modifier = Modifier.height(spacing.small))
                     val invoiceLabel = if (profile?.gstEnabled == true) "Tax Invoice No:" else "Invoice No:"
                     DetailRow(invoiceLabel, "INV${bill.lifetimeOrderId}")
@@ -731,6 +732,7 @@ fun OrderDetailsDialog(
 
 @Composable
 fun DetailRow(label: String, value: String, valueColor: Color = TextLight, fontWeight: FontWeight = FontWeight.Normal) {
+    val spacing = KhanaBookTheme.spacing
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -740,7 +742,7 @@ fun DetailRow(label: String, value: String, valueColor: Color = TextLight, fontW
             text = label,
             color = TextGold,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-            modifier = Modifier.padding(end = 8.dp)
+            modifier = Modifier.padding(end = spacing.small)
         )
         Text(
             text = value,

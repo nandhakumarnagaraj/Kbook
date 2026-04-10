@@ -106,6 +106,7 @@ fun AppLockScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
+                .statusBarsPadding()
                 .navigationBarsPadding()
                 .padding(spacing.medium)
         ) {

@@ -427,8 +427,8 @@ fun MenuSelectionStep(
             } else LazyVerticalGrid(
                     columns = GridCells.Fixed(gridColumns),
                     modifier = Modifier.weight(1f).padding(spacing.medium),
-                    verticalArrangement = Arrangement.spacedBy(spacing.small + spacing.extraSmall),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.small + spacing.extraSmall)
+                    verticalArrangement = Arrangement.spacedBy(spacing.smallMedium),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)
             ) {
                 items(displayItems, key = { it.menuItem.id }) { menuWithVariants ->
                     val item = menuWithVariants.menuItem
@@ -447,11 +447,11 @@ fun MenuSelectionStep(
                             val cartItem =
                                     cartItems.find { it.item.id == item.id && it.variant == null }
                             Row(
-                                    modifier = Modifier.padding(spacing.small + spacing.extraSmall),
+                                    modifier = Modifier.padding(spacing.smallMedium),
                                     verticalAlignment = Alignment.CenterVertically
                             ) {
                                 FoodTypeIcon(item.foodType)
-                                Spacer(modifier = Modifier.width(spacing.small + spacing.extraSmall))
+                                Spacer(modifier = Modifier.width(spacing.smallMedium))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                             item.name,
@@ -473,10 +473,10 @@ fun MenuSelectionStep(
                                 }
                             }
                         } else {
-                            Column(modifier = Modifier.padding(spacing.small + spacing.extraSmall)) {
+                            Column(modifier = Modifier.padding(spacing.smallMedium)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     FoodTypeIcon(item.foodType)
-                                    Spacer(modifier = Modifier.width(spacing.small + spacing.extraSmall))
+                                    Spacer(modifier = Modifier.width(spacing.smallMedium))
                                     Column {
                                         Text(
                                                 item.name,
@@ -519,7 +519,7 @@ fun MenuSelectionStep(
                                                         CurrencyUtils.formatPrice(variant.price),
                                                         color = PrimaryGold,
                                                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                                        modifier = Modifier.padding(end = spacing.small + spacing.extraSmall)
+                                                        modifier = Modifier.padding(end = spacing.smallMedium)
                                                 )
                                                 QuantitySelector(
                                                         quantity = variantCartItem?.quantity ?: 0,
@@ -567,7 +567,7 @@ fun MenuSelectionStep(
                     Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(spacing.small + spacing.extraSmall),
+                                .padding(spacing.smallMedium),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -587,7 +587,7 @@ fun MenuSelectionStep(
                                 onClick = onProceedToPayment,
                                 colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1),
                                 shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.small + spacing.extraSmall),
+                                contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.smallMedium),
                                 enabled = derivedItemCount > 0
                         ) {
                             Text(
@@ -751,7 +751,7 @@ fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
                 modifier = Modifier.height(32.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
                 border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold),
-                contentPadding = PaddingValues(horizontal = spacing.small + spacing.extraSmall)
+                contentPadding = PaddingValues(horizontal = spacing.smallMedium)
         ) { Text("Add", style = MaterialTheme.typography.labelMedium) }
     } else {
         Row(
@@ -852,7 +852,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                             Modifier.size(200.dp)
                                     .background(Color.White, RoundedCornerShape(12.dp))
                                     .border(2.dp, PrimaryGold, RoundedCornerShape(12.dp))
-                                    .padding(spacing.small + spacing.extraSmall)
+                                    .padding(spacing.smallMedium)
                                     .clickable { showQrModal = true },
                     contentAlignment = Alignment.Center
             ) {
@@ -988,7 +988,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
 
                 Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.small + spacing.extraSmall)
+                        horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)
                 ) {
                     Box(modifier = Modifier.weight(1f).bringIntoViewRequester(p1Requester)) {
                         ParchmentTextField(
@@ -1071,7 +1071,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     style = MaterialTheme.typography.titleMedium
             )
         }
-        Spacer(modifier = Modifier.height(spacing.small + spacing.extraSmall))
+        Spacer(modifier = Modifier.height(spacing.smallMedium))
         TextButton(
                 onClick = {
                     scope.launch {
@@ -1266,7 +1266,7 @@ fun SuccessStep(
                 "Payment of ₹${"%.2f".format(totalAmount)} received successfully.",
                 color = TextGold,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(vertical = spacing.small + spacing.extraSmall)
+                modifier = Modifier.padding(vertical = spacing.smallMedium)
         )
 
         Spacer(modifier = Modifier.height(spacing.extraLarge))
@@ -1360,7 +1360,7 @@ fun VariantPickerDialog(
                             Row(
                                     modifier =
                                             Modifier.fillMaxWidth()
-                                                    .padding(horizontal = spacing.medium, vertical = spacing.small + spacing.extraSmall),
+                                                    .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
                                     verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(

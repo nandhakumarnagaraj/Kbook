@@ -263,7 +263,7 @@ private fun SettingsItem(icon: androidx.compose.ui.graphics.vector.ImageVector, 
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     KhanaBookCard(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.small - spacing.hairline),
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = CardBG),
         shape = RoundedCornerShape(12.dp)
@@ -445,7 +445,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                                 .diskCachePolicy(CachePolicy.DISABLED)
                                 .build(),
                             contentDescription = "Logo",
-                            modifier = Modifier.fillMaxSize().padding(4.dp)
+                            modifier = Modifier.fillMaxSize().padding(spacing.extraSmall)
                         )
                     } else {
                         Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge))
@@ -504,7 +504,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                             onClick = {
                                 if (isPhoneValid && userExistsError == null) authViewModel.sendOtp(whatsapp, "update_whatsapp")
                             },
-                            modifier = Modifier.padding(end = 4.dp).height(56.dp),
+                            modifier = Modifier.padding(end = spacing.extraSmall).height(56.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                             shape = RoundedCornerShape(20.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp),
@@ -535,9 +535,9 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                     supportingText = if (otpValue.length == 6 && !isOtpVerified) "Invalid OTP code" else null,
                     trailingIcon = {
                         if (otpTimer > 0 && !isOtpVerified) {
-                            Text(String.format("%02d:%02d", otpTimer / 60, otpTimer % 60), color = TextLight, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(end = 16.dp))
+                            Text(String.format("%02d:%02d", otpTimer / 60, otpTimer % 60), color = TextLight, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(end = spacing.medium))
                         } else if (isOtpVerified) {
-                            Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = 16.dp))
+                            Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
                         }
                     }
                 )
@@ -672,7 +672,7 @@ private fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
                 Spacer(modifier = Modifier.height(spacing.medium))
                 
                 val qrContent = @Composable {
-                    Box(modifier = Modifier.size(KhanaBookTheme.iconSize.hero).background(Color.White).border(1.dp, Color.LightGray).padding(4.dp), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(KhanaBookTheme.iconSize.hero).background(Color.White).border(1.dp, Color.LightGray).padding(spacing.extraSmall), contentAlignment = Alignment.Center) {
                         if (!qrPath.isNullOrBlank()) {
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
@@ -867,7 +867,7 @@ fun DeviceRow(
     val backgroundColor = if (isSelected) DarkBrown1 else DarkBrown1.copy(alpha = 0.5f)
     
     KhanaBookCard(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), 
+        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall), 
         onClick = if (!isConnecting) onClick else null,
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         shape = RoundedCornerShape(8.dp)

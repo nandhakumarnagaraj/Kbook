@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.background
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -116,7 +117,16 @@ fun MainScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(if (showBottomBar) padding else PaddingValues(0.dp))
+                .padding(
+                    top = padding.calculateTopPadding(),
+                    bottom = if (showBottomBar) padding.calculateBottomPadding() else 0.dp
+                )
+                .consumeWindowInsets(
+                    PaddingValues(
+                        top = padding.calculateTopPadding(),
+                        bottom = if (showBottomBar) padding.calculateBottomPadding() else 0.dp
+                    )
+                )
         ) {
             content(Modifier.fillMaxSize())
         }

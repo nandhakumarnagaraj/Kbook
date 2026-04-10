@@ -100,6 +100,7 @@ fun LoginScreen(
                 modifier =
                         Modifier.fillMaxWidth()
                                 .verticalScroll(rememberScrollState())
+                                .statusBarsPadding()
                                 .navigationBarsPadding()
                                 .imePadding()
                                 .padding(horizontal = spacing.large, vertical = spacing.medium),
@@ -122,7 +123,7 @@ fun LoginScreen(
             )
 
             
-            TextField(
+            OutlinedTextField(
                     value = phone,
                     onValueChange = { 
                         val filtered = it.filter { ch -> ch.isDigit() }.take(10)
@@ -132,7 +133,7 @@ fun LoginScreen(
                         }
                     },
                     label = { Text("Phone Number") },
-                    placeholder = { Text("Enter your 10-digit number") },
+                    placeholder = { Text("Enter your 10-digit number", color = TextGold.copy(alpha = 0.7f)) },
                     leadingIcon = {
                         Icon(
                                 imageVector = Icons.Default.Phone,
@@ -140,21 +141,20 @@ fun LoginScreen(
                                 tint = PrimaryGold
                         )
                     },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors =
-                            TextFieldDefaults.colors(
-                                    unfocusedContainerColor = DarkBrown2,
-                                    focusedContainerColor = DarkBrown2,
-                                    unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
-                                    focusedLabelColor = PrimaryGold,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                    cursorColor = PrimaryGold,
-                                    errorContainerColor = DarkBrown2,
-                                    unfocusedPlaceholderColor = TextGold.copy(alpha = 0.8f),
-                                    focusedPlaceholderColor = PrimaryGold.copy(alpha = 0.5f)
-                            ),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = DarkBrown2,
+                        focusedContainerColor = DarkBrown2,
+                        unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
+                        focusedLabelColor = PrimaryGold,
+                        focusedBorderColor = PrimaryGold,
+                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                        cursorColor = PrimaryGold,
+                        errorContainerColor = DarkBrown2,
+                        focusedTextColor = TextLight,
+                        unfocusedTextColor = TextLight
+                    ),
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextLight),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
@@ -175,11 +175,11 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(spacing.medium))
 
             
-            TextField(
+            OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Password") },
-                    placeholder = { Text("Enter your password") },
+                    placeholder = { Text("Enter your password", color = TextGold.copy(alpha = 0.7f)) },
                     leadingIcon = {
                         Icon(
                                 imageVector = Icons.Default.Lock,
@@ -200,21 +200,20 @@ fun LoginScreen(
                     visualTransformation =
                             if (showPassword) VisualTransformation.None
                             else PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth().height(56.dp).focusRequester(passwordFocusRequester),
-                    shape = RoundedCornerShape(12.dp),
-                    colors =
-                            TextFieldDefaults.colors(
-                                    unfocusedContainerColor = DarkBrown2,
-                                    focusedContainerColor = DarkBrown2,
-                                    unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
-                                    focusedLabelColor = PrimaryGold,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                    cursorColor = PrimaryGold,
-                                    errorContainerColor = DarkBrown2,
-                                    unfocusedPlaceholderColor = TextGold.copy(alpha = 0.8f),
-                                    focusedPlaceholderColor = PrimaryGold.copy(alpha = 0.5f)
-                            ),
+                    modifier = Modifier.fillMaxWidth().focusRequester(passwordFocusRequester),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = DarkBrown2,
+                        focusedContainerColor = DarkBrown2,
+                        unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
+                        focusedLabelColor = PrimaryGold,
+                        focusedBorderColor = PrimaryGold,
+                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                        cursorColor = PrimaryGold,
+                        errorContainerColor = DarkBrown2,
+                        focusedTextColor = TextLight,
+                        unfocusedTextColor = TextLight
+                    ),
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextLight),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
@@ -275,7 +274,7 @@ fun LoginScreen(
                                             if (isLoginEnabled) PrimaryGold else Color.Gray,
                                     contentColor = DarkBrown1
                             ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(28.dp),
                     enabled = isLoginEnabled
             ) {
                 if (isLoading && !isGoogleLogin) {
@@ -445,13 +444,23 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(spacing.medium))
-                        OutlinedTextField(
+                        TextField(
                                 value = phone,
                                 onValueChange = { phone = it.filter { ch -> ch.isDigit() }.take(10) },
                                 label = { Text("WhatsApp Number") },
                                 placeholder = { Text("Enter your 10-digit number", color = TextGold.copy(alpha = 0.7f)) },
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = loginTextFieldColors(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = TextFieldDefaults.colors(
+                                    unfocusedContainerColor = DarkBrown2,
+                                    focusedContainerColor = DarkBrown2,
+                                    unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
+                                    focusedLabelColor = PrimaryGold,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    cursorColor = PrimaryGold,
+                                    errorContainerColor = DarkBrown2
+                                ),
                                 keyboardOptions =
                                         KeyboardOptions(keyboardType = KeyboardType.Phone),
                                 leadingIcon = {
@@ -473,13 +482,23 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(spacing.medium))
-                        OutlinedTextField(
+                        TextField(
                                 value = otp,
                                 onValueChange = { if (it.length <= 6) otp = it },
                                 label = { Text("Enter OTP") },
                                 placeholder = { Text("6-digit code", color = TextGold.copy(alpha = 0.7f)) },
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = loginTextFieldColors(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = TextFieldDefaults.colors(
+                                    unfocusedContainerColor = DarkBrown2,
+                                    focusedContainerColor = DarkBrown2,
+                                    unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
+                                    focusedLabelColor = PrimaryGold,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    cursorColor = PrimaryGold,
+                                    errorContainerColor = DarkBrown2
+                                ),
                                 keyboardOptions =
                                         KeyboardOptions(keyboardType = KeyboardType.Number),
                                 textStyle =
@@ -503,13 +522,23 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(spacing.medium))
-                        OutlinedTextField(
+                        TextField(
                                 value = newPassword,
                                 onValueChange = { newPassword = it },
                                 label = { Text("New Password") },
                                 placeholder = { Text("Min 8 chars with symbols", color = TextGold.copy(alpha = 0.7f)) },
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = loginTextFieldColors(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = TextFieldDefaults.colors(
+                                    unfocusedContainerColor = DarkBrown2,
+                                    focusedContainerColor = DarkBrown2,
+                                    unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
+                                    focusedLabelColor = PrimaryGold,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    cursorColor = PrimaryGold,
+                                    errorContainerColor = DarkBrown2
+                                ),
                                 visualTransformation =
                                         if (showNewPassword) VisualTransformation.None
                                         else PasswordVisualTransformation(),
@@ -529,13 +558,23 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                         )
                         Spacer(modifier = Modifier.height(spacing.small))
                         val passwordsMatch = confirmPassword.isEmpty() || newPassword == confirmPassword
-                        OutlinedTextField(
+                        TextField(
                                 value = confirmPassword,
                                 onValueChange = { confirmPassword = it },
                                 label = { Text("Confirm Password") },
                                 placeholder = { Text("Repeat new password", color = TextGold.copy(alpha = 0.7f)) },
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = loginTextFieldColors(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = TextFieldDefaults.colors(
+                                    unfocusedContainerColor = DarkBrown2,
+                                    focusedContainerColor = DarkBrown2,
+                                    unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
+                                    focusedLabelColor = PrimaryGold,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    cursorColor = PrimaryGold,
+                                    errorContainerColor = DarkBrown2
+                                ),
                                 isError = !passwordsMatch,
                                 visualTransformation =
                                         if (showConfirmPassword) VisualTransformation.None

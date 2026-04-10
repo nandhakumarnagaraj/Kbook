@@ -63,7 +63,7 @@ class MenuConfigurationScreenTest {
                     onAddCategory = {},
                     onUpdateCategory = {},
                     onDeleteCategory = {},
-                    onAddItem = { _, _, _ -> },
+                    onAddItem = { _, _, _, _ -> },
                     onUpdateItem = {},
                     onDeleteItem = {},
                     onToggleAvailability = { _, _ -> },

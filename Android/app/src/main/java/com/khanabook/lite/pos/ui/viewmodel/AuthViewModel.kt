@@ -5,11 +5,16 @@ import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.GetCredentialInterruptedException
+import androidx.credentials.exceptions.GetCredentialProviderConfigurationException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
@@ -343,13 +348,24 @@ constructor(
         viewModelScope.launch {
             try {
                 val credentialManager = CredentialManager.create(activity)
+                val serverClientId =
+                    BuildConfig.GOOGLE_WEB_CLIENT_ID
+                        .takeIf { it.isNotBlank() }
+                        ?: runCatching { activity.getString(R.string.default_web_client_id) }
+                            .getOrDefault("")
+
+                if (serverClientId.isBlank()) {
+                    _loginStatus.value = loginError(
+                        "Google Sign-In is not configured for this build.",
+                        LoginErrorCode.GOOGLE_FAILED
+                    )
+                    return@launch
+                }
 
                 val googleIdOption =
                         GetGoogleIdOption.Builder()
                                 .setFilterByAuthorizedAccounts(false) 
-                                .setServerClientId(
-                                        activity.getString(R.string.default_web_client_id)
-                                )
+                                .setServerClientId(serverClientId)
                                 .setAutoSelectEnabled(false)
                                 .build()
 
@@ -369,6 +385,14 @@ constructor(
                 ) {
                     val googleCred = GoogleIdTokenCredential.createFrom(credential.data)
                     val idToken = googleCred.idToken
+
+                    if (idToken.isBlank()) {
+                        _loginStatus.value = loginError(
+                            "Google Sign-In did not return a valid ID token.",
+                            LoginErrorCode.GOOGLE_FAILED
+                        )
+                        return@launch
+                    }
 
                     val result = userRepository.remoteGoogleLogin(idToken)
                     
@@ -400,11 +424,35 @@ constructor(
                                     LoginErrorCode.GOOGLE_UNEXPECTED_CREDENTIAL
                             )
                 }
-            } catch (e: GetCredentialException) {
-                Log.w(TAG, "Google Sign-In cancelled or unavailable", e)
+            } catch (e: GetCredentialCancellationException) {
+                Log.w(TAG, "Google Sign-In cancelled by user", e)
                 _loginStatus.value = loginError(
-                        "Google Sign-In cancelled. Try again.",
+                        "Google Sign-In was cancelled.",
                         LoginErrorCode.GOOGLE_CANCELLED
+                )
+            } catch (e: NoCredentialException) {
+                Log.w(TAG, "Google Sign-In found no available credentials", e)
+                _loginStatus.value = loginError(
+                        "No Google account is available on this device. Add an account and try again.",
+                        LoginErrorCode.GOOGLE_FAILED
+                )
+            } catch (e: GetCredentialProviderConfigurationException) {
+                Log.e(TAG, "Google Sign-In provider is unavailable or misconfigured", e)
+                _loginStatus.value = loginError(
+                        "Google Sign-In is unavailable on this device. Update Google Play Services and try again.",
+                        LoginErrorCode.GOOGLE_FAILED
+                )
+            } catch (e: GetCredentialInterruptedException) {
+                Log.w(TAG, "Google Sign-In was interrupted", e)
+                _loginStatus.value = loginError(
+                        "Google Sign-In was interrupted. Please try again.",
+                        LoginErrorCode.GOOGLE_FAILED
+                )
+            } catch (e: GetCredentialException) {
+                Log.e(TAG, "Google Sign-In failed before token exchange: type=${e.type}", e)
+                _loginStatus.value = loginError(
+                        "Google Sign-In could not start. Check Play Services and your Google account, then try again.",
+                        LoginErrorCode.GOOGLE_FAILED
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Google Sign-In failed", e)

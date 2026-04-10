@@ -45,7 +45,7 @@ fun InitialSyncScreen(
 
     Surface(modifier = Modifier.fillMaxSize(), color = DarkBackground) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(spacing.large),
+            modifier = Modifier.fillMaxSize().systemBarsPadding().padding(spacing.large),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
