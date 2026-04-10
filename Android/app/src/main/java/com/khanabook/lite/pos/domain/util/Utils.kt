@@ -88,6 +88,79 @@ fun Context.findActivity(): ComponentActivity? = when (this) {
 }
 
 /**
+ * Generates a plain-text version of the bill for WhatsApp sharing.
+ */
+fun generateBillText(bill: BillWithItems, profile: RestaurantProfileEntity?): String {
+    val sb = StringBuilder()
+    val shopName = profile?.shopName ?: "BIRYANIWALE ANNA"
+    val currency = if (profile?.currency == "INR" || profile?.currency == "Rupee") "Rs." else profile?.currency ?: ""
+    
+    sb.append("*${shopName.uppercase()}*\n")
+    profile?.shopAddress?.takeIf { it.isNotBlank() }?.let { sb.append("$it\n") }
+    profile?.gstin?.takeIf { it.isNotBlank() }?.let { sb.append("GSTIN: $it\n") }
+    sb.append("--------------------------\n")
+    sb.append("*Order ID:* #${bill.bill.dailyOrderDisplay.split("-").last()}\n")
+    val invLabel = if (profile?.gstEnabled == true) "Tax Invoice No" else "Invoice No"
+    sb.append("*$invLabel:* INV${bill.bill.lifetimeOrderId}\n")
+    sb.append("*Date:* ${DateUtils.formatDisplay(bill.bill.createdAt)}\n")
+    sb.append("--------------------------\n")
+    
+    for (item in bill.items) {
+        val name = if (!item.variantName.isNullOrBlank()) 
+            "${item.itemName} (${item.variantName})" 
+        else item.itemName
+        sb.append("${name.uppercase()} x ${item.quantity} = ${currency}${item.itemTotal}\n")
+    }
+    
+    sb.append("--------------------------\n")
+    sb.append("*Total Amount: ${currency}${bill.bill.totalAmount}*\n")
+    sb.append("--------------------------\n")
+    sb.append("Thank you for your visit!\n")
+    
+    return sb.toString()
+}
+
+/**
+ * Shares the bill as a text message on WhatsApp. 
+ * This method works WITHOUT contact permission and does NOT save temporary contacts.
+ */
+fun shareBillTextOnWhatsApp(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
+    val text = generateBillText(billWithItems, profile)
+    val rawPhone = billWithItems.bill.customerWhatsapp
+    val digits = rawPhone?.replace(Regex("[^0-9]"), "") ?: ""
+    val formattedPhone = when {
+        digits.length == 10 -> "91$digits"
+        digits.length > 10 -> digits
+        else -> null
+    }
+
+    if (formattedPhone != null) {
+        try {
+            val uri = android.net.Uri.parse("whatsapp://send?phone=$formattedPhone&text=${android.net.Uri.encode(text)}")
+            val intent = Intent(Intent.ACTION_VIEW, uri)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // Fallback to generic share if WhatsApp not installed or URI fails
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, text)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(Intent.createChooser(intent, "Share Invoice via"))
+        }
+    } else {
+        // No number, just generic share
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(Intent.createChooser(intent, "Share Invoice via"))
+    }
+}
+
+/**
  * Shares a bill/invoice via WhatsApp.
  * Handles both saved and unsaved numbers using a smart fallback mechanism.
  */

@@ -170,7 +170,10 @@ class ReportsViewModel @Inject constructor(
                 _orderLevelRows.update { rows ->
                     rows.map { row ->
                         if (row.billId == billId)
-                            row.copy(orderStatus = com.khanabook.lite.pos.domain.model.OrderStatus.CANCELLED)
+                            row.copy(
+                                orderStatus = com.khanabook.lite.pos.domain.model.OrderStatus.CANCELLED,
+                                cancelReason = reason
+                            )
                         else row
                     }
                 }

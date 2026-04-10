@@ -99,6 +99,8 @@ object InvoiceFormatter {
         profile?.shopAddress?.takeIf { it.isNotBlank() }?.let { add("$it\n") }
         profile?.fssaiNumber?.takeIf { it.isNotBlank() }?.let { add("FSSAI: $it\n") }
         profile?.gstin?.takeIf { it.isNotBlank() }?.let { add("GSTIN: $it\n") }
+        val invLabel = if (isGst) "TAX INVOICE NO" else "INVOICE NO"
+        add("$invLabel: INV${bill.bill.lifetimeOrderId}\n")
         add("$line\n")
 
         // 3. Transaction Details (Left/Right split)
@@ -255,11 +257,13 @@ object InvoiceFormatter {
         sb.append("🏛️ *${profile?.shopName?.uppercase() ?: "RESTAURANT"}*\n")
         if (!profile?.shopAddress.isNullOrBlank()) sb.append("📍 ${profile?.shopAddress}\n")
         if (!profile?.whatsappNumber.isNullOrBlank()) sb.append("📞 Contact: ${profile?.whatsappNumber}\n")
+        if (!profile?.gstin.isNullOrBlank()) sb.append("📜 GSTIN: ${profile?.gstin}\n")
         
         val title = if (profile?.gstEnabled == true) "TAX INVOICE" else "INVOICE"
         sb.append("\n🧾 *--- $title ---*\n")
         
-        sb.append("🔢 *Bill #:* ${bill.bill.lifetimeOrderId}\n")
+        val invLabel = if (profile?.gstEnabled == true) "Tax Invoice No" else "Invoice No"
+        sb.append("🔢 *$invLabel:* INV${bill.bill.lifetimeOrderId}\n")
         val formattedDate = com.khanabook.lite.pos.domain.util.DateUtils.formatDisplay(bill.bill.createdAt)
         sb.append("📅 *Date:* ${formattedDate}\n")
         

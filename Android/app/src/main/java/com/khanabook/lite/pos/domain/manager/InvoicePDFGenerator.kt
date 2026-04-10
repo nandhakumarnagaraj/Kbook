@@ -178,6 +178,11 @@ class InvoicePDFGenerator(private val context: Context) {
             if (profile?.gstEnabled == true && !profile.gstin.isNullOrBlank()) {
                 drawCenteredLabelValue("GST NO: ", profile.gstin)
                 y += 9f
+                drawCenteredLabelValue("TAX INVOICE NO: ", "INV${bill.bill.lifetimeOrderId}")
+                y += 9f
+            } else if (profile?.gstEnabled == false) {
+                drawCenteredLabelValue("INVOICE NO: ", "INV${bill.bill.lifetimeOrderId}")
+                y += 9f
             }
             if (!profile?.whatsappNumber.isNullOrBlank()) {
                 drawCenteredLabelValue("Contact: ", profile?.whatsappNumber ?: "")

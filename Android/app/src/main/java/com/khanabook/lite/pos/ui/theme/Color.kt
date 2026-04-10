@@ -43,5 +43,6 @@ val DarkBackground = Color(0xFF1A1A1A)
 val ErrorPink = Color(0xFFFF6B6B)
 val GoogleRed = Color(0xFFDB4437)
 val WarningYellow = Color(0xFFFFB300)
+val WhatsAppGreen = Color(0xFF25D366)
 
 

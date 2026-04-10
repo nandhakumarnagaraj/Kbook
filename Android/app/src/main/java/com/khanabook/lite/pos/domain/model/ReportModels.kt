@@ -7,7 +7,8 @@ data class OrderLevelRow(
     val billId: Long,
     val paymentMode: PaymentMode,
     val orderStatus: OrderStatus,
-    val date: String
+    val date: String,
+    val cancelReason: String = ""
 )
 
 data class OrderDetailRow(

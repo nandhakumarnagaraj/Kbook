@@ -385,41 +385,59 @@ fun SearchScreen(
                                     Button(
                                         onClick = {
                                             val granted = ContextCompat.checkSelfPermission(
-                                context, android.Manifest.permission.WRITE_CONTACTS
-                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                            if (granted) {
-                                result?.let { shareBillOnWhatsApp(context, it, profile) }
-                            } else {
-                                pendingShareBill = result
-                                contactPermLauncher.launch(android.Manifest.permission.WRITE_CONTACTS)
-                            }
+                                                context, android.Manifest.permission.WRITE_CONTACTS
+                                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                            if (granted) {
+                                                result?.let { shareBillOnWhatsApp(context, it, profile) }
+                                            } else {
+                                                pendingShareBill = result
+                                                contactPermLauncher.launch(android.Manifest.permission.WRITE_CONTACTS)
+                                            }
                                         },
                                         enabled = currentResult.items.isNotEmpty(),
                                         modifier = Modifier.weight(1f).height(48.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
+                                        Icon(Icons.Default.PictureAsPdf, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                                         Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                        Text("WhatsApp", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                        Text("PDF", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                     }
-                                    OutlinedButton(
+
+                                    Button(
                                         onClick = {
-                                            result?.let {
-                                                directPrint(context, it, profile, billingViewModel.printerManager)
-                                            }
+                                            result?.let { shareBillTextOnWhatsApp(context, it, profile) }
                                         },
                                         enabled = currentResult.items.isNotEmpty(),
                                         modifier = Modifier.weight(1f).height(48.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                                        border = BorderStroke(1.5.dp, PrimaryGold)
+                                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Icon(Icons.Default.Print, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.small))
+                                        Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                                         Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                        Text("Print Bill", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                        Text("Text", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                     }
                                 }
+
+                                Spacer(modifier = Modifier.height(spacing.small))
+
+                                OutlinedButton(
+                                    onClick = {
+                                        result?.let {
+                                            directPrint(context, it, profile, billingViewModel.printerManager)
+                                        }
+                                    },
+                                    enabled = currentResult.items.isNotEmpty(),
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                                    border = BorderStroke(1.5.dp, PrimaryGold)
+                                ) {
+                                    Icon(Icons.Default.Print, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.small))
+                                    Spacer(modifier = Modifier.width(spacing.extraSmall))
+                                    Text("Print Bill", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                }
+
                             }
                         }
                     }

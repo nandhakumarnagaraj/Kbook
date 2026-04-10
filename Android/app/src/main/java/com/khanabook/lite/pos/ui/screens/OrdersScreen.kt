@@ -260,6 +260,13 @@ fun OrdersScreen(
                                 }
                             }
                         },
+                        onShareText = {
+                            scope.launch {
+                                viewModel.getOrderDetail(row.billId)?.let { detail ->
+                                    com.khanabook.lite.pos.domain.util.shareBillTextOnWhatsApp(context, detail, profile)
+                                }
+                            }
+                        },
                         onRequestCancel = { showCancelDialog = true },
                         onStatusChange = { newStatus ->
                             onStatusChange(row.billId, newStatus)
@@ -348,7 +355,7 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
     }
 }
 
-private const val TABLE_TOTAL_WEIGHT = 9.2f
+private const val TABLE_TOTAL_WEIGHT = 8.0f
 
 @Composable
 fun TableHeader() {
@@ -360,8 +367,7 @@ fun TableHeader() {
             .padding(vertical = spacing.small, horizontal = spacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        HeaderCell("D.No", 1f / TABLE_TOTAL_WEIGHT)
-        HeaderCell("L.No", 1.2f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Order Id", 1f / TABLE_TOTAL_WEIGHT)
         HeaderCell("Amount", 1.3f / TABLE_TOTAL_WEIGHT)
         HeaderCell("Mode", 2.0f / TABLE_TOTAL_WEIGHT)
         HeaderCell("Status", 2.2f / TABLE_TOTAL_WEIGHT)
@@ -386,6 +392,7 @@ fun OrderTableRow(
     row: OrderDetailRow,
     enabledModes: List<PaymentMode>,
     onShare: () -> Unit,
+    onShareText: () -> Unit,
     onRequestCancel: () -> Unit,
     onStatusChange: (String) -> Unit,
     onPayModeChange: (PaymentMode) -> Unit
@@ -398,12 +405,17 @@ fun OrderTableRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .combinedClickable(
+                onClick = { /* already handled by internal buttons */ },
+                onLongClick = onShareText
+            )
             .padding(vertical = 1.dp)
             .background(
                 Color.Black.copy(alpha = if (isCancelled) 0.15f else 0.25f),
                 RoundedCornerShape(4.dp)
             )
-    ) {        Row(
+    ) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
@@ -411,10 +423,6 @@ fun OrderTableRow(
         ) {
             TableCell(
                 row.dailyNo, 1f / TABLE_TOTAL_WEIGHT,
-                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
-            )
-            TableCell(
-                row.lifetimeNo.toString(), 1.2f / TABLE_TOTAL_WEIGHT,
                 color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )
             TableCell(

@@ -402,7 +402,8 @@ class MasterSyncProcessor @Inject constructor(
                         updatedAt = remoteBill.updatedAt ?: System.currentTimeMillis(),
                         isDeleted = remoteBill.isDeleted ?: false,
                         serverId = remoteBill.serverId,
-                        serverUpdatedAt = remoteBill.serverUpdatedAt ?: 0L
+                        serverUpdatedAt = remoteBill.serverUpdatedAt ?: 0L,
+                        cancelReason = remoteBill.cancelReason.orFallback("")
                     )
                 }
             )

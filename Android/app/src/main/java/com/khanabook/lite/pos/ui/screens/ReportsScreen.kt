@@ -22,7 +22,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedVisibility
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -225,7 +227,7 @@ fun ReportsScreen(
                 PaymentLevelView(paymentBreakdown, settingsViewModel)
             } else {
                 Column(modifier = Modifier.weight(1f)) {
-                    OrderLevelView(orderLevelRows) { billId ->
+                    OrderLevelView(orderLevelRows, profile) { billId ->
                         selectedBillId = billId
                         viewModel.loadBillDetails(billId)
                     }
@@ -243,6 +245,7 @@ fun ReportsScreen(
         selectedBillId?.let {
             OrderDetailsDialog(
                 billWithItems = selectedBillDetails,
+                profile = profile,
                 onDismiss = {
                     selectedBillId = null
                     viewModel.clearBillDetails()
@@ -425,7 +428,7 @@ fun PartPaymentCard(
 }
 
 @Composable
-fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>, onViewDetails: (Long) -> Unit) {
+fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>, profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?, onViewDetails: (Long) -> Unit) {
     val spacing = KhanaBookTheme.spacing
     Column(modifier = Modifier.fillMaxWidth()) {
 
@@ -437,7 +440,7 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            HeaderCell("Bill.No", Modifier.weight(1.2f))
+            HeaderCell("Order Id", Modifier.weight(1.2f))
             HeaderCell("Status", Modifier.weight(1.8f))
             HeaderCell("Action", Modifier.weight(1.2f))
             HeaderCell("Date", Modifier.weight(1.8f))
@@ -474,7 +477,7 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
                 contentPadding = PaddingValues(bottom = spacing.bottomListPadding)
             ) {
                 items(rows) { row ->
-                    OrderRowItem(row, onViewDetails)
+                    OrderRowItem(row, profile, onViewDetails)
                 }
             }
         }
@@ -493,7 +496,7 @@ fun HeaderCell(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewDetails: (Long) -> Unit) {
+fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?, onViewDetails: (Long) -> Unit) {
     val spacing = KhanaBookTheme.spacing
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
@@ -509,12 +512,13 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
         ) {
             Text(row.dailyId, color = TextLight, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.2f), textAlign = TextAlign.Center)
             
-            Box(modifier = Modifier.weight(1.8f), contentAlignment = Alignment.Center) {
-                val statusText = when(row.orderStatus) {
+            Column(modifier = Modifier.weight(1.8f), horizontalAlignment = Alignment.CenterHorizontally) {
+                val statusValue = row.orderStatus
+                val statusText = when(statusValue) {
                     OrderStatus.DRAFT -> "Pending"
-                    else -> row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
+                    else -> statusValue.name.lowercase().replaceFirstChar { it.uppercase() }
                 }
-                val statusColor = when(row.orderStatus) {
+                val statusColor = when(statusValue) {
                     OrderStatus.COMPLETED -> VegGreen
                     OrderStatus.CANCELLED -> ZomatoRed
                     else -> TextGold
@@ -526,6 +530,16 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
                     textAlign = TextAlign.Center,
                     maxLines = 1
                 )
+                if (statusValue == OrderStatus.CANCELLED && row.cancelReason.isNotEmpty()) {
+                    Text(
+                        row.cancelReason,
+                        color = ZomatoRed.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
             }
             
             Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
@@ -557,6 +571,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
 @Composable
 fun OrderDetailsDialog(
     billWithItems: BillWithItems?,
+    profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?,
     onDismiss: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -617,7 +632,10 @@ fun OrderDetailsDialog(
                     val bill = billWithItems.bill
                     val items = billWithItems.items
 
-                    DetailRow("Order ID:", "#${bill.dailyOrderDisplay.split("-").last()}")
+                    DetailRow("Order Id:", "#${bill.dailyOrderDisplay.split("-").last()}")
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    val invoiceLabel = if (profile?.gstEnabled == true) "Tax Invoice No:" else "Invoice No:"
+                    DetailRow(invoiceLabel, "INV${bill.lifetimeOrderId}")
                     Spacer(modifier = Modifier.height(spacing.small))
                     DetailRow("Date:", DateUtils.formatDisplay(bill.createdAt))
 
@@ -671,7 +689,8 @@ fun OrderDetailsDialog(
                     Spacer(modifier = Modifier.height(spacing.medium))
                     HorizontalDivider(color = BorderGold.copy(alpha = 0.3f), thickness = 0.5.dp)
                     Spacer(modifier = Modifier.height(spacing.medium))
-
+                    DetailRow("Payment Mode:", PaymentMode.fromDbValue(bill.paymentMode).displayLabel)
+                    Spacer(modifier = Modifier.height(spacing.small))
                     DetailRow("Total Amount:", CurrencyUtils.formatPrice(bill.totalAmount), PrimaryGold, FontWeight.Bold)
                     Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -685,13 +704,31 @@ fun OrderDetailsDialog(
                         OrderStatus.CANCELLED -> ZomatoRed
                         else -> TextGold
                     }
+
                     DetailRow("Status:", statusText, statusColor)
+                    if (statusValue == OrderStatus.CANCELLED && bill.cancelReason.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(spacing.small))
+                        DetailRow("Cancel Reason:", bill.cancelReason, ZomatoRed, FontWeight.Bold)
+                    }
                     Spacer(modifier = Modifier.height(spacing.medium))
 
-                    DetailRow("Payment Mode:", PaymentMode.fromDbValue(bill.paymentMode).displayLabel)
+
                 }
 
                 Spacer(modifier = Modifier.height(spacing.large))
+                
+                if (billWithItems != null) {
+                    val context = LocalContext.current
+                    OutlinedButton(
+                        onClick = { shareBillTextOnWhatsApp(context, billWithItems, profile) },
+                        modifier = Modifier.fillMaxWidth().height(56.dp).padding(bottom = spacing.small),
+                        border = BorderStroke(1.dp, PrimaryGold),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Share Bill Text", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
