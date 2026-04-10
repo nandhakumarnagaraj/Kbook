@@ -182,7 +182,7 @@ fun OrdersScreen(
             Spacer(modifier = Modifier.height(spacing.medium))
 
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium)) {
-                TableHeader()
+                TableHeader(isGstEnabled = profile?.gstEnabled == true)
             }
 
             if (isLoading && allRows.isEmpty()) {
@@ -337,8 +337,9 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
 private const val TABLE_TOTAL_WEIGHT = 8.0f
 
 @Composable
-fun TableHeader() {
+fun TableHeader(isGstEnabled: Boolean) {
     val spacing = KhanaBookTheme.spacing
+    val invoiceHeader = if (isGstEnabled) "Tax Invoice No" else "Invoice No"
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -346,11 +347,11 @@ fun TableHeader() {
             .padding(vertical = spacing.small, horizontal = spacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        HeaderCell("Order Id", 1f / TABLE_TOTAL_WEIGHT)
-        HeaderCell("Amount", 1.3f / TABLE_TOTAL_WEIGHT)
-        HeaderCell("Mode", 2.0f / TABLE_TOTAL_WEIGHT)
-        HeaderCell("Status", 2.2f / TABLE_TOTAL_WEIGHT)
-        HeaderCell("Date", 1.5f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Order Id", 1.0f / TABLE_TOTAL_WEIGHT)
+        HeaderCell(invoiceHeader, 2.0f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Mode", 1.6f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Status", 1.8f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Date", 1.6f / TABLE_TOTAL_WEIGHT)
     }
 }
 
@@ -401,16 +402,16 @@ fun OrderTableRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TableCell(
-                row.dailyNo, 1f / TABLE_TOTAL_WEIGHT,
+                row.dailyNo, 1.0f / TABLE_TOTAL_WEIGHT,
                 color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )
             TableCell(
-                CurrencyUtils.formatPrice(row.salesAmount), 1.3f / TABLE_TOTAL_WEIGHT,
+                "INV${row.lifetimeNo}", 2.0f / TABLE_TOTAL_WEIGHT,
                 fontWeight = FontWeight.Bold,
                 color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )
 
-            Box(modifier = Modifier.weight(2.0f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(1.6f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
                 val color = if (isCancelled) Color.Gray else getPayModeColor(row.payMode)
                 Surface(
                     onClick = { if (!isCancelled) payModeExpanded = true },
@@ -441,7 +442,7 @@ fun OrderTableRow(
                 }
             }
 
-            Box(modifier = Modifier.weight(2.2f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(1.8f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
                 val statusColor = when (row.orderStatus) {
                     OrderStatus.COMPLETED -> SuccessGreen
                     OrderStatus.CANCELLED -> DangerRed
@@ -484,7 +485,7 @@ fun OrderTableRow(
                 }
             }
 
-            TableCell(DateUtils.formatDisplayDate(row.salesDate), 1.5f / TABLE_TOTAL_WEIGHT, fontSize = 9.sp)
+            TableCell(DateUtils.formatDisplayDate(row.salesDate), 1.6f / TABLE_TOTAL_WEIGHT, fontSize = 9.sp)
         }
 
         if (isCancelled && row.cancelReason.isNotBlank()) {
