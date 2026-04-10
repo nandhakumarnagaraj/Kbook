@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedVisibility
 
 import androidx.compose.animation.animateColorAsState
@@ -43,12 +42,12 @@ import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
+import com.khanabook.lite.pos.domain.util.DateUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-import com.khanabook.lite.pos.domain.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -716,18 +715,6 @@ fun OrderDetailsDialog(
                 }
 
                 Spacer(modifier = Modifier.height(spacing.large))
-                
-                if (billWithItems != null) {
-                    val context = LocalContext.current
-                    OutlinedButton(
-                        onClick = { shareBillTextOnWhatsApp(context, billWithItems, profile) },
-                        modifier = Modifier.fillMaxWidth().height(56.dp).padding(bottom = spacing.small),
-                        border = BorderStroke(1.dp, PrimaryGold),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Share Bill Text", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
-                    }
-                }
 
                 Button(
                     onClick = onDismiss,

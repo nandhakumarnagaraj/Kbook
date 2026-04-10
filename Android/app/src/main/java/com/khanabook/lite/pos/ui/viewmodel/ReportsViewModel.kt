@@ -35,7 +35,7 @@ class ReportsViewModel @Inject constructor(
     private val _orderDetailsTable = MutableStateFlow<List<OrderDetailRow>>(emptyList())
     val orderDetailsTable: StateFlow<List<OrderDetailRow>> = _orderDetailsTable
 
-    private val _reportType = MutableStateFlow("Payment") 
+    private val _reportType = MutableStateFlow("Order") 
     val reportType: StateFlow<String> = _reportType
 
     private val _timeFilter = MutableStateFlow("Daily") 
