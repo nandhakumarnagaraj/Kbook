@@ -13,7 +13,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -41,8 +40,12 @@ public class SecurityConfig {
 		CorsConfiguration config = new CorsConfiguration();
 		List<String> origins = (allowedOriginsRaw == null || allowedOriginsRaw.isBlank())
 				? List.of()
-				: List.of(allowedOriginsRaw.split(","));
-		config.setAllowedOrigins(origins.isEmpty() ? List.of("*") : origins);
+				: List.of(allowedOriginsRaw.split(","))
+						.stream()
+						.map(String::trim)
+						.filter(origin -> !origin.isBlank())
+						.toList();
+		config.setAllowedOrigins(origins);
 		config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 		config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Restaurant-Id"));
 		config.setExposedHeaders(List.of("X-Request-Id"));
@@ -105,9 +108,9 @@ public class SecurityConfig {
 								"/auth/reset-password", "/auth/reset-password/request",
 								"/error")
 						.permitAll()
-						// API docs — public
+						// API docs require authenticated admin access
 						.requestMatchers("/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
-						.permitAll()
+						.hasRole("KBOOK_ADMIN")
 						// Actuator: health/readiness open, everything else authenticated
 						.requestMatchers("/actuator/health", "/actuator/health/**")
 						.permitAll()

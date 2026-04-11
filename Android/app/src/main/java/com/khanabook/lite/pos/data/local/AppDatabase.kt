@@ -142,8 +142,11 @@ abstract class AppDatabase : RoomDatabase() {
                 for (table in tables) {
                     try {
                         db.execSQL("ALTER TABLE `$table` ADD COLUMN `server_updated_at` INTEGER NOT NULL DEFAULT 0")
-                    } catch (e: Exception) {
-                        // Already exists or table missing
+                    } catch (e: android.database.sqlite.SQLiteException) {
+                        android.util.Log.w(
+                            "AppDatabase",
+                            "MIGRATION_28_29: failed to add server_updated_at on $table: ${e.message}"
+                        )
                     }
                 }
             }
@@ -158,8 +161,11 @@ abstract class AppDatabase : RoomDatabase() {
                 for (table in tables) {
                     try {
                         db.execSQL("ALTER TABLE `$table` ADD COLUMN `server_id` INTEGER DEFAULT NULL")
-                    } catch (e: Exception) {
-                        // Already exists or table missing
+                    } catch (e: android.database.sqlite.SQLiteException) {
+                        android.util.Log.w(
+                            "AppDatabase",
+                            "MIGRATION_27_28: failed to add server_id on $table: ${e.message}"
+                        )
                     }
                 }
             }
@@ -178,15 +184,21 @@ abstract class AppDatabase : RoomDatabase() {
                 try {
                     db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `current_stock` REAL NOT NULL DEFAULT 0.0")
                     db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `low_stock_threshold` REAL NOT NULL DEFAULT 0.0")
-                } catch (e: Exception) {
-                    
+                } catch (e: android.database.sqlite.SQLiteException) {
+                    android.util.Log.w(
+                        "AppDatabase",
+                        "MIGRATION_17_18: menu_items stock columns may already exist: ${e.message}"
+                    )
                 }
 
                 try {
                     db.execSQL("ALTER TABLE `item_variants` ADD COLUMN `current_stock` REAL NOT NULL DEFAULT 0.0")
                     db.execSQL("ALTER TABLE `item_variants` ADD COLUMN `low_stock_threshold` REAL NOT NULL DEFAULT 0.0")
-                } catch (e: Exception) {
-                    
+                } catch (e: android.database.sqlite.SQLiteException) {
+                    android.util.Log.w(
+                        "AppDatabase",
+                        "MIGRATION_17_18: item_variants stock columns may already exist: ${e.message}"
+                    )
                 }
             }
         }
@@ -197,13 +209,15 @@ abstract class AppDatabase : RoomDatabase() {
                 
                 try {
                     db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `country` TEXT DEFAULT 'India'")
-                } catch (e: Exception) {
+                } catch (e: android.database.sqlite.SQLiteException) {
+                    android.util.Log.w("AppDatabase", "MIGRATION_18_19: country may already exist: ${e.message}")
                     db.execSQL("UPDATE `restaurant_profile` SET `country` = 'India' WHERE `country` IS NULL")
                 }
 
                 try {
                     db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `currency` TEXT DEFAULT 'INR'")
-                } catch (e: Exception) {
+                } catch (e: android.database.sqlite.SQLiteException) {
+                    android.util.Log.w("AppDatabase", "MIGRATION_18_19: currency may already exist: ${e.message}")
                     db.execSQL("UPDATE `restaurant_profile` SET `currency` = 'INR' WHERE `currency` IS NULL")
                 }
             }
@@ -213,8 +227,8 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 try {
                     db.execSQL("ALTER TABLE `users` ADD COLUMN `role` TEXT NOT NULL DEFAULT 'owner'")
-                } catch (e: Exception) {
-                    // Ignore if columns exist
+                } catch (e: android.database.sqlite.SQLiteException) {
+                    android.util.Log.w("AppDatabase", "MIGRATION_21_22: role may already exist: ${e.message}")
                 }
             }
         }

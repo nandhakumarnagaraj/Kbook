@@ -36,7 +36,7 @@ public class AuthController {
 
 	@PostMapping("/login")
 	public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-		log.debug("Login attempt phoneLen={}", request.getPhoneNumber() == null ? 0 : request.getPhoneNumber().length());
+		log.debug("Login attempt identifierLen={}", request.getLoginId() == null ? 0 : request.getLoginId().length());
 		return ResponseEntity.ok(authService.login(request));
 	}
 
@@ -144,11 +144,14 @@ public class AuthController {
 	@AllArgsConstructor
 	@NoArgsConstructor
 	public static class LoginRequest {
-		@NotBlank(message = "Phone number is required")
-		@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
-		@Size(min = 10, max = 10)
-		@JsonAlias("email")
-		private String phoneNumber;
+		@NotBlank(message = "Login ID is required")
+		@Pattern(
+				regexp = "^(\\d{10}|[^\\s@]+@[^\\s@]+\\.[^\\s@]+)$",
+				message = "Login ID must be a 10-digit phone number or a valid email"
+		)
+		@Size(min = 10, max = 254)
+		@JsonAlias({ "phoneNumber", "email" })
+		private String loginId;
 
 		@NotBlank(message = "Password is required")
 		@Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")

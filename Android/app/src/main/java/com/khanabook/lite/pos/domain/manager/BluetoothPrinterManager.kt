@@ -170,7 +170,11 @@ class BluetoothPrinterManager(private val context: Context) {
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         }
         
-        try { context.unregisterReceiver(discoveryReceiver) } catch (_: Exception) {}
+        try {
+            context.unregisterReceiver(discoveryReceiver)
+        } catch (e: IllegalArgumentException) {
+            Log.d(TAG, "Discovery receiver was not registered before scan start")
+        }
         
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Context.RECEIVER_EXPORTED else 0
         ContextCompat.registerReceiver(context, discoveryReceiver, filter, flags)
@@ -186,7 +190,11 @@ class BluetoothPrinterManager(private val context: Context) {
     fun stopScan() {
         bluetoothAdapter?.cancelDiscovery()
         _isScanning.value = false
-        try { context.unregisterReceiver(discoveryReceiver) } catch (_: Exception) {}
+        try {
+            context.unregisterReceiver(discoveryReceiver)
+        } catch (e: IllegalArgumentException) {
+            Log.d(TAG, "Discovery receiver already unregistered on stopScan")
+        }
     }
 
     /**
@@ -250,7 +258,9 @@ class BluetoothPrinterManager(private val context: Context) {
         try {
             outputStream?.close()
             activeSocket?.close()
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.w(TAG, "Error while closing Bluetooth printer connection", e)
+        }
         outputStream = null
         activeSocket = null
         _isConnected.value = false
@@ -260,5 +270,10 @@ class BluetoothPrinterManager(private val context: Context) {
 
     @Suppress("MissingPermission")
     fun deviceName(device: BluetoothDevice): String =
-        try { device.name ?: "Unknown Device" } catch (_: Exception) { "Unknown Device" }
+        try {
+            device.name ?: "Unknown Device"
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Unable to read Bluetooth device name", e)
+            "Unknown Device"
+        }
 }

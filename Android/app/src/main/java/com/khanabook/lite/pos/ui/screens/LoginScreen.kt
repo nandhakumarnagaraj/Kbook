@@ -51,7 +51,7 @@ fun LoginScreen(
         onSignUpClick: () -> Unit = {},
         viewModel: AuthViewModel = hiltViewModel()
 ) {
-    var phone by remember { mutableStateOf("") }
+    var loginId by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var showForgotDialog by remember { mutableStateOf(false) }
@@ -59,7 +59,7 @@ fun LoginScreen(
 
     val loginStatus by viewModel.loginStatus.collectAsState()
     val isLoading = loginStatus is AuthViewModel.LoginResult.Loading
-    val isPhoneValid = ValidationUtils.isValidPhone(phone)
+    val isLoginIdValid = ValidationUtils.isValidPhone(loginId) || ValidationUtils.isValidEmail(loginId)
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
@@ -124,19 +124,18 @@ fun LoginScreen(
 
             
             OutlinedTextField(
-                    value = phone,
-                    onValueChange = { 
-                        val filtered = it.filter { ch -> ch.isDigit() }.take(10)
-                        phone = filtered
-                        if (filtered.length == 10) {
+                    value = loginId,
+                    onValueChange = {
+                        loginId = it.trim()
+                        if (isLoginIdValid) {
                             passwordFocusRequester.requestFocus()
                         }
                     },
-                    label = { Text("Phone Number") },
-                    placeholder = { Text("Enter your 10-digit number", color = TextGold.copy(alpha = 0.7f)) },
+                    label = { Text("Login ID") },
+                    placeholder = { Text("Phone number or email", color = TextGold.copy(alpha = 0.7f)) },
                     leadingIcon = {
                         Icon(
-                                imageVector = Icons.Default.Phone,
+                                imageVector = Icons.Default.Person,
                                 contentDescription = "Login",
                                 tint = PrimaryGold
                         )
@@ -158,16 +157,16 @@ fun LoginScreen(
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextLight),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Phone,
+                        keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
                     ),
                     keyboardActions = KeyboardActions(
                         onNext = { passwordFocusRequester.requestFocus() }
                     ),
-                    isError = (phone.isNotEmpty() && !isPhoneValid) || (phone.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
+                    isError = (loginId.isNotEmpty() && !isLoginIdValid) || (loginId.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
                     supportingText = {
-                        if (phone.isNotEmpty() && !isPhoneValid) {
-                            Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                        if (loginId.isNotEmpty() && !isLoginIdValid) {
+                            Text("Enter a 10-digit phone number or valid email", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                         }
                     }
             )
@@ -223,10 +222,10 @@ fun LoginScreen(
                     keyboardActions = KeyboardActions(
                         onDone = { 
                             val isLoadingStatus = loginStatus is AuthViewModel.LoginResult.Loading
-                            val isLoginEnabledAction = isPhoneValid && password.isNotBlank() && !isLoadingStatus
+                            val isLoginEnabledAction = isLoginIdValid && password.isNotBlank() && !isLoadingStatus
                             if (isLoginEnabledAction) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.login(phone, password)
+                                viewModel.login(loginId, password)
                             }
                             focusManager.clearFocus()
                         }
@@ -259,12 +258,12 @@ fun LoginScreen(
             }
 
             
-            val isLoginEnabled = isPhoneValid && password.isNotBlank() && !isLoading
+            val isLoginEnabled = isLoginIdValid && password.isNotBlank() && !isLoading
             Button(
                     onClick = { 
                         if (isLoginEnabled) {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.login(phone, password) 
+                            viewModel.login(loginId, password) 
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),

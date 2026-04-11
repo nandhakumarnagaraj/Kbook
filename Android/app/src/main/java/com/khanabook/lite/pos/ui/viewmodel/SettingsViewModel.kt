@@ -230,7 +230,7 @@ class SettingsViewModel @Inject constructor(
                     _userExistsError.value = "An account with this number already exists."
                 }
             } catch (e: Exception) {
-                // Log and ignore to not block user on network error
+                Log.w("SettingsViewModel", "Remote user existence check failed", e)
             } finally {
                 _isUserChecking.value = false
             }

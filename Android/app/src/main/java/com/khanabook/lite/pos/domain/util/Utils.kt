@@ -10,6 +10,9 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.manager.InvoicePDFGenerator
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -63,6 +66,8 @@ object DateUtils {
             .toEpochMilli()
     }
 }
+
+private const val UTILS_TAG = "KhanaBookUtils"
 
 /**
  * Utility functions for Currency formatting.
@@ -249,7 +254,9 @@ private fun tryJidWhatsApp(context: Context, phone: String, pdfUri: android.net.
             }
             context.startActivity(intent)
             return true
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            android.util.Log.w(UTILS_TAG, "WhatsApp direct share failed for package=$pkg", e)
+        }
     }
     return false
 }
@@ -259,6 +266,7 @@ private fun launchWhatsAppPdfSearchFallback(
     phone: String,
     pdfUri: android.net.Uri
 ): Boolean {
+    android.util.Log.d(UTILS_TAG, "Falling back to WhatsApp PDF picker for phone suffix=${phone.takeLast(4)}")
     return launchWhatsAppPdfPicker(context, pdfUri)
 }
 
@@ -278,7 +286,9 @@ private fun launchWhatsAppPdfPicker(context: Context, pdfUri: android.net.Uri): 
             }
             context.startActivity(intent)
             return true
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            android.util.Log.w(UTILS_TAG, "WhatsApp picker share failed for package=$pkg", e)
+        }
     }
     return false
 }
@@ -340,9 +350,9 @@ fun directPrint(
 
     val scope = (context.findActivity() as? androidx.lifecycle.LifecycleOwner)?.lifecycleScope 
         ?: (context as? androidx.lifecycle.LifecycleOwner)?.lifecycleScope
-        ?: kotlinx.coroutines.GlobalScope
+        ?: CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+    scope.launch(Dispatchers.IO) {
         if (!printerManager.isConnected() && !profile.printerMac.isNullOrBlank()) {
             printerManager.connect(profile.printerMac)
         }
@@ -351,7 +361,7 @@ fun directPrint(
             val bytes = InvoiceFormatter.formatForThermalPrinter(billWithItems, profile)
             printerManager.printBytes(bytes)
         } else {
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+            kotlinx.coroutines.withContext(Dispatchers.Main) {
                 Toast.makeText(context, "Printer not connected. Opening PDF...", Toast.LENGTH_SHORT).show()
                 openBillToPrint(context, billWithItems, profile)
             }

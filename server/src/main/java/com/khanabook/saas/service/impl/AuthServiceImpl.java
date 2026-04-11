@@ -44,13 +44,14 @@ public class AuthServiceImpl implements AuthService {
 
 	@Override
 	public AuthResponse login(LoginRequest request) {
-		User user = userRepository.findByLoginId(request.getPhoneNumber())
-				.or(() -> userRepository.findByEmail(request.getPhoneNumber()))
-				.or(() -> userRepository.findByWhatsappNumber(request.getPhoneNumber()))
-				.orElseThrow(() -> new IllegalArgumentException("Invalid phone number or password"));
+		String loginId = request.getLoginId();
+		User user = userRepository.findByLoginId(loginId)
+				.or(() -> userRepository.findByEmail(loginId))
+				.or(() -> userRepository.findByWhatsappNumber(loginId))
+				.orElseThrow(() -> new IllegalArgumentException("Invalid login ID or password"));
 
 		if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-			throw new IllegalArgumentException("Invalid phone number or password");
+			throw new IllegalArgumentException("Invalid login ID or password");
 		}
 
 		if (!Boolean.TRUE.equals(user.getIsActive())) {

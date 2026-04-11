@@ -103,7 +103,7 @@ constructor(
         _isUserChecking.value = false
     }
 
-    fun login(email: String, password: String) {
+    fun login(loginId: String, password: String) {
         val now = System.currentTimeMillis()
         val lockoutUntilMs = sessionManager.getLockoutUntilMs()
         if (now < lockoutUntilMs) {
@@ -118,12 +118,12 @@ constructor(
 
         viewModelScope.launch {
             _loginStatus.value = LoginResult.Loading 
-            performLogin(email, password)
+            performLogin(loginId, password)
         }
     }
 
-    private suspend fun performLogin(email: String, password: String) {
-        val result = userRepository.remoteLogin(email, password)
+    private suspend fun performLogin(loginId: String, password: String) {
+        val result = userRepository.remoteLogin(loginId, password)
 
         result.onSuccess { user ->
             val setupResult = handleLoginSuccess(user)
@@ -141,7 +141,7 @@ constructor(
             if (e is retrofit2.HttpException) {
                 if (e.code() == 401 || e.code() == 404) {
                     _loginStatus.value = loginError(
-                        "Incorrect mobile number or password.",
+                        "Incorrect login ID or password.",
                         LoginErrorCode.INCORRECT_PASSWORD
                     )
                     return@onFailure
@@ -154,7 +154,7 @@ constructor(
                 return@onFailure
             }
 
-            val user = userRepository.getUserByLoginId(email)
+            val user = userRepository.getUserByLoginId(loginId)
             if (user != null) {
                 // Since we don't store password_hash locally anymore, 
                 // we cannot verify password if offline.
@@ -164,7 +164,7 @@ constructor(
                 )
             } else {
                 _loginStatus.value = loginError(
-                    "No account found with this number or server is offline.",
+                    "No account found with this login ID or server is offline.",
                     LoginErrorCode.ACCOUNT_NOT_FOUND
                 )
             }

@@ -116,6 +116,8 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
 
     fun saveAuthToken(token: String) {
         securePrefs.edit().putString("auth_token", token).apply()
+        startPeriodicCheck()
+        resetSession()
     }
 
     fun getDeviceId(): String {

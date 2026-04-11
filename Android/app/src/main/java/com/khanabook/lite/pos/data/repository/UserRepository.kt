@@ -40,13 +40,13 @@ class UserRepository(
             ?: userDao.getUserByEmail(loginId)
     }
 
-    suspend fun remoteLogin(phoneNumber: String, passwordPlain: String): Result<UserEntity> {
+    suspend fun remoteLogin(loginIdInput: String, passwordPlain: String): Result<UserEntity> {
         return try {
             val deviceId = sessionManager.getDeviceId()
-            val request = LoginRequest(phoneNumber, passwordPlain, deviceId)
+            val request = LoginRequest(loginIdInput, passwordPlain, deviceId)
             
             val response = api.login(request)
-            val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: phoneNumber
+            val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: loginIdInput
             val userEmail = response.userEmail?.takeIf { it.isNotBlank() } ?: loginId
 
             if (response.role != null && response.role != "OWNER") {
@@ -63,7 +63,7 @@ class UserRepository(
                     name = response.userName,
                     email = userEmail,
                     loginId = loginId,
-                    whatsappNumber = response.whatsappNumber ?: phoneNumber,
+                    whatsappNumber = response.whatsappNumber ?: loginIdInput,
                     restaurantId = response.restaurantId,
                     role = response.role ?: "OWNER",
                     deviceId = deviceId,

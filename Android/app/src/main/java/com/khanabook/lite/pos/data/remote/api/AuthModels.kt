@@ -1,7 +1,7 @@
 package com.khanabook.lite.pos.data.remote.api
 
 data class LoginRequest(
-    val phoneNumber: String,
+    val loginId: String,
     val password: String,
     val deviceId: String
 )
