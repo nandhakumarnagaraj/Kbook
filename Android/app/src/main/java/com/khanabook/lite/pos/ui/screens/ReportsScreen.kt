@@ -23,11 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.animation.AnimatedVisibility
-
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +65,20 @@ fun ReportsScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val spacing = KhanaBookTheme.spacing
     
+    // Staggered entry animation — same pattern used across all screens
+    var headerVisible by remember { mutableStateOf(false) }
+    var contentVisible by remember { mutableStateOf(false) }
+    val enterSpec = fadeIn(tween(350)) + slideInVertically(
+        initialOffsetY = { it / 6 },
+        animationSpec = tween(350, easing = FastOutSlowInEasing)
+    )
+    val exitSpec = fadeOut(tween(200))
+    LaunchedEffect(Unit) {
+        headerVisible = true
+        kotlinx.coroutines.delay(80)
+        contentVisible = true
+    }
+    
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
     val selectedBillDetails by viewModel.selectedBillDetails.collectAsState()
     
@@ -85,47 +100,51 @@ fun ReportsScreen(
                 .padding(bottom = spacing.small)
         ) {
             
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(spacing.medium),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = PrimaryGold
+            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(spacing.medium),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = PrimaryGold
+                        )
+                    }
+                    Text(
+                        text = "Report Details",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = PrimaryGold,
+                        style = MaterialTheme.typography.headlineMedium
                     )
                 }
-                Text(
-                    text = "Report Details",
-                    modifier = Modifier.align(Alignment.Center),
-                    color = PrimaryGold,
-                    style = MaterialTheme.typography.headlineMedium
-                )
             }
 
             
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.medium),
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-            ) {
-                listOf("Daily", "Weekly", "Monthly", "Custom").forEach { filter ->
-                    FilterChip(
-                        label = filter,
-                        isSelected = timeFilter == filter,
-                        onClick = { 
-                            if (filter == "Custom") {
-                                showDateRangePicker = true
-                            } else {
-                                viewModel.setTimeFilter(filter) 
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
+            AnimatedVisibility(visible = contentVisible, enter = enterSpec, exit = exitSpec) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    listOf("Daily", "Weekly", "Monthly", "Custom").forEach { filter ->
+                        FilterChip(
+                            label = filter,
+                            isSelected = timeFilter == filter,
+                            onClick = { 
+                                if (filter == "Custom") {
+                                    showDateRangePicker = true
+                                } else {
+                                    viewModel.setTimeFilter(filter) 
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
@@ -135,6 +154,7 @@ fun ReportsScreen(
             if (showDateRangePicker) {
                 DatePickerDialog(
                     onDismissRequest = { showDateRangePicker = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false),
                     confirmButton = {
                         TextButton(
                             onClick = {
@@ -157,10 +177,15 @@ fun ReportsScreen(
                     },
                     colors = DatePickerDefaults.colors(containerColor = DarkBrown2)
                 ) {
-                    Box(modifier = Modifier.padding(horizontal = spacing.small)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.98f)
+                            .widthIn(max = 900.dp)
+                    ) {
                         DateRangePicker(
                             state = dateRangePickerState,
                             modifier = Modifier.fillMaxWidth(),
+                            showModeToggle = false,
                             title = {
                                 Text(
                                     text = "Select Custom Range",
@@ -173,14 +198,17 @@ fun ReportsScreen(
                                 )
                             },
                             headline = {
-                                DateRangePickerDefaults.DateRangePickerHeadline(
-                                    selectedStartDateMillis = dateRangePickerState.selectedStartDateMillis,
-                                    selectedEndDateMillis = dateRangePickerState.selectedEndDateMillis,
-                                    displayMode = dateRangePickerState.displayMode,
-                                    dateFormatter = DatePickerDefaults.dateFormatter(),
+                                Text(
+                                    text = formatDateRangeHeadline(
+                                        dateRangePickerState.selectedStartDateMillis,
+                                        dateRangePickerState.selectedEndDateMillis
+                                    ),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(start = spacing.small, bottom = spacing.medium)
+                                        .padding(bottom = spacing.medium),
+                                    textAlign = TextAlign.Center,
+                                    color = PrimaryGold,
+                                    style = MaterialTheme.typography.headlineSmall
                                 )
                             },
                             colors = DatePickerDefaults.colors(
@@ -199,30 +227,38 @@ fun ReportsScreen(
             }
 
             
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.medium),
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-            ) {
-                ReportTypeToggle(
-                    label = "Payment Level Report",
-                    isSelected = reportType == "Payment",
-                    onClick = { viewModel.setReportType("Payment") },
-                    modifier = Modifier.weight(1f)
-                )
-                ReportTypeToggle(
-                    label = "Order Level Report",
-                    isSelected = reportType == "Order",
-                    onClick = { viewModel.setReportType("Order") },
-                    modifier = Modifier.weight(1f)
-                )
+            AnimatedVisibility(visible = contentVisible, enter = enterSpec, exit = exitSpec) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    ReportTypeToggle(
+                        label = "Payment Level Report",
+                        isSelected = reportType == "Payment",
+                        onClick = { viewModel.setReportType("Payment") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    ReportTypeToggle(
+                        label = "Order Level Report",
+                        isSelected = reportType == "Order",
+                        onClick = { viewModel.setReportType("Order") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            
-            if (reportType == "Payment") {
+            // Show skeleton while loading, otherwise show content
+            if (isLoading) {
+                SkeletonReportScreen(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                )
+            } else if (reportType == "Payment") {
                 PaymentLevelView(paymentBreakdown, settingsViewModel)
             } else {
                 Column(modifier = Modifier.weight(1f)) {
@@ -234,11 +270,8 @@ fun ReportsScreen(
             }
         }
 
-        KhanaBookLoadingOverlay(
-            visible = isLoading,
-            type = LoadingType.GENERAL,
-            message = "Loading reports..."
-        )
+        // KhanaBookLoadingOverlay retained only for bill detail fetch (dialog)
+        // Main list loading is now handled by SkeletonReportScreen above
 
         
         selectedBillId?.let {
@@ -752,6 +785,13 @@ fun DetailRow(label: String, value: String, valueColor: Color = TextLight, fontW
             modifier = Modifier.weight(1f)
         )
     }
+}
+
+private fun formatDateRangeHeadline(startMillis: Long?, endMillis: Long?): String {
+    val formatter = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
+    val startText = startMillis?.let { formatter.format(Date(it)) } ?: "Start date"
+    val endText = endMillis?.let { formatter.format(Date(it)) } ?: "End date"
+    return "$startText - $endText"
 }
 
 fun formatDate(date: String): String {

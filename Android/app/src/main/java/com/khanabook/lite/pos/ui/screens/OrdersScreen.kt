@@ -39,10 +39,16 @@ import java.util.*
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.PaymentModeManager
+import java.text.SimpleDateFormat
 
 @Composable
 fun OrdersScreen(
@@ -53,6 +59,7 @@ fun OrdersScreen(
     val allRows by viewModel.orderDetailsTable.collectAsState()
     val selectedBillDetails by viewModel.selectedBillDetails.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val timeFilter by viewModel.timeFilter.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val haptic = LocalHapticFeedback.current
     val spacing = KhanaBookTheme.spacing
@@ -62,16 +69,27 @@ fun OrdersScreen(
     }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var selectedPeriod by remember { mutableIntStateOf(0) }
     
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
 
-    LaunchedEffect(selectedPeriod) {
-        if (selectedPeriod != 3) {
-            val (from, to) = periodRange(selectedPeriod)
-            viewModel.loadReports(from, to)
-        }
+    LaunchedEffect(Unit) {
+        viewModel.setTimeFilter("Daily")
+    }
+
+    // Standard staggered entry animation
+    var headerVisible by remember { mutableStateOf(false) }
+    var bodyVisible by remember { mutableStateOf(false) }
+    val enterSpec = fadeIn(tween(350)) + slideInVertically(
+        initialOffsetY = { it / 6 },
+        animationSpec = tween(350, easing = FastOutSlowInEasing)
+    )
+    val exitSpec = fadeOut(tween(200))
+
+    LaunchedEffect(Unit) {
+        headerVisible = true
+        kotlinx.coroutines.delay(80)
+        bodyVisible = true
     }
 
     fun onStatusChange(billId: Long, newStatus: String) {
@@ -84,14 +102,18 @@ fun OrdersScreen(
             onDismissRequest = { showDateRangePicker = false },
             properties = DialogProperties(usePlatformDefaultWidth = false),
             confirmButton = {
-                TextButton(onClick = {
-                    val start = dateRangePickerState.selectedStartDateMillis
-                    val end = dateRangePickerState.selectedEndDateMillis
-                    if (start != null && end != null) {
-                        viewModel.setCustomDateRange(start, end)
-                    }
-                    showDateRangePicker = false
-                }) {
+                TextButton(
+                    onClick = {
+                        val start = dateRangePickerState.selectedStartDateMillis
+                        val end = dateRangePickerState.selectedEndDateMillis
+                        if (start != null && end != null) {
+                            viewModel.setCustomDateRange(start, end)
+                        }
+                        showDateRangePicker = false
+                    },
+                    enabled = dateRangePickerState.selectedStartDateMillis != null &&
+                        dateRangePickerState.selectedEndDateMillis != null
+                ) {
                     Text("OK", color = PrimaryGold)
                 }
             },
@@ -104,13 +126,13 @@ fun OrdersScreen(
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.94f)
+                    .fillMaxWidth(0.98f)
                     .widthIn(max = 900.dp)
-                    .padding(horizontal = spacing.small)
             ) {
                 DateRangePicker(
                     state = dateRangePickerState,
                     modifier = Modifier.fillMaxWidth(),
+                    showModeToggle = false,
                     title = {
                         Text(
                             text = "Select Custom Range",
@@ -123,14 +145,17 @@ fun OrdersScreen(
                         )
                     },
                     headline = {
-                        DateRangePickerDefaults.DateRangePickerHeadline(
-                            selectedStartDateMillis = dateRangePickerState.selectedStartDateMillis,
-                            selectedEndDateMillis = dateRangePickerState.selectedEndDateMillis,
-                            displayMode = dateRangePickerState.displayMode,
-                            dateFormatter = DatePickerDefaults.dateFormatter(),
+                        Text(
+                            text = formatDateRangeHeadline(
+                                dateRangePickerState.selectedStartDateMillis,
+                                dateRangePickerState.selectedEndDateMillis
+                            ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(start = spacing.small, bottom = spacing.medium)
+                                .padding(bottom = spacing.medium),
+                            textAlign = TextAlign.Center,
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.headlineSmall
                         )
                     },
                 colors = DatePickerDefaults.colors(
@@ -153,152 +178,185 @@ fun OrdersScreen(
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, Color.Black)))
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(spacing.medium),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
-                }
-                Text(
-                    text = "Order Details",
-                    modifier = Modifier.align(Alignment.Center),
-                    color = PrimaryGold,
-                    style = MaterialTheme.typography.headlineMedium
-                )
-            }
-
-            PeriodTabs(
-                selectedTabIndex = selectedPeriod,
-                onTabSelected = { 
-                    selectedPeriod = it 
-                    if (it == 3) showDateRangePicker = true
-                }
-            )
-
-            Spacer(modifier = Modifier.height(spacing.medium))
-
-            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium)) {
-                TableHeader(isGstEnabled = profile?.gstEnabled == true)
-            }
-
-            if (isLoading && allRows.isEmpty()) {
-                // Skeleton loading while data loads
-                Column(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = spacing.small)
+        ) {
+            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .padding(horizontal = spacing.medium)
+                        .padding(spacing.medium),
+                    contentAlignment = Alignment.CenterStart
                 ) {
-                    repeat(8) {
-                        SkeletonTableRow()
-                        Spacer(modifier = Modifier.height(2.dp))
+                    IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
                     }
+                    Text(
+                        text = "Order Details",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = PrimaryGold,
+                        style = MaterialTheme.typography.headlineMedium
+                    )
                 }
-            } else if (allRows.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.Description,
-                            contentDescription = null,
-                            tint = TextGold.copy(alpha = 0.25f),
-                            modifier = Modifier.size(56.dp)
-                        )
-                        Spacer(Modifier.height(KhanaBookTheme.spacing.small))
-                        Text(
-                            "No orders in this period",
-                            color = TextGold.copy(alpha = 0.45f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            } else LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = spacing.medium),
-                contentPadding = PaddingValues(top = spacing.small, bottom = spacing.bottomListPadding)
-            ) {
-                items(allRows) { row ->
-                    var showCancelDialog by remember { mutableStateOf(false) }
-                    var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
+            }
 
-                    OrderTableRow(
-                        row = row,
-                        enabledModes = enabledModes,
-                        onShare = {
-                            scope.launch {
-                                viewModel.getOrderDetail(row.billId)?.let { detail ->
-                                    shareBillOnWhatsApp(context, detail, profile)
-                                }
-                            }
-                        },
-                        onShareText = {
-                            scope.launch {
-                                viewModel.getOrderDetail(row.billId)?.let { detail ->
-                                    com.khanabook.lite.pos.domain.util.shareBillTextOnWhatsApp(context, detail, profile)
-                                }
-                            }
-                        },
-                        onRequestCancel = { showCancelDialog = true },
-                        onStatusChange = { newStatus ->
-                            onStatusChange(row.billId, newStatus)
-                        },
-                        onPayModeChange = { newMode ->
-                            if (PaymentModeManager.isPartPayment(newMode)) {
-                                pendingPartMode = newMode
+            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+                Column {
+                    PeriodTabs(
+                        selectedFilter = timeFilter,
+                        onTabSelected = { 
+                            if (it == "Custom") {
+                                showDateRangePicker = true
                             } else {
-                                viewModel.updatePaymentMode(row.billId, newMode.dbValue)
+                                viewModel.setTimeFilter(it)
                             }
                         }
                     )
 
-                    if (showCancelDialog) {
-                        CancelOrderDialog(
-                            onDismiss = { showCancelDialog = false },
-                            onConfirm = { reason ->
-                                viewModel.cancelOrder(row.billId, reason)
-                                showCancelDialog = false
-                            }
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(spacing.medium))
 
-                    pendingPartMode?.let { mode ->
-                        PartAmountDialog(
-                            mode = mode,
-                            totalAmount = row.salesAmount,
-                            onDismiss = { pendingPartMode = null },
-                            onConfirm = { p1, p2 ->
-                                viewModel.updatePaymentMode(row.billId, mode.dbValue, p1, p2)
-                                pendingPartMode = null
-                            }
-                        )
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium)) {
+                        TableHeader(isGstEnabled = profile?.gstEnabled == true)
                     }
                 }
             }
+
+            if (isLoading) {
+                AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = spacing.medium)
+                    ) {
+                        repeat(10) {
+                            SkeletonTableRow(columns = 5)
+                            Spacer(modifier = Modifier.height(2.dp))
+                        }
+                    }
+                }
+            } else if (allRows.isEmpty()) {
+                AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.Description,
+                                contentDescription = null,
+                                tint = TextGold.copy(alpha = 0.25f),
+                                modifier = Modifier.size(56.dp)
+                            )
+                            Spacer(Modifier.height(KhanaBookTheme.spacing.small))
+                            Text(
+                                "No orders in this period",
+                                color = TextGold.copy(alpha = 0.45f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            } else {
+                AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = spacing.medium),
+                        contentPadding = PaddingValues(top = spacing.small, bottom = spacing.bottomListPadding)
+                    ) {
+                        items(allRows) { row ->
+                            var showCancelDialog by remember { mutableStateOf(false) }
+                            var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
+
+                            OrderTableRow(
+                                row = row,
+                                enabledModes = enabledModes,
+                                onClick = {
+                                    selectedBillId = row.billId
+                                    viewModel.loadBillDetails(row.billId)
+                                },
+                                onShare = {
+                                    scope.launch {
+                                        viewModel.getOrderDetail(row.billId)?.let { detail ->
+                                            shareBillOnWhatsApp(context, detail, profile)
+                                        }
+                                    }
+                                },
+                                onShareText = {
+                                    scope.launch {
+                                        viewModel.getOrderDetail(row.billId)?.let { detail ->
+                                            com.khanabook.lite.pos.domain.util.shareBillTextOnWhatsApp(context, detail, profile)
+                                        }
+                                    }
+                                },
+                                onRequestCancel = { showCancelDialog = true },
+                                onStatusChange = { newStatus ->
+                                    onStatusChange(row.billId, newStatus)
+                                },
+                                onPayModeChange = { newMode ->
+                                    if (PaymentModeManager.isPartPayment(newMode)) {
+                                        pendingPartMode = newMode
+                                    } else {
+                                        viewModel.updatePaymentMode(row.billId, newMode.dbValue)
+                                    }
+                                }
+                            )
+
+                            if (showCancelDialog) {
+                                CancelOrderDialog(
+                                    onDismiss = { showCancelDialog = false },
+                                    onConfirm = { reason ->
+                                        viewModel.cancelOrder(row.billId, reason)
+                                        showCancelDialog = false
+                                    }
+                                )
+                            }
+
+                            pendingPartMode?.let { mode ->
+                                PartAmountDialog(
+                                    mode = mode,
+                                    totalAmount = row.salesAmount,
+                                    onDismiss = { pendingPartMode = null },
+                                    onConfirm = { p1, p2 ->
+                                        viewModel.updatePaymentMode(row.billId, mode.dbValue, p1, p2)
+                                        pendingPartMode = null
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        selectedBillId?.let {
+            OrderDetailsDialog(
+                billWithItems = selectedBillDetails,
+                profile = profile,
+                onDismiss = {
+                    selectedBillId = null
+                    viewModel.clearBillDetails()
+                }
+            )
         }
     }
 }
 
 @Composable
-fun PeriodTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
+fun PeriodTabs(selectedFilter: String, onTabSelected: (String) -> Unit) {
     val tabs = listOf("Daily", "Weekly", "Monthly", "Custom")
     val spacing = KhanaBookTheme.spacing
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium),
         horizontalArrangement = Arrangement.spacedBy(spacing.small)
     ) {
-        tabs.forEachIndexed { index, title ->
+        tabs.forEach { title ->
             OrderFilterChip(
                 label = title,
-                isSelected = selectedTabIndex == index,
-                onClick = { onTabSelected(index) },
+                isSelected = selectedFilter == title,
+                onClick = { onTabSelected(title) },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -371,6 +429,7 @@ fun RowScope.HeaderCell(text: String, weight: Float) {
 fun OrderTableRow(
     row: OrderDetailRow,
     enabledModes: List<PaymentMode>,
+    onClick: () -> Unit,
     onShare: () -> Unit,
     onShareText: () -> Unit,
     onRequestCancel: () -> Unit,
@@ -386,7 +445,7 @@ fun OrderTableRow(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
-                onClick = { /* already handled by internal buttons */ },
+                onClick = onClick,
                 onLongClick = onShareText
             )
             .padding(vertical = spacing.hairline)
@@ -722,4 +781,11 @@ private fun periodRange(tab: Int): Pair<Long, Long> {
         set(Calendar.MILLISECOND, 999)
     }
     return start.timeInMillis to end.timeInMillis
+}
+
+private fun formatDateRangeHeadline(startMillis: Long?, endMillis: Long?): String {
+    val formatter = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
+    val startText = startMillis?.let { formatter.format(Date(it)) } ?: "Start date"
+    val endText = endMillis?.let { formatter.format(Date(it)) } ?: "End date"
+    return "$startText - $endText"
 }
