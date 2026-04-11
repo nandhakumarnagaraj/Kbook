@@ -109,7 +109,8 @@ object DatabaseModule {
                             AppDatabase.MIGRATION_30_31,
                             AppDatabase.MIGRATION_31_32,
                             AppDatabase.MIGRATION_32_33,
-                            AppDatabase.MIGRATION_33_34
+                            AppDatabase.MIGRATION_33_34,
+                            AppDatabase.MIGRATION_34_35
                         )
                         .build()
         }
@@ -141,6 +142,7 @@ object DatabaseModule {
         @Provides fun provideRestaurantDao(database: AppDatabase) = database.restaurantDao()
         @Provides fun provideCategoryDao(database: AppDatabase) = database.categoryDao()
         @Provides fun provideMenuDao(database: AppDatabase) = database.menuDao()
+        @Provides fun providePrinterProfileDao(database: AppDatabase) = database.printerProfileDao()
         @Provides fun provideBillDao(database: AppDatabase) = database.billDao()
         @Provides fun provideInventoryDao(database: AppDatabase) = database.inventoryDao()
 
@@ -178,6 +180,12 @@ object DatabaseModule {
                 sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
                 workManager: androidx.work.WorkManager
         ) = MenuRepository(menuDao, sessionManager, workManager)
+
+        @Provides
+        @Singleton
+        fun providePrinterProfileRepository(
+                printerProfileDao: PrinterProfileDao
+        ) = PrinterProfileRepository(printerProfileDao)
 
         @Provides
         @Singleton

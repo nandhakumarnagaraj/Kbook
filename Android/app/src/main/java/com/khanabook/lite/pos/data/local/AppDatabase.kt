@@ -15,12 +15,13 @@ import com.khanabook.lite.pos.data.local.entity.*
                         CategoryEntity::class,
                         MenuItemEntity::class,
                         ItemVariantEntity::class,
+                        PrinterProfileEntity::class,
                         BillEntity::class,
                         BillItemEntity::class,
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 34,
+        version = 35,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun restaurantDao(): RestaurantDao
     abstract fun categoryDao(): CategoryDao
     abstract fun menuDao(): MenuDao
+    abstract fun printerProfileDao(): PrinterProfileDao
     abstract fun billDao(): BillDao
     abstract fun inventoryDao(): InventoryDao
 
@@ -42,6 +44,29 @@ abstract class AppDatabase : RoomDatabase() {
                         // Column already exists — safe to skip
                         android.util.Log.w("AppDatabase", "MIGRATION_33_34: created_at may already exist: ${e.message}")
                     }
+                }
+            }
+
+            val MIGRATION_34_35 = object : Migration(34, 35) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS `printer_profiles` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            `role` TEXT NOT NULL,
+                            `name` TEXT NOT NULL,
+                            `mac_address` TEXT NOT NULL,
+                            `enabled` INTEGER NOT NULL,
+                            `auto_print` INTEGER NOT NULL,
+                            `paper_size` TEXT NOT NULL,
+                            `include_logo` INTEGER NOT NULL,
+                            `copies` INTEGER NOT NULL,
+                            `created_at` INTEGER NOT NULL,
+                            `updated_at` INTEGER NOT NULL
+                        )
+                        """.trimIndent()
+                    )
+                    db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_printer_profiles_role` ON `printer_profiles` (`role`)")
                 }
             }
 

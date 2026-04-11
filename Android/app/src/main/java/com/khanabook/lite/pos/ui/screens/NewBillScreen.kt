@@ -1305,7 +1305,7 @@ fun SuccessStep(
         Spacer(modifier = Modifier.height(spacing.medium))
         Button(
                 onClick = {
-                    lastBill?.let { directPrint(context, it, profile, viewModel.printerManager) }
+                    lastBill?.let { viewModel.printBill(it) }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),

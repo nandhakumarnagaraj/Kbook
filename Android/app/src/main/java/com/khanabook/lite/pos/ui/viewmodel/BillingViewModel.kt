@@ -11,6 +11,8 @@ import com.khanabook.lite.pos.data.repository.MenuRepository
 
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.OrderIdManager
+import com.khanabook.lite.pos.domain.manager.PrintDispatchMode
+import com.khanabook.lite.pos.domain.manager.PrintRouter
 import com.khanabook.lite.pos.domain.model.*
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import androidx.compose.runtime.Immutable
@@ -31,6 +33,7 @@ class BillingViewModel @Inject constructor(
     private val restaurantRepository: RestaurantRepository,
     private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
     private val syncManager: com.khanabook.lite.pos.domain.manager.SyncManager,
+    private val printRouter: PrintRouter,
     val printerManager: com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 ) : ViewModel() {
 
@@ -313,19 +316,13 @@ class BillingViewModel @Inject constructor(
             }
 
             // Launch auto-print asynchronously — never blocks bill completion
-            if (profile.printerEnabled && profile.autoPrintOnSuccess && inserted != null) {
+            if (inserted != null) {
                 viewModelScope.launch(Dispatchers.IO) {
                     try {
-                        if (!printerManager.isConnected() && !profile.printerMac.isNullOrBlank()) {
-                            printerManager.connect(profile.printerMac)
-                        }
-                        if (printerManager.isConnected()) {
-                            val bytes = com.khanabook.lite.pos.domain.util.InvoiceFormatter
-                                .formatForThermalPrinter(inserted, profile)
-                            printerManager.printBytes(bytes)
-                        } else {
+                        val result = printRouter.printBill(inserted, profile, PrintDispatchMode.AUTO)
+                        if (result.attempted > 0 && result.succeeded == 0) {
                             withContext(Dispatchers.Main) {
-                                _error.value = "Printer not connected. Bill saved."
+                                _error.value = "Auto-print failed. Bill saved."
                             }
                         }
                     } catch (e: Exception) {
@@ -368,6 +365,33 @@ class BillingViewModel @Inject constructor(
 
     fun clearError() {
         _error.value = null
+    }
+
+    fun printBill(bill: BillWithItems) {
+        val profile = _cachedProfile.value ?: run {
+            _error.value = "Restaurant profile not loaded."
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL)
+                if (result.attempted == 0) {
+                    withContext(Dispatchers.Main) {
+                        _error.value = "No printer profile configured."
+                    }
+                } else if (result.failures.isNotEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        _error.value = result.failures.joinToString()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Manual print failed", e)
+                withContext(Dispatchers.Main) {
+                    _error.value = UserMessageSanitizer.sanitize(e, "Unable to print bill.")
+                }
+            }
+        }
     }
 
     @Immutable

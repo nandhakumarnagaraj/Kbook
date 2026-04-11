@@ -2,18 +2,21 @@ package com.khanabook.lite.pos.ui.viewmodel
 
 import android.bluetooth.BluetoothDevice
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.repository.*
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
+import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -25,6 +28,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val restaurantRepository: RestaurantRepository,
+    private val printerProfileRepository: PrinterProfileRepository,
     private val categoryRepository: CategoryRepository,
     private val menuRepository: MenuRepository,
     private val userRepository: UserRepository,
@@ -33,6 +37,17 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     val profile: StateFlow<RestaurantProfileEntity?> = restaurantRepository.getProfileFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val printerProfiles: StateFlow<List<PrinterProfileEntity>> = printerProfileRepository.getProfilesFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val customerPrinter: StateFlow<PrinterProfileEntity?> = printerProfiles
+        .map { printers -> printers.firstOrNull { it.role == PrinterRole.CUSTOMER.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val kitchenPrinter: StateFlow<PrinterProfileEntity?> = printerProfiles
+        .map { printers -> printers.firstOrNull { it.role == PrinterRole.KITCHEN.name } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val btDevices: StateFlow<List<BluetoothDevice>> = btManager.scannedDevices
@@ -57,22 +72,28 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun testPrint() {
-        if (!btManager.isConnected()) {
-            _btConnectResult.value = false
-            return
-        }
+    fun testPrint(role: PrinterRole) {
         viewModelScope.launch(Dispatchers.IO) {
+            val printer = printerProfileRepository.getByRole(role.name)
+            if (printer == null) {
+                _btConnectResult.value = false
+                return@launch
+            }
+            if (!btManager.connect(printer.macAddress)) {
+                _btConnectResult.value = false
+                return@launch
+            }
             val testData = (
                 "\u001b\u0040" + 
                 "\u001b\u0061\u0001" + 
                 "KHANABOOK\n" +
-                "PRINTER TEST OK\n" +
+                "${role.name} PRINTER TEST OK\n" +
                 "--------------------------------\n" +
                 "\n\n\n\n" +
                 "\u001d\u0056\u0042\u0000" 
             ).toByteArray(Charsets.US_ASCII)
             btManager.printBytes(testData)
+            btManager.disconnect()
         }
     }
 
@@ -93,7 +114,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     @Suppress("MissingPermission")
-    fun connectToPrinter(context: Context, device: BluetoothDevice) {
+    fun connectToPrinter(context: Context, device: BluetoothDevice, role: PrinterRole, paperSize: String, includeLogo: Boolean) {
         _btConnectResult.value = null
         _btIsConnecting.value = true
         viewModelScope.launch(Dispatchers.IO) {
@@ -103,10 +124,71 @@ class SettingsViewModel @Inject constructor(
             if (ok) {
                 val name = try { device.name ?: "BT Printer" } catch (_: Exception) { "BT Printer" }
                 val mac  = device.address
-                val current = restaurantRepository.getProfile()
-                current?.copy(printerName = name, printerMac = mac, printerEnabled = true)?.let {
-                    restaurantRepository.saveProfile(it)
+                val existing = printerProfileRepository.getByRole(role.name)
+                printerProfileRepository.saveProfile(
+                    PrinterProfileEntity(
+                        id = existing?.id ?: 0,
+                        role = role.name,
+                        name = name,
+                        macAddress = mac,
+                        enabled = true,
+                        autoPrint = existing?.autoPrint ?: true,
+                        paperSize = paperSize,
+                        includeLogo = includeLogo,
+                        copies = existing?.copies ?: 1,
+                        createdAt = existing?.createdAt ?: System.currentTimeMillis()
+                    )
+                )
+                if (role == PrinterRole.CUSTOMER) {
+                    val current = restaurantRepository.getProfile()
+                    current?.copy(printerName = name, printerMac = mac, printerEnabled = true)?.let {
+                        restaurantRepository.saveProfile(it)
+                    }
                 }
+            }
+            btManager.disconnect()
+        }
+    }
+
+    fun updatePrinterProfile(
+        role: PrinterRole,
+        enabled: Boolean,
+        autoPrint: Boolean,
+        paperSize: String,
+        includeLogo: Boolean
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val existing = printerProfileRepository.getByRole(role.name) ?: return@launch
+            printerProfileRepository.saveProfile(
+                existing.copy(
+                    enabled = enabled,
+                    autoPrint = autoPrint,
+                    paperSize = paperSize,
+                    includeLogo = includeLogo
+                )
+            )
+            if (role == PrinterRole.CUSTOMER) {
+                restaurantRepository.getProfile()?.copy(
+                    printerEnabled = enabled,
+                    printerName = existing.name,
+                    printerMac = existing.macAddress,
+                    paperSize = paperSize,
+                    includeLogoInPrint = includeLogo,
+                    autoPrintOnSuccess = autoPrint
+                )?.let { restaurantRepository.saveProfile(it) }
+            }
+        }
+    }
+
+    fun removePrinter(role: PrinterRole) {
+        viewModelScope.launch(Dispatchers.IO) {
+            printerProfileRepository.deleteByRole(role.name)
+            if (role == PrinterRole.CUSTOMER) {
+                restaurantRepository.getProfile()?.copy(
+                    printerEnabled = false,
+                    printerName = null,
+                    printerMac = null
+                )?.let { restaurantRepository.saveProfile(it) }
             }
         }
     }

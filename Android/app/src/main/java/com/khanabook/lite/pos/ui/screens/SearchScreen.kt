@@ -35,6 +35,8 @@ import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 
 @Composable
 fun SearchScreen(
@@ -57,6 +59,20 @@ fun SearchScreen(
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+
+    // Standard staggered entry animation
+    var headerVisible by remember { mutableStateOf(false) }
+    var bodyVisible by remember { mutableStateOf(false) }
+    val enterSpec = fadeIn(tween(350)) + slideInVertically(
+        initialOffsetY = { it / 6 },
+        animationSpec = tween(350, easing = FastOutSlowInEasing)
+    )
+    val exitSpec = fadeOut(tween(200))
+    LaunchedEffect(Unit) {
+        headerVisible = true
+        kotlinx.coroutines.delay(80)
+        bodyVisible = true
+    }
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -101,7 +117,8 @@ fun SearchScreen(
                 .imePadding()
                 .padding(horizontal = spacing.medium, vertical = spacing.medium)
         ) {
-            Column(modifier = Modifier.wrapContentHeight()) {
+            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+              Column(modifier = Modifier.wrapContentHeight()) {
                 TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = DarkBrown1,
@@ -204,15 +221,18 @@ fun SearchScreen(
                         )
                         Spacer(modifier = Modifier.width(spacing.small))
                         Text("Search Order", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                    }
-                }
-            }
+                    } // closes Button
+                  } // closes else
+             } // closes header Column
+            } // closes AnimatedVisibility header
 
             Spacer(modifier = Modifier.height(spacing.large))
 
-            val currentResult = result
-            if (currentResult != null) {
-                KhanaBookCard(
+            AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
+              Column {
+                val currentResult = result
+                if (currentResult != null) {
+                    KhanaBookCard(
                     modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                     colors = CardDefaults.cardColors(containerColor = DarkBrown2),
                     shape = RoundedCornerShape(16.dp)
@@ -403,9 +423,7 @@ fun SearchScreen(
 
                                 OutlinedButton(
                                     onClick = {
-                                        result?.let {
-                                            directPrint(context, it, profile, billingViewModel.printerManager)
-                                        }
+                                        result?.let { billingViewModel.printBill(it) }
                                     },
                                     enabled = currentResult.items.isNotEmpty(),
                                     modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -422,27 +440,29 @@ fun SearchScreen(
                         }
                     }
                 }
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(bottom = spacing.bottomListPadding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = if (hasSearched) Icons.Default.SearchOff else Icons.Default.Search,
-                            contentDescription = null,
-                            tint = TextGold.copy(alpha = 0.3f),
-                            modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
-                        )
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                        Text(
-                            if (hasSearched) "No Order Found" else "Search for an order to view details",
-                            color = TextGold.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(bottom = spacing.bottomListPadding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = if (hasSearched) Icons.Default.SearchOff else Icons.Default.Search,
+                                contentDescription = null,
+                                tint = TextGold.copy(alpha = 0.3f),
+                                modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
+                            )
+                            Spacer(modifier = Modifier.height(spacing.medium))
+                            Text(
+                                if (hasSearched) "No Order Found" else "Search for an order to view details",
+                                color = TextGold.copy(alpha = 0.5f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
-            }
+              } // end inner Column
+            } // end AnimatedVisibility body
         }
     }
 }
