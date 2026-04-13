@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.khanabook.lite.pos.di.SessionManagerEntryPoint
 import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
+import com.khanabook.lite.pos.domain.util.AppAssetStore
 import com.khanabook.lite.pos.domain.util.GlobalCrashHandler
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import dagger.hilt.android.EntryPointAccessors
@@ -24,6 +25,7 @@ class KhanaBookApplication : Application(), Configuration.Provider {
         super.onCreate()
 
         GlobalCrashHandler.initialize(this)
+        AppAssetStore.initialize(this)
 
         // Eagerly generate and persist the device ID so sync workers always have it
         EntryPointAccessors.fromApplication(this, SessionManagerEntryPoint::class.java)

@@ -73,19 +73,6 @@ internal fun AppInfoSection() {
     }
 }
 
-internal fun copyUriToInternalStorage(context: Context, uri: Uri, fileName: String): String? {
-    return try {
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            java.io.File(context.filesDir, fileName).let { file ->
-                java.io.FileOutputStream(file).use { output -> input.copyTo(output) }
-                file.absolutePath
-            }
-        }
-    } catch (_: Exception) {
-        null
-    }
-}
-
 @Composable
 fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel) {
     val spacing = KhanaBookTheme.spacing

@@ -146,7 +146,7 @@ fun HomeScreen(
                                 StatItem("Revenue", CurrencyUtils.formatPrice(stats.revenue), Modifier.weight(1f))
                                 StatItem("Customers", stats.customerCount.toString(), Modifier.weight(1f))
                             }
-                            if (stats.orderCount > 0) {
+                            if (stats.orderCount > 0 || stats.kdsPendingCount > 0) {
                                 Spacer(modifier = Modifier.height(spacing.small))
                                 HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
                                 Spacer(modifier = Modifier.height(spacing.small))

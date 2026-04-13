@@ -863,7 +863,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                         modifier = Modifier.fillMaxSize()
                     )
                     !profile?.upiQrPath.isNullOrBlank() -> AsyncImage(
-                        model = profile?.upiQrPath,
+                        model = AppAssetStore.resolveAssetPath(profile?.upiQrPath),
                         contentDescription = "QR Code",
                         modifier = Modifier.fillMaxSize()
                     )
@@ -1128,7 +1128,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                                     modifier = Modifier.fillMaxSize()
                                 )
                                 !profile?.upiQrPath.isNullOrBlank() -> AsyncImage(
-                                    model = profile?.upiQrPath,
+                                    model = AppAssetStore.resolveAssetPath(profile?.upiQrPath),
                                     contentDescription = "QR Code",
                                     modifier = Modifier.fillMaxSize()
                                 )

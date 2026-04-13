@@ -47,6 +47,7 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
+import com.khanabook.lite.pos.domain.util.AppAssetStore
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
@@ -72,7 +73,7 @@ fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProf
     val context = LocalContext.current
     val qrLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            qrPath = copyUriToInternalStorage(context, it, "upi_qr.png")
+            qrPath = AppAssetStore.saveUriToAppAsset(context, it, "qr", "upi_qr.png")
             qrUpdateTrigger = System.currentTimeMillis()
         }
     }
@@ -115,7 +116,7 @@ fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProf
                         if (!qrPath.isNullOrBlank()) {
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
-                                    .data(qrPath)
+                                    .data(AppAssetStore.resolveAssetPath(qrPath))
                                     .setParameter("refresh", qrUpdateTrigger)
                                     .crossfade(true)
                                     .diskCachePolicy(CachePolicy.DISABLED)

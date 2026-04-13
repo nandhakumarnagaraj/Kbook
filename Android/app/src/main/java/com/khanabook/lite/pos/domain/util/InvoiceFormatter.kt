@@ -55,6 +55,7 @@ object InvoiceFormatter {
         val charsPerLine = if (profile?.paperSize == "80mm") 42 else 32
         val currency = resolveCurrency(profile)
         val isGst = profile?.gstEnabled == true
+        val resolvedLogoPath = AppAssetStore.resolveAssetPath(profile?.logoPath)
         
         val width = charsPerLine
         val line = "-".repeat(width)
@@ -71,10 +72,10 @@ object InvoiceFormatter {
         add(ALIGN_CENTER)
         
         // 1. Logo (if enabled)
-        if (profile?.includeLogoInPrint == true && !profile.logoPath.isNullOrBlank()) {
+        if (profile?.includeLogoInPrint == true && !resolvedLogoPath.isNullOrBlank()) {
             try {
                 val targetWidth = if (width > 40) 384 else 256
-                val bitmap = decodeSampledBitmap(profile.logoPath, targetWidth)
+                val bitmap = decodeSampledBitmap(resolvedLogoPath, targetWidth)
                 if (bitmap != null) {
                     try {
                         add(decodeBitmapToESC_POS(bitmap, targetWidth))

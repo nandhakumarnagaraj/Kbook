@@ -57,6 +57,7 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
+import com.khanabook.lite.pos.domain.util.AppAssetStore
 import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.theme.DangerRed
@@ -201,7 +202,7 @@ fun ShopConfigView(
 
     val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            logoPath = copyUriToInternalStorage(context, it, "shop_logo.png")
+            logoPath = AppAssetStore.saveUriToAppAsset(context, it, "logo", "shop_logo.png")
             logoUpdateTrigger = System.currentTimeMillis()
         }
     }
@@ -229,7 +230,7 @@ fun ShopConfigView(
                     if (!logoPath.isNullOrBlank()) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(logoPath)
+                                .data(AppAssetStore.resolveAssetPath(logoPath))
                                 .setParameter("refresh", logoUpdateTrigger)
                                 .crossfade(true)
                                 .diskCachePolicy(CachePolicy.DISABLED)

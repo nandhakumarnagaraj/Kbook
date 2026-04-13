@@ -6,6 +6,7 @@ import android.graphics.pdf.PdfDocument
 import android.util.Log
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.domain.util.AppAssetStore
 import java.io.File
 import java.io.FileOutputStream
 
@@ -64,7 +65,7 @@ class InvoicePDFGenerator(private val context: Context) {
 
         var logoBitmap: Bitmap? = null
         try {
-            logoBitmap = profile?.logoPath?.let { path ->
+            logoBitmap = AppAssetStore.resolveAssetPath(profile?.logoPath)?.let { path ->
                 try { decodeSampledBitmap(path, pageWidth * 2) } catch (e: Exception) { null }
             }
 
