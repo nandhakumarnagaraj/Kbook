@@ -1,22 +1,18 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.repository.BillRepository
-import com.khanabook.lite.pos.domain.manager.OrderIdManager
+import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val billRepository: BillRepository,
+    private val kitchenPrintQueueRepository: KitchenPrintQueueRepository,
     private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor
 ) : ViewModel() {
 
@@ -44,8 +40,10 @@ class HomeViewModel @Inject constructor(
             val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(today, zoneId)
             val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(today, zoneId)
             
-            billRepository.getBillsByDateRange(start, end)
-                .map { bills ->
+            combine(
+                billRepository.getBillsByDateRange(start, end),
+                kitchenPrintQueueRepository.getPendingCountFlow()
+            ) { bills, kdsPendingCount ->
                     val completedBills = bills.filter { it.orderStatus == "completed" || it.orderStatus == "paid" }
                     val totalRevenue = completedBills.sumOf { it.totalAmount.toDoubleOrNull() ?: 0.0 }
                     val cancelledCount = bills.count { it.orderStatus == "cancelled" }
@@ -54,7 +52,8 @@ class HomeViewModel @Inject constructor(
                         revenue = totalRevenue,
                         customerCount = completedBills.mapNotNull { it.customerWhatsapp }.distinct().size,
                         avgOrderValue = if (completedBills.isNotEmpty()) totalRevenue / completedBills.size else 0.0,
-                        cancelledCount = cancelledCount
+                        cancelledCount = cancelledCount,
+                        kdsPendingCount = kdsPendingCount
                     )
                 }
         }
@@ -70,7 +69,8 @@ class HomeViewModel @Inject constructor(
         val revenue: Double = 0.0,
         val customerCount: Int = 0,
         val avgOrderValue: Double = 0.0,
-        val cancelledCount: Int = 0
+        val cancelledCount: Int = 0,
+        val kdsPendingCount: Int = 0
     )
 }
 

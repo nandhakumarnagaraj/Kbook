@@ -3,7 +3,6 @@
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +36,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.layout.fillMaxWidth
 
 @Composable
 fun HomeScreen(
@@ -53,6 +53,15 @@ fun HomeScreen(
     val configuration = LocalConfiguration.current
     val isWideScreen = configuration.screenWidthDp >= 600
     val spacing = KhanaBookTheme.spacing
+
+    // Stats are "ready" once the profile has emitted (orderCount > 0 or a non-initial emission)
+    // We use a separate flag so skeleton shows on first compose
+    var statsReady by remember { mutableStateOf(false) }
+    LaunchedEffect(stats) {
+        // After a short delay the ViewModel emits even an empty stats object — mark ready
+        delay(600)
+        statsReady = true
+    }
 
     var headerVisible by remember { mutableStateOf(false) }
     var statsVisible by remember { mutableStateOf(false) }
@@ -113,45 +122,54 @@ fun HomeScreen(
             }
 
             AnimatedVisibility(visible = statsVisible, enter = enterSpec, exit = exitSpec) {
-                KhanaBookCard(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.mediumLarge)
+                if (!statsReady) {
+                    // Skeleton placeholder while stats load
+                    SkeletonCard(modifier = Modifier.fillMaxWidth())
+                } else {
+                    KhanaBookCard(
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = "Today's Summary",
-                            color = PrimaryGold,
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        Spacer(modifier = Modifier.height(spacing.small))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                        Column(
+                            modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.mediumLarge)
                         ) {
-                            StatItem("Orders", stats.orderCount.toString(), Modifier.weight(1f))
-                            StatItem("Revenue", CurrencyUtils.formatPrice(stats.revenue), Modifier.weight(1f))
-                            StatItem("Customers", stats.customerCount.toString(), Modifier.weight(1f))
-                        }
-                        if (stats.orderCount > 0) {
-                            Spacer(modifier = Modifier.height(spacing.small))
-                            HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+                            Text(
+                                text = "Today's Summary",
+                                color = PrimaryGold,
+                                style = MaterialTheme.typography.titleSmall
+                            )
                             Spacer(modifier = Modifier.height(spacing.small))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                StatItem(
-                                    "Avg Order",
-                                    CurrencyUtils.formatPrice(stats.avgOrderValue),
-                                    Modifier.weight(1f)
-                                )
-                                StatItem(
-                                    "Cancelled",
-                                    stats.cancelledCount.toString(),
-                                    Modifier.weight(1f)
-                                )
-                                Spacer(Modifier.weight(1f))
+                                StatItem("Orders", stats.orderCount.toString(), Modifier.weight(1f))
+                                StatItem("Revenue", CurrencyUtils.formatPrice(stats.revenue), Modifier.weight(1f))
+                                StatItem("Customers", stats.customerCount.toString(), Modifier.weight(1f))
+                            }
+                            if (stats.orderCount > 0) {
+                                Spacer(modifier = Modifier.height(spacing.small))
+                                HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+                                Spacer(modifier = Modifier.height(spacing.small))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    StatItem(
+                                        "Avg Order",
+                                        CurrencyUtils.formatPrice(stats.avgOrderValue),
+                                        Modifier.weight(1f)
+                                    )
+                                    StatItem(
+                                        "Cancelled",
+                                        stats.cancelledCount.toString(),
+                                        Modifier.weight(1f)
+                                    )
+                                    StatItem(
+                                        "KDS Pending",
+                                        stats.kdsPendingCount.toString(),
+                                        Modifier.weight(1f)
+                                    )
+                                }
                             }
                         }
                     }

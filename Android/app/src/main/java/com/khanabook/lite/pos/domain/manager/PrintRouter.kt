@@ -12,19 +12,21 @@ import javax.inject.Singleton
 
 enum class PrintDispatchMode {
     AUTO,
-    MANUAL
+    MANUAL_RECEIPT_ONLY
 }
 
 data class PrintDispatchResult(
     val attempted: Int,
     val succeeded: Int,
+    val successTargets: List<String>,
     val failures: List<String>
 )
 
 @Singleton
 class PrintRouter @Inject constructor(
     private val printerProfileRepository: PrinterProfileRepository,
-    private val printerManager: BluetoothPrinterManager
+    private val printerManager: BluetoothPrinterManager,
+    private val kitchenPrintQueueManager: KitchenPrintQueueManager
 ) {
     companion object {
         private const val TAG = "PrintRouter"
@@ -36,9 +38,11 @@ class PrintRouter @Inject constructor(
         mode: PrintDispatchMode
     ): PrintDispatchResult {
         val targets = resolveTargets(restaurantProfile, mode)
-        if (targets.isEmpty()) return PrintDispatchResult(0, 0, emptyList())
+        ensureKitchenQueueFallback(bill, mode, targets)
+        if (targets.isEmpty()) return PrintDispatchResult(0, 0, emptyList(), emptyList())
 
         var successCount = 0
+        val successTargets = mutableListOf<String>()
         val failures = mutableListOf<String>()
 
         for (target in targets) {
@@ -46,6 +50,7 @@ class PrintRouter @Inject constructor(
                 try {
                     printerManager.disconnect()
                     if (!printerManager.connect(target.macAddress)) {
+                        maybeQueueKitchenRetry(bill.bill.id, target, mode, "connection failed")
                         failures += "${target.name}: connection failed"
                         return@repeat
                     }
@@ -58,12 +63,21 @@ class PrintRouter @Inject constructor(
                         PrinterRole.KITCHEN -> KitchenTicketFormatter.format(bill, restaurantProfile, target)
                     }
                     if (printerManager.printBytes(bytes)) {
+                        maybeClearKitchenQueue(bill.bill.id, target)
                         successCount += 1
+                        successTargets += target.role
                     } else {
+                        maybeQueueKitchenRetry(bill.bill.id, target, mode, "print failed")
                         failures += "${target.name}: print failed"
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed printing to ${target.name}", e)
+                    maybeQueueKitchenRetry(
+                        bill.bill.id,
+                        target,
+                        mode,
+                        e.message ?: "unexpected error"
+                    )
                     failures += "${target.name}: ${e.message ?: "unexpected error"}"
                 } finally {
                     printerManager.disconnect()
@@ -74,6 +88,7 @@ class PrintRouter @Inject constructor(
         return PrintDispatchResult(
             attempted = targets.sumOf { it.copies.coerceAtLeast(1) },
             succeeded = successCount,
+            successTargets = successTargets,
             failures = failures
         )
     }
@@ -84,12 +99,21 @@ class PrintRouter @Inject constructor(
     ): List<PrinterProfileEntity> {
         val stored = printerProfileRepository.getProfiles()
             .filter { it.enabled && it.macAddress.isNotBlank() }
-            .filter { mode == PrintDispatchMode.MANUAL || it.autoPrint }
+            .filter { profile ->
+                when (mode) {
+                    PrintDispatchMode.AUTO ->
+                        profile.role == PrinterRole.KITCHEN.name || profile.autoPrint
+                    PrintDispatchMode.MANUAL_RECEIPT_ONLY -> profile.role == PrinterRole.CUSTOMER.name
+                }
+            }
             .sortedBy { if (it.role == PrinterRole.KITCHEN.name) 0 else 1 }
 
         if (stored.isNotEmpty()) return stored
 
-        if (restaurantProfile?.printerEnabled == true && !restaurantProfile.printerMac.isNullOrBlank()) {
+        if (restaurantProfile?.printerEnabled == true &&
+            !restaurantProfile.printerMac.isNullOrBlank() &&
+            (mode == PrintDispatchMode.MANUAL_RECEIPT_ONLY || restaurantProfile.autoPrintOnSuccess)
+        ) {
             return listOf(
                 PrinterProfileEntity(
                     role = PrinterRole.CUSTOMER.name,
@@ -100,9 +124,52 @@ class PrintRouter @Inject constructor(
                     paperSize = restaurantProfile.paperSize,
                     includeLogo = restaurantProfile.includeLogoInPrint
                 )
-            ).filter { mode == PrintDispatchMode.MANUAL || it.autoPrint }
+            )
         }
 
         return emptyList()
+    }
+
+    private suspend fun maybeQueueKitchenRetry(
+        billId: Long,
+        target: PrinterProfileEntity,
+        mode: PrintDispatchMode,
+        error: String
+    ) {
+        if (mode == PrintDispatchMode.AUTO && target.role == PrinterRole.KITCHEN.name) {
+            kitchenPrintQueueManager.enqueue(billId, target.macAddress, error)
+        }
+    }
+
+    private suspend fun maybeClearKitchenQueue(
+        billId: Long,
+        target: PrinterProfileEntity
+    ) {
+        if (target.role == PrinterRole.KITCHEN.name) {
+            kitchenPrintQueueManager.markPrinted(billId, target.macAddress)
+        }
+    }
+
+    private suspend fun ensureKitchenQueueFallback(
+        bill: BillWithItems,
+        mode: PrintDispatchMode,
+        targets: List<PrinterProfileEntity>
+    ) {
+        if (mode != PrintDispatchMode.AUTO) return
+        if (targets.any { it.role == PrinterRole.KITCHEN.name }) return
+
+        val kitchenProfile = printerProfileRepository.getByRole(PrinterRole.KITCHEN.name)
+        if (kitchenProfile?.enabled == true && kitchenProfile.macAddress.isNotBlank()) {
+            kitchenPrintQueueManager.enqueue(
+                bill.bill.id,
+                kitchenProfile.macAddress,
+                "kitchen printer unavailable during billing"
+            )
+        } else {
+            kitchenPrintQueueManager.enqueueUnassigned(
+                bill.bill.id,
+                "kitchen printer not configured during billing"
+            )
+        }
     }
 }

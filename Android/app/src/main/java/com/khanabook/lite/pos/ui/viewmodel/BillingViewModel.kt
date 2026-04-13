@@ -6,9 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.repository.BillRepository
+import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.MenuRepository
-
+import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.OrderIdManager
 import com.khanabook.lite.pos.domain.manager.PrintDispatchMode
@@ -31,6 +32,8 @@ class BillingViewModel @Inject constructor(
     private val billRepository: BillRepository,
     private val menuRepository: MenuRepository,
     private val restaurantRepository: RestaurantRepository,
+    private val printerProfileRepository: PrinterProfileRepository,
+    private val kitchenPrintQueueRepository: KitchenPrintQueueRepository,
     private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
     private val syncManager: com.khanabook.lite.pos.domain.manager.SyncManager,
     private val printRouter: PrintRouter,
@@ -81,6 +84,9 @@ class BillingViewModel @Inject constructor(
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+
+    private val _printStatus = MutableStateFlow<String?>(null)
+    val printStatus: StateFlow<String?> = _printStatus
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -296,6 +302,7 @@ class BillingViewModel @Inject constructor(
             billRepository.insertFullBill(bill, items, payments)
             val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
             _lastBill.value = inserted
+            _printStatus.value = null
 
             // Trigger sync immediately so UI doesn't sit on "Syncing..." for 15 minutes
             viewModelScope.launch(Dispatchers.IO) {
@@ -316,13 +323,53 @@ class BillingViewModel @Inject constructor(
             }
 
             // Launch auto-print asynchronously — never blocks bill completion
-            if (inserted != null) {
+            if (inserted != null && status == PaymentStatus.SUCCESS) {
                 viewModelScope.launch(Dispatchers.IO) {
                     try {
+                        val kitchenConfigured = isKitchenPrinterConfigured()
                         val result = printRouter.printBill(inserted, profile, PrintDispatchMode.AUTO)
-                        if (result.attempted > 0 && result.succeeded == 0) {
+                        val kitchenQueued = kitchenPrintQueueRepository.hasPendingForBill(inserted.bill.id)
+                        if (result.attempted == 0) {
+                            withContext(Dispatchers.Main) {
+                                _printStatus.value = if (kitchenConfigured && !kitchenQueued) {
+                                    "No auto-print target configured."
+                                } else if (kitchenQueued) {
+                                    "Kitchen printer not configured. Bill saved. KDS queued."
+                                } else {
+                                    "Kitchen printer not configured. Bill saved."
+                                }
+                            }
+                        } else if (kitchenQueued && result.succeeded > 0) {
+                            withContext(Dispatchers.Main) {
+                                _printStatus.value = if (result.successTargets.contains(PrinterRole.KITCHEN.name)) {
+                                    "Printed Kitchen ticket"
+                                } else {
+                                    "Printed customer receipt. KDS queued."
+                                }
+                            }
+                        } else if (kitchenQueued) {
+                            withContext(Dispatchers.Main) {
+                                _printStatus.value = "Kitchen printer not configured. Bill saved. KDS queued."
+                            }
+                        } else if (result.failures.isEmpty()) {
+                            withContext(Dispatchers.Main) {
+                                _printStatus.value = when {
+                                    result.successTargets.contains(PrinterRole.KITCHEN.name) ->
+                                        "Printed Kitchen ticket"
+                                    else -> buildPrintStatusMessage(
+                                        prefix = "Printed",
+                                        targets = result.successTargets
+                                    )
+                                }
+                            }
+                        } else if (result.succeeded > 0) {
+                            withContext(Dispatchers.Main) {
+                                _printStatus.value = buildPartialPrintStatus(result)
+                            }
+                        } else {
                             withContext(Dispatchers.Main) {
                                 _error.value = "Auto-print failed. Bill saved."
+                                _printStatus.value = "Printing failed for all configured printers."
                             }
                         }
                     } catch (e: Exception) {
@@ -375,20 +422,31 @@ class BillingViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL)
+                val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL_RECEIPT_ONLY)
                 if (result.attempted == 0) {
                     withContext(Dispatchers.Main) {
                         _error.value = "No printer profile configured."
+                        _printStatus.value = "No receipt printer configured."
                     }
                 } else if (result.failures.isNotEmpty()) {
                     withContext(Dispatchers.Main) {
                         _error.value = result.failures.joinToString()
+                        _printStatus.value = if (result.succeeded > 0) {
+                            "Receipt reprinted with some failures."
+                        } else {
+                            "Receipt reprint failed."
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        _printStatus.value = "Receipt reprinted successfully."
                     }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Manual print failed", e)
                 withContext(Dispatchers.Main) {
                     _error.value = UserMessageSanitizer.sanitize(e, "Unable to print bill.")
+                    _printStatus.value = "Receipt reprint failed."
                 }
             }
         }
@@ -399,6 +457,28 @@ class BillingViewModel @Inject constructor(
     
     @Immutable
     data class BillSummary(val subtotal: String = "0.0", val cgst: String = "0.0", val sgst: String = "0.0", val customTax: String = "0.0", val total: String = "0.0")
+
+    private fun buildPrintStatusMessage(prefix: String, targets: List<String>): String {
+        val normalized = targets.distinct().map {
+            when (it) {
+                PrinterRole.CUSTOMER.name -> "customer receipt"
+                PrinterRole.KITCHEN.name -> "kitchen ticket"
+                else -> it.lowercase()
+            }
+        }
+        return "$prefix ${normalized.joinToString(" and ")}."
+    }
+
+    private fun buildPartialPrintStatus(result: com.khanabook.lite.pos.domain.manager.PrintDispatchResult): String {
+        val success = buildPrintStatusMessage("Printed", result.successTargets)
+        val failureCount = result.failures.size
+        return "$success $failureCount printer task${if (failureCount == 1) "" else "s"} failed."
+    }
+
+    private suspend fun isKitchenPrinterConfigured(): Boolean {
+        val kitchenPrinter = printerProfileRepository.getByRole(PrinterRole.KITCHEN.name)
+        return kitchenPrinter?.enabled == true && kitchenPrinter.macAddress.isNotBlank()
+    }
 
     override fun onCleared() {
         super.onCleared()

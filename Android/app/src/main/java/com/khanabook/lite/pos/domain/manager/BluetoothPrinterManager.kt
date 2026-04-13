@@ -13,6 +13,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.OutputStream
@@ -49,6 +51,9 @@ class BluetoothPrinterManager(private val context: Context) {
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected
 
+    private val _connectedDeviceEvents = MutableSharedFlow<String>(extraBufferCapacity = 16)
+    val connectedDeviceEvents: SharedFlow<String> = _connectedDeviceEvents
+
     init {
         val filter = IntentFilter().apply {
             addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
@@ -65,9 +70,15 @@ class BluetoothPrinterManager(private val context: Context) {
                 
                 if (device?.address == activeSocket?.remoteDevice?.address) {
                     when (intent?.action) {
-                        BluetoothDevice.ACTION_ACL_CONNECTED -> _isConnected.value = true
+                        BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                            _isConnected.value = true
+                            device?.address?.let { _connectedDeviceEvents.tryEmit(it) }
+                        }
                         BluetoothDevice.ACTION_ACL_DISCONNECTED -> disconnect()
                     }
+                }
+                if (intent?.action == BluetoothDevice.ACTION_ACL_CONNECTED) {
+                    device?.address?.let { _connectedDeviceEvents.tryEmit(it) }
                 }
             }
         }
@@ -222,6 +233,7 @@ class BluetoothPrinterManager(private val context: Context) {
             activeSocket = socket
             outputStream = socket?.outputStream
             _isConnected.value = true
+            device.address?.let { _connectedDeviceEvents.tryEmit(it) }
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to connect to printer", e)

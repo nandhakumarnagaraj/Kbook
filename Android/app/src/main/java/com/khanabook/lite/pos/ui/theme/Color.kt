@@ -1,8 +1,5 @@
 ﻿package com.khanabook.lite.pos.ui.theme
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-
 import androidx.compose.ui.graphics.Color
 
 val DarkBrown1 = Color(0xFF1A0A0A)

@@ -96,11 +96,9 @@ fun PrinterConfigView(
     var paper58 by remember { mutableStateOf((profile?.paperSize ?: "58mm") == "58mm") }
     var autoPrint by remember { mutableStateOf(profile?.autoPrintOnSuccess ?: false) }
     var includeLogo by remember { mutableStateOf(profile?.includeLogoInPrint ?: true) }
-    var printWhatsapp by remember { mutableStateOf(profile?.printCustomerWhatsapp ?: true) }
     var maskPhone by remember { mutableStateOf(profile?.maskCustomerPhone ?: true) }
     var kitchenEnabled by remember(kitchenPrinter?.id, kitchenPrinter?.enabled) { mutableStateOf(kitchenPrinter?.enabled ?: false) }
     var kitchenPaper58 by remember(kitchenPrinter?.id, kitchenPrinter?.paperSize) { mutableStateOf((kitchenPrinter?.paperSize ?: "58mm") == "58mm") }
-    var kitchenAutoPrint by remember(kitchenPrinter?.id, kitchenPrinter?.autoPrint) { mutableStateOf(kitchenPrinter?.autoPrint ?: true) }
     val context = LocalContext.current
     var isBtActive by remember { mutableStateOf(viewModel.isBluetoothEnabled(context)) }
     var pendingRole by remember { mutableStateOf(PrinterRole.CUSTOMER) }
@@ -170,6 +168,7 @@ fun PrinterConfigView(
                 macAddress = customerPrinter?.macAddress,
                 enabled = enabled,
                 autoPrint = autoPrint,
+                showAutoPrintToggle = true,
                 paper58 = paper58,
                 includeLogo = includeLogo,
                 showLogoToggle = true,
@@ -203,13 +202,14 @@ fun PrinterConfigView(
                 printerName = kitchenPrinter?.name ?: "No Printer",
                 macAddress = kitchenPrinter?.macAddress,
                 enabled = kitchenEnabled,
-                autoPrint = kitchenAutoPrint,
+                autoPrint = true,
+                showAutoPrintToggle = false,
                 paper58 = kitchenPaper58,
                 includeLogo = false,
                 showLogoToggle = false,
                 isConnected = false,
                 onEnabledChange = { kitchenEnabled = it },
-                onAutoPrintChange = { kitchenAutoPrint = it },
+                onAutoPrintChange = {},
                 onPaperSizeChange = { kitchenPaper58 = it },
                 onIncludeLogoChange = {},
                 helperText = "Used only for first-time billing. Reprint stays customer receipt only.",
@@ -234,7 +234,6 @@ fun PrinterConfigView(
         }
         ConfigCard {
             Text("Print Options", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
-            PrinterOptionRow("Print WhatsApp", printWhatsapp) { printWhatsapp = it }
             PrinterOptionRow("Mask Customer Phone", maskPhone) { maskPhone = it }
         }
         Spacer(modifier = Modifier.height(spacing.large))
@@ -245,7 +244,6 @@ fun PrinterConfigView(
                     paperSize = if (paper58) "58mm" else "80mm",
                     autoPrintOnSuccess = autoPrint,
                     includeLogoInPrint = includeLogo,
-                    printCustomerWhatsapp = printWhatsapp,
                     maskCustomerPhone = maskPhone,
                     isSynced = false,
                     updatedAt = System.currentTimeMillis()
@@ -263,7 +261,7 @@ fun PrinterConfigView(
                     viewModel.updatePrinterProfile(
                         role = PrinterRole.KITCHEN,
                         enabled = kitchenEnabled,
-                        autoPrint = kitchenAutoPrint,
+                        autoPrint = true,
                         paperSize = if (kitchenPaper58) "58mm" else "80mm",
                         includeLogo = false
                     )
@@ -337,6 +335,7 @@ private fun PrinterTargetCard(
     macAddress: String?,
     enabled: Boolean,
     autoPrint: Boolean,
+    showAutoPrintToggle: Boolean,
     paper58: Boolean,
     includeLogo: Boolean,
     showLogoToggle: Boolean,
@@ -380,7 +379,9 @@ private fun PrinterTargetCard(
                 helperText?.let {
                     Text(it, color = TextGold.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
                 }
-                PrinterOptionRow("Auto Print", autoPrint) { onAutoPrintChange(it) }
+                if (showAutoPrintToggle) {
+                    PrinterOptionRow("Auto Print", autoPrint) { onAutoPrintChange(it) }
+                }
                 if (showLogoToggle) {
                     PrinterOptionRow("Include Logo", includeLogo) { onIncludeLogoChange(it) }
                 }

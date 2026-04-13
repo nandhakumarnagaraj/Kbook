@@ -18,7 +18,8 @@ class BillRepository(
         private val billDao: BillDao,
         private val restaurantDao: com.khanabook.lite.pos.data.local.dao.RestaurantDao,
         private val inventoryConsumptionManager: InventoryConsumptionManager? = null,
-        private val workManager: WorkManager
+        private val workManager: WorkManager,
+        private val kitchenPrintQueueRepository: KitchenPrintQueueRepository? = null
 ) {
 
     suspend fun insertFullBill(
@@ -104,6 +105,7 @@ class BillRepository(
 
     suspend fun cancelOrder(id: Long, reason: String) {
         billDao.cancelBill(id, reason, System.currentTimeMillis())
+        kitchenPrintQueueRepository?.deleteByBillId(id)
         triggerBackgroundSync()
     }
 

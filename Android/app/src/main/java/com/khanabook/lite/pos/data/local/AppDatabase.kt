@@ -16,12 +16,13 @@ import com.khanabook.lite.pos.data.local.entity.*
                         MenuItemEntity::class,
                         ItemVariantEntity::class,
                         PrinterProfileEntity::class,
+                        KitchenPrintQueueEntity::class,
                         BillEntity::class,
                         BillItemEntity::class,
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 35,
+        version = 36,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,11 +31,33 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun menuDao(): MenuDao
     abstract fun printerProfileDao(): PrinterProfileDao
+    abstract fun kitchenPrintQueueDao(): KitchenPrintQueueDao
     abstract fun billDao(): BillDao
     abstract fun inventoryDao(): InventoryDao
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
+
+            val MIGRATION_35_36 = object : Migration(35, 36) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS `kitchen_print_queue` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            `bill_id` INTEGER NOT NULL,
+                            `printer_mac` TEXT NOT NULL,
+                            `attempts` INTEGER NOT NULL,
+                            `last_error` TEXT,
+                            `created_at` INTEGER NOT NULL,
+                            `updated_at` INTEGER NOT NULL
+                        )
+                        """.trimIndent()
+                    )
+                    db.execSQL(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS `index_kitchen_print_queue_bill_id_printer_mac` ON `kitchen_print_queue` (`bill_id`, `printer_mac`)"
+                    )
+                }
+            }
 
             val MIGRATION_33_34 = object : Migration(33, 34) {
                 override fun migrate(db: SupportSQLiteDatabase) {

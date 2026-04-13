@@ -32,11 +32,6 @@ object KitchenTicketFormatter {
 
         add(RESET)
         add(ALIGN_CENTER)
-        add(BOLD_ON)
-        add(LARGE_FONT)
-        add("KITCHEN TICKET\n")
-        add(NORMAL_FONT)
-        add(BOLD_OFF)
         add("${restaurantProfile?.shopName ?: "RESTAURANT"}\n")
         add("$line\n")
         add(ALIGN_LEFT)
@@ -55,8 +50,6 @@ object KitchenTicketFormatter {
         }
 
         add("$line\n")
-        add(ALIGN_CENTER)
-        add("Print Role: ${printerProfile.role}\n")
         add("\n\n\n")
         add(CUT_PAPER)
         return out.toByteArray()

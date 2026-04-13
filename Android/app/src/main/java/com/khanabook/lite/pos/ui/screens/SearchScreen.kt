@@ -23,7 +23,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.util.*
@@ -433,7 +432,7 @@ fun SearchScreen(
                                 ) {
                                     Icon(Icons.Default.Print, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.small))
                                     Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                    Text("Print Bill", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                    Text("Reprint Receipt", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                 }
 
                             }

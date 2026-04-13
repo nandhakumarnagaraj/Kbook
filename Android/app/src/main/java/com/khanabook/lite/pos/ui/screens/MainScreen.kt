@@ -8,25 +8,18 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.background
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.khanabook.lite.pos.ui.screens.HomeScreen
-import com.khanabook.lite.pos.ui.screens.ReportsScreen
-import com.khanabook.lite.pos.ui.screens.OrdersScreen
-import com.khanabook.lite.pos.ui.screens.SettingsScreen
 import com.khanabook.lite.pos.ui.theme.*
-
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.navigation.TabItem
 import com.khanabook.lite.pos.ui.navigation.NavigationUtils
 import androidx.activity.compose.BackHandler
-
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut

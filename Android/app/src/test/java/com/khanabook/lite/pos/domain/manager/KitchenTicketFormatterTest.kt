@@ -53,7 +53,6 @@ class KitchenTicketFormatterTest {
             Charset.forName("GBK")
         )
 
-        assertTrue(output.contains("KITCHEN TICKET"))
         assertTrue(output.contains("Chicken Fried Rice"))
         assertTrue(output.contains("Less spicy"))
         assertTrue(output.contains("2026-04-11-12"))

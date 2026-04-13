@@ -2,7 +2,6 @@
 
 package com.khanabook.lite.pos.ui.screens
 
-import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,6 +13,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -54,8 +54,7 @@ import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.CategoryEntity
 import com.khanabook.lite.pos.data.local.entity.MenuItemEntity
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
-import com.khanabook.lite.pos.ui.designsystem.LoadingType
+import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 
@@ -173,6 +172,17 @@ fun MenuConfigurationScreen(
 
     var showOverwritePrompt by remember { mutableStateOf(false) }
 
+    // Standard staggered entry animation
+    var screenVisible by remember { mutableStateOf(false) }
+    val enterSpec = fadeIn(tween(350)) + slideInVertically(
+        initialOffsetY = { it / 6 },
+        animationSpec = tween(350, easing = FastOutSlowInEasing)
+    )
+    val exitSpec = fadeOut(tween(200))
+    LaunchedEffect(Unit) {
+        screenVisible = true
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -209,20 +219,23 @@ fun MenuConfigurationScreen(
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             if (ocrUiState.configMode == null) {
-                ModeSelectionView(
-                    selectedCategoryName = categories.find { it.id == selectedCategoryId }?.name,
-                    totalCategoriesCount = totalCategoriesCount,
-                    totalItemsCount = totalItemsCount,
-                    onManualClick = { viewModel.setConfigMode("manual") },
-                    onSmartImportClick = {
-                        val catName = categories.find { it.id == selectedCategoryId }?.name ?: ""
-                        navController.navigate("ocr_scanner/$catName")
-                    },
-                    onGalleryClick = { galleryLauncher.launch("image/*") },
-                    onPdfClick = { pdfLauncher.launch("application/pdf") }
-                )
+                AnimatedVisibility(visible = screenVisible, enter = enterSpec, exit = exitSpec) {
+                    ModeSelectionView(
+                        selectedCategoryName = categories.find { it.id == selectedCategoryId }?.name,
+                        totalCategoriesCount = totalCategoriesCount,
+                        totalItemsCount = totalItemsCount,
+                        onManualClick = { viewModel.setConfigMode("manual") },
+                        onSmartImportClick = {
+                            val catName = categories.find { it.id == selectedCategoryId }?.name ?: ""
+                            navController.navigate("ocr_scanner/$catName")
+                        },
+                        onGalleryClick = { galleryLauncher.launch("image/*") },
+                        onPdfClick = { pdfLauncher.launch("application/pdf") }
+                    )
+                }
             } else {
-                ManualMenuView(
+                AnimatedVisibility(visible = screenVisible, enter = enterSpec, exit = exitSpec) {
+                    ManualMenuView(
                     categories = categories,
                     selectedCategoryId = selectedCategoryId,
                     menuItems = menuItems,
@@ -246,7 +259,8 @@ fun MenuConfigurationScreen(
                     onUpdateVariant = { viewModel.updateVariant(it) },
                     onDeleteVariant = { viewModel.deleteVariant(it) }
                 )
-            }
+                } // close AnimatedVisibility
+            } // close else
 
             KhanaBookLoadingOverlay(
                 visible = ocrUiState.isProcessing,

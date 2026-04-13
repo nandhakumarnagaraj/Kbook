@@ -9,6 +9,7 @@ import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.repository.*
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
+import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,7 +21,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -33,6 +33,7 @@ class SettingsViewModel @Inject constructor(
     private val menuRepository: MenuRepository,
     private val userRepository: UserRepository,
     private val btManager: BluetoothPrinterManager,
+    private val kitchenPrintQueueManager: KitchenPrintQueueManager,
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
@@ -144,6 +145,8 @@ class SettingsViewModel @Inject constructor(
                     current?.copy(printerName = name, printerMac = mac, printerEnabled = true)?.let {
                         restaurantRepository.saveProfile(it)
                     }
+                } else if (role == PrinterRole.KITCHEN) {
+                    kitchenPrintQueueManager.flushPendingForPrinter(mac)
                 }
             }
             btManager.disconnect()

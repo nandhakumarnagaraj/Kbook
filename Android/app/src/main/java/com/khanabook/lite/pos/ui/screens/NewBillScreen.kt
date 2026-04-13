@@ -1246,6 +1246,7 @@ fun SuccessStep(
 ) {
     val context = LocalContext.current
     val lastBill by viewModel.lastBill.collectAsState()
+    val printStatus by viewModel.printStatus.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
@@ -1270,6 +1271,31 @@ fun SuccessStep(
         )
 
         Spacer(modifier = Modifier.height(spacing.extraLarge))
+        LaunchedEffect(printStatus) {
+            printStatus?.let {
+                android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+        printStatus?.let { status ->
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = CardBG.copy(alpha = 0.45f),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.35f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(spacing.medium),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Print, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.medium))
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Text(status, color = TextLight, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            Spacer(modifier = Modifier.height(spacing.medium))
+        }
         Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(spacing.small)
@@ -1314,7 +1340,7 @@ fun SuccessStep(
         ) {
             Icon(Icons.Default.Print, null, tint = DarkBrown1)
             Spacer(modifier = Modifier.width(spacing.small))
-            Text("Print Bill", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
+            Text("Reprint Receipt", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
         }
         Spacer(modifier = Modifier.height(spacing.extraLarge))
         OutlinedButton(

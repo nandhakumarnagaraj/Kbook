@@ -18,13 +18,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 
 @Composable
 fun CallCustomerScreen(
@@ -45,6 +46,20 @@ fun CallCustomerScreen(
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+
+    // Standard staggered entry animation
+    var headerVisible by remember { mutableStateOf(false) }
+    var bodyVisible by remember { mutableStateOf(false) }
+    val enterSpec = fadeIn(tween(350)) + slideInVertically(
+        initialOffsetY = { it / 6 },
+        animationSpec = tween(350, easing = FastOutSlowInEasing)
+    )
+    val exitSpec = fadeOut(tween(200))
+    LaunchedEffect(Unit) {
+        headerVisible = true
+        kotlinx.coroutines.delay(80)
+        bodyVisible = true
+    }
 
     Scaffold(
             modifier = modifier,
@@ -89,6 +104,8 @@ fun CallCustomerScreen(
                                 .imePadding()
                                 .padding(spacing.large)
         ) {
+            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+              Column {
             TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = DarkBrown1,
@@ -187,13 +204,17 @@ fun CallCustomerScreen(
                     Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1, modifier = Modifier.size(iconSize.small))
                     Spacer(modifier = Modifier.width(spacing.small))
                     Text("Search Customer", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                }
-            }
+                } // closes Button
+              } // closes else
+             } // closes Column
+            } // closes AnimatedVisibility header
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
 
-            val currentResult = result
-            if (currentResult != null) {
+            AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
+              Column {
+                val currentResult = result
+                if (currentResult != null) {
                 KhanaBookCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = DarkBrown2),
@@ -262,27 +283,29 @@ fun CallCustomerScreen(
                         }
                     }
                 }
-            } else {
-                Box(
-                        modifier = Modifier.fillMaxSize().padding(bottom = spacing.bottomListPadding),
-                        contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                                Icons.Default.Call,
-                                contentDescription = null,
-                                tint = TextGold.copy(alpha = 0.3f),
-                                modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
-                        )
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                        Text(
-                                "Enter order details to find customer",
-                                color = TextGold.copy(alpha = 0.5f),
-                                style = MaterialTheme.typography.bodyMedium
-                        )
+                } else {
+                    Box(
+                            modifier = Modifier.fillMaxSize().padding(bottom = spacing.bottomListPadding),
+                            contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                    Icons.Default.Call,
+                                    contentDescription = null,
+                                    tint = TextGold.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
+                            )
+                            Spacer(modifier = Modifier.height(spacing.medium))
+                            Text(
+                                    "Enter order details to find customer",
+                                    color = TextGold.copy(alpha = 0.5f),
+                                    style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
-            }
+              } // end Column
+            } // end AnimatedVisibility body
         }
     }
 }

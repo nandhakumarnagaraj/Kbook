@@ -110,7 +110,8 @@ object DatabaseModule {
                             AppDatabase.MIGRATION_31_32,
                             AppDatabase.MIGRATION_32_33,
                             AppDatabase.MIGRATION_33_34,
-                            AppDatabase.MIGRATION_34_35
+                            AppDatabase.MIGRATION_34_35,
+                            AppDatabase.MIGRATION_35_36
                         )
                         .build()
         }
@@ -143,6 +144,7 @@ object DatabaseModule {
         @Provides fun provideCategoryDao(database: AppDatabase) = database.categoryDao()
         @Provides fun provideMenuDao(database: AppDatabase) = database.menuDao()
         @Provides fun providePrinterProfileDao(database: AppDatabase) = database.printerProfileDao()
+        @Provides fun provideKitchenPrintQueueDao(database: AppDatabase) = database.kitchenPrintQueueDao()
         @Provides fun provideBillDao(database: AppDatabase) = database.billDao()
         @Provides fun provideInventoryDao(database: AppDatabase) = database.inventoryDao()
 
@@ -189,6 +191,12 @@ object DatabaseModule {
 
         @Provides
         @Singleton
+        fun provideKitchenPrintQueueRepository(
+                kitchenPrintQueueDao: KitchenPrintQueueDao
+        ) = KitchenPrintQueueRepository(kitchenPrintQueueDao)
+
+        @Provides
+        @Singleton
         fun provideWorkManager(@ApplicationContext context: Context): androidx.work.WorkManager =
                 androidx.work.WorkManager.getInstance(context)
 
@@ -199,8 +207,15 @@ object DatabaseModule {
                 restaurantDao: RestaurantDao,
                 inventoryConsumptionManager:
                         com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager,
-                workManager: androidx.work.WorkManager
-        ) = BillRepository(billDao, restaurantDao, inventoryConsumptionManager, workManager)
+                workManager: androidx.work.WorkManager,
+                kitchenPrintQueueRepository: KitchenPrintQueueRepository
+        ) = BillRepository(
+                billDao,
+                restaurantDao,
+                inventoryConsumptionManager,
+                workManager,
+                kitchenPrintQueueRepository
+        )
 
         @Provides
         @Singleton

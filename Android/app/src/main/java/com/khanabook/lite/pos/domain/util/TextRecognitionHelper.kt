@@ -1,7 +1,6 @@
 package com.khanabook.lite.pos.domain.util
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
 import com.google.android.gms.tasks.Task
