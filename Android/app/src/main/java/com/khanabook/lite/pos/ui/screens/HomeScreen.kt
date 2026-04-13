@@ -30,7 +30,6 @@ import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
 import com.khanabook.lite.pos.ui.designsystem.*
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.ui.draw.blur
@@ -50,9 +49,9 @@ fun HomeScreen(
     val stats by viewModel.todayStats.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
     val unsyncedCount by viewModel.unsyncedCount.collectAsState()
-    val configuration = LocalConfiguration.current
-    val isWideScreen = configuration.screenWidthDp >= 600
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
+    val isWideScreen = !layout.isCompact
 
     // Stats are "ready" once the profile has emitted (orderCount > 0 or a non-initial emission)
     // We use a separate flag so skeleton shows on first compose

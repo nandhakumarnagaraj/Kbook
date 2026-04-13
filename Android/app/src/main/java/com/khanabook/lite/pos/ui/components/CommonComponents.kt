@@ -8,15 +8,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookInputField
 import com.khanabook.lite.pos.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -43,27 +40,20 @@ fun KhanaDatePickerField(
         initialSelectedDateMillis = calendar.timeInMillis
     )
 
-    OutlinedTextField(
+    KhanaBookInputField(
         value = selectedDate,
         onValueChange = { },
         readOnly = true,
-        label = { Text(label, color = TextGold) },
+        label = label,
         modifier = modifier
             .fillMaxWidth()
             .clickable { showDatePicker = true },
-        enabled = false, 
-        colors = OutlinedTextFieldDefaults.colors(
-            disabledTextColor = TextLight,
-            disabledBorderColor = BorderGold,
-            disabledLabelColor = TextGold,
-            disabledLeadingIconColor = PrimaryGold,
-            disabledTrailingIconColor = PrimaryGold
-        ),
+        enabled = false,
         trailingIcon = {
             IconButton(onClick = { showDatePicker = true }) {
                 Icon(Icons.Default.CalendarToday, contentDescription = null, tint = PrimaryGold)
             }
-        },
+        }
     )
     
     if (showDatePicker) {
@@ -117,30 +107,15 @@ fun ParchmentTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     singleLine: Boolean = true
 ) {
-    OutlinedTextField(
+    KhanaBookInputField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label, fontSize = 12.sp, color = TextGold) },
+        label = label,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
         trailingIcon = trailingIcon,
         isError = isError,
-        supportingText = supportingText?.let { { Text(it, color = DangerRed, fontSize = 11.sp) } },
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = BorderGold,
-            unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-            focusedTextColor = TextLight,
-            unfocusedTextColor = TextLight,
-            focusedLabelColor = TextGold,
-            unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
-            cursorColor = PrimaryGold,
-            errorBorderColor = DangerRed,
-            errorLabelColor = DangerRed,
-            errorCursorColor = DangerRed
-        ),
+        supportingText = supportingText?.let { { Text(it, color = DangerRed, style = MaterialTheme.typography.labelSmall) } },
         singleLine = singleLine,
         keyboardOptions = keyboardOptions
     )
 }
-
-

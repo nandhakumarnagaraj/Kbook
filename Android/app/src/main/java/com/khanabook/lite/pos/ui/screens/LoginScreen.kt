@@ -391,302 +391,183 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                 while (resendTimer > 0) { delay(1000); resendTimer-- }
             }
             is AuthViewModel.ResetPasswordResult.Success -> {
-                android.widget.Toast.makeText(
-                                context,
-                                "Password reset successfully!",
-                                android.widget.Toast.LENGTH_SHORT
-                        )
-                        .show()
+                android.widget.Toast.makeText(context, "Password reset successfully!", android.widget.Toast.LENGTH_SHORT).show()
                 onDismiss()
             }
             else -> {}
         }
     }
 
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-
-    Dialog(
+    KhanaBookLargeDialog(
+        title = "Forgot Password",
         onDismissRequest = onDismiss,
-        properties = androidx.compose.ui.window.DialogProperties(
-            usePlatformDefaultWidth = false
-        )
-    ) {
-        KhanaBookCard(
-                modifier = Modifier
-                    .widthIn(max = 400.dp)
-                    .fillMaxWidth(0.9f)
-                    .imePadding()
-                    .padding(spacing.medium),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkBrown1)
-        ) {
-            Column(
-                    modifier = Modifier.padding(spacing.large).fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                        text = "Forgot Password",
-                        color = PrimaryGold,
-                        style = MaterialTheme.typography.headlineSmall
-                )
-
-                Spacer(modifier = Modifier.height(spacing.medium))
-
-                when (step) {
-                    1 -> {
-                        Text(
-                                text = "Enter your registered WhatsApp number to receive an OTP.",
-                                color = TextLight,
-                                style = MaterialTheme.typography.bodyMedium,
-                                textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                        TextField(
-                                value = phone,
-                                onValueChange = { phone = it.filter { ch -> ch.isDigit() }.take(10) },
-                                label = { Text("WhatsApp Number") },
-                                placeholder = { Text("Enter your 10-digit number", color = TextGold.copy(alpha = 0.7f)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = TextFieldDefaults.colors(
-                                    unfocusedContainerColor = DarkBrown2,
-                                    focusedContainerColor = DarkBrown2,
-                                    unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
-                                    focusedLabelColor = PrimaryGold,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                    cursorColor = PrimaryGold,
-                                    errorContainerColor = DarkBrown2
-                                ),
-                                keyboardOptions =
-                                        KeyboardOptions(keyboardType = KeyboardType.Phone),
-                                leadingIcon = {
-                                    Icon(Icons.Default.Phone, null, tint = PrimaryGold)
-                                },
-                                isError = phone.isNotEmpty() && !isPhoneValid,
-                                supportingText = {
-                                    if (phone.isNotEmpty() && !isPhoneValid) {
-                                        Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
-                                    }
-                                }
-                        )
+        modifier = Modifier.imePadding(),
+        actions = {
+            Button(
+                onClick = {
+                    when (step) {
+                        1 -> if (isPhoneValid && !isResetLoading) viewModel.sendOtp(phone, "reset")
+                        2 -> if (otp.length == 6) step = 3
+                        3 -> if (newPassword.isNotBlank() && newPassword == confirmPassword) {
+                            viewModel.resetPassword(phone, otp, newPassword)
+                        }
                     }
-                    2 -> {
-                        Text(
-                                text = "Enter the 6-digit OTP sent to $phone via WhatsApp.",
-                                color = TextLight,
-                                style = MaterialTheme.typography.bodyMedium,
-                                textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                        TextField(
-                                value = otp,
-                                onValueChange = { if (it.length <= 6) otp = it },
-                                label = { Text("Enter OTP") },
-                                placeholder = { Text("6-digit code", color = TextGold.copy(alpha = 0.7f)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = TextFieldDefaults.colors(
-                                    unfocusedContainerColor = DarkBrown2,
-                                    focusedContainerColor = DarkBrown2,
-                                    unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
-                                    focusedLabelColor = PrimaryGold,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                    cursorColor = PrimaryGold,
-                                    errorContainerColor = DarkBrown2
-                                ),
-                                keyboardOptions =
-                                        KeyboardOptions(keyboardType = KeyboardType.Number),
-                                textStyle =
-                                        LocalTextStyle.current.copy(textAlign = TextAlign.Center),
-                                supportingText = {
-                                    if (otp.isNotEmpty() && otp.length < 6) {
-                                        Text(
-                                            "${6 - otp.length} more digit${if (6 - otp.length == 1) "" else "s"} required",
-                                            color = TextGold.copy(alpha = 0.6f),
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    }
-                                }
-                        )
-                    }
-                    3 -> {
-                        Text(
-                                text = "Create a new strong password for your account.",
-                                color = TextLight,
-                                style = MaterialTheme.typography.bodyMedium,
-                                textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                        TextField(
-                                value = newPassword,
-                                onValueChange = { newPassword = it },
-                                label = { Text("New Password") },
-                                placeholder = { Text("Min 8 chars with symbols", color = TextGold.copy(alpha = 0.7f)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = TextFieldDefaults.colors(
-                                    unfocusedContainerColor = DarkBrown2,
-                                    focusedContainerColor = DarkBrown2,
-                                    unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
-                                    focusedLabelColor = PrimaryGold,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                    cursorColor = PrimaryGold,
-                                    errorContainerColor = DarkBrown2
-                                ),
-                                visualTransformation =
-                                        if (showNewPassword) VisualTransformation.None
-                                        else PasswordVisualTransformation(),
-                                leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryGold) },
-                                trailingIcon = {
-                                    Icon(
-                                            imageVector =
-                                                    if (showNewPassword) Icons.Default.Visibility
-                                                    else Icons.Default.VisibilityOff,
-                                            contentDescription = "Toggle New Password",
-                                            tint = PrimaryGold,
-                                            modifier = Modifier.clickable {
-                                                showNewPassword = !showNewPassword
-                                            }
-                                    )
-                                }
-                        )
-                        Spacer(modifier = Modifier.height(spacing.small))
-                        val passwordsMatch = confirmPassword.isEmpty() || newPassword == confirmPassword
-                        TextField(
-                                value = confirmPassword,
-                                onValueChange = { confirmPassword = it },
-                                label = { Text("Confirm Password") },
-                                placeholder = { Text("Repeat new password", color = TextGold.copy(alpha = 0.7f)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = TextFieldDefaults.colors(
-                                    unfocusedContainerColor = DarkBrown2,
-                                    focusedContainerColor = DarkBrown2,
-                                    unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
-                                    focusedLabelColor = PrimaryGold,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                    cursorColor = PrimaryGold,
-                                    errorContainerColor = DarkBrown2
-                                ),
-                                isError = !passwordsMatch,
-                                visualTransformation =
-                                        if (showConfirmPassword) VisualTransformation.None
-                                        else PasswordVisualTransformation(),
-                                leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryGold) },
-                                trailingIcon = {
-                                    Icon(
-                                            imageVector =
-                                                    if (showConfirmPassword) Icons.Default.Visibility
-                                                    else Icons.Default.VisibilityOff,
-                                            contentDescription = "Toggle Confirm Password",
-                                            tint = PrimaryGold,
-                                            modifier = Modifier.clickable {
-                                                showConfirmPassword = !showConfirmPassword
-                                            }
-                                    )
-                                },
-                                supportingText = {
-                                    if (!passwordsMatch) {
-                                        Text("Passwords do not match", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
-                                    }
-                                }
-                        )
-                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
+                shape = RoundedCornerShape(12.dp),
+                enabled = when (step) {
+                    1 -> isPhoneValid && !isResetLoading
+                    2 -> otp.length == 6
+                    3 -> newPassword.isNotBlank() && newPassword == confirmPassword
+                    else -> false
                 }
-
-                if (resetStatus is AuthViewModel.ResetPasswordResult.Error) {
-                    Spacer(modifier = Modifier.height(spacing.small))
+            ) {
+                if (step == 1 && isResetLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = DarkBrown1, strokeWidth = 2.dp)
+                } else {
                     Text(
-                            text = (resetStatus as AuthViewModel.ResetPasswordResult.Error).message,
-                            color = ErrorPink,
-                            style = MaterialTheme.typography.labelSmall
+                        text = when (step) {
+                            1 -> "Send OTP"
+                            2 -> "Verify OTP"
+                            3 -> "Reset Password"
+                            else -> ""
+                        },
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }
-
-                Spacer(modifier = Modifier.height(spacing.large))
-
-                Button(
-                        onClick = {
-                            when (step) {
-                                1 -> {
-                                    if (isPhoneValid && !isResetLoading) {
-                                        viewModel.sendOtp(phone, "reset")
-                                    }
-                                }
-                                2 -> {
-                                    if (otp.length == 6) {
-                                        step = 3
-                                    }
-                                }
-                                3 -> {
-                                    if (newPassword.isNotBlank() && newPassword == confirmPassword) {
-                                        viewModel.resetPassword(phone, otp, newPassword)
-                                    }
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors =
-                                ButtonDefaults.buttonColors(
-                                        containerColor = PrimaryGold,
-                                        contentColor = DarkBrown1
-                                ),
-                        shape = RoundedCornerShape(12.dp),
-                        enabled =
-                                when (step) {
-                                    1 -> isPhoneValid && !isResetLoading
-                                    2 -> otp.length == 6
-                                    3 -> newPassword.isNotBlank() && newPassword == confirmPassword
-                                    else -> false
-                                }
-
-                ) {
-                    if (step == 1 && isResetLoading) {
-                        CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                color = DarkBrown1,
-                                strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(
-                                text =
-                                        when (step) {
-                                            1 -> "Send OTP"
-                                            2 -> "Verify OTP"
-                                            3 -> "Reset Password"
-                                            else -> ""
-                                        },
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
-                }
-
-                if (step == 2) {
-                    TextButton(
-                            onClick = {
-                                if (resendTimer == 0 && !isResetLoading) {
-                                    viewModel.sendOtp(phone, "reset")
-                                }
-                            },
-                            enabled = resendTimer == 0 && !isResetLoading
-                    ) {
-                        Text(
-                                text =
-                                        if (resendTimer > 0) "Resend OTP in ${resendTimer}s"
-                                        else "Resend OTP",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (resendTimer > 0 || isResetLoading) Color.Gray else PrimaryGold
-                        )
-                    }
-                }
-
-                TextButton(onClick = onDismiss) { Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge) }
             }
+
+            if (step == 2) {
+                TextButton(
+                    onClick = { if (resendTimer == 0 && !isResetLoading) viewModel.sendOtp(phone, "reset") },
+                    enabled = resendTimer == 0 && !isResetLoading
+                ) {
+                    Text(
+                        text = if (resendTimer > 0) "Resend OTP in ${resendTimer}s" else "Resend OTP",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (resendTimer > 0 || isResetLoading) Color.Gray else PrimaryGold
+                    )
+                }
+            }
+
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    ) {
+        when (step) {
+            1 -> {
+                Text(
+                    text = "Enter your registered WhatsApp number to receive an OTP.",
+                    color = TextLight,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(spacing.medium))
+                KhanaBookInputField(
+                    value = phone,
+                    onValueChange = { phone = it.filter { ch -> ch.isDigit() }.take(10) },
+                    label = "WhatsApp Number",
+                    placeholder = "Enter your 10-digit number",
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = PrimaryGold) },
+                    isError = phone.isNotEmpty() && !isPhoneValid,
+                    supportingText = {
+                        if (phone.isNotEmpty() && !isPhoneValid) {
+                            Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                )
+            }
+            2 -> {
+                Text(
+                    text = "Enter the 6-digit OTP sent to $phone via WhatsApp.",
+                    color = TextLight,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(spacing.medium))
+                KhanaBookInputField(
+                    value = otp,
+                    onValueChange = { if (it.length <= 6) otp = it },
+                    label = "Enter OTP",
+                    placeholder = "6-digit code",
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
+                    supportingText = {
+                        if (otp.isNotEmpty() && otp.length < 6) {
+                            Text(
+                                "${6 - otp.length} more digit${if (6 - otp.length == 1) "" else "s"} required",
+                                color = TextGold.copy(alpha = 0.6f),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+                )
+            }
+            3 -> {
+                Text(
+                    text = "Create a new strong password for your account.",
+                    color = TextLight,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(spacing.medium))
+                KhanaBookInputField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it },
+                    label = "New Password",
+                    placeholder = "Min 8 chars with symbols",
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryGold) },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = if (showNewPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = "Toggle New Password",
+                            tint = PrimaryGold,
+                            modifier = Modifier.clickable { showNewPassword = !showNewPassword }
+                        )
+                    }
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+                val passwordsMatch = confirmPassword.isEmpty() || newPassword == confirmPassword
+                KhanaBookInputField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = "Confirm Password",
+                    placeholder = "Repeat new password",
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = !passwordsMatch,
+                    visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryGold) },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = if (showConfirmPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = "Toggle Confirm Password",
+                            tint = PrimaryGold,
+                            modifier = Modifier.clickable { showConfirmPassword = !showConfirmPassword }
+                        )
+                    },
+                    supportingText = {
+                        if (!passwordsMatch) {
+                            Text("Passwords do not match", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                )
+            }
+        }
+
+        if (resetStatus is AuthViewModel.ResetPasswordResult.Error) {
+            Spacer(modifier = Modifier.height(spacing.small))
+            Text(
+                text = (resetStatus as AuthViewModel.ResetPasswordResult.Error).message,
+                color = ErrorPink,
+                style = MaterialTheme.typography.labelSmall
+            )
         }
     }
 }

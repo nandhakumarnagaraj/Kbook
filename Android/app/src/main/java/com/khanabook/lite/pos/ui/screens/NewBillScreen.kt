@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -301,17 +300,13 @@ fun MenuSelectionStep(
     val searchQuery by menuViewModel.searchQuery.collectAsStateWithLifecycle()
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
-    val configuration = LocalConfiguration.current
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     val displayItems = if (searchQuery.isNotBlank()) searchResults else items
     
     // Adaptive split-view: Categories on left, Cart on right for tablets
-    val isWideScreen = configuration.screenWidthDp >= 840
-    val gridColumns = when {
-        configuration.screenWidthDp >= 1200 -> 3
-        configuration.screenWidthDp >= 600 -> 2
-        else -> 1
-    }
+    val isWideScreen = layout.isWideListDetail
+    val gridColumns = layout.menuGridColumns
 
     LaunchedEffect(categories) {
         if (selectedCategoryId == null && categories.isNotEmpty()) {
@@ -714,11 +709,10 @@ fun MenuSelectionStep(
 @Composable
 private fun CartItemNoteDialog(initialNote: String, itemName: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
     var noteText by remember { mutableStateOf(initialNote) }
-    AlertDialog(
+    KhanaBookDialog(
         onDismissRequest = onDismiss,
-        containerColor = DarkBrown2,
-        title = { Text("Note for $itemName", color = PrimaryGold, style = MaterialTheme.typography.titleMedium) },
-        text = {
+        title = "Note for $itemName",
+        content = {
             OutlinedTextField(
                 value = noteText,
                 onValueChange = { noteText = it },
@@ -728,18 +722,15 @@ private fun CartItemNoteDialog(initialNote: String, itemName: String, onDismiss:
                 maxLines = 3,
                 shape = RoundedCornerShape(8.dp)
             )
-        },
-        confirmButton = {
-            TextButton(onClick = { onSave(noteText.trim()) }) {
-                Text("Save", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
-            }
         }
-    )
+    ) {
+        TextButton(onClick = { onSave(noteText.trim()) }) {
+            Text("Save", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+        }
+        TextButton(onClick = onDismiss) {
+            Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
+        }
+    }
 }
 
 @Composable
@@ -1359,56 +1350,18 @@ fun VariantPickerDialog(
         onDismiss: () -> Unit,
         onSelect: (ItemVariantEntity) -> Unit
 ) {
-    val spacing = KhanaBookTheme.spacing
-    AlertDialog(
+    KhanaBookSelectionDialog(
+            title = "Choose Variant",
+            message = itemName,
             onDismissRequest = onDismiss,
-            containerColor = DarkBrown2,
-            title = {
-                Column {
-                    Text("Choose Variant", color = PrimaryGold, style = MaterialTheme.typography.titleLarge)
-                    Text(itemName, color = TextGold, style = MaterialTheme.typography.bodySmall)
-                }
-            },
-            text = {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    variants.forEach { variant ->
-                        Card(
-                                modifier =
-                                        Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall).clickable {
-                                            onSelect(variant)
-                                        },
-                                colors =
-                                        CardDefaults.cardColors(
-                                                containerColor = Color.Black.copy(alpha = 0.3f)
-                                        ),
-                                shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Row(
-                                    modifier =
-                                            Modifier.fillMaxWidth()
-                                                    .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
-                                    verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                        variant.variantName,
-                                        color = TextLight,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                        "₹${"%.0f".format(variant.price)}",
-                                        color = PrimaryGold,
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = onDismiss) { Text("Cancel", color = PrimaryGold, style = MaterialTheme.typography.labelLarge) }
-            }
+        options = variants.map { variant ->
+            SelectionDialogOption(
+                value = variant,
+                title = variant.variantName,
+                subtitle = CurrencyUtils.formatPrice(variant.price.toString())
+            )
+        },
+        onOptionSelected = onSelect
     )
 }
 

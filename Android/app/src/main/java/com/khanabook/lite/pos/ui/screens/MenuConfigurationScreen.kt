@@ -848,75 +848,48 @@ private fun ConflictResolutionDialog(
     onMergeAndSkip: () -> Unit,
     onCancel: () -> Unit
 ) {
-    Dialog(onDismissRequest = onCancel) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(0.92f),
-            shape = RoundedCornerShape(20.dp),
-            color = DarkBrown1,
-            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.35f))
+    KhanaBookDialog(
+        onDismissRequest = onCancel,
+        title = "Conflicts Found",
+        message = "Some selected items already exist in this category. Choose how to continue."
+    ) {
+        Button(
+            onClick = onOverwriteAll,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = NonVegRed,
+                contentColor = Color.White
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .testTag(MenuConfigurationTags.reviewOverlayConflictOverwrite),
+            shape = RoundedCornerShape(14.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = "Conflicts Found",
-                    color = PrimaryGold,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "Some selected items already exist in this category. Choose how to continue.",
-                    color = TextLight,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Button(
-                        onClick = onOverwriteAll,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = NonVegRed,
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .testTag(MenuConfigurationTags.reviewOverlayConflictOverwrite),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("Overwrite All", fontWeight = FontWeight.Bold, maxLines = 1)
-                    }
-                    OutlinedButton(
-                        onClick = onMergeAndSkip,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = SuccessGreen),
-                        border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.7f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .testTag(MenuConfigurationTags.reviewOverlayConflictMerge),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("Merge & Skip", fontWeight = FontWeight.Bold, maxLines = 1)
-                    }
-                }
-                OutlinedButton(
-                    onClick = onCancel,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
-                    border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .testTag(MenuConfigurationTags.reviewOverlayConflictCancel)
-                        ,
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text("Cancel", fontWeight = FontWeight.Medium)
-                }
-            }
+            Text("Overwrite All", fontWeight = FontWeight.Bold, maxLines = 1)
+        }
+        OutlinedButton(
+            onClick = onMergeAndSkip,
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = SuccessGreen),
+            border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.7f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .testTag(MenuConfigurationTags.reviewOverlayConflictMerge),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Text("Merge & Skip", fontWeight = FontWeight.Bold, maxLines = 1)
+        }
+        OutlinedButton(
+            onClick = onCancel,
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
+            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .testTag(MenuConfigurationTags.reviewOverlayConflictCancel),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Text("Cancel", fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -1600,25 +1573,21 @@ fun ManualMenuView(
     }
 
     if (showDeleteCategoryDialog != null) {
-        AlertDialog(
+        KhanaBookDialog(
             onDismissRequest = { showDeleteCategoryDialog = null },
-            containerColor = DarkBrown2,
-            title = { Text("Delete Category?", color = PrimaryGold) },
-            text = { Text("All items in \"${showDeleteCategoryDialog?.name}\" will also be deleted. This cannot be undone.", color = TextLight) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteCategoryDialog?.let { onDeleteCategory(it) }
-                    showDeleteCategoryDialog = null
-                }) {
-                    Text("Delete", color = Color.Red)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteCategoryDialog = null }) {
-                    Text("Cancel", color = TextGold)
-                }
+            title = "Delete Category?",
+            message = "All items in \"${showDeleteCategoryDialog?.name}\" will also be deleted. This cannot be undone."
+        ) {
+            TextButton(onClick = {
+                showDeleteCategoryDialog?.let { onDeleteCategory(it) }
+                showDeleteCategoryDialog = null
+            }) {
+                Text("Delete", color = Color.Red)
             }
-        )
+            TextButton(onClick = { showDeleteCategoryDialog = null }) {
+                Text("Cancel", color = TextGold)
+            }
+        }
     }
 
     // Item Dialogs
@@ -1657,25 +1626,21 @@ fun ManualMenuView(
     }
 
     if (showDeleteItemDialog != null) {
-        AlertDialog(
+        KhanaBookDialog(
             onDismissRequest = { showDeleteItemDialog = null },
-            containerColor = DarkBrown2,
-            title = { Text("Delete Item?", color = PrimaryGold) },
-            text = { Text("Are you sure you want to delete \"${showDeleteItemDialog?.name}\"?", color = TextLight) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDeleteItemDialog?.let { onDeleteItem(it) }
-                    showDeleteItemDialog = null
-                }) {
-                    Text("Delete", color = Color.Red)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteItemDialog = null }) {
-                    Text("Cancel", color = TextGold)
-                }
+            title = "Delete Item?",
+            message = "Are you sure you want to delete \"${showDeleteItemDialog?.name}\"?"
+        ) {
+            TextButton(onClick = {
+                showDeleteItemDialog?.let { onDeleteItem(it) }
+                showDeleteItemDialog = null
+            }) {
+                Text("Delete", color = Color.Red)
             }
-        )
+            TextButton(onClick = { showDeleteItemDialog = null }) {
+                Text("Cancel", color = TextGold)
+            }
+        }
     }
 }
 
@@ -1759,11 +1724,10 @@ fun CategoryEditDialog(
 ) {
     var name by remember { mutableStateOf(initialName) }
 
-    AlertDialog(
+    KhanaBookDialog(
         onDismissRequest = onDismiss,
-        containerColor = DarkBrown2,
-        title = { Text(title, color = PrimaryGold) },
-        text = {
+        title = title,
+        content = {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -1777,21 +1741,18 @@ fun CategoryEditDialog(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { if (name.isNotBlank()) onConfirm(name) },
-                enabled = name.isNotBlank()
-            ) {
-                Text("Save", color = PrimaryGold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextGold)
-            }
         }
-    )
+    ) {
+        TextButton(
+            onClick = { if (name.isNotBlank()) onConfirm(name) },
+            enabled = name.isNotBlank()
+        ) {
+            Text("Save", color = PrimaryGold)
+        }
+        TextButton(onClick = onDismiss) {
+            Text("Cancel", color = TextGold)
+        }
+    }
 }
 
 @Composable
@@ -1814,11 +1775,10 @@ fun ItemEditDialog(
     var showAddVariantDialog by remember { mutableStateOf(false) }
     var draftVariants by remember { mutableStateOf(listOf<Pair<String, Double>>()) }
 
-    AlertDialog(
+    KhanaBookDialog(
         onDismissRequest = onDismiss,
-        containerColor = DarkBrown2,
-        title = { Text(title, color = PrimaryGold) },
-        text = {
+        title = title,
+        content = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1972,56 +1932,49 @@ fun ItemEditDialog(
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { if (name.isNotBlank()) onConfirm(name, price.toDoubleOrNull() ?: 0.0, foodType, draftVariants) },
-                enabled = name.isNotBlank()
-            ) {
-                Text("Save", color = PrimaryGold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextGold)
-            }
         }
-    )
+    ) {
+        TextButton(
+            onClick = { if (name.isNotBlank()) onConfirm(name, price.toDoubleOrNull() ?: 0.0, foodType, draftVariants) },
+            enabled = name.isNotBlank()
+        ) {
+            Text("Save", color = PrimaryGold)
+        }
+        TextButton(onClick = onDismiss) {
+            Text("Cancel", color = TextGold)
+        }
+    }
 
     if (showAddVariantDialog) {
         var newVName by remember { mutableStateOf("") }
         var newVPrice by remember { mutableStateOf("") }
 
-        AlertDialog(
+        KhanaBookDialog(
             onDismissRequest = { showAddVariantDialog = false },
-            containerColor = DarkBrown2,
-            title = { Text("Add Variant", color = PrimaryGold) },
-            text = {
+            title = "Add Variant",
+            content = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = newVName, onValueChange = { newVName = it }, label = { Text("Variant Name") })
                     OutlinedTextField(value = newVPrice, onValueChange = { newVPrice = it }, label = { Text("Price (₹)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 }
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (newVName.isNotBlank() && newVPrice.isNotBlank()) {
-                        if (initialName.isNotBlank()) {
-                            onAddVariant(newVName, newVPrice.toDoubleOrNull() ?: 0.0)
-                        } else {
-                            draftVariants = draftVariants + Pair(newVName, newVPrice.toDoubleOrNull() ?: 0.0)
-                            price = "" 
-                        }
-                        showAddVariantDialog = false
+        ) {
+            TextButton(onClick = {
+                if (newVName.isNotBlank() && newVPrice.isNotBlank()) {
+                    if (initialName.isNotBlank()) {
+                        onAddVariant(newVName, newVPrice.toDoubleOrNull() ?: 0.0)
+                    } else {
+                        draftVariants = draftVariants + Pair(newVName, newVPrice.toDoubleOrNull() ?: 0.0)
+                        price = ""
                     }
-                }) {
-                    Text("Add", color = PrimaryGold)
+                    showAddVariantDialog = false
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddVariantDialog = false }) {
-                    Text("Cancel")
-                }
+            }) {
+                Text("Add", color = PrimaryGold)
             }
-        )
+            TextButton(onClick = { showAddVariantDialog = false }) {
+                Text("Cancel")
+            }
+        }
     }
 }

@@ -561,50 +561,37 @@ fun CancelOrderDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     val presetReasons = listOf("Wrong order", "Customer left", "Duplicate bill", "Test bill", "Other")
     var selectedReason by remember { mutableStateOf("Customer left") }
     var customReason by remember { mutableStateOf("") }
-    val spacing = KhanaBookTheme.spacing
 
-    AlertDialog(
+    KhanaBookSelectionDialog(
+        title = "Cancel Order",
         onDismissRequest = onDismiss,
-        containerColor = DarkBrown2,
-        title = { Text("Cancel Order", color = DangerRed, style = MaterialTheme.typography.titleLarge) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-                Text("Select a reason:", color = TextLight, style = MaterialTheme.typography.bodyMedium)
-                presetReasons.forEach { reason ->
-                    val isSelected = selectedReason == reason
-                    Surface(
-                        onClick = { selectedReason = reason; if (reason != "Other") customReason = "" },
-                        color = if (isSelected) DangerRed.copy(alpha = 0.15f) else Color.Transparent,
-                        shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, if (isSelected) DangerRed else BorderGold.copy(alpha = 0.3f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = reason,
-                            color = if (isSelected) DangerRed else TextLight,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small)
-                        )
-                    }
+        message = "Select a reason:",
+        options = presetReasons.map { reason ->
+            SelectionDialogOption(
+                value = reason,
+                title = reason,
+                selectedAccent = DangerRed,
+                onSelect = {
+                    selectedReason = reason
+                    if (reason != "Other") customReason = ""
                 }
-                if (selectedReason == "Other") {
-                    OutlinedTextField(
-                        value = customReason,
-                        onValueChange = { customReason = it },
-                        placeholder = { Text("Describe the reason...", color = TextGold.copy(alpha = 0.4f)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = DangerRed,
-                            unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                            focusedTextColor = TextLight,
-                            unfocusedTextColor = TextLight
-                        ),
-                        maxLines = 2
-                    )
-                }
+            )
+        },
+        selectedValue = selectedReason,
+        trailingContent = {
+            if (selectedReason == "Other") {
+                KhanaBookInputField(
+                    value = customReason,
+                    onValueChange = { customReason = it },
+                    label = "Other Reason",
+                    placeholder = "Describe the reason...",
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false
+                )
             }
         },
-        confirmButton = {
+        cancelLabel = "Keep Order",
+        actions = {
             TextButton(
                 onClick = {
                     val finalReason = if (selectedReason == "Other") customReason.trim() else selectedReason
@@ -614,13 +601,8 @@ fun CancelOrderDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
             ) {
                 Text("Cancel Order", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Keep Order", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
-            }
         }
-    )
+    ) {}
 }
 
 @Composable
@@ -641,11 +623,10 @@ fun PartAmountDialog(
     val p2 = p2Text.toDoubleOrNull() ?: 0.0
     val isValid = BillCalculator.validatePartPayment(p1Text, p2Text, totalAmount)
 
-    AlertDialog(
+    KhanaBookDialog(
         onDismissRequest = onDismiss,
-        containerColor = DarkBrown2,
-        title = { Text(mode.displayLabel, color = PrimaryGold, style = MaterialTheme.typography.titleLarge) },
-        text = {
+        title = mode.displayLabel,
+        content = {
             Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
                 Text(
                     "Total: ${CurrencyUtils.formatPrice(totalAmount)}",
@@ -694,21 +675,18 @@ fun PartAmountDialog(
                     )
                 }
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(p1Text, p2Text) },
-                enabled = isValid
-            ) {
-                Text("Confirm", color = PrimaryGold, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
-            }
         }
-    )
+    ) {
+        TextButton(
+            onClick = { onConfirm(p1Text, p2Text) },
+            enabled = isValid
+        ) {
+            Text("Confirm", color = PrimaryGold, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+        }
+        TextButton(onClick = onDismiss) {
+            Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
+        }
+    }
 }
 
 @Composable

@@ -38,8 +38,6 @@ import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 
-import androidx.compose.ui.platform.LocalConfiguration
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -55,9 +53,9 @@ fun SettingsScreen(
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     var section by rememberSaveable { mutableStateOf("menu") }
-    val configuration = LocalConfiguration.current
-    val isWideScreen = configuration.screenWidthDp >= 600
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
+    val isWideScreen = !layout.isCompact
 
     // Standard staggered entry animation
     var screenVisible by remember { mutableStateOf(false) }
@@ -104,32 +102,20 @@ fun SettingsScreen(
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
             .imePadding()
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(spacing.medium),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { if (section == "menu") onBack() else section = "menu" }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PrimaryGold)
-                }
-                Text(
-                    text = when (section) {
-                        "shop" -> "Shop Configuration"
-                        "payment" -> "Payment Configuration"
-                        "printer" -> "Printer Configuration"
-                        "tax" -> "Tax Configuration"
-                        "security" -> "App Lock"
-                        "menu" -> "Settings"
-                        else -> "Settings"
-                    },
-                    modifier = Modifier.weight(1f),
-                    color = PrimaryGold,
-                    style = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.width(spacing.huge))
-            }
-
+        KhanaBookScreenScaffold(
+            title = when (section) {
+                "shop" -> "Shop Configuration"
+                "payment" -> "Payment Configuration"
+                "printer" -> "Printer Configuration"
+                "tax" -> "Tax Configuration"
+                "security" -> "App Lock"
+                "menu" -> "Settings"
+                else -> "Settings"
+            },
+            onBack = { if (section == "menu") onBack() else section = "menu" },
+            titleStyleCompact = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
+            titleStyleExpanded = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall
+        ) {
             Box(modifier = Modifier.weight(1f)) {
                 val lastSyncTs = remember { viewModel.getLastSyncTimestamp() }
                 when (section) {
@@ -198,54 +184,53 @@ private fun LegacyLogoutSectionUnused(viewModel: com.khanabook.lite.pos.ui.viewm
 
     if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData) {
         val warning = logoutState as com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData
-        AlertDialog(
+        KhanaBookDialog(
             onDismissRequest = { viewModel.cancelLogout() },
-            title = { Text("Unsynced Data Warning", color = DangerRed) },
-            text = {
+            title = "Unsynced Data Warning",
+            content = {
                 Text(
                     if (isPinEnabled) {
                         "You have ${warning.totalCount} records not synced. Signing out now will remove them from this device. Enter your app PIN to continue."
                     } else {
                         "You have ${warning.totalCount} records not synced. Signing out now will remove them from this device."
-                    }
+                    },
+                    color = TextLight,
+                    style = MaterialTheme.typography.bodyMedium
                 )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (isPinEnabled) {
-                            appLockViewModel.clearPin()
-                            showPinDialog = true
-                        } else {
-                            viewModel.forceLogoutDespiteWarning()
-                        }
-                    }
-                ) {
-                    Text(if (isPinEnabled) "Enter PIN" else "Logout Anyway", color = DangerRed)
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showPinDialog = false
-                        appLockViewModel.clearPin()
-                        viewModel.cancelLogout()
-                    }
-                ) {
-                    Text("Cancel")
-                }
             }
-        )
+        ) {
+            TextButton(
+                onClick = {
+                    if (isPinEnabled) {
+                        appLockViewModel.clearPin()
+                        showPinDialog = true
+                    } else {
+                        viewModel.forceLogoutDespiteWarning()
+                    }
+                }
+            ) {
+                Text(if (isPinEnabled) "Enter PIN" else "Logout Anyway", color = DangerRed)
+            }
+            TextButton(
+                onClick = {
+                    showPinDialog = false
+                    appLockViewModel.clearPin()
+                    viewModel.cancelLogout()
+                }
+            ) {
+                Text("Cancel", color = PrimaryGold)
+            }
+        }
     }
 
     if (showPinDialog) {
-        AlertDialog(
+        KhanaBookDialog(
             onDismissRequest = {
                 showPinDialog = false
                 appLockViewModel.clearPin()
             },
-            title = { Text("Enter App PIN", color = TextLight) },
-            text = {
+            title = "Enter App PIN",
+            content = {
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
                     Text(
                         "Unsynced data will be removed from this device after sign out.",
@@ -259,38 +244,32 @@ private fun LegacyLogoutSectionUnused(viewModel: com.khanabook.lite.pos.ui.viewm
                         errorMessage = pinError
                     )
                 }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showPinDialog = false
-                        appLockViewModel.clearPin()
-                    }
-                ) {
-                    Text("Cancel")
-                }
             }
-        )
+        ) {
+            TextButton(
+                onClick = {
+                    showPinDialog = false
+                    appLockViewModel.clearPin()
+                }
+            ) {
+                Text("Cancel", color = PrimaryGold)
+            }
+        }
     }
 
     if (showConfirmDialog) {
-        AlertDialog(
+        KhanaBookDialog(
             onDismissRequest = { showConfirmDialog = false },
-            containerColor = DarkBrown2,
-            title = { Text("Sign Out?", color = TextLight, style = MaterialTheme.typography.titleLarge) },
-            text = { Text("You will be signed out of this device.", color = TextGold.copy(alpha = 0.8f), style = MaterialTheme.typography.bodyMedium) },
-            confirmButton = {
-                TextButton(onClick = { showConfirmDialog = false; viewModel.initiateLogout() }) {
-                    Text("Sign Out", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showConfirmDialog = false }) {
-                    Text("Cancel", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
-                }
+            title = "Sign Out?",
+            message = "You will be signed out of this device."
+        ) {
+            TextButton(onClick = { showConfirmDialog = false; viewModel.initiateLogout() }) {
+                Text("Sign Out", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
             }
-        )
+            TextButton(onClick = { showConfirmDialog = false }) {
+                Text("Cancel", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+            }
+        }
     }
 
     val iconSize = KhanaBookTheme.iconSize

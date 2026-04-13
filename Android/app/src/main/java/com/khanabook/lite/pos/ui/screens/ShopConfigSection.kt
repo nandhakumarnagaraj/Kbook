@@ -27,7 +27,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -50,7 +49,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -60,6 +58,7 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.util.AppAssetStore
 import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookDialog
 import com.khanabook.lite.pos.ui.theme.DangerRed
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
@@ -79,7 +78,8 @@ fun ShopConfigView(
 ) {
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
-    val isCompactWidth = LocalConfiguration.current.screenWidthDp < 400
+    val layout = KhanaBookTheme.layout
+    val isCompactWidth = layout.isCompactForm
     var name by remember { mutableStateOf(profile?.shopName ?: "") }
     var address by remember { mutableStateOf(profile?.shopAddress ?: "") }
     var whatsapp by remember { mutableStateOf(profile?.whatsappNumber ?: "") }
@@ -111,22 +111,18 @@ fun ShopConfigView(
     }
 
     if (showUnsavedDialog) {
-        AlertDialog(
+        KhanaBookDialog(
             onDismissRequest = { showUnsavedDialog = false },
-            containerColor = com.khanabook.lite.pos.ui.theme.DarkBrown2,
-            title = { Text("Unsaved Changes", color = PrimaryGold, style = MaterialTheme.typography.titleLarge) },
-            text = { Text("You have unsaved changes. Discard them?", color = com.khanabook.lite.pos.ui.theme.TextLight, style = MaterialTheme.typography.bodyMedium) },
-            confirmButton = {
-                TextButton(onClick = { showUnsavedDialog = false; onBack() }) {
-                    Text("Discard", color = DangerRed, style = MaterialTheme.typography.labelLarge)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showUnsavedDialog = false }) {
-                    Text("Keep Editing", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
-                }
+            title = "Unsaved Changes",
+            message = "You have unsaved changes. Discard them?"
+        ) {
+            TextButton(onClick = { showUnsavedDialog = false; onBack() }) {
+                Text("Discard", color = DangerRed, style = MaterialTheme.typography.labelLarge)
             }
-        )
+            TextButton(onClick = { showUnsavedDialog = false }) {
+                Text("Keep Editing", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+            }
+        }
     }
 
     LaunchedEffect(saveProfileError) {
@@ -213,7 +209,7 @@ fun ShopConfigView(
             .verticalScroll(rememberScrollState())
             .imePadding()
             .navigationBarsPadding()
-            .padding(spacing.medium)
+            .padding(layout.contentPadding)
     ) {
         ConfigCard {
             Text("Shop Profile", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)

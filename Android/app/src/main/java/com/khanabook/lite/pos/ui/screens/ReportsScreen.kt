@@ -639,7 +639,6 @@ fun OrderDetailsDialog(
                 Spacer(modifier = Modifier.height(spacing.medium))
 
                 if (billWithItems == null) {
-                    // Skeleton loading for bill details
                     Column(modifier = Modifier.fillMaxWidth()) {
                         ShimmerBox(height = 14.dp, modifier = Modifier.fillMaxWidth(0.5f))
                         Spacer(modifier = Modifier.height(spacing.small))
@@ -737,8 +736,6 @@ fun OrderDetailsDialog(
                         DetailRow("Cancel Reason:", bill.cancelReason, ZomatoRed, FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.height(spacing.medium))
-
-
                 }
 
                 Spacer(modifier = Modifier.height(spacing.large))

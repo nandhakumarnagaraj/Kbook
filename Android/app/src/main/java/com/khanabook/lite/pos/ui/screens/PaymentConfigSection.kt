@@ -40,7 +40,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -57,7 +56,8 @@ import com.khanabook.lite.pos.ui.theme.TextGold
 @Composable
 fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileEntity) -> Unit, onBack: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
-    val isCompactWidth = LocalConfiguration.current.screenWidthDp < 400
+    val layout = KhanaBookTheme.layout
+    val isCompactWidth = layout.isCompactForm
     var currency by remember { mutableStateOf(profile?.currency ?: "INR") }
     var upiSupported by remember { mutableStateOf(profile?.upiEnabled ?: false) }
     var upiHandle by remember { mutableStateOf(profile?.upiHandle ?: "") }
@@ -84,7 +84,7 @@ fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProf
             .verticalScroll(rememberScrollState())
             .imePadding()
             .navigationBarsPadding()
-            .padding(spacing.medium)
+            .padding(layout.contentPadding)
     ) {
         ConfigCard {
             ParchmentTextField(value = currency, onValueChange = { currency = it }, label = "Currency *")
