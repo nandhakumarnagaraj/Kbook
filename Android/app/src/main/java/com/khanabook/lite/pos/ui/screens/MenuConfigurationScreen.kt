@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -685,26 +686,7 @@ internal fun ReviewDetectedItemsOverlay(
                     }
                 }
 
-                if (showOverwritePrompt) {
-                    InlineDecisionBar(
-                        title = "Items Already Exist",
-                        message = "Some selected items already exist in your menu.",
-                        primaryLabel = "Overwrite All",
-                        primaryColor = NonVegRed,
-                        secondaryLabel = "Merge & Skip",
-                        secondaryColor = SuccessGreen,
-                        tertiaryLabel = "Cancel",
-                        onPrimaryClick = onConfirmOverwrite,
-                        onSecondaryClick = {
-                            onDismissOverwritePrompt()
-                            onConfirm()
-                        },
-                        onTertiaryClick = onDismissOverwritePrompt,
-                        primaryTag = MenuConfigurationTags.reviewOverlayConflictOverwrite,
-                        secondaryTag = MenuConfigurationTags.reviewOverlayConflictMerge,
-                        tertiaryTag = MenuConfigurationTags.reviewOverlayConflictCancel
-                    )
-                } else if (showDiscardConfirm) {
+                if (showDiscardConfirm) {
                     InlineDecisionBar(
                         title = "Discard Items?",
                         message = "All ${drafts.size} detected items will be discarded.",
@@ -771,7 +753,7 @@ internal fun ReviewDetectedItemsOverlay(
                             Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(KhanaBookTheme.iconSize.medium))
                             Spacer(Modifier.width(10.dp))
                             Text(
-                                if (showOverwritePrompt) "Resolve Conflicts" else "Add $selectedCount Items",
+                                "Add $selectedCount Items",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )
@@ -779,6 +761,17 @@ internal fun ReviewDetectedItemsOverlay(
                     }
                 }
             }
+        }
+
+        if (showOverwritePrompt) {
+            ConflictResolutionDialog(
+                onOverwriteAll = onConfirmOverwrite,
+                onMergeAndSkip = {
+                    onDismissOverwritePrompt()
+                    onConfirm()
+                },
+                onCancel = onDismissOverwritePrompt
+            )
         }
     }
 }
@@ -843,6 +836,85 @@ private fun InlineDecisionBar(
                     ) {
                         Text(tertiaryLabel, color = TextGold)
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConflictResolutionDialog(
+    onOverwriteAll: () -> Unit,
+    onMergeAndSkip: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Dialog(onDismissRequest = onCancel) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.92f),
+            shape = RoundedCornerShape(20.dp),
+            color = DarkBrown1,
+            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.35f))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Conflicts Found",
+                    color = PrimaryGold,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Some selected items already exist in this category. Choose how to continue.",
+                    color = TextLight,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = onOverwriteAll,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NonVegRed,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .testTag(MenuConfigurationTags.reviewOverlayConflictOverwrite),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("Overwrite All", fontWeight = FontWeight.Bold, maxLines = 1)
+                    }
+                    OutlinedButton(
+                        onClick = onMergeAndSkip,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = SuccessGreen),
+                        border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.7f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .testTag(MenuConfigurationTags.reviewOverlayConflictMerge),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("Merge & Skip", fontWeight = FontWeight.Bold, maxLines = 1)
+                    }
+                }
+                OutlinedButton(
+                    onClick = onCancel,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
+                    border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag(MenuConfigurationTags.reviewOverlayConflictCancel)
+                        ,
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text("Cancel", fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -1253,6 +1325,15 @@ fun ModeSelectionView(
                                 testTag = MenuConfigurationTags.smartAiPdf
                             )
                         }
+                        Text(
+                            text = "AI can make mistakes. Please review before saving.",
+                            color = TextGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                        )
                     }
                 }
             }
