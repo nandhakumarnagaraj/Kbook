@@ -13,6 +13,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.khanabook.lite.pos.R
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -167,7 +168,7 @@ class BluetoothPrinterManager(private val context: Context) {
         if (!hasRequiredPermissions() || !isBluetoothEnabled()) return
         
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && !isLocationEnabled()) {
-             android.widget.Toast.makeText(context, "Please turn on Location/GPS to find new devices", android.widget.Toast.LENGTH_LONG).show()
+             android.widget.Toast.makeText(context, context.getString(R.string.toast_turn_on_location), android.widget.Toast.LENGTH_LONG).show()
         }
 
         // Initialize scan list with paired devices

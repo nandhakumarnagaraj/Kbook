@@ -22,6 +22,7 @@ import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
 import com.khanabook.lite.pos.domain.manager.AuthManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
+import com.khanabook.lite.pos.domain.util.BackendException
 import com.khanabook.lite.pos.domain.util.findActivity
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -62,12 +63,18 @@ constructor(
 
     private val _signUpStatus = MutableStateFlow<SignUpResult?>(null)
     val signUpStatus: StateFlow<SignUpResult?> = _signUpStatus
+    private val _signUpFieldErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+    val signUpFieldErrors: StateFlow<Map<String, String>> = _signUpFieldErrors
 
     private val _resetPasswordStatus = MutableStateFlow<ResetPasswordResult?>(null)
     val resetPasswordStatus: StateFlow<ResetPasswordResult?> = _resetPasswordStatus
+    private val _resetPasswordFieldErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+    val resetPasswordFieldErrors: StateFlow<Map<String, String>> = _resetPasswordFieldErrors
 
     private val _otpVerificationStatus = MutableStateFlow<OtpVerificationResult?>(null)
     val otpVerificationStatus: StateFlow<OtpVerificationResult?> = _otpVerificationStatus
+    private val _otpFieldErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+    val otpFieldErrors: StateFlow<Map<String, String>> = _otpFieldErrors
 
     private val _isUserChecking = MutableStateFlow(false)
     val isUserChecking: StateFlow<Boolean> = _isUserChecking
@@ -101,6 +108,9 @@ constructor(
     }
 
     fun login(loginId: String, password: String) {
+        _signUpFieldErrors.value = emptyMap()
+        _resetPasswordFieldErrors.value = emptyMap()
+        _otpFieldErrors.value = emptyMap()
         val now = System.currentTimeMillis()
         val lockoutUntilMs = sessionManager.getLockoutUntilMs()
         if (now < lockoutUntilMs) {
@@ -134,15 +144,20 @@ constructor(
             }
         }.onFailure { e ->
             Log.e(TAG, "Remote login failed: ${e.message}.", e)
-            
-            if (e is retrofit2.HttpException) {
-                if (e.code() == 401 || e.code() == 404) {
-                    _loginStatus.value = loginError(
-                        "Incorrect login ID or password.",
-                        LoginErrorCode.INCORRECT_PASSWORD
-                    )
-                    return@onFailure
-                }
+
+            val statusCode = when (e) {
+                is retrofit2.HttpException -> e.code()
+                is BackendException -> e.details.statusCode
+                else -> null
+            }
+            val sanitized = UserMessageSanitizer.sanitizeWithDetails(e, "Login failed. Please try again.")
+
+            if (statusCode == 401 || statusCode == 404) {
+                _loginStatus.value = loginError(
+                    "Incorrect login ID or password.",
+                    LoginErrorCode.INCORRECT_PASSWORD
+                )
+                return@onFailure
             } else if (e is java.io.IOException) {
                 _loginStatus.value = loginError(
                     "Server is offline. Please check your connection.",
@@ -161,7 +176,7 @@ constructor(
                 )
             } else {
                 _loginStatus.value = loginError(
-                    "No account found with this login ID or server is offline.",
+                    sanitized.message.ifBlank { "No account found with this login ID or server is offline." },
                     LoginErrorCode.ACCOUNT_NOT_FOUND
                 )
             }
@@ -179,19 +194,23 @@ constructor(
     fun sendOtp(phoneNumber: String, purpose: String = "signup") {
         viewModelScope.launch {
             if (purpose == "signup") {
+                _signUpFieldErrors.value = emptyMap()
                 try {
                     userRepository.requestSignupOtp(phoneNumber)
                     _signUpStatus.value = SignUpResult.OtpSent
                 } catch (e: Exception) {
+                    val sanitized = UserMessageSanitizer.sanitizeWithDetails(e, "Failed to send OTP. Please try again.")
+                    _signUpFieldErrors.value = sanitized.fieldErrors
                     _signUpStatus.value =
                         SignUpResult.Error(
-                            UserMessageSanitizer.sanitize(e, "Failed to send OTP. Please try again.")
+                            sanitized.message
                         )
                 }
                 return@launch
             }
 
             if (purpose == "reset") {
+                _resetPasswordFieldErrors.value = emptyMap()
                 _resetPasswordStatus.value = ResetPasswordResult.Loading
                 val userExists = try {
                     userRepository.checkUserExistsRemotely(phoneNumber)
@@ -210,22 +229,27 @@ constructor(
                     userRepository.requestPasswordResetOtp(phoneNumber)
                     _resetPasswordStatus.value = ResetPasswordResult.OtpSent
                 } catch (e: Exception) {
+                    val sanitized = UserMessageSanitizer.sanitizeWithDetails(e, "Failed to send OTP. Please try again.")
+                    _resetPasswordFieldErrors.value = sanitized.fieldErrors
                     _resetPasswordStatus.value =
                         ResetPasswordResult.Error(
-                            UserMessageSanitizer.sanitize(e, "Failed to send OTP. Please try again.")
+                            sanitized.message
                         )
                 }
                 return@launch
             }
 
             if (purpose == "update_whatsapp") {
+                _otpFieldErrors.value = emptyMap()
                 val result = userRepository.requestMobileNumberUpdateOtp(phoneNumber)
                 result.onSuccess {
                     _otpVerificationStatus.value = OtpVerificationResult.OtpSent
                 }.onFailure { e ->
+                    val sanitized = UserMessageSanitizer.sanitizeWithDetails(e, "Failed to send OTP. Please try again.")
+                    _otpFieldErrors.value = sanitized.fieldErrors
                     _otpVerificationStatus.value =
                         OtpVerificationResult.Error(
-                            UserMessageSanitizer.sanitize(e, "Failed to send OTP. Please try again.")
+                            sanitized.message
                         )
                 }
                 return@launch
@@ -235,13 +259,16 @@ constructor(
 
     fun confirmMobileNumberUpdate(phoneNumber: String, otp: String) {
         viewModelScope.launch {
+            _otpFieldErrors.value = emptyMap()
             val result = userRepository.confirmMobileNumberUpdate(phoneNumber, otp)
             result.onSuccess {
                 _otpVerificationStatus.value = OtpVerificationResult.Success
             }.onFailure { e ->
+                val sanitized = UserMessageSanitizer.sanitizeWithDetails(e, "Failed to verify OTP.")
+                _otpFieldErrors.value = sanitized.fieldErrors
                 _otpVerificationStatus.value =
                     OtpVerificationResult.Error(
-                        UserMessageSanitizer.sanitize(e, "Failed to verify OTP.")
+                        sanitized.message
                     )
             }
         }
@@ -249,6 +276,7 @@ constructor(
 
     fun signUp(name: String, phoneNumber: String, otp: String, password: String) {
         viewModelScope.launch {
+            _signUpFieldErrors.value = emptyMap()
             _signUpStatus.value = SignUpResult.Loading
             try {
 
@@ -293,13 +321,17 @@ constructor(
                         )
                     }
                 }.onFailure { e ->
+                    val sanitized = UserMessageSanitizer.sanitizeWithDetails(e, "Registration failed")
+                    _signUpFieldErrors.value = sanitized.fieldErrors
                     _signUpStatus.value = SignUpResult.Error(
-                        UserMessageSanitizer.sanitize(e, "Registration failed")
+                        sanitized.message
                     )
                 }
             } catch (e: Exception) {
+                val sanitized = UserMessageSanitizer.sanitizeWithDetails(e, "Registration failed")
+                _signUpFieldErrors.value = sanitized.fieldErrors
                 _signUpStatus.value = SignUpResult.Error(
-                    UserMessageSanitizer.sanitize(e, "Registration failed")
+                    sanitized.message
                 )
             }
         }
@@ -307,14 +339,17 @@ constructor(
 
     fun resetPassword(phoneNumber: String, otp: String, newPassword: String) {
         viewModelScope.launch {
+            _resetPasswordFieldErrors.value = emptyMap()
             try {
                 userRepository.remoteResetPassword(phoneNumber, otp, newPassword)
                 
                 _resetPasswordStatus.value = ResetPasswordResult.Success
             } catch (e: Exception) {
+                val sanitized = UserMessageSanitizer.sanitizeWithDetails(e, "Failed to reset password")
+                _resetPasswordFieldErrors.value = sanitized.fieldErrors
                 _resetPasswordStatus.value =
                         ResetPasswordResult.Error(
-                            UserMessageSanitizer.sanitize(e, "Failed to reset password")
+                            sanitized.message
                         )
             }
         }
@@ -465,14 +500,17 @@ constructor(
 
     fun resetSignUpStatus() {
         _signUpStatus.value = null
+        _signUpFieldErrors.value = emptyMap()
     }
 
     fun clearResetStatus() {
         _resetPasswordStatus.value = null
+        _resetPasswordFieldErrors.value = emptyMap()
     }
 
     fun clearOtpStatus() {
         _otpVerificationStatus.value = null
+        _otpFieldErrors.value = emptyMap()
     }
 
     sealed class LoginResult {        object Loading : LoginResult()

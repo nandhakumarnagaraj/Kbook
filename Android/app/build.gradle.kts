@@ -34,6 +34,8 @@ val hasReleaseSigning =
 val hasExplicitReleaseVersion =
     configValue("RELEASE_VERSION_CODE").isNotBlank() &&
         configValue("RELEASE_VERSION_NAME").isNotBlank()
+val isHttpsBackendUrl = backendUrl.startsWith("https://", ignoreCase = true)
+val hasGoogleWebClientId = googleWebClientId.isNotBlank()
 
 plugins {
     alias(libs.plugins.android.application)
@@ -129,6 +131,42 @@ android {
                         }
                 }
             }
+            if (!isHttpsBackendUrl) {
+                gradle.taskGraph.whenReady {
+                    allTasks
+                        .filter { task ->
+                            task.project == project &&
+                            (task.name.startsWith("assemble") || task.name.startsWith("bundle")) &&
+                            task.name.contains("Release", ignoreCase = true)
+                        }
+                        .forEach { task ->
+                            task.doFirst {
+                                throw GradleException(
+                                    "Release BACKEND_URL must use HTTPS. " +
+                                    "Set BACKEND_URL to an https:// endpoint before building a release."
+                                )
+                            }
+                        }
+                }
+            }
+            if (!hasGoogleWebClientId) {
+                gradle.taskGraph.whenReady {
+                    allTasks
+                        .filter { task ->
+                            task.project == project &&
+                            (task.name.startsWith("assemble") || task.name.startsWith("bundle")) &&
+                            task.name.contains("Release", ignoreCase = true)
+                        }
+                        .forEach { task ->
+                            task.doFirst {
+                                throw GradleException(
+                                    "GOOGLE_WEB_CLIENT_ID is required for release builds. " +
+                                    "Set it via local.properties, Gradle properties, or environment variables."
+                                )
+                            }
+                        }
+                }
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -139,10 +177,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -157,6 +191,12 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 

@@ -23,7 +23,11 @@ BACKEND_URL=https://kbook.iadv.cloud/
 - Rotate and verify the certificate pin in `app/src/main/res/xml/network_security_config.xml` before the current pin expiration date.
 - Confirm Google sign-in client ID matches the Play signing setup.
 - Review whether `android:largeHeap="true"` is still required before public scale.
-- Review whether `androidx.security:security-crypto:1.1.0-alpha06` should be upgraded after compatibility testing.
+- Confirm legacy encrypted preference migration succeeds on an upgraded device:
+  - existing auth token survives app update
+  - existing SQLCipher database still opens after update
+  - PIN/app-lock data still works after update
+- Confirm screenshots are blocked on release builds (`FLAG_SECURE`) for billing and auth screens.
 
 ## Permissions And Policy
 - Prepare Play Console Data safety answers for:
@@ -54,6 +58,7 @@ BACKEND_URL=https://kbook.iadv.cloud/
 
 ```powershell
 .\gradlew.bat :app:compileReleaseKotlin
+.\gradlew.bat :app:lintRelease
 .\gradlew.bat :app:assembleRelease
 ```
 

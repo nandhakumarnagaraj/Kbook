@@ -18,9 +18,12 @@ import com.khanabook.lite.pos.data.remote.api.LoginRequest
 import com.khanabook.lite.pos.data.remote.api.GoogleLoginRequest
 import com.khanabook.lite.pos.data.remote.api.SignupRequest
 import com.khanabook.lite.pos.data.remote.api.SignupOtpRequest
+import com.khanabook.lite.pos.domain.util.BackendErrorParser
+import com.khanabook.lite.pos.domain.util.BackendException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import retrofit2.HttpException
 
 class UserRepository(
         private val userDao: UserDao,
@@ -90,7 +93,7 @@ class UserRepository(
             setCurrentUser(localUser)
             Result.success(localUser)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(mapBackendException(e))
         }
     }
 
@@ -144,7 +147,7 @@ class UserRepository(
             setCurrentUser(localUser)
             Result.success(localUser)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(mapBackendException(e))
         }
     }
 
@@ -201,7 +204,7 @@ class UserRepository(
             setCurrentUser(localUser)
             Result.success(localUser)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(mapBackendException(e))
         }
     }
 
@@ -255,16 +258,28 @@ class UserRepository(
     }
 
     suspend fun requestPasswordResetOtp(phoneNumber: String) {
-        api.requestPasswordResetOtp(PasswordResetOtpRequest(phoneNumber))
+        try {
+            api.requestPasswordResetOtp(PasswordResetOtpRequest(phoneNumber))
+        } catch (e: Exception) {
+            throw mapBackendException(e)
+        }
     }
 
     suspend fun requestSignupOtp(phoneNumber: String) {
-        api.requestSignupOtp(SignupOtpRequest(phoneNumber))
+        try {
+            api.requestSignupOtp(SignupOtpRequest(phoneNumber))
+        } catch (e: Exception) {
+            throw mapBackendException(e)
+        }
     }
 
     suspend fun remoteResetPassword(phoneNumber: String, otp: String, newPasswordPlain: String) {
         val request = ResetPasswordRequest(phoneNumber, otp, newPasswordPlain)
-        api.resetPassword(request)
+        try {
+            api.resetPassword(request)
+        } catch (e: Exception) {
+            throw mapBackendException(e)
+        }
     }
 
     suspend fun checkUserExistsRemotely(phoneNumber: String): Boolean {
@@ -278,10 +293,10 @@ class UserRepository(
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
-                Result.failure(Exception(parseErrorMessage(response.errorBody()?.string(), "Failed to send OTP.")))
+                Result.failure(response.toBackendException("Failed to send OTP. Please try again."))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(mapBackendException(e))
         }
     }
 
@@ -315,10 +330,10 @@ class UserRepository(
                 }
                 Result.success(Unit)
             } else {
-                Result.failure(Exception(parseErrorMessage(response.errorBody()?.string(), "Failed to update mobile number.")))
+                Result.failure(response.toBackendException("Failed to update mobile number."))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(mapBackendException(e))
         }
     }
 
@@ -358,11 +373,25 @@ class UserRepository(
         )
     }
 
-    private fun parseErrorMessage(errorBody: String?, fallback: String): String {
-        return try {
-            org.json.JSONObject(errorBody ?: "").getString("error")
-        } catch (e: Exception) {
-            fallback
+    private fun mapBackendException(error: Throwable): Throwable {
+        return when (error) {
+            is BackendException -> error
+            is HttpException -> BackendException(BackendErrorParser.fromHttpException(error), error)
+            else -> error
         }
+    }
+
+    private fun retrofit2.Response<*>.toBackendException(fallback: String): BackendException {
+        val parsed = BackendErrorParser.parse(
+            errorBody = runCatching { errorBody()?.string() }.getOrNull(),
+            statusCode = code()
+        )
+        return BackendException(
+            if (parsed.message.isNullOrBlank() && parsed.fieldErrors.isEmpty()) {
+                parsed.copy(message = fallback)
+            } else {
+                parsed
+            }
+        )
     }
 }

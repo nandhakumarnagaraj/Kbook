@@ -7,6 +7,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -42,6 +43,16 @@ public class GlobalExceptionHandler {
 		log.warn("Bad request [{}]: {}", request.getRequestURI(), message);
 		return ResponseEntity.badRequest().body(Map.of(
 				"error", message,
+				"path", request.getRequestURI()
+		));
+	}
+
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<Map<String, Object>> handleUnreadableMessage(
+			HttpMessageNotReadableException e, HttpServletRequest request) {
+		log.warn("Malformed request body [{}]: {}", request.getRequestURI(), e.getMessage());
+		return ResponseEntity.badRequest().body(Map.of(
+				"error", "Malformed or missing request body",
 				"path", request.getRequestURI()
 		));
 	}

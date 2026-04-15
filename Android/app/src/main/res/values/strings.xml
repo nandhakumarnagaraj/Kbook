@@ -46,4 +46,24 @@
     <string name="thank_you_visit_again">Thank you! Visit again.</string>
     <string name="cd_back">Back</string>
     <string name="cd_logo">KhanaBook Lite logo</string>
+    <string name="toast_welcome_back">Welcome back</string>
+    <string name="toast_profile_saved">Profile saved</string>
+    <string name="toast_otp_sent">OTP sent to WhatsApp</string>
+    <string name="toast_verified">Verified</string>
+    <string name="toast_verify_new_whatsapp">Verify the new WhatsApp number</string>
+    <string name="toast_password_reset">Password reset</string>
+    <string name="toast_signed_out">Signed out</string>
+    <string name="toast_permissions_required">Allow permissions to continue</string>
+    <string name="toast_printer_connected">Printer connected</string>
+    <string name="toast_printer_connect_failed">Couldn\'t connect printer</string>
+    <string name="toast_payment_settings_saved">Payment settings saved</string>
+    <string name="toast_printer_settings_saved">Printer settings saved</string>
+    <string name="toast_tax_settings_saved">Tax settings saved</string>
+    <string name="toast_enter_valid_number">Enter a valid number</string>
+    <string name="toast_whatsapp_search_number_copied">Number copied. Paste it in WhatsApp search.</string>
+    <string name="toast_printer_opening_pdf">Printer not connected. Opening PDF</string>
+    <string name="toast_order_placed">Order placed</string>
+    <string name="toast_payment_failed">Payment failed</string>
+    <string name="toast_turn_on_location">Turn on location to find printers</string>
+    <string name="field_numbers_only">Numbers only</string>
 </resources>

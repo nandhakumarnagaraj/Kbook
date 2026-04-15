@@ -82,6 +82,7 @@ fun SignUpScreen(
     val loginStatus by viewModel.loginStatus.collectAsState()
     val isUserChecking by viewModel.isUserChecking.collectAsState()
     val userExistsError by viewModel.userExistsError.collectAsState()
+    val signUpFieldErrors by viewModel.signUpFieldErrors.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val isLoading = signUpStatus is AuthViewModel.SignUpResult.Loading || loginStatus is AuthViewModel.LoginResult.Loading
@@ -126,6 +127,10 @@ fun SignUpScreen(
         val min = seconds / 60
         val sec = seconds % 60
         return String.format("%02d:%02d", min, sec)
+    }
+
+    fun fieldError(vararg keys: String): String? = keys.firstNotNullOfOrNull { key ->
+        signUpFieldErrors[key]?.takeIf { it.isNotBlank() }
     }
 
     LaunchedEffect(otpSent) {
@@ -211,9 +216,12 @@ fun SignUpScreen(
                             keyboardActions = KeyboardActions(
                                 onNext = { runCatching { phoneFocusRequester.requestFocus() } }
                             ),
-                            isError = shopName.isNotEmpty() && !isNameValid,
+                            isError = (shopName.isNotEmpty() && !isNameValid) || fieldError("name", "shopName") != null,
                             supportingText = {
-                                if (shopName.isNotEmpty() && !isNameValid)
+                                val backendFieldError = fieldError("name", "shopName")
+                                if (backendFieldError != null) {
+                                        Text(backendFieldError, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                                } else if (shopName.isNotEmpty() && !isNameValid)
                                         Text("Shop name too short", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                             }
                     )
@@ -251,9 +259,12 @@ fun SignUpScreen(
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
                             enabled = !isLoading,
-                            isError = (phoneNumber.isNotEmpty() && !isPhoneValid) || userExistsError != null,
+                            isError = (phoneNumber.isNotEmpty() && !isPhoneValid) || userExistsError != null || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
                             supportingText = {
-                                if (userExistsError != null) {
+                                val backendFieldError = fieldError("phoneNumber", "loginId", "whatsappNumber")
+                                if (backendFieldError != null) {
+                                    Text(backendFieldError, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                                } else if (userExistsError != null) {
                                     Text(userExistsError.orEmpty(), color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                                 } else if (phoneNumber.isNotEmpty() && !isPhoneValid) {
                                     Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
@@ -330,7 +341,12 @@ fun SignUpScreen(
                                 colors = outlinedTextFieldColors(),
                                 singleLine = true,
                                 enabled = !isLoading,
-                                isError = false,
+                                isError = fieldError("otp") != null,
+                                supportingText = {
+                                    fieldError("otp")?.let {
+                                        Text(it, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                                    }
+                                },
                                 trailingIcon = {
                                     if (otpTimer > 0) {
                                         Text(
@@ -388,9 +404,16 @@ fun SignUpScreen(
                             keyboardActions = KeyboardActions(
                                 onNext = { runCatching { confirmPasswordFocusRequester.requestFocus() } }
                             ),
-                            isError = newPassword.isNotEmpty() && !isPasswordValid,
+                            isError = (newPassword.isNotEmpty() && !isPasswordValid) || fieldError("password") != null,
                             supportingText = {
-                                if (newPassword.isNotEmpty() && !isPasswordValid)
+                                val backendFieldError = fieldError("password")
+                                if (backendFieldError != null)
+                                        Text(
+                                                backendFieldError,
+                                                color = ErrorPink,
+                                                style = MaterialTheme.typography.labelSmall
+                                        )
+                                else if (newPassword.isNotEmpty() && !isPasswordValid)
                                         Text(
                                                 "Min 8 chars, uppercase, digit & special character",
                                                 color = ErrorPink,

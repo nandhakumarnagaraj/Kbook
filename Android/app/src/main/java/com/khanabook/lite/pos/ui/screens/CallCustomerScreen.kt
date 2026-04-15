@@ -26,6 +26,7 @@ import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import com.khanabook.lite.pos.R
 
 @Composable
 fun CallCustomerScreen(
@@ -36,6 +37,8 @@ fun CallCustomerScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     var lifetimeId by remember { mutableStateOf("") }
     var dailyId by remember { mutableStateOf("") }
+    var showDailyIdError by remember { mutableStateOf(false) }
+    var showLifetimeIdError by remember { mutableStateOf(false) }
     var dailyDate by remember {
         mutableStateOf(
                 java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
@@ -129,18 +132,25 @@ fun CallCustomerScreen(
             if (selectedTab == 0) {
                 OutlinedTextField(
                         value = dailyId,
-                        onValueChange = { 
+                        onValueChange = {
                             if (it.isEmpty() || it.all { char -> char.isDigit() }) {
                                 dailyId = it
+                                showDailyIdError = false
                             } else {
-                                android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
+                                showDailyIdError = true
                             }
                         },
                         label = { Text("Order No") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         colors = outlinedSearchFieldColors(),
-                        singleLine = true
+                        singleLine = true,
+                        isError = showDailyIdError,
+                        supportingText = {
+                            if (showDailyIdError) {
+                                Text(context.getString(R.string.field_numbers_only))
+                            }
+                        }
                 )
                 Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -176,8 +186,9 @@ fun CallCustomerScreen(
                             val invoiceNo = it.removePrefix("INV").removePrefix("inv")
                             if (invoiceNo.isEmpty() || invoiceNo.all { char -> char.isDigit() }) {
                                 lifetimeId = invoiceNo
+                                showLifetimeIdError = false
                             } else {
-                                android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
+                                showLifetimeIdError = true
                             }
                         },
                         label = { Text("Invoice No") },
@@ -185,6 +196,12 @@ fun CallCustomerScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
+                        isError = showLifetimeIdError,
+                        supportingText = {
+                            if (showLifetimeIdError) {
+                                Text(context.getString(R.string.field_numbers_only))
+                            }
+                        },
                         keyboardOptions =
                                 androidx.compose.foundation.text.KeyboardOptions(
                                         keyboardType =

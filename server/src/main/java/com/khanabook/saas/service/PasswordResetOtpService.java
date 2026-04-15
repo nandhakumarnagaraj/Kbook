@@ -48,9 +48,6 @@ public class PasswordResetOtpService {
 	@Value("${whatsapp.meta.otp-template-name:}")
 	private String otpTemplateName;
 
-	@Value("${whatsapp.meta.fixed-otp:}")
-	private String fixedOtp;
-
 	@Transactional
 	public void issueOtp(String phoneNumber) {
 		issueOtp(PASSWORD_RESET_PREFIX + phoneNumber, phoneNumber);
@@ -82,9 +79,7 @@ public class PasswordResetOtpService {
 	}
 
 	private void issueOtp(String challengeKey, String phoneNumber) {
-		String otp = (fixedOtp != null && fixedOtp.matches("^\\d{6}$"))
-				? fixedOtp
-				: String.format("%06d", java.util.concurrent.ThreadLocalRandom.current().nextInt(0, 1_000_000));
+		String otp = String.format("%06d", java.util.concurrent.ThreadLocalRandom.current().nextInt(0, 1_000_000));
 
 		long now = System.currentTimeMillis();
 		OtpRequest request = otpRequestRepository.findByChallengeKey(challengeKey)
@@ -187,16 +182,13 @@ public class PasswordResetOtpService {
 			HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 			if (response.statusCode() >= 300) {
 				log.error(
-						"WhatsApp OTP send failed for challengeType={} phone={} formattedPhone={} status={} body={}",
+						"WhatsApp OTP send failed for challengeType={} phone={} formattedPhone={} status={}",
 						describeChallenge(challengeKey),
 						phoneNumber,
 						formattedPhoneNumber,
-						response.statusCode(),
-						response.body());
+						response.statusCode());
 				throw new IllegalStateException("WhatsApp OTP send failed with status " + response.statusCode());
 			}
-			log.info("WhatsApp API Response (SUCCESS) for {} phone={}: {}", 
-					describeChallenge(challengeKey), formattedPhoneNumber, response.body());
 			log.info("WhatsApp OTP sent for challengeType={} phone={} formattedPhone={}",
 					describeChallenge(challengeKey), phoneNumber, formattedPhoneNumber);
 		} catch (Exception e) {

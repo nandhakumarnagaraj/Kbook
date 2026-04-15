@@ -12,48 +12,49 @@ class GlobalCrashHandler(private val context: Context) : Thread.UncaughtExceptio
   private val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
 
   override fun uncaughtException(thread: Thread, throwable: Throwable) {
-    Log.e("KhanaBookCrash", "CRITICAL: Uncaught exception in thread ${thread.name}", throwable)
+    logCrash("CRITICAL: Uncaught exception in thread ${thread.name}", throwable)
 
-    // Only persist stack traces in debug builds — stack traces may contain internal paths
+    // Only persist stack traces in debug builds. Release traces should go to OS / Play reporting.
     if (BuildConfig.DEBUG) {
-        try {
-            saveCrashLog(Log.getStackTraceString(throwable))
-        } catch (e: Exception) {
-            Log.e("KhanaBookCrash", "Secondary error in saveCrashLog: ${e.message}")
-        }
+      try {
+        saveCrashLog(Log.getStackTraceString(throwable))
+      } catch (e: Exception) {
+        logCrash("Secondary error in saveCrashLog: ${e.message}")
+      }
     }
 
-    // Crash loop detection — fall back to system handler if crashing repeatedly
+    // Crash loop detection: fall back to system handler if crashing repeatedly.
     try {
-        val prefs = context.getSharedPreferences("crash_reports", Context.MODE_PRIVATE)
-        val now = System.currentTimeMillis()
-        val lastCrashTime = prefs.getLong("last_crash_time", 0L)
-        val crashCount = prefs.getInt("crash_count", 0)
+      val prefs = context.getSharedPreferences("crash_reports", Context.MODE_PRIVATE)
+      val now = System.currentTimeMillis()
+      val lastCrashTime = prefs.getLong("last_crash_time", 0L)
+      val crashCount = prefs.getInt("crash_count", 0)
 
-        val newCrashCount = if (now - lastCrashTime < 10_000L) crashCount + 1 else 1
+      val newCrashCount = if (now - lastCrashTime < 10_000L) crashCount + 1 else 1
 
-        prefs.edit().apply {
-            putLong("last_crash_time", now)
-            putInt("crash_count", newCrashCount)
-            apply()
-        }
+      prefs.edit().apply {
+        putLong("last_crash_time", now)
+        putInt("crash_count", newCrashCount)
+        apply()
+      }
 
-        if (newCrashCount >= 3) {
-            Log.e("KhanaBookCrash", "Crash loop detected — delegating to system handler.")
-            prefs.edit().putInt("crash_count", 0).apply()
-            defaultHandler?.uncaughtException(thread, throwable)
-            return
-        }
-    } catch (e: Exception) {
-        Log.e("KhanaBookCrash", "Error in crash loop detection: ${e.message}")
+      if (newCrashCount >= 3) {
+        logCrash("Crash loop detected; delegating to system handler.")
+        prefs.edit().putInt("crash_count", 0).apply()
         defaultHandler?.uncaughtException(thread, throwable)
         return
+      }
+    } catch (e: Exception) {
+      logCrash("Error in crash loop detection: ${e.message}")
+      defaultHandler?.uncaughtException(thread, throwable)
+      return
     }
 
-    // OOM and SOE cannot be recovered from — let the system handle them
-    if (throwable is OutOfMemoryError || throwable is StackOverflowError) {
-        defaultHandler?.uncaughtException(thread, throwable)
-        return
+    // Production builds should crash normally so the OS and Play Console can report them.
+    // OOM and SOE are never safe to recover from even in debug.
+    if (!BuildConfig.DEBUG || throwable is OutOfMemoryError || throwable is StackOverflowError) {
+      defaultHandler?.uncaughtException(thread, throwable)
+      return
     }
 
     try {
@@ -72,8 +73,22 @@ class GlobalCrashHandler(private val context: Context) : Thread.UncaughtExceptio
         apply()
       }
     } catch (e: Exception) {
-      Log.e("KhanaBookCrash", "Failed to save crash log", e)
+      logCrash("Failed to save crash log", e)
     }
+  }
+
+  private fun logCrash(message: String, throwable: Throwable? = null) {
+    if (BuildConfig.DEBUG) {
+      if (throwable != null) {
+        Log.e("KhanaBookCrash", message, throwable)
+      } else {
+        Log.e("KhanaBookCrash", message)
+      }
+      return
+    }
+
+    val sanitizedMessage = throwable?.let { "$message: ${it::class.java.simpleName}" } ?: message
+    Log.e("KhanaBookCrash", sanitizedMessage)
   }
 
   private fun restartApp() {

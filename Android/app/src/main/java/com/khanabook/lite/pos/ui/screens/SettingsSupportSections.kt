@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.BuildConfig
+import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookDialog
 import com.khanabook.lite.pos.ui.theme.DangerRed
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
@@ -86,7 +87,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
 
     LaunchedEffect(logoutState) {
         if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.LoggedOut) {
-            Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_signed_out), Toast.LENGTH_SHORT).show()
         }
     }
 

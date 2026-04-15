@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.PaymentModeManager
@@ -91,10 +92,10 @@ fun NewBillScreen(
     
     LaunchedEffect(step) {
         if (step == 4) {
-            android.widget.Toast.makeText(context, "Order Placed Successfully!", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(context, context.getString(R.string.toast_order_placed), android.widget.Toast.LENGTH_SHORT).show()
         }
         if (step == 5) {
-            android.widget.Toast.makeText(context, "Payment marked as failed.", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(context, context.getString(R.string.toast_payment_failed), android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 

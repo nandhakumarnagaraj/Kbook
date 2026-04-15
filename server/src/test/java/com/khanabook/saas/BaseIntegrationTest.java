@@ -1,9 +1,11 @@
 package com.khanabook.saas;
 
 import com.khanabook.saas.entity.AuthProvider;
+import com.khanabook.saas.entity.OtpRequest;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.repository.OtpRequestRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.utility.JwtUtility;
@@ -19,8 +21,12 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 public abstract class BaseIntegrationTest {
 
+    protected static final String TEST_OTP = "123456";
+    private static final long OTP_TTL_MILLIS = 10 * 60 * 1000L;
+
     @Autowired protected UserRepository userRepository;
     @Autowired protected RestaurantProfileRepository restaurantProfileRepository;
+    @Autowired protected OtpRequestRepository otpRequestRepository;
     @Autowired protected PasswordEncoder passwordEncoder;
     @Autowired protected JwtUtility jwtUtility;
 
@@ -33,10 +39,29 @@ public abstract class BaseIntegrationTest {
 
         registry.add("JWT_SECRET",       () -> "integration-test-secret-64-chars-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
         registry.add("GOOGLE_CLIENT_ID", () -> "test-google-client-id");
-        registry.add("whatsapp.meta.fixed-otp", () -> "123456");
 
         registry.add("spring.flyway.enabled",             () -> "false");
         registry.add("spring.jpa.hibernate.ddl-auto",    () -> "create-drop");
+    }
+
+    protected void seedSignupOtp(String phoneNumber) {
+        seedOtp("signup:" + phoneNumber, phoneNumber);
+    }
+
+    protected void seedPasswordResetOtp(String phoneNumber) {
+        seedOtp("password-reset:" + phoneNumber, phoneNumber);
+    }
+
+    private void seedOtp(String challengeKey, String phoneNumber) {
+        long now = System.currentTimeMillis();
+        otpRequestRepository.save(OtpRequest.builder()
+                .challengeKey(challengeKey)
+                .phoneNumber(phoneNumber)
+                .otp(passwordEncoder.encode(TEST_OTP))
+                .expiresAt(now + OTP_TTL_MILLIS)
+                .attempts(0)
+                .createdAt(now)
+                .build());
     }
 
     protected String persistUserAndGetToken(String loginId, Long restaurantId, UserRole role) {

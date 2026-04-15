@@ -61,32 +61,96 @@ object UserMessageSanitizer {
     )
 
     fun sanitize(error: Throwable?, fallback: String): String {
+        return sanitizeWithDetails(error, fallback).message
+    }
+
+    fun sanitizeWithDetails(error: Throwable?, fallback: String): SanitizedBackendError {
+        val parsed = when (error) {
+            is BackendException -> error.details
+            is retrofit2.HttpException -> BackendErrorParser.fromHttpException(error)
+            else -> null
+        }
+
+        if (parsed != null) {
+            return sanitizeBackendError(parsed, fallback)
+        }
+
         val message = error?.message?.trim().orEmpty()
-        if (message.isBlank()) return fallback
+        if (message.isBlank()) return SanitizedBackendError(message = fallback)
 
         val lowered = message.lowercase()
 
         if (databaseFragments.any { it in lowered }) {
-            return fallback
+            return SanitizedBackendError(message = fallback)
         }
 
         if (networkFragments.any { fragment -> lowered.contains(fragment) }) {
-            return "Network error. Please check your connection."
+            return SanitizedBackendError(message = "Network error. Please check your connection.")
         }
 
         if (authFragments.any { fragment -> lowered.contains(fragment) }) {
-            return "Authentication error. Please login again."
+            return SanitizedBackendError(message = "Authentication error. Please login again.")
         }
 
         if (serverErrorPatterns.any { pattern -> lowered.contains(pattern) }) {
-            return "Server error. Please try again later."
+            return SanitizedBackendError(message = "Server error. Please try again later.")
         }
 
         if (sensitivePatterns.any { it.containsMatchIn(message) }) {
-            return fallback
+            return SanitizedBackendError(message = fallback)
         }
 
-        return message
+        return SanitizedBackendError(message = fallback)
+    }
+
+    fun sanitizeBackendError(error: ParsedBackendError, fallback: String): SanitizedBackendError {
+        val fallbackMessage = error.statusCode?.let { sanitizeHttpError(it, fallback) } ?: fallback
+        if (error.statusCode == 409) {
+            return SanitizedBackendError(
+                message = fallbackMessage,
+                fieldErrors = emptyMap(),
+                path = error.path,
+                errorId = error.errorId,
+                statusCode = error.statusCode
+            )
+        }
+        val sanitizedFieldErrors = error.fieldErrors.mapValuesNotNull { (_, value) ->
+            val sanitized = sanitizeBackendMessage(value, "")
+            sanitized.takeIf { it.isNotBlank() }
+        }
+        val primaryMessage = sanitizeBackendMessage(error.message, fallbackMessage)
+        val message = if (primaryMessage == fallbackMessage && sanitizedFieldErrors.isNotEmpty()) {
+            sanitizedFieldErrors.values.first()
+        } else {
+            primaryMessage
+        }
+
+        return SanitizedBackendError(
+            message = message,
+            fieldErrors = sanitizedFieldErrors,
+            path = error.path,
+            errorId = error.errorId,
+            statusCode = error.statusCode
+        )
+    }
+
+    fun sanitizeBackendMessage(message: String?, fallback: String): String {
+        val trimmedMessage = message?.trim().orEmpty()
+        if (trimmedMessage.isBlank()) return fallback
+
+        val lowered = trimmedMessage.lowercase()
+        if (databaseFragments.any { it in lowered }) return fallback
+        if (networkFragments.any { fragment -> lowered.contains(fragment) }) {
+            return "Network error. Please check your connection."
+        }
+        if (authFragments.any { fragment -> lowered.contains(fragment) }) {
+            return "Authentication error. Please login again."
+        }
+        if (serverErrorPatterns.any { pattern -> lowered.contains(pattern) }) {
+            return "Server error. Please try again later."
+        }
+        if (sensitivePatterns.any { it.containsMatchIn(trimmedMessage) }) return fallback
+        return fallback
     }
 
     fun sanitizeHttpError(code: Int, fallback: String): String {
@@ -95,7 +159,7 @@ object UserMessageSanitizer {
             401 -> "Session expired. Please login again."
             403 -> "Access denied. Please login again."
             404 -> "Resource not found. Please try again."
-            409 -> "Conflict detected. Please refresh and try again."
+            409 -> SYNC_CONFLICT_MESSAGE
             in 500..599 -> "Server error. Please try again later."
             else -> fallback
         }
@@ -107,5 +171,13 @@ object UserMessageSanitizer {
 
     fun sanitizeGenericError(fallback: String): String {
         return fallback
+    }
+
+    private inline fun <K, V, R : Any> Map<K, V>.mapValuesNotNull(transform: (Map.Entry<K, V>) -> R?): Map<K, R> {
+        val result = LinkedHashMap<K, R>()
+        for (entry in entries) {
+            transform(entry)?.let { result[entry.key] = it }
+        }
+        return result
     }
 }

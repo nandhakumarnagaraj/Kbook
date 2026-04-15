@@ -3,6 +3,7 @@ package com.khanabook.lite.pos.ui.viewmodel
 import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.repository.BillRepository
+import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.domain.util.ConnectionStatus
 import com.khanabook.lite.pos.domain.util.NetworkMonitor
 import io.mockk.every
@@ -22,6 +23,7 @@ import org.junit.Test
 class HomeViewModelTest {
 
     private lateinit var billRepository: BillRepository
+    private lateinit var kitchenPrintQueueRepository: KitchenPrintQueueRepository
     private lateinit var networkMonitor: NetworkMonitor
     private val testDispatcher = StandardTestDispatcher()
 
@@ -43,10 +45,12 @@ class HomeViewModelTest {
     @Test
     fun `HomeViewModel can be instantiated`() {
         billRepository = mockk(relaxed = true)
+        kitchenPrintQueueRepository = mockk(relaxed = true)
         networkMonitor = mockk(relaxed = true)
         
         every { networkMonitor.status } returns flowOf(ConnectionStatus.Available)
         every { billRepository.getUnsyncedCount() } returns flowOf(0)
+        every { kitchenPrintQueueRepository.getPendingCountFlow() } returns flowOf(0)
         
         val profile = RestaurantProfileEntity(
             id = 1,
@@ -55,7 +59,7 @@ class HomeViewModelTest {
         )
         every { billRepository.getProfileFlow() } returns flowOf(profile)
         
-        val viewModel = HomeViewModel(billRepository, networkMonitor)
+        val viewModel = HomeViewModel(billRepository, kitchenPrintQueueRepository, networkMonitor)
         testDispatcher.scheduler.advanceUntilIdle()
     }
 }

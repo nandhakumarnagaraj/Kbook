@@ -1,11 +1,11 @@
 package com.khanabook.lite.pos.domain.manager
 
 import android.content.Context
-import android.util.Log
 import android.content.SharedPreferences
+import android.util.Log
 import com.khanabook.lite.pos.BuildConfig
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
+import com.khanabook.lite.pos.domain.util.KeystoreBackedPreferences
+import com.khanabook.lite.pos.domain.util.LegacyEncryptedPrefsMigration
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -21,27 +21,19 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 private const val PREFS_NAME = "session_prefs"
+private const val SECURE_PREFS_NAME = "secure_session_prefs"
 private const val KEY_LAST_INTERACTION = "last_interaction_time"
 private const val KEY_LAST_BACKGROUND_TIME = "last_background_time"
-private const val SESSION_CHECK_INTERVAL_MS = 60_000L 
+private const val SESSION_CHECK_INTERVAL_MS = 60_000L
 
 @Singleton
 class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {
     private val debugTag = "KhanaBookDebugAuth"
-    private val appLockGracePeriodMs = 30_000L // 30-second Smart Lock grace period
+    private val appLockGracePeriodMs = 30_000L
 
-    private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-
-    private val securePrefs: SharedPreferences = EncryptedSharedPreferences.create(
-        "secure_session_prefs",
-        masterKeyAlias,
-        context,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
-
+    private val securePrefs = KeystoreBackedPreferences(context, SECURE_PREFS_NAME)
     private val prefs: SharedPreferences =
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private var timeoutMinutes: Int
         get() = prefs.getInt("session_timeout_minutes", 30)
@@ -52,16 +44,14 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     private val _isSessionExpired = MutableStateFlow(false)
     val isSessionExpired: StateFlow<Boolean> = _isSessionExpired
 
-    
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
     private var sessionCheckJob: kotlinx.coroutines.Job? = null
 
     init {
+        migrateLegacySecurePrefsIfNeeded()
         startPeriodicCheck()
     }
 
-    
     private var lastInteractionTime: Long
         get() = prefs.getLong(KEY_LAST_INTERACTION, System.currentTimeMillis())
         set(value) = prefs.edit().putLong(KEY_LAST_INTERACTION, value).apply()
@@ -78,10 +68,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     }
 
     fun checkSession() {
-        val currentTime = System.currentTimeMillis()
-        val elapsedMillis = currentTime - lastInteractionTime
-        val elapsedMinutes = TimeUnit.MILLISECONDS.toMinutes(elapsedMillis)
-
+        val elapsedMinutes = TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - lastInteractionTime)
         if (elapsedMinutes >= timeoutMinutes) {
             _isSessionExpired.value = true
         }
@@ -92,7 +79,6 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         lastInteractionTime = System.currentTimeMillis()
     }
 
-    
     private fun startPeriodicCheck() {
         sessionCheckJob?.cancel()
         sessionCheckJob = scope.launch {
@@ -103,7 +89,6 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         }
     }
 
-    
     fun getAuthToken(): String? {
         val token = securePrefs.getString("auth_token", null)
         if (BuildConfig.DEBUG) {
@@ -113,7 +98,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     }
 
     fun saveAuthToken(token: String) {
-        securePrefs.edit().putString("auth_token", token).apply()
+        securePrefs.putString("auth_token", token)
         startPeriodicCheck()
         resetSession()
     }
@@ -125,25 +110,21 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
                 deviceId = java.util.UUID.randomUUID().toString()
                 saveDeviceId(deviceId)
             }
-            return deviceId!!
+            return deviceId
         }
     }
 
     fun saveDeviceId(deviceId: String) {
-        securePrefs.edit().putString("device_id", deviceId).apply()
+        securePrefs.putString("device_id", deviceId)
     }
 
-    fun getLastSyncTimestamp(): Long {
-        return prefs.getLong("last_sync_timestamp", 0L)
-    }
+    fun getLastSyncTimestamp(): Long = prefs.getLong("last_sync_timestamp", 0L)
 
     fun saveLastSyncTimestamp(timestamp: Long) {
         prefs.edit().putLong("last_sync_timestamp", timestamp).apply()
     }
 
-    fun getRestaurantId(): Long {
-        return prefs.getLong("restaurant_id", 0L)
-    }
+    fun getRestaurantId(): Long = prefs.getLong("restaurant_id", 0L)
 
     fun saveRestaurantId(restaurantId: Long) {
         prefs.edit().putLong("restaurant_id", restaurantId).apply()
@@ -153,9 +134,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().putBoolean("initial_sync_completed", isCompleted).apply()
     }
 
-    fun isInitialSyncCompleted(): Boolean {
-        return prefs.getBoolean("initial_sync_completed", false)
-    }
+    fun isInitialSyncCompleted(): Boolean = prefs.getBoolean("initial_sync_completed", false)
 
     fun getActiveUserId(): Long? {
         val id = prefs.getLong("active_user_id", -1L)
@@ -166,9 +145,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().putLong("active_user_id", userId).apply()
     }
 
-    fun getActiveUserRole(): String? {
-        return prefs.getString("active_user_role", null)
-    }
+    fun getActiveUserRole(): String? = prefs.getString("active_user_role", null)
 
     fun isOwner(): Boolean = getActiveUserRole() == "OWNER"
     fun isKbookAdmin(): Boolean = getActiveUserRole() == "KBOOK_ADMIN"
@@ -181,32 +158,49 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().remove("active_user_id").remove("active_user_role").apply()
     }
 
-    // Login identity stored encrypted so it can survive clearSession for re-auth prefill
     fun getPersistedLoginId(): String? = securePrefs.getString("persisted_login_id", null)
-    fun savePersistedLoginId(loginId: String) { securePrefs.edit().putString("persisted_login_id", loginId).apply() }
-    fun clearPersistedLoginId() { securePrefs.edit().remove("persisted_login_id").apply() }
 
-    // Brute-force lockout persistence — survives process kill
+    fun savePersistedLoginId(loginId: String) {
+        securePrefs.putString("persisted_login_id", loginId)
+    }
+
+    fun clearPersistedLoginId() {
+        securePrefs.remove("persisted_login_id")
+    }
+
     fun getFailedLoginAttempts(): Int = prefs.getInt("failed_login_attempts", 0)
-    fun setFailedLoginAttempts(count: Int) { prefs.edit().putInt("failed_login_attempts", count).apply() }
+
+    fun setFailedLoginAttempts(count: Int) {
+        prefs.edit().putInt("failed_login_attempts", count).apply()
+    }
+
     fun getLockoutUntilMs(): Long = prefs.getLong("lockout_until_ms", 0L)
-    fun setLockoutUntilMs(ms: Long) { prefs.edit().putLong("lockout_until_ms", ms).apply() }
+
+    fun setLockoutUntilMs(ms: Long) {
+        prefs.edit().putLong("lockout_until_ms", ms).apply()
+    }
+
     fun clearLockout() {
         prefs.edit().remove("failed_login_attempts").remove("lockout_until_ms").apply()
     }
 
-    // PIN / App Lock
     fun isPinLockEnabled(): Boolean = prefs.getBoolean("pin_lock_enabled", false)
-    fun setPinLockEnabled(enabled: Boolean) { prefs.edit().putBoolean("pin_lock_enabled", enabled).apply() }
+
+    fun setPinLockEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("pin_lock_enabled", enabled).apply()
+    }
+
     fun getPinHash(): String? = securePrefs.getString("pin_hash", null)
-    fun savePinHash(hash: String) { securePrefs.edit().putString("pin_hash", hash).apply() }
+
+    fun savePinHash(hash: String) {
+        securePrefs.putString("pin_hash", hash)
+    }
+
     fun clearPin() {
-        securePrefs.edit().remove("pin_hash").apply()
+        securePrefs.remove("pin_hash")
         prefs.edit().putBoolean("pin_lock_enabled", false).apply()
     }
 
-    // Background Lock Logic — Smart Lock with 30s grace period
-    // Uses SharedPreferences so the timestamp survives process kill
     fun onAppBackgrounded() {
         prefs.edit().putLong(KEY_LAST_BACKGROUND_TIME, System.currentTimeMillis()).apply()
     }
@@ -215,8 +209,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         if (!isPinLockEnabled() || getPinHash() == null) return false
         val lastBackground = prefs.getLong(KEY_LAST_BACKGROUND_TIME, 0L)
         if (lastBackground == 0L) return false
-        val elapsed = System.currentTimeMillis() - lastBackground
-        return elapsed > appLockGracePeriodMs
+        return System.currentTimeMillis() - lastBackground > appLockGracePeriodMs
     }
 
     fun clearBackgroundTime() {
@@ -230,7 +223,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         }
 
         sessionCheckJob?.cancel()
-        securePrefs.edit().remove("auth_token").apply()
+        securePrefs.remove("auth_token")
         prefs.edit().clear().apply()
         _isSessionExpired.value = true
 
@@ -238,5 +231,19 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
             val tokenAfter = securePrefs.getString("auth_token", null)
             Log.d(debugTag, "clearSession tokenAfterPresent=${!tokenAfter.isNullOrBlank()}")
         }
+    }
+
+    private fun migrateLegacySecurePrefsIfNeeded() {
+        val legacyPrefs = LegacyEncryptedPrefsMigration.open(context, SECURE_PREFS_NAME) ?: return
+        migrateKeyIfMissing(legacyPrefs, "auth_token")
+        migrateKeyIfMissing(legacyPrefs, "device_id")
+        migrateKeyIfMissing(legacyPrefs, "persisted_login_id")
+        migrateKeyIfMissing(legacyPrefs, "pin_hash")
+    }
+
+    private fun migrateKeyIfMissing(legacyPrefs: SharedPreferences, key: String) {
+        if (securePrefs.contains(key)) return
+        val value = legacyPrefs.getString(key, null) ?: return
+        securePrefs.putString(key, value)
     }
 }

@@ -36,6 +36,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import com.khanabook.lite.pos.R
 
 @Composable
 fun SearchScreen(
@@ -49,6 +50,8 @@ fun SearchScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     var lifetimeQuery by remember { mutableStateOf("") }
     var dailyId by remember { mutableStateOf("") }
+    var showDailyIdError by remember { mutableStateOf(false) }
+    var showLifetimeQueryError by remember { mutableStateOf(false) }
     var dailyDate by remember {
         mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
     }
@@ -141,16 +144,25 @@ fun SearchScreen(
                 if (selectedTab == 0) {
                     OutlinedTextField(
                         value = dailyId,
-                        onValueChange = { 
+                        onValueChange = {
                             if (it.isEmpty() || it.all { char -> char.isDigit() }) {
                                 dailyId = it
+                                showDailyIdError = false
+                            } else {
+                                showDailyIdError = true
                             }
                         },
                         label = { Text("Order No") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        isError = showDailyIdError,
+                        supportingText = {
+                            if (showDailyIdError) {
+                                Text(context.getString(R.string.field_numbers_only))
+                            }
+                        }
                     )
                     Spacer(modifier = Modifier.height(spacing.small))
 
@@ -189,8 +201,9 @@ fun SearchScreen(
                             val invoiceNo = it.removePrefix("INV").removePrefix("inv")
                             if (invoiceNo.isEmpty() || invoiceNo.all { char -> char.isDigit() }) {
                                 lifetimeQuery = invoiceNo
+                                showLifetimeQueryError = false
                             } else {
-                                android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
+                                showLifetimeQueryError = true
                             }
                         },
                         label = { Text("Invoice No") },
@@ -198,7 +211,13 @@ fun SearchScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        isError = showLifetimeQueryError,
+                        supportingText = {
+                            if (showLifetimeQueryError) {
+                                Text(context.getString(R.string.field_numbers_only))
+                            }
+                        }
                     )
                     Spacer(modifier = Modifier.height(spacing.medium))
                     Button(

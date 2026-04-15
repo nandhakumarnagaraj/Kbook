@@ -50,11 +50,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.khanabook.lite.pos.R
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.util.AppAssetStore
+import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookDialog
@@ -125,14 +127,18 @@ fun ShopConfigView(
 
     LaunchedEffect(saveProfileError) {
         saveProfileError?.let { error ->
-            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                context,
+                UserMessageSanitizer.sanitizeBackendMessage(error, "Couldn't save profile. Please try again."),
+                Toast.LENGTH_LONG
+            ).show()
             viewModel.clearSaveProfileState()
         }
     }
 
     LaunchedEffect(saveProfileSuccess) {
         if (saveProfileSuccess) {
-            Toast.makeText(context, "Profile saved successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_profile_saved), Toast.LENGTH_SHORT).show()
             viewModel.clearSaveProfileState()
             authViewModel.clearOtpStatus()
             onBack()
@@ -159,6 +165,7 @@ fun ShopConfigView(
 
     var otpValue by remember { mutableStateOf("") }
     val otpStatus by authViewModel.otpVerificationStatus.collectAsState()
+    val otpFieldErrors by authViewModel.otpFieldErrors.collectAsState()
 
     var otpSent by remember { mutableStateOf(false) }
     var otpTimer by remember { mutableIntStateOf(120) }
@@ -170,17 +177,21 @@ fun ShopConfigView(
                 otpSent = true
                 isOtpVerified = false
                 otpTimer = 120
-                Toast.makeText(context, "OTP Sent to your WhatsApp!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.toast_otp_sent), Toast.LENGTH_SHORT).show()
             }
             is AuthViewModel.OtpVerificationResult.Success -> {
                 isOtpVerified = true
-                Toast.makeText(context, "Verified successfully!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.toast_verified), Toast.LENGTH_SHORT).show()
                 authViewModel.clearOtpStatus()
             }
             is AuthViewModel.OtpVerificationResult.Error -> {
                 val errorMsg = (otpStatus as? AuthViewModel.OtpVerificationResult.Error)?.message.orEmpty()
                 isOtpVerified = false
-                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    UserMessageSanitizer.sanitizeBackendMessage(errorMsg, "Couldn't verify OTP. Please try again."),
+                    Toast.LENGTH_SHORT
+                ).show()
                 authViewModel.clearOtpStatus()
             }
             else -> {}
@@ -316,8 +327,8 @@ fun ShopConfigView(
                         }
                     },
                     label = "Enter 6-digit OTP",
-                    isError = otpValue.length == 6 && !isOtpVerified,
-                    supportingText = if (otpValue.length == 6 && !isOtpVerified) "Invalid OTP code" else null,
+                    isError = (otpValue.length == 6 && !isOtpVerified) || !otpFieldErrors["otp"].isNullOrBlank(),
+                    supportingText = otpFieldErrors["otp"] ?: if (otpValue.length == 6 && !isOtpVerified) "Invalid OTP code" else null,
                     trailingIcon = {
                         if (otpTimer > 0 && !isOtpVerified) {
                             Text(
@@ -360,7 +371,7 @@ fun ShopConfigView(
                     onClick = {
                         if (!isSaveEnabled) return@Button
                         if (numberChanged && !isOtpVerified) {
-                            Toast.makeText(context, "Please verify the new WhatsApp number", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.toast_verify_new_whatsapp), Toast.LENGTH_SHORT).show()
                         } else {
                             val updatedProfile = profile?.copy(
                                 shopName = name,

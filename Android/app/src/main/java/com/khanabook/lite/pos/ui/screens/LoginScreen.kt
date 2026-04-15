@@ -73,7 +73,7 @@ fun LoginScreen(
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 android.widget.Toast.makeText(
                                 context,
-                                "Welcome back!",
+                                context.getString(R.string.toast_welcome_back),
                                 android.widget.Toast.LENGTH_SHORT
                         )
                         .show()
@@ -383,7 +383,12 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
 
     val resetStatus by viewModel.resetPasswordStatus.collectAsState()
+    val resetFieldErrors by viewModel.resetPasswordFieldErrors.collectAsState()
     val isResetLoading = resetStatus is AuthViewModel.ResetPasswordResult.Loading
+
+    fun fieldError(vararg keys: String): String? = keys.firstNotNullOfOrNull { key ->
+        resetFieldErrors[key]?.takeIf { it.isNotBlank() }
+    }
 
     LaunchedEffect(resetStatus) {
         when (resetStatus) {
@@ -393,7 +398,11 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                 while (resendTimer > 0) { delay(1000); resendTimer-- }
             }
             is AuthViewModel.ResetPasswordResult.Success -> {
-                android.widget.Toast.makeText(context, "Password reset successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(
+                    context,
+                    context.getString(R.string.toast_password_reset),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
                 onDismiss()
             }
             else -> {}
@@ -475,9 +484,12 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     leadingIcon = { Icon(Icons.Default.Phone, null, tint = PrimaryGold) },
-                    isError = phone.isNotEmpty() && !isPhoneValid,
+                    isError = (phone.isNotEmpty() && !isPhoneValid) || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
                     supportingText = {
-                        if (phone.isNotEmpty() && !isPhoneValid) {
+                        val backendFieldError = fieldError("phoneNumber", "loginId", "whatsappNumber")
+                        if (backendFieldError != null) {
+                            Text(backendFieldError, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                        } else if (phone.isNotEmpty() && !isPhoneValid) {
                             Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -499,8 +511,16 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
+                    isError = fieldError("otp") != null,
                     supportingText = {
-                        if (otp.isNotEmpty() && otp.length < 6) {
+                        val backendFieldError = fieldError("otp")
+                        if (backendFieldError != null) {
+                            Text(
+                                backendFieldError,
+                                color = ErrorPink,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        } else if (otp.isNotEmpty() && otp.length < 6) {
                             Text(
                                 "${6 - otp.length} more digit${if (6 - otp.length == 1) "" else "s"} required",
                                 color = TextGold.copy(alpha = 0.6f),
@@ -524,6 +544,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                     label = "New Password",
                     placeholder = "Min 8 chars with symbols",
                     modifier = Modifier.fillMaxWidth(),
+                    isError = fieldError("password") != null,
                     visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryGold) },
                     trailingIcon = {
@@ -533,6 +554,11 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                             tint = PrimaryGold,
                             modifier = Modifier.clickable { showNewPassword = !showNewPassword }
                         )
+                    },
+                    supportingText = {
+                        fieldError("password")?.let {
+                            Text(it, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                        }
                     }
                 )
                 Spacer(modifier = Modifier.height(spacing.small))

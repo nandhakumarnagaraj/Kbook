@@ -8,8 +8,10 @@ import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.api.MasterSyncResponse
 import com.khanabook.lite.pos.data.remote.dto.PushSyncResponse
+import com.khanabook.lite.pos.domain.util.SyncConflictException
 import javax.inject.Inject
 import javax.inject.Singleton
+import retrofit2.HttpException
 
 @Singleton
 class MasterSyncProcessor @Inject constructor(
@@ -51,6 +53,13 @@ class MasterSyncProcessor @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
+                if (e is HttpException && e.code() == 409) {
+                    Log.w(
+                        "MasterSyncProcessor",
+                        "Conflict while pushing $label batch ${index + 1}/${batches.size}"
+                    )
+                    throw SyncConflictException(e)
+                }
                 Log.e(
                     "MasterSyncProcessor",
                     "Failed pushing $label batch ${index + 1}/${batches.size}",

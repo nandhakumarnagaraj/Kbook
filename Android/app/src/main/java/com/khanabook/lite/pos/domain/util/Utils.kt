@@ -6,6 +6,7 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.content.FileProvider
+import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.manager.InvoicePDFGenerator
@@ -205,7 +206,7 @@ fun shareBillOnWhatsApp(
             if (tryJidWhatsApp(context, formattedPhone, pdfUri)) {
                 Toast.makeText(
                     context,
-                    "Number copied. If WhatsApp shows search, paste it to find the unsaved chat.",
+                    context.getString(R.string.toast_whatsapp_search_number_copied),
                     Toast.LENGTH_LONG
                 ).show()
                 return
@@ -214,7 +215,7 @@ fun shareBillOnWhatsApp(
             if (launchWhatsAppPdfSearchFallback(context, formattedPhone, pdfUri)) {
                 Toast.makeText(
                     context,
-                    "Number copied. Paste it in WhatsApp search, select the chat, then send the invoice.",
+                    context.getString(R.string.toast_whatsapp_search_number_copied),
                     Toast.LENGTH_LONG
                 ).show()
                 return
@@ -361,7 +362,7 @@ fun directPrint(
             printerManager.printBytes(bytes)
         } else {
             kotlinx.coroutines.withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Printer not connected. Opening PDF...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.toast_printer_opening_pdf), Toast.LENGTH_SHORT).show()
                 openBillToPrint(context, billWithItems, profile)
             }
         }

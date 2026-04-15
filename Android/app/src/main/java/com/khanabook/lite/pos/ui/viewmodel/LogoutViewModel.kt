@@ -13,10 +13,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import android.util.Log
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 sealed class LogoutState {
@@ -101,9 +103,11 @@ class LogoutViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.w(debugTag, "Server logout failed (continuing local logout): ${e.message}")
             }
-            sessionManager.clearSession()
-            appDatabase.clearAllTables()
             userRepository.setCurrentUser(null)
+            withContext(Dispatchers.IO) {
+                sessionManager.clearSession()
+                appDatabase.clearAllTables()
+            }
             if (BuildConfig.DEBUG) Log.d(debugTag, "performHardLogout: completed clearSession + cleared DB")
             _logoutState.value = LogoutState.LoggedOut
         }

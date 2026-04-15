@@ -10,8 +10,10 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
+import com.khanabook.lite.pos.domain.util.SyncConflictException
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
@@ -28,6 +30,37 @@ constructor(
         private val sessionManager: SessionManager,
         private val syncManager: SyncManager
 ) : CoroutineWorker(context, workerParams) {
+  private val tag = "MasterSyncWorker"
+
+  private fun logInfo(message: String) {
+    if (BuildConfig.DEBUG) {
+      Log.i(tag, message)
+    }
+  }
+
+  private fun logWarn(message: String, throwable: Throwable? = null) {
+    if (BuildConfig.DEBUG) {
+      if (throwable != null) {
+        Log.w(tag, message, throwable)
+      } else {
+        Log.w(tag, message)
+      }
+    } else {
+      Log.w(tag, message)
+    }
+  }
+
+  private fun logError(message: String, throwable: Throwable? = null) {
+    if (BuildConfig.DEBUG) {
+      if (throwable != null) {
+        Log.e(tag, message, throwable)
+      } else {
+        Log.e(tag, message)
+      }
+    } else {
+      Log.e(tag, message)
+    }
+  }
 
   companion object {
     private const val SYNC_WORK_NAME = "MasterSyncWorker"
@@ -61,7 +94,7 @@ constructor(
     val token = sessionManager.getAuthToken()
 
     if (token.isNullOrBlank()) {
-      Log.w("MasterSyncWorker", "Aborting sync: No valid session token found.")
+      logWarn("Aborting sync: No valid session token found.")
       return@withContext Result.success()
     }
 
@@ -69,11 +102,11 @@ constructor(
 
     syncManager.performFullSync().fold(
         onSuccess = {
-          Log.i("MasterSyncWorker", "Sync completed successfully")
+          logInfo("Sync completed successfully")
           Result.success()
         },
         onFailure = { e ->
-          Log.e("MasterSyncWorker", "Sync failed: ${e.message}", e)
+          logError("Sync failed", e)
 
           if (e is HttpException) {
             if (e.code() == 401) {
@@ -83,6 +116,10 @@ constructor(
             if (e.code() == 403) {
               return@withContext Result.failure()
             }
+          }
+
+          if (e is SyncConflictException) {
+            return@withContext Result.failure()
           }
 
           if (runAttemptCount > 3) {

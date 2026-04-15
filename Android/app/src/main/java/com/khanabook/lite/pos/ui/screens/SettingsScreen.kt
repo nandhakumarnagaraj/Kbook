@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
@@ -137,15 +138,15 @@ fun SettingsScreen(
                     }
                     "payment" -> {
                         val ctx = LocalContext.current
-                        PaymentConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, "Saved Payment Config", Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" })
+                        PaymentConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, ctx.getString(R.string.toast_payment_settings_saved), Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" })
                     }
                     "printer" -> {
                         val ctx = LocalContext.current
-                        PrinterConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, "Saved Printer Config", Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" }, viewModel = viewModel)
+                        PrinterConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, ctx.getString(R.string.toast_printer_settings_saved), Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" }, viewModel = viewModel)
                     }
                     "tax" -> {
                         val ctx = LocalContext.current
-                        TaxConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, "Saved Tax Config", Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" })
+                        TaxConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, ctx.getString(R.string.toast_tax_settings_saved), Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" })
                     }
                     "security" -> {
                         AppLockConfigView(onBack = { section = "menu" })
@@ -168,7 +169,7 @@ private fun LegacyLogoutSectionUnused(viewModel: com.khanabook.lite.pos.ui.viewm
     var showPinDialog by remember { mutableStateOf(false) }
     val isPinEnabled = remember(logoutState) { appLockViewModel.isPinEnabled() }
 
-    LaunchedEffect(logoutState) { if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.LoggedOut) Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show() }
+    LaunchedEffect(logoutState) { if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.LoggedOut) Toast.makeText(context, context.getString(R.string.toast_signed_out), Toast.LENGTH_SHORT).show() }
 
     LaunchedEffect(enteredPin, showPinDialog) {
         if (showPinDialog && enteredPin.length == 4) {

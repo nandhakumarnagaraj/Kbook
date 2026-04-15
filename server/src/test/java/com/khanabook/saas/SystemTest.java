@@ -26,7 +26,7 @@ class SystemTest extends BaseIntegrationTest {
         requestSignupOtp(phone);
 
         
-        SignupRequest signup = new SignupRequest(phone, "Nandha Kumar", "pass123", "123456", "DEVICE_1");
+        SignupRequest signup = new SignupRequest(phone, "Nandha Kumar", "pass123", TEST_OTP, "DEVICE_1");
         ResponseEntity<AuthResponse> signupResp =
             rest.postForEntity("/auth/signup", signup, AuthResponse.class);
 
@@ -60,7 +60,7 @@ class SystemTest extends BaseIntegrationTest {
 
     @Test
     void signup_invalidPhoneFormat_returns400() {
-        SignupRequest req = new SignupRequest("not-a-phone", "Test", "pass123", "123456", "D");
+        SignupRequest req = new SignupRequest("not-a-phone", "Test", "pass123", TEST_OTP, "D");
         ResponseEntity<String> resp =
             rest.postForEntity("/auth/signup", req, String.class);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -70,7 +70,7 @@ class SystemTest extends BaseIntegrationTest {
     void signupOtpRequest_duplicatePhone_returns400() {
         String phone = uniquePhone();
         requestSignupOtp(phone);
-        SignupRequest req = new SignupRequest(phone, "User A", "pass123", "123456", "D");
+        SignupRequest req = new SignupRequest(phone, "User A", "pass123", TEST_OTP, "D");
         rest.postForEntity("/auth/signup", req, String.class);
 
         ResponseEntity<String> second = rest.postForEntity(
@@ -86,7 +86,7 @@ class SystemTest extends BaseIntegrationTest {
         String phone = uniquePhone();
         requestSignupOtp(phone);
         rest.postForEntity("/auth/signup",
-            new SignupRequest(phone, "User", "correct", "123456", "D"), String.class);
+            new SignupRequest(phone, "User", "correct", TEST_OTP, "D"), String.class);
 
         LoginRequest bad = new LoginRequest();
         bad.setLoginId(phone);
@@ -100,7 +100,7 @@ class SystemTest extends BaseIntegrationTest {
         String phone = uniquePhone();
         requestSignupOtp(phone);
         rest.postForEntity("/auth/signup",
-            new SignupRequest(phone, "User", "pass123", "123456", "D"), String.class);
+            new SignupRequest(phone, "User", "pass123", TEST_OTP, "D"), String.class);
 
         ResponseEntity<String> resp =
             rest.getForEntity("/auth/check-user?phoneNumber={phone}", String.class, phone);
@@ -140,7 +140,7 @@ class SystemTest extends BaseIntegrationTest {
             "/auth/reset-password?phoneNumber=%2B911234567890&newPassword=x",
             HttpMethod.POST, bearerRequest(token), String.class);
         
-        assertThat(resp.getStatusCode()).isIn(HttpStatus.BAD_REQUEST, HttpStatus.UNSUPPORTED_MEDIA_TYPE, HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
@@ -214,17 +214,12 @@ class SystemTest extends BaseIntegrationTest {
         String phone = uniquePhone();
         requestSignupOtp(phone);
         ResponseEntity<AuthResponse> resp = rest.postForEntity("/auth/signup",
-            new SignupRequest(phone, "Test User", "pass123", "123456", "DEVICE_SYS"), AuthResponse.class);
+            new SignupRequest(phone, "Test User", "pass123", TEST_OTP, "DEVICE_SYS"), AuthResponse.class);
         return resp.getBody().getToken();
     }
 
     private void requestSignupOtp(String phone) {
-        ResponseEntity<String> resp = rest.postForEntity(
-            "/auth/signup/request",
-            new SignupOtpRequest(phone),
-            String.class
-        );
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+        seedSignupOtp(phone);
     }
 
     private HttpEntity<Void> bearerRequest(String token) {
