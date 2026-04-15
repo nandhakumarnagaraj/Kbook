@@ -1602,8 +1602,7 @@ fun ManualMenuView(
         )
     }
 
-    if (showEditItemDialog != null) {
-        val itemWithVariants = showEditItemDialog!!
+    showEditItemDialog?.let { itemWithVariants ->
         ItemEditDialog(
             title = "Edit Item",
             initialName = itemWithVariants.menuItem.name,
@@ -1722,7 +1721,7 @@ fun CategoryEditDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {
-    var name by remember { mutableStateOf(initialName) }
+    var name by remember(initialName) { mutableStateOf(initialName) }
 
     KhanaBookDialog(
         onDismissRequest = onDismiss,
@@ -1768,9 +1767,9 @@ fun ItemEditDialog(
     onUpdateVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit = {},
     onDeleteVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit = {}
 ) {
-    var name by remember { mutableStateOf(initialName) }
-    var price by remember { mutableStateOf(if (initialPrice == 0.0) "" else initialPrice.toInt().toString()) }
-    var foodType by remember { mutableStateOf(initialType) }
+    var name by remember(initialName) { mutableStateOf(initialName) }
+    var price by remember(initialPrice) { mutableStateOf(if (initialPrice == 0.0) "" else initialPrice.toInt().toString()) }
+    var foodType by remember(initialType) { mutableStateOf(initialType) }
 
     var showAddVariantDialog by remember { mutableStateOf(false) }
     var draftVariants by remember { mutableStateOf(listOf<Pair<String, Double>>()) }
@@ -1851,18 +1850,14 @@ fun ItemEditDialog(
                 }
 
                 variants.forEach { variant ->
-                    var vName by remember { mutableStateOf(variant.variantName) }
-                    var vPrice by remember { mutableStateOf(variant.price.toDoubleOrNull()?.toInt()?.toString() ?: "") }
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedTextField(
-                            value = vName,
+                            value = variant.variantName,
                             onValueChange = {
-                                vName = it
                                 onUpdateVariant(variant.copy(variantName = it))
                             },
                             label = { Text("Name", fontSize = 10.sp) },
@@ -1870,9 +1865,8 @@ fun ItemEditDialog(
                             colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
                         )
                         OutlinedTextField(
-                            value = vPrice,
+                            value = variant.price.toDoubleOrNull()?.toInt()?.toString() ?: variant.price,
                             onValueChange = {
-                                vPrice = it
                                 it.toDoubleOrNull()?.let { p ->
                                     onUpdateVariant(variant.copy(price = p.toString()))
                                 }
@@ -1889,20 +1883,16 @@ fun ItemEditDialog(
                 }
                 
                 draftVariants.forEachIndexed { index, variantDraft ->
-                    var vName by remember(index) { mutableStateOf(variantDraft.first) }
-                    var vPrice by remember(index) { mutableStateOf(if (variantDraft.second == 0.0) "" else variantDraft.second.toInt().toString()) }
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedTextField(
-                            value = vName,
+                            value = variantDraft.first,
                             onValueChange = {
-                                vName = it
                                 val updated = draftVariants.toMutableList()
-                                updated[index] = Pair(it, vPrice.toDoubleOrNull() ?: 0.0)
+                                updated[index] = Pair(it, variantDraft.second)
                                 draftVariants = updated
                             },
                             label = { Text("Name", fontSize = 10.sp) },
@@ -1910,11 +1900,10 @@ fun ItemEditDialog(
                             colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
                         )
                         OutlinedTextField(
-                            value = vPrice,
+                            value = if (variantDraft.second == 0.0) "" else variantDraft.second.toInt().toString(),
                             onValueChange = {
-                                vPrice = it
                                 val updated = draftVariants.toMutableList()
-                                updated[index] = Pair(vName, it.toDoubleOrNull() ?: 0.0)
+                                updated[index] = Pair(variantDraft.first, it.toDoubleOrNull() ?: 0.0)
                                 draftVariants = updated
                             },
                             label = { Text("Price", fontSize = 10.sp) },

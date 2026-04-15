@@ -18,6 +18,8 @@ val signingStoreFile = localProperty("SIGNING_STORE_FILE")
 val signingStorePassword = localProperty("SIGNING_STORE_PASSWORD")
 val signingKeyAlias = localProperty("SIGNING_KEY_ALIAS")
 val signingKeyPassword = localProperty("SIGNING_KEY_PASSWORD")
+val releaseVersionCode = localProperty("RELEASE_VERSION_CODE", "1").toIntOrNull() ?: 1
+val releaseVersionName = localProperty("RELEASE_VERSION_NAME", "1.0.0")
 val hasReleaseSigning =
     signingStoreFile.isNotBlank() &&
         signingStorePassword.isNotBlank() &&
@@ -52,8 +54,8 @@ android {
         applicationId = "com.khanabook.lite.pos"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = releaseVersionCode
+        versionName = releaseVersionName
 
         testInstrumentationRunner = "com.khanabook.lite.pos.test.util.HiltTestRunner"
 

@@ -168,7 +168,7 @@ fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProf
                     modifier = Modifier.weight(1f).height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
                     shape = RoundedCornerShape(28.dp)
-                ) { Text("Save Config", color = Color.White, style = MaterialTheme.typography.titleMedium) }
+                ) { Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium) }
                 OutlinedButton(
                     onClick = onBack,
                     modifier = Modifier.weight(1f).height(56.dp),

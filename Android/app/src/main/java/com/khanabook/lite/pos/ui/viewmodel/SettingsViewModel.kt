@@ -21,8 +21,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -348,13 +346,6 @@ class SettingsViewModel @Inject constructor(
             current?.copy(paperSize = size)?.let {
                 restaurantRepository.saveProfile(it)
             }
-        }
-    }
-
-    fun resetDailyCounter() {
-        viewModelScope.launch {
-            val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            restaurantRepository.resetDailyCounter(0, today)
         }
     }
 

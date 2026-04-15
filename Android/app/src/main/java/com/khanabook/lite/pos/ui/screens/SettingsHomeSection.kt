@@ -90,13 +90,13 @@ fun SettingsHomeSection(
                         }
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.Lock, text = "App Lock (PIN / Biometric)") {
+                        SettingsItem(icon = Icons.Filled.Lock, text = "App Lock") {
                             onSectionSelected("security")
                         }
                     }
                 }
             } else {
-                SettingsItem(icon = Icons.Filled.Store, text = "Shop/Restaurant Configuration") {
+                SettingsItem(icon = Icons.Filled.Store, text = "Restaurant Configuration") {
                     onSectionSelected("shop")
                 }
                 SettingsItem(icon = Icons.AutoMirrored.Filled.ReceiptLong, text = "Menu Configuration") {
@@ -111,7 +111,7 @@ fun SettingsHomeSection(
                 SettingsItem(icon = Icons.Filled.Settings, text = "Tax Configuration") {
                     onSectionSelected("tax")
                 }
-                SettingsItem(icon = Icons.Filled.Lock, text = "App Lock (PIN / Biometric)") {
+                SettingsItem(icon = Icons.Filled.Lock, text = "App Lock") {
                     onSectionSelected("security")
                 }
             }

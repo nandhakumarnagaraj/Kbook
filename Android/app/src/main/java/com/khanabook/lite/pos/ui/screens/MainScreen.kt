@@ -52,16 +52,17 @@ fun MainScreen(
         mutableIntStateOf(if (initialVisibleIndex != -1) initialVisibleIndex else 0) 
     }
     var showBottomBar by rememberSaveable { mutableStateOf(true) }
+    val safeSelectedTabIndex = selectedTabIndex.coerceIn(0, (visibleTabs.lastIndex).coerceAtLeast(0))
 
     // Intercept back gesture to return to Home tab if not already there
-    BackHandler(enabled = selectedTabIndex != 0) {
+    BackHandler(enabled = safeSelectedTabIndex != 0) {
         selectedTabIndex = 0
     }
 
     val content: @Composable (Modifier) -> Unit = { modifier ->
         val backToHome = { selectedTabIndex = 0 }
         AnimatedContent(
-            targetState = selectedTabIndex,
+            targetState = safeSelectedTabIndex,
             transitionSpec = {
                 val direction = if (targetState > initialState) 1 else -1
                 (slideInHorizontally(
@@ -76,7 +77,11 @@ fun MainScreen(
             label = "tab_content",
             modifier = modifier
         ) { tabIndex ->
-            val currentTab = visibleTabs[tabIndex]
+            val currentTab = visibleTabs.getOrNull(tabIndex)
+            if (currentTab == null) {
+                Box(modifier = Modifier.fillMaxSize())
+                return@AnimatedContent
+            }
             when (currentTab.label) {
                 "Home" -> HomeScreen(onNewBill, onSearchBill, onOrderStatus, onCallCustomer)
                 "Reports" -> ReportsScreen(onBack = backToHome)
@@ -98,7 +103,7 @@ fun MainScreen(
             if (showBottomBar) {
                 AppBottomBar(
                     visibleTabs = visibleTabs,
-                    currentSelectedIndex = selectedTabIndex,
+                    currentSelectedIndex = safeSelectedTabIndex,
                     onTabSelected = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         selectedTabIndex = it

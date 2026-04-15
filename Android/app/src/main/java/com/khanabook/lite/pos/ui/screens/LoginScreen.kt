@@ -125,9 +125,10 @@ fun LoginScreen(
             OutlinedTextField(
                     value = loginId,
                     onValueChange = {
-                        loginId = it.trim()
-                        if (isLoginIdValid) {
-                            passwordFocusRequester.requestFocus()
+                        val updatedLoginId = it.trim()
+                        loginId = updatedLoginId
+                        if (ValidationUtils.isValidPhone(updatedLoginId) || ValidationUtils.isValidEmail(updatedLoginId)) {
+                            runCatching { passwordFocusRequester.requestFocus() }
                         }
                     },
                     label = { Text("Login ID") },
@@ -160,7 +161,7 @@ fun LoginScreen(
                         imeAction = ImeAction.Next
                     ),
                     keyboardActions = KeyboardActions(
-                        onNext = { passwordFocusRequester.requestFocus() }
+                        onNext = { runCatching { passwordFocusRequester.requestFocus() } }
                     ),
                     isError = (loginId.isNotEmpty() && !isLoginIdValid) || (loginId.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
                     supportingText = {
@@ -246,9 +247,10 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(spacing.large))
 
             
-            if (loginStatus is AuthViewModel.LoginResult.Error) {
+            val loginErrorMessage = (loginStatus as? AuthViewModel.LoginResult.Error)?.message
+            if (loginErrorMessage != null) {
                 Text(
-                        text = (loginStatus as AuthViewModel.LoginResult.Error).message,
+                        text = loginErrorMessage,
                         color = ErrorPink,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(bottom = spacing.medium).fillMaxWidth(),
@@ -561,10 +563,11 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
             }
         }
 
-        if (resetStatus is AuthViewModel.ResetPasswordResult.Error) {
+        val resetErrorMessage = (resetStatus as? AuthViewModel.ResetPasswordResult.Error)?.message
+        if (resetErrorMessage != null) {
             Spacer(modifier = Modifier.height(spacing.small))
             Text(
-                text = (resetStatus as AuthViewModel.ResetPasswordResult.Error).message,
+                text = resetErrorMessage,
                 color = ErrorPink,
                 style = MaterialTheme.typography.labelSmall
             )

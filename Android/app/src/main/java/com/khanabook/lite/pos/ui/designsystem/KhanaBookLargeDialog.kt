@@ -96,6 +96,7 @@ fun KhanaBookLargeDialog(
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(spacing.small),
+                        horizontalAlignment = Alignment.End,
                         content = actions
                     )
                 }

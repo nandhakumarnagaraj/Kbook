@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -34,7 +36,7 @@ fun KhanaBookDialog(
     dismissOnClickOutside: Boolean = true,
     dismissOnBackPress: Boolean = true,
     content: @Composable ColumnScope.() -> Unit = {},
-    actions: @Composable ColumnScope.() -> Unit
+    actions: @Composable RowScope.() -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -77,9 +79,10 @@ fun KhanaBookDialog(
                     )
                 }
                 content()
-                Column(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(spacing.small)
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small, Alignment.End),
+                    verticalAlignment = Alignment.Top
                 ) {
                     actions()
                 }

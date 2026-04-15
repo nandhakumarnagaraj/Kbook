@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.android.awaitFrame
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.theme.*
@@ -95,7 +96,6 @@ fun SignUpScreen(
                 otpSent = true
                 otpTimer = 120
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                otpFocusRequester.requestFocus()
                 snackbarHostState.showSnackbar(
                         "OTP Sent to your WhatsApp!",
                         duration = SnackbarDuration.Long
@@ -130,6 +130,8 @@ fun SignUpScreen(
 
     LaunchedEffect(otpSent) {
         if (otpSent) {
+            awaitFrame()
+            runCatching { otpFocusRequester.requestFocus() }
             otpTimer = 60
             while (otpTimer > 0) {
                 delay(1000)
@@ -207,7 +209,7 @@ fun SignUpScreen(
                                 imeAction = ImeAction.Next
                             ),
                             keyboardActions = KeyboardActions(
-                                onNext = { phoneFocusRequester.requestFocus() }
+                                onNext = { runCatching { phoneFocusRequester.requestFocus() } }
                             ),
                             isError = shopName.isNotEmpty() && !isNameValid,
                             supportingText = {
@@ -242,7 +244,7 @@ fun SignUpScreen(
                                 imeAction = if (otpSent) ImeAction.Next else ImeAction.Default
                             ),
                             keyboardActions = KeyboardActions(
-                                onNext = { if (otpSent) otpFocusRequester.requestFocus() }
+                                onNext = { if (otpSent) runCatching { otpFocusRequester.requestFocus() } }
                             ),
                             modifier = Modifier.fillMaxWidth().focusRequester(phoneFocusRequester),
                             shape = RoundedCornerShape(24.dp),
@@ -252,7 +254,7 @@ fun SignUpScreen(
                             isError = (phoneNumber.isNotEmpty() && !isPhoneValid) || userExistsError != null,
                             supportingText = {
                                 if (userExistsError != null) {
-                                    Text(userExistsError!!, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                                    Text(userExistsError.orEmpty(), color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                                 } else if (phoneNumber.isNotEmpty() && !isPhoneValid) {
                                     Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                                 }
@@ -300,7 +302,7 @@ fun SignUpScreen(
                                         val filtered = it.filter { ch -> ch.isDigit() }
                                         otp = filtered
                                         if (filtered.length == 6) {
-                                            passwordFocusRequester.requestFocus()
+                                            runCatching { passwordFocusRequester.requestFocus() }
                                         }
                                     }
                                 },
@@ -321,7 +323,7 @@ fun SignUpScreen(
                                             imeAction = ImeAction.Next
                                         ),
                                 keyboardActions = KeyboardActions(
-                                    onNext = { passwordFocusRequester.requestFocus() }
+                                    onNext = { runCatching { passwordFocusRequester.requestFocus() } }
                                 ),
                                 modifier = Modifier.fillMaxWidth().focusRequester(otpFocusRequester),
                                 shape = RoundedCornerShape(24.dp),
@@ -384,7 +386,7 @@ fun SignUpScreen(
                                 imeAction = ImeAction.Next
                             ),
                             keyboardActions = KeyboardActions(
-                                onNext = { confirmPasswordFocusRequester.requestFocus() }
+                                onNext = { runCatching { confirmPasswordFocusRequester.requestFocus() } }
                             ),
                             isError = newPassword.isNotEmpty() && !isPasswordValid,
                             supportingText = {

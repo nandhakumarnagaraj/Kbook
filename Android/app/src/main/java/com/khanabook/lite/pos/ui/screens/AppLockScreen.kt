@@ -162,9 +162,9 @@ fun AppLockScreen(
 
             // Error message
             Box(modifier = Modifier.height(32.dp), contentAlignment = Alignment.Center) {
-                if (errorMessage != null) {
+                errorMessage?.let { message ->
                     Text(
-                        errorMessage!!,
+                        message,
                         color = ErrorPink,
                         style = MaterialTheme.typography.bodyMedium
                     )

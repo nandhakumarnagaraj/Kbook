@@ -21,7 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/menus")
+@RequestMapping("/menus")
 public class MenuExtractionController {
 
     @Autowired

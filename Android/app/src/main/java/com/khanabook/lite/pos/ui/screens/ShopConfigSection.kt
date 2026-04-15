@@ -29,8 +29,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -42,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -64,7 +63,6 @@ import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
-import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -87,7 +85,7 @@ fun ShopConfigView(
     var logoPath by remember { mutableStateOf(profile?.logoPath) }
     var consent by remember { mutableStateOf(profile?.emailInvoiceConsent ?: false) }
     var reviewUrl by remember { mutableStateOf(profile?.reviewUrl ?: "") }
-    var logoUpdateTrigger by remember { mutableStateOf(0L) }
+    var logoUpdateTrigger by remember { mutableLongStateOf(0L) }
 
     val saveProfileLoading by viewModel.saveProfileLoading.collectAsState()
     val saveProfileError by viewModel.saveProfileError.collectAsState()
@@ -180,7 +178,7 @@ fun ShopConfigView(
                 authViewModel.clearOtpStatus()
             }
             is AuthViewModel.OtpVerificationResult.Error -> {
-                val errorMsg = (otpStatus as AuthViewModel.OtpVerificationResult.Error).message
+                val errorMsg = (otpStatus as? AuthViewModel.OtpVerificationResult.Error)?.message.orEmpty()
                 isOtpVerified = false
                 Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
                 authViewModel.clearOtpStatus()
@@ -339,11 +337,6 @@ fun ShopConfigView(
             ParchmentTextField(value = email, onValueChange = { email = it }, label = "Email")
             Spacer(modifier = Modifier.height(spacing.medium))
             ParchmentTextField(value = reviewUrl, onValueChange = { reviewUrl = it }, label = "Review Link")
-            Spacer(modifier = Modifier.height(spacing.medium))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = consent, onCheckedChange = { consent = it }, colors = CheckboxDefaults.colors(checkedColor = PrimaryGold))
-                Text("Receive invoice copies on Email", color = TextGold, style = MaterialTheme.typography.bodySmall)
-            }
             Spacer(modifier = Modifier.height(spacing.large))
 
             val isSaveEnabled = isDirty && (!numberChanged || isOtpVerified) && !saveProfileLoading
@@ -359,7 +352,10 @@ fun ShopConfigView(
                 label = "save_alpha"
             )
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
                 Button(
                     onClick = {
                         if (!isSaveEnabled) return@Button
@@ -395,19 +391,22 @@ fun ShopConfigView(
                     if (saveProfileLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
                     } else {
-                        Text("Save Changes", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                        Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium)
                     }
                 }
                 OutlinedButton(
                     onClick = {
-                        viewModel.resetDailyCounter()
-                        Toast.makeText(context, "Daily order counter reset", Toast.LENGTH_SHORT).show()
+                        if (isDirty) showUnsavedDialog = true else onBack()
                     },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    border = BorderStroke(1.dp, DangerRed),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
                     shape = RoundedCornerShape(28.dp)
-                ) { Text("Reset Daily Counter", style = MaterialTheme.typography.labelSmall) }
+                ) {
+                    Text("Back", style = MaterialTheme.typography.titleMedium)
+                }
             }
         }
     }

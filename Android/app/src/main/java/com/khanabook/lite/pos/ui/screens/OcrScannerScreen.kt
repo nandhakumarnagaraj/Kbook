@@ -221,13 +221,13 @@ fun OcrScannerScreen(
             if (hasCameraPermission) {
                 CameraPreview(previewViewState = previewViewState)
 
-                if (capturedBitmap != null) {
+                capturedBitmap?.let { bitmap ->
                     Box(
                         modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            bitmap = capturedBitmap!!.asImageBitmap(),
+                            bitmap = bitmap.asImageBitmap(),
                             contentDescription = "Captured menu photo",
                             modifier = Modifier.fillMaxSize()
                         )

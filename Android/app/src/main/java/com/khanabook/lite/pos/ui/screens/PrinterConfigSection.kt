@@ -45,6 +45,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Switch
@@ -237,40 +238,54 @@ fun PrinterConfigView(
             PrinterOptionRow("Mask Customer Phone", maskPhone) { maskPhone = it }
         }
         Spacer(modifier = Modifier.height(spacing.large))
-        Button(
-            onClick = {
-                profile?.copy(
-                    printerEnabled = enabled,
-                    paperSize = if (paper58) "58mm" else "80mm",
-                    autoPrintOnSuccess = autoPrint,
-                    includeLogoInPrint = includeLogo,
-                    maskCustomerPhone = maskPhone,
-                    isSynced = false,
-                    updatedAt = System.currentTimeMillis()
-                )?.let { onSave(it) }
-                customerPrinter?.let {
-                    viewModel.updatePrinterProfile(
-                        role = PrinterRole.CUSTOMER,
-                        enabled = enabled,
-                        autoPrint = autoPrint,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Button(
+                onClick = {
+                    profile?.copy(
+                        printerEnabled = enabled,
                         paperSize = if (paper58) "58mm" else "80mm",
-                        includeLogo = includeLogo
-                    )
-                }
-                kitchenPrinter?.let {
-                    viewModel.updatePrinterProfile(
-                        role = PrinterRole.KITCHEN,
-                        enabled = kitchenEnabled,
-                        autoPrint = true,
-                        paperSize = if (kitchenPaper58) "58mm" else "80mm",
-                        includeLogo = false
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Green800),
-            shape = RoundedCornerShape(28.dp)
-        ) { Text("SAVE PRINTER SETTINGS", color = Color.White, style = MaterialTheme.typography.titleMedium) }
+                        autoPrintOnSuccess = autoPrint,
+                        includeLogoInPrint = includeLogo,
+                        maskCustomerPhone = maskPhone,
+                        isSynced = false,
+                        updatedAt = System.currentTimeMillis()
+                    )?.let { onSave(it) }
+                    customerPrinter?.let {
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.CUSTOMER,
+                            enabled = enabled,
+                            autoPrint = autoPrint,
+                            paperSize = if (paper58) "58mm" else "80mm",
+                            includeLogo = includeLogo
+                        )
+                    }
+                    kitchenPrinter?.let {
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.KITCHEN,
+                            enabled = kitchenEnabled,
+                            autoPrint = true,
+                            paperSize = if (kitchenPaper58) "58mm" else "80mm",
+                            includeLogo = false
+                        )
+                    }
+                },
+                modifier = Modifier.weight(1f).height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Green800),
+                shape = RoundedCornerShape(28.dp)
+            ) { Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium) }
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.weight(1f).height(56.dp),
+                border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                shape = RoundedCornerShape(28.dp)
+            ) {
+                Text("Back", style = MaterialTheme.typography.titleMedium)
+            }
+        }
     }
 
     if (showBtSheet) {
