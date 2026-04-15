@@ -69,10 +69,11 @@ class JwtUtilityTest {
     }
 
     @Test
-    void shortSecret_stillProducesValidToken() {
+    void shortSecret_rejectedEarly() {
         ReflectionTestUtils.setField(jwtUtility, "secret", "short");
-        String token = jwtUtility.generateToken("user@test.com", 55L, "OWNER");
-        assertThat(jwtUtility.extractRestaurantId(token)).isEqualTo(55L);
+        assertThatThrownBy(() -> jwtUtility.generateToken("user@test.com", 55L, "OWNER"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("minimum of 32 cryptographically random bytes");
     }
 
     @Test

@@ -119,7 +119,7 @@ class AuthServiceImplTest {
 
     private LoginRequest loginRequest(String phone, String password) {
         LoginRequest r = new LoginRequest();
-        r.setPhoneNumber(phone);
+        r.setLoginId(phone);
         r.setPassword(password);
         return r;
     }

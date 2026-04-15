@@ -3,6 +3,8 @@ package com.khanabook.lite.pos.di
 import android.content.Context
 import android.util.Base64
 import android.util.Log
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
 import androidx.room.Room
 import com.khanabook.lite.pos.data.local.AppDatabase
 import com.khanabook.lite.pos.data.local.dao.*
@@ -24,16 +26,14 @@ private const val DB_KEY_PREF = "db_key"
 object DatabaseModule {
 
         private fun getSecureDbPrefs(context: Context): android.content.SharedPreferences {
-                val mainKey = androidx.security.crypto.MasterKey.Builder(context)
-                    .setKeyScheme(androidx.security.crypto.MasterKey.KeyScheme.AES256_GCM)
-                    .build()
+                val mainKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
-                return androidx.security.crypto.EncryptedSharedPreferences.create(
-                    context,
+                return EncryptedSharedPreferences.create(
                     SECURE_DB_PREFS,
-                    mainKey,
-                    androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                    mainKeyAlias,
+                    context,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
                 )
         }
 

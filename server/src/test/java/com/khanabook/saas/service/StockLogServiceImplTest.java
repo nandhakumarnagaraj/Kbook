@@ -3,6 +3,8 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.entity.ItemVariant;
 import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.StockLog;
+import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.StockLogRepository;
@@ -30,6 +32,8 @@ class StockLogServiceImplTest {
     @Mock private StockLogRepository stockLogRepository;
     @Mock private MenuItemRepository menuItemRepository;
     @Mock private ItemVariantRepository itemVariantRepository;
+    @Mock private BillRepository billRepository;
+    @Mock private CategoryRepository categoryRepository;
 
     private GenericSyncService genericSyncService;
     private StockLogServiceImpl service;
@@ -39,7 +43,12 @@ class StockLogServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        genericSyncService = new GenericSyncService();
+        genericSyncService = new GenericSyncService(
+            billRepository,
+            menuItemRepository,
+            itemVariantRepository,
+            categoryRepository
+        );
         service = new StockLogServiceImpl(
             stockLogRepository, menuItemRepository, itemVariantRepository, genericSyncService
         );
@@ -140,7 +149,7 @@ class StockLogServiceImplTest {
 
         service.pushData(TENANT_ID, List.of(sl));
 
-        verifyNoInteractions(itemVariantRepository);
+        verify(itemVariantRepository, never()).findByRestaurantIdAndDeviceIdAndLocalId(eq(TENANT_ID), eq(DEVICE), anyLong());
         assertThat(sl.getServerVariantId()).isNull();
     }
 

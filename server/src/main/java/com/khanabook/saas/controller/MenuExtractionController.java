@@ -3,7 +3,16 @@ package com.khanabook.saas.controller;
 import com.khanabook.saas.entity.MenuExtractionJob;
 import com.khanabook.saas.repository.MenuExtractionJobRepository;
 import com.khanabook.saas.service.MenuExtractionWorker;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +31,8 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/menus")
+@Tag(name = "menu-extraction-controller", description = "Upload menu files and track extraction jobs")
+@SecurityRequirement(name = "Bearer Authentication")
 public class MenuExtractionController {
 
     @Autowired
@@ -35,7 +46,18 @@ public class MenuExtractionController {
 
     private static final long MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 
-    @PostMapping("/upload")
+    @Operation(
+            summary = "Upload a menu file for extraction",
+            description = "Accepts a PDF or image upload, stores it for the authenticated tenant, and starts async extraction."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Menu accepted for processing"),
+            @ApiResponse(responseCode = "400", description = "Invalid upload payload", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+            @ApiResponse(responseCode = "413", description = "File too large", content = @Content),
+            @ApiResponse(responseCode = "500", description = "Upload failed", content = @Content)
+    })
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> uploadMenu(@RequestParam("file") MultipartFile file) {
         Long restaurantId = TenantContext.getCurrentTenant();
         if (restaurantId == null) {
@@ -101,8 +123,17 @@ public class MenuExtractionController {
         }
     }
 
+    @Operation(
+            summary = "Get menu extraction job status",
+            description = "Returns the current status and extracted data for a previously uploaded menu extraction job."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Job found"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Job not found", content = @Content)
+    })
     @GetMapping("/jobs/{jobId}")
-    public ResponseEntity<?> getJobStatus(@PathVariable Long jobId) {
+    public ResponseEntity<?> getJobStatus(@Parameter(description = "Menu extraction job ID") @PathVariable Long jobId) {
         return jobRepository.findById(jobId)
                 .map(job -> ResponseEntity.ok((Object) job))
                 .orElse(ResponseEntity.notFound().build());

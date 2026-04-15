@@ -5,7 +5,7 @@ import android.util.Log
 import android.content.SharedPreferences
 import com.khanabook.lite.pos.BuildConfig
 import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import androidx.security.crypto.MasterKeys
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -30,14 +30,12 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     private val debugTag = "KhanaBookDebugAuth"
     private val appLockGracePeriodMs = 30_000L // 30-second Smart Lock grace period
 
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
+    private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
     private val securePrefs: SharedPreferences = EncryptedSharedPreferences.create(
-        context,
         "secure_session_prefs",
-        masterKey,
+        masterKeyAlias,
+        context,
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )

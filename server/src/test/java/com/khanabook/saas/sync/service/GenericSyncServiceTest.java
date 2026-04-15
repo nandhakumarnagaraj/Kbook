@@ -2,8 +2,12 @@ package com.khanabook.saas.sync.service;
 
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.RestaurantProfile;
+import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.CategoryRepository;
+import com.khanabook.saas.repository.ItemVariantRepository;
+import com.khanabook.saas.repository.MenuItemRepository;
+import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
-import com.khanabook.saas.sync.repository.SyncRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,8 +28,11 @@ import static org.mockito.Mockito.*;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class GenericSyncServiceTest {
 
-    @Mock private SyncRepository<Bill, Long> billRepo;
-    @Mock private SyncRepository<RestaurantProfile, Long> profileRepo;
+    @Mock private BillRepository billRepo;
+    @Mock private RestaurantProfileRepository profileRepo;
+    @Mock private MenuItemRepository menuItemRepository;
+    @Mock private ItemVariantRepository itemVariantRepository;
+    @Mock private CategoryRepository categoryRepository;
 
     @Captor private ArgumentCaptor<Iterable<Bill>> billSaveCaptor;
     @Captor private ArgumentCaptor<Iterable<RestaurantProfile>> profileSaveCaptor;
@@ -37,7 +44,12 @@ class GenericSyncServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new GenericSyncService();
+        service = new GenericSyncService(
+            billRepo,
+            menuItemRepository,
+            itemVariantRepository,
+            categoryRepository
+        );
     }
 
     
@@ -236,6 +248,7 @@ class GenericSyncServiceTest {
         incoming.setId(77L);       
         incoming.setLocalId(null);
         incoming.setDeviceId(DEVICE_A);
+        incoming.setRestaurantId(TENANT_ID);
         incoming.setUpdatedAt(1000L);
 
         stubNoExisting();

@@ -11,7 +11,7 @@
     <!--
         Certificate pinning for kbook.iadv.cloud.
 
-        Pin 1: leaf certificate public key (current cert, expires 2026-05-03)
+        Pin 1: leaf certificate public key (current cert, expires 2026-07-02)
         Pin 2: Let's Encrypt E8 intermediate CA — stays valid across 90-day cert renewals.
 
         Renewal checklist (run before expiration="..." date):
@@ -25,9 +25,9 @@
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
-        <pin-set expiration="2026-05-01">
-            <!-- Leaf: kbook.iadv.cloud (expires 2026-05-03) -->
-            <pin digest="SHA-256">8GBU/+YGP4f5GSeK8TKF4j/oJ1dY0x3ZTTFJyXi0DmU=</pin>
+        <pin-set expiration="2027-03-01">
+            <!-- Leaf: kbook.iadv.cloud (expires 2026-07-02) -->
+            <pin digest="SHA-256">tJ3FwThWtNjSo05B9h3v8/XuIltRPdwkOxXbTrvVqZ4=</pin>
             <!-- Backup: Let's Encrypt E8 intermediate CA -->
             <pin digest="SHA-256">iFvwVyJSxnQdyaUvUERIf+8qk7gRze3612JMwoO3zdU=</pin>
         </pin-set>

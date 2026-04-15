@@ -2,6 +2,8 @@ package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.ItemVariant;
 import com.khanabook.saas.entity.MenuItem;
+import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.service.impl.ItemVariantServiceImpl;
@@ -21,7 +23,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
@@ -31,6 +32,8 @@ class ItemVariantServiceImplTest {
 
     @Mock private ItemVariantRepository itemVariantRepo;
     @Mock private MenuItemRepository menuItemRepo;
+    @Mock private BillRepository billRepository;
+    @Mock private CategoryRepository categoryRepository;
 
     private GenericSyncService genericSyncService;
     private ItemVariantServiceImpl service;
@@ -40,7 +43,12 @@ class ItemVariantServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        genericSyncService = new GenericSyncService();
+        genericSyncService = new GenericSyncService(
+            billRepository,
+            menuItemRepo,
+            itemVariantRepo,
+            categoryRepository
+        );
         service = new ItemVariantServiceImpl(itemVariantRepo, menuItemRepo, genericSyncService);
     }
 

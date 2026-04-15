@@ -9,6 +9,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -22,12 +23,16 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val BACKEND_BASE_URL = BuildConfig.BACKEND_URL
+    private const val PRODUCTION_HOST = "kbook.iadv.cloud"
+
+    private fun isProductionBackend(url: String): Boolean =
+        url.toHttpUrlOrNull()?.host.equals(PRODUCTION_HOST, ignoreCase = true)
 
     @Provides
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG) {
+            level = if (BuildConfig.DEBUG && !isProductionBackend(BACKEND_BASE_URL)) {
                 HttpLoggingInterceptor.Level.BODY
             } else {
                 HttpLoggingInterceptor.Level.NONE

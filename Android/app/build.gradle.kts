@@ -10,21 +10,30 @@ if (localPropertiesFile.exists()) {
 fun localProperty(name: String, defaultValue: String = ""): String =
     localProperties.getProperty(name)?.takeUnless { it.isBlank() } ?: defaultValue
 
+fun configValue(name: String, defaultValue: String = ""): String =
+    localProperty(name).takeUnless { it.isBlank() }
+        ?: providers.gradleProperty(name).orNull?.takeUnless { it.isBlank() }
+        ?: System.getenv(name)?.takeUnless { it.isBlank() }
+        ?: defaultValue
+
 // WhatsApp/Meta tokens removed — OTP delivery is now handled entirely server-side.
 // The server's PasswordResetOtpService holds and uses these credentials.
-val backendUrl = localProperty("BACKEND_URL", "https://kbook.iadv.cloud/")
-val googleWebClientId = localProperty("GOOGLE_WEB_CLIENT_ID")
-val signingStoreFile = localProperty("SIGNING_STORE_FILE")
-val signingStorePassword = localProperty("SIGNING_STORE_PASSWORD")
-val signingKeyAlias = localProperty("SIGNING_KEY_ALIAS")
-val signingKeyPassword = localProperty("SIGNING_KEY_PASSWORD")
-val releaseVersionCode = localProperty("RELEASE_VERSION_CODE", "1").toIntOrNull() ?: 1
-val releaseVersionName = localProperty("RELEASE_VERSION_NAME", "1.0.0")
+val backendUrl = configValue("BACKEND_URL", "https://kbook.iadv.cloud/")
+val googleWebClientId = configValue("GOOGLE_WEB_CLIENT_ID")
+val signingStoreFile = configValue("SIGNING_STORE_FILE")
+val signingStorePassword = configValue("SIGNING_STORE_PASSWORD")
+val signingKeyAlias = configValue("SIGNING_KEY_ALIAS")
+val signingKeyPassword = configValue("SIGNING_KEY_PASSWORD")
+val releaseVersionCode = configValue("RELEASE_VERSION_CODE", "1").toIntOrNull() ?: 1
+val releaseVersionName = configValue("RELEASE_VERSION_NAME", "1.0.0")
 val hasReleaseSigning =
     signingStoreFile.isNotBlank() &&
         signingStorePassword.isNotBlank() &&
         signingKeyAlias.isNotBlank() &&
         signingKeyPassword.isNotBlank()
+val hasExplicitReleaseVersion =
+    configValue("RELEASE_VERSION_CODE").isNotBlank() &&
+        configValue("RELEASE_VERSION_NAME").isNotBlank()
 
 plugins {
     alias(libs.plugins.android.application)
@@ -101,6 +110,25 @@ android {
                         }
                 }
             }
+            if (!hasExplicitReleaseVersion) {
+                gradle.taskGraph.whenReady {
+                    allTasks
+                        .filter { task ->
+                            task.project == project &&
+                            (task.name.startsWith("assemble") || task.name.startsWith("bundle")) &&
+                            task.name.contains("Release", ignoreCase = true)
+                        }
+                        .forEach { task ->
+                            task.doFirst {
+                                throw GradleException(
+                                    "Release version not configured. " +
+                                    "Set RELEASE_VERSION_CODE and RELEASE_VERSION_NAME via local.properties, " +
+                                    "Gradle properties, or environment variables."
+                                )
+                            }
+                        }
+                }
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -167,7 +195,7 @@ dependencies {
     implementation("org.mindrot:jbcrypt:0.4")
     implementation(libs.sqlcipher)
     implementation(libs.androidx.sqlite.ktx)
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.security:security-crypto:1.1.0")
     implementation("androidx.biometric:biometric:1.1.0")
 
     // Social Login
@@ -214,4 +242,3 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
-

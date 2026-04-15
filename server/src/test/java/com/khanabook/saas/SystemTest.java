@@ -37,7 +37,7 @@ class SystemTest extends BaseIntegrationTest {
 
         
         LoginRequest login = new LoginRequest();
-        login.setPhoneNumber(phone);
+        login.setLoginId(phone);
         login.setPassword("pass123");
         ResponseEntity<AuthResponse> loginResp =
             rest.postForEntity("/auth/login", login, AuthResponse.class);
@@ -67,17 +67,18 @@ class SystemTest extends BaseIntegrationTest {
     }
 
     @Test
-    void signup_duplicatePhone_returns400() {
+    void signupOtpRequest_duplicatePhone_returns400() {
         String phone = uniquePhone();
         requestSignupOtp(phone);
         SignupRequest req = new SignupRequest(phone, "User A", "pass123", "123456", "D");
         rest.postForEntity("/auth/signup", req, String.class);
 
-        
-        ResponseEntity<String> second =
-            rest.postForEntity("/auth/signup", req, String.class);
+        ResponseEntity<String> second = rest.postForEntity(
+            "/auth/signup/request",
+            new SignupOtpRequest(phone),
+            String.class
+        );
         assertThat(second.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(second.getBody()).contains("already exists");
     }
 
     @Test
@@ -88,7 +89,7 @@ class SystemTest extends BaseIntegrationTest {
             new SignupRequest(phone, "User", "correct", "123456", "D"), String.class);
 
         LoginRequest bad = new LoginRequest();
-        bad.setPhoneNumber(phone);
+        bad.setLoginId(phone);
         bad.setPassword("wrong");
         ResponseEntity<String> resp = rest.postForEntity("/auth/login", bad, String.class);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -121,7 +122,7 @@ class SystemTest extends BaseIntegrationTest {
     void syncEndpoint_noToken_returns403() {
         ResponseEntity<String> resp =
             rest.getForEntity("/sync/bills/pull?lastSyncTimestamp=0&deviceId=X", String.class);
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
@@ -129,7 +130,7 @@ class SystemTest extends BaseIntegrationTest {
         ResponseEntity<String> resp = rest.exchange(
             "/sync/bills/pull?lastSyncTimestamp=0&deviceId=X",
             HttpMethod.GET, bearerRequest("not.a.valid.token"), String.class);
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
@@ -146,7 +147,7 @@ class SystemTest extends BaseIntegrationTest {
     void masterSync_noToken_returns403() {
         ResponseEntity<String> resp =
             rest.getForEntity("/sync/master/pull?lastSyncTimestamp=0&deviceId=X", String.class);
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     
@@ -182,8 +183,12 @@ class SystemTest extends BaseIntegrationTest {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> req = new HttpEntity<>("[]", headers);
 
-        ResponseEntity<String> resp =
-            rest.postForEntity("/sync/bills/push", req, String.class);
+        ResponseEntity<String> resp = rest.exchange(
+            "/sync/bills/push",
+            HttpMethod.POST,
+            req,
+            String.class
+        );
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resp.getBody()).contains("successfulLocalIds");

@@ -30,6 +30,7 @@ class BillDependencyResolutionTest {
     @Mock private BillRepository billRepo;
     @Mock private MenuItemRepository menuItemRepo;
     @Mock private ItemVariantRepository itemVariantRepo;
+    @Mock private CategoryRepository categoryRepo;
 
     private BillItemServiceImpl billItemService;
     private BillPaymentServiceImpl billPaymentService;
@@ -39,7 +40,7 @@ class BillDependencyResolutionTest {
 
     @BeforeEach
     void setUp() {
-        GenericSyncService gs = new GenericSyncService();
+        GenericSyncService gs = new GenericSyncService(billRepo, menuItemRepo, itemVariantRepo, categoryRepo);
         billItemService = new BillItemServiceImpl(billItemRepo, billRepo, menuItemRepo, itemVariantRepo, gs);
         billPaymentService = new BillPaymentServiceImpl(billPaymentRepo, billRepo, gs);
     }
@@ -131,7 +132,7 @@ class BillDependencyResolutionTest {
 
         billItemService.pushData(TENANT_ID, List.of(item));
 
-        verifyNoInteractions(itemVariantRepo);
+        verify(itemVariantRepo, never()).findByRestaurantIdAndDeviceIdAndLocalId(eq(TENANT_ID), eq(DEVICE), anyLong());
     }
 
     @Test

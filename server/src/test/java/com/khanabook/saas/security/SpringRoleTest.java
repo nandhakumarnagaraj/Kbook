@@ -1,7 +1,7 @@
 package com.khanabook.saas.security;
 
 import com.khanabook.saas.BaseIntegrationTest;
-import com.khanabook.saas.utility.JwtUtility;
+import com.khanabook.saas.entity.UserRole;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,12 +18,9 @@ public class SpringRoleTest extends BaseIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private JwtUtility jwtUtility;
-
     @Test
     void givenOwnerJwtWithTenant1_whenPostSyncBillsWithTenant1_then200() throws Exception {
-        String token = jwtUtility.generateToken("owner@test.com", 1L, "OWNER");
+        String token = persistUserAndGetToken("owner@test.com", 1L, UserRole.OWNER);
         
         mockMvc.perform(post("/sync/bills/push")
                 .header("Authorization", "Bearer " + token)
@@ -34,15 +31,8 @@ public class SpringRoleTest extends BaseIntegrationTest {
 
     @Test
     void givenOwnerJwtWithTenant1_whenPostSyncBillsWithTenant2_then403() throws Exception {
-        // GenericSyncService throws AccessDeniedException when restaurantId in payload (passed via controller from TenantContext)
-        // doesn't match if it's not a KBOOK_ADMIN.
-        // Wait, the controller passes TenantContext.getCurrentTenant() which is 1.
-        // If the payload contains 2, GenericSyncService.handlePushSync will check:
-        // if (!isKbookAdmin && !record.getRestaurantId().equals(tenantId)) { throw new AccessDeniedException(...) }
+        String token = persistUserAndGetToken("owner2@test.com", 1L, UserRole.OWNER);
         
-        String token = jwtUtility.generateToken("owner@test.com", 1L, "OWNER");
-        
-        // Payload with mismatched restaurantId
         String payload = "[{\"localId\":1, \"restaurantId\":2, \"totalAmount\":\"100.00\"}]";
         
         mockMvc.perform(post("/sync/bills/push")
@@ -54,17 +44,16 @@ public class SpringRoleTest extends BaseIntegrationTest {
 
     @Test
     void givenOwnerJwt_whenGetAdminPath_then403() throws Exception {
-        String token = jwtUtility.generateToken("owner@test.com", 1L, "OWNER");
+        String token = persistUserAndGetToken("owner3@test.com", 1L, UserRole.OWNER);
         
-        mockMvc.perform(get("/admin/anything")
+        mockMvc.perform(get("/docs")
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void givenKbookAdminJwt_whenPostSyncBillsWithAnyTenant_then200() throws Exception {
-        // KBOOK_ADMIN has null restaurantId in token usually, but can push for any
-        String token = jwtUtility.generateToken("admin@test.com", null, "KBOOK_ADMIN");
+        String token = persistUserAndGetToken("admin@test.com", 999L, null, UserRole.KBOOK_ADMIN);
         
         String payload = "[{\"localId\":1, \"restaurantId\":99, \"totalAmount\":\"100.00\"}]";
         
@@ -77,16 +66,16 @@ public class SpringRoleTest extends BaseIntegrationTest {
 
     @Test
     void givenKbookAdminJwt_whenGetAdminPath_then200() throws Exception {
-        String token = jwtUtility.generateToken("admin@test.com", null, "KBOOK_ADMIN");
+        String token = persistUserAndGetToken("admin2@test.com", 999L, null, UserRole.KBOOK_ADMIN);
         
-        mockMvc.perform(get("/sync/master/admin/test")
+        mockMvc.perform(get("/docs")
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
 
     @Test
     void givenKbookAdminJwt_whenGetMasterPullWithTenant99_then200() throws Exception {
-        String token = jwtUtility.generateToken("admin@test.com", null, "KBOOK_ADMIN");
+        String token = persistUserAndGetToken("admin3@test.com", 999L, null, UserRole.KBOOK_ADMIN);
         
         mockMvc.perform(get("/sync/master/pull")
                 .header("Authorization", "Bearer " + token)
@@ -101,18 +90,17 @@ public class SpringRoleTest extends BaseIntegrationTest {
         mockMvc.perform(get("/sync/bills/pull")
                 .param("lastSyncTimestamp", "0")
                 .param("deviceId", "test-device"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     void givenStaffJwt_whenAnySync_then403() throws Exception {
-        // STAFF is not in our UserRole enum anymore, but if someone crafts a JWT with it:
         String token = jwtUtility.generateToken("staff@test.com", 1L, "STAFF");
         
         mockMvc.perform(get("/sync/bills/pull")
                 .header("Authorization", "Bearer " + token)
                 .param("lastSyncTimestamp", "0")
                 .param("deviceId", "test-device"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }

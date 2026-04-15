@@ -1,5 +1,9 @@
 package com.khanabook.saas.security;
 
+import com.khanabook.saas.entity.User;
+import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.repository.TokenBlocklistRepository;
+import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.utility.JwtUtility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +22,8 @@ import static org.mockito.Mockito.*;
 class JwtRequestFilterTest {
 
     @Mock private JwtUtility jwtUtility;
+    @Mock private UserRepository userRepository;
+    @Mock private TokenBlocklistRepository tokenBlocklistRepository;
     @InjectMocks private JwtRequestFilter filter;
 
     @Test
@@ -37,9 +43,16 @@ class JwtRequestFilterTest {
         };
 
         when(jwtUtility.isTokenExpired(token)).thenReturn(false);
+        when(jwtUtility.extractJti(token)).thenReturn("jti-1");
+        when(tokenBlocklistRepository.existsByJti("jti-1")).thenReturn(false);
         when(jwtUtility.extractRestaurantId(token)).thenReturn(42L);
         when(jwtUtility.extractUsername(token)).thenReturn("user@example.com");
-        when(jwtUtility.extractRole(token)).thenReturn("OWNER");
+        User user = new User();
+        user.setLoginId("user@example.com");
+        user.setRole(UserRole.OWNER);
+        user.setIsActive(true);
+        when(userRepository.findByPhoneNumber("user@example.com")).thenReturn(java.util.Optional.empty());
+        when(userRepository.findByLoginId("user@example.com")).thenReturn(java.util.Optional.of(user));
 
         filter.doFilterInternal(request, response, chain);
     }
@@ -60,9 +73,16 @@ class JwtRequestFilterTest {
         };
 
         when(jwtUtility.isTokenExpired(token)).thenReturn(false);
-        when(jwtUtility.extractRestaurantId(token)).thenReturn(42L);
         when(jwtUtility.extractUsername(token)).thenReturn("user@example.com");
-        when(jwtUtility.extractRole(token)).thenReturn("OWNER");
+        when(jwtUtility.extractJti(token)).thenReturn("jti-2");
+        when(tokenBlocklistRepository.existsByJti("jti-2")).thenReturn(false);
+        when(jwtUtility.extractRestaurantId(token)).thenReturn(42L);
+        User user = new User();
+        user.setLoginId("user@example.com");
+        user.setRole(UserRole.OWNER);
+        user.setIsActive(true);
+        when(userRepository.findByPhoneNumber("user@example.com")).thenReturn(java.util.Optional.empty());
+        when(userRepository.findByLoginId("user@example.com")).thenReturn(java.util.Optional.of(user));
 
         try {
             filter.doFilterInternal(request, response, throwingChain);

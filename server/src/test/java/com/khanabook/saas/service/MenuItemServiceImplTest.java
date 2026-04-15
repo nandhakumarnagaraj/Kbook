@@ -2,7 +2,9 @@ package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.entity.MenuItem;
+import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.CategoryRepository;
+import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.service.impl.MenuItemServiceImpl;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
@@ -21,7 +23,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
@@ -31,6 +32,8 @@ class MenuItemServiceImplTest {
 
     @Mock private MenuItemRepository menuItemRepo;
     @Mock private CategoryRepository categoryRepo;
+    @Mock private BillRepository billRepository;
+    @Mock private ItemVariantRepository itemVariantRepository;
 
     private GenericSyncService genericSyncService;
     private MenuItemServiceImpl service;
@@ -40,7 +43,12 @@ class MenuItemServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        genericSyncService = new GenericSyncService();
+        genericSyncService = new GenericSyncService(
+            billRepository,
+            menuItemRepo,
+            itemVariantRepository,
+            categoryRepo
+        );
         service = new MenuItemServiceImpl(menuItemRepo, categoryRepo, genericSyncService);
     }
 
