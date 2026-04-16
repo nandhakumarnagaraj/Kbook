@@ -344,7 +344,7 @@ fun PrinterConfigView(
                             device = device,
                             isConnecting = btIsConnecting,
                             isSelected = device.address == selectedMac,
-                            isConnected = device.address == selectedMac && btIsConnected
+                            isConnected = connectedPrinterMac == device.address
                         ) {
                             viewModel.connectToPrinter(
                                 context = context,
