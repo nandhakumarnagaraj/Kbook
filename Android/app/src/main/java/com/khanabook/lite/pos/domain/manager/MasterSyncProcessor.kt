@@ -82,6 +82,15 @@ class MasterSyncProcessor @Inject constructor(
         )
     }
 
+    private fun logRepairedRecords(label: String, repaired: List<String>) {
+        if (repaired.isEmpty()) return
+        val preview = repaired.take(5).joinToString("; ")
+        Log.w(
+            "MasterSyncProcessor",
+            "Repairing ${repaired.size} $label record(s) during pull: $preview"
+        )
+    }
+
     private fun UserEntity.identityKeys(): List<String> {
         return buildList {
             serverId?.let { add("server:$it") }
@@ -326,6 +335,8 @@ class MasterSyncProcessor @Inject constructor(
             userDao.insertSyncedUsers(usersToInsert)
         }
 
+        val knownUserIds = userDao.getAllUsersOnce().map { it.id }.toSet()
+
         if (masterData.categories.isNotEmpty()) {
             categoryDao.insertSyncedCategories(
                 masterData.categories.map { remoteCategory ->
@@ -499,8 +510,18 @@ class MasterSyncProcessor @Inject constructor(
         }
 
         if (masterData.bills.isNotEmpty()) {
+            val repairedBills = mutableListOf<String>()
             billDao.insertSyncedBills(
                 masterData.bills.map { remoteBill ->
+                    val resolvedCreatedBy = remoteBill.createdBy?.toLong()?.let { remoteId ->
+                        remoteUserIdToLocalId[remoteId] ?: remoteId
+                    }?.takeIf { mappedUserId ->
+                        val exists = mappedUserId in knownUserIds
+                        if (!exists) {
+                            repairedBills += "billId=${remoteBill.id}, missingCreatedBy=$mappedUserId"
+                        }
+                        exists
+                    }
                     BillEntity(
                         id = remoteBill.id,
                         restaurantId = remoteBill.restaurantId ?: 0L,
@@ -522,9 +543,7 @@ class MasterSyncProcessor @Inject constructor(
                         partAmount2 = remoteBill.partAmount2.toSafeAmount(),
                         paymentStatus = remoteBill.paymentStatus.orFallback("success"),
                         orderStatus = remoteBill.orderStatus.orFallback("completed"),
-                        createdBy = remoteBill.createdBy?.toLong()?.let { remoteId ->
-                            remoteUserIdToLocalId[remoteId] ?: remoteId
-                        },
+                        createdBy = resolvedCreatedBy,
                         createdAt = remoteBill.createdAt ?: System.currentTimeMillis(),
                         paidAt = remoteBill.paidAt,
                         isSynced = true,
@@ -536,6 +555,7 @@ class MasterSyncProcessor @Inject constructor(
                     )
                 }
             )
+            logRepairedRecords(label = "bill", repaired = repairedBills)
         }
 
         // Get mapping of serverId to localId for bills to ensure items are linked correctly
