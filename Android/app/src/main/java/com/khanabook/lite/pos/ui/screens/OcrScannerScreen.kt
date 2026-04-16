@@ -59,7 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -136,6 +136,7 @@ fun OcrScannerScreen(
                     val bitmap = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                         android.graphics.ImageDecoder.decodeBitmap(android.graphics.ImageDecoder.createSource(context.contentResolver, it))
                     } else {
+                        @Suppress("DEPRECATION")
                         android.provider.MediaStore.Images.Media.getBitmap(context.contentResolver, it)
                     }
                     val bitmapCopy = bitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, true)

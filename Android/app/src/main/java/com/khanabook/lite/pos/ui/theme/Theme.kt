@@ -5,8 +5,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -48,10 +46,10 @@ fun KhanaBookLiteTheme(
     val density = LocalDensity.current
     val responsiveLayout = responsiveLayoutForWidth(configuration.screenWidthDp)
     if (!view.isInEditMode) {
+        // enableEdgeToEdge() in MainActivity already makes both bars transparent.
+        // We only need to enforce dark icons (light-coloured icons on our dark theme).
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = Color.Transparent.toArgb()
-            window.navigationBarColor = Color.Transparent.toArgb()
             val controller = WindowCompat.getInsetsController(window, view)
             controller.isAppearanceLightStatusBars = false
             controller.isAppearanceLightNavigationBars = false
