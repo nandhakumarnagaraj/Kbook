@@ -147,18 +147,19 @@ fun SignUpScreen(
 
     Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
+            contentWindowInsets = WindowInsets(0),
             containerColor = DarkBackground
-    ) { padding ->
+    ) { _ ->
         Box(
                 modifier =
                         Modifier.fillMaxSize()
-                                .background(Brush.verticalGradient(listOf(DarkBrown1, Color.Black)))
-                                .padding(padding),
+                                .background(Brush.verticalGradient(listOf(DarkBrown1, Color.Black))),
                 contentAlignment = Alignment.Center
         ) {
             Column(
                     modifier =
                             Modifier.fillMaxWidth()
+                                    .statusBarsPadding()
                                     .verticalScroll(rememberScrollState())
                                     .imePadding()
                                     .navigationBarsPadding()

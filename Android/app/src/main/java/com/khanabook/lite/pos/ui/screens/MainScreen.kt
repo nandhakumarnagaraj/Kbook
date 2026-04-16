@@ -3,11 +3,11 @@
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -98,6 +98,11 @@ fun MainScreen(
     }
 
     Scaffold(
+        // Opt out of automatic inset injection — safeDrawing can include gesture zones and
+        // display cutouts that exceed the bottomBar height on Android 16, causing double-counting.
+        // statusBarsPadding() on the content box and navigationBarsPadding() on the NavigationBar
+        // handle all insets explicitly instead.
+        contentWindowInsets = WindowInsets(0),
         containerColor = DarkBackground,
         bottomBar = {
             if (showBottomBar) {
@@ -115,16 +120,8 @@ fun MainScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(
-                    top = padding.calculateTopPadding(),
-                    bottom = if (showBottomBar) padding.calculateBottomPadding() else 0.dp
-                )
-                .consumeWindowInsets(
-                    PaddingValues(
-                        top = padding.calculateTopPadding(),
-                        bottom = if (showBottomBar) padding.calculateBottomPadding() else 0.dp
-                    )
-                )
+                .statusBarsPadding()
+                .padding(bottom = if (showBottomBar) padding.calculateBottomPadding() else 0.dp)
         ) {
             content(Modifier.fillMaxSize())
         }

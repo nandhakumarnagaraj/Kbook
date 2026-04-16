@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.KhanaBookLite" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.KhanaBookLite" parent="android:Theme.Material.NoActionBar">
+        <!-- Prevent the Android 15+ "elegant text height" change from inflating line heights
+             for multilingual scripts (Devanagari, Arabic, etc.) which makes text appear bigger. -->
+        <item name="android:elegantTextHeight">false</item>
+        <!-- Black window background prevents white flash before Compose renders on dark screens. -->
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+
 </resources>
