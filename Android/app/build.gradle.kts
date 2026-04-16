@@ -1,5 +1,7 @@
 
+import java.net.URI
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
@@ -15,6 +17,21 @@ fun configValue(name: String, defaultValue: String = ""): String =
         ?: providers.gradleProperty(name).orNull?.takeUnless { it.isBlank() }
         ?: System.getenv(name)?.takeUnless { it.isBlank() }
         ?: defaultValue
+
+fun isPlaceholder(value: String): Boolean {
+    val normalized = value.trim()
+    if (normalized.isBlank()) return true
+    val placeholderMarkers = listOf(
+        "YOUR_",
+        "your_",
+        "example.com",
+        "apps.googleusercontent.com",
+        "release-key.jks"
+    )
+    return placeholderMarkers.any { marker ->
+        normalized == marker || normalized.startsWith(marker) || normalized.contains("<") || normalized.contains(">")
+    }
+}
 
 // WhatsApp/Meta tokens removed — OTP delivery is now handled entirely server-side.
 // The server's PasswordResetOtpService holds and uses these credentials.
@@ -34,8 +51,7 @@ val hasReleaseSigning =
 val hasExplicitReleaseVersion =
     configValue("RELEASE_VERSION_CODE").isNotBlank() &&
         configValue("RELEASE_VERSION_NAME").isNotBlank()
-val isHttpsBackendUrl = backendUrl.startsWith("https://", ignoreCase = true)
-val hasGoogleWebClientId = googleWebClientId.isNotBlank()
+val expectedProductionHost = "kbook.iadv.cloud"
 
 plugins {
     alias(libs.plugins.android.application)
@@ -49,6 +65,9 @@ plugins {
 
 kotlin {
     jvmToolchain(17)
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+    }
 }
 
 java {
@@ -91,81 +110,6 @@ android {
             isShrinkResources = true
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
-            } else {
-                // Fail fast if someone tries to assemble/bundle a release without signing configured.
-                // Only applies to release tasks — debug/test builds are unaffected.
-                gradle.taskGraph.whenReady {
-                    allTasks
-                        .filter { task ->
-                            task.project == project &&
-                            (task.name.startsWith("assemble") || task.name.startsWith("bundle")) &&
-                            task.name.contains("Release", ignoreCase = true)
-                        }
-                        .forEach { task ->
-                            task.doFirst {
-                                throw GradleException(
-                                    "Release signing not configured. " +
-                                    "Add SIGNING_STORE_FILE, SIGNING_STORE_PASSWORD, " +
-                                    "SIGNING_KEY_ALIAS and SIGNING_KEY_PASSWORD to local.properties."
-                                )
-                            }
-                        }
-                }
-            }
-            if (!hasExplicitReleaseVersion) {
-                gradle.taskGraph.whenReady {
-                    allTasks
-                        .filter { task ->
-                            task.project == project &&
-                            (task.name.startsWith("assemble") || task.name.startsWith("bundle")) &&
-                            task.name.contains("Release", ignoreCase = true)
-                        }
-                        .forEach { task ->
-                            task.doFirst {
-                                throw GradleException(
-                                    "Release version not configured. " +
-                                    "Set RELEASE_VERSION_CODE and RELEASE_VERSION_NAME via local.properties, " +
-                                    "Gradle properties, or environment variables."
-                                )
-                            }
-                        }
-                }
-            }
-            if (!isHttpsBackendUrl) {
-                gradle.taskGraph.whenReady {
-                    allTasks
-                        .filter { task ->
-                            task.project == project &&
-                            (task.name.startsWith("assemble") || task.name.startsWith("bundle")) &&
-                            task.name.contains("Release", ignoreCase = true)
-                        }
-                        .forEach { task ->
-                            task.doFirst {
-                                throw GradleException(
-                                    "Release BACKEND_URL must use HTTPS. " +
-                                    "Set BACKEND_URL to an https:// endpoint before building a release."
-                                )
-                            }
-                        }
-                }
-            }
-            if (!hasGoogleWebClientId) {
-                gradle.taskGraph.whenReady {
-                    allTasks
-                        .filter { task ->
-                            task.project == project &&
-                            (task.name.startsWith("assemble") || task.name.startsWith("bundle")) &&
-                            task.name.contains("Release", ignoreCase = true)
-                        }
-                        .forEach { task ->
-                            task.doFirst {
-                                throw GradleException(
-                                    "GOOGLE_WEB_CLIENT_ID is required for release builds. " +
-                                    "Set it via local.properties, Gradle properties, or environment variables."
-                                )
-                            }
-                        }
-                }
             }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -198,6 +142,59 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
+}
+
+gradle.taskGraph.whenReady {
+    allTasks
+        .filter { task ->
+            task.project == project &&
+                (task.name.startsWith("assemble") || task.name.startsWith("bundle")) &&
+                task.name.contains("Release", ignoreCase = true)
+        }
+        .forEach { task ->
+            task.doFirst {
+                if (!hasReleaseSigning) {
+                    throw GradleException(
+                        "Release signing not configured. " +
+                            "Add SIGNING_STORE_FILE, SIGNING_STORE_PASSWORD, " +
+                            "SIGNING_KEY_ALIAS and SIGNING_KEY_PASSWORD to local.properties."
+                    )
+                }
+
+                if (!hasExplicitReleaseVersion) {
+                    throw GradleException(
+                        "Release version not configured. " +
+                            "Set RELEASE_VERSION_CODE and RELEASE_VERSION_NAME via local.properties, " +
+                            "Gradle properties, or environment variables."
+                    )
+                }
+
+                if (isPlaceholder(googleWebClientId)) {
+                    throw GradleException(
+                        "GOOGLE_WEB_CLIENT_ID is missing or still set to a placeholder. " +
+                            "Configure the production web client ID before building a release."
+                    )
+                }
+
+                val parsedBackendUrl = runCatching { URI(backendUrl) }.getOrNull()
+                    ?: throw GradleException("BACKEND_URL is invalid: $backendUrl")
+                val parsedHost = parsedBackendUrl.host
+                    ?: throw GradleException("BACKEND_URL must include a valid host. Found: $backendUrl")
+
+                if (!parsedBackendUrl.scheme.equals("https", ignoreCase = true)) {
+                    throw GradleException(
+                        "Release builds must use an HTTPS BACKEND_URL. Found: $backendUrl"
+                    )
+                }
+
+                if (!parsedHost.equals(expectedProductionHost, ignoreCase = true)) {
+                    throw GradleException(
+                        "Release builds must target $expectedProductionHost to stay aligned with " +
+                            "network pinning and production backend config. Found host: $parsedHost"
+                    )
+                }
+            }
+        }
 }
 
 dependencies {

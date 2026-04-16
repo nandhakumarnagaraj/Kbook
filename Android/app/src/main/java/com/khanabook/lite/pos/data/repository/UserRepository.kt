@@ -43,6 +43,68 @@ class UserRepository(
             ?: userDao.getUserByEmail(loginId)
     }
 
+    private suspend fun findCanonicalLocalUser(loginId: String, userEmail: String?): UserEntity? {
+        return findLocalUser(loginId, userEmail)
+            ?: userDao.getAllUsersOnce()
+                .asSequence()
+                .filter { !it.isDeleted }
+                .sortedWith(
+                    compareByDescending<UserEntity> { it.serverId != null }
+                        .thenByDescending { it.role.equals("OWNER", ignoreCase = true) }
+                        .thenByDescending { it.isActive }
+                )
+                .firstOrNull()
+    }
+
+    private suspend fun upsertAuthenticatedUser(
+        name: String,
+        loginId: String,
+        userEmail: String,
+        whatsappNumber: String?,
+        restaurantId: Long,
+        role: String,
+        authProvider: String,
+        googleEmail: String? = null,
+        fallbackPhone: String? = null
+    ): UserEntity {
+        val deviceId = sessionManager.getDeviceId()
+        val existing = findCanonicalLocalUser(loginId, userEmail)
+        val merged = if (existing == null) {
+            UserEntity(
+                name = name,
+                email = userEmail,
+                loginId = loginId,
+                googleEmail = googleEmail,
+                authProvider = authProvider,
+                phoneNumber = fallbackPhone,
+                whatsappNumber = whatsappNumber ?: fallbackPhone,
+                restaurantId = restaurantId,
+                role = role,
+                deviceId = deviceId,
+                isActive = true,
+                isSynced = true,
+                createdAt = System.currentTimeMillis()
+            )
+        } else {
+            existing.copy(
+                name = name,
+                email = userEmail,
+                loginId = loginId,
+                googleEmail = googleEmail ?: existing.googleEmail,
+                authProvider = authProvider,
+                phoneNumber = existing.phoneNumber ?: fallbackPhone,
+                whatsappNumber = whatsappNumber ?: existing.whatsappNumber ?: fallbackPhone,
+                restaurantId = restaurantId,
+                role = role,
+                deviceId = deviceId,
+                isActive = true,
+                isSynced = true
+            )
+        }
+        val id = userDao.insertUser(merged)
+        return merged.copy(id = id)
+    }
+
     suspend fun remoteLogin(loginIdInput: String, passwordPlain: String): Result<UserEntity> {
         return try {
             val deviceId = sessionManager.getDeviceId()
@@ -60,35 +122,16 @@ class UserRepository(
             sessionManager.saveRestaurantId(response.restaurantId)
             sessionManager.saveActiveUserRole(response.role ?: "OWNER")
 
-            var localUser = findLocalUser(loginId, userEmail)
-            if (localUser == null) {
-                localUser = UserEntity(
-                    name = response.userName,
-                    email = userEmail,
-                    loginId = loginId,
-                    whatsappNumber = response.whatsappNumber ?: loginIdInput,
-                    restaurantId = response.restaurantId,
-                    role = response.role ?: "OWNER",
-                    deviceId = deviceId,
-                    isActive = true,
-                    isSynced = true,
-                    createdAt = System.currentTimeMillis()
-                )
-                val id = userDao.insertUser(localUser)
-                localUser = localUser.copy(id = id)
-            } else {
-                localUser = localUser.copy(
-                    name = response.userName,
-                    email = userEmail,
-                    loginId = loginId,
-                    whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
-                    restaurantId = response.restaurantId,
-                    role = response.role ?: "OWNER",
-                    isSynced = true
-                )
-                val id = userDao.insertUser(localUser)
-                localUser = localUser.copy(id = id)
-            }
+            val localUser = upsertAuthenticatedUser(
+                name = response.userName,
+                loginId = loginId,
+                userEmail = userEmail,
+                whatsappNumber = response.whatsappNumber,
+                restaurantId = response.restaurantId,
+                role = response.role ?: "OWNER",
+                authProvider = "PHONE",
+                fallbackPhone = loginIdInput
+            )
 
             setCurrentUser(localUser)
             Result.success(localUser)
@@ -114,35 +157,16 @@ class UserRepository(
             sessionManager.saveRestaurantId(response.restaurantId)
             sessionManager.saveActiveUserRole(response.role ?: "OWNER")
 
-            var localUser = findLocalUser(loginId, userEmail)
-            if (localUser == null) {
-                localUser = UserEntity(
-                    name = name,
-                    email = userEmail,
-                    loginId = loginId,
-                    whatsappNumber = response.whatsappNumber ?: phoneNumber,
-                    restaurantId = response.restaurantId,
-                    role = response.role ?: "OWNER",
-                    deviceId = deviceId,
-                    isActive = true,
-                    isSynced = true,
-                    createdAt = System.currentTimeMillis()
-                )
-                val id = userDao.insertUser(localUser)
-                localUser = localUser.copy(id = id)
-            } else {
-                localUser = localUser.copy(
-                    name = response.userName,
-                    email = userEmail,
-                    loginId = loginId,
-                    whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
-                    restaurantId = response.restaurantId,
-                    role = response.role ?: "OWNER",
-                    isSynced = true
-                )
-                val id = userDao.insertUser(localUser)
-                localUser = localUser.copy(id = id)
-            }
+            val localUser = upsertAuthenticatedUser(
+                name = response.userName,
+                loginId = loginId,
+                userEmail = userEmail,
+                whatsappNumber = response.whatsappNumber,
+                restaurantId = response.restaurantId,
+                role = response.role ?: "OWNER",
+                authProvider = "PHONE",
+                fallbackPhone = phoneNumber
+            )
 
             setCurrentUser(localUser)
             Result.success(localUser)
@@ -169,37 +193,16 @@ class UserRepository(
             sessionManager.saveRestaurantId(response.restaurantId)
             sessionManager.saveActiveUserRole(response.role ?: "OWNER")
 
-            var localUser = findLocalUser(loginId, userEmail)
-            if (localUser == null) {
-                localUser = UserEntity(
-                    name = response.userName,
-                    email = userEmail,
-                    loginId = loginId,
-                    googleEmail = userEmail,
-                    authProvider = "GOOGLE",
-                    whatsappNumber = response.whatsappNumber,
-                    restaurantId = response.restaurantId,
-                    role = response.role ?: "OWNER",
-                    isSynced = true,
-                    createdAt = System.currentTimeMillis()
-                )
-                val id = userDao.insertUser(localUser)
-                localUser = localUser.copy(id = id)
-            } else {
-                localUser = localUser.copy(
-                    name = response.userName,
-                    email = userEmail,
-                    loginId = loginId,
-                    googleEmail = userEmail,
-                    authProvider = "GOOGLE",
-                    whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
-                    restaurantId = response.restaurantId,
-                    role = response.role ?: "OWNER",
-                    isSynced = true
-                )
-                val id = userDao.insertUser(localUser)
-                localUser = localUser.copy(id = id)
-            }
+            val localUser = upsertAuthenticatedUser(
+                name = response.userName,
+                loginId = loginId,
+                userEmail = userEmail,
+                whatsappNumber = response.whatsappNumber,
+                restaurantId = response.restaurantId,
+                role = response.role ?: "OWNER",
+                authProvider = "GOOGLE",
+                googleEmail = userEmail
+            )
 
             setCurrentUser(localUser)
             Result.success(localUser)

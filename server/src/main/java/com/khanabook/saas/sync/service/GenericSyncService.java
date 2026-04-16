@@ -28,6 +28,46 @@ public class GenericSyncService {
 	private final ItemVariantRepository itemVariantRepository;
 	private final CategoryRepository categoryRepository;
 
+	private User findExistingUserByIdentity(Long tenantId, User incomingUser,
+			com.khanabook.saas.repository.UserRepository userRepository) {
+		if (incomingUser.getId() != null) {
+			Optional<User> byServerId = userRepository.findById(incomingUser.getId());
+			if (byServerId.isPresent() && byServerId.get().getRestaurantId().equals(tenantId)) {
+				return byServerId.get();
+			}
+		}
+
+		if (incomingUser.getLoginId() != null && !incomingUser.getLoginId().isBlank()) {
+			Optional<User> byLoginId = userRepository.findByLoginId(incomingUser.getLoginId());
+			if (byLoginId.isPresent() && byLoginId.get().getRestaurantId().equals(tenantId)) {
+				return byLoginId.get();
+			}
+		}
+
+		if (incomingUser.getEmail() != null && !incomingUser.getEmail().isBlank()) {
+			Optional<User> byEmail = userRepository.findByEmail(incomingUser.getEmail());
+			if (byEmail.isPresent() && byEmail.get().getRestaurantId().equals(tenantId)) {
+				return byEmail.get();
+			}
+		}
+
+		if (incomingUser.getGoogleEmail() != null && !incomingUser.getGoogleEmail().isBlank()) {
+			Optional<User> byGoogleEmail = userRepository.findByGoogleEmail(incomingUser.getGoogleEmail());
+			if (byGoogleEmail.isPresent() && byGoogleEmail.get().getRestaurantId().equals(tenantId)) {
+				return byGoogleEmail.get();
+			}
+		}
+
+		if (incomingUser.getWhatsappNumber() != null && !incomingUser.getWhatsappNumber().isBlank()) {
+			Optional<User> byWhatsapp = userRepository.findByWhatsappNumber(incomingUser.getWhatsappNumber());
+			if (byWhatsapp.isPresent() && byWhatsapp.get().getRestaurantId().equals(tenantId)) {
+				return byWhatsapp.get();
+			}
+		}
+
+		return null;
+	}
+
 	@Transactional
 	public <T extends BaseSyncEntity> PushSyncResponse handlePushSync(Long tenantId, List<T> payload,
 			SyncRepository<T, Long> repository) {
@@ -164,6 +204,13 @@ public class GenericSyncService {
 						}
 					}
 
+					// For KBOOK_ADMIN, ensure we use the record's restaurantId if tenantId is null
+					Long targetTenantId = tenantId != null ? tenantId : incomingRecord.getRestaurantId();
+					if (targetTenantId == null) {
+						log.warn("Skipping record with NULL restaurantId for device: {}", deviceId);
+						continue;
+					}
+
 					T existingRecord = null;
 					if (incomingRecord.getLocalId() != null) {
 						if (incomingRecord.getId() != null) {
@@ -176,11 +223,10 @@ public class GenericSyncService {
 						}
 					}
 
-					// For KBOOK_ADMIN, ensure we use the record's restaurantId if tenantId is null
-					Long targetTenantId = tenantId != null ? tenantId : incomingRecord.getRestaurantId();
-					if (targetTenantId == null) {
-						log.warn("Skipping record with NULL restaurantId for device: {}", deviceId);
-						continue;
+					if (existingRecord == null
+							&& incomingRecord instanceof User incomingUser
+							&& repository instanceof com.khanabook.saas.repository.UserRepository userRepository) {
+						existingRecord = (T) findExistingUserByIdentity(targetTenantId, incomingUser, userRepository);
 					}
 
 					incomingRecord.setRestaurantId(targetTenantId);

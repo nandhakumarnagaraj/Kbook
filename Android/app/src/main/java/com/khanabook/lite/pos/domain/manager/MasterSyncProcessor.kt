@@ -71,6 +71,16 @@ class MasterSyncProcessor @Inject constructor(
     }
 
     private fun String?.orFallback(default: String): String = this?.takeUnless { it.isBlank() } ?: default
+
+    private fun UserEntity.identityKeys(): List<String> {
+        return buildList {
+            serverId?.let { add("server:$it") }
+            loginId?.takeIf { it.isNotBlank() }?.let { add("login:${it.lowercase()}") }
+            email.takeIf { it.isNotBlank() }?.let { add("email:${it.lowercase()}") }
+            googleEmail?.takeIf { it.isNotBlank() }?.let { add("google:${it.lowercase()}") }
+            whatsappNumber?.takeIf { it.isNotBlank() }?.let { add("whatsapp:$it") }
+        }
+    }
     
     private fun Double?.toSafeString(): String {
         if (this == null) return "0.00"
@@ -227,28 +237,42 @@ class MasterSyncProcessor @Inject constructor(
         }
 
         if (masterData.users.isNotEmpty()) {
-            val localUsersByIdentity = userDao.getAllUsersOnce().associateBy { it.loginId?.takeIf { value -> value.isNotBlank() } ?: it.email }
+            val localUsers = userDao.getAllUsersOnce()
+            val localUsersByIdentity = mutableMapOf<String, UserEntity>()
+            localUsers.forEach { localUser ->
+                localUser.identityKeys().forEach { key ->
+                    localUsersByIdentity.putIfAbsent(key, localUser)
+                }
+            }
             userDao.insertSyncedUsers(
                 masterData.users.map { remoteUser ->
+                    val localUser = listOfNotNull(
+                        remoteUser.serverId?.let { localUsersByIdentity["server:$it"] },
+                        remoteUser.loginId?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["login:${it.lowercase()}"] },
+                        remoteUser.email?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["email:${it.lowercase()}"] },
+                        remoteUser.googleEmail?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["google:${it.lowercase()}"] },
+                        remoteUser.whatsappNumber?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["whatsapp:$it"] }
+                    ).firstOrNull()
                     val remoteIdentity = remoteUser.loginId?.takeIf { it.isNotBlank() } ?: remoteUser.email
-                    val localUser = localUsersByIdentity[remoteIdentity] ?: remoteUser.email?.let(localUsersByIdentity::get)
 
                     UserEntity(
-                        id = remoteUser.id,
+                        id = localUser?.id ?: remoteUser.id,
                         name = remoteUser.name.orFallback("User"),
                         email = remoteUser.email.orFallback(localUser?.email ?: remoteIdentity.orFallback("")),
                         loginId = remoteUser.loginId ?: localUser?.loginId ?: remoteUser.email,
                         phoneNumber = remoteUser.phoneNumber ?: localUser?.phoneNumber,
-                        googleEmail = remoteUser.googleEmail,
+                        googleEmail = remoteUser.googleEmail ?: localUser?.googleEmail,
                         authProvider = remoteUser.authProvider ?: "PHONE",
                         whatsappNumber = remoteUser.whatsappNumber ?: localUser?.whatsappNumber ?: "",
                         role = remoteUser.role ?: localUser?.role ?: "OWNER",
                         isActive = remoteUser.isActive ?: true,
                         tokenInvalidatedAt = remoteUser.tokenInvalidatedAt ?: localUser?.tokenInvalidatedAt,
-                        createdAt = remoteUser.createdAt ?: System.currentTimeMillis(),
+                        createdAt = localUser?.createdAt ?: remoteUser.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteUser.restaurantId ?: 0L,
-                        deviceId = remoteUser.deviceId.orFallback(""),
+                        deviceId = localUser?.deviceId ?: remoteUser.deviceId.orFallback(""),
                         isSynced = true,
+                        updatedAt = remoteUser.updatedAt,
+                        isDeleted = remoteUser.isDeleted ?: false,
                         serverId = remoteUser.serverId,
                         serverUpdatedAt = remoteUser.serverUpdatedAt ?: 0L
                     )

@@ -9,6 +9,8 @@
   - `SIGNING_KEY_ALIAS`
   - `SIGNING_KEY_PASSWORD`
 - Confirm `BACKEND_URL` points to production.
+- Confirm `GOOGLE_WEB_CLIENT_ID` is set to the production web client ID expected by the server.
+- Confirm the release build is pointed at `https://kbook.iadv.cloud/` so it stays aligned with pinned network security config.
 
 Example `local.properties` entries:
 
@@ -16,12 +18,14 @@ Example `local.properties` entries:
 RELEASE_VERSION_CODE=2
 RELEASE_VERSION_NAME=1.0.1
 BACKEND_URL=https://kbook.iadv.cloud/
+GOOGLE_WEB_CLIENT_ID=836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleusercontent.com
 ```
 
 ## Security And Backend
 - Verify the backend is healthy for login, signup, forgot-password OTP, and sync flows.
 - Rotate and verify the certificate pin in `app/src/main/res/xml/network_security_config.xml` before the current pin expiration date.
 - Confirm Google sign-in client ID matches the Play signing setup.
+- Confirm `app/google-services.json` belongs to `com.khanabook.lite.pos` and the same Firebase/Google project as the production web client ID.
 - Review whether `android:largeHeap="true"` is still required before public scale.
 - Confirm legacy encrypted preference migration succeeds on an upgraded device:
   - existing auth token survives app update
