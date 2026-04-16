@@ -103,6 +103,18 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "printer_mac")
 	private String printerMac;
 
+	@Column(name = "kitchen_printer_enabled")
+	private Boolean kitchenPrinterEnabled;
+
+	@Column(name = "kitchen_printer_name")
+	private String kitchenPrinterName;
+
+	@Column(name = "kitchen_printer_mac")
+	private String kitchenPrinterMac;
+
+	@Column(name = "kitchen_printer_paper_size")
+	private String kitchenPrinterPaperSize;
+
 	@Column(name = "paper_size")
 	private String paperSize;
 

@@ -22,7 +22,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 36,
+        version = 37,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -56,6 +56,15 @@ abstract class AppDatabase : RoomDatabase() {
                     db.execSQL(
                         "CREATE UNIQUE INDEX IF NOT EXISTS `index_kitchen_print_queue_bill_id_printer_mac` ON `kitchen_print_queue` (`bill_id`, `printer_mac`)"
                     )
+                }
+            }
+
+            val MIGRATION_36_37 = object : Migration(36, 37) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `kitchen_printer_enabled` INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `kitchen_printer_name` TEXT")
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `kitchen_printer_mac` TEXT")
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `kitchen_printer_paper_size` TEXT NOT NULL DEFAULT '58mm'")
                 }
             }
 

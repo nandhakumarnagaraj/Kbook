@@ -76,6 +76,20 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "print_customer_whatsapp", defaultValue = "1")
     val printCustomerWhatsapp: Boolean = true,
 
+    // Kitchen printer — synced via server so config survives reinstall / new device
+    @SerializedName("kitchenPrinterEnabled")
+    @ColumnInfo(name = "kitchen_printer_enabled", defaultValue = "0")
+    val kitchenPrinterEnabled: Boolean = false,
+    @SerializedName("kitchenPrinterName")
+    @ColumnInfo(name = "kitchen_printer_name")
+    val kitchenPrinterName: String? = null,
+    @SerializedName("kitchenPrinterMac")
+    @ColumnInfo(name = "kitchen_printer_mac")
+    val kitchenPrinterMac: String? = null,
+    @SerializedName("kitchenPrinterPaperSize")
+    @ColumnInfo(name = "kitchen_printer_paper_size", defaultValue = "58mm")
+    val kitchenPrinterPaperSize: String = "58mm",
+
     
     @ColumnInfo(name = "daily_order_counter", defaultValue = "0")
     val dailyOrderCounter: Long = 0,

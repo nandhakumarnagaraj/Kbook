@@ -50,6 +50,10 @@ public class RestaurantProfileDTO {
     private String printerName;
     private String printerMac;
     private String paperSize;
+    private Boolean kitchenPrinterEnabled;
+    private String kitchenPrinterName;
+    private String kitchenPrinterMac;
+    private String kitchenPrinterPaperSize;
     private Boolean autoPrintOnSuccess;
     private Boolean includeLogoInPrint;
     private Boolean printCustomerWhatsapp;

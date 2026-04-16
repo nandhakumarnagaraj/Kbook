@@ -22,7 +22,8 @@ class MasterSyncProcessor @Inject constructor(
     private val userDao: UserDao,
     private val categoryDao: CategoryDao,
     private val menuDao: MenuDao,
-    private val inventoryDao: InventoryDao
+    private val inventoryDao: InventoryDao,
+    private val printerProfileDao: PrinterProfileDao
 ) {
 
     private suspend fun <T> pushBatches(
@@ -110,6 +111,10 @@ class MasterSyncProcessor @Inject constructor(
             Log.w("MasterSyncProcessor", "Push aborted: restaurantId not set (value=$restaurantId)")
             return false
         }
+
+        // Embed kitchen printer into restaurant profile before pushing so the server
+        // always has the latest kitchen printer config (survives reinstall / new device).
+        syncKitchenPrinterIntoProfile(profile)
 
         pushBatches(
             label = "restaurant profiles",
@@ -230,10 +235,35 @@ class MasterSyncProcessor @Inject constructor(
                         showBranding = remoteProfile.showBranding ?: true,
                         maskCustomerPhone = remoteProfile.maskCustomerPhone ?: true,
                         serverId = remoteProfile.serverId,
-                        serverUpdatedAt = remoteProfile.serverUpdatedAt ?: 0L
+                        serverUpdatedAt = remoteProfile.serverUpdatedAt ?: 0L,
+                        kitchenPrinterEnabled = remoteProfile.kitchenPrinterEnabled,
+                        kitchenPrinterName = remoteProfile.kitchenPrinterName,
+                        kitchenPrinterMac = remoteProfile.kitchenPrinterMac,
+                        kitchenPrinterPaperSize = remoteProfile.kitchenPrinterPaperSize ?: "58mm"
                     )
                 }
             )
+
+            // Restore kitchen PrinterProfileEntity from server data so the kitchen printer
+            // config is available immediately after first login on a new/reinstalled device.
+            masterData.profiles.firstOrNull()?.let { remoteProfile ->
+                val mac = remoteProfile.kitchenPrinterMac
+                if (!mac.isNullOrBlank()) {
+                    val existing = printerProfileDao.getByRole(com.khanabook.lite.pos.domain.model.PrinterRole.KITCHEN.name)
+                    printerProfileDao.upsert(
+                        PrinterProfileEntity(
+                            id = existing?.id ?: 0,
+                            role = com.khanabook.lite.pos.domain.model.PrinterRole.KITCHEN.name,
+                            name = remoteProfile.kitchenPrinterName ?: "Kitchen Printer",
+                            macAddress = mac,
+                            enabled = remoteProfile.kitchenPrinterEnabled ?: true,
+                            autoPrint = true,
+                            paperSize = remoteProfile.kitchenPrinterPaperSize ?: "58mm",
+                            includeLogo = false
+                        )
+                    )
+                }
+            }
         }
 
         // Maps each remote user's original local id → the local id we actually stored.
@@ -521,4 +551,35 @@ class MasterSyncProcessor @Inject constructor(
             )
         }
     } // end withTransaction
+
+    /**
+     * Before a push: reads the kitchen PrinterProfileEntity and writes its fields into the
+     * RestaurantProfileEntity (marking it unsynced if anything changed). This ensures the
+     * server always receives the latest kitchen printer MAC even if only the printer profile
+     * table was updated (which doesn't have its own sync endpoint).
+     */
+    private suspend fun syncKitchenPrinterIntoProfile(profile: RestaurantProfileEntity?) {
+        if (profile == null) return
+        val kitchen = printerProfileDao.getByRole(com.khanabook.lite.pos.domain.model.PrinterRole.KITCHEN.name)
+        val mac = kitchen?.macAddress?.takeIf { it.isNotBlank() }
+
+        val unchanged = profile.kitchenPrinterMac == mac &&
+            profile.kitchenPrinterName == kitchen?.name &&
+            profile.kitchenPrinterEnabled == (kitchen?.enabled ?: false) &&
+            profile.kitchenPrinterPaperSize == (kitchen?.paperSize ?: "58mm")
+        if (unchanged) return
+
+        restaurantDao.insertSyncedRestaurantProfiles(
+            listOf(
+                profile.copy(
+                    kitchenPrinterEnabled = kitchen?.enabled ?: false,
+                    kitchenPrinterName = kitchen?.name,
+                    kitchenPrinterMac = mac,
+                    kitchenPrinterPaperSize = kitchen?.paperSize ?: "58mm",
+                    isSynced = false,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        )
+    }
 }
