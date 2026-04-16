@@ -3,8 +3,10 @@ package com.khanabook.lite.pos.ui
 
 import android.content.Context
 import android.content.res.Configuration
+import android.os.Build
 import androidx.fragment.app.FragmentActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.setContent
@@ -22,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.ui.screens.*
@@ -37,6 +40,10 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var sessionManager: SessionManager
     private var lastBackPressTime: Long = 0
 
+    companion object {
+        private const val UI_SCALE_TAG = "UI_SCALE_DEBUG"
+    }
+
     /**
      * Pin fontScale to 1.0 at the Context level so that:
      *  1. Compose's root LocalDensity is initialised with fontScale=1f (not the system value).
@@ -51,6 +58,19 @@ class MainActivity : FragmentActivity() {
     override fun attachBaseContext(newBase: Context) {
         val config = Configuration(newBase.resources.configuration)
         config.fontScale = 1f
+        if (BuildConfig.DEBUG) {
+            val metrics = newBase.resources.displayMetrics
+            Log.d(
+                UI_SCALE_TAG,
+                "attachBaseContext before override: " +
+                    "fontScale=${newBase.resources.configuration.fontScale}, " +
+                    "density=${metrics.density}, scaledDensity=${metrics.scaledDensity}, " +
+                    "densityDpi=${metrics.densityDpi}, " +
+                    "screenWidthDp=${newBase.resources.configuration.screenWidthDp}, " +
+                    "screenHeightDp=${newBase.resources.configuration.screenHeightDp}, " +
+                    "smallestWidthDp=${newBase.resources.configuration.smallestScreenWidthDp}"
+            )
+        }
         super.attachBaseContext(newBase.createConfigurationContext(config))
     }
 
@@ -61,6 +81,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (BuildConfig.DEBUG) logWindowAndResources("onCreate")
 
         // Prevent screenshots and recent-apps thumbnails from exposing billing/auth data.
         window.setFlags(
@@ -290,5 +311,34 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (BuildConfig.DEBUG) logWindowAndResources("onResume")
+    }
+
+    private fun logWindowAndResources(stage: String) {
+        val configuration = resources.configuration
+        val metrics = resources.displayMetrics
+        val windowBounds = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            windowManager.currentWindowMetrics.bounds.toShortString()
+        } else {
+            "unavailable"
+        }
+        Log.d(
+            UI_SCALE_TAG,
+            "$stage activity resources: " +
+                "sdk=${Build.VERSION.SDK_INT}, " +
+                "fontScale=${configuration.fontScale}, " +
+                "density=${metrics.density}, scaledDensity=${metrics.scaledDensity}, " +
+                "densityDpi=${metrics.densityDpi}, " +
+                "screenWidthDp=${configuration.screenWidthDp}, " +
+                "screenHeightDp=${configuration.screenHeightDp}, " +
+                "smallestWidthDp=${configuration.smallestScreenWidthDp}, " +
+                "orientation=${configuration.orientation}, " +
+                "windowBounds=$windowBounds, " +
+                "isInMultiWindow=$isInMultiWindowMode"
+        )
     }
 }

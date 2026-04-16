@@ -58,6 +58,9 @@ class BluetoothPrinterManager(private val context: Context) {
     private val _connectedDeviceMac = MutableStateFlow<String?>(null)
     val connectedDeviceMac: StateFlow<String?> = _connectedDeviceMac
 
+    private val _connectedDeviceMacs = MutableStateFlow<Set<String>>(emptySet())
+    val connectedDeviceMacs: StateFlow<Set<String>> = _connectedDeviceMacs
+
     private val _connectedDeviceEvents = MutableSharedFlow<String>(extraBufferCapacity = 16)
     val connectedDeviceEvents: SharedFlow<String> = _connectedDeviceEvents
 
@@ -75,17 +78,24 @@ class BluetoothPrinterManager(private val context: Context) {
                     intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                 }
                 
-                if (device?.address == activeSocket?.remoteDevice?.address) {
-                    when (intent?.action) {
-                        BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                val deviceAddress = device?.address ?: return
+                when (intent?.action) {
+                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                        _connectedDeviceMacs.value = _connectedDeviceMacs.value + deviceAddress
+                        if (deviceAddress == activeSocket?.remoteDevice?.address) {
                             _isConnected.value = true
-                            device?.address?.let { _connectedDeviceEvents.tryEmit(it) }
+                            _connectedDeviceMac.value = deviceAddress
                         }
-                        BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                        _connectedDeviceEvents.tryEmit(deviceAddress)
+                    }
+                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                        _connectedDeviceMacs.value = _connectedDeviceMacs.value - deviceAddress
+                        if (deviceAddress == activeSocket?.remoteDevice?.address) {
                             // Can't easily use mutex in BroadcastReceiver, but we can set flags
                             _isConnected.value = false
                             activeSocket = null
                             outputStream = null
+                            _connectedDeviceMac.value = null
                         }
                     }
                 }
@@ -249,7 +259,10 @@ class BluetoothPrinterManager(private val context: Context) {
             outputStream = socket?.outputStream
             _isConnected.value = true
             _connectedDeviceMac.value = device.address
-            device.address?.let { _connectedDeviceEvents.tryEmit(it) }
+            device.address?.let {
+                _connectedDeviceMacs.value = _connectedDeviceMacs.value + it
+                _connectedDeviceEvents.tryEmit(it)
+            }
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to connect to printer", e)

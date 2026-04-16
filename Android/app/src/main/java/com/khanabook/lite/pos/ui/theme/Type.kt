@@ -4,26 +4,29 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 
-val Typography = Typography(
+private val AppFontFamily = FontFamily.SansSerif
+
+private val BaseTypography = Typography(
     // Display - Reserved for Large UI elements (e.g. Dashboard headers)
     displayLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 57.sp,
         lineHeight = 64.sp,
         letterSpacing = (-0.25).sp
     ),
     displayMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 45.sp,
         lineHeight = 52.sp,
         letterSpacing = 0.sp
     ),
     displaySmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 36.sp,
         lineHeight = 44.sp,
@@ -32,21 +35,21 @@ val Typography = Typography(
 
     // Headlines - Main screen titles
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 32.sp,
         lineHeight = 40.sp,
         letterSpacing = 0.sp
     ),
     headlineMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp,
         lineHeight = 36.sp,
         letterSpacing = 0.sp
     ),
     headlineSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 32.sp,
@@ -55,21 +58,21 @@ val Typography = Typography(
 
     // Titles - Section headers / Card titles
     titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp
     ),
     titleMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.15.sp
     ),
     titleSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
@@ -78,21 +81,21 @@ val Typography = Typography(
 
     // Body - Main readable content
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.5.sp
     ),
     bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.25.sp
     ),
     bodySmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
@@ -101,24 +104,58 @@ val Typography = Typography(
 
     // Labels - Small text, buttons, tags
     labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp
     ),
     labelMedium = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = AppFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
     )
 )
+
+private const val Android16TypographyScale = 0.92f
+
+fun typographyForSdk(sdkInt: Int): Typography {
+    return if (sdkInt >= 36) BaseTypography.scaled(Android16TypographyScale) else BaseTypography
+}
+
+private fun Typography.scaled(scale: Float): Typography = copy(
+    displayLarge = displayLarge.scaled(scale),
+    displayMedium = displayMedium.scaled(scale),
+    displaySmall = displaySmall.scaled(scale),
+    headlineLarge = headlineLarge.scaled(scale),
+    headlineMedium = headlineMedium.scaled(scale),
+    headlineSmall = headlineSmall.scaled(scale),
+    titleLarge = titleLarge.scaled(scale),
+    titleMedium = titleMedium.scaled(scale),
+    titleSmall = titleSmall.scaled(scale),
+    bodyLarge = bodyLarge.scaled(scale),
+    bodyMedium = bodyMedium.scaled(scale),
+    bodySmall = bodySmall.scaled(scale),
+    labelLarge = labelLarge.scaled(scale),
+    labelMedium = labelMedium.scaled(scale),
+    labelSmall = labelSmall.scaled(scale)
+)
+
+private fun TextStyle.scaled(scale: Float): TextStyle = copy(
+    fontSize = fontSize.scaled(scale),
+    lineHeight = lineHeight.scaled(scale),
+    letterSpacing = letterSpacing.scaled(scale)
+)
+
+private fun TextUnit.scaled(scale: Float): TextUnit {
+    return if (isSp) (value * scale).sp else this
+}

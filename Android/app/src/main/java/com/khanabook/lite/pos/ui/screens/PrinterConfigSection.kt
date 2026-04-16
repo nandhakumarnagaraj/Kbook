@@ -110,6 +110,7 @@ fun PrinterConfigView(
     val btDevices by viewModel.btDevices.collectAsStateWithLifecycle()
     val btIsScanning by viewModel.btIsScanning.collectAsStateWithLifecycle()
     val connectedPrinterMac by viewModel.connectedPrinterMac.collectAsStateWithLifecycle()
+    val printerStatusRoles by viewModel.printerStatusRoles.collectAsStateWithLifecycle()
     val btIsConnecting by viewModel.btIsConnecting.collectAsStateWithLifecycle()
     val btConnectResult by viewModel.btConnectResult.collectAsStateWithLifecycle()
     var showBtSheet by remember { mutableStateOf(false) }
@@ -186,7 +187,7 @@ fun PrinterConfigView(
                     paper58 = paper58,
                     includeLogo = includeLogo,
                     showLogoToggle = true,
-                    isConnected = connectedPrinterMac != null && connectedPrinterMac == customerPrinter?.macAddress,
+                    isConnected = printerStatusRoles.contains(PrinterRole.CUSTOMER.name),
                     onEnabledChange = { enabled = it },
                     onAutoPrintChange = { autoPrint = it },
                     onPaperSizeChange = { paper58 = it },
@@ -221,7 +222,7 @@ fun PrinterConfigView(
                     paper58 = kitchenPaper58,
                     includeLogo = false,
                     showLogoToggle = false,
-                    isConnected = connectedPrinterMac != null && connectedPrinterMac == kitchenPrinter?.macAddress,
+                    isConnected = printerStatusRoles.contains(PrinterRole.KITCHEN.name),
                     onEnabledChange = { kitchenEnabled = it },
                     onAutoPrintChange = {},
                     onPaperSizeChange = { kitchenPaper58 = it },
@@ -253,7 +254,7 @@ fun PrinterConfigView(
             Spacer(modifier = Modifier.height(spacing.large))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(spacing.small),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(

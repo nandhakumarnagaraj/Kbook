@@ -1,16 +1,21 @@
-﻿package com.khanabook.lite.pos.ui.theme
+package com.khanabook.lite.pos.ui.theme
 
+import android.app.Activity
+import android.os.Build
+import android.util.Log
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Density
-import android.app.Activity
 import androidx.core.view.WindowCompat
+import com.khanabook.lite.pos.BuildConfig
 
 private val DarkColorScheme = darkColorScheme(
     primary = PrimaryGold,
@@ -45,9 +50,35 @@ fun KhanaBookLiteTheme(
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
     val responsiveLayout = responsiveLayoutForWidth(configuration.screenWidthDp)
+    val appTypography = typographyForSdk(Build.VERSION.SDK_INT)
+
+    if (BuildConfig.DEBUG) {
+        LaunchedEffect(
+            configuration.fontScale,
+            configuration.screenWidthDp,
+            configuration.screenHeightDp,
+            configuration.smallestScreenWidthDp,
+            configuration.orientation,
+            density.density,
+            density.fontScale
+        ) {
+            Log.d(
+                "UI_SCALE_DEBUG",
+                "compose density/config: " +
+                    "fontScale=${configuration.fontScale}, " +
+                    "density=${density.density}, " +
+                    "composeFontScale=${density.fontScale}, " +
+                    "screenWidthDp=${configuration.screenWidthDp}, " +
+                    "screenHeightDp=${configuration.screenHeightDp}, " +
+                    "smallestWidthDp=${configuration.smallestScreenWidthDp}, " +
+                    "orientation=${configuration.orientation}, " +
+                    "widthTier=${responsiveLayout.widthTier}"
+            )
+        }
+    }
+
     if (!view.isInEditMode) {
-        // enableEdgeToEdge() in MainActivity already makes both bars transparent.
-        // We only need to enforce dark icons (light-coloured icons on our dark theme).
+
         SideEffect {
             val window = (view.context as Activity).window
             val controller = WindowCompat.getInsetsController(window, view)
@@ -64,10 +95,8 @@ fun KhanaBookLiteTheme(
     ) {
         MaterialTheme(
             colorScheme = DarkColorScheme,
-            typography = Typography,
+            typography = appTypography,
             content = content
         )
     }
 }
-
-

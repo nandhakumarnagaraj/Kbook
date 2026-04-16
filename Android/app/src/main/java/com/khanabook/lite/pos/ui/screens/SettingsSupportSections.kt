@@ -214,11 +214,11 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
             title = "Sign Out?",
             message = "You will be signed out of this device."
         ) {
-            TextButton(onClick = { showConfirmDialog = false; viewModel.initiateLogout() }) {
-                Text("Sign Out", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-            }
             TextButton(onClick = { showConfirmDialog = false }) {
                 Text("Cancel", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+            }
+            TextButton(onClick = { showConfirmDialog = false; viewModel.initiateLogout() }) {
+                Text("Sign Out", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
             }
         }
     }

@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -64,6 +65,22 @@ class SettingsViewModel @Inject constructor(
     /** MAC address of the currently connected Bluetooth printer, or null if disconnected. */
     val connectedPrinterMac: StateFlow<String?> = btManager.connectedDeviceMac
 
+    /** All printer MAC addresses currently connected at the Bluetooth ACL level. */
+    val connectedPrinterMacs: StateFlow<Set<String>> = btManager.connectedDeviceMacs
+
+    private val _stickyConnectedPrinterRoles = MutableStateFlow<Set<String>>(emptySet())
+    val printerStatusRoles: StateFlow<Set<String>> = combine(
+        printerProfiles,
+        connectedPrinterMacs,
+        _stickyConnectedPrinterRoles
+    ) { profiles, liveMacs, stickyRoles ->
+        val liveRoles = profiles
+            .filter { !it.macAddress.isNullOrBlank() && liveMacs.contains(it.macAddress) }
+            .map { it.role }
+            .toSet()
+        liveRoles + stickyRoles
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             val currentProfile = restaurantRepository.getProfile()
@@ -95,6 +112,7 @@ class SettingsViewModel @Inject constructor(
                 "\u001d\u0056\u0042\u0000" 
             ).toByteArray(Charsets.US_ASCII)
             btManager.printBytes(testData)
+            _stickyConnectedPrinterRoles.value = _stickyConnectedPrinterRoles.value + role.name
             btManager.disconnect()
         }
     }
@@ -126,6 +144,7 @@ class SettingsViewModel @Inject constructor(
             if (ok) {
                 val name = try { device.name ?: "BT Printer" } catch (_: Exception) { "BT Printer" }
                 val mac  = device.address
+                _stickyConnectedPrinterRoles.value = _stickyConnectedPrinterRoles.value + role.name
                 val existing = printerProfileRepository.getByRole(role.name)
                 printerProfileRepository.saveProfile(
                     PrinterProfileEntity(
@@ -186,7 +205,9 @@ class SettingsViewModel @Inject constructor(
 
     fun removePrinter(role: PrinterRole) {
         viewModelScope.launch(Dispatchers.IO) {
+            val existing = printerProfileRepository.getByRole(role.name)
             printerProfileRepository.deleteByRole(role.name)
+            _stickyConnectedPrinterRoles.value = _stickyConnectedPrinterRoles.value - role.name
             if (role == PrinterRole.CUSTOMER) {
                 restaurantRepository.getProfile()?.copy(
                     printerEnabled = false,

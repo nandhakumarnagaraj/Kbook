@@ -80,7 +80,7 @@ class KitchenPrintQueueManager @Inject constructor(
         for (job in queue) {
             // Freshness check: if a concurrent direct print (printBill) already pre-cleared this
             // entry before we got here, skip it — the ticket has already been (or is being) sent.
-            val stillPending = queueRepository.getByBillAndPrinter(job.billId, printerMac)
+            val stillPending = queueRepository.getByBillAndPrinter(job.billId, job.printerMac)
             if (stillPending == null) {
                 Log.d(TAG, "Skipping billId=${job.billId}: already claimed by concurrent direct print")
                 continue
@@ -88,14 +88,14 @@ class KitchenPrintQueueManager @Inject constructor(
 
             val bill = billRepository.getBillWithItemsById(job.billId)
             if (bill == null) {
-                queueRepository.deleteByBillAndPrinter(job.billId, printerMac)
+                queueRepository.deleteById(job.id)
                 continue
             }
 
             val isPrintable = bill.bill.orderStatus.equals("completed", ignoreCase = true) ||
                 bill.bill.orderStatus.equals("paid", ignoreCase = true)
             if (!isPrintable) {
-                queueRepository.deleteByBillAndPrinter(job.billId, printerMac)
+                queueRepository.deleteById(job.id)
                 continue
             }
 
