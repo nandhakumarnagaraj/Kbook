@@ -236,6 +236,11 @@ class MasterSyncProcessor @Inject constructor(
             )
         }
 
+        // Maps each remote user's original local id → the local id we actually stored.
+        // Bills reference users via the original device's local id (createdBy), so we need
+        // this to remap the FK to whatever id we assigned on this device.
+        val remoteUserIdToLocalId = mutableMapOf<Long, Long>()
+
         if (masterData.users.isNotEmpty()) {
             val localUsers = userDao.getAllUsersOnce()
             val localUsersByIdentity = mutableMapOf<String, UserEntity>()
@@ -244,40 +249,42 @@ class MasterSyncProcessor @Inject constructor(
                     localUsersByIdentity.putIfAbsent(key, localUser)
                 }
             }
-            userDao.insertSyncedUsers(
-                masterData.users.map { remoteUser ->
-                    val localUser = listOfNotNull(
-                        remoteUser.serverId?.let { localUsersByIdentity["server:$it"] },
-                        remoteUser.loginId?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["login:${it.lowercase()}"] },
-                        remoteUser.email?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["email:${it.lowercase()}"] },
-                        remoteUser.googleEmail?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["google:${it.lowercase()}"] },
-                        remoteUser.whatsappNumber?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["whatsapp:$it"] }
-                    ).firstOrNull()
-                    val remoteIdentity = remoteUser.loginId?.takeIf { it.isNotBlank() } ?: remoteUser.email
+            val usersToInsert = masterData.users.map { remoteUser ->
+                val localUser = listOfNotNull(
+                    remoteUser.serverId?.let { localUsersByIdentity["server:$it"] },
+                    remoteUser.loginId?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["login:${it.lowercase()}"] },
+                    remoteUser.email?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["email:${it.lowercase()}"] },
+                    remoteUser.googleEmail?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["google:${it.lowercase()}"] },
+                    remoteUser.whatsappNumber?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["whatsapp:$it"] }
+                ).firstOrNull()
+                val remoteIdentity = remoteUser.loginId?.takeIf { it.isNotBlank() } ?: remoteUser.email
+                val assignedLocalId = localUser?.id ?: remoteUser.id
+                // Track: original device local id → id we will persist on this device
+                remoteUserIdToLocalId[remoteUser.id] = assignedLocalId
 
-                    UserEntity(
-                        id = localUser?.id ?: remoteUser.id,
-                        name = remoteUser.name.orFallback("User"),
-                        email = remoteUser.email.orFallback(localUser?.email ?: remoteIdentity.orFallback("")),
-                        loginId = remoteUser.loginId ?: localUser?.loginId ?: remoteUser.email,
-                        phoneNumber = remoteUser.phoneNumber ?: localUser?.phoneNumber,
-                        googleEmail = remoteUser.googleEmail ?: localUser?.googleEmail,
-                        authProvider = remoteUser.authProvider ?: "PHONE",
-                        whatsappNumber = remoteUser.whatsappNumber ?: localUser?.whatsappNumber ?: "",
-                        role = remoteUser.role ?: localUser?.role ?: "OWNER",
-                        isActive = remoteUser.isActive ?: true,
-                        tokenInvalidatedAt = remoteUser.tokenInvalidatedAt ?: localUser?.tokenInvalidatedAt,
-                        createdAt = localUser?.createdAt ?: remoteUser.createdAt ?: System.currentTimeMillis(),
-                        restaurantId = remoteUser.restaurantId ?: 0L,
-                        deviceId = localUser?.deviceId ?: remoteUser.deviceId.orFallback(""),
-                        isSynced = true,
-                        updatedAt = remoteUser.updatedAt,
-                        isDeleted = remoteUser.isDeleted ?: false,
-                        serverId = remoteUser.serverId,
-                        serverUpdatedAt = remoteUser.serverUpdatedAt ?: 0L
-                    )
-                }
-            )
+                UserEntity(
+                    id = assignedLocalId,
+                    name = remoteUser.name.orFallback("User"),
+                    email = remoteUser.email.orFallback(localUser?.email ?: remoteIdentity.orFallback("")),
+                    loginId = remoteUser.loginId ?: localUser?.loginId ?: remoteUser.email,
+                    phoneNumber = remoteUser.phoneNumber ?: localUser?.phoneNumber,
+                    googleEmail = remoteUser.googleEmail ?: localUser?.googleEmail,
+                    authProvider = remoteUser.authProvider ?: "PHONE",
+                    whatsappNumber = remoteUser.whatsappNumber ?: localUser?.whatsappNumber ?: "",
+                    role = remoteUser.role ?: localUser?.role ?: "OWNER",
+                    isActive = remoteUser.isActive ?: true,
+                    tokenInvalidatedAt = remoteUser.tokenInvalidatedAt ?: localUser?.tokenInvalidatedAt,
+                    createdAt = localUser?.createdAt ?: remoteUser.createdAt ?: System.currentTimeMillis(),
+                    restaurantId = remoteUser.restaurantId ?: 0L,
+                    deviceId = localUser?.deviceId ?: remoteUser.deviceId.orFallback(""),
+                    isSynced = true,
+                    updatedAt = remoteUser.updatedAt,
+                    isDeleted = remoteUser.isDeleted ?: false,
+                    serverId = remoteUser.serverId,
+                    serverUpdatedAt = remoteUser.serverUpdatedAt ?: 0L
+                )
+            }
+            userDao.insertSyncedUsers(usersToInsert)
         }
 
         if (masterData.categories.isNotEmpty()) {
@@ -428,7 +435,9 @@ class MasterSyncProcessor @Inject constructor(
                         partAmount2 = remoteBill.partAmount2.toSafeAmount(),
                         paymentStatus = remoteBill.paymentStatus.orFallback("success"),
                         orderStatus = remoteBill.orderStatus.orFallback("completed"),
-                        createdBy = remoteBill.createdBy?.toLong(),
+                        createdBy = remoteBill.createdBy?.toLong()?.let { remoteId ->
+                            remoteUserIdToLocalId[remoteId] ?: remoteId
+                        },
                         createdAt = remoteBill.createdAt ?: System.currentTimeMillis(),
                         paidAt = remoteBill.paidAt,
                         isSynced = true,

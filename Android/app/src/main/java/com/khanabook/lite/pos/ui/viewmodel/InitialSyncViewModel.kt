@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.domain.manager.SessionManager
@@ -38,30 +39,39 @@ class InitialSyncViewModel @Inject constructor(
         viewModelScope.launch {
             _syncState.value = InitialSyncState.Syncing
             try {
-                
                 val result = syncManager.performMasterPull()
-                
+
                 if (result.isSuccess) {
                     sessionManager.setInitialSyncCompleted(true)
                     _syncState.value = InitialSyncState.Success
                 } else {
                     val error = result.exceptionOrNull()
+                    Log.e("InitialSyncViewModel", "Master pull failed", error)
                     if (error is HttpException && error.code() == 401) {
                         sessionManager.clearSession()
                         _syncState.value = InitialSyncState.SessionExpired
+                    } else if (error is android.database.sqlite.SQLiteException) {
+                        _syncState.value = InitialSyncState.Error(
+                            "Setup failed. Please clear app data and try again."
+                        )
                     } else {
                         _syncState.value = InitialSyncState.Error(
-                            UserMessageSanitizer.sanitize(error, "Network error. Please check your connection.")
+                            UserMessageSanitizer.sanitize(error, "Setup failed. Please check your connection and try again.")
                         )
                     }
                 }
             } catch (e: Exception) {
+                Log.e("InitialSyncViewModel", "Unexpected error during initial sync", e)
                 if (e is HttpException && e.code() == 401) {
                     sessionManager.clearSession()
                     _syncState.value = InitialSyncState.SessionExpired
+                } else if (e is android.database.sqlite.SQLiteException) {
+                    _syncState.value = InitialSyncState.Error(
+                        "Setup failed. Please clear app data and try again."
+                    )
                 } else {
                     _syncState.value = InitialSyncState.Error(
-                        UserMessageSanitizer.sanitize(e, "Unexpected error occurred. Please try again.")
+                        UserMessageSanitizer.sanitize(e, "Setup failed. Please check your connection and try again.")
                     )
                 }
             }
