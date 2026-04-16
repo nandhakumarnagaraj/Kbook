@@ -51,3 +51,11 @@
 -keep class com.google.android.libraries.identity.googleid.** { *; }
 -keep class androidx.credentials.** { *; }
 -dontwarn androidx.credentials.**
+
+# Google Play Services - required for Credential Manager on all Android versions
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
+-keep class com.google.api.client.** { *; }
+-dontwarn com.google.api.client.**
+-keep class com.google.auth.** { *; }
+-dontwarn com.google.auth.**
