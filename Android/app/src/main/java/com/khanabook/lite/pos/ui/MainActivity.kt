@@ -1,6 +1,8 @@
 @file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 package com.khanabook.lite.pos.ui
 
+import android.content.Context
+import android.content.res.Configuration
 import androidx.fragment.app.FragmentActivity
 import android.os.Bundle
 import android.view.WindowManager
@@ -34,6 +36,23 @@ class MainActivity : FragmentActivity() {
 
     @Inject lateinit var sessionManager: SessionManager
     private var lastBackPressTime: Long = 0
+
+    /**
+     * Pin fontScale to 1.0 at the Context level so that:
+     *  1. Compose's root LocalDensity is initialised with fontScale=1f (not the system value).
+     *  2. Any View-based component (dialogs, popups, EditText) that reads
+     *     context.resources.configuration.fontScale also sees 1f.
+     *  3. Android 16's compatibility-mode container cannot inject a non-1 fontScale
+     *     for portrait-locked apps, which was the root cause of fonts appearing bigger.
+     *
+     * The LocalDensity override in KhanaBookLiteTheme remains as a belt-and-braces guard
+     * for nested Dialog composables that create their own composition context.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        val config = Configuration(newBase.resources.configuration)
+        config.fontScale = 1f
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
 
     override fun onUserInteraction() {
         super.onUserInteraction()
