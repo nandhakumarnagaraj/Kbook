@@ -1321,18 +1321,38 @@ fun SuccessStep(
             }
         }
         Spacer(modifier = Modifier.height(spacing.medium))
-        Button(
-                onClick = {
-                    lastBill?.let { viewModel.printBill(it) }
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                shape = RoundedCornerShape(12.dp),
-                enabled = lastBill != null
+        Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
-            Icon(Icons.Default.Print, null, tint = DarkBrown1)
-            Spacer(modifier = Modifier.width(spacing.small))
-            Text("Reprint Receipt", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
+            Button(
+                    onClick = {
+                        lastBill?.let { viewModel.printReceipt(it) }
+                    },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = lastBill != null
+            ) {
+                Icon(Icons.Default.Receipt, null, tint = DarkBrown1)
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text("Receipt", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
+            }
+
+            OutlinedButton(
+                    onClick = {
+                        lastBill?.let { viewModel.printKitchenTicket(it) }
+                    },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    border = BorderStroke(1.dp, PrimaryGold),
+                    enabled = lastBill != null
+            ) {
+                Icon(Icons.Default.Restaurant, null, tint = PrimaryGold)
+                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                Text("Reprint KDS", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
+            }
         }
         Spacer(modifier = Modifier.height(spacing.extraLarge))
         OutlinedButton(

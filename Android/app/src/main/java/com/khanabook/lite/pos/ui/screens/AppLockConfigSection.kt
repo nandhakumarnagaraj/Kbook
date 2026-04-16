@@ -57,6 +57,10 @@ fun AppLockConfigView(
     val setupState by viewModel.pinSetupState.collectAsStateWithLifecycle()
     var isEnabled by remember { mutableStateOf(viewModel.isPinEnabled()) }
     val showBiometric = remember { viewModel.hasBiometric(context) }
+    val showPinOptions = isEnabled && (
+        setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Idle ||
+            setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Success
+        )
 
     LaunchedEffect(setupState) {
         if (setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Success) {
@@ -111,7 +115,7 @@ fun AppLockConfigView(
             }
         }
 
-        if (isEnabled && setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Idle) {
+        if (showPinOptions) {
             KhanaBookCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = CardBG),

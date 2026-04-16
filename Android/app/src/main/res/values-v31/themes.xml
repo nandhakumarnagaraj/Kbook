@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.KhanaBookLite.Launch" parent="Theme.KhanaBookLite">
+        <item name="android:windowBackground">@drawable/launch_screen_background</item>
+        <item name="android:windowSplashScreenBackground">#2D1010</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/khanabook_logo</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+    </style>
+
+</resources>

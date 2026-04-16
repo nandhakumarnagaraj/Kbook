@@ -80,6 +80,7 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_KhanaBookLite)
         super.onCreate(savedInstanceState)
         if (BuildConfig.DEBUG) logWindowAndResources("onCreate")
 

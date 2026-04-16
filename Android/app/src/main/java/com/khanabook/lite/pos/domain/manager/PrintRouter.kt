@@ -12,7 +12,8 @@ import javax.inject.Singleton
 
 enum class PrintDispatchMode {
     AUTO,
-    MANUAL_RECEIPT_ONLY
+    MANUAL_RECEIPT_ONLY,
+    MANUAL_KITCHEN_ONLY
 }
 
 data class PrintDispatchResult(
@@ -107,6 +108,7 @@ class PrintRouter @Inject constructor(
                     PrintDispatchMode.AUTO ->
                         profile.role == PrinterRole.KITCHEN.name || profile.autoPrint
                     PrintDispatchMode.MANUAL_RECEIPT_ONLY -> profile.role == PrinterRole.CUSTOMER.name
+                    PrintDispatchMode.MANUAL_KITCHEN_ONLY -> profile.role == PrinterRole.KITCHEN.name
                 }
             }
             .sortedBy { if (it.role == PrinterRole.KITCHEN.name) 0 else 1 }

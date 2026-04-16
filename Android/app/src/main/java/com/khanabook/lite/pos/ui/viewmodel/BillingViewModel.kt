@@ -1,8 +1,11 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
+import android.content.Context
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.repository.BillRepository
@@ -15,9 +18,11 @@ import com.khanabook.lite.pos.domain.manager.OrderIdManager
 import com.khanabook.lite.pos.domain.manager.PrintDispatchMode
 import com.khanabook.lite.pos.domain.manager.PrintRouter
 import com.khanabook.lite.pos.domain.model.*
+import com.khanabook.lite.pos.domain.util.openBillToPrint
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import androidx.compose.runtime.Immutable
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -29,6 +34,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class BillingViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val billRepository: BillRepository,
     private val menuRepository: MenuRepository,
     private val restaurantRepository: RestaurantRepository,
@@ -414,7 +420,7 @@ class BillingViewModel @Inject constructor(
         _error.value = null
     }
 
-    fun printBill(bill: BillWithItems) {
+    fun printReceipt(bill: BillWithItems) {
         val profile = _cachedProfile.value ?: run {
             _error.value = "Restaurant profile not loaded."
             return
@@ -424,18 +430,23 @@ class BillingViewModel @Inject constructor(
             try {
                 val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL_RECEIPT_ONLY)
                 if (result.attempted == 0) {
-                    withContext(Dispatchers.Main) {
-                        _error.value = "No printer profile configured."
-                        _printStatus.value = "No receipt printer configured."
-                    }
+                    openBillPdfFallback(
+                        bill = bill,
+                        profile = profile,
+                        statusMessage = appContext.getString(R.string.toast_printer_opening_pdf)
+                    )
                 } else if (result.failures.isNotEmpty()) {
-                    withContext(Dispatchers.Main) {
-                        _error.value = result.failures.joinToString()
-                        _printStatus.value = if (result.succeeded > 0) {
-                            "Receipt reprinted with some failures."
-                        } else {
-                            "Receipt reprint failed."
+                    if (result.succeeded > 0) {
+                        withContext(Dispatchers.Main) {
+                            _error.value = result.failures.joinToString()
+                            _printStatus.value = "Receipt reprinted with some failures."
                         }
+                    } else {
+                        openBillPdfFallback(
+                            bill = bill,
+                            profile = profile,
+                            statusMessage = appContext.getString(R.string.toast_printer_opening_pdf)
+                        )
                     }
                 } else {
                     withContext(Dispatchers.Main) {
@@ -443,10 +454,50 @@ class BillingViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Manual print failed", e)
+                Log.w(TAG, "Manual receipt print failed", e)
+                openBillPdfFallback(
+                    bill = bill,
+                    profile = profile,
+                    statusMessage = appContext.getString(R.string.toast_printer_opening_pdf),
+                    errorMessage = UserMessageSanitizer.sanitize(e, "Unable to print bill.")
+                )
+            }
+        }
+    }
+
+    fun printKitchenTicket(bill: BillWithItems) {
+        val profile = _cachedProfile.value ?: run {
+            _error.value = "Restaurant profile not loaded."
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL_KITCHEN_ONLY)
+                if (result.attempted == 0) {
+                    withContext(Dispatchers.Main) {
+                        _error.value = "No kitchen printer configured."
+                        _printStatus.value = "No KDS printer configured."
+                    }
+                } else if (result.failures.isNotEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        _error.value = result.failures.joinToString()
+                        _printStatus.value = if (result.succeeded > 0) {
+                            "KDS reprinted with some failures."
+                        } else {
+                            "KDS reprint failed."
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        _printStatus.value = "KDS reprinted successfully."
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Manual kitchen print failed", e)
                 withContext(Dispatchers.Main) {
-                    _error.value = UserMessageSanitizer.sanitize(e, "Unable to print bill.")
-                    _printStatus.value = "Receipt reprint failed."
+                    _error.value = UserMessageSanitizer.sanitize(e, "Unable to print kitchen ticket.")
+                    _printStatus.value = "KDS reprint failed."
                 }
             }
         }
@@ -478,6 +529,19 @@ class BillingViewModel @Inject constructor(
     private suspend fun isKitchenPrinterConfigured(): Boolean {
         val kitchenPrinter = printerProfileRepository.getByRole(PrinterRole.KITCHEN.name)
         return kitchenPrinter?.enabled == true && kitchenPrinter.macAddress.isNotBlank()
+    }
+
+    private suspend fun openBillPdfFallback(
+        bill: BillWithItems,
+        profile: RestaurantProfileEntity?,
+        statusMessage: String,
+        errorMessage: String? = null
+    ) {
+        withContext(Dispatchers.Main) {
+            _error.value = errorMessage
+            _printStatus.value = statusMessage
+            openBillToPrint(appContext, bill, profile)
+        }
     }
 
     override fun onCleared() {

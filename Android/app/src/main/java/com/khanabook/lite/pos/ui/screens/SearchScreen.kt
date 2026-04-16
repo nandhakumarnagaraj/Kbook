@@ -439,19 +439,39 @@ fun SearchScreen(
 
                                 Spacer(modifier = Modifier.height(spacing.small))
 
-                                OutlinedButton(
-                                    onClick = {
-                                        result?.let { billingViewModel.printBill(it) }
-                                    },
-                                    enabled = currentResult.items.isNotEmpty(),
-                                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                                    border = BorderStroke(1.5.dp, PrimaryGold)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
                                 ) {
-                                    Icon(Icons.Default.Print, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.small))
-                                    Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                    Text("Reprint Receipt", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                    OutlinedButton(
+                                        onClick = {
+                                            result?.let { billingViewModel.printReceipt(it) }
+                                        },
+                                        enabled = currentResult.items.isNotEmpty(),
+                                        modifier = Modifier.weight(1f).height(48.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                                        border = BorderStroke(1.5.dp, PrimaryGold)
+                                    ) {
+                                        Icon(Icons.Default.Receipt, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.small))
+                                        Spacer(modifier = Modifier.width(spacing.extraSmall))
+                                        Text("Receipt", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            result?.let { billingViewModel.printKitchenTicket(it) }
+                                        },
+                                        enabled = currentResult.items.isNotEmpty(),
+                                        modifier = Modifier.weight(1f).height(48.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                                        border = BorderStroke(1.5.dp, PrimaryGold)
+                                    ) {
+                                        Icon(Icons.Default.Restaurant, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.small))
+                                        Spacer(modifier = Modifier.width(spacing.extraSmall))
+                                        Text("Reprint KDS", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                    }
                                 }
 
                             }
