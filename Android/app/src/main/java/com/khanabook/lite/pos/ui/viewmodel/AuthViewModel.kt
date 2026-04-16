@@ -14,6 +14,7 @@ import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
@@ -378,15 +379,15 @@ constructor(
             return
         }
 
+        val serverClientId =
+            BuildConfig.GOOGLE_WEB_CLIENT_ID
+                .takeIf { it.isNotBlank() }
+                ?: runCatching { activity.getString(R.string.default_web_client_id) }
+                    .getOrDefault("")
+
         viewModelScope.launch {
             try {
                 val credentialManager = CredentialManager.create(activity)
-                val serverClientId =
-                    BuildConfig.GOOGLE_WEB_CLIENT_ID
-                        .takeIf { it.isNotBlank() }
-                        ?: runCatching { activity.getString(R.string.default_web_client_id) }
-                            .getOrDefault("")
-
                 if (serverClientId.isBlank()) {
                     _loginStatus.value = loginError(
                         "Google Sign-In is not configured for this build.",
@@ -395,21 +396,27 @@ constructor(
                     return@launch
                 }
 
-                val googleIdOption =
-                        GetGoogleIdOption.Builder()
-                                .setFilterByAuthorizedAccounts(false) 
-                                .setServerClientId(serverClientId)
-                                .setAutoSelectEnabled(false)
-                                .build()
-
-                val request =
-                        GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
-
-                val result =
-                        credentialManager.getCredential(
-                                context = activity,
-                                request = request
+                val result = runCatching {
+                    credentialManager.getCredential(
+                        context = activity,
+                        request = buildGoogleSignInRequest(serverClientId)
+                    )
+                }.recoverCatching { primaryError ->
+                    if (primaryError is NoCredentialException) {
+                        Log.w(
+                            TAG,
+                            "Explicit Google sign-in returned no credential; retrying with generic Google ID option. package=${activity.packageName}",
+                            primaryError
                         )
+                        clearGoogleCredentialState(activity)
+                        credentialManager.getCredential(
+                            context = activity,
+                            request = buildGoogleIdRequest(serverClientId)
+                        )
+                    } else {
+                        throw primaryError
+                    }
+                }.getOrThrow()
 
                 val credential = result.credential
                 if (credential is CustomCredential &&
@@ -464,10 +471,14 @@ constructor(
                         LoginErrorCode.GOOGLE_CANCELLED
                 )
             } catch (e: NoCredentialException) {
-                Log.w(TAG, "Google Sign-In found no available credentials", e)
+                Log.w(
+                    TAG,
+                    "Google Sign-In found no usable credentials. package=${activity.packageName}, clientIdSuffix=${serverClientId.takeLast(12)}",
+                    e
+                )
                 clearGoogleCredentialState(activity)
                 _loginStatus.value = loginError(
-                        "No Google account is available on this device. Add an account and try again.",
+                        "Google Sign-In could not access a usable Google account. Check Google Play Services, then verify this app's SHA-1 and web client ID in Firebase before trying again.",
                         LoginErrorCode.GOOGLE_FAILED
                 )
             } catch (e: GetCredentialProviderConfigurationException) {
@@ -500,6 +511,26 @@ constructor(
                 )
             }
         }
+    }
+
+    private fun buildGoogleSignInRequest(serverClientId: String): GetCredentialRequest {
+        val signInOption = GetSignInWithGoogleOption.Builder(serverClientId).build()
+        return GetCredentialRequest.Builder()
+            .addCredentialOption(signInOption)
+            .build()
+    }
+
+    private fun buildGoogleIdRequest(serverClientId: String): GetCredentialRequest {
+        val googleIdOption =
+            GetGoogleIdOption.Builder()
+                .setFilterByAuthorizedAccounts(false)
+                .setServerClientId(serverClientId)
+                .setAutoSelectEnabled(false)
+                .build()
+
+        return GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
+            .build()
     }
 
 
