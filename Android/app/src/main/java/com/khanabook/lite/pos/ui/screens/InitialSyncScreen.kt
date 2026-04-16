@@ -27,6 +27,7 @@ import com.khanabook.lite.pos.ui.viewmodel.InitialSyncViewModel
 @Composable
 fun InitialSyncScreen(
     onSyncCompleteNavigateToMain: () -> Unit,
+    onNavigateToLogin: () -> Unit = {},
     viewModel: InitialSyncViewModel = hiltViewModel()
 ) {
     val syncState by viewModel.syncState.collectAsState()
@@ -34,8 +35,10 @@ fun InitialSyncScreen(
     val iconSize = KhanaBookTheme.iconSize
 
     LaunchedEffect(syncState) {
-        if (syncState is InitialSyncState.Success) {
-            onSyncCompleteNavigateToMain()
+        when (syncState) {
+            is InitialSyncState.Success -> onSyncCompleteNavigateToMain()
+            is InitialSyncState.SessionExpired -> onNavigateToLogin()
+            else -> {}
         }
     }
 
@@ -87,6 +90,36 @@ fun InitialSyncScreen(
                         trackColor = PrimaryGold.copy(alpha = 0.2f),
                         strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                     )
+                }
+                is InitialSyncState.SessionExpired -> {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Session Expired",
+                        tint = ErrorPink,
+                        modifier = Modifier.size(iconSize.xxlarge)
+                    )
+                    Spacer(modifier = Modifier.height(spacing.large))
+                    Text(
+                        text = "Session expired. Please login again.",
+                        color = ErrorPink,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(spacing.extraLarge))
+                    Button(
+                        onClick = { onNavigateToLogin() },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().height(56.dp)
+                    ) {
+                        Text(
+                            "Login Again",
+                            color = DarkBrown1,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
                 }
                 is InitialSyncState.Error -> {
                     Icon(

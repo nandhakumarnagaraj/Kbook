@@ -175,6 +175,9 @@ class MainActivity : FragmentActivity() {
                         InitialSyncScreen(
                             onSyncCompleteNavigateToMain = {
                                 navController.navigate("main/0") { popUpTo("initial_sync") { inclusive = true } }
+                            },
+                            onNavigateToLogin = {
+                                navController.navigate("login") { popUpTo(0) { inclusive = true } }
                             }
                         )
                     }

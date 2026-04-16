@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
+import retrofit2.HttpException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,7 @@ sealed class InitialSyncState {
     object Idle : InitialSyncState()
     object Syncing : InitialSyncState()
     object Success : InitialSyncState()
+    object SessionExpired : InitialSyncState()
     data class Error(val message: String) : InitialSyncState()
 }
 
@@ -40,20 +42,28 @@ class InitialSyncViewModel @Inject constructor(
                 val result = syncManager.performMasterPull()
                 
                 if (result.isSuccess) {
-                    
                     sessionManager.setInitialSyncCompleted(true)
                     _syncState.value = InitialSyncState.Success
                 } else {
                     val error = result.exceptionOrNull()
-                    _syncState.value = InitialSyncState.Error(
-                        UserMessageSanitizer.sanitize(error, "Network error. Please check your connection.")
-                    )
+                    if (error is HttpException && error.code() == 401) {
+                        sessionManager.clearSession()
+                        _syncState.value = InitialSyncState.SessionExpired
+                    } else {
+                        _syncState.value = InitialSyncState.Error(
+                            UserMessageSanitizer.sanitize(error, "Network error. Please check your connection.")
+                        )
+                    }
                 }
             } catch (e: Exception) {
-                
-                _syncState.value = InitialSyncState.Error(
-                    UserMessageSanitizer.sanitize(e, "Unexpected error occurred. Please try again.")
-                )
+                if (e is HttpException && e.code() == 401) {
+                    sessionManager.clearSession()
+                    _syncState.value = InitialSyncState.SessionExpired
+                } else {
+                    _syncState.value = InitialSyncState.Error(
+                        UserMessageSanitizer.sanitize(e, "Unexpected error occurred. Please try again.")
+                    )
+                }
             }
         }
     }
