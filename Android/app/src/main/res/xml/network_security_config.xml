@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
 
-    <!-- Allow system and user certificates for better debugging/proxying -->
+    <!-- Production: trust only system CAs, never user-installed certificates -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
-            <certificates src="user" />
         </trust-anchors>
     </base-config>
 
@@ -13,16 +12,12 @@
         <domain includeSubdomains="true">kbook.iadv.cloud</domain>
         <trust-anchors>
             <certificates src="system" />
-            <certificates src="user" />
         </trust-anchors>
-        <!-- 
-        TEMPORARILY DISABLED PINS TO DEBUG GOOGLE LOGIN NETWORK ERROR
         <pin-set expiration="2027-03-01">
             <pin digest="SHA-256">tJ3FwThWtNjSo05B9h3v8/XuIltRPdwkOxXbTrvVqZ4=</pin>
             <pin digest="SHA-256">iFvwVyJSxnQdyaUvUERIf+8qk7gRze3612JMwoO3zdU=</pin>
             <pin digest="SHA-256">jQfbvg4u7nk8nWsnSXZ9J87bsPggUXpdx6ZshA7uJ6E=</pin>
         </pin-set>
-        -->
     </domain-config>
 
 </network-security-config>

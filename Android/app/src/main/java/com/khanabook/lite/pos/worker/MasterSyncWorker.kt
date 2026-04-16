@@ -66,7 +66,10 @@ constructor(
     private const val SYNC_WORK_NAME = "MasterSyncWorker"
 
     fun schedule(context: Context) {
-      val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+      val constraints = Constraints.Builder()
+              .setRequiredNetworkType(NetworkType.CONNECTED)
+              .setRequiresBatteryNotLow(true)
+              .build()
 
       val syncRequest =
               PeriodicWorkRequestBuilder<MasterSyncWorker>(

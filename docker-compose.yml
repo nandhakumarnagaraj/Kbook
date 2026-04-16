@@ -20,7 +20,7 @@ services:
       WHATSAPP_META_ACCESS_TOKEN: ${WHATSAPP_META_ACCESS_TOKEN}
       WHATSAPP_META_PHONE_NUMBER_ID: ${WHATSAPP_META_PHONE_NUMBER_ID}
       WHATSAPP_META_OTP_TEMPLATE_NAME: ${WHATSAPP_META_OTP_TEMPLATE_NAME}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://kbook.iadv.cloud}
     volumes:
       - /var/www/kbook.iadv.cloud/server/uploads:/app/uploads
     ports:
