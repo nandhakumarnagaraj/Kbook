@@ -73,6 +73,15 @@ class MasterSyncProcessor @Inject constructor(
 
     private fun String?.orFallback(default: String): String = this?.takeUnless { it.isBlank() } ?: default
 
+    private fun <T> logSkippedRecords(label: String, skipped: List<T>, describe: (T) -> String) {
+        if (skipped.isEmpty()) return
+        val preview = skipped.take(5).joinToString("; ") { describe(it) }
+        Log.w(
+            "MasterSyncProcessor",
+            "Skipping ${skipped.size} orphaned $label record(s) during pull: $preview"
+        )
+    }
+
     private fun UserEntity.identityKeys(): List<String> {
         return buildList {
             serverId?.let { add("server:$it") }
@@ -340,10 +349,10 @@ class MasterSyncProcessor @Inject constructor(
 
         // Fetch category ID mapping
         val categoryIdMap = categoryDao.getAllCategoryServerIds().associate { it.serverId to it.id }
+        val knownCategoryIds = categoryIdMap.values.toMutableSet()
 
         if (masterData.menuItems.isNotEmpty()) {
-            menuDao.insertSyncedMenuItems(
-                masterData.menuItems.map { remoteMenuItem ->
+            val resolvedMenuItems = masterData.menuItems.mapNotNull { remoteMenuItem ->
                     // categoryIdMap keys are server IDs (Long). Only look up via serverCategoryId.
                     // Falling back to categoryId (a foreign device's local ID) would look up the
                     // wrong key and silently link the item to a wrong or non-existent category.
@@ -351,7 +360,10 @@ class MasterSyncProcessor @Inject constructor(
                         categoryIdMap[serverId] ?: serverId
                     } ?: remoteMenuItem.categoryId
 
-                    MenuItemEntity(
+                    if (localCategoryId !in knownCategoryIds) {
+                        null
+                    } else {
+                        MenuItemEntity(
                         id = remoteMenuItem.id,
                         categoryId = localCategoryId,
                         name = remoteMenuItem.name.orFallback("Unnamed Item"),
@@ -371,21 +383,36 @@ class MasterSyncProcessor @Inject constructor(
                         serverId = remoteMenuItem.serverId,
                         serverUpdatedAt = remoteMenuItem.serverUpdatedAt ?: 0L
                     )
+                    }
                 }
-            )
+            logSkippedRecords(
+                label = "menu item",
+                skipped = masterData.menuItems.filter { remoteMenuItem ->
+                    val localCategoryId = remoteMenuItem.serverCategoryId?.let { serverId ->
+                        categoryIdMap[serverId] ?: serverId
+                    } ?: remoteMenuItem.categoryId
+                    localCategoryId !in knownCategoryIds
+                }
+            ) { remoteMenuItem ->
+                "menuItemId=${remoteMenuItem.id}, categoryId=${remoteMenuItem.categoryId}, serverCategoryId=${remoteMenuItem.serverCategoryId}"
+            }
+            menuDao.insertSyncedMenuItems(resolvedMenuItems)
         }
 
         // Fetch menu item ID mapping
         val menuItemIdMap = menuDao.getAllMenuItemServerIds().associate { it.serverId to it.id }
+        val knownMenuItemIds = menuItemIdMap.values.toMutableSet()
 
         if (masterData.itemVariants.isNotEmpty()) {
-            menuDao.insertSyncedItemVariants(
-                masterData.itemVariants.map { remoteVariant ->
+            val resolvedVariants = masterData.itemVariants.mapNotNull { remoteVariant ->
                     val localMenuItemId = remoteVariant.serverMenuItemId?.let { serverId ->
                         menuItemIdMap[serverId] ?: serverId
                     } ?: remoteVariant.menuItemId
 
-                    ItemVariantEntity(
+                    if (localMenuItemId !in knownMenuItemIds) {
+                        null
+                    } else {
+                        ItemVariantEntity(
                         id = remoteVariant.id,
                         menuItemId = localMenuItemId,
                         variantName = remoteVariant.variantName.orFallback("Default"),
@@ -402,17 +429,29 @@ class MasterSyncProcessor @Inject constructor(
                         serverId = remoteVariant.serverId,
                         serverUpdatedAt = remoteVariant.serverUpdatedAt ?: 0L
                     )
+                    }
                 }
-            )
+            logSkippedRecords(
+                label = "item variant",
+                skipped = masterData.itemVariants.filter { remoteVariant ->
+                    val localMenuItemId = remoteVariant.serverMenuItemId?.let { serverId ->
+                        menuItemIdMap[serverId] ?: serverId
+                    } ?: remoteVariant.menuItemId
+                    localMenuItemId !in knownMenuItemIds
+                }
+            ) { remoteVariant ->
+                "variantId=${remoteVariant.id}, menuItemId=${remoteVariant.menuItemId}, serverMenuItemId=${remoteVariant.serverMenuItemId}"
+            }
+            menuDao.insertSyncedItemVariants(resolvedVariants)
         }
 
         // Fetch variant ID mapping
         val variantIdMap = menuDao.getAllVariantServerIds().associate { it.serverId to it.id }
+        val knownVariantIds = variantIdMap.values.toMutableSet()
 
         if (masterData.stockLogs.isNotEmpty()) {
             inventoryDao.deleteAllSyncedStockLogs()
-            inventoryDao.insertSyncedStockLogs(
-                masterData.stockLogs.map { remoteStockLog ->
+            val resolvedStockLogs = masterData.stockLogs.mapNotNull { remoteStockLog ->
                     val localMenuItemId = remoteStockLog.serverMenuItemId?.let { serverId ->
                         menuItemIdMap[serverId] ?: serverId
                     } ?: remoteStockLog.menuItemId
@@ -420,7 +459,10 @@ class MasterSyncProcessor @Inject constructor(
                         variantIdMap[serverId] ?: serverId
                     } ?: remoteStockLog.variantId
 
-                    StockLogEntity(
+                    if (localMenuItemId !in knownMenuItemIds || (localVariantId != null && localVariantId !in knownVariantIds)) {
+                        null
+                    } else {
+                        StockLogEntity(
                         id = 0, // Auto-generate
                         menuItemId = localMenuItemId,
                         variantId = localVariantId,
@@ -437,8 +479,23 @@ class MasterSyncProcessor @Inject constructor(
                         serverVariantId = remoteStockLog.serverVariantId,
                         serverUpdatedAt = remoteStockLog.serverUpdatedAt ?: 0L
                     )
+                    }
                 }
-            )
+            logSkippedRecords(
+                label = "stock log",
+                skipped = masterData.stockLogs.filter { remoteStockLog ->
+                    val localMenuItemId = remoteStockLog.serverMenuItemId?.let { serverId ->
+                        menuItemIdMap[serverId] ?: serverId
+                    } ?: remoteStockLog.menuItemId
+                    val localVariantId = remoteStockLog.serverVariantId?.let { serverId ->
+                        variantIdMap[serverId] ?: serverId
+                    } ?: remoteStockLog.variantId
+                    localMenuItemId !in knownMenuItemIds || (localVariantId != null && localVariantId !in knownVariantIds)
+                }
+            ) { remoteStockLog ->
+                "stockLogId=${remoteStockLog.id}, menuItemId=${remoteStockLog.menuItemId}, serverMenuItemId=${remoteStockLog.serverMenuItemId}, variantId=${remoteStockLog.variantId}, serverVariantId=${remoteStockLog.serverVariantId}"
+            }
+            inventoryDao.insertSyncedStockLogs(resolvedStockLogs)
         }
 
         if (masterData.bills.isNotEmpty()) {
@@ -483,11 +540,11 @@ class MasterSyncProcessor @Inject constructor(
 
         // Get mapping of serverId to localId for bills to ensure items are linked correctly
         val billServerIdMap = billDao.getAllBillServerIds().associate { it.serverId to it.id }
+        val knownBillIds = billServerIdMap.values.toMutableSet()
 
         if (masterData.billItems.isNotEmpty()) {
             billDao.deleteAllSyncedBillItems()
-            billDao.insertSyncedBillItems(
-                masterData.billItems.map { remoteBillItem ->
+            val resolvedBillItems = masterData.billItems.mapNotNull { remoteBillItem ->
                     val localBillId = remoteBillItem.serverBillId?.let { serverId ->
                         billServerIdMap[serverId] ?: serverId
                     } ?: remoteBillItem.billId
@@ -497,8 +554,15 @@ class MasterSyncProcessor @Inject constructor(
                     val localVariantId = remoteBillItem.serverVariantId?.let { serverId ->
                         variantIdMap[serverId] ?: serverId
                     } ?: remoteBillItem.variantId
-                    
-                    BillItemEntity(
+
+                    if (
+                        localBillId !in knownBillIds ||
+                        (localMenuItemId != null && localMenuItemId !in knownMenuItemIds) ||
+                        (localVariantId != null && localVariantId !in knownVariantIds)
+                    ) {
+                        null
+                    } else {
+                        BillItemEntity(
                         id = 0, // Let SQLite generate local ID
                         billId = localBillId,
                         menuItemId = localMenuItemId,
@@ -520,19 +584,41 @@ class MasterSyncProcessor @Inject constructor(
                         serverVariantId = remoteBillItem.serverVariantId,
                         serverUpdatedAt = remoteBillItem.serverUpdatedAt ?: 0L
                     )
+                    }
                 }
-            )
+            logSkippedRecords(
+                label = "bill item",
+                skipped = masterData.billItems.filter { remoteBillItem ->
+                    val localBillId = remoteBillItem.serverBillId?.let { serverId ->
+                        billServerIdMap[serverId] ?: serverId
+                    } ?: remoteBillItem.billId
+                    val localMenuItemId = remoteBillItem.serverMenuItemId?.let { serverId ->
+                        menuItemIdMap[serverId] ?: serverId
+                    } ?: remoteBillItem.menuItemId
+                    val localVariantId = remoteBillItem.serverVariantId?.let { serverId ->
+                        variantIdMap[serverId] ?: serverId
+                    } ?: remoteBillItem.variantId
+                    localBillId !in knownBillIds ||
+                        (localMenuItemId != null && localMenuItemId !in knownMenuItemIds) ||
+                        (localVariantId != null && localVariantId !in knownVariantIds)
+                }
+            ) { remoteBillItem ->
+                "billItemId=${remoteBillItem.id}, billId=${remoteBillItem.billId}, serverBillId=${remoteBillItem.serverBillId}, menuItemId=${remoteBillItem.menuItemId}, serverMenuItemId=${remoteBillItem.serverMenuItemId}, variantId=${remoteBillItem.variantId}, serverVariantId=${remoteBillItem.serverVariantId}"
+            }
+            billDao.insertSyncedBillItems(resolvedBillItems)
         }
 
         if (masterData.billPayments.isNotEmpty()) {
             billDao.deleteAllSyncedBillPayments()
-            billDao.insertSyncedBillPayments(
-                masterData.billPayments.map { remoteBillPayment ->
+            val resolvedBillPayments = masterData.billPayments.mapNotNull { remoteBillPayment ->
                     val localBillId = remoteBillPayment.serverBillId?.let { serverId ->
                         billServerIdMap[serverId] ?: serverId
                     } ?: remoteBillPayment.billId
 
-                    BillPaymentEntity(
+                    if (localBillId !in knownBillIds) {
+                        null
+                    } else {
+                        BillPaymentEntity(
                         id = 0, // Auto-generate
                         billId = localBillId,
                         paymentMode = remoteBillPayment.paymentMode.orFallback("cash"),
@@ -547,8 +633,20 @@ class MasterSyncProcessor @Inject constructor(
                         serverBillId = remoteBillPayment.serverBillId,
                         serverUpdatedAt = remoteBillPayment.serverUpdatedAt ?: 0L
                     )
+                    }
                 }
-            )
+            logSkippedRecords(
+                label = "bill payment",
+                skipped = masterData.billPayments.filter { remoteBillPayment ->
+                    val localBillId = remoteBillPayment.serverBillId?.let { serverId ->
+                        billServerIdMap[serverId] ?: serverId
+                    } ?: remoteBillPayment.billId
+                    localBillId !in knownBillIds
+                }
+            ) { remoteBillPayment ->
+                "billPaymentId=${remoteBillPayment.id}, billId=${remoteBillPayment.billId}, serverBillId=${remoteBillPayment.serverBillId}"
+            }
+            billDao.insertSyncedBillPayments(resolvedBillPayments)
         }
     } // end withTransaction
 
