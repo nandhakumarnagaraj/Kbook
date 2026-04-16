@@ -55,6 +55,9 @@ class BluetoothPrinterManager(private val context: Context) {
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected
 
+    private val _connectedDeviceMac = MutableStateFlow<String?>(null)
+    val connectedDeviceMac: StateFlow<String?> = _connectedDeviceMac
+
     private val _connectedDeviceEvents = MutableSharedFlow<String>(extraBufferCapacity = 16)
     val connectedDeviceEvents: SharedFlow<String> = _connectedDeviceEvents
 
@@ -245,6 +248,7 @@ class BluetoothPrinterManager(private val context: Context) {
             activeSocket = socket
             outputStream = socket?.outputStream
             _isConnected.value = true
+            _connectedDeviceMac.value = device.address
             device.address?.let { _connectedDeviceEvents.tryEmit(it) }
             true
         } catch (e: Exception) {
@@ -295,6 +299,7 @@ class BluetoothPrinterManager(private val context: Context) {
         outputStream = null
         activeSocket = null
         _isConnected.value = false
+        _connectedDeviceMac.value = null
     }
 
     fun isConnected(): Boolean = activeSocket?.isConnected == true

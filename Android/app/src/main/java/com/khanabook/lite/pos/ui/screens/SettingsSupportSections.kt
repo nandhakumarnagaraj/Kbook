@@ -6,6 +6,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -101,6 +103,34 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                 }
             )
         }
+    }
+
+    val isLoading = logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.AttemptingPush ||
+        logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.ClearingData
+
+    if (isLoading) {
+        val loadingMessage = if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.ClearingData) {
+            "Clearing data..."
+        } else {
+            "Syncing data before sign out..."
+        }
+        KhanaBookDialog(
+            onDismissRequest = {},
+            title = "Signing Out",
+            content = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = PrimaryGold,
+                        strokeWidth = 3.dp
+                    )
+                    Text(loadingMessage, color = TextLight, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        ) {}
     }
 
     if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData) {
@@ -200,9 +230,13 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
     ) {
         Text("Account Session", color = TextLight, style = MaterialTheme.typography.titleMedium)
         Button(
-            onClick = { showConfirmDialog = true },
+            onClick = { if (!isLoading) showConfirmDialog = true },
+            enabled = !isLoading,
             modifier = Modifier.fillMaxWidth().height(48.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = DangerRed),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = DangerRed,
+                disabledContainerColor = DangerRed.copy(alpha = 0.4f)
+            ),
             shape = RoundedCornerShape(12.dp)
         ) {
             Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(iconSize.small))

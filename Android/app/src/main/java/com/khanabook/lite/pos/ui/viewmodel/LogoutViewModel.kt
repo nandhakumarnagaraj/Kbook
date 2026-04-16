@@ -28,6 +28,7 @@ import javax.inject.Inject
 sealed class LogoutState {
     object Idle : LogoutState()
     object AttemptingPush : LogoutState()
+    object ClearingData : LogoutState()
     data class WarningOfflineData(
         val totalCount: Int,
         val summary: String
@@ -101,6 +102,7 @@ class LogoutViewModel @Inject constructor(
 
     private fun performHardLogout() {
         viewModelScope.launch {
+            _logoutState.value = LogoutState.ClearingData
             if (BuildConfig.DEBUG) Log.d(debugTag, "performHardLogout: starting server-side logout + clearing DB")
             // Revoke token server-side so it can't be replayed
             try {

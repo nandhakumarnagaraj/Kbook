@@ -35,6 +35,9 @@ class KitchenPrintQueueRepository(
     suspend fun getPendingForPrinter(printerMac: String): List<KitchenPrintQueueEntity> =
         kitchenPrintQueueDao.getPendingForPrinter(printerMac)
 
+    suspend fun getByBillAndPrinter(billId: Long, printerMac: String): KitchenPrintQueueEntity? =
+        kitchenPrintQueueDao.getByBillAndPrinter(billId, printerMac)
+
     suspend fun deleteByBillAndPrinter(billId: Long, printerMac: String) {
         kitchenPrintQueueDao.deleteByBillAndPrinter(billId, printerMac)
     }

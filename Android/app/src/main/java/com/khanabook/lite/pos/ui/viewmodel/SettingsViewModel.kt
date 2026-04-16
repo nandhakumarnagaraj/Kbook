@@ -61,6 +61,9 @@ class SettingsViewModel @Inject constructor(
 
     val btIsConnected: StateFlow<Boolean> = btManager.isConnected
 
+    /** MAC address of the currently connected Bluetooth printer, or null if disconnected. */
+    val connectedPrinterMac: StateFlow<String?> = btManager.connectedDeviceMac
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             val currentProfile = restaurantRepository.getProfile()

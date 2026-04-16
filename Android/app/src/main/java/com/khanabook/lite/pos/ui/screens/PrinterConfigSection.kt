@@ -109,7 +109,7 @@ fun PrinterConfigView(
 
     val btDevices by viewModel.btDevices.collectAsStateWithLifecycle()
     val btIsScanning by viewModel.btIsScanning.collectAsStateWithLifecycle()
-    val btIsConnected by viewModel.btIsConnected.collectAsStateWithLifecycle()
+    val connectedPrinterMac by viewModel.connectedPrinterMac.collectAsStateWithLifecycle()
     val btIsConnecting by viewModel.btIsConnecting.collectAsStateWithLifecycle()
     val btConnectResult by viewModel.btConnectResult.collectAsStateWithLifecycle()
     var showBtSheet by remember { mutableStateOf(false) }
@@ -186,7 +186,7 @@ fun PrinterConfigView(
                     paper58 = paper58,
                     includeLogo = includeLogo,
                     showLogoToggle = true,
-                    isConnected = btIsConnected && customerPrinter?.macAddress == profile?.printerMac,
+                    isConnected = connectedPrinterMac != null && connectedPrinterMac == customerPrinter?.macAddress,
                     onEnabledChange = { enabled = it },
                     onAutoPrintChange = { autoPrint = it },
                     onPaperSizeChange = { paper58 = it },
@@ -221,7 +221,7 @@ fun PrinterConfigView(
                     paper58 = kitchenPaper58,
                     includeLogo = false,
                     showLogoToggle = false,
-                    isConnected = false,
+                    isConnected = connectedPrinterMac != null && connectedPrinterMac == kitchenPrinter?.macAddress,
                     onEnabledChange = { kitchenEnabled = it },
                     onAutoPrintChange = {},
                     onPaperSizeChange = { kitchenPaper58 = it },

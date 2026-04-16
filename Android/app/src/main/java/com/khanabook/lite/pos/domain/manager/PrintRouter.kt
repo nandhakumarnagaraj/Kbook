@@ -61,8 +61,12 @@ class PrintRouter @Inject constructor(
                         PrinterRole.CUSTOMER -> InvoiceFormatter.formatForThermalPrinter(bill, printProfile)
                         PrinterRole.KITCHEN -> KitchenTicketFormatter.format(bill, restaurantProfile, target)
                     }
+                    // Pre-clear the kitchen queue entry BEFORE printing so that a concurrent
+                    // flushPendingForPrinter (triggered by the ACL_CONNECTED event fired from
+                    // connect() above) cannot race and print the same ticket a second time.
+                    // If the print fails below we re-enqueue via maybeQueueKitchenRetry.
+                    maybeClearKitchenQueue(bill.bill.id, target)
                     if (printerManager.printBytes(bytes)) {
-                        maybeClearKitchenQueue(bill.bill.id, target)
                         successCount += 1
                         successTargets += target.role
                     } else {
