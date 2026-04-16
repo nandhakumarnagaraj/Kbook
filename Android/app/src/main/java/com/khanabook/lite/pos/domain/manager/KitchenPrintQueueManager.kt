@@ -65,11 +65,17 @@ class KitchenPrintQueueManager @Inject constructor(
     suspend fun flushPendingForPrinter(printerMac: String) = flushMutex.withLock {
         if (printerMac.isBlank()) return
 
+        // Only flush if this MAC is actually a kitchen printer
+        val printerProfile = resolveKitchenPrinter(printerMac)
+        if (printerProfile?.role != PrinterRole.KITCHEN.name) {
+            Log.d(TAG, "Connected device $printerMac is not configured as a kitchen printer. Skipping flush.")
+            return
+        }
+
         val queue = queueRepository.getPendingForPrinter(printerMac)
         if (queue.isEmpty()) return
 
         val restaurantProfile = restaurantRepository.getProfile() ?: return
-        val printerProfile = resolveKitchenPrinter(printerMac) ?: return
 
         for (job in queue) {
             val bill = billRepository.getBillWithItemsById(job.billId)
@@ -86,7 +92,6 @@ class KitchenPrintQueueManager @Inject constructor(
             }
 
             try {
-                printerManager.disconnect()
                 if (!printerManager.connect(printerMac)) {
                     queueRepository.enqueueOrUpdate(job.billId, job.printerMac, "connection failed")
                     break

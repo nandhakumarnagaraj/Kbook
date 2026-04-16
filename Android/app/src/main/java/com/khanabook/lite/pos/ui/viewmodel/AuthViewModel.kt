@@ -440,7 +440,7 @@ constructor(
                             )
                         }
                     }.onFailure { e ->
-                        Log.e(TAG, "Remote Google login failed", e)
+                        Log.e(TAG, "Remote Google login failed. Exception message: ${e.message}", e)
                         _loginStatus.value = loginError(
                             UserMessageSanitizer.sanitize(
                                 e,

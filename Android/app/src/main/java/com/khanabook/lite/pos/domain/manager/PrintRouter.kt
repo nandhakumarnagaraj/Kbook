@@ -48,7 +48,6 @@ class PrintRouter @Inject constructor(
         for (target in targets) {
             repeat(target.copies.coerceAtLeast(1)) {
                 try {
-                    printerManager.disconnect()
                     if (!printerManager.connect(target.macAddress)) {
                         maybeQueueKitchenRetry(bill.bill.id, target, mode, "connection failed")
                         failures += "${target.name}: connection failed"

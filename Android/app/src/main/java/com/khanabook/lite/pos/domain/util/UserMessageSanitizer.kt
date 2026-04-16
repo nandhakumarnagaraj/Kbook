@@ -84,6 +84,10 @@ object UserMessageSanitizer {
             return SanitizedBackendError(message = fallback)
         }
 
+        if (error is javax.net.ssl.SSLHandshakeException || error is javax.net.ssl.SSLPeerUnverifiedException) {
+            return SanitizedBackendError(message = "Secure connection failed. Please check your system date or update the app.")
+        }
+
         if (networkFragments.any { fragment -> lowered.contains(fragment) }) {
             return SanitizedBackendError(message = "Network error. Please check your connection.")
         }

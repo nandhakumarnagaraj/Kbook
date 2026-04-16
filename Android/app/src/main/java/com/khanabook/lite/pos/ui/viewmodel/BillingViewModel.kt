@@ -482,6 +482,8 @@ class BillingViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        printerManager.disconnect()
+        viewModelScope.launch(Dispatchers.IO) {
+            printerManager.disconnect()
+        }
     }
 }
