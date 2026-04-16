@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.OutputStream
 import java.util.UUID
 
@@ -37,6 +39,7 @@ class BluetoothPrinterManager(private val context: Context) {
         context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager?.adapter
 
+    private val printerMutex = Mutex()
     private var activeSocket: BluetoothSocket? = null
     private var outputStream: OutputStream? = null
 
@@ -75,11 +78,13 @@ class BluetoothPrinterManager(private val context: Context) {
                             _isConnected.value = true
                             device?.address?.let { _connectedDeviceEvents.tryEmit(it) }
                         }
-                        BluetoothDevice.ACTION_ACL_DISCONNECTED -> disconnect()
+                        BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                            // Can't easily use mutex in BroadcastReceiver, but we can set flags
+                            _isConnected.value = false
+                            activeSocket = null
+                            outputStream = null
+                        }
                     }
-                }
-                if (intent?.action == BluetoothDevice.ACTION_ACL_CONNECTED) {
-                    device?.address?.let { _connectedDeviceEvents.tryEmit(it) }
                 }
             }
         }
@@ -211,10 +216,16 @@ class BluetoothPrinterManager(private val context: Context) {
 
     /**
      * Connects to a Bluetooth device using standard and insecure fallbacks.
+     * Thread-safe via printerMutex. If already connected to this device, reuses the socket.
      */
     @Suppress("MissingPermission")
-    fun connect(device: BluetoothDevice): Boolean {
-        disconnect()
+    suspend fun connect(device: BluetoothDevice): Boolean = printerMutex.withLock {
+        if (activeSocket?.isConnected == true && activeSocket?.remoteDevice?.address == device.address) {
+            Log.d(TAG, "Already connected to ${device.address}, reusing socket")
+            return true
+        }
+
+        performDisconnect()
         _isConnecting.value = true
         return try {
             bluetoothAdapter?.cancelDiscovery()
@@ -238,22 +249,22 @@ class BluetoothPrinterManager(private val context: Context) {
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to connect to printer", e)
-            disconnect()
+            performDisconnect()
             false
         } finally {
             _isConnecting.value = false
         }
     }
 
-    fun connect(address: String): Boolean {
+    suspend fun connect(address: String): Boolean {
         val device = bluetoothAdapter?.getRemoteDevice(address) ?: return false
         return connect(device)
     }
 
     /**
-     * Sends raw bytes to the connected printer.
+     * Sends raw bytes to the connected printer. Thread-safe.
      */
-    fun printBytes(data: ByteArray): Boolean {
+    suspend fun printBytes(data: ByteArray): Boolean = printerMutex.withLock {
         return try {
             outputStream?.write(data)
             outputStream?.flush()
@@ -265,9 +276,16 @@ class BluetoothPrinterManager(private val context: Context) {
     }
 
     /**
-     * Disconnects the active Bluetooth socket.
+     * Disconnects the active Bluetooth socket. Thread-safe.
      */
-    fun disconnect() {
+    suspend fun disconnect() = printerMutex.withLock {
+        performDisconnect()
+    }
+
+    /**
+     * Force disconnect without locking. Internal use only.
+     */
+    private fun performDisconnect() {
         try {
             outputStream?.close()
             activeSocket?.close()

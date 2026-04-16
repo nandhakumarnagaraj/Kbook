@@ -1,36 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
 
-    <!-- Block all cleartext traffic app-wide -->
+    <!-- Allow system and user certificates for better debugging/proxying -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
+            <certificates src="user" />
         </trust-anchors>
     </base-config>
 
-    <!--
-        Certificate pinning for kbook.iadv.cloud.
-
-        Pin 1: leaf certificate public key (current cert, expires 2026-07-02)
-        Pin 2: Let's Encrypt E8 intermediate CA — stays valid across 90-day cert renewals.
-
-        Renewal checklist (run before expiration="..." date):
-          openssl s_client -connect kbook.iadv.cloud:443 | \
-            openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | \
-            openssl dgst -sha256 -binary | openssl enc -base64
-        Update pin 1 with the new hash and push a release before the old cert expires.
-    -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">kbook.iadv.cloud</domain>
         <trust-anchors>
             <certificates src="system" />
+            <certificates src="user" />
         </trust-anchors>
+        <!-- 
+        TEMPORARILY DISABLED PINS TO DEBUG GOOGLE LOGIN NETWORK ERROR
         <pin-set expiration="2027-03-01">
-            <!-- Leaf: kbook.iadv.cloud (expires 2026-07-02) -->
             <pin digest="SHA-256">tJ3FwThWtNjSo05B9h3v8/XuIltRPdwkOxXbTrvVqZ4=</pin>
-            <!-- Backup: Let's Encrypt E8 intermediate CA -->
             <pin digest="SHA-256">iFvwVyJSxnQdyaUvUERIf+8qk7gRze3612JMwoO3zdU=</pin>
+            <pin digest="SHA-256">jQfbvg4u7nk8nWsnSXZ9J87bsPggUXpdx6ZshA7uJ6E=</pin>
         </pin-set>
+        -->
     </domain-config>
 
 </network-security-config>
