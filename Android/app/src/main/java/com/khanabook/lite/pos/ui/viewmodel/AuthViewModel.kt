@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.ui.viewmodel
 
 import android.content.Context
 import android.util.Log
+import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
@@ -464,30 +465,35 @@ constructor(
                 )
             } catch (e: NoCredentialException) {
                 Log.w(TAG, "Google Sign-In found no available credentials", e)
+                clearGoogleCredentialState(activity)
                 _loginStatus.value = loginError(
                         "No Google account is available on this device. Add an account and try again.",
                         LoginErrorCode.GOOGLE_FAILED
                 )
             } catch (e: GetCredentialProviderConfigurationException) {
                 Log.e(TAG, "Google Sign-In provider is unavailable or misconfigured", e)
+                clearGoogleCredentialState(activity)
                 _loginStatus.value = loginError(
                         "Google Sign-In is unavailable on this device. Update Google Play Services and try again.",
                         LoginErrorCode.GOOGLE_FAILED
                 )
             } catch (e: GetCredentialInterruptedException) {
                 Log.w(TAG, "Google Sign-In was interrupted", e)
+                clearGoogleCredentialState(activity)
                 _loginStatus.value = loginError(
                         "Google Sign-In was interrupted. Please try again.",
                         LoginErrorCode.GOOGLE_FAILED
                 )
             } catch (e: GetCredentialException) {
                 Log.e(TAG, "Google Sign-In failed before token exchange: type=${e.type}", e)
+                clearGoogleCredentialState(activity)
                 _loginStatus.value = loginError(
                         "Google Sign-In could not start. Check Play Services and your Google account, then try again.",
                         LoginErrorCode.GOOGLE_FAILED
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Google Sign-In failed", e)
+                clearGoogleCredentialState(activity)
                 _loginStatus.value = loginError(
                         "Google Sign-In failed. Please try again.",
                         LoginErrorCode.GOOGLE_FAILED
@@ -497,6 +503,17 @@ constructor(
     }
 
 
+
+    private fun clearGoogleCredentialState(context: android.content.Context?) {
+        if (context == null) return
+        viewModelScope.launch {
+            try {
+                CredentialManager.create(context).clearCredentialState(ClearCredentialStateRequest())
+            } catch (e: Exception) {
+                Log.w(TAG, "clearCredentialState failed (non-fatal): ${e.message}")
+            }
+        }
+    }
 
     fun resetSignUpStatus() {
         _signUpStatus.value = null

@@ -1,5 +1,8 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
+import android.content.Context
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.BuildConfig
@@ -10,6 +13,7 @@ import com.khanabook.lite.pos.data.repository.UserRepository
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import android.util.Log
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -33,6 +37,7 @@ sealed class LogoutState {
 
 @HiltViewModel
 class LogoutViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val sessionManager: SessionManager,
     private val appDatabase: AppDatabase,
     private val billRepository: BillRepository,
@@ -102,6 +107,14 @@ class LogoutViewModel @Inject constructor(
                 api.logout()
             } catch (e: Exception) {
                 Log.w(debugTag, "Server logout failed (continuing local logout): ${e.message}")
+            }
+            // Clear Google Credential Manager state so the next Google sign-in
+            // starts fresh instead of reusing a stale/revoked cached credential.
+            try {
+                val credentialManager = CredentialManager.create(context)
+                credentialManager.clearCredentialState(ClearCredentialStateRequest())
+            } catch (e: Exception) {
+                Log.w(debugTag, "clearCredentialState failed (non-fatal): ${e.message}")
             }
             userRepository.setCurrentUser(null)
             withContext(Dispatchers.IO) {
