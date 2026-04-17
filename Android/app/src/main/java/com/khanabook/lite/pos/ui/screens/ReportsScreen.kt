@@ -13,8 +13,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.core.content.FileProvider
+import kotlinx.coroutines.launch
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -61,6 +64,8 @@ fun ReportsScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val spacing = KhanaBookTheme.spacing
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var showExportMenu by remember { mutableStateOf(false) }
     
     // Staggered entry animation — same pattern used across all screens
     var headerVisible by remember { mutableStateOf(false) }
@@ -117,19 +122,48 @@ fun ReportsScreen(
                         color = PrimaryGold,
                         style = MaterialTheme.typography.headlineMedium
                     )
-                    IconButton(
-                        onClick = {
-                            val text = viewModel.buildShareText(profile?.shopName)
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, text)
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            context.startActivity(Intent.createChooser(intent, "Share Report"))
-                        },
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = "Share Report", tint = PrimaryGold)
+                    Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                        IconButton(onClick = { showExportMenu = true }) {
+                            Icon(Icons.Default.Download, contentDescription = "Download Report", tint = PrimaryGold)
+                        }
+                        DropdownMenu(
+                            expanded = showExportMenu,
+                            onDismissRequest = { showExportMenu = false },
+                            modifier = Modifier.background(DarkBrown2)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Download PDF", color = TextLight, style = MaterialTheme.typography.bodyMedium) },
+                                onClick = {
+                                    showExportMenu = false
+                                    scope.launch {
+                                        val file = viewModel.exportReport(context, "PDF", profile?.shopName)
+                                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                                        val intent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "application/pdf"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        context.startActivity(Intent.createChooser(intent, "Save / Share PDF"))
+                                    }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Download Excel", color = TextLight, style = MaterialTheme.typography.bodyMedium) },
+                                onClick = {
+                                    showExportMenu = false
+                                    scope.launch {
+                                        val file = viewModel.exportReport(context, "CSV", profile?.shopName)
+                                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                                        val intent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/csv"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                        context.startActivity(Intent.createChooser(intent, "Save / Share Excel"))
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }

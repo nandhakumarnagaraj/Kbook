@@ -218,6 +218,15 @@ class ReportsViewModel @Inject constructor(
         return reportGenerator.getOrderDetail(billId)
     }
 
+    suspend fun exportReport(context: android.content.Context, format: String, shopName: String?): java.io.File {
+        val exporter = com.khanabook.lite.pos.domain.manager.ReportExporter(context)
+        return if (format == "PDF") {
+            exporter.exportToPdf(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, shopName)
+        } else {
+            exporter.exportToCsv(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, shopName)
+        }
+    }
+
     fun buildShareText(shopName: String?): String {
         val header = shopName?.let { "$it\n" } ?: ""
         val period = _timeFilter.value
