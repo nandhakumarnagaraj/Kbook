@@ -224,7 +224,7 @@ fun OrdersScreen(
                 AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .fillMaxSize()
                             .horizontalScroll(tableScrollState)
                     ) {
                         Column(
@@ -266,11 +266,12 @@ fun OrdersScreen(
                 AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .fillMaxSize()
                             .horizontalScroll(tableScrollState)
                     ) {
                     LazyColumn(
                         modifier = Modifier
+                            .fillMaxHeight()
                             .widthIn(min = 400.dp)
                             .padding(horizontal = spacing.medium),
                         contentPadding = PaddingValues(top = spacing.small, bottom = spacing.bottomListPadding)
