@@ -222,21 +222,15 @@ fun OrdersScreen(
 
             if (isLoading) {
                 AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
-                    Box(
+                    Column(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .horizontalScroll(tableScrollState)
+                            .fillMaxWidth()
+                            .padding(horizontal = spacing.medium)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .widthIn(min = 400.dp)
-                                .padding(horizontal = spacing.medium)
-                        ) {
-                            TableHeader(isGstEnabled = isGstEnabled)
-                            repeat(10) {
-                                SkeletonTableRow(columns = 5)
-                                Spacer(modifier = Modifier.height(2.dp))
-                            }
+                        TableHeader(isGstEnabled = isGstEnabled, scrollState = tableScrollState)
+                        repeat(10) {
+                            SkeletonTableRow(columns = 5)
+                            Spacer(modifier = Modifier.height(2.dp))
                         }
                     }
                 }
@@ -264,20 +258,14 @@ fun OrdersScreen(
                 }
             } else {
                 AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .horizontalScroll(tableScrollState)
-                    ) {
                     LazyColumn(
                         modifier = Modifier
-                            .fillMaxHeight()
-                            .widthIn(min = 400.dp)
+                            .fillMaxWidth()
                             .padding(horizontal = spacing.medium),
                         contentPadding = PaddingValues(top = spacing.small, bottom = spacing.bottomListPadding)
                     ) {
                         stickyHeader {
-                            TableHeader(isGstEnabled = isGstEnabled)
+                            TableHeader(isGstEnabled = isGstEnabled, scrollState = tableScrollState)
                         }
                         items(allRows) { row ->
                             var showCancelDialog by remember { mutableStateOf(false) }
@@ -314,7 +302,8 @@ fun OrdersScreen(
                                     } else {
                                         viewModel.updatePaymentMode(row.billId, newMode.dbValue)
                                     }
-                                }
+                                },
+                                scrollState = tableScrollState
                             )
 
                             if (showCancelDialog) {
@@ -340,7 +329,6 @@ fun OrdersScreen(
                             }
                         }
                     }
-                    } // end Box(horizontalScroll)
                 }
             }
         }
@@ -409,12 +397,14 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
 private const val TABLE_TOTAL_WEIGHT = 8.0f
 
 @Composable
-fun TableHeader(isGstEnabled: Boolean) {
+fun TableHeader(isGstEnabled: Boolean, scrollState: androidx.compose.foundation.ScrollState? = null) {
     val spacing = KhanaBookTheme.spacing
     val invoiceHeader = if (isGstEnabled) "Tax Invoice No" else "Invoice No"
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (scrollState != null) Modifier.horizontalScroll(scrollState) else Modifier)
+            .widthIn(min = 400.dp)
             .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
             .padding(vertical = spacing.small, horizontal = spacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically
@@ -448,7 +438,8 @@ fun OrderTableRow(
     onShareText: () -> Unit,
     onRequestCancel: () -> Unit,
     onStatusChange: (String) -> Unit,
-    onPayModeChange: (PaymentMode) -> Unit
+    onPayModeChange: (PaymentMode) -> Unit,
+    scrollState: androidx.compose.foundation.ScrollState? = null
 ) {
     var statusExpanded by remember { mutableStateOf(false) }
     var payModeExpanded by remember { mutableStateOf(false) }
@@ -471,6 +462,8 @@ fun OrderTableRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(if (scrollState != null) Modifier.horizontalScroll(scrollState) else Modifier)
+                .widthIn(min = 400.dp)
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
