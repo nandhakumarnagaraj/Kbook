@@ -60,34 +60,35 @@ class SettingsViewModel @Inject constructor(
     private val _btConnectResult = MutableStateFlow<Boolean?>(null)
     val btConnectResult: StateFlow<Boolean?> = _btConnectResult.asStateFlow()
 
-    val btIsConnected: StateFlow<Boolean> = btManager.isConnected
-
     /** MAC address of the currently connected Bluetooth printer, or null if disconnected. */
     val connectedPrinterMac: StateFlow<String?> = btManager.connectedDeviceMac
 
     /** All printer MAC addresses currently connected at the Bluetooth ACL level. */
     val connectedPrinterMacs: StateFlow<Set<String>> = btManager.connectedDeviceMacs
 
-    private val _stickyConnectedPrinterRoles = MutableStateFlow<Set<String>>(emptySet())
     val printerStatusRoles: StateFlow<Set<String>> = combine(
         printerProfiles,
-        connectedPrinterMacs,
-        _stickyConnectedPrinterRoles
-    ) { profiles, liveMacs, stickyRoles ->
-        val liveRoles = profiles
+        connectedPrinterMacs
+    ) { profiles, liveMacs ->
+        profiles
             .filter { !it.macAddress.isNullOrBlank() && liveMacs.contains(it.macAddress) }
             .map { it.role }
             .toSet()
-        liveRoles + stickyRoles
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            val currentProfile = restaurantRepository.getProfile()
-            val mac = currentProfile?.printerMac
-            if (currentProfile?.printerEnabled == true && !mac.isNullOrBlank() && !btManager.isConnected()) {
-                btManager.connect(mac)
-            }
+            printerProfileRepository.getProfiles()
+                .filter { it.enabled && !it.macAddress.isNullOrBlank() }
+                .forEach { profile ->
+                    // Each printer in its own coroutine — an offline printer's Bluetooth
+                    // timeout won't delay the other printer connecting.
+                    launch {
+                        if (!btManager.isConnectedTo(profile.macAddress)) {
+                            btManager.connect(profile.macAddress)
+                        }
+                    }
+                }
         }
     }
 
@@ -103,17 +104,15 @@ class SettingsViewModel @Inject constructor(
                 return@launch
             }
             val testData = (
-                "\u001b\u0040" + 
-                "\u001b\u0061\u0001" + 
+                "\u001b\u0040" +
+                "\u001b\u0061\u0001" +
                 "KHANABOOK\n" +
                 "${role.name} PRINTER TEST OK\n" +
                 "--------------------------------\n" +
                 "\n\n\n\n" +
-                "\u001d\u0056\u0042\u0000" 
+                "\u001d\u0056\u0042\u0000"
             ).toByteArray(Charsets.US_ASCII)
             btManager.printBytes(testData)
-            _stickyConnectedPrinterRoles.value = _stickyConnectedPrinterRoles.value + role.name
-            btManager.disconnect()
         }
     }
 
@@ -144,7 +143,6 @@ class SettingsViewModel @Inject constructor(
             if (ok) {
                 val name = try { device.name ?: "BT Printer" } catch (_: Exception) { "BT Printer" }
                 val mac  = device.address
-                _stickyConnectedPrinterRoles.value = _stickyConnectedPrinterRoles.value + role.name
                 val existing = printerProfileRepository.getByRole(role.name)
                 printerProfileRepository.saveProfile(
                     PrinterProfileEntity(
@@ -169,7 +167,6 @@ class SettingsViewModel @Inject constructor(
                     kitchenPrintQueueManager.flushPendingForPrinter(mac)
                 }
             }
-            btManager.disconnect()
         }
     }
 
@@ -206,8 +203,8 @@ class SettingsViewModel @Inject constructor(
     fun removePrinter(role: PrinterRole) {
         viewModelScope.launch(Dispatchers.IO) {
             val existing = printerProfileRepository.getByRole(role.name)
+            existing?.macAddress?.let { mac -> btManager.disconnect(mac) }
             printerProfileRepository.deleteByRole(role.name)
-            _stickyConnectedPrinterRoles.value = _stickyConnectedPrinterRoles.value - role.name
             if (role == PrinterRole.CUSTOMER) {
                 restaurantRepository.getProfile()?.copy(
                     printerEnabled = false,

@@ -421,6 +421,10 @@ class BillingViewModel @Inject constructor(
     }
 
     fun printReceipt(bill: BillWithItems) {
+        if (bill.bill.orderStatus.equals(OrderStatus.CANCELLED.dbValue, ignoreCase = true)) {
+            _error.value = "Cannot print receipt for a cancelled order."
+            return
+        }
         val profile = _cachedProfile.value ?: run {
             _error.value = "Restaurant profile not loaded."
             return
@@ -466,6 +470,10 @@ class BillingViewModel @Inject constructor(
     }
 
     fun printKitchenTicket(bill: BillWithItems) {
+        if (bill.bill.orderStatus.equals(OrderStatus.CANCELLED.dbValue, ignoreCase = true)) {
+            _error.value = "Cannot print KDS for a cancelled order."
+            return
+        }
         val profile = _cachedProfile.value ?: run {
             _error.value = "Restaurant profile not loaded."
             return

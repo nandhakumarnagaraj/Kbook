@@ -17,8 +17,10 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 
@@ -98,6 +100,120 @@ class KitchenPrintQueueManagerTest {
         coVerify(exactly = 1) { printerManager.connect(connectedMac) }
         coVerify(exactly = 1) { printerManager.printBytes(any()) }
         coVerify(exactly = 1) { queueRepository.deleteById(queuedJob.id) }
-        coVerify(exactly = 1) { printerManager.disconnect() }
+        coVerify(exactly = 0) { printerManager.disconnect() }
+    }
+
+    // -------------------------------------------------------------------------
+    // Reconnect scenario: KDS queued with kitchen MAC → kitchen reconnects → prints
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `queued KDS job prints automatically when kitchen printer reconnects`() = runTest {
+        val kitchenMac = "AA:BB:CC:DD:EE:02"
+        val queuedJob = KitchenPrintQueueEntity(id = 20L, billId = 55L, printerMac = kitchenMac)
+        val kitchenPrinter = PrinterProfileEntity(
+            role = PrinterRole.KITCHEN.name,
+            name = "Kitchen Printer",
+            macAddress = kitchenMac,
+            enabled = true
+        )
+        val bill = BillWithItems(
+            bill = BillEntity(
+                id = 55L,
+                dailyOrderId = 3,
+                dailyOrderDisplay = "2026-04-17-03",
+                lifetimeOrderId = 55L,
+                subtotal = "200.0",
+                totalAmount = "200.0",
+                paymentMode = "cash",
+                paymentStatus = "paid",
+                orderStatus = "completed"
+            ),
+            items = emptyList(),
+            payments = emptyList()
+        )
+
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
+        coEvery { queueRepository.getPendingForPrinter(kitchenMac) } returns listOf(queuedJob)
+        coEvery { queueRepository.getByBillAndPrinter(queuedJob.billId, queuedJob.printerMac) } returns queuedJob
+        coEvery { restaurantRepository.getProfile() } returns RestaurantProfileEntity(shopName = "KhanaBook")
+        coEvery { billRepository.getBillWithItemsById(queuedJob.billId) } returns bill
+        coEvery { printerManager.connect(kitchenMac) } returns true
+        coEvery { printerManager.printBytes(any()) } returns true
+
+        // Simulate kitchen printer reconnecting — fires connectedDeviceEvents
+        connectedEvents.emit(kitchenMac)
+        advanceUntilIdle()
+
+        // Queue was flushed: connected, printed, entry removed
+        coVerify(exactly = 1) { printerManager.connect(kitchenMac) }
+        coVerify(exactly = 1) { printerManager.printBytes(any()) }
+        coVerify(exactly = 1) { queueRepository.deleteById(queuedJob.id) }
+        // Connection stays open (no disconnect called)
+        coVerify(exactly = 0) { printerManager.disconnect() }
+    }
+
+    @Test
+    fun `queued KDS job stays in queue when kitchen printer reconnect fails`() = runTest {
+        val kitchenMac = "AA:BB:CC:DD:EE:02"
+        val queuedJob = KitchenPrintQueueEntity(id = 21L, billId = 56L, printerMac = kitchenMac)
+        val kitchenPrinter = PrinterProfileEntity(
+            role = PrinterRole.KITCHEN.name,
+            name = "Kitchen Printer",
+            macAddress = kitchenMac,
+            enabled = true
+        )
+        val bill = BillWithItems(
+            bill = BillEntity(
+                id = 56L,
+                dailyOrderId = 4,
+                dailyOrderDisplay = "2026-04-17-04",
+                lifetimeOrderId = 56L,
+                subtotal = "150.0",
+                totalAmount = "150.0",
+                paymentMode = "cash",
+                paymentStatus = "paid",
+                orderStatus = "completed"
+            ),
+            items = emptyList(),
+            payments = emptyList()
+        )
+
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
+        coEvery { queueRepository.getPendingForPrinter(kitchenMac) } returns listOf(queuedJob)
+        coEvery { queueRepository.getByBillAndPrinter(queuedJob.billId, queuedJob.printerMac) } returns queuedJob
+        coEvery { restaurantRepository.getProfile() } returns RestaurantProfileEntity(shopName = "KhanaBook")
+        coEvery { billRepository.getBillWithItemsById(queuedJob.billId) } returns bill
+        coEvery { printerManager.connect(kitchenMac) } returns false  // connection fails
+
+        connectedEvents.emit(kitchenMac)
+        advanceUntilIdle()
+
+        // Connect attempted but failed → job re-enqueued, not deleted
+        coVerify(exactly = 1) { printerManager.connect(kitchenMac) }
+        coVerify(exactly = 0) { printerManager.printBytes(any()) }
+        coVerify(exactly = 0) { queueRepository.deleteById(any()) }
+        coVerify(exactly = 1) { queueRepository.enqueueOrUpdate(queuedJob.billId, kitchenMac, any()) }
+    }
+
+    @Test
+    fun `customer printer reconnect does NOT trigger KDS flush`() = runTest {
+        val customerMac = "AA:BB:CC:DD:EE:01"
+        val customerPrinter = PrinterProfileEntity(
+            role = PrinterRole.CUSTOMER.name,
+            name = "Customer Printer",
+            macAddress = customerMac,
+            enabled = true
+        )
+
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(customerPrinter)
+
+        // Customer printer reconnects — should NOT flush KDS queue
+        connectedEvents.emit(customerMac)
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { printerManager.connect(any<String>()) }
+        coVerify(exactly = 0) { printerManager.printBytes(any()) }
+        coVerify(exactly = 0) { queueRepository.deleteById(any()) }
     }
 }

@@ -14,8 +14,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Password
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -206,6 +210,43 @@ fun AppLockConfigView(
                 }
             }
             else -> {}
+        }
+
+        
+        if (setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Idle || 
+            setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Success) {
+            
+            KhanaBookCard(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBG),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column {
+                    SettingsItem(
+                        icon = Icons.Filled.Password,
+                        text = "Change Password",
+                        onClick = { /* TODO: Change Password */ }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = spacing.medium),
+                        color = BorderGold.copy(alpha = 0.1f)
+                    )
+                    SettingsItem(
+                        icon = Icons.AutoMirrored.Filled.HelpOutline,
+                        text = "Help & Support",
+                        onClick = { /* TODO: Help & Support */ }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = spacing.medium),
+                        color = BorderGold.copy(alpha = 0.1f)
+                    )
+                    SettingsItem(
+                        icon = Icons.Filled.Info,
+                        text = "About App",
+                        onClick = { /* TODO: About App */ }
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(spacing.extraLarge))

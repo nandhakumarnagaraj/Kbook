@@ -120,8 +120,6 @@ class KitchenPrintQueueManager @Inject constructor(
                     e.message ?: "unexpected error"
                 )
                 break
-            } finally {
-                printerManager.disconnect()
             }
         }
     }

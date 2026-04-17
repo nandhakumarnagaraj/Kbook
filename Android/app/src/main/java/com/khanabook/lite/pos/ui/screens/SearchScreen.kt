@@ -447,7 +447,7 @@ fun SearchScreen(
                                         onClick = {
                                             result?.let { billingViewModel.printReceipt(it) }
                                         },
-                                        enabled = currentResult.items.isNotEmpty(),
+                                        enabled = currentResult.items.isNotEmpty() && currentResult.bill.orderStatus != "cancelled",
                                         modifier = Modifier.weight(1f).height(48.dp),
                                         shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
@@ -462,7 +462,7 @@ fun SearchScreen(
                                         onClick = {
                                             result?.let { billingViewModel.printKitchenTicket(it) }
                                         },
-                                        enabled = currentResult.items.isNotEmpty(),
+                                        enabled = currentResult.items.isNotEmpty() && currentResult.bill.orderStatus != "cancelled",
                                         modifier = Modifier.weight(1f).height(48.dp),
                                         shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),

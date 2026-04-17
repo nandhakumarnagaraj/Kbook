@@ -83,8 +83,6 @@ class PrintRouter @Inject constructor(
                         e.message ?: "unexpected error"
                     )
                     failures += "${target.name}: ${e.message ?: "unexpected error"}"
-                } finally {
-                    printerManager.disconnect()
                 }
             }
         }

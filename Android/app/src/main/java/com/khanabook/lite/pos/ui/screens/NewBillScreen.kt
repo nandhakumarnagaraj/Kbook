@@ -1332,7 +1332,7 @@ fun SuccessStep(
                     modifier = Modifier.weight(1f).height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                     shape = RoundedCornerShape(12.dp),
-                    enabled = lastBill != null
+                    enabled = lastBill?.let { it.bill.orderStatus != "cancelled" } ?: false
             ) {
                 Icon(Icons.Default.Receipt, null, tint = DarkBrown1)
                 Spacer(modifier = Modifier.width(spacing.extraSmall))
@@ -1347,7 +1347,7 @@ fun SuccessStep(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
                     border = BorderStroke(1.dp, PrimaryGold),
-                    enabled = lastBill != null
+                    enabled = lastBill?.let { it.bill.orderStatus != "cancelled" } ?: false
             ) {
                 Icon(Icons.Default.Restaurant, null, tint = PrimaryGold)
                 Spacer(modifier = Modifier.width(spacing.extraSmall))

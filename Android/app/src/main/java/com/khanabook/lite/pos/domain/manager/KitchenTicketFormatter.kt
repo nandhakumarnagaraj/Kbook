@@ -23,8 +23,10 @@ object KitchenTicketFormatter {
         restaurantProfile: RestaurantProfileEntity?,
         printerProfile: PrinterProfileEntity
     ): ByteArray {
-        val charsPerLine = if (printerProfile.paperSize == "80mm") 42 else 32
-        val line = "-".repeat(charsPerLine)
+        val is80mm = printerProfile.paperSize == "80mm"
+        val charsPerLine = if (is80mm) 40 else 32
+        val leftPad = if (is80mm) "    " else ""
+        val line = leftPad + "-".repeat(charsPerLine)
         val out = mutableListOf<Byte>()
 
         fun add(bytes: ByteArray) { out.addAll(bytes.toList()) }
@@ -35,18 +37,18 @@ object KitchenTicketFormatter {
         add("${restaurantProfile?.shopName ?: "RESTAURANT"}\n")
         add("$line\n")
         add(ALIGN_LEFT)
-        add("Order: ${bill.bill.dailyOrderDisplay}\n")
-        add("Invoice: INV${bill.bill.lifetimeOrderId}\n")
-        add("Time: ${DateUtils.formatDisplay(bill.bill.createdAt)}\n")
-        bill.bill.customerName?.takeIf { it.isNotBlank() }?.let { add("Customer: $it\n") }
+        add(leftPad + "Order: ${bill.bill.dailyOrderDisplay}\n")
+        add(leftPad + "Invoice: INV${bill.bill.lifetimeOrderId}\n")
+        add(leftPad + "Time: ${DateUtils.formatDisplay(bill.bill.createdAt)}\n")
+        bill.bill.customerName?.takeIf { it.isNotBlank() }?.let { add(leftPad + "Customer: $it\n") }
         add("$line\n")
 
         bill.items.forEach { item ->
             add(BOLD_ON)
-            add("${item.quantity} x ${item.itemName}\n")
+            add(leftPad + "${item.quantity} x ${item.itemName}\n")
             add(BOLD_OFF)
-            item.variantName?.takeIf { it.isNotBlank() }?.let { add("  Variant: $it\n") }
-            item.specialInstruction?.takeIf { it.isNotBlank() }?.let { add("  Note: $it\n") }
+            item.variantName?.takeIf { it.isNotBlank() }?.let { add(leftPad + "  Variant: $it\n") }
+            item.specialInstruction?.takeIf { it.isNotBlank() }?.let { add(leftPad + "  Note: $it\n") }
         }
 
         add("$line\n")

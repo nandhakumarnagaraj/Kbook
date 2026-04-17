@@ -84,12 +84,6 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         if (BuildConfig.DEBUG) logWindowAndResources("onCreate")
 
-        // Prevent screenshots and recent-apps thumbnails from exposing billing/auth data.
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_SECURE,
-            WindowManager.LayoutParams.FLAG_SECURE
-        )
-
         // Enable edge-to-edge for better gesture navigation support
         enableEdgeToEdge()
 

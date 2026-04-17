@@ -22,16 +22,23 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.OutputStream
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Manages Bluetooth printer discovery, connection, and communication.
- * Implements a Singleton-like behavior when used via Hilt.
+ * Supports simultaneous connections to multiple printers (e.g. customer + kitchen).
+ *
+ * Thread-safety design:
+ *  - printerMutex guards map reads/writes (fast operations only — never held during blocking I/O).
+ *  - Blocking socket.connect() and socket.close() run OUTSIDE printerMutex so an offline
+ *    printer's 12-second timeout never stalls operations on other printers.
+ *  - socketMutexes provides per-MAC serialisation to prevent two coroutines from
+ *    connecting the same device simultaneously.
  */
 class BluetoothPrinterManager(private val context: Context) {
 
     companion object {
         private const val TAG = "BluetoothPrinter"
-        // Standard SPP UUID for Bluetooth Serial Port Profile
         private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
     }
 
@@ -39,9 +46,20 @@ class BluetoothPrinterManager(private val context: Context) {
         context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager?.adapter
 
+    // Guards map reads/writes only — never held during blocking I/O.
     private val printerMutex = Mutex()
-    private var activeSocket: BluetoothSocket? = null
-    private var outputStream: OutputStream? = null
+
+    // Per-MAC mutex serialises connect/disconnect for the same device without
+    // blocking operations on a different device.
+    private val socketMutexes = ConcurrentHashMap<String, Mutex>()
+    private fun socketMutex(mac: String): Mutex = socketMutexes.computeIfAbsent(mac) { Mutex() }
+
+    // Per-MAC socket and stream maps.
+    private val activeSockets = mutableMapOf<String, BluetoothSocket>()
+    private val outputStreams = mutableMapOf<String, OutputStream>()
+
+    // MAC of the most recently connected printer — used by printBytes() to target the right socket.
+    private var lastConnectedMac: String? = null
 
     private val _scannedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     val scannedDevices: StateFlow<List<BluetoothDevice>> = _scannedDevices
@@ -77,12 +95,12 @@ class BluetoothPrinterManager(private val context: Context) {
                     @Suppress("DEPRECATION")
                     intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                 }
-                
+
                 val deviceAddress = device?.address ?: return
                 when (intent?.action) {
                     BluetoothDevice.ACTION_ACL_CONNECTED -> {
                         _connectedDeviceMacs.value = _connectedDeviceMacs.value + deviceAddress
-                        if (deviceAddress == activeSocket?.remoteDevice?.address) {
+                        if (activeSockets.containsKey(deviceAddress)) {
                             _isConnected.value = true
                             _connectedDeviceMac.value = deviceAddress
                         }
@@ -90,18 +108,22 @@ class BluetoothPrinterManager(private val context: Context) {
                     }
                     BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
                         _connectedDeviceMacs.value = _connectedDeviceMacs.value - deviceAddress
-                        if (deviceAddress == activeSocket?.remoteDevice?.address) {
-                            // Can't easily use mutex in BroadcastReceiver, but we can set flags
-                            _isConnected.value = false
-                            activeSocket = null
-                            outputStream = null
-                            _connectedDeviceMac.value = null
+                        if (activeSockets.containsKey(deviceAddress)) {
+                            activeSockets.remove(deviceAddress)
+                            outputStreams.remove(deviceAddress)
+                            if (_connectedDeviceMac.value == deviceAddress) {
+                                _connectedDeviceMac.value = activeSockets.keys.firstOrNull()
+                            }
+                            if (lastConnectedMac == deviceAddress) {
+                                lastConnectedMac = activeSockets.keys.firstOrNull()
+                            }
+                            _isConnected.value = activeSockets.isNotEmpty()
                         }
                     }
                 }
             }
         }
-        
+
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Context.RECEIVER_EXPORTED else 0
         ContextCompat.registerReceiver(context, connectionReceiver, filter, flags)
     }
@@ -110,9 +132,6 @@ class BluetoothPrinterManager(private val context: Context) {
 
     fun isBluetoothEnabled(): Boolean = bluetoothAdapter?.isEnabled == true
 
-    /**
-     * Checks if all required Bluetooth and Location permissions are granted.
-     */
     fun hasRequiredPermissions(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
@@ -123,18 +142,12 @@ class BluetoothPrinterManager(private val context: Context) {
         }
     }
 
-    /**
-     * Retrieves the list of currently paired (bonded) devices.
-     */
     @Suppress("MissingPermission")
     fun getPairedDevices(): List<BluetoothDevice> {
         if (!hasRequiredPermissions()) return emptyList()
         return bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
     }
 
-    /**
-     * Receiver for Bluetooth device discovery.
-     */
     private val discoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context, intent: Intent) {
             when (intent.action) {
@@ -156,7 +169,6 @@ class BluetoothPrinterManager(private val context: Context) {
                             current.add(found)
                             _scannedDevices.value = current
                         } else {
-                            // Update existing device (might have received a name)
                             current[existingIndex] = found
                             _scannedDevices.value = current
                         }
@@ -169,27 +181,20 @@ class BluetoothPrinterManager(private val context: Context) {
         }
     }
 
-    /**
-     * Checks if Location services are enabled (required for BT discovery on older Android).
-     */
     fun isLocationEnabled(): Boolean {
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? android.location.LocationManager
         return locationManager?.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) == true ||
                locationManager?.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER) == true
     }
 
-    /**
-     * Starts scanning for new Bluetooth devices.
-     */
     @Suppress("MissingPermission")
     fun startScan() {
         if (!hasRequiredPermissions() || !isBluetoothEnabled()) return
-        
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && !isLocationEnabled()) {
              android.widget.Toast.makeText(context, context.getString(R.string.toast_turn_on_location), android.widget.Toast.LENGTH_LONG).show()
         }
 
-        // Initialize scan list with paired devices
         val paired = getPairedDevices()
         _scannedDevices.value = paired.toMutableList()
         _isScanning.value = true
@@ -199,13 +204,13 @@ class BluetoothPrinterManager(private val context: Context) {
             addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         }
-        
+
         try {
             context.unregisterReceiver(discoveryReceiver)
         } catch (e: IllegalArgumentException) {
             Log.d(TAG, "Discovery receiver was not registered before scan start")
         }
-        
+
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Context.RECEIVER_EXPORTED else 0
         ContextCompat.registerReceiver(context, discoveryReceiver, filter, flags)
 
@@ -213,9 +218,6 @@ class BluetoothPrinterManager(private val context: Context) {
         bluetoothAdapter?.startDiscovery()
     }
 
-    /**
-     * Stops the ongoing Bluetooth discovery.
-     */
     @Suppress("MissingPermission")
     fun stopScan() {
         bluetoothAdapter?.cancelDiscovery()
@@ -228,48 +230,81 @@ class BluetoothPrinterManager(private val context: Context) {
     }
 
     /**
-     * Connects to a Bluetooth device using standard and insecure fallbacks.
-     * Thread-safe via printerMutex. If already connected to this device, reuses the socket.
+     * Connects to a Bluetooth printer. Reuses the existing socket if still live.
+     *
+     * The blocking [BluetoothSocket.connect] runs OUTSIDE [printerMutex] so an offline
+     * printer's timeout does not stall operations on other printers. A per-MAC
+     * [socketMutex] prevents double-connecting the same device.
      */
     @Suppress("MissingPermission")
-    suspend fun connect(device: BluetoothDevice): Boolean = printerMutex.withLock {
-        if (activeSocket?.isConnected == true && activeSocket?.remoteDevice?.address == device.address) {
-            Log.d(TAG, "Already connected to ${device.address}, reusing socket")
-            return true
+    suspend fun connect(device: BluetoothDevice): Boolean {
+        val mac = device.address
+
+        // Phase 1 (fast, global mutex): check if socket is already live.
+        var staleSocket: BluetoothSocket? = null
+        var staleStream: OutputStream? = null
+        val reuse = printerMutex.withLock {
+            if (activeSockets[mac]?.isConnected == true) {
+                lastConnectedMac = mac
+                true
+            } else {
+                // Pull stale entry out of the map so we can close it outside the mutex.
+                staleSocket = activeSockets.remove(mac)
+                staleStream = outputStreams.remove(mac)
+                _connectedDeviceMacs.value = _connectedDeviceMacs.value - mac
+                if (_connectedDeviceMac.value == mac) _connectedDeviceMac.value = activeSockets.keys.firstOrNull()
+                if (lastConnectedMac == mac) lastConnectedMac = activeSockets.keys.firstOrNull()
+                _isConnected.value = activeSockets.isNotEmpty()
+                false
+            }
         }
+        if (reuse) return true
 
-        performDisconnect()
-        _isConnecting.value = true
-        return try {
-            bluetoothAdapter?.cancelDiscovery()
-            
-            var socket: BluetoothSocket? = null
+        // Phase 2 (per-MAC mutex, OUTSIDE global mutex): close stale socket, open new one.
+        return socketMutex(mac).withLock {
+            // Double-check — another coroutine may have connected while we waited.
+            val alreadyConnected = printerMutex.withLock { activeSockets[mac]?.isConnected == true }
+            if (alreadyConnected) {
+                printerMutex.withLock { lastConnectedMac = mac }
+                return true
+            }
+
+            // Close stale resources (may block briefly — outside global mutex).
+            try { staleStream?.close() } catch (_: Exception) {}
+            try { staleSocket?.close() } catch (_: Exception) {}
+
+            _isConnecting.value = true
             try {
-                // Try standard secure connection first
-                socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-                socket.connect()
-            } catch (e: Exception) {
-                socket?.close()
-                // Fallback to insecure connection (common for thermal printers)
-                socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
-                socket.connect()
-            }
+                bluetoothAdapter?.cancelDiscovery()
 
-            activeSocket = socket
-            outputStream = socket?.outputStream
-            _isConnected.value = true
-            _connectedDeviceMac.value = device.address
-            device.address?.let {
-                _connectedDeviceMacs.value = _connectedDeviceMacs.value + it
-                _connectedDeviceEvents.tryEmit(it)
+                var socket: BluetoothSocket? = null
+                try {
+                    socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+                    socket.connect()
+                } catch (e: Exception) {
+                    socket?.close()
+                    // Fallback to insecure RFCOMM — common for thermal printers.
+                    socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
+                    socket.connect()
+                }
+
+                // Phase 3 (fast, global mutex): register the new socket.
+                printerMutex.withLock {
+                    activeSockets[mac] = socket!!
+                    outputStreams[mac] = socket.outputStream
+                    lastConnectedMac = mac
+                    _isConnected.value = true
+                    _connectedDeviceMac.value = mac
+                    _connectedDeviceMacs.value = _connectedDeviceMacs.value + mac
+                }
+                _connectedDeviceEvents.tryEmit(mac)
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to connect to printer $mac", e)
+                false
+            } finally {
+                _isConnecting.value = false
             }
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to connect to printer", e)
-            performDisconnect()
-            false
-        } finally {
-            _isConnecting.value = false
         }
     }
 
@@ -279,43 +314,60 @@ class BluetoothPrinterManager(private val context: Context) {
     }
 
     /**
-     * Sends raw bytes to the connected printer. Thread-safe.
+     * Sends raw bytes to the most recently connected printer.
+     * The actual write runs outside [printerMutex] so slow I/O does not block
+     * concurrent connect calls on other printers.
      */
-    suspend fun printBytes(data: ByteArray): Boolean = printerMutex.withLock {
+    suspend fun printBytes(data: ByteArray): Boolean {
+        val mac = printerMutex.withLock { lastConnectedMac } ?: run {
+            Log.e(TAG, "printBytes called but no printer is connected")
+            return false
+        }
+        val stream = printerMutex.withLock { outputStreams[mac] } ?: run {
+            Log.e(TAG, "No output stream for printer $mac")
+            return false
+        }
         return try {
-            outputStream?.write(data)
-            outputStream?.flush()
+            stream.write(data)
+            stream.flush()
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send data to printer", e)
+            Log.e(TAG, "Failed to send data to printer $mac", e)
             false
         }
     }
 
     /**
-     * Disconnects the active Bluetooth socket. Thread-safe.
+     * Disconnects a specific printer by MAC, leaving other connections intact.
      */
-    suspend fun disconnect() = printerMutex.withLock {
-        performDisconnect()
+    suspend fun disconnect(mac: String) {
+        val (socket, stream) = printerMutex.withLock {
+            val s = activeSockets.remove(mac)
+            val str = outputStreams.remove(mac)
+            _connectedDeviceMacs.value = _connectedDeviceMacs.value - mac
+            if (_connectedDeviceMac.value == mac) _connectedDeviceMac.value = activeSockets.keys.firstOrNull()
+            if (lastConnectedMac == mac) lastConnectedMac = activeSockets.keys.firstOrNull()
+            _isConnected.value = activeSockets.isNotEmpty()
+            Pair(s, str)
+        }
+        try { stream?.close() } catch (e: Exception) { Log.w(TAG, "Error closing stream for $mac", e) }
+        try { socket?.close() } catch (e: Exception) { Log.w(TAG, "Error closing socket for $mac", e) }
     }
 
     /**
-     * Force disconnect without locking. Internal use only.
+     * Disconnects all active printer connections.
      */
-    private fun performDisconnect() {
-        try {
-            outputStream?.close()
-            activeSocket?.close()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error while closing Bluetooth printer connection", e)
-        }
-        outputStream = null
-        activeSocket = null
-        _isConnected.value = false
-        _connectedDeviceMac.value = null
+    suspend fun disconnect() {
+        val macs = printerMutex.withLock { activeSockets.keys.toList() }
+        macs.forEach { disconnect(it) }
+        printerMutex.withLock { lastConnectedMac = null }
     }
 
-    fun isConnected(): Boolean = activeSocket?.isConnected == true
+    /** Returns true if any printer socket is currently live. */
+    fun isConnected(): Boolean = activeSockets.values.any { it.isConnected }
+
+    /** Returns true if the printer with the given MAC is currently connected. */
+    fun isConnectedTo(mac: String): Boolean = activeSockets[mac]?.isConnected == true
 
     @Suppress("MissingPermission")
     fun deviceName(device: BluetoothDevice): String =

@@ -109,9 +109,9 @@ fun SettingsScreen(
                 "payment" -> "Payment Configuration"
                 "printer" -> "Printer Configuration"
                 "tax" -> "Tax Configuration"
-                "security" -> "App Lock"
-                "menu" -> "Settings"
-                else -> "Settings"
+                "security" -> "Settings"
+                "menu" -> "Profile"
+                else -> "Profile"
             },
             onBack = { if (section == "menu") onBack() else section = "menu" },
             titleStyleCompact = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,

@@ -52,14 +52,15 @@ object InvoiceFormatter {
     }
 
     fun formatForThermalPrinter(bill: BillWithItems, profile: RestaurantProfileEntity?): ByteArray {
-        val charsPerLine = if (profile?.paperSize == "80mm") 42 else 32
+        val is80mm = profile?.paperSize == "80mm"
+        val width = if (is80mm) 40 else 32
+        val leftPad = if (is80mm) "    " else "" // 4 spaces to center 40 chars on 48-char standard 80mm printer
         val currency = resolveCurrency(profile)
         val isGst = profile?.gstEnabled == true
         val resolvedLogoPath = AppAssetStore.resolveAssetPath(profile?.logoPath)
         
-        val width = charsPerLine
-        val line = "-".repeat(width)
-        val doubleLine = "=".repeat(width)
+        val line = leftPad + "-".repeat(width)
+        val doubleLine = leftPad + "=".repeat(width)
 
         val out = mutableListOf<Byte>()
 
@@ -74,7 +75,7 @@ object InvoiceFormatter {
         // 1. Logo (if enabled)
         if (profile?.includeLogoInPrint == true && !resolvedLogoPath.isNullOrBlank()) {
             try {
-                val targetWidth = if (width > 40) 384 else 256
+                val targetWidth = if (is80mm) 384 else 256
                 val bitmap = decodeSampledBitmap(resolvedLogoPath, targetWidth)
                 if (bitmap != null) {
                     try {
@@ -118,18 +119,18 @@ object InvoiceFormatter {
             rawPhone
         }
         
-        add(formatRow(billNo, "Date: $dateStr", width))
-        add(formatRow("Cust: $rawCust", displayPhone, width))
+        add(leftPad + formatRow(billNo, "Date: $dateStr", width))
+        add(leftPad + formatRow("Cust: $rawCust", displayPhone, width))
         add("$line\n")
 
         // 4. Itemized Table (80mm optimization)
         // Give the removed HSN width entirely to the item name column
-        val itemW = if (width > 40) 18 else 12
+        val itemW = if (is80mm) 18 else 12
         val qtyW = 4
-        val rateW = if (width > 40) 8 else 7
+        val rateW = if (is80mm) 8 else 7
         val amtW = width - itemW - qtyW - rateW - 3 // 3 gaps
 
-        val tableHeader = String.format("%-${itemW}s %${qtyW}s %${rateW}s %${amtW}s\n", "ITEM", "QTY", "RATE", "AMT")
+        val tableHeader = leftPad + String.format("%-${itemW}s %${qtyW}s %${rateW}s %${amtW}s\n", "ITEM", "QTY", "RATE", "AMT")
         add(BOLD_ON)
         add(tableHeader)
         add(BOLD_OFF)
@@ -146,17 +147,17 @@ object InvoiceFormatter {
             val rateStr = formatMoney(item.price).take(rateW)
             val amtStr = formatMoney(item.itemTotal).take(amtW)
 
-            add(String.format("%-${itemW}s %${qtyW}s %${rateW}s %${amtW}s\n", 
+            add(leftPad + String.format("%-${itemW}s %${qtyW}s %${rateW}s %${amtW}s\n", 
                 itemLines[0], item.quantity, rateStr, amtStr))
             
             for (i in 1 until itemLines.size) {
-                add(String.format("%-${itemW}s\n", itemLines[i]))
+                add(leftPad + String.format("%-${itemW}s\n", itemLines[i]))
             }
         }
         add("$line\n")
 
         // 5. Financial Summary
-        add(formatRow("Sub-total:", formatMoney(bill.bill.subtotal), width))
+        add(leftPad + formatRow("Sub-total:", formatMoney(bill.bill.subtotal), width))
         
         if (isGst) {
             val gstPct = try {
@@ -164,18 +165,26 @@ object InvoiceFormatter {
                     .divide(java.math.BigDecimal("2"), 1, java.math.RoundingMode.HALF_UP)
                     .stripTrailingZeros().toPlainString()
             } catch (e: Exception) { "2.5" }
-            add(formatRow("CGST ($gstPct%):", formatMoney(bill.bill.cgstAmount), width))
-            add(formatRow("SGST ($gstPct%):", formatMoney(bill.bill.sgstAmount), width))
+            add(leftPad + formatRow("CGST ($gstPct%):", formatMoney(bill.bill.cgstAmount), width))
+            add(leftPad + formatRow("SGST ($gstPct%):", formatMoney(bill.bill.sgstAmount), width))
         }
         
+        if (profile?.gstEnabled == false) {
+            val customTaxAmt = try { java.math.BigDecimal(bill.bill.customTaxAmount) } catch (e: Exception) { java.math.BigDecimal.ZERO }
+            if (customTaxAmt.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                val taxLabel = profile.customTaxName?.takeIf { it.isNotBlank() } ?: "Tax"
+                add(leftPad + formatRow("$taxLabel:", formatMoney(bill.bill.customTaxAmount), width))
+            }
+        }
+
         add(BOLD_ON)
         add("$doubleLine\n")
-        add(formatRow("TOTAL:", "$currency ${formatMoney(bill.bill.totalAmount)}", width))
+        add(leftPad + formatRow("TOTAL:", "$currency ${formatMoney(bill.bill.totalAmount)}", width))
         add(BOLD_OFF)
         add("$doubleLine\n")
 
         // 6. Payment & QR
-        add("Payment Mode : ${bill.bill.paymentMode.uppercase()}\n")
+        add(leftPad + "Payment Mode : ${bill.bill.paymentMode.uppercase()}\n")
         
         if (profile?.upiHandle?.isNotBlank() == true) {
             try {

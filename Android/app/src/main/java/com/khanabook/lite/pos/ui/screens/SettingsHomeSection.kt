@@ -17,10 +17,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -85,12 +85,12 @@ fun SettingsHomeSection(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(spacing.medium)) {
                     Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.Settings, text = "Tax Configuration") {
+                        SettingsItem(icon = Icons.Filled.Percent, text = "Tax Configuration") {
                             onSectionSelected("tax")
                         }
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.Lock, text = "App Lock") {
+                        SettingsItem(icon = Icons.Filled.Tune, text = "Settings") {
                             onSectionSelected("security")
                         }
                     }
@@ -108,10 +108,10 @@ fun SettingsHomeSection(
                 SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration") {
                     onSectionSelected("printer")
                 }
-                SettingsItem(icon = Icons.Filled.Settings, text = "Tax Configuration") {
+                SettingsItem(icon = Icons.Filled.Percent, text = "Tax Configuration") {
                     onSectionSelected("tax")
                 }
-                SettingsItem(icon = Icons.Filled.Lock, text = "App Lock") {
+                SettingsItem(icon = Icons.Filled.Tune, text = "Settings") {
                     onSectionSelected("security")
                 }
             }
@@ -127,7 +127,6 @@ fun SettingsHomeSection(
             ) {
                 LogoutSection(logoutViewModel)
             }
-            AppInfoSection()
             Spacer(modifier = Modifier.height(spacing.extraLarge))
         }
     }
