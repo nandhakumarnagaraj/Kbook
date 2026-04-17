@@ -7,11 +7,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import android.content.Intent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -57,6 +60,7 @@ fun ReportsScreen(
     val profile by settingsViewModel.profile.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val spacing = KhanaBookTheme.spacing
+    val context = LocalContext.current
     
     // Staggered entry animation — same pattern used across all screens
     var headerVisible by remember { mutableStateOf(false) }
@@ -113,6 +117,20 @@ fun ReportsScreen(
                         color = PrimaryGold,
                         style = MaterialTheme.typography.headlineMedium
                     )
+                    IconButton(
+                        onClick = {
+                            val text = viewModel.buildShareText(profile?.shopName)
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, text)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Share Report"))
+                        },
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = "Share Report", tint = PrimaryGold)
+                    }
                 }
             }
 

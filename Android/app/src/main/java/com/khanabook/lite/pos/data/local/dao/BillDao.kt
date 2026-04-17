@@ -145,4 +145,7 @@ interface BillDao {
 
     @Query("DELETE FROM bill_payments WHERE is_synced = 1")
     suspend fun deleteAllSyncedBillPayments()
+
+    @Query("SELECT * FROM bills WHERE customer_whatsapp IS NOT NULL AND customer_whatsapp != '' ORDER BY created_at DESC LIMIT 20")
+    suspend fun getRecentBillsWithCustomers(): List<BillEntity>
 }

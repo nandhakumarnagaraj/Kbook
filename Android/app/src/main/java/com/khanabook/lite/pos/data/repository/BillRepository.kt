@@ -172,4 +172,14 @@ class BillRepository(
     suspend fun getTopSellingItemsInRange(startMillis: Long, endMillis: Long, limit: Int): List<com.khanabook.lite.pos.domain.model.TopSellingItem> {
         return billDao.getTopSellingItemsInRange(startMillis, endMillis, limit)
     }
+
+    suspend fun getRecentCustomers(limit: Int = 5): List<Pair<String, String>> {
+        return billDao.getRecentBillsWithCustomers()
+            .distinctBy { it.customerWhatsapp }
+            .take(limit)
+            .mapNotNull { bill ->
+                val phone = bill.customerWhatsapp ?: return@mapNotNull null
+                phone to (bill.customerName ?: "")
+            }
+    }
 }

@@ -76,6 +76,15 @@ class BillingViewModel @Inject constructor(
     private val _customerWhatsapp = MutableStateFlow("")
     val customerWhatsapp: StateFlow<String> = _customerWhatsapp
 
+    private val _recentCustomers = MutableStateFlow<List<Pair<String, String>>>(emptyList())
+    val recentCustomers: StateFlow<List<Pair<String, String>>> = _recentCustomers
+
+    fun loadRecentCustomers() {
+        viewModelScope.launch {
+            _recentCustomers.value = billRepository.getRecentCustomers()
+        }
+    }
+
     private val _paymentMode = MutableStateFlow(PaymentMode.UPI)
     val paymentMode: StateFlow<PaymentMode> = _paymentMode
 

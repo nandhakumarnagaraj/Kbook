@@ -217,4 +217,27 @@ class ReportsViewModel @Inject constructor(
     suspend fun getOrderDetail(billId: Long): com.khanabook.lite.pos.data.local.relation.BillWithItems? {
         return reportGenerator.getOrderDetail(billId)
     }
+
+    fun buildShareText(shopName: String?): String {
+        val header = shopName?.let { "$it\n" } ?: ""
+        val period = _timeFilter.value
+        val sb = StringBuilder()
+        sb.append("${header}Report — $period\n")
+        sb.append("─".repeat(28)).append("\n")
+        if (_reportType.value == "Payment") {
+            _paymentBreakdown.value.forEach { (mode, amount) ->
+                if (!mode.contains("_part")) {
+                    sb.append("%-18s ₹%s\n".format(mode, amount))
+                }
+            }
+        } else {
+            _orderLevelRows.value.forEach { row ->
+                val status = row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
+                sb.append("#${row.dailyId}  $status  ${row.date}\n")
+            }
+        }
+        sb.append("─".repeat(28)).append("\n")
+        sb.append("Powered by KhanaBook")
+        return sb.toString()
+    }
 }

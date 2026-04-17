@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +54,7 @@ import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 @Composable
@@ -135,7 +137,8 @@ fun NewBillScreen(
                                     step = 2
                                 },
                                 onBack = onBack,
-                                hideHeader = true
+                                hideHeader = true,
+                                billingViewModel = billingViewModel
                         )
                 2 ->
                         MenuSelectionStep(
@@ -180,12 +183,20 @@ fun NewBillScreen(
 }
 
 @Composable
-fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideHeader: Boolean = false) {
+fun CustomerInfoStep(
+    onNext: (String, String) -> Unit,
+    onBack: () -> Unit,
+    hideHeader: Boolean = false,
+    billingViewModel: com.khanabook.lite.pos.ui.viewmodel.BillingViewModel? = null
+) {
     var name by remember { mutableStateOf("") }
     var whatsapp by remember { mutableStateOf("") }
     val spacing = KhanaBookTheme.spacing
 
-    
+    val recentCustomers by (billingViewModel?.recentCustomers ?: kotlinx.coroutines.flow.MutableStateFlow(emptyList())).collectAsState()
+
+    LaunchedEffect(Unit) { billingViewModel?.loadRecentCustomers() }
+
     val isWhatsappValid = whatsapp.isNotEmpty() && ValidationUtils.isValidPhone(whatsapp)
     val isNextEnabled = isWhatsappValid
 
@@ -197,7 +208,6 @@ fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideH
                             .padding(spacing.large)
     ) {
         if (!hideHeader) {
-            
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
                     Icon(
@@ -216,6 +226,43 @@ fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideH
                 }
             }
             Spacer(modifier = Modifier.height(spacing.extraLarge))
+        }
+
+        if (recentCustomers.isNotEmpty()) {
+            Text(
+                "Recent Customers",
+                color = TextGold,
+                style = MaterialTheme.typography.labelMedium
+            )
+            Spacer(modifier = Modifier.height(spacing.extraSmall))
+            androidx.compose.foundation.lazy.LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                androidx.compose.foundation.lazy.items(recentCustomers) { (phone, customerName) ->
+                    Surface(
+                        onClick = {
+                            whatsapp = phone
+                            name = customerName
+                        },
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                        color = DarkBrown2,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small)) {
+                            Text(
+                                text = if (customerName.isNotBlank()) customerName else phone,
+                                color = TextLight,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                            if (customerName.isNotBlank()) {
+                                Text(phone, color = TextGold.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(spacing.medium))
         }
 
         val showPhoneError = whatsapp.isNotEmpty() && !ValidationUtils.isValidPhone(whatsapp)
