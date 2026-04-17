@@ -216,4 +216,27 @@ class KitchenPrintQueueManagerTest {
         coVerify(exactly = 0) { printerManager.printBytes(any()) }
         coVerify(exactly = 0) { queueRepository.deleteById(any()) }
     }
+
+    @Test
+    fun `customer printer reconnect does NOT claim unassigned KDS queue`() = runTest {
+        val customerMac = "AA:BB:CC:DD:EE:01"
+        val queuedJob = KitchenPrintQueueEntity(id = 22L, billId = 57L, printerMac = "")
+        val customerPrinter = PrinterProfileEntity(
+            role = PrinterRole.CUSTOMER.name,
+            name = "Customer Printer",
+            macAddress = customerMac,
+            enabled = true
+        )
+
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(customerPrinter)
+        coEvery { queueRepository.getPendingForPrinter(customerMac) } returns listOf(queuedJob)
+
+        connectedEvents.emit(customerMac)
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { queueRepository.getPendingForPrinter(customerMac) }
+        coVerify(exactly = 0) { printerManager.connect(any<String>()) }
+        coVerify(exactly = 0) { printerManager.printBytes(any()) }
+        coVerify(exactly = 0) { queueRepository.deleteById(any()) }
+    }
 }

@@ -128,6 +128,6 @@ class KitchenPrintQueueManager @Inject constructor(
         val stored = printerProfileRepository.getProfiles()
         return stored.firstOrNull {
             it.role == PrinterRole.KITCHEN.name && it.enabled && it.macAddress == printerMac
-        } ?: stored.firstOrNull { it.macAddress == printerMac }?.copy(role = PrinterRole.KITCHEN.name)
+        }
     }
 }

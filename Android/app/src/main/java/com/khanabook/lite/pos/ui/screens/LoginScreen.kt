@@ -413,7 +413,39 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
         title = "Forgot Password",
         onDismissRequest = onDismiss,
         modifier = Modifier.imePadding(),
+        subtitle = {
+            Text(
+                text = when (step) {
+                    1 -> "Step 1 of 3 | Verify phone number"
+                    2 -> "Step 2 of 3 | Verify OTP"
+                    3 -> "Step 3 of 3 | Create new password"
+                    else -> ""
+                },
+                color = TextGold.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodySmall
+            )
+        },
         actions = {
+            if (step > 1) {
+                OutlinedButton(
+                    onClick = {
+                        if (!isResetLoading) {
+                            step -= 1
+                            viewModel.clearResetStatus()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        BorderGold.copy(alpha = 0.45f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Back")
+                }
+            }
+
             Button(
                 onClick = {
                     when (step) {
@@ -467,61 +499,63 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
             }
         }
     ) {
-        when (step) {
-            1 -> {
-                Text(
-                    text = "Enter your registered WhatsApp number to receive an OTP.",
-                    color = TextLight,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(spacing.medium))
-                KhanaBookInputField(
-                    value = phone,
-                    onValueChange = { phone = it.filter { ch -> ch.isDigit() }.take(10) },
-                    label = "WhatsApp Number",
-                    placeholder = "Enter your 10-digit number",
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = PrimaryGold) },
-                    isError = (phone.isNotEmpty() && !isPhoneValid) || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
-                    supportingText = {
-                        val backendFieldError = fieldError("phoneNumber", "loginId", "whatsappNumber")
-                        if (backendFieldError != null) {
-                            Text(backendFieldError, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
-                        } else if (phone.isNotEmpty() && !isPhoneValid) {
-                            Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
-                        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 340.dp),
+            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        ) {
+            ForgotPasswordStepRow(currentStep = step)
+
+            Text(
+                text = when (step) {
+                    1 -> "Enter your registered WhatsApp number to receive an OTP."
+                    2 -> "Enter the 6-digit OTP sent to $phone via WhatsApp."
+                    3 -> "Create a new strong password for your account."
+                    else -> ""
+                },
+                color = TextLight,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center
+            )
+
+            KhanaBookInputField(
+                value = phone,
+                onValueChange = { phone = it.filter { ch -> ch.isDigit() }.take(10) },
+                label = "WhatsApp Number",
+                placeholder = "Enter your 10-digit number",
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                leadingIcon = { Icon(Icons.Default.Phone, null, tint = PrimaryGold) },
+                enabled = step == 1,
+                isError = step == 1 && ((phone.isNotEmpty() && !isPhoneValid) || fieldError("phoneNumber", "loginId", "whatsappNumber") != null),
+                supportingText = {
+                    val backendFieldError = fieldError("phoneNumber", "loginId", "whatsappNumber")
+                    when {
+                        step > 1 -> Text("OTP sent to this number", color = SuccessGreen, style = MaterialTheme.typography.labelSmall)
+                        backendFieldError != null -> Text(backendFieldError, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                        phone.isNotEmpty() && !isPhoneValid -> Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                     }
-                )
-            }
-            2 -> {
-                Text(
-                    text = "Enter the 6-digit OTP sent to $phone via WhatsApp.",
-                    color = TextLight,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(spacing.medium))
+                }
+            )
+
+            if (step >= 2) {
                 KhanaBookInputField(
                     value = otp,
-                    onValueChange = { if (it.length <= 6) otp = it },
+                    onValueChange = { otp = it.filter(Char::isDigit).take(6) },
                     label = "Enter OTP",
                     placeholder = "6-digit code",
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
-                    isError = fieldError("otp") != null,
+                    enabled = step == 2,
+                    isError = step == 2 && fieldError("otp") != null,
                     supportingText = {
                         val backendFieldError = fieldError("otp")
-                        if (backendFieldError != null) {
-                            Text(
-                                backendFieldError,
-                                color = ErrorPink,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        } else if (otp.isNotEmpty() && otp.length < 6) {
-                            Text(
+                        when {
+                            step > 2 -> Text("OTP verified", color = SuccessGreen, style = MaterialTheme.typography.labelSmall)
+                            backendFieldError != null -> Text(backendFieldError, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                            otp.isNotEmpty() && otp.length < 6 -> Text(
                                 "${6 - otp.length} more digit${if (6 - otp.length == 1) "" else "s"} required",
                                 color = TextGold.copy(alpha = 0.6f),
                                 style = MaterialTheme.typography.labelSmall
@@ -530,14 +564,8 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                     }
                 )
             }
-            3 -> {
-                Text(
-                    text = "Create a new strong password for your account.",
-                    color = TextLight,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(spacing.medium))
+
+            if (step >= 3) {
                 KhanaBookInputField(
                     value = newPassword,
                     onValueChange = { newPassword = it },
@@ -561,7 +589,6 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                         }
                     }
                 )
-                Spacer(modifier = Modifier.height(spacing.small))
                 val passwordsMatch = confirmPassword.isEmpty() || newPassword == confirmPassword
                 KhanaBookInputField(
                     value = confirmPassword,
@@ -597,6 +624,55 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                 color = ErrorPink,
                 style = MaterialTheme.typography.labelSmall
             )
+        }
+    }
+}
+
+@Composable
+private fun ForgotPasswordStepRow(currentStep: Int) {
+    val steps = listOf("Phone", "OTP", "Password")
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        steps.forEachIndexed { index, label ->
+            val stepNumber = index + 1
+            val isActive = stepNumber == currentStep
+            val isDone = stepNumber < currentStep
+            Surface(
+                modifier = Modifier.weight(1f),
+                color = when {
+                    isDone -> SuccessGreen.copy(alpha = 0.16f)
+                    isActive -> PrimaryGold.copy(alpha = 0.18f)
+                    else -> DarkBrown2
+                },
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    when {
+                        isDone -> SuccessGreen.copy(alpha = 0.55f)
+                        isActive -> PrimaryGold.copy(alpha = 0.75f)
+                        else -> BorderGold.copy(alpha = 0.3f)
+                    }
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = if (isDone) "Done" else "Step $stepNumber",
+                        color = if (isDone) SuccessGreen else TextGold.copy(alpha = 0.75f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Text(
+                        text = label,
+                        color = if (isActive || isDone) TextLight else TextGold.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
         }
     }
 }
