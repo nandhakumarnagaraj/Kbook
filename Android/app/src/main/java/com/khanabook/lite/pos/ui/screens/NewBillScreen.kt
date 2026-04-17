@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,7 +55,6 @@ import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 @Composable
@@ -193,7 +193,7 @@ fun CustomerInfoStep(
     var whatsapp by remember { mutableStateOf("") }
     val spacing = KhanaBookTheme.spacing
 
-    val recentCustomers by (billingViewModel?.recentCustomers ?: kotlinx.coroutines.flow.MutableStateFlow(emptyList())).collectAsState()
+    val recentCustomers by (billingViewModel?.recentCustomers ?: kotlinx.coroutines.flow.flowOf(emptyList<Pair<String,String>>())).collectAsState(initial = emptyList())
 
     LaunchedEffect(Unit) { billingViewModel?.loadRecentCustomers() }
 
@@ -235,19 +235,23 @@ fun CustomerInfoStep(
                 style = MaterialTheme.typography.labelMedium
             )
             Spacer(modifier = Modifier.height(spacing.extraSmall))
-            androidx.compose.foundation.lazy.LazyRow(
+            Row(
                 horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
             ) {
-                androidx.compose.foundation.lazy.items(recentCustomers) { (phone, customerName) ->
+                recentCustomers.forEach { customer ->
+                    val phone = customer.first
+                    val customerName = customer.second
                     Surface(
                         onClick = {
                             whatsapp = phone
                             name = customerName
                         },
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(20.dp),
                         color = DarkBrown2,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
+                        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
                     ) {
                         Column(modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small)) {
                             Text(
