@@ -203,6 +203,9 @@ class MainActivity : FragmentActivity() {
                                 } else {
                                     navController.navigate("main/0") { popUpTo("app_lock") { inclusive = true } }
                                 }
+                            },
+                            onNavigateToLogin = {
+                                navController.navigate("login") { popUpTo(0) { inclusive = true } }
                             }
                         )
                     }

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -32,6 +33,7 @@ import com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel
 @Composable
 fun AppLockScreen(
     onUnlock: () -> Unit,
+    onNavigateToLogin: () -> Unit = {},
     viewModel: AppLockViewModel = hiltViewModel()
 ) {
     val enteredPin by viewModel.enteredPin.collectAsState()
@@ -40,6 +42,7 @@ fun AppLockScreen(
     val spacing = KhanaBookTheme.spacing
     val showBiometric = remember { viewModel.hasBiometric(context) }
     val scrollState = rememberScrollState()
+    var showForgotPinDialog by remember { mutableStateOf(false) }
 
     // Shake animation on error
     val shakeOffset = remember { Animatable(0f) }
@@ -185,7 +188,45 @@ fun AppLockScreen(
                 showBiometric = showBiometric && biometricPrompt != null
             )
 
+            Spacer(modifier = Modifier.height(spacing.medium))
+
+            TextButton(onClick = { showForgotPinDialog = true }) {
+                Text(
+                    "Forgot PIN?",
+                    color = PrimaryGold.copy(alpha = 0.75f),
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+
             Spacer(modifier = Modifier.height(spacing.extraLarge))
+        }
+
+        if (showForgotPinDialog) {
+            AlertDialog(
+                onDismissRequest = { showForgotPinDialog = false },
+                containerColor = DarkBrown2,
+                title = { Text("Forgot PIN?", color = PrimaryGold, style = MaterialTheme.typography.titleLarge) },
+                text = {
+                    Text(
+                        "Your PIN will be cleared and you'll be logged out. Log back in to set a new PIN from Settings.",
+                        color = TextLight,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showForgotPinDialog = false
+                        viewModel.forgotPin { onNavigateToLogin() }
+                    }) {
+                        Text("Log Out & Reset", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showForgotPinDialog = false }) {
+                        Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+            )
         }
     }
 }

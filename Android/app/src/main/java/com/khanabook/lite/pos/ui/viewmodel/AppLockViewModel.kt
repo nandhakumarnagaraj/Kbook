@@ -187,6 +187,13 @@ class AppLockViewModel @Inject constructor(
         }
     }
 
+    fun forgotPin(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            sessionManager.clearPin()
+            onComplete()
+        }
+    }
+
     fun isPinEnabled(): Boolean =
         sessionManager.isPinLockEnabled() && sessionManager.getPinHash() != null
 

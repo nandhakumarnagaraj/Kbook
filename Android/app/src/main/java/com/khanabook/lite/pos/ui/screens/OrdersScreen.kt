@@ -204,7 +204,7 @@ fun OrdersScreen(
                 Column {
                     PeriodTabs(
                         selectedFilter = timeFilter,
-                        onTabSelected = { 
+                        onTabSelected = {
                             if (it == "Custom") {
                                 showDateRangePicker = true
                             } else {
@@ -214,23 +214,29 @@ fun OrdersScreen(
                     )
 
                     Spacer(modifier = Modifier.height(spacing.medium))
-
-                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium)) {
-                        TableHeader(isGstEnabled = profile?.gstEnabled == true)
-                    }
                 }
             }
 
+            val tableScrollState = rememberScrollState()
+            val isGstEnabled = profile?.gstEnabled == true
+
             if (isLoading) {
                 AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
-                    Column(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = spacing.medium)
+                            .horizontalScroll(tableScrollState)
                     ) {
-                        repeat(10) {
-                            SkeletonTableRow(columns = 5)
-                            Spacer(modifier = Modifier.height(2.dp))
+                        Column(
+                            modifier = Modifier
+                                .widthIn(min = 400.dp)
+                                .padding(horizontal = spacing.medium)
+                        ) {
+                            TableHeader(isGstEnabled = isGstEnabled)
+                            repeat(10) {
+                                SkeletonTableRow(columns = 5)
+                                Spacer(modifier = Modifier.height(2.dp))
+                            }
                         }
                     }
                 }
@@ -258,12 +264,20 @@ fun OrdersScreen(
                 }
             } else {
                 AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
-                    LazyColumn(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .horizontalScroll(tableScrollState)
+                    ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .widthIn(min = 400.dp)
                             .padding(horizontal = spacing.medium),
                         contentPadding = PaddingValues(top = spacing.small, bottom = spacing.bottomListPadding)
                     ) {
+                        stickyHeader {
+                            TableHeader(isGstEnabled = isGstEnabled)
+                        }
                         items(allRows) { row ->
                             var showCancelDialog by remember { mutableStateOf(false) }
                             var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
@@ -325,6 +339,7 @@ fun OrdersScreen(
                             }
                         }
                     }
+                    } // end Box(horizontalScroll)
                 }
             }
         }
