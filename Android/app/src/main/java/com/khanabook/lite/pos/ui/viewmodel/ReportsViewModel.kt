@@ -220,10 +220,14 @@ class ReportsViewModel @Inject constructor(
 
     suspend fun exportReport(context: android.content.Context, format: String, shopName: String?): java.io.File {
         val exporter = com.khanabook.lite.pos.domain.manager.ReportExporter(context)
+        val billDataById = _orderDetailsTable.value
+            .map { it.billId }
+            .mapNotNull { id -> billRepository.getBillWithItemsById(id)?.let { id to it } }
+            .toMap()
         return if (format == "PDF") {
-            exporter.exportToPdf(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, shopName)
+            exporter.exportToPdf(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, shopName, billDataById)
         } else {
-            exporter.exportToCsv(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, shopName)
+            exporter.exportToCsv(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, shopName, billDataById)
         }
     }
 

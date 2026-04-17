@@ -1,16 +1,21 @@
 package com.khanabook.lite.pos.domain.manager
 
 import android.content.Context
-import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
+import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.model.OrderDetailRow
-import com.khanabook.lite.pos.domain.util.DateUtils
 import java.io.File
 import java.io.FileOutputStream
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class ReportExporter(private val context: Context) {
+
+    private val dateFmt = DateTimeFormatter.ofPattern("dd MMM yy").withZone(ZoneId.systemDefault())
+    private fun fmtDate(ts: Long) = dateFmt.format(Instant.ofEpochMilli(ts))
 
     private val pageWidth = 595
     private val pageHeight = 842
@@ -21,7 +26,8 @@ class ReportExporter(private val context: Context) {
         timeFilter: String,
         paymentBreakdown: Map<String, String>,
         orderRows: List<OrderDetailRow>,
-        shopName: String?
+        shopName: String?,
+        billDataById: Map<Long, BillWithItems> = emptyMap()
     ): File {
         val document = PdfDocument()
         var pageNumber = 1
@@ -47,7 +53,6 @@ class ReportExporter(private val context: Context) {
 
         fun checkOverflow() { if (y > pageHeight - margin) newPage() }
 
-        // Title
         shopName?.takeIf { it.isNotBlank() }?.let {
             canvas.drawText(it, margin, y, titlePaint); y += 22f
         }
@@ -55,12 +60,10 @@ class ReportExporter(private val context: Context) {
         canvas.drawLine(margin, y, pageWidth - margin, y, linePaint); y += 14f
 
         if (reportType == "Payment") {
-            // Header
             canvas.drawText("Payment Mode", margin, y, headerPaint)
             canvas.drawText("Amount (Rs.)", margin + 300f, y, headerPaint)
             y += 12f
             canvas.drawLine(margin, y, pageWidth - margin, y, linePaint); y += 12f
-
             paymentBreakdown.forEach { (mode, amount) ->
                 if (!mode.contains("_part")) {
                     checkOverflow()
@@ -70,28 +73,36 @@ class ReportExporter(private val context: Context) {
                 }
             }
         } else {
-            // Columns: Order#, Invoice, Mode, Status, Amount, Date
-            val cols = listOf(margin, margin + 60f, margin + 140f, margin + 220f, margin + 310f, margin + 400f)
-            canvas.drawText("Order#", cols[0], y, headerPaint)
-            canvas.drawText("Invoice", cols[1], y, headerPaint)
-            canvas.drawText("Mode", cols[2], y, headerPaint)
-            canvas.drawText("Status", cols[3], y, headerPaint)
-            canvas.drawText("Amount", cols[4], y, headerPaint)
-            canvas.drawText("Date", cols[5], y, headerPaint)
+            // S.No | Invoice | Date | Customer | Items & Count | Mode | Status | Amount
+            val c = listOf(margin, margin + 30f, margin + 85f, margin + 155f, margin + 240f, margin + 400f, margin + 450f, margin + 500f)
+            canvas.drawText("S.No", c[0], y, headerPaint)
+            canvas.drawText("Invoice", c[1], y, headerPaint)
+            canvas.drawText("Date", c[2], y, headerPaint)
+            canvas.drawText("Customer", c[3], y, headerPaint)
+            canvas.drawText("Items & Count", c[4], y, headerPaint)
+            canvas.drawText("Mode", c[5], y, headerPaint)
+            canvas.drawText("Status", c[6], y, headerPaint)
+            canvas.drawText("Amount", c[7], y, headerPaint)
             y += 12f
             canvas.drawLine(margin, y, pageWidth - margin, y, linePaint); y += 12f
 
-            orderRows.forEach { row ->
+            orderRows.forEachIndexed { idx, row ->
                 checkOverflow()
                 val status = row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
-                val date = DateUtils.formatDisplayDate(row.salesDate)
-                canvas.drawText(row.dailyNo, cols[0], y, cellPaint)
-                canvas.drawText("INV${row.lifetimeNo}", cols[1], y, cellPaint)
-                canvas.drawText(row.payMode.displayLabel.take(10), cols[2], y, cellPaint)
-                canvas.drawText(status.take(10), cols[3], y, cellPaint)
-                canvas.drawText(row.salesAmount, cols[4], y, cellPaint)
-                canvas.drawText(date.take(10), cols[5], y, cellPaint)
-                y += 16f
+                val billData = billDataById[row.billId]
+                val customer = billData?.bill?.customerWhatsapp?.takeIf { it.isNotBlank() } ?: "—"
+                val itemsSummary = billData?.items
+                    ?.joinToString(", ") { "${it.itemName} x${it.quantity}" }
+                    ?.take(35) ?: "—"
+                canvas.drawText("${idx + 1}", c[0], y, cellPaint)
+                canvas.drawText("INV${row.lifetimeNo}", c[1], y, cellPaint)
+                canvas.drawText(fmtDate(row.salesDate), c[2], y, cellPaint)
+                canvas.drawText(customer.take(12), c[3], y, cellPaint)
+                canvas.drawText(itemsSummary, c[4], y, cellPaint)
+                canvas.drawText(row.payMode.displayLabel.take(8), c[5], y, cellPaint)
+                canvas.drawText(status.take(9), c[6], y, cellPaint)
+                canvas.drawText(row.salesAmount, c[7], y, cellPaint)
+                y += 14f
             }
         }
 
@@ -112,7 +123,8 @@ class ReportExporter(private val context: Context) {
         timeFilter: String,
         paymentBreakdown: Map<String, String>,
         orderRows: List<OrderDetailRow>,
-        shopName: String?
+        shopName: String?,
+        billDataById: Map<Long, BillWithItems> = emptyMap()
     ): File {
         val sb = StringBuilder()
         shopName?.takeIf { it.isNotBlank() }?.let { sb.appendLine(it) }
@@ -125,11 +137,14 @@ class ReportExporter(private val context: Context) {
                 if (!mode.contains("_part")) sb.appendLine("$mode,$amount")
             }
         } else {
-            sb.appendLine("Order No,Invoice No,Payment Mode,Status,Amount (Rs.),Date")
-            orderRows.forEach { row ->
+            sb.appendLine("S.No,Invoice No,Customer Number,Items & Count,Payment Mode,Status,Amount (Rs.)")
+            orderRows.forEachIndexed { idx, row ->
                 val status = row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
-                val date = DateUtils.formatDisplayDate(row.salesDate)
-                sb.appendLine("${row.dailyNo},INV${row.lifetimeNo},${row.payMode.displayLabel},$status,${row.salesAmount},$date")
+                val billData = billDataById[row.billId]
+                val customer = billData?.bill?.customerWhatsapp?.takeIf { it.isNotBlank() } ?: "—"
+                val itemsSummary = billData?.items
+                    ?.joinToString(" | ") { "${it.itemName} x${it.quantity}" } ?: "—"
+                sb.appendLine("${idx + 1},INV${row.lifetimeNo},$customer,\"$itemsSummary\",${row.payMode.displayLabel},$status,${row.salesAmount}")
             }
         }
 
