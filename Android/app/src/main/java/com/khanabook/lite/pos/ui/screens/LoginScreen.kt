@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.theme.*
@@ -64,6 +65,8 @@ fun LoginScreen(
     val focusManager = LocalFocusManager.current
     val passwordFocusRequester = remember { FocusRequester() }
     val spacing = KhanaBookTheme.spacing
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(loginStatus) {
         when (val s = loginStatus) {
@@ -71,19 +74,14 @@ fun LoginScreen(
             is AuthViewModel.LoginResult.Success -> {
                 isGoogleLogin = false
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                android.widget.Toast.makeText(
-                                context,
-                                context.getString(R.string.toast_welcome_back),
-                                android.widget.Toast.LENGTH_SHORT
-                        )
-                        .show()
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(context.getString(R.string.toast_welcome_back))
+                }
                 onLoginSuccess()
             }
             is AuthViewModel.LoginResult.Error -> {
                 isGoogleLogin = false
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                android.widget.Toast.makeText(context, s.message, android.widget.Toast.LENGTH_LONG)
-                        .show()
             }
             else -> { isGoogleLogin = false }
         }
@@ -356,12 +354,20 @@ fun LoginScreen(
             type = if (isGoogleLogin) LoadingType.GOOGLE_LOGIN else LoadingType.LOGIN
         )
 
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
+        )
+
         if (showForgotDialog) {
             ForgotPasswordDialog(
                     viewModel = viewModel,
                     onDismiss = {
                         showForgotDialog = false
                         viewModel.clearResetStatus()
+                    },
+                    onSuccess = { message ->
+                        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
                     }
             )
         }
@@ -369,7 +375,11 @@ fun LoginScreen(
 }
 
 @Composable
-fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
+fun ForgotPasswordDialog(
+    viewModel: AuthViewModel,
+    onDismiss: () -> Unit,
+    onSuccess: (String) -> Unit = {}
+) {
     val context = LocalContext.current
     var phone by remember { mutableStateOf("") }
     var otp by remember { mutableStateOf("") }
@@ -398,11 +408,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                 while (resendTimer > 0) { delay(1000); resendTimer-- }
             }
             is AuthViewModel.ResetPasswordResult.Success -> {
-                android.widget.Toast.makeText(
-                    context,
-                    context.getString(R.string.toast_password_reset),
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+                onSuccess(context.getString(R.string.toast_password_reset))
                 onDismiss()
             }
             else -> {}

@@ -81,26 +81,28 @@ fun NewBillScreen(
     val error by billingViewModel.error.collectAsStateWithLifecycle()
     val isLoading by billingViewModel.isLoading.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(error) {
         error?.let {
-            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            coroutineScope.launch { snackbarHostState.showSnackbar(it) }
             billingViewModel.clearError()
         }
     }
 
-    
     LaunchedEffect(step) {
         if (step == 4) {
-            android.widget.Toast.makeText(context, context.getString(R.string.toast_order_placed), android.widget.Toast.LENGTH_SHORT).show()
+            coroutineScope.launch { snackbarHostState.showSnackbar(context.getString(R.string.toast_order_placed)) }
         }
         if (step == 5) {
-            android.widget.Toast.makeText(context, context.getString(R.string.toast_payment_failed), android.widget.Toast.LENGTH_SHORT).show()
+            coroutineScope.launch { snackbarHostState.showSnackbar(context.getString(R.string.toast_payment_failed)) }
         }
     }
 
     Scaffold(
         containerColor = DarkBrown1,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column(modifier = Modifier.background(DarkBrown1)) {
                 CenterAlignedTopAppBar(
@@ -158,7 +160,8 @@ fun NewBillScreen(
                         SuccessStep(
                                 billingViewModel,
                                 settingsViewModel,
-                                onDone = onBack
+                                onDone = onBack,
+                                onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
                         )
                 5 ->
                         FailedStep(
@@ -1234,7 +1237,8 @@ fun FailedStep(
 fun SuccessStep(
         viewModel: BillingViewModel,
         settingsViewModel: SettingsViewModel,
-        onDone: () -> Unit
+        onDone: () -> Unit,
+        onShowMessage: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val lastBill by viewModel.lastBill.collectAsState()
@@ -1264,9 +1268,7 @@ fun SuccessStep(
 
         Spacer(modifier = Modifier.height(spacing.extraLarge))
         LaunchedEffect(printStatus) {
-            printStatus?.let {
-                android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
-            }
+            printStatus?.let { onShowMessage(it) }
         }
         printStatus?.let { status ->
             Surface(

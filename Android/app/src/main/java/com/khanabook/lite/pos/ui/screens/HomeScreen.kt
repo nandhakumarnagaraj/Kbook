@@ -53,14 +53,7 @@ fun HomeScreen(
     val layout = KhanaBookTheme.layout
     val isWideScreen = !layout.isCompact
 
-    // Stats are "ready" once the profile has emitted (orderCount > 0 or a non-initial emission)
-    // We use a separate flag so skeleton shows on first compose
-    var statsReady by remember { mutableStateOf(false) }
-    LaunchedEffect(stats) {
-        // After a short delay the ViewModel emits even an empty stats object — mark ready
-        delay(600)
-        statsReady = true
-    }
+    val statsReady by viewModel.statsReady.collectAsState()
 
     var headerVisible by remember { mutableStateOf(false) }
     var statsVisible by remember { mutableStateOf(false) }

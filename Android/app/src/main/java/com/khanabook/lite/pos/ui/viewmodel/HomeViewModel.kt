@@ -32,6 +32,15 @@ class HomeViewModel @Inject constructor(
             initialValue = 0
         )
 
+    val statsReady: StateFlow<Boolean> = profileFlow
+        .filterNotNull()
+        .map { true }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
     val todayStats: StateFlow<HomeStats> = profileFlow
         .filterNotNull()
         .flatMapLatest { profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity ->
