@@ -647,9 +647,10 @@ fun ForgotPasswordDialog(
 @Composable
 private fun ForgotPasswordStepRow(currentStep: Int) {
     val steps = listOf("Phone", "OTP", "Password")
+    val spacing = KhanaBookTheme.spacing
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(spacing.small)
     ) {
         steps.forEachIndexed { index, label ->
             val stepNumber = index + 1

@@ -153,7 +153,7 @@ fun SignUpScreen(
         Box(
                 modifier =
                         Modifier.fillMaxSize()
-                                .background(Brush.verticalGradient(listOf(DarkBrown1, Color.Black))),
+                                .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso))),
                 contentAlignment = Alignment.Center
         ) {
             Column(
@@ -163,7 +163,7 @@ fun SignUpScreen(
                                     .verticalScroll(rememberScrollState())
                                     .imePadding()
                                     .navigationBarsPadding()
-                                    .padding(horizontal = spacing.medium, vertical = spacing.medium),
+                                    .padding(horizontal = spacing.large, vertical = spacing.medium),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
             ) {

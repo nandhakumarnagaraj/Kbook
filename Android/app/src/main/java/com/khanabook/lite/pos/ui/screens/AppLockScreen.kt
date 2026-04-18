@@ -141,7 +141,7 @@ fun AppLockScreen(
 
             // Dot indicators with shake
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(spacing.medium),
                 modifier = Modifier.offset(x = shakeOffset.value.dp)
             ) {
                 repeat(4) { index ->
@@ -320,7 +320,7 @@ fun InlinePinEntry(
         verticalArrangement = Arrangement.spacedBy(spacing.medium),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)) {
             repeat(4) { index ->
                 val filled = index < pin.length
                 Box(

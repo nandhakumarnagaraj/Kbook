@@ -57,6 +57,12 @@ import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 
 @Composable
 fun NewBillScreen(
@@ -70,6 +76,13 @@ fun NewBillScreen(
     var step by remember { mutableIntStateOf(1) }
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
+
+    var screenVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { screenVisible = true }
+    val enterSpec = fadeIn(tween(350)) + slideInVertically(
+        initialOffsetY = { it / 6 },
+        animationSpec = tween(350, easing = FastOutSlowInEasing)
+    )
 
     // Intercept system back gesture to navigate through steps
     androidx.activity.compose.BackHandler(enabled = step > 1) {
@@ -124,6 +137,11 @@ fun NewBillScreen(
             }
         }
     ) { paddingValues ->
+        AnimatedVisibility(
+            visible = screenVisible,
+            enter = enterSpec,
+            exit = fadeOut(tween(200))
+        ) {
         Box(modifier = modifier
             .fillMaxSize()
             .padding(paddingValues)
@@ -180,6 +198,7 @@ fun NewBillScreen(
                 type = LoadingType.SAVING
             )
         }
+        } // end AnimatedVisibility
     }
 }
 
