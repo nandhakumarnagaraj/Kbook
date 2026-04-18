@@ -508,7 +508,7 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = spacing.medium)
-                .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                .background(DarkBrown1.copy(alpha = 0.7f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -574,7 +574,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = { onViewDetails(row.billId) },
-        colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.2f)),
+        colors = CardDefaults.cardColors(containerColor = DarkBrown1.copy(alpha = 0.3f)),
         shape = RoundedCornerShape(4.dp)
     ) {
         Row(

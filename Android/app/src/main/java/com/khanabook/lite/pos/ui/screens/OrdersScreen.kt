@@ -406,7 +406,7 @@ fun TableHeader(isGstEnabled: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+            .background(DarkBrown1.copy(alpha = 0.7f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
             .padding(vertical = spacing.small, horizontal = spacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -455,7 +455,7 @@ fun OrderTableRow(
             )
             .padding(vertical = spacing.hairline)
             .background(
-                Color.Black.copy(alpha = if (isCancelled) 0.15f else 0.25f),
+                DarkBrown1.copy(alpha = if (isCancelled) 0.15f else 0.35f),
                 RoundedCornerShape(4.dp)
             )
     ) {

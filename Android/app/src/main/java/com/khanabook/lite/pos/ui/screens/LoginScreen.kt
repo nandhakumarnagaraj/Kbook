@@ -518,7 +518,7 @@ fun ForgotPasswordDialog(
                         Text(
                             text = if (resendTimer > 0) "Resend OTP in ${resendTimer}s" else "Resend OTP",
                             style = MaterialTheme.typography.labelLarge,
-                            color = if (resendTimer > 0 || isResetLoading) Color.Gray else PrimaryGold
+                            color = if (resendTimer > 0 || isResetLoading) TextMuted else PrimaryGold
                         )
                     }
                 }

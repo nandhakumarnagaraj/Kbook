@@ -384,7 +384,7 @@ fun SearchScreen(
                                     Column(modifier = Modifier.weight(1.3f)) {
                                         Text("Payment Mode", color = TextGold, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp))
                                         Surface(
-                                            color = Color.Black.copy(alpha = 0.3f),
+                                            color = DarkBrown1.copy(alpha = 0.5f),
                                             shape = RoundedCornerShape(6.dp),
                                             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
                                         ) {

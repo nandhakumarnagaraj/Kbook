@@ -505,7 +505,7 @@ fun SignUpScreen(
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFormValid) PrimaryGold else Color.Gray,
+                            containerColor = if (isFormValid) PrimaryGold else TextMuted,
                             contentColor = DarkBrown1
                         ),
                         shape = RoundedCornerShape(28.dp),

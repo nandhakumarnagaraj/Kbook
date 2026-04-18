@@ -85,7 +85,7 @@ fun KhanaBookLoadingOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.55f))
+                .background(DarkBrown1.copy(alpha = 0.82f))
                 .pointerInput(Unit) { /* block touches */ },
             contentAlignment = Alignment.Center
         ) {

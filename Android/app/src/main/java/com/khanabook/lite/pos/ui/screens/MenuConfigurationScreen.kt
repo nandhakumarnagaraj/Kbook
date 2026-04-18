@@ -520,7 +520,7 @@ internal fun ReviewDetectedItemsOverlay(
             modifier = Modifier
                 .matchParentSize()
                 .testTag(MenuConfigurationTags.reviewOverlayBackground)
-                .background(Color.Black.copy(alpha = 0.58f))
+                .background(DarkBrown1.copy(alpha = 0.82f))
                 .clickable(
                     interactionSource = dismissInteractionSource,
                     indication = null,
