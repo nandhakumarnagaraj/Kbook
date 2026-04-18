@@ -510,7 +510,7 @@ fun OrderTableRow(
                 val statusColor = when (row.orderStatus) {
                     OrderStatus.COMPLETED -> SuccessGreen
                     OrderStatus.CANCELLED -> DangerRed
-                    else -> Color.Gray
+                    else -> TextMuted
                 }
                 Surface(
                     onClick = { if (!isCancelled) statusExpanded = true },

@@ -271,7 +271,7 @@ fun LoginScreen(
                     colors =
                             ButtonDefaults.buttonColors(
                                     containerColor =
-                                            if (isLoginEnabled) PrimaryGold else Color.Gray,
+                                            if (isLoginEnabled) PrimaryGold else TextMuted,
                                     contentColor = DarkBrown1
                             ),
                     shape = RoundedCornerShape(28.dp),
@@ -705,7 +705,7 @@ fun loginTextFieldColors() =
                 focusedTextColor = TextLight,
                 unfocusedTextColor = TextLight,
                 focusedLabelColor = PrimaryGold,
-                unfocusedLabelColor = Color.Gray,
+                unfocusedLabelColor = TextMuted,
                 errorBorderColor = ErrorPink,
                 errorLabelColor = ErrorPink
         )

@@ -1706,8 +1706,8 @@ fun MenuItemRow(
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = PrimaryGold,
                     checkedTrackColor = PrimaryGold.copy(alpha = 0.3f),
-                    uncheckedThumbColor = Color.Gray,
-                    uncheckedTrackColor = Color.DarkGray
+                    uncheckedThumbColor = TextMuted,
+                    uncheckedTrackColor = BrownSelected
                 )
             )
         }
