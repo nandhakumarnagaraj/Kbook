@@ -718,10 +718,10 @@ private fun getPayModeColor(mode: PaymentMode): Color {
     return when (mode) {
         PaymentMode.CASH -> SuccessGreen
         PaymentMode.UPI -> Brown500 
-        PaymentMode.POS -> PosPurple 
-        PaymentMode.ZOMATO -> VegGreen 
-        PaymentMode.SWIGGY -> SwiggyOrange 
-        else -> OtherPaymentGrey
+        PaymentMode.POS -> PrimaryGold
+        PaymentMode.ZOMATO -> VegGreen
+        PaymentMode.SWIGGY -> SwiggyOrange
+        else -> Brown500
     }
 }
 
