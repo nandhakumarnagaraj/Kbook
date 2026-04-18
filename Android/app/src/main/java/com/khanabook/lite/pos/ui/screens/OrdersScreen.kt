@@ -217,7 +217,6 @@ fun OrdersScreen(
                 }
             }
 
-            val tableScrollState = rememberScrollState()
             val isGstEnabled = profile?.gstEnabled == true
 
             if (isLoading) {
@@ -227,7 +226,7 @@ fun OrdersScreen(
                             .fillMaxWidth()
                             .padding(horizontal = spacing.medium)
                     ) {
-                        TableHeader(isGstEnabled = isGstEnabled, scrollState = tableScrollState)
+                        TableHeader(isGstEnabled = isGstEnabled)
                         repeat(10) {
                             SkeletonTableRow(columns = 5)
                             Spacer(modifier = Modifier.height(2.dp))
@@ -262,10 +261,10 @@ fun OrdersScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = spacing.medium),
-                        contentPadding = PaddingValues(top = spacing.small, bottom = spacing.bottomListPadding)
+                        contentPadding = PaddingValues(top = spacing.small, bottom = spacing.medium)
                     ) {
                         stickyHeader {
-                            TableHeader(isGstEnabled = isGstEnabled, scrollState = tableScrollState)
+                            TableHeader(isGstEnabled = isGstEnabled)
                         }
                         items(allRows) { row ->
                             var showCancelDialog by remember { mutableStateOf(false) }
@@ -302,8 +301,7 @@ fun OrdersScreen(
                                     } else {
                                         viewModel.updatePaymentMode(row.billId, newMode.dbValue)
                                     }
-                                },
-                                scrollState = tableScrollState
+                                }
                             )
 
                             if (showCancelDialog) {
@@ -394,26 +392,29 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
     }
 }
 
-private const val TABLE_TOTAL_WEIGHT = 8.0f
+// Column weights sized to content: Order No (short num) | Invoice (INV+num) | Mode (badge) | Status (badge) | Date
+private val COL_ORDER   = 0.9f
+private val COL_INVOICE = 1.7f
+private val COL_MODE    = 1.7f
+private val COL_STATUS  = 2.0f
+private val COL_DATE    = 1.7f
 
 @Composable
-fun TableHeader(isGstEnabled: Boolean, scrollState: androidx.compose.foundation.ScrollState? = null) {
+fun TableHeader(isGstEnabled: Boolean) {
     val spacing = KhanaBookTheme.spacing
-    val invoiceHeader = if (isGstEnabled) "Tax Invoice No" else "Invoice No"
+    val invoiceHeader = if (isGstEnabled) "Tax Inv No" else "Invoice No"
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (scrollState != null) Modifier.horizontalScroll(scrollState) else Modifier)
-            .widthIn(min = 400.dp)
             .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
             .padding(vertical = spacing.small, horizontal = spacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        HeaderCell("Order No", 1.0f / TABLE_TOTAL_WEIGHT)
-        HeaderCell(invoiceHeader, 2.0f / TABLE_TOTAL_WEIGHT)
-        HeaderCell("Mode", 1.6f / TABLE_TOTAL_WEIGHT)
-        HeaderCell("Status", 1.8f / TABLE_TOTAL_WEIGHT)
-        HeaderCell("Date", 1.6f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Order No", COL_ORDER)
+        HeaderCell(invoiceHeader, COL_INVOICE)
+        HeaderCell("Mode", COL_MODE)
+        HeaderCell("Status", COL_STATUS)
+        HeaderCell("Date", COL_DATE)
     }
 }
 
@@ -438,8 +439,7 @@ fun OrderTableRow(
     onShareText: () -> Unit,
     onRequestCancel: () -> Unit,
     onStatusChange: (String) -> Unit,
-    onPayModeChange: (PaymentMode) -> Unit,
-    scrollState: androidx.compose.foundation.ScrollState? = null
+    onPayModeChange: (PaymentMode) -> Unit
 ) {
     var statusExpanded by remember { mutableStateOf(false) }
     var payModeExpanded by remember { mutableStateOf(false) }
@@ -462,22 +462,20 @@ fun OrderTableRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (scrollState != null) Modifier.horizontalScroll(scrollState) else Modifier)
-                .widthIn(min = 400.dp)
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TableCell(
-                row.dailyNo, 1.0f / TABLE_TOTAL_WEIGHT,
+                row.dailyNo, COL_ORDER,
                 color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )
             TableCell(
-                "INV${row.lifetimeNo}", 2.0f / TABLE_TOTAL_WEIGHT,
+                "INV${row.lifetimeNo}", COL_INVOICE,
                 fontWeight = FontWeight.Bold,
                 color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )
 
-            Box(modifier = Modifier.weight(1.6f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(COL_MODE), contentAlignment = Alignment.Center) {
                 val color = if (isCancelled) Color.Gray else getPayModeColor(row.payMode)
                 Surface(
                     onClick = { if (!isCancelled) payModeExpanded = true },
@@ -508,7 +506,7 @@ fun OrderTableRow(
                 }
             }
 
-            Box(modifier = Modifier.weight(1.8f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(COL_STATUS), contentAlignment = Alignment.Center) {
                 val statusColor = when (row.orderStatus) {
                     OrderStatus.COMPLETED -> SuccessGreen
                     OrderStatus.CANCELLED -> DangerRed
@@ -551,7 +549,7 @@ fun OrderTableRow(
                 }
             }
 
-            TableCell(DateUtils.formatDisplayDate(row.salesDate), 1.6f / TABLE_TOTAL_WEIGHT, fontSize = 9.sp)
+            TableCell(DateUtils.formatDisplayDate(row.salesDate), COL_DATE, fontSize = 9.sp)
         }
 
         if (isCancelled && row.cancelReason.isNotBlank()) {

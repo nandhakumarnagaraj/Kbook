@@ -218,16 +218,21 @@ class ReportsViewModel @Inject constructor(
         return reportGenerator.getOrderDetail(billId)
     }
 
-    suspend fun exportReport(context: android.content.Context, format: String, shopName: String?): java.io.File {
+    suspend fun exportReport(
+        context: android.content.Context,
+        format: String,
+        profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?
+    ): java.io.File {
         val exporter = com.khanabook.lite.pos.domain.manager.ReportExporter(context)
         val billDataById = _orderDetailsTable.value
             .map { it.billId }
             .mapNotNull { id -> billRepository.getBillWithItemsById(id)?.let { id to it } }
             .toMap()
+        val topItems = reportGenerator.getTopSellingItems(currentFrom, currentTo, 5)
         return if (format == "PDF") {
-            exporter.exportToPdf(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, shopName, billDataById)
+            exporter.exportToPdf(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, profile, topItems, billDataById, currentFrom, currentTo)
         } else {
-            exporter.exportToCsv(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, shopName, billDataById)
+            exporter.exportToCsv(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, profile?.shopName, billDataById, currentFrom, currentTo)
         }
     }
 

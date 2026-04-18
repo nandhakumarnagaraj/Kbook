@@ -37,6 +37,7 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -253,14 +254,16 @@ fun CustomerInfoStep(
                         color = DarkBrown2,
                         border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
                     ) {
-                        Column(modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small)) {
+                        Column(modifier = Modifier.widthIn(max = 120.dp).padding(horizontal = spacing.medium, vertical = spacing.small)) {
                             Text(
                                 text = if (customerName.isNotBlank()) customerName else phone,
                                 color = TextLight,
-                                style = MaterialTheme.typography.labelMedium
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             if (customerName.isNotBlank()) {
-                                Text(phone, color = TextGold.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+                                Text(phone, color = TextGold.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
@@ -523,15 +526,17 @@ fun MenuSelectionStep(
                                 }
                             }
                         } else {
-                            Column(modifier = Modifier.padding(spacing.smallMedium)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(spacing.smallMedium)) {
+                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                     FoodTypeIcon(item.foodType)
                                     Spacer(modifier = Modifier.width(spacing.smallMedium))
-                                    Column {
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                                 item.name,
                                                 color = if (itemAvailable) TextLight else TextLight.copy(alpha = 0.4f),
-                                                style = MaterialTheme.typography.titleSmall
+                                                style = MaterialTheme.typography.titleSmall,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
                                         )
                                         if (!itemAvailable) {
                                             Text("Unavailable", color = ErrorPink.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
@@ -681,18 +686,19 @@ fun MenuSelectionStep(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(cartItem.item.name, color = TextLight, style = MaterialTheme.typography.bodyMedium)
+                                        Text(cartItem.item.name, color = TextLight, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         if (cartItem.variant != null) {
-                                            Text(cartItem.variant.variantName, color = TextGold, style = MaterialTheme.typography.labelSmall)
+                                            Text(cartItem.variant.variantName, color = TextGold, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
                                         if (cartItem.note.isNotBlank()) {
-                                            Text("Note: ${cartItem.note}", color = PrimaryGold.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+                                            Text("Note: ${cartItem.note}", color = PrimaryGold.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
                                     }
                                     Text(
                                         "${cartItem.quantity} x ${CurrencyUtils.formatPrice(cartItem.variant?.price ?: cartItem.item.basePrice)}",
                                         color = TextLight,
-                                        style = MaterialTheme.typography.bodySmall
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1
                                     )
                                     IconButton(onClick = { showNoteDialog = true }, modifier = Modifier.size(32.dp)) {
                                         Icon(

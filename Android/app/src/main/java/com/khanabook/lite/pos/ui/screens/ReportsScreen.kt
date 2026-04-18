@@ -14,12 +14,12 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.launch
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -65,8 +65,7 @@ fun ReportsScreen(
     val spacing = KhanaBookTheme.spacing
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var showExportMenu by remember { mutableStateOf(false) }
-    
+
     // Staggered entry animation — same pattern used across all screens
     var headerVisible by remember { mutableStateOf(false) }
     var contentVisible by remember { mutableStateOf(false) }
@@ -122,49 +121,6 @@ fun ReportsScreen(
                         color = PrimaryGold,
                         style = MaterialTheme.typography.headlineMedium
                     )
-                    Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                        IconButton(onClick = { showExportMenu = true }) {
-                            Icon(Icons.Default.Download, contentDescription = "Download Report", tint = PrimaryGold)
-                        }
-                        DropdownMenu(
-                            expanded = showExportMenu,
-                            onDismissRequest = { showExportMenu = false },
-                            modifier = Modifier.background(DarkBrown2)
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Download PDF", color = TextLight, style = MaterialTheme.typography.bodyMedium) },
-                                onClick = {
-                                    showExportMenu = false
-                                    scope.launch {
-                                        val file = viewModel.exportReport(context, "PDF", profile?.shopName)
-                                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-                                        val intent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "application/pdf"
-                                            putExtra(Intent.EXTRA_STREAM, uri)
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        }
-                                        context.startActivity(Intent.createChooser(intent, "Save / Share PDF"))
-                                    }
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Download Excel", color = TextLight, style = MaterialTheme.typography.bodyMedium) },
-                                onClick = {
-                                    showExportMenu = false
-                                    scope.launch {
-                                        val file = viewModel.exportReport(context, "CSV", profile?.shopName)
-                                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-                                        val intent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "text/csv"
-                                            putExtra(Intent.EXTRA_STREAM, uri)
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        }
-                                        context.startActivity(Intent.createChooser(intent, "Save / Share Excel"))
-                                    }
-                                }
-                            )
-                        }
-                    }
                 }
             }
 
@@ -313,6 +269,44 @@ fun ReportsScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(spacing.small))
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        val file = viewModel.exportReport(context, "PDF", profile)
+                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "application/pdf"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "Save / Share PDF"))
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .padding(horizontal = spacing.medium),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    Icons.Default.Download,
+                    contentDescription = null,
+                    tint = DarkBrown1,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(spacing.small))
+                Text(
+                    "Download Reports",
+                    color = DarkBrown1,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(spacing.small))
         }
 
         // KhanaBookLoadingOverlay retained only for bill detail fetch (dialog)
@@ -440,7 +434,7 @@ fun PaymentLevelView(breakdown: Map<String, String>, settingsViewModel: com.khan
             }
         }
         
-        item { Spacer(modifier = Modifier.height(spacing.bottomListPadding)) }
+        item { Spacer(modifier = Modifier.height(spacing.small)) }
     }
 }
 
@@ -508,7 +502,7 @@ fun PartPaymentCard(
 @Composable
 fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>, profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?, onViewDetails: (Long) -> Unit) {
     val spacing = KhanaBookTheme.spacing
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = Modifier.fillMaxSize()) {
 
         Row(
             modifier = Modifier
@@ -549,10 +543,11 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
         } else {
             LazyColumn(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
                     .padding(horizontal = spacing.medium),
                 verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
-                contentPadding = PaddingValues(bottom = spacing.bottomListPadding)
+                contentPadding = PaddingValues(bottom = spacing.small)
             ) {
                 items(rows) { row ->
                     OrderRowItem(row, profile, onViewDetails)

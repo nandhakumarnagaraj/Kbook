@@ -103,7 +103,7 @@ fun MainScreen(
         // statusBarsPadding() on the content box and navigationBarsPadding() on the NavigationBar
         // handle all insets explicitly instead.
         contentWindowInsets = WindowInsets(0),
-        containerColor = DarkBackground,
+        containerColor = DarkBrown1,
         bottomBar = {
             if (showBottomBar) {
                 AppBottomBar(

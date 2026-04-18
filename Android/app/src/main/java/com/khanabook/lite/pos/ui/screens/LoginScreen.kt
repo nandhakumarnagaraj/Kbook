@@ -90,7 +90,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground),
+            .background(DarkBrown1),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -415,6 +415,30 @@ fun ForgotPasswordDialog(
         }
     }
 
+    // Compact green badge for a completed/verified step
+    @Composable
+    fun VerifiedBadge(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, note: String) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(SuccessGreen.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(label, color = TextLight, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium))
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(note, color = SuccessGreen, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+
     KhanaBookLargeDialog(
         title = "Forgot Password",
         onDismissRequest = onDismiss,
@@ -424,92 +448,83 @@ fun ForgotPasswordDialog(
                 text = when (step) {
                     1 -> "Step 1 of 3 | Verify phone number"
                     2 -> "Step 2 of 3 | Verify OTP"
-                    3 -> "Step 3 of 3 | Create new password"
-                    else -> ""
+                    else -> "Step 3 of 3 | Create new password"
                 },
                 color = TextGold.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.bodySmall
             )
         },
         actions = {
-            if (step > 1) {
-                OutlinedButton(
-                    onClick = {
-                        if (!isResetLoading) {
-                            step -= 1
-                            viewModel.clearResetStatus()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        BorderGold.copy(alpha = 0.45f)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
+            if (step == 1) {
+                Button(
+                    onClick = { if (isPhoneValid && !isResetLoading) viewModel.sendOtp(phone, "reset") },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = isPhoneValid && !isResetLoading
                 ) {
-                    Text("Back")
+                    if (isResetLoading)
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), color = DarkBrown1, strokeWidth = 2.dp)
+                    else
+                        Text("Send OTP", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 }
-            }
+            } else {
+                // Back + primary action side-by-side
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    OutlinedButton(
+                        onClick = { if (!isResetLoading) { step -= 1; viewModel.clearResetStatus() } },
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("Back", style = MaterialTheme.typography.labelLarge) }
 
-            Button(
-                onClick = {
-                    when (step) {
-                        1 -> if (isPhoneValid && !isResetLoading) viewModel.sendOtp(phone, "reset")
-                        2 -> if (otp.length == 6) step = 3
-                        3 -> if (newPassword.isNotBlank() && newPassword == confirmPassword) {
-                            viewModel.resetPassword(phone, otp, newPassword)
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
-                shape = RoundedCornerShape(12.dp),
-                enabled = when (step) {
-                    1 -> isPhoneValid && !isResetLoading
-                    2 -> otp.length == 6
-                    3 -> newPassword.isNotBlank() && newPassword == confirmPassword
-                    else -> false
-                }
-            ) {
-                if (step == 1 && isResetLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = DarkBrown1, strokeWidth = 2.dp)
-                } else {
-                    Text(
-                        text = when (step) {
-                            1 -> "Send OTP"
-                            2 -> "Verify OTP"
-                            3 -> "Reset Password"
-                            else -> ""
+                    Button(
+                        onClick = {
+                            when (step) {
+                                2 -> if (otp.length == 6) step = 3
+                                3 -> if (newPassword.isNotBlank() && newPassword == confirmPassword)
+                                    viewModel.resetPassword(phone, otp, newPassword)
+                            }
                         },
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
+                        modifier = Modifier.weight(2f).height(52.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = when (step) {
+                            2 -> otp.length == 6
+                            3 -> newPassword.isNotBlank() && newPassword == confirmPassword
+                            else -> false
+                        }
+                    ) {
+                        Text(
+                            text = if (step == 2) "Verify OTP" else "Reset Password",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
                 }
-            }
 
-            if (step == 2) {
-                TextButton(
-                    onClick = { if (resendTimer == 0 && !isResetLoading) viewModel.sendOtp(phone, "reset") },
-                    enabled = resendTimer == 0 && !isResetLoading
-                ) {
-                    Text(
-                        text = if (resendTimer > 0) "Resend OTP in ${resendTimer}s" else "Resend OTP",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (resendTimer > 0 || isResetLoading) Color.Gray else PrimaryGold
-                    )
+                if (step == 2) {
+                    TextButton(
+                        onClick = { if (resendTimer == 0 && !isResetLoading) viewModel.sendOtp(phone, "reset") },
+                        enabled = resendTimer == 0 && !isResetLoading,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        Text(
+                            text = if (resendTimer > 0) "Resend OTP in ${resendTimer}s" else "Resend OTP",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (resendTimer > 0 || isResetLoading) Color.Gray else PrimaryGold
+                        )
+                    }
                 }
-            }
-
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
             }
         }
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 340.dp),
-            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
             ForgotPasswordStepRow(currentStep = step)
 
@@ -517,35 +532,38 @@ fun ForgotPasswordDialog(
                 text = when (step) {
                     1 -> "Enter your registered WhatsApp number to receive an OTP."
                     2 -> "Enter the 6-digit OTP sent to $phone via WhatsApp."
-                    3 -> "Create a new strong password for your account."
-                    else -> ""
+                    else -> "Create a new strong password for your account."
                 },
-                color = TextLight,
-                style = MaterialTheme.typography.bodyMedium,
+                color = TextLight.copy(alpha = 0.75f),
+                style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Center
             )
 
-            KhanaBookInputField(
-                value = phone,
-                onValueChange = { phone = it.filter { ch -> ch.isDigit() }.take(10) },
-                label = "WhatsApp Number",
-                placeholder = "Enter your 10-digit number",
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                leadingIcon = { Icon(Icons.Default.Phone, null, tint = PrimaryGold) },
-                enabled = step == 1,
-                isError = step == 1 && ((phone.isNotEmpty() && !isPhoneValid) || fieldError("phoneNumber", "loginId", "whatsappNumber") != null),
-                supportingText = {
-                    val backendFieldError = fieldError("phoneNumber", "loginId", "whatsappNumber")
-                    when {
-                        step > 1 -> Text("OTP sent to this number", color = SuccessGreen, style = MaterialTheme.typography.labelSmall)
-                        backendFieldError != null -> Text(backendFieldError, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
-                        phone.isNotEmpty() && !isPhoneValid -> Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+            // Phone — active input on step 1, verified badge on steps 2-3
+            if (step == 1) {
+                KhanaBookInputField(
+                    value = phone,
+                    onValueChange = { phone = it.filter { ch -> ch.isDigit() }.take(10) },
+                    label = "WhatsApp Number",
+                    placeholder = "Enter your 10-digit number",
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = PrimaryGold) },
+                    isError = phone.isNotEmpty() && !isPhoneValid || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
+                    supportingText = {
+                        val err = fieldError("phoneNumber", "loginId", "whatsappNumber")
+                        when {
+                            err != null -> Text(err, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                            phone.isNotEmpty() && !isPhoneValid -> Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                        }
                     }
-                }
-            )
+                )
+            } else {
+                VerifiedBadge(Icons.Default.Phone, phone, "Sent")
+            }
 
-            if (step >= 2) {
+            // OTP — active input on step 2, verified badge on step 3
+            if (step == 2) {
                 KhanaBookInputField(
                     value = otp,
                     onValueChange = { otp = it.filter(Char::isDigit).take(6) },
@@ -554,13 +572,11 @@ fun ForgotPasswordDialog(
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
-                    enabled = step == 2,
-                    isError = step == 2 && fieldError("otp") != null,
+                    isError = fieldError("otp") != null,
                     supportingText = {
-                        val backendFieldError = fieldError("otp")
+                        val err = fieldError("otp")
                         when {
-                            step > 2 -> Text("OTP verified", color = SuccessGreen, style = MaterialTheme.typography.labelSmall)
-                            backendFieldError != null -> Text(backendFieldError, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                            err != null -> Text(err, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                             otp.isNotEmpty() && otp.length < 6 -> Text(
                                 "${6 - otp.length} more digit${if (6 - otp.length == 1) "" else "s"} required",
                                 color = TextGold.copy(alpha = 0.6f),
@@ -569,9 +585,12 @@ fun ForgotPasswordDialog(
                         }
                     }
                 )
+            } else if (step == 3) {
+                VerifiedBadge(Icons.Default.Lock, "OTP Verified", "Confirmed")
             }
 
-            if (step >= 3) {
+            // Password fields — step 3 only
+            if (step == 3) {
                 KhanaBookInputField(
                     value = newPassword,
                     onValueChange = { newPassword = it },
@@ -584,15 +603,13 @@ fun ForgotPasswordDialog(
                     trailingIcon = {
                         Icon(
                             imageVector = if (showNewPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = "Toggle New Password",
+                            contentDescription = null,
                             tint = PrimaryGold,
                             modifier = Modifier.clickable { showNewPassword = !showNewPassword }
                         )
                     },
                     supportingText = {
-                        fieldError("password")?.let {
-                            Text(it, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
-                        }
+                        fieldError("password")?.let { Text(it, color = ErrorPink, style = MaterialTheme.typography.labelSmall) }
                     }
                 )
                 val passwordsMatch = confirmPassword.isEmpty() || newPassword == confirmPassword
@@ -608,28 +625,21 @@ fun ForgotPasswordDialog(
                     trailingIcon = {
                         Icon(
                             imageVector = if (showConfirmPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = "Toggle Confirm Password",
+                            contentDescription = null,
                             tint = PrimaryGold,
                             modifier = Modifier.clickable { showConfirmPassword = !showConfirmPassword }
                         )
                     },
                     supportingText = {
-                        if (!passwordsMatch) {
-                            Text("Passwords do not match", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
-                        }
+                        if (!passwordsMatch) Text("Passwords do not match", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                     }
                 )
             }
-        }
 
-        val resetErrorMessage = (resetStatus as? AuthViewModel.ResetPasswordResult.Error)?.message
-        if (resetErrorMessage != null) {
-            Spacer(modifier = Modifier.height(spacing.small))
-            Text(
-                text = resetErrorMessage,
-                color = ErrorPink,
-                style = MaterialTheme.typography.labelSmall
-            )
+            val resetErrorMessage = (resetStatus as? AuthViewModel.ResetPasswordResult.Error)?.message
+            if (resetErrorMessage != null) {
+                Text(resetErrorMessage, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }

@@ -1166,10 +1166,10 @@ fun ModeSelectionView(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .testTag(MenuConfigurationTags.modeSelectionRoot)
-            .padding(horizontal = spacing.medium, vertical = spacing.extraLarge),
+            .padding(horizontal = spacing.medium, vertical = spacing.medium),
         verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
         // Dashboard Stats

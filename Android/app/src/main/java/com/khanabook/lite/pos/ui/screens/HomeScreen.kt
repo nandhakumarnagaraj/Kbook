@@ -79,7 +79,7 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(DarkBrown1)
     ) {
         Column(
             modifier = Modifier

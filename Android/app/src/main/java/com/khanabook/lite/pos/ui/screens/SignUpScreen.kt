@@ -148,7 +148,7 @@ fun SignUpScreen(
     Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             contentWindowInsets = WindowInsets(0),
-            containerColor = DarkBackground
+            containerColor = DarkBrown1
     ) { _ ->
         Box(
                 modifier =

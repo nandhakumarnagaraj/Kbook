@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.model.PaymentMode
@@ -268,7 +269,9 @@ fun SearchScreen(
                                 Text(
                                     currentResult.bill.customerWhatsapp ?: "N/A",
                                     color = TextLight,
-                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                             
@@ -317,9 +320,8 @@ fun SearchScreen(
                         } else {
                             Box(
                                 modifier = Modifier
-                                    .weight(1f, fill = false) 
                                     .fillMaxWidth()
-                                    .heightIn(max = 240.dp) 
+                                    .heightIn(max = 240.dp)
                             ) {
                                 LazyColumn(
                                     modifier = Modifier.fillMaxWidth(),
