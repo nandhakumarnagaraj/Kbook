@@ -56,13 +56,19 @@ import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 
 @Composable
 fun NewBillScreen(
@@ -148,49 +154,61 @@ fun NewBillScreen(
             .consumeWindowInsets(paddingValues)
             .background(DarkBrown1)
         ) {
-            when (step) {
-                1 ->
-                        CustomerInfoStep(
-                                onNext = { name, whatsapp ->
-                                    billingViewModel.setCustomerInfo(name, whatsapp)
-                                    step = 2
-                                },
-                                onBack = onBack,
-                                hideHeader = true,
-                                billingViewModel = billingViewModel
-                        )
-                2 ->
-                        MenuSelectionStep(
-                                billingViewModel,
-                                menuViewModel,
-                                onBack = { step = 1 },
-                                onProceedToPayment = { step = 3 },
-                                total = summary.total.toDoubleOrNull() ?: 0.0,
-                                itemCount = cartItems.sumOf { it.quantity },
-                                hideHeader = true,
-                                navController = navController
-                        )
-                3 ->
-                        PaymentStep(
-                                billingViewModel,
-                                settingsViewModel,
-                                onBackToMenu = { step = 2 },
-                                onComplete = { step = 4 },
-                                onFailed = { step = 5 }
-                        )
-                4 ->
-                        SuccessStep(
-                                billingViewModel,
-                                settingsViewModel,
-                                onDone = onBack,
-                                onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
-                        )
-                5 ->
-                        FailedStep(
-                                viewModel = billingViewModel,
-                                onRetryPayment = { step = 3 },
-                                onNewBill = onBack
-                        )
+            AnimatedContent(
+                targetState = step,
+                transitionSpec = {
+                    val forward = targetState > initialState
+                    slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { if (forward) it else -it } +
+                        fadeIn(tween(300)) togetherWith
+                    slideOutHorizontally(tween(250, easing = FastOutSlowInEasing)) { if (forward) -it else it } +
+                        fadeOut(tween(200))
+                },
+                label = "step_transition"
+            ) { currentStep ->
+                when (currentStep) {
+                    1 ->
+                            CustomerInfoStep(
+                                    onNext = { name, whatsapp ->
+                                        billingViewModel.setCustomerInfo(name, whatsapp)
+                                        step = 2
+                                    },
+                                    onBack = onBack,
+                                    hideHeader = true,
+                                    billingViewModel = billingViewModel
+                            )
+                    2 ->
+                            MenuSelectionStep(
+                                    billingViewModel,
+                                    menuViewModel,
+                                    onBack = { step = 1 },
+                                    onProceedToPayment = { step = 3 },
+                                    total = summary.total.toDoubleOrNull() ?: 0.0,
+                                    itemCount = cartItems.sumOf { it.quantity },
+                                    hideHeader = true,
+                                    navController = navController
+                            )
+                    3 ->
+                            PaymentStep(
+                                    billingViewModel,
+                                    settingsViewModel,
+                                    onBackToMenu = { step = 2 },
+                                    onComplete = { step = 4 },
+                                    onFailed = { step = 5 }
+                            )
+                    4 ->
+                            SuccessStep(
+                                    billingViewModel,
+                                    settingsViewModel,
+                                    onDone = onBack,
+                                    onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                            )
+                    else ->
+                            FailedStep(
+                                    viewModel = billingViewModel,
+                                    onRetryPayment = { step = 3 },
+                                    onNewBill = onBack
+                            )
+                }
             }
 
             KhanaBookLoadingOverlay(
@@ -895,13 +913,14 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
     val relocationRequester = remember { BringIntoViewRequester() }
     val scope = rememberCoroutineScope()
 
-    // Generate a live UPI QR with the exact bill amount when upiHandle is configured
-    // but no static QR image has been saved. Regenerates whenever the total changes.
-    val dynamicUpiQrBitmap = remember(profile?.upiHandle, summary.total) {
+    // Generate UPI QR off the main thread — ZXing encoding is CPU-heavy and caused UI freeze
+    val dynamicUpiQrBitmap by produceState<android.graphics.Bitmap?>(null, profile?.upiHandle, summary.total) {
         val handle = profile?.upiHandle
-        if (!handle.isNullOrBlank()) {
+        value = if (!handle.isNullOrBlank()) {
             val amount = summary.total.toDoubleOrNull() ?: 0.0
-            QrCodeManager.generateUpiQr(handle, profile?.shopName ?: "RESTAURANT", amount, 512)
+            withContext(Dispatchers.Default) {
+                QrCodeManager.generateUpiQr(handle, profile?.shopName ?: "RESTAURANT", amount, 512)
+            }
         } else null
     }
 
@@ -927,9 +946,10 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                                     .clickable { showQrModal = true },
                     contentAlignment = Alignment.Center
             ) {
+                val qrBitmap1 = dynamicUpiQrBitmap
                 when {
-                    dynamicUpiQrBitmap != null -> Image(
-                        bitmap = dynamicUpiQrBitmap.asImageBitmap(),
+                    qrBitmap1 != null -> Image(
+                        bitmap = qrBitmap1.asImageBitmap(),
                         contentDescription = "Scan to pay ${profile?.upiHandle}",
                         modifier = Modifier.fillMaxSize()
                     )
@@ -981,7 +1001,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = spacing.small),
-                colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                colors = CardDefaults.cardColors(containerColor = CardBG),
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f))
             ) {
@@ -1013,7 +1033,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     modifier =
                             Modifier.fillMaxWidth()
                                     .height(56.dp)
-                                    .background(DarkBrown2, RoundedCornerShape(8.dp))
+                                    .background(BrownSelected, RoundedCornerShape(8.dp))
                                     .border(1.dp, BorderGold)
                                     .clickable { expanded = true }
                                     .padding(horizontal = spacing.medium),
@@ -1192,9 +1212,10 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                                         Modifier.size(280.dp).background(Color.White).padding(spacing.small),
                                 contentAlignment = Alignment.Center
                         ) {
+                            val qrBitmap2 = dynamicUpiQrBitmap
                             when {
-                                dynamicUpiQrBitmap != null -> Image(
-                                    bitmap = dynamicUpiQrBitmap.asImageBitmap(),
+                                qrBitmap2 != null -> Image(
+                                    bitmap = qrBitmap2.asImageBitmap(),
                                     contentDescription = "Scan to pay ${profile?.upiHandle}",
                                     modifier = Modifier.fillMaxSize()
                                 )

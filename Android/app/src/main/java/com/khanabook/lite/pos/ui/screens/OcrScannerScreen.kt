@@ -68,11 +68,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
 import androidx.compose.runtime.collectAsState
+import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.DarkBrown2
+import com.khanabook.lite.pos.ui.theme.ErrorPink
 import com.khanabook.lite.pos.ui.theme.ParchmentBG
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
-import com.khanabook.lite.pos.ui.theme.OcrScannerPink
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -358,7 +359,7 @@ private fun ScanControls(
         contentAlignment = Alignment.BottomCenter
     ) {
         Card(
-            colors = CardDefaults.cardColors(containerColor = DarkBrown2.copy(alpha = 0.92f)),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
             shape = RoundedCornerShape(18.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -395,7 +396,7 @@ private fun ScanControls(
                     androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(com.khanabook.lite.pos.ui.theme.KhanaBookTheme.spacing.small))
                     Text(
                         text = errorMessage,
-                        color = OcrScannerPink,
+                        color = ErrorPink,
                         fontSize = 13.sp
                     )
                 }
