@@ -2,6 +2,11 @@
 
 package com.khanabook.lite.pos.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -56,6 +62,20 @@ fun InitialSyncScreen(
         ) {
             when (val state = syncState) {
                 is InitialSyncState.Syncing, InitialSyncState.Idle -> {
+                    val syncStages = listOf(
+                        "Downloading your menu...",
+                        "Syncing order history...",
+                        "Loading restaurant profile...",
+                        "Almost ready..."
+                    )
+                    var stageIndex by remember { mutableIntStateOf(0) }
+                    LaunchedEffect(Unit) {
+                        while (true) {
+                            delay(2200)
+                            stageIndex = (stageIndex + 1) % syncStages.size
+                        }
+                    }
+
                     val composition by rememberLottieComposition(
                         LottieCompositionSpec.RawRes(R.raw.anim_sync)
                     )
@@ -75,16 +95,25 @@ fun InitialSyncScreen(
                     Text(
                         "Setting up your workspace...",
                         color = TextLight,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+
+                    Spacer(modifier = Modifier.height(spacing.small))
+
+                    AnimatedContent(
+                        targetState = stageIndex,
+                        transitionSpec = {
+                            fadeIn(tween(400)) togetherWith fadeOut(tween(300))
+                        },
+                        label = "sync_stage"
+                    ) { idx ->
+                        Text(
+                            text = syncStages[idx],
+                            color = TextGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center
                         )
-                    )
-                    Text(
-                        "Please wait. Do not close the app.",
-                        color = TextGold.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = spacing.small)
-                    )
+                    }
 
                     Spacer(modifier = Modifier.height(spacing.large))
 

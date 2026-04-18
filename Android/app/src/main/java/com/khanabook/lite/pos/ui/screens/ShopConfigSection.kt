@@ -79,6 +79,7 @@ fun ShopConfigView(
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
+    val iconSize = KhanaBookTheme.iconSize
     val isCompactWidth = layout.isCompactForm
     var name by remember { mutableStateOf(profile?.shopName ?: "") }
     var address by remember { mutableStateOf(profile?.shopAddress ?: "") }
@@ -400,7 +401,7 @@ fun ShopConfigView(
                     enabled = isSaveEnabled
                 ) {
                     if (saveProfileLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(iconSize.medium), color = Color.White, strokeWidth = 2.dp)
                     } else {
                         Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium)
                     }

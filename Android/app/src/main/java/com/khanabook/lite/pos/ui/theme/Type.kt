@@ -4,10 +4,28 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.googlefonts.Font
+import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
+import com.khanabook.lite.pos.R
 
-private val AppFontFamily = FontFamily.SansSerif
+private val fontProvider = GoogleFont.Provider(
+    providerAuthority = "com.google.android.gms.fonts",
+    providerPackage = "com.google.android.gms",
+    certificates = R.array.com_google_android_gms_fonts_certs
+)
+
+private val PoppinsFont = GoogleFont("Poppins")
+
+private val AppFontFamily = FontFamily(
+    Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Light),
+    Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Normal),
+    Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Medium),
+    Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.SemiBold),
+    Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Bold),
+    Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.ExtraBold),
+)
 
 private val BaseTypography = Typography(
     // Display - Reserved for Large UI elements (e.g. Dashboard headers)

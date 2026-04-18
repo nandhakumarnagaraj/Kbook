@@ -78,6 +78,7 @@ internal fun AppInfoSection() {
 @Composable
 fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel) {
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
     val context = androidx.compose.ui.platform.LocalContext.current
     val logoutState by viewModel.logoutState.collectAsStateWithLifecycle()
     val appLockViewModel: com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel = hiltViewModel()
@@ -123,7 +124,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                     horizontalArrangement = Arrangement.spacedBy(spacing.medium)
                 ) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(iconSize.medium),
                         color = PrimaryGold,
                         strokeWidth = 3.dp
                     )
@@ -223,7 +224,6 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
         }
     }
 
-    val iconSize = KhanaBookTheme.iconSize
     Column(
         modifier = Modifier.fillMaxWidth().padding(spacing.medium),
         verticalArrangement = Arrangement.spacedBy(spacing.medium)

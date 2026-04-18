@@ -21,7 +21,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -99,7 +101,7 @@ fun AppLockScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2))),
+            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso))),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -203,7 +205,7 @@ fun AppLockScreen(
         if (showForgotPinDialog) {
             AlertDialog(
                 onDismissRequest = { showForgotPinDialog = false },
-                containerColor = DarkBrown2,
+                containerColor = CardBG,
                 title = { Text("Forgot PIN?", color = PrimaryGold, style = MaterialTheme.typography.titleLarge) },
                 text = {
                     Text(
@@ -238,6 +240,7 @@ fun PinNumpad(
     showBiometric: Boolean
 ) {
     val spacing = KhanaBookTheme.spacing
+    val haptic = LocalHapticFeedback.current
     val rows = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
@@ -266,7 +269,10 @@ fun PinNumpad(
                                 modifier = Modifier.size(28.dp)
                             )
                         }
-                        "del" -> PinKey(onClick = onDelete) {
+                        "del" -> PinKey(onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onDelete()
+                        }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.Backspace,
                                 contentDescription = "Delete",
@@ -274,7 +280,10 @@ fun PinNumpad(
                                 modifier = Modifier.size(24.dp)
                             )
                         }
-                        else -> PinKey(onClick = { onDigit(key) }) {
+                        else -> PinKey(onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onDigit(key)
+                        }) {
                             Text(
                                 key,
                                 color = TextLight,

@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -65,6 +66,7 @@ fun LoginScreen(
     val focusManager = LocalFocusManager.current
     val passwordFocusRequester = remember { FocusRequester() }
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -90,7 +92,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBrown1),
+            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso))),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -277,7 +279,7 @@ fun LoginScreen(
             ) {
                 if (isLoading && !isGoogleLogin) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(iconSize.medium),
                         color = DarkBrown1,
                         strokeWidth = 2.dp
                     )
@@ -331,7 +333,7 @@ fun LoginScreen(
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         if (isLoading && isGoogleLogin) {
                             CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
+                                    modifier = Modifier.size(iconSize.medium),
                                     color = GoogleRed,
                                     strokeWidth = 2.dp
                             )
@@ -391,6 +393,7 @@ fun ForgotPasswordDialog(
     var resendTimer by remember { mutableIntStateOf(0) }
     val isPhoneValid = ValidationUtils.isValidPhone(phone)
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
 
     val resetStatus by viewModel.resetPasswordStatus.collectAsState()
     val resetFieldErrors by viewModel.resetPasswordFieldErrors.collectAsState()
@@ -464,7 +467,7 @@ fun ForgotPasswordDialog(
                     enabled = isPhoneValid && !isResetLoading
                 ) {
                     if (isResetLoading)
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), color = DarkBrown1, strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(iconSize.small), color = DarkBrown1, strokeWidth = 2.dp)
                     else
                         Text("Send OTP", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 }

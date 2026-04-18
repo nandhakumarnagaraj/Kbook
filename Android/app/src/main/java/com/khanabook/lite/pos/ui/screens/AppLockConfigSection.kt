@@ -320,6 +320,7 @@ private fun ChangePasswordDialog(
     onDismiss: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
     val resetStatus by authViewModel.resetPasswordStatus.collectAsStateWithLifecycle()
 
     var step by remember { mutableStateOf(1) }
@@ -502,7 +503,7 @@ private fun ChangePasswordDialog(
                 enabled = !isLoading
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = DarkBrown1)
+                    CircularProgressIndicator(modifier = Modifier.size(iconSize.small), strokeWidth = 2.dp, color = DarkBrown1)
                 } else {
                     Text(
                         when (step) { 1 -> "Send OTP"; 2 -> "Next"; else -> "Set Password" },

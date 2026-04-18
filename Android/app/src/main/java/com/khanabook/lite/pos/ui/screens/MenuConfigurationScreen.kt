@@ -1179,7 +1179,7 @@ fun ModeSelectionView(
         ) {
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                colors = CardDefaults.cardColors(containerColor = CardBG),
                 border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f)),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -1191,7 +1191,7 @@ fun ModeSelectionView(
             }
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                colors = CardDefaults.cardColors(containerColor = CardBG),
                 border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f)),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -1218,7 +1218,7 @@ fun ModeSelectionView(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(MenuConfigurationTags.manualEntryCard),
-            colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f))
         ) {
             Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
@@ -1240,7 +1240,7 @@ fun ModeSelectionView(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(MenuConfigurationTags.smartAiCard),
-            colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
             border = BorderStroke(1.dp, if (isSmartAIExpanded) PrimaryGold.copy(alpha = 0.5f) else BorderGold.copy(alpha = 0.2f))
         ) {
             Column {

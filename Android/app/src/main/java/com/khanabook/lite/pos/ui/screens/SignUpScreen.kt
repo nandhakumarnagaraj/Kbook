@@ -69,8 +69,9 @@ fun SignUpScreen(
     val passwordFocusRequester = remember { FocusRequester() }
     val confirmPasswordFocusRequester = remember { FocusRequester() }
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
 
-    
+
     val isNameValid = ValidationUtils.isValidName(shopName)
     val isPhoneValid = ValidationUtils.isValidPhone(phoneNumber)
     val isPasswordValid = ValidationUtils.isValidPassword(newPassword)
@@ -512,7 +513,7 @@ fun SignUpScreen(
                 ) {
                     if (isLoading && signUpStatus is AuthViewModel.SignUpResult.Loading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(iconSize.medium),
                             color = DarkBrown1,
                             strokeWidth = 3.dp
                         )

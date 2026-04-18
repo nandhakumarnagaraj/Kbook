@@ -234,7 +234,7 @@ fun CallCustomerScreen(
                 if (currentResult != null) {
                 KhanaBookCard(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                        colors = CardDefaults.cardColors(containerColor = CardBG),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
                 ) {
                     Column(

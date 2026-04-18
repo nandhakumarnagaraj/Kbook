@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -79,7 +80,7 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBrown1)
+            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
     ) {
         Column(
             modifier = Modifier
@@ -219,16 +220,16 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(spacing.medium)
                 ) {
                     HomeActionCard(
-                        text = "Print/Share",
-                        icon = Icons.Default.Print,
-                        backgroundColor = DarkBrown2,
+                        text = "Find Bill",
+                        icon = Icons.Default.Search,
+                        backgroundColor = CardBG,
                         modifier = Modifier.weight(1f),
                         onClick = onSearchBill
                     )
                     HomeActionCard(
                         text = "Order Status",
                         icon = Icons.Default.Info,
-                        backgroundColor = DarkBrown2,
+                        backgroundColor = CardBG,
                         modifier = Modifier.weight(1f),
                         onClick = onOrderStatus
                     )
@@ -241,7 +242,7 @@ fun HomeScreen(
                     HomeActionCard(
                         text = "Call Customers",
                         icon = Icons.Default.Call,
-                        backgroundColor = DarkBrown2,
+                        backgroundColor = CardBG,
                         modifier = Modifier.weight(1f),
                         onClick = onCallCustomer
                     )
@@ -254,9 +255,9 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
                 ) {
                     HomeActionCard(
-                        text = "Print/Share",
-                        icon = Icons.Default.Print,
-                        backgroundColor = DarkBrown2,
+                        text = "Find Bill",
+                        icon = Icons.Default.Search,
+                        backgroundColor = CardBG,
                         modifier = Modifier.fillMaxWidth(),
                         onClick = onSearchBill
                     )
@@ -264,7 +265,7 @@ fun HomeScreen(
                     HomeActionCard(
                         text = "Order Status",
                         icon = Icons.Default.Info,
-                        backgroundColor = DarkBrown2,
+                        backgroundColor = CardBG,
                         modifier = Modifier.fillMaxWidth(),
                         onClick = onOrderStatus
                     )
@@ -272,7 +273,7 @@ fun HomeScreen(
                     HomeActionCard(
                         text = "Call Customers",
                         icon = Icons.Default.Call,
-                        backgroundColor = DarkBrown2,
+                        backgroundColor = CardBG,
                         modifier = Modifier.fillMaxWidth(),
                         onClick = onCallCustomer
                     )

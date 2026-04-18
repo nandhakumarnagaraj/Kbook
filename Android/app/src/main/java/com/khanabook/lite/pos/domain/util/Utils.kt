@@ -184,51 +184,56 @@ fun shareBillOnWhatsApp(
     billWithItems: BillWithItems,
     profile: RestaurantProfileEntity?
 ) {
-    try {
-        val pdfGenerator = InvoicePDFGenerator(context)
-        val pdfFile = pdfGenerator.generatePDF(billWithItems, profile)
-        val pdfUri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.provider",
-            pdfFile
-        )
+    // PDF generation (including review QR via ZXing) is CPU/IO heavy — run off main thread
+    CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+        try {
+            val pdfGenerator = InvoicePDFGenerator(context)
+            val pdfFile = pdfGenerator.generatePDF(billWithItems, profile)
+            val pdfUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                pdfFile
+            )
 
-        val rawPhone = billWithItems.bill.customerWhatsapp
-        val digits = rawPhone?.replace(Regex("[^0-9]"), "") ?: ""
-        val formattedPhone = when {
-            digits.length == 10 -> "91$digits" // Default to India prefix if 10 digits
-            digits.length > 10 -> digits
-            else -> null
-        }
-
-        if (formattedPhone != null) {
-            copyTextToClipboard(context, "WhatsApp Number", "+$formattedPhone")
-            if (tryJidWhatsApp(context, formattedPhone, pdfUri)) {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.toast_whatsapp_search_number_copied),
-                    Toast.LENGTH_LONG
-                ).show()
-                return
+            val rawPhone = billWithItems.bill.customerWhatsapp
+            val digits = rawPhone?.replace(Regex("[^0-9]"), "") ?: ""
+            val formattedPhone = when {
+                digits.length == 10 -> "91$digits"
+                digits.length > 10 -> digits
+                else -> null
             }
 
-            if (launchWhatsAppPdfSearchFallback(context, formattedPhone, pdfUri)) {
+            kotlinx.coroutines.withContext(Dispatchers.Main) {
+                if (formattedPhone != null) {
+                    copyTextToClipboard(context, "WhatsApp Number", "+$formattedPhone")
+                    if (tryJidWhatsApp(context, formattedPhone, pdfUri)) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.toast_whatsapp_search_number_copied),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return@withContext
+                    }
+                    if (launchWhatsAppPdfSearchFallback(context, formattedPhone, pdfUri)) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.toast_whatsapp_search_number_copied),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return@withContext
+                    }
+                }
+                launchInvoiceShare(context, pdfUri)
+            }
+        } catch (e: Exception) {
+            kotlinx.coroutines.withContext(Dispatchers.Main) {
                 Toast.makeText(
                     context,
-                    context.getString(R.string.toast_whatsapp_search_number_copied),
-                    Toast.LENGTH_LONG
+                    UserMessageSanitizer.sanitize(e, "Unable to share invoice."),
+                    Toast.LENGTH_SHORT
                 ).show()
-                return
             }
         }
-
-        launchInvoiceShare(context, pdfUri)
-    } catch (e: Exception) {
-        android.widget.Toast.makeText(
-            context,
-            UserMessageSanitizer.sanitize(e, "Unable to share invoice."),
-            android.widget.Toast.LENGTH_SHORT
-        ).show()
     }
 }
 

@@ -116,7 +116,7 @@ fun SearchScreen(
                 .padding(padding)
                 .consumeWindowInsets(padding)
                 .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
+                .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
                 .imePadding()
                 .padding(horizontal = spacing.medium, vertical = spacing.medium)
         ) {
@@ -253,7 +253,7 @@ fun SearchScreen(
                 if (currentResult != null) {
                     KhanaBookCard(
                     modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-                    colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                    colors = CardDefaults.cardColors(containerColor = CardBG),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(spacing.medium).wrapContentHeight()) {
