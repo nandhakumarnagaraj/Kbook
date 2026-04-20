@@ -5,6 +5,13 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+object KitchenPrintDispatchStatus {
+    const val PENDING = "pending"
+    const val RETRYING = "retrying"
+    const val SENT = "sent"
+    const val FAILED = "failed"
+}
+
 @Entity(
     tableName = "kitchen_print_queue",
     indices = [Index(value = ["bill_id", "printer_mac"], unique = true)]
@@ -19,6 +26,10 @@ data class KitchenPrintQueueEntity(
     val attempts: Int = 0,
     @ColumnInfo(name = "last_error")
     val lastError: String? = null,
+    @ColumnInfo(name = "dispatch_status")
+    val dispatchStatus: String = KitchenPrintDispatchStatus.PENDING,
+    @ColumnInfo(name = "last_attempt_at")
+    val lastAttemptAt: Long? = null,
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "updated_at")

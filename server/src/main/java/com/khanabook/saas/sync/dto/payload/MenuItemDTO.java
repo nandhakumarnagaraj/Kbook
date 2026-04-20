@@ -32,4 +32,5 @@ public class MenuItemDTO {
     private Boolean isAvailable;
     private java.math.BigDecimal currentStock;
     private java.math.BigDecimal lowStockThreshold;
+    private Boolean overwriteExisting;
 }

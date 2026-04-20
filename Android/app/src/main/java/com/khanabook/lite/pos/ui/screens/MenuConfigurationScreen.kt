@@ -58,6 +58,7 @@ import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
+import java.util.Locale
 
 object ReviewSheetLayout {
     val HORIZONTAL_PADDING = 12.dp
@@ -1343,6 +1344,22 @@ fun SmartAIOption(
     }
 }
 
+private data class PendingManualItemOverwrite(
+    val existing: MenuWithVariants,
+    val name: String,
+    val price: Double,
+    val foodType: String,
+    val variants: List<Pair<String, Double>>
+)
+
+private data class EditableVariantDraft(
+    val name: String,
+    val price: Double
+)
+
+private fun normalizeMenuItemName(name: String): String =
+    name.trim().replace(Regex("\\s+"), " ").lowercase(Locale.getDefault())
+
 
 @Composable
 fun ManualMenuView(
@@ -1369,6 +1386,25 @@ fun ManualMenuView(
     var showAddItemDialog by remember { mutableStateOf(false) }
     var showEditItemDialog by remember { mutableStateOf<MenuWithVariants?>(null) }
     var showDeleteItemDialog by remember { mutableStateOf<MenuItemEntity?>(null) }
+    var pendingOverwrite by remember { mutableStateOf<PendingManualItemOverwrite?>(null) }
+    var optimisticallyDeletedItemIds by remember { mutableStateOf(setOf<Long>()) }
+    val visibleMenuItems = menuItems.filterNot { it.menuItem.id in optimisticallyDeletedItemIds }
+
+    val applyItemDraftToExisting: (MenuWithVariants, String, Double, String, List<Pair<String, Double>>) -> Unit =
+        { existingItem, updatedName, updatedPrice, updatedFoodType, updatedVariants ->
+            onUpdateItem(
+                existingItem.menuItem.copy(
+                    name = updatedName.trim(),
+                    basePrice = updatedPrice.toString(),
+                    foodType = updatedFoodType,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+            existingItem.variants.forEach { onDeleteVariant(it) }
+            updatedVariants.forEach { (variantName, variantPrice) ->
+                onAddVariant(existingItem.menuItem.id, variantName, variantPrice)
+            }
+        }
 
     Column(modifier = Modifier.fillMaxSize().testTag(MenuConfigurationTags.manualMenuRoot)) {
         LazyRow(
@@ -1397,7 +1433,7 @@ fun ManualMenuView(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (isSelected && menuItems.isNotEmpty()) "${category.name} (${menuItems.size})" else category.name,
+                            text = if (isSelected && visibleMenuItems.isNotEmpty()) "${category.name} (${visibleMenuItems.size})" else category.name,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                         )
@@ -1469,7 +1505,7 @@ fun ManualMenuView(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = spacing.bottomListPadding)
             ) {
-                if (menuItems.isEmpty()) {
+                if (visibleMenuItems.isEmpty()) {
                     item {
                         Box(
                             modifier = Modifier
@@ -1495,7 +1531,10 @@ fun ManualMenuView(
                         }
                     }
                 } else {
-                    items(menuItems) { itemWithVariants ->
+                    items(
+                        items = visibleMenuItems,
+                        key = { it.menuItem.id }
+                    ) { itemWithVariants ->
                         MenuItemRow(
                             itemWithVariants = itemWithVariants,
                             onToggleAvailability = onToggleAvailability,
@@ -1505,18 +1544,6 @@ fun ManualMenuView(
                     }
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(spacing.medium))
-                    Text(
-                        "Tap to edit  •  Long-press to delete",
-                        color = TextGold.copy(alpha = 0.35f),
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 2.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
             }
             
             // Fixed Footer Button
@@ -1525,23 +1552,62 @@ fun ManualMenuView(
                 shadowElevation = 8.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Button(
-                    onClick = { showAddItemDialog = true },
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag(MenuConfigurationTags.addItemButton)
                         .padding(horizontal = 16.dp, vertical = 12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryGold,
-                        contentColor = DarkBrown1
-                    ),
-                    enabled = selectedCategoryId != null,
-                    shape = RoundedCornerShape(12.dp)
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(Icons.Default.Add, null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Add New Item", fontWeight = FontWeight.Bold)
+                    Text(
+                        "Tap to edit  •  Long-press to delete",
+                        color = TextGold.copy(alpha = 0.35f),
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    Button(
+                        onClick = { showAddItemDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(MenuConfigurationTags.addItemButton),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryGold,
+                            contentColor = DarkBrown1
+                        ),
+                        enabled = selectedCategoryId != null,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Add, null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Add New Item", fontWeight = FontWeight.Bold)
+                    }
                 }
+            }
+        }
+    }
+
+    pendingOverwrite?.let { pending ->
+        KhanaBookDialog(
+            onDismissRequest = { pendingOverwrite = null },
+            title = "Item already exists",
+            message = "An item with this name already exists in this category. Do you want to overwrite/update the existing item?"
+        ) {
+            TextButton(onClick = { pendingOverwrite = null }) {
+                Text("Cancel", color = TextGold)
+            }
+            TextButton(
+                onClick = {
+                    applyItemDraftToExisting(
+                        pending.existing,
+                        pending.name,
+                        pending.price,
+                        pending.foodType,
+                        pending.variants
+                    )
+                    pendingOverwrite = null
+                }
+            ) {
+                Text("Overwrite", color = PrimaryGold)
             }
         }
     }
@@ -1578,14 +1644,14 @@ fun ManualMenuView(
             title = "Delete Category?",
             message = "All items in \"${showDeleteCategoryDialog?.name}\" will also be deleted. This cannot be undone."
         ) {
+            TextButton(onClick = { showDeleteCategoryDialog = null }) {
+                Text("Cancel", color = TextGold)
+            }
             TextButton(onClick = {
                 showDeleteCategoryDialog?.let { onDeleteCategory(it) }
                 showDeleteCategoryDialog = null
             }) {
                 Text("Delete", color = Color.Red)
-            }
-            TextButton(onClick = { showDeleteCategoryDialog = null }) {
-                Text("Cancel", color = TextGold)
             }
         }
     }
@@ -1596,7 +1662,21 @@ fun ManualMenuView(
             title = "Add New Item",
             onDismiss = { showAddItemDialog = false },
             onConfirm = { name, price, type, draftVariants ->
-                onAddItem(name, price, type, draftVariants)
+                val normalizedName = normalizeMenuItemName(name)
+                val existing = visibleMenuItems.firstOrNull {
+                    normalizeMenuItemName(it.menuItem.name) == normalizedName
+                }
+                if (existing != null) {
+                    pendingOverwrite = PendingManualItemOverwrite(
+                        existing = existing,
+                        name = name.trim(),
+                        price = price,
+                        foodType = type,
+                        variants = draftVariants
+                    )
+                } else {
+                    onAddItem(name.trim(), price, type, draftVariants)
+                }
                 showAddItemDialog = false
             }
         )
@@ -1610,17 +1690,10 @@ fun ManualMenuView(
             initialType = itemWithVariants.menuItem.foodType,
             variants = itemWithVariants.variants,
             onDismiss = { showEditItemDialog = null },
-            onConfirm = { name, price, type, _ ->
-                onUpdateItem(itemWithVariants.menuItem.copy(
-                    name = name,
-                    basePrice = price.toString(),
-                    foodType = type
-                ))
+            onConfirm = { name, price, type, updatedVariants ->
+                applyItemDraftToExisting(itemWithVariants, name, price, type, updatedVariants)
                 showEditItemDialog = null
-            },
-            onAddVariant = { name, price -> onAddVariant(itemWithVariants.menuItem.id, name, price) },
-            onUpdateVariant = onUpdateVariant,
-            onDeleteVariant = onDeleteVariant
+            }
         )
     }
 
@@ -1630,14 +1703,17 @@ fun ManualMenuView(
             title = "Delete Item?",
             message = "Are you sure you want to delete \"${showDeleteItemDialog?.name}\"?"
         ) {
+            TextButton(onClick = { showDeleteItemDialog = null }) {
+                Text("Cancel", color = TextGold)
+            }
             TextButton(onClick = {
-                showDeleteItemDialog?.let { onDeleteItem(it) }
+                showDeleteItemDialog?.let {
+                    optimisticallyDeletedItemIds = optimisticallyDeletedItemIds + it.id
+                    onDeleteItem(it)
+                }
                 showDeleteItemDialog = null
             }) {
                 Text("Delete", color = Color.Red)
-            }
-            TextButton(onClick = { showDeleteItemDialog = null }) {
-                Text("Cancel", color = TextGold)
             }
         }
     }
@@ -1743,13 +1819,15 @@ fun CategoryEditDialog(
         }
     ) {
         TextButton(
+            onClick = onDismiss
+        ) {
+            Text("Cancel", color = TextGold)
+        }
+        TextButton(
             onClick = { if (name.isNotBlank()) onConfirm(name) },
             enabled = name.isNotBlank()
         ) {
             Text("Save", color = PrimaryGold)
-        }
-        TextButton(onClick = onDismiss) {
-            Text("Cancel", color = TextGold)
         }
     }
 }
@@ -1762,17 +1840,26 @@ fun ItemEditDialog(
     initialType: String = "veg",
     variants: List<com.khanabook.lite.pos.data.local.entity.ItemVariantEntity> = emptyList(),
     onDismiss: () -> Unit,
-    onConfirm: (String, Double, String, List<Pair<String, Double>>) -> Unit,
-    onAddVariant: (String, Double) -> Unit = { _, _ -> },
-    onUpdateVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit = {},
-    onDeleteVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit = {}
+    onConfirm: (String, Double, String, List<Pair<String, Double>>) -> Unit
 ) {
     var name by remember(initialName) { mutableStateOf(initialName) }
     var price by remember(initialPrice) { mutableStateOf(if (initialPrice == 0.0) "" else initialPrice.toInt().toString()) }
     var foodType by remember(initialType) { mutableStateOf(initialType) }
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var priceError by remember { mutableStateOf<String?>(null) }
+    var variantError by remember { mutableStateOf<String?>(null) }
 
     var showAddVariantDialog by remember { mutableStateOf(false) }
-    var draftVariants by remember { mutableStateOf(listOf<Pair<String, Double>>()) }
+    var editableVariants by remember(variants) {
+        mutableStateOf(
+            variants.map {
+                EditableVariantDraft(
+                    name = it.variantName,
+                    price = it.price.toDoubleOrNull() ?: 0.0
+                )
+            }
+        )
+    }
 
     KhanaBookDialog(
         onDismissRequest = onDismiss,
@@ -1786,30 +1873,48 @@ fun ItemEditDialog(
             ) {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = {
+                        name = it
+                        if (nameError != null) nameError = null
+                    },
                     label = { Text("Item Name", color = TextGold) },
+                    isError = nameError != null,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryGold,
                         unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
                         focusedTextColor = TextLight,
                         unfocusedTextColor = TextLight
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = {
+                        nameError?.let {
+                            Text(it, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
                 )
 
-                if (variants.isEmpty() && draftVariants.isEmpty()) {
+                if (editableVariants.isEmpty()) {
                     OutlinedTextField(
                         value = price,
-                        onValueChange = { price = it },
+                        onValueChange = {
+                            price = it
+                            if (priceError != null) priceError = null
+                        },
                         label = { Text("Base Price (₹)", color = TextGold) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        isError = priceError != null,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = PrimaryGold,
                             unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
                             focusedTextColor = TextLight,
                             unfocusedTextColor = TextLight
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            priceError?.let {
+                                Text(it, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
                     )
                 }
 
@@ -1849,94 +1954,97 @@ fun ItemEditDialog(
                     }
                 }
 
-                variants.forEach { variant ->
+                editableVariants.forEachIndexed { index, variantDraft ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedTextField(
-                            value = variant.variantName,
+                            value = variantDraft.name,
                             onValueChange = {
-                                onUpdateVariant(variant.copy(variantName = it))
+                                editableVariants = editableVariants.toMutableList().also { updated ->
+                                    updated[index] = variantDraft.copy(name = it)
+                                }
+                                if (variantError != null) variantError = null
                             },
                             label = { Text("Name", fontSize = 10.sp) },
-                            modifier = Modifier.weight(1.5f),
+                            modifier = Modifier.weight(0.7f),
                             colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
                         )
                         OutlinedTextField(
-                            value = variant.price.toDoubleOrNull()?.toInt()?.toString() ?: variant.price,
+                            value = if (variantDraft.price == 0.0) "" else variantDraft.price.toInt().toString(),
                             onValueChange = {
-                                it.toDoubleOrNull()?.let { p ->
-                                    onUpdateVariant(variant.copy(price = p.toString()))
+                                val parsed = it.toDoubleOrNull()
+                                if (it.isBlank() || parsed == null || parsed >= 0.0) {
+                                    editableVariants = editableVariants.toMutableList().also { updated ->
+                                        updated[index] = variantDraft.copy(price = parsed ?: 0.0)
+                                    }
+                                    if (variantError != null) variantError = null
                                 }
                             },
                             label = { Text("Price", fontSize = 10.sp) },
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
-                        )
-                        IconButton(onClick = { onDeleteVariant(variant) }) {
-                            Icon(Icons.Default.Delete, null, tint = NonVegRed.copy(alpha = 0.7f), modifier = Modifier.size(KhanaBookTheme.iconSize.small))
-                        }
-                    }
-                }
-                
-                draftVariants.forEachIndexed { index, variantDraft ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = variantDraft.first,
-                            onValueChange = {
-                                val updated = draftVariants.toMutableList()
-                                updated[index] = Pair(it, variantDraft.second)
-                                draftVariants = updated
-                            },
-                            label = { Text("Name", fontSize = 10.sp) },
-                            modifier = Modifier.weight(1.5f),
-                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
-                        )
-                        OutlinedTextField(
-                            value = if (variantDraft.second == 0.0) "" else variantDraft.second.toInt().toString(),
-                            onValueChange = {
-                                val updated = draftVariants.toMutableList()
-                                updated[index] = Pair(variantDraft.first, it.toDoubleOrNull() ?: 0.0)
-                                draftVariants = updated
-                            },
-                            label = { Text("Price", fontSize = 10.sp) },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(0.3f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
                         )
                         IconButton(onClick = {
-                            val updated = draftVariants.toMutableList()
-                            updated.removeAt(index)
-                            draftVariants = updated
+                            editableVariants = editableVariants.toMutableList().also { updated ->
+                                updated.removeAt(index)
+                            }
                         }) {
                             Icon(Icons.Default.Delete, null, tint = NonVegRed.copy(alpha = 0.7f), modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                         }
                     }
                 }
+
+                variantError?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
     ) {
-        TextButton(
-            onClick = { if (name.isNotBlank()) onConfirm(name, price.toDoubleOrNull() ?: 0.0, foodType, draftVariants) },
-            enabled = name.isNotBlank()
-        ) {
-            Text("Save", color = PrimaryGold)
-        }
         TextButton(onClick = onDismiss) {
             Text("Cancel", color = TextGold)
+        }
+        TextButton(
+            onClick = {
+                val normalizedName = name.trim()
+                val parsedPrice = price.toDoubleOrNull()
+                nameError = null
+                priceError = null
+                variantError = null
+
+                val hasInlineVariants = editableVariants.isNotEmpty()
+                val invalidDraftVariant = editableVariants.firstOrNull { it.name.isBlank() || it.price < 0.0 }
+
+                when {
+                    normalizedName.isBlank() -> nameError = "Item name is required"
+                    !hasInlineVariants && price.isBlank() -> priceError = "Enter a valid item price"
+                    !hasInlineVariants && parsedPrice == null -> priceError = "Enter a valid item price"
+                    !hasInlineVariants && (parsedPrice ?: 0.0) < 0.0 -> priceError = "Price cannot be negative"
+                    invalidDraftVariant != null -> variantError = "Enter a valid item price"
+                    else -> onConfirm(
+                        normalizedName,
+                        parsedPrice ?: 0.0,
+                        foodType,
+                        editableVariants.map { it.name.trim() to it.price }
+                    )
+                }
+            }
+        ) {
+            Text("Save", color = PrimaryGold)
         }
     }
 
     if (showAddVariantDialog) {
         var newVName by remember { mutableStateOf("") }
         var newVPrice by remember { mutableStateOf("") }
+        var newVariantError by remember { mutableStateOf<String?>(null) }
 
         KhanaBookDialog(
             onDismissRequest = { showAddVariantDialog = false },
@@ -1944,25 +2052,34 @@ fun ItemEditDialog(
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = newVName, onValueChange = { newVName = it }, label = { Text("Variant Name") })
-                    OutlinedTextField(value = newVPrice, onValueChange = { newVPrice = it }, label = { Text("Price (₹)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                    OutlinedTextField(value = newVPrice, onValueChange = { newVPrice = it; newVariantError = null }, label = { Text("Price (₹)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), isError = newVariantError != null)
+                    newVariantError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             },
         ) {
+            TextButton(onClick = { showAddVariantDialog = false }) {
+                Text("Cancel", color = TextGold)
+            }
             TextButton(onClick = {
-                if (newVName.isNotBlank() && newVPrice.isNotBlank()) {
-                    if (initialName.isNotBlank()) {
-                        onAddVariant(newVName, newVPrice.toDoubleOrNull() ?: 0.0)
-                    } else {
-                        draftVariants = draftVariants + Pair(newVName, newVPrice.toDoubleOrNull() ?: 0.0)
+                val parsedVariantPrice = newVPrice.toDoubleOrNull()
+                when {
+                    newVName.isBlank() -> newVariantError = "Item name is required"
+                    newVPrice.isBlank() || parsedVariantPrice == null -> newVariantError = "Enter a valid item price"
+                    (parsedVariantPrice ?: 0.0) < 0.0 -> newVariantError = "Price cannot be negative"
+                    else -> {
+                        val variantPrice = parsedVariantPrice ?: 0.0
+                        editableVariants = editableVariants + EditableVariantDraft(
+                            name = newVName.trim(),
+                            price = variantPrice
+                        )
                         price = ""
+                        showAddVariantDialog = false
                     }
-                    showAddVariantDialog = false
                 }
             }) {
                 Text("Add", color = PrimaryGold)
-            }
-            TextButton(onClick = { showAddVariantDialog = false }) {
-                Text("Cancel")
             }
         }
     }

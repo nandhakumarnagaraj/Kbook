@@ -1,5 +1,6 @@
 package com.khanabook.saas.service.impl;
 
+import com.khanabook.saas.exception.DuplicateMenuItemException;
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.repository.CategoryRepository;
@@ -10,9 +11,11 @@ import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +30,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 		List<Long> failedLocalIds = new ArrayList<>();
 
 		for (MenuItem item : payload) {
+			validateMenuItem(item);
 			if (item.getServerCategoryId() == null && item.getCategoryId() != null) {
 				Optional<Category> category = categoryRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId,
 						item.getDeviceId(), item.getCategoryId());
@@ -45,6 +49,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 					}
 				}
 			}
+			resolveDuplicateMenuItem(tenantId, item);
 			toSync.add(item);
 		}
 
@@ -61,5 +66,73 @@ public class MenuItemServiceImpl implements MenuItemService {
 		}
 		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
 				deviceId);
+	}
+
+	private void validateMenuItem(MenuItem item) {
+		String collapsedName = collapseWhitespace(item.getName());
+		if (collapsedName.isBlank()) {
+			throw new IllegalArgumentException("Item name is required");
+		}
+		item.setName(collapsedName);
+
+		if (item.getBasePrice() == null) {
+			throw new IllegalArgumentException("Enter a valid item price");
+		}
+		if (item.getBasePrice().compareTo(BigDecimal.ZERO) < 0) {
+			throw new IllegalArgumentException("Price cannot be negative");
+		}
+	}
+
+	private void resolveDuplicateMenuItem(Long tenantId, MenuItem item) {
+		if (item.getCategoryId() == null) {
+			return;
+		}
+
+		Optional<MenuItem> duplicate = repository.findActiveDuplicateByNormalizedName(
+				tenantId,
+				item.getCategoryId(),
+				normalizeMenuItemName(item.getName())
+		);
+
+		if (duplicate.isEmpty()) {
+			return;
+		}
+
+		MenuItem existing = duplicate.get();
+		if (isSameMenuItemRecord(tenantId, item, existing)) {
+			return;
+		}
+
+		if (Boolean.TRUE.equals(item.getOverwriteExisting())) {
+			item.setId(existing.getId());
+			return;
+		}
+
+		throw new DuplicateMenuItemException("Item already exists in this category");
+	}
+
+	private boolean isSameMenuItemRecord(Long tenantId, MenuItem incoming, MenuItem existing) {
+		if (incoming.getId() != null && incoming.getId().equals(existing.getId())) {
+			return true;
+		}
+
+		if (incoming.getDeviceId() != null && incoming.getLocalId() != null) {
+			return repository.findByRestaurantIdAndDeviceIdAndLocalId(
+					tenantId,
+					incoming.getDeviceId(),
+					incoming.getLocalId()
+			).map(record -> record.getId() != null && record.getId().equals(existing.getId()))
+					.orElse(false);
+		}
+
+		return false;
+	}
+
+	private String collapseWhitespace(String value) {
+		return value == null ? "" : value.trim().replaceAll("\\s+", " ");
+	}
+
+	private String normalizeMenuItemName(String value) {
+		return collapseWhitespace(value).toLowerCase(Locale.ROOT);
 	}
 }

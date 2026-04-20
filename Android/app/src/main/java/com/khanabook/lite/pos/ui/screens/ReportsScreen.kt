@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.content.Intent
 import androidx.compose.material.icons.Icons
@@ -253,16 +254,22 @@ fun ReportsScreen(
             Spacer(modifier = Modifier.height(spacing.medium))
 
             // Show skeleton while loading, otherwise show content
-            if (isLoading) {
-                SkeletonReportScreen(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                )
-            } else if (reportType == "Payment") {
-                PaymentLevelView(paymentBreakdown, settingsViewModel)
-            } else {
-                Column(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                if (isLoading) {
+                    SkeletonReportScreen(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else if (reportType == "Payment") {
+                    PaymentLevelView(
+                        breakdown = paymentBreakdown,
+                        settingsViewModel = settingsViewModel,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
                     OrderLevelView(orderLevelRows, profile) { billId ->
                         selectedBillId = billId
                         viewModel.loadBillDetails(billId)
@@ -270,10 +277,8 @@ fun ReportsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(spacing.small))
-
-            Button(
-                onClick = {
+            ReportDownloadBottomBar(
+                onDownloadClick = {
                     scope.launch {
                         val file = viewModel.exportReport(context, "PDF", profile)
                         val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
@@ -284,29 +289,8 @@ fun ReportsScreen(
                         }
                         context.startActivity(Intent.createChooser(intent, "Save / Share PDF"))
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .padding(horizontal = spacing.medium),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    Icons.Default.Download,
-                    contentDescription = null,
-                    tint = DarkBrown1,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(spacing.small))
-                Text(
-                    "Download Reports",
-                    color = DarkBrown1,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(spacing.small))
+                }
+            )
         }
 
         // KhanaBookLoadingOverlay retained only for bill detail fetch (dialog)
@@ -378,7 +362,11 @@ fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, mo
 }
 
 @Composable
-fun PaymentLevelView(breakdown: Map<String, String>, settingsViewModel: com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel) {
+fun PaymentLevelView(
+    breakdown: Map<String, String>,
+    settingsViewModel: com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel,
+    modifier: Modifier = Modifier
+) {
     val profile by settingsViewModel.profile.collectAsState()
     val spacing = KhanaBookTheme.spacing
     
@@ -388,7 +376,7 @@ fun PaymentLevelView(breakdown: Map<String, String>, settingsViewModel: com.khan
     val partModes = enabledModes.filter { com.khanabook.lite.pos.domain.manager.PaymentModeManager.isPartPayment(it) }
 
     LazyColumn(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = spacing.medium),
         verticalArrangement = Arrangement.spacedBy(spacing.small),
@@ -435,6 +423,43 @@ fun PaymentLevelView(breakdown: Map<String, String>, settingsViewModel: com.khan
         }
         
         item { Spacer(modifier = Modifier.height(spacing.small)) }
+    }
+}
+
+@Composable
+fun ReportDownloadBottomBar(
+    onDownloadClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = spacing.small, bottom = spacing.small)
+    ) {
+        Button(
+            onClick = onDownloadClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .padding(horizontal = spacing.medium),
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(
+                Icons.Default.Download,
+                contentDescription = null,
+                tint = DarkBrown1,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(spacing.small))
+            Text(
+                "Download Reports",
+                color = DarkBrown1,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+        }
     }
 }
 

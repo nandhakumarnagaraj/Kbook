@@ -104,7 +104,7 @@ class SyncManager @Inject constructor(
         if (mergedResponse.serverTimestamp > 0) {
             sessionManager.saveLastSyncTimestamp(mergedResponse.serverTimestamp)
         } else {
-            sessionManager.saveLastSyncTimestamp(System.currentTimeMillis())
+            throw IllegalStateException("Master sync response missing server timestamp")
         }
     }
 

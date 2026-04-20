@@ -822,11 +822,11 @@ private fun CartItemNoteDialog(initialNote: String, itemName: String, onDismiss:
             )
         }
     ) {
-        TextButton(onClick = { onSave(noteText.trim()) }) {
-            Text("Save", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
-        }
         TextButton(onClick = onDismiss) {
             Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
+        }
+        TextButton(onClick = { onSave(noteText.trim()) }) {
+            Text("Save", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
         }
     }
 }

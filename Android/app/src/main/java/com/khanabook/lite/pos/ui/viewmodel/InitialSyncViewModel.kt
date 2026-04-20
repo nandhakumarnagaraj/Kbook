@@ -48,7 +48,7 @@ class InitialSyncViewModel @Inject constructor(
                     val error = result.exceptionOrNull()
                     Log.e("InitialSyncViewModel", "Master pull failed", error)
                     if (error is HttpException && error.code() == 401) {
-                        sessionManager.clearSession()
+                        sessionManager.invalidateAuthSession()
                         _syncState.value = InitialSyncState.SessionExpired
                     } else if (error is android.database.sqlite.SQLiteException) {
                         _syncState.value = InitialSyncState.Error(
@@ -63,7 +63,7 @@ class InitialSyncViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e("InitialSyncViewModel", "Unexpected error during initial sync", e)
                 if (e is HttpException && e.code() == 401) {
-                    sessionManager.clearSession()
+                    sessionManager.invalidateAuthSession()
                     _syncState.value = InitialSyncState.SessionExpired
                 } else if (e is android.database.sqlite.SQLiteException) {
                     _syncState.value = InitialSyncState.Error(

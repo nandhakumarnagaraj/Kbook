@@ -347,17 +347,20 @@ class BillingViewModel @Inject constructor(
             if (inserted != null && status == PaymentStatus.SUCCESS) {
                 viewModelScope.launch(Dispatchers.IO) {
                     try {
-                        val kitchenConfigured = isKitchenPrinterConfigured()
                         val result = printRouter.printBill(inserted, profile, PrintDispatchMode.AUTO)
-                        val kitchenQueued = kitchenPrintQueueRepository.hasPendingForBill(inserted.bill.id)
+                        val kitchenQueued = result.kitchenQueued ||
+                            kitchenPrintQueueRepository.hasPendingForBill(inserted.bill.id)
                         if (result.attempted == 0) {
                             withContext(Dispatchers.Main) {
-                                _printStatus.value = if (kitchenConfigured && !kitchenQueued) {
-                                    "No auto-print target configured."
-                                } else if (kitchenQueued) {
-                                    "Kitchen printer not configured. Bill saved. KDS queued."
+                                _printStatus.value = if (kitchenQueued) {
+                                    when (result.kitchenQueueReason) {
+                                        "not_configured" ->
+                                            "Kitchen printer not configured. Bill saved. KDS queued."
+                                        else ->
+                                            "Kitchen printer offline. Bill saved. KDS queued."
+                                    }
                                 } else {
-                                    "Kitchen printer not configured. Bill saved."
+                                    "No auto-print target configured."
                                 }
                             }
                         } else if (kitchenQueued && result.succeeded > 0) {
@@ -370,7 +373,12 @@ class BillingViewModel @Inject constructor(
                             }
                         } else if (kitchenQueued) {
                             withContext(Dispatchers.Main) {
-                                _printStatus.value = "Kitchen printer not configured. Bill saved. KDS queued."
+                                _printStatus.value = when (result.kitchenQueueReason) {
+                                    "not_configured" ->
+                                        "Kitchen printer not configured. Bill saved. KDS queued."
+                                    else ->
+                                        "Kitchen printer offline. Bill saved. KDS queued."
+                                }
                             }
                         } else if (result.failures.isEmpty()) {
                             withContext(Dispatchers.Main) {
@@ -547,11 +555,6 @@ class BillingViewModel @Inject constructor(
         val success = buildPrintStatusMessage("Printed", result.successTargets)
         val failureCount = result.failures.size
         return "$success $failureCount printer task${if (failureCount == 1) "" else "s"} failed."
-    }
-
-    private suspend fun isKitchenPrinterConfigured(): Boolean {
-        val kitchenPrinter = printerProfileRepository.getByRole(PrinterRole.KITCHEN.name)
-        return kitchenPrinter?.enabled == true && kitchenPrinter.macAddress.isNotBlank()
     }
 
     private suspend fun openBillPdfFallback(

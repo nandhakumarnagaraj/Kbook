@@ -216,6 +216,29 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().remove(KEY_LAST_BACKGROUND_TIME).apply()
     }
 
+    fun invalidateAuthSession() {
+        if (BuildConfig.DEBUG) {
+            val tokenBefore = securePrefs.getString("auth_token", null)
+            Log.d(
+                debugTag,
+                "invalidateAuthSession tokenBeforePresent=${!tokenBefore.isNullOrBlank()}"
+            )
+        }
+
+        sessionCheckJob?.cancel()
+        securePrefs.remove("auth_token")
+        clearLocalUserSession()
+        _isSessionExpired.value = true
+
+        if (BuildConfig.DEBUG) {
+            val tokenAfter = securePrefs.getString("auth_token", null)
+            Log.d(
+                debugTag,
+                "invalidateAuthSession tokenAfterPresent=${!tokenAfter.isNullOrBlank()}"
+            )
+        }
+    }
+
     fun clearSession() {
         if (BuildConfig.DEBUG) {
             val tokenBefore = securePrefs.getString("auth_token", null)

@@ -118,6 +118,7 @@ public class SyncMapper {
                 entity.setServerUpdatedAt(dto.getServerUpdatedAt());
                 entity.setCategoryId(dto.getCategoryId());
                 entity.setServerCategoryId(dto.getServerCategoryId());
+                entity.setOverwriteExisting(dto.getOverwriteExisting());
             } else if (source instanceof ItemVariantDTO dto) {
                 ItemVariant entity = (ItemVariant) target;
                 entity.setId(dto.getId());

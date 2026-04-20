@@ -87,6 +87,16 @@ public class GlobalExceptionHandler {
 		));
 	}
 
+	@ExceptionHandler(DuplicateMenuItemException.class)
+	public ResponseEntity<Map<String, Object>> handleDuplicateMenuItem(
+			DuplicateMenuItemException e, HttpServletRequest request) {
+		log.warn("Duplicate menu item [{}]: {}", request.getRequestURI(), e.getMessage());
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+				"error", e.getMessage(),
+				"path", request.getRequestURI()
+		));
+	}
+
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<Map<String, Object>> handleGeneralException(
 			Exception e, HttpServletRequest request) {

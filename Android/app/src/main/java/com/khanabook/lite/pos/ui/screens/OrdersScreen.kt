@@ -640,40 +640,45 @@ fun PartAmountDialog(
                     color = TextLight,
                     style = MaterialTheme.typography.bodyMedium
                 )
-                OutlinedTextField(
-                    value = p1Text,
-                    onValueChange = { p1Text = it },
-                    label = { Text("${labels.first} Amount", color = TextGold.copy(alpha = 0.6f)) },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    isError = !isValid,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryGold,
-                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                        focusedTextColor = TextLight,
-                        unfocusedTextColor = TextLight
-                    ),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
-                    ),
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = p2Text,
-                    onValueChange = { p2Text = it },
-                    label = { Text("${labels.second} Amount", color = TextGold.copy(alpha = 0.6f)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = !isValid,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryGold,
-                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                        focusedTextColor = TextLight,
-                        unfocusedTextColor = TextLight
-                    ),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
-                    ),
-                    singleLine = true
-                )
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    OutlinedTextField(
+                        value = p1Text,
+                        onValueChange = { p1Text = it },
+                        label = { Text("${labels.first} Amount", color = TextGold.copy(alpha = 0.6f)) },
+                        modifier = Modifier.weight(1f),
+                        isError = !isValid,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryGold,
+                            unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                            focusedTextColor = TextLight,
+                            unfocusedTextColor = TextLight
+                        ),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                        ),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = p2Text,
+                        onValueChange = { p2Text = it },
+                        label = { Text("${labels.second} Amount", color = TextGold.copy(alpha = 0.6f)) },
+                        modifier = Modifier.weight(1f),
+                        isError = !isValid,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryGold,
+                            unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                            focusedTextColor = TextLight,
+                            unfocusedTextColor = TextLight
+                        ),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                        ),
+                        singleLine = true
+                    )
+                }
                 if (!isValid) {
                     Text(
                         "Sum must equal ${CurrencyUtils.formatPrice(totalAmount)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
@@ -684,14 +689,14 @@ fun PartAmountDialog(
             }
         }
     ) {
+        TextButton(onClick = onDismiss) {
+            Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
+        }
         TextButton(
             onClick = { onConfirm(p1Text, p2Text) },
             enabled = isValid
         ) {
             Text("Confirm", color = PrimaryGold, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-        }
-        TextButton(onClick = onDismiss) {
-            Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
         }
     }
 }

@@ -117,11 +117,11 @@ fun ShopConfigView(
             title = "Unsaved Changes",
             message = "You have unsaved changes. Discard them?"
         ) {
-            TextButton(onClick = { showUnsavedDialog = false; onBack() }) {
-                Text("Discard", color = DangerRed, style = MaterialTheme.typography.labelLarge)
-            }
             TextButton(onClick = { showUnsavedDialog = false }) {
                 Text("Keep Editing", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+            }
+            TextButton(onClick = { showUnsavedDialog = false; onBack() }) {
+                Text("Discard", color = DangerRed, style = MaterialTheme.typography.labelLarge)
             }
         }
     }

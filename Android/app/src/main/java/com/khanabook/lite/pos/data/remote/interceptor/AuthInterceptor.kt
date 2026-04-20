@@ -27,9 +27,9 @@ class AuthInterceptor @Inject constructor(private val sessionManager: SessionMan
 
     val response = chain.proceed(requestBuilder.build())
 
-    // If the server rejects our token, clear the session so the UI navigates to login
+    // If the server rejects our token, clear auth state but preserve local app state.
     if (response.code == 401 && !isPublicAuthPath) {
-        sessionManager.clearSession()
+        sessionManager.invalidateAuthSession()
     }
 
     return response

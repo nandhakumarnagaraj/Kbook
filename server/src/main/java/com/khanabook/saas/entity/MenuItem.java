@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Index;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -49,6 +50,9 @@ public class MenuItem extends BaseSyncEntity {
 
 	@Column(name = "low_stock_threshold", columnDefinition = "NUMERIC(12,4)")
 	private java.math.BigDecimal lowStockThreshold;
+
+	@Transient
+	private Boolean overwriteExisting = false;
 
 	public enum StockStatus {
 		IN_STOCK, RUNNING_LOW, OUT_OF_STOCK

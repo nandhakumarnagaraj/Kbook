@@ -22,7 +22,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 38,
+        version = 39,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -37,6 +37,30 @@ abstract class AppDatabase : RoomDatabase() {
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
+
+            val MIGRATION_38_39 = object : Migration(38, 39) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        """
+                        ALTER TABLE `kitchen_print_queue`
+                        ADD COLUMN `dispatch_status` TEXT NOT NULL DEFAULT 'pending'
+                        """.trimIndent()
+                    )
+                    db.execSQL(
+                        """
+                        ALTER TABLE `kitchen_print_queue`
+                        ADD COLUMN `last_attempt_at` INTEGER
+                        """.trimIndent()
+                    )
+                    db.execSQL(
+                        """
+                        UPDATE `kitchen_print_queue`
+                        SET `dispatch_status` = 'pending'
+                        WHERE `dispatch_status` IS NULL OR `dispatch_status` = ''
+                        """.trimIndent()
+                    )
+                }
+            }
 
             val MIGRATION_37_38 = object : Migration(37, 38) {
                 override fun migrate(db: SupportSQLiteDatabase) {

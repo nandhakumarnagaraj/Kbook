@@ -73,14 +73,6 @@ object DatabaseModule {
         securePrefs.putString(DB_KEY_PREF, legacyDbKey)
     }
 
-    private fun clearDbPassphrase(context: Context) {
-        runCatching {
-            getSecureDbPrefs(context).remove(DB_KEY_PREF)
-        }.onFailure {
-            Log.e(TAG, "Failed to clear stored DB passphrase during recovery.", it)
-        }
-    }
-
     private fun shouldRecoverFromDbOpenFailure(error: Throwable): Boolean {
         var current: Throwable? = error
         while (current != null) {
@@ -97,11 +89,20 @@ object DatabaseModule {
         return false
     }
 
-    private fun deleteDatabaseFiles(context: Context) {
-        context.deleteDatabase(AppDatabase.DATABASE_NAME)
-        context.getDatabasePath("${AppDatabase.DATABASE_NAME}-wal").delete()
-        context.getDatabasePath("${AppDatabase.DATABASE_NAME}-shm").delete()
-        context.getDatabasePath("${AppDatabase.DATABASE_NAME}-journal").delete()
+    private fun quarantineDatabaseFiles(context: Context): List<String> {
+        val suffix = ".corrupt-${System.currentTimeMillis()}"
+        val paths = listOf(
+            context.getDatabasePath(AppDatabase.DATABASE_NAME),
+            context.getDatabasePath("${AppDatabase.DATABASE_NAME}-wal"),
+            context.getDatabasePath("${AppDatabase.DATABASE_NAME}-shm"),
+            context.getDatabasePath("${AppDatabase.DATABASE_NAME}-journal")
+        )
+
+        return paths.mapNotNull { source ->
+            if (!source.exists()) return@mapNotNull null
+            val target = java.io.File(source.absolutePath + suffix)
+            if (source.renameTo(target)) target.absolutePath else null
+        }
     }
 
     private fun buildDatabase(context: Context, passphrase: ByteArray): AppDatabase {
@@ -129,7 +130,8 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_34_35,
                 AppDatabase.MIGRATION_35_36,
                 AppDatabase.MIGRATION_36_37,
-                AppDatabase.MIGRATION_37_38
+                AppDatabase.MIGRATION_37_38,
+                AppDatabase.MIGRATION_38_39
             )
             .build()
     }
@@ -146,14 +148,23 @@ object DatabaseModule {
                 throw e
             }
 
-            Log.w(TAG, "Detected unusable encrypted database. Resetting local DB and passphrase.", e)
-            runCatching { deleteDatabaseFiles(context) }
-                .onFailure { Log.e(TAG, "Failed to delete local DB files during recovery.", it) }
-            clearDbPassphrase(context)
+            val quarantinedFiles = runCatching { quarantineDatabaseFiles(context) }
+                .getOrElse {
+                    Log.e(TAG, "Failed to quarantine unusable encrypted database.", it)
+                    emptyList()
+                }
 
-            val recoveredDb = buildDatabase(context, getOrCreateDbPassphrase(context))
-            recoveredDb.openHelper.writableDatabase
-            recoveredDb
+            Log.e(
+                TAG,
+                "Detected unusable encrypted database. Failing safe to avoid silent local data loss. Quarantined files=$quarantinedFiles",
+                e
+            )
+            throw IllegalStateException(
+                "Local billing database could not be opened safely. " +
+                    "Automatic reset is disabled to avoid data loss. " +
+                    "Quarantined files: ${quarantinedFiles.joinToString()}",
+                e
+            )
         }
     }
 

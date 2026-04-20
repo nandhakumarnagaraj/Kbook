@@ -42,20 +42,30 @@ class KitchenPrintQueueManager @Inject constructor(
 
     fun initialize() = Unit
 
-    suspend fun enqueue(billId: Long, printerMac: String, error: String?) {
-        queueRepository.enqueueOrUpdate(billId, printerMac, error)
+    suspend fun enqueue(
+        billId: Long,
+        printerMac: String,
+        error: String?,
+        incrementAttempts: Boolean = false
+    ) {
+        queueRepository.enqueuePending(billId, printerMac, error, incrementAttempts)
     }
 
     suspend fun enqueueUnassigned(billId: Long, error: String?) {
-        queueRepository.enqueueOrUpdate(
+        queueRepository.enqueuePending(
             billId,
             KitchenPrintQueueRepository.UNASSIGNED_PRINTER_MAC,
-            error
+            error,
+            incrementAttempts = false
         )
     }
 
+    suspend fun claimPendingForDirectPrint(billId: Long, printerMac: String): Boolean {
+        return queueRepository.claimPendingForDirectPrint(billId, printerMac)
+    }
+
     suspend fun markPrinted(billId: Long, printerMac: String) {
-        queueRepository.deleteByBillAndPrinter(billId, printerMac)
+        queueRepository.markSentIfPresent(billId, printerMac)
     }
 
     suspend fun clearForBill(billId: Long) {
@@ -78,11 +88,8 @@ class KitchenPrintQueueManager @Inject constructor(
         val restaurantProfile = restaurantRepository.getProfile() ?: return
 
         for (job in queue) {
-            // Freshness check: if a concurrent direct print (printBill) already pre-cleared this
-            // entry before we got here, skip it — the ticket has already been (or is being) sent.
-            val stillPending = queueRepository.getByBillAndPrinter(job.billId, job.printerMac)
-            if (stillPending == null) {
-                Log.d(TAG, "Skipping billId=${job.billId}: already claimed by concurrent direct print")
+            if (!queueRepository.claimPendingForRetry(job.id)) {
+                Log.d(TAG, "Skipping billId=${job.billId}: queue entry already claimed elsewhere")
                 continue
             }
 
@@ -100,25 +107,21 @@ class KitchenPrintQueueManager @Inject constructor(
             }
 
             try {
-                if (!printerManager.connect(printerMac)) {
-                    queueRepository.enqueueOrUpdate(job.billId, job.printerMac, "connection failed")
+                if (!printerManager.isConnectedTo(printerMac) && !printerManager.connect(printerMac)) {
+                    queueRepository.markPending(job.id, "connection failed")
                     break
                 }
 
                 val bytes = KitchenTicketFormatter.format(bill, restaurantProfile, printerProfile)
                 if (printerManager.printBytes(bytes)) {
-                    queueRepository.deleteById(job.id)
+                    queueRepository.markSent(job.id)
                 } else {
-                    queueRepository.enqueueOrUpdate(job.billId, job.printerMac, "print failed")
+                    queueRepository.markPending(job.id, "print failed")
                     break
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed retrying queued kitchen ticket for billId=${job.billId}", e)
-                queueRepository.enqueueOrUpdate(
-                    job.billId,
-                    job.printerMac,
-                    e.message ?: "unexpected error"
-                )
+                queueRepository.markPending(job.id, e.message ?: "unexpected error")
                 break
             }
         }

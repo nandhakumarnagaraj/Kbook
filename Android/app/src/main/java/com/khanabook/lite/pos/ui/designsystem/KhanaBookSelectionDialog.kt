@@ -103,10 +103,10 @@ fun <T> KhanaBookSelectionDialog(
             }
         }
     ) {
-        actions?.invoke()
         TextButton(onClick = onDismissRequest) {
             Text(cancelLabel, color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
         }
+        actions?.invoke()
     }
 }
 

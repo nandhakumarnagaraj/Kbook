@@ -36,6 +36,7 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold

@@ -202,6 +202,15 @@ private fun LegacyLogoutSectionUnused(viewModel: com.khanabook.lite.pos.ui.viewm
         ) {
             TextButton(
                 onClick = {
+                    showPinDialog = false
+                    appLockViewModel.clearPin()
+                    viewModel.cancelLogout()
+                }
+            ) {
+                Text("Cancel", color = PrimaryGold)
+            }
+            TextButton(
+                onClick = {
                     if (isPinEnabled) {
                         appLockViewModel.clearPin()
                         showPinDialog = true
@@ -211,15 +220,6 @@ private fun LegacyLogoutSectionUnused(viewModel: com.khanabook.lite.pos.ui.viewm
                 }
             ) {
                 Text(if (isPinEnabled) "Enter PIN" else "Logout Anyway", color = DangerRed)
-            }
-            TextButton(
-                onClick = {
-                    showPinDialog = false
-                    appLockViewModel.clearPin()
-                    viewModel.cancelLogout()
-                }
-            ) {
-                Text("Cancel", color = PrimaryGold)
             }
         }
     }

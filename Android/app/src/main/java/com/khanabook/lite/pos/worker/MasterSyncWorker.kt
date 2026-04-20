@@ -113,7 +113,7 @@ constructor(
 
           if (e is HttpException) {
             if (e.code() == 401) {
-              sessionManager.clearSession()
+              sessionManager.invalidateAuthSession()
               return@withContext Result.failure()
             }
             if (e.code() == 403) {
