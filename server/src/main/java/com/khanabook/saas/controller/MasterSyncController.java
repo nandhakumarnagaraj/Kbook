@@ -51,19 +51,24 @@ public class MasterSyncController {
 		}
 
 		long currentServerTime = System.currentTimeMillis();
-		boolean shouldIgnoreDeviceId = ignoreDeviceId || (lastSyncTimestamp == null || lastSyncTimestamp == 0);
+		boolean firstSync = lastSyncTimestamp == null || lastSyncTimestamp == 0;
+		// First sync should bootstrap shared restaurant configuration and catalog data,
+		// but transactional data must stay device-scoped unless the caller explicitly
+		// requests a cross-device recovery pull.
+		boolean sharedDataCrossDevice = ignoreDeviceId || firstSync;
+		boolean transactionalCrossDevice = ignoreDeviceId;
 
 		MasterSyncResponseDTO response = new MasterSyncResponseDTO();
 		response.setServerTimestamp(currentServerTime);
-		response.setProfiles(SyncMapper.mapList(restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), RestaurantProfileDTO.class));
-		response.setUsers(SyncMapper.mapList(userService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), UserDTO.class));
-		response.setCategories(SyncMapper.mapList(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), CategoryDTO.class));
-		response.setMenuItems(SyncMapper.mapList(menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), MenuItemDTO.class));
-		response.setItemVariants(SyncMapper.mapList(itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), ItemVariantDTO.class));
-		response.setStockLogs(SyncMapper.mapList(stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), StockLogDTO.class));
-		response.setBills(SyncMapper.mapList(billService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), BillDTO.class));
-		response.setBillItems(SyncMapper.mapList(billItemService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), BillItemDTO.class));
-		response.setBillPayments(SyncMapper.mapList(billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), BillPaymentDTO.class));
+		response.setProfiles(SyncMapper.mapList(restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), RestaurantProfileDTO.class));
+		response.setUsers(SyncMapper.mapList(userService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), UserDTO.class));
+		response.setCategories(SyncMapper.mapList(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), CategoryDTO.class));
+		response.setMenuItems(SyncMapper.mapList(menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), MenuItemDTO.class));
+		response.setItemVariants(SyncMapper.mapList(itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), ItemVariantDTO.class));
+		response.setStockLogs(SyncMapper.mapList(stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), StockLogDTO.class));
+		response.setBills(SyncMapper.mapList(billService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), BillDTO.class));
+		response.setBillItems(SyncMapper.mapList(billItemService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), BillItemDTO.class));
+		response.setBillPayments(SyncMapper.mapList(billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), BillPaymentDTO.class));
 
 		int profilesCount = response.getProfiles() == null ? 0 : response.getProfiles().size();
 		int usersCount = response.getUsers() == null ? 0 : response.getUsers().size();
@@ -75,9 +80,10 @@ public class MasterSyncController {
 		int billItemsCount = response.getBillItems() == null ? 0 : response.getBillItems().size();
 		int billPaymentsCount = response.getBillPayments() == null ? 0 : response.getBillPayments().size();
 
-		log.info("Master sync pull tenantId={} deviceId={} profiles={} users={} categories={} " +
+		log.info("Master sync pull tenantId={} deviceId={} firstSync={} explicitIgnoreDeviceId={} sharedDataCrossDevice={} transactionalCrossDevice={} profiles={} users={} categories={} " +
 				"menuItems={} variants={} stockLogs={} bills={} billItems={} billPayments={}",
-				tenantId, deviceId, profilesCount, usersCount, categoriesCount,
+				tenantId, deviceId, firstSync, ignoreDeviceId, sharedDataCrossDevice, transactionalCrossDevice,
+				profilesCount, usersCount, categoriesCount,
 				menuItemsCount, itemVariantsCount, stockLogsCount, billsCount, billItemsCount, billPaymentsCount);
 
 		return ResponseEntity.ok(response);

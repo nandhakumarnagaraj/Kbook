@@ -2,6 +2,7 @@ package com.khanabook.saas.controller;
 
 import com.khanabook.saas.entity.TokenBlocklist;
 import com.khanabook.saas.repository.TokenBlocklistRepository;
+import com.khanabook.saas.security.TokenRevocationCache;
 import com.khanabook.saas.service.AuthService;
 import com.khanabook.saas.service.OtpRateLimiter;
 import com.khanabook.saas.utility.JwtUtility;
@@ -32,6 +33,7 @@ public class AuthController {
 	private final AuthService authService;
 	private final JwtUtility jwtUtility;
 	private final TokenBlocklistRepository tokenBlocklistRepository;
+	private final TokenRevocationCache tokenRevocationCache;
 	private final OtpRateLimiter otpRateLimiter;
 
 	@PostMapping("/login")
@@ -85,6 +87,7 @@ public class AuthController {
 				if (jti != null) {
 					tokenBlocklistRepository.save(
 							new TokenBlocklist(jti, expiresAt, System.currentTimeMillis()));
+					tokenRevocationCache.revoke(jti, expiresAt);
 				}
 			} catch (Exception e) {
 				// Token may already be expired — logout is still considered successful

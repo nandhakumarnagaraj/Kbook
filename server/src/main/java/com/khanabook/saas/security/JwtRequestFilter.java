@@ -18,7 +18,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 @RequiredArgsConstructor
@@ -29,11 +28,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 	private final JwtUtility jwtUtility;
 	private final UserRepository userRepository;
 	private final TokenBlocklistRepository tokenBlocklistRepository;
-
-	// In-memory cache: jti -> expiresAt (ms). Avoids DB hit on every request.
-	// Capped at 10 000 entries to prevent unbounded memory growth from token spam.
-	private static final int REVOKED_JTI_CACHE_MAX = 10_000;
-	private final ConcurrentHashMap<String, Long> revokedJtiCache = new ConcurrentHashMap<>();
+	private final TokenRevocationCache tokenRevocationCache;
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -46,19 +41,16 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 			try {
 				if (!jwtUtility.isTokenExpired(jwt)) {
-					// Check token revocation blocklist (in-memory cache first)
+					// Check token revocation — shared cache first (zero-latency for tokens
+					// revoked since this JVM started), then DB fallback for older revocations.
 					String jti = jwtUtility.extractJti(jwt);
 					if (jti != null) {
-						long now = System.currentTimeMillis();
-						// Evict expired entries opportunistically
-						revokedJtiCache.entrySet().removeIf(e -> e.getValue() < now);
-						boolean revoked = revokedJtiCache.containsKey(jti);
+						boolean revoked = tokenRevocationCache.isRevoked(jti);
 						if (!revoked && tokenBlocklistRepository.existsByJti(jti)) {
-							Long expiresAt = jwtUtility.extractExpiration(jwt) != null
-									? jwtUtility.extractExpiration(jwt).getTime() : now + 3600_000L;
-							if (revokedJtiCache.size() < REVOKED_JTI_CACHE_MAX) {
-								revokedJtiCache.put(jti, expiresAt);
-							}
+							long expiresAt = jwtUtility.extractExpiration(jwt) != null
+									? jwtUtility.extractExpiration(jwt).getTime()
+									: System.currentTimeMillis() + 3600_000L;
+							tokenRevocationCache.populateFromDb(jti, expiresAt);
 							revoked = true;
 						}
 						if (revoked) {
