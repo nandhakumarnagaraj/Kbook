@@ -92,11 +92,16 @@ public class GenericSyncService {
 			return new PushSyncResponse(new ArrayList<>(), new ArrayList<>());
 		}
 
-		// Cross-tenant guard for OWNER: every record must carry a matching restaurantId.
-		// Null restaurantId is rejected — it would let data slip into a null-tenant bucket.
+		// Cross-tenant guard for OWNER: reject records that explicitly carry a *different*
+		// restaurant's ID. Null or 0 means "client hasn't set it yet" — the server assigns
+		// tenantId below, so these are safe to accept.
 		if (!isKbookAdmin) {
 			for (T record : payload) {
-				if (record.getRestaurantId() == null || !record.getRestaurantId().equals(tenantId)) {
+				Long rid = record.getRestaurantId();
+				if (rid == null || rid == 0L) {
+					log.warn("restaurantId unset on {} record (device={}) — will be assigned tenantId={}",
+							record.getClass().getSimpleName(), record.getDeviceId(), tenantId);
+				} else if (!rid.equals(tenantId)) {
 					throw new org.springframework.security.access.AccessDeniedException(
 							"Permission denied: Accessing other restaurant data is forbidden.");
 				}

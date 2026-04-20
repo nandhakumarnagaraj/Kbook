@@ -22,7 +22,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 37,
+        version = 38,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -37,6 +37,26 @@ abstract class AppDatabase : RoomDatabase() {
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
+
+            val MIGRATION_37_38 = object : Migration(37, 38) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Backfill restaurant_id=0 on bills/items/payments using the stored profile.
+                    // These were created before restaurantId was set in session (e.g. first login,
+                    // reinstall) and were stuck unsynced because the server rejected restaurantId=0.
+                    val tables = arrayOf("bills", "bill_items", "bill_payments")
+                    for (table in tables) {
+                        db.execSQL("""
+                            UPDATE `$table`
+                            SET restaurant_id = (
+                                SELECT restaurant_id FROM restaurant_profile
+                                WHERE restaurant_id > 0 LIMIT 1
+                            )
+                            WHERE (restaurant_id = 0 OR restaurant_id IS NULL)
+                            AND (SELECT COUNT(*) FROM restaurant_profile WHERE restaurant_id > 0) > 0
+                        """.trimIndent())
+                    }
+                }
+            }
 
             val MIGRATION_35_36 = object : Migration(35, 36) {
                 override fun migrate(db: SupportSQLiteDatabase) {

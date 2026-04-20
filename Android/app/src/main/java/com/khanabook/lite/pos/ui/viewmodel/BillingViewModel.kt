@@ -238,6 +238,12 @@ class BillingViewModel @Inject constructor(
             // Use cached profile — no extra DB read needed
             val profile = _cachedProfile.value ?: restaurantRepository.getProfile() ?: return false
 
+            val restaurantId = sessionManager.getRestaurantId()
+            if (restaurantId == 0L) {
+                _error.value = "Account not set up. Please log out and log in again."
+                return false
+            }
+
             // Re-use the already-computed summary (produced by the debounced cart+profile combine)
             // instead of recalculating subtotal/tax/total from scratch.
             val finalSummary = _billSummary.value

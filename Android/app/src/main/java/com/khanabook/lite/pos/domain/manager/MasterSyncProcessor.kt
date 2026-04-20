@@ -176,23 +176,29 @@ class MasterSyncProcessor @Inject constructor(
             markSynced = inventoryDao::markStockLogsAsSynced
         )
 
+        val unsyncedBills = billDao.getUnsyncedBills()
+        val validBills = unsyncedBills.filter { it.restaurantId == restaurantId }
+        val skippedBills = unsyncedBills.size - validBills.size
+        if (skippedBills > 0) {
+            Log.w("MasterSyncProcessor", "Skipping $skippedBills bill(s) with mismatched restaurantId (expected=$restaurantId)")
+        }
         pushBatches(
             label = "bills",
-            records = billDao.getUnsyncedBills(),
+            records = validBills,
             push = api::pushBills,
             markSynced = billDao::markBillsAsSynced
         )
 
         pushBatches(
             label = "bill items",
-            records = billDao.getUnsyncedBillItems(),
+            records = billDao.getUnsyncedBillItems().filter { it.restaurantId == restaurantId },
             push = api::pushBillItems,
             markSynced = billDao::markBillItemsAsSynced
         )
 
         pushBatches(
             label = "bill payments",
-            records = billDao.getUnsyncedBillPayments(),
+            records = billDao.getUnsyncedBillPayments().filter { it.restaurantId == restaurantId },
             push = api::pushBillPayments,
             markSynced = billDao::markBillPaymentsAsSynced
         )
