@@ -38,21 +38,21 @@ public class GenericSyncService {
 		}
 
 		if (incomingUser.getLoginId() != null && !incomingUser.getLoginId().isBlank()) {
-			Optional<User> byLoginId = userRepository.findByLoginId(incomingUser.getLoginId());
+			Optional<User> byLoginId = userRepository.findByLoginIdIgnoreCase(incomingUser.getLoginId());
 			if (byLoginId.isPresent() && byLoginId.get().getRestaurantId().equals(tenantId)) {
 				return byLoginId.get();
 			}
 		}
 
 		if (incomingUser.getEmail() != null && !incomingUser.getEmail().isBlank()) {
-			Optional<User> byEmail = userRepository.findByEmail(incomingUser.getEmail());
+			Optional<User> byEmail = userRepository.findByEmailIgnoreCase(incomingUser.getEmail());
 			if (byEmail.isPresent() && byEmail.get().getRestaurantId().equals(tenantId)) {
 				return byEmail.get();
 			}
 		}
 
 		if (incomingUser.getGoogleEmail() != null && !incomingUser.getGoogleEmail().isBlank()) {
-			Optional<User> byGoogleEmail = userRepository.findByGoogleEmail(incomingUser.getGoogleEmail());
+			Optional<User> byGoogleEmail = userRepository.findByGoogleEmailIgnoreCase(incomingUser.getGoogleEmail());
 			if (byGoogleEmail.isPresent() && byGoogleEmail.get().getRestaurantId().equals(tenantId)) {
 				return byGoogleEmail.get();
 			}

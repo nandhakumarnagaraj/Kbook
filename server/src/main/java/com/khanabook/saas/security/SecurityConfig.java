@@ -31,6 +31,7 @@ import java.util.Map;
 public class SecurityConfig {
 
 	private final JwtRequestFilter jwtRequestFilter;
+	private final RequestIdFilter requestIdFilter;
 
 	@Value("${cors.allowed-origins:}")
 	private String allowedOriginsRaw;
@@ -120,6 +121,7 @@ public class SecurityConfig {
 						.requestMatchers("/sync/**").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.anyRequest().authenticated())
 
+				.addFilterBefore(requestIdFilter, UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();

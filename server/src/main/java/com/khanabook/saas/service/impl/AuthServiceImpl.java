@@ -37,16 +37,24 @@ public class AuthServiceImpl implements AuthService {
 	@jakarta.annotation.PostConstruct
 	public void validateConfig() {
 		if (googleClientId == null || googleClientId.isBlank()) {
-			throw new IllegalStateException(
-					"google.client.id is not configured. Google Login will fail. Ensure GOOGLE_CLIENT_ID is set.");
+			log.warn("GOOGLE_CLIENT_ID is not configured. Google login endpoint will remain unavailable.");
 		}
+	}
+
+	private String normalizeLoginIdentifier(String raw) {
+		if (raw == null) return null;
+		String normalized = raw.trim();
+		if (normalized.contains("@")) {
+			normalized = normalized.toLowerCase(java.util.Locale.ROOT);
+		}
+		return normalized;
 	}
 
 	@Override
 	public AuthResponse login(LoginRequest request) {
-		String loginId = request.getLoginId();
-		User user = userRepository.findByLoginId(loginId)
-				.or(() -> userRepository.findByEmail(loginId))
+		String loginId = normalizeLoginIdentifier(request.getLoginId());
+		User user = userRepository.findByLoginIdIgnoreCase(loginId)
+				.or(() -> userRepository.findByEmailIgnoreCase(loginId))
 				.or(() -> userRepository.findByWhatsappNumber(loginId))
 				.orElseThrow(() -> new IllegalArgumentException("Invalid login ID or password"));
 
@@ -121,6 +129,9 @@ public class AuthServiceImpl implements AuthService {
 	@Transactional
 	public AuthResponse googleLogin(com.khanabook.saas.controller.AuthController.GoogleLoginRequest request) {
 		try {
+			if (googleClientId == null || googleClientId.isBlank()) {
+				throw new IllegalArgumentException("Google login is not enabled on this server.");
+			}
 			com.google.api.client.http.HttpTransport transport = new com.google.api.client.http.javanet.NetHttpTransport();
 			com.google.api.client.json.JsonFactory jsonFactory = new com.google.api.client.json.gson.GsonFactory();
 			com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier verifier = new com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier.Builder(
@@ -129,13 +140,13 @@ public class AuthServiceImpl implements AuthService {
 			com.google.api.client.googleapis.auth.oauth2.GoogleIdToken idToken = verifier.verify(request.getIdToken());
 			if (idToken != null) {
 				com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload payload = idToken.getPayload();
-				String email = payload.getEmail();
+				String email = normalizeLoginIdentifier(payload.getEmail());
 				String name = (String) payload.get("name");
 
 				// 1. Try finding by primary identifier (phone/email) OR by linked google email
-				return userRepository.findByLoginId(email)
-						.or(() -> userRepository.findByEmail(email))
-						.or(() -> userRepository.findByGoogleEmail(email))
+				return userRepository.findByLoginIdIgnoreCase(email)
+						.or(() -> userRepository.findByEmailIgnoreCase(email))
+						.or(() -> userRepository.findByGoogleEmailIgnoreCase(email))
 						.map(user -> {
 							if (!Boolean.TRUE.equals(user.getIsActive())) {
 								throw new IllegalArgumentException("Account is disabled. Contact your administrator.");
@@ -233,8 +244,8 @@ public class AuthServiceImpl implements AuthService {
 
 	private java.util.Optional<User> findUserByLoginId(String phoneNumber) {
 		return userRepository.findByPhoneNumber(phoneNumber)
-				.or(() -> userRepository.findByLoginId(phoneNumber))
-				.or(() -> userRepository.findByEmail(phoneNumber))
+				.or(() -> userRepository.findByLoginIdIgnoreCase(normalizeLoginIdentifier(phoneNumber)))
+				.or(() -> userRepository.findByEmailIgnoreCase(normalizeLoginIdentifier(phoneNumber)))
 				.or(() -> userRepository.findByWhatsappNumber(phoneNumber));
 	}
 
