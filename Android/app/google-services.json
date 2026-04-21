@@ -14,11 +14,27 @@
       },
       "oauth_client": [
         {
-          "client_id": "836086274000-vq8nlv6gtpk7vt4l09ijs071k8qek082.apps.googleusercontent.com",
+          "client_id": "836086274000-cej52serva8lqbnchtah4pnjgrk39sep.apps.googleusercontent.com",
           "client_type": 1,
-          "android_client_info": {
+          "android_info": {
             "package_name": "com.khanabook.lite.pos",
             "certificate_hash": "1b075d99cf1bcb02961299bbdad78ce58018ada9"
+          }
+        },
+        {
+          "client_id": "836086274000-gg2tgt0c4ds6nbc06f3i9jo63rfms5tq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.khanabook.lite.pos",
+            "certificate_hash": "042c8f0cb2f68cd2b1c5dd1020f551b39f0b2142"
+          }
+        },
+        {
+          "client_id": "836086274000-vq8nlv6gtpk7vt4l09ijs071k8qek082.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.khanabook.lite.pos",
+            "certificate_hash": "9e0fcab6ebe22f6168483133ee21791bbdfcca6f"
           }
         },
         {
