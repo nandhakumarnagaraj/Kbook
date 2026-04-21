@@ -94,7 +94,7 @@ fun LoginScreen(
             }
         } catch (e: ApiException) {
             when (e.statusCode) {
-                com.google.android.gms.common.api.CommonStatusCodes.SIGN_IN_CANCELLED ->
+                com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes.SIGN_IN_CANCELLED ->
                     viewModel.setGoogleLoginError("Google Sign-In was cancelled.", AuthViewModel.LoginErrorCode.GOOGLE_CANCELLED)
                 com.google.android.gms.common.api.CommonStatusCodes.NETWORK_ERROR ->
                     viewModel.setGoogleLoginError("Network error during Google Sign-In. Please try again.")
