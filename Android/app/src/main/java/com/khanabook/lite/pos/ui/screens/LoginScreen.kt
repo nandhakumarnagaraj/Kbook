@@ -35,7 +35,13 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.khanabook.lite.pos.BuildConfig
 import kotlinx.coroutines.launch
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.util.ValidationUtils
@@ -63,6 +69,40 @@ fun LoginScreen(
     val isLoginIdValid = ValidationUtils.isValidPhone(loginId) || ValidationUtils.isValidEmail(loginId)
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+
+    val googleSignInClient = remember(context) {
+        val serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.takeIf { it.isNotBlank() }
+            ?: context.getString(R.string.default_web_client_id)
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(serverClientId)
+            .requestEmail()
+            .build()
+        GoogleSignIn.getClient(context, gso)
+    }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val idToken = account?.idToken
+            if (!idToken.isNullOrBlank()) {
+                viewModel.loginWithGoogleToken(idToken)
+            } else {
+                viewModel.setGoogleLoginError("Google Sign-In did not return a valid token. Please try again.")
+            }
+        } catch (e: ApiException) {
+            when (e.statusCode) {
+                com.google.android.gms.common.api.CommonStatusCodes.SIGN_IN_CANCELLED ->
+                    viewModel.setGoogleLoginError("Google Sign-In was cancelled.", AuthViewModel.LoginErrorCode.GOOGLE_CANCELLED)
+                com.google.android.gms.common.api.CommonStatusCodes.NETWORK_ERROR ->
+                    viewModel.setGoogleLoginError("Network error during Google Sign-In. Please try again.")
+                else ->
+                    viewModel.setGoogleLoginError("Google Sign-In failed (${e.statusCode}). Please try again.")
+            }
+        }
+    }
     val focusManager = LocalFocusManager.current
     val passwordFocusRequester = remember { FocusRequester() }
     val spacing = KhanaBookTheme.spacing
@@ -320,10 +360,12 @@ fun LoginScreen(
                         modifier =
                                 Modifier.size(52.dp)
                                         .border(1.dp, BorderGold, CircleShape)
-                                        .clickable(enabled = !isLoading) { 
+                                        .clickable(enabled = !isLoading) {
                                             isGoogleLogin = true
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            viewModel.loginWithGoogle(context) 
+                                            googleSignInClient.signOut().addOnCompleteListener {
+                                                googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                            }
                                         },
                         shape = CircleShape,
                         color = Color.White,

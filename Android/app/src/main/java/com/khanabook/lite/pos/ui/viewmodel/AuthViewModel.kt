@@ -1,22 +1,8 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
-import android.content.Context
 import android.util.Log
-import androidx.credentials.ClearCredentialStateRequest
-import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialCancellationException
-import androidx.credentials.exceptions.GetCredentialException
-import androidx.credentials.exceptions.GetCredentialInterruptedException
-import androidx.credentials.exceptions.GetCredentialProviderConfigurationException
-import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.khanabook.lite.pos.BuildConfig
-import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
@@ -24,7 +10,6 @@ import com.khanabook.lite.pos.data.repository.UserRepository
 import com.khanabook.lite.pos.domain.manager.AuthManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
 import com.khanabook.lite.pos.domain.util.BackendException
-import com.khanabook.lite.pos.domain.util.findActivity
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -365,147 +350,33 @@ constructor(
         _resetPasswordStatus.value = null
     }
 
-    
-    fun loginWithGoogle(context: Context) {
+
+    fun loginWithGoogleToken(idToken: String) {
         _loginStatus.value = LoginResult.Loading
-        val activity = context.findActivity()
-        if (activity == null) {
-            _loginStatus.value =
-                    loginError(
-                            "Google Sign-In: activity context not found",
-                            LoginErrorCode.GOOGLE_CONTEXT_MISSING
-                    )
-            return
-        }
-
-        val serverClientId =
-            BuildConfig.GOOGLE_WEB_CLIENT_ID
-                .takeIf { it.isNotBlank() }
-                ?: runCatching { activity.getString(R.string.default_web_client_id) }
-                    .getOrDefault("")
-
         viewModelScope.launch {
-            try {
-                val credentialManager = CredentialManager.create(activity)
-
-                if (serverClientId.isBlank()) {
-                    _loginStatus.value = loginError(
-                        "Google Sign-In is not configured for this build.",
-                        LoginErrorCode.GOOGLE_FAILED
-                    )
-                    return@launch
-                }
-
-                val signInOption = GetSignInWithGoogleOption.Builder(serverClientId).build()
-                val request =
-                        GetCredentialRequest.Builder().addCredentialOption(signInOption).build()
-                val result = credentialManager.getCredential(context = activity, request = request)
-
-                val credential = result.credential
-                if (credential is CustomCredential &&
-                                credential.type ==
-                                        GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                ) {
-                    val googleCred = GoogleIdTokenCredential.createFrom(credential.data)
-                    val idToken = googleCred.idToken
-
-                    if (idToken.isBlank()) {
-                        _loginStatus.value = loginError(
-                            "Google Sign-In did not return a valid ID token.",
-                            LoginErrorCode.GOOGLE_FAILED
-                        )
-                        return@launch
-                    }
-
-                    val result = userRepository.remoteGoogleLogin(idToken)
-                    
-                    result.onSuccess { user ->
-                        val setupResult = handleLoginSuccess(user)
-
-                        if (setupResult.isSuccess) {
-                            _loginStatus.value = LoginResult.Success(user)
-                        } else {
-                            _loginStatus.value = loginError(
-                                "Login successful but failed to restore your data. Please check your internet and try again.",
-                                LoginErrorCode.GOOGLE_SYNC_FAILED
-                            )
-                        }
-                    }.onFailure { e ->
-                        Log.e(TAG, "Remote Google login failed. Exception message: ${e.message}", e)
-                        _loginStatus.value = loginError(
-                            UserMessageSanitizer.sanitize(
-                                e,
-                                "Google sign-in failed. Please try again."
-                            ),
-                            LoginErrorCode.GOOGLE_SYNC_FAILED
-                        )
-                    }
+            val result = userRepository.remoteGoogleLogin(idToken)
+            result.onSuccess { user ->
+                val setupResult = handleLoginSuccess(user)
+                if (setupResult.isSuccess) {
+                    _loginStatus.value = LoginResult.Success(user)
                 } else {
-                    _loginStatus.value =
-                            loginError(
-                                    "Google Sign-In: unexpected credential type",
-                                    LoginErrorCode.GOOGLE_UNEXPECTED_CREDENTIAL
-                            )
+                    _loginStatus.value = loginError(
+                        "Login successful but failed to restore your data. Please check your internet and try again.",
+                        LoginErrorCode.GOOGLE_SYNC_FAILED
+                    )
                 }
-            } catch (e: GetCredentialCancellationException) {
-                Log.w(TAG, "Google Sign-In cancelled by user", e)
+            }.onFailure { e ->
+                Log.e(TAG, "Remote Google login failed: ${e.message}", e)
                 _loginStatus.value = loginError(
-                        "Google Sign-In was cancelled.",
-                        LoginErrorCode.GOOGLE_CANCELLED
-                )
-            } catch (e: NoCredentialException) {
-                Log.w(
-                    TAG,
-                    "Google Sign-In found no usable credentials. package=${activity.packageName}, clientIdSuffix=${serverClientId.takeLast(12)}",
-                    e
-                )
-                clearGoogleCredentialState(activity)
-                _loginStatus.value = loginError(
-                        "Google Sign-In could not access a usable Google account. Check Google Play Services, then verify this app's SHA-1 and web client ID in Firebase before trying again.",
-                        LoginErrorCode.GOOGLE_FAILED
-                )
-            } catch (e: GetCredentialProviderConfigurationException) {
-                Log.e(TAG, "Google Sign-In provider is unavailable or misconfigured", e)
-                clearGoogleCredentialState(activity)
-                _loginStatus.value = loginError(
-                        "Google Sign-In is unavailable on this device. Update Google Play Services and try again.",
-                        LoginErrorCode.GOOGLE_FAILED
-                )
-            } catch (e: GetCredentialInterruptedException) {
-                Log.w(TAG, "Google Sign-In was interrupted", e)
-                clearGoogleCredentialState(activity)
-                _loginStatus.value = loginError(
-                        "Google Sign-In was interrupted. Please try again.",
-                        LoginErrorCode.GOOGLE_FAILED
-                )
-            } catch (e: GetCredentialException) {
-                Log.e(TAG, "Google Sign-In failed before token exchange: type=${e.type}", e)
-                clearGoogleCredentialState(activity)
-                _loginStatus.value = loginError(
-                        "Google Sign-In could not start. Check Play Services and your Google account, then try again.",
-                        LoginErrorCode.GOOGLE_FAILED
-                )
-            } catch (e: Exception) {
-                Log.e(TAG, "Google Sign-In failed", e)
-                clearGoogleCredentialState(activity)
-                _loginStatus.value = loginError(
-                        "Google Sign-In failed. Please try again.",
-                        LoginErrorCode.GOOGLE_FAILED
+                    UserMessageSanitizer.sanitize(e, "Google sign-in failed. Please try again."),
+                    LoginErrorCode.GOOGLE_SYNC_FAILED
                 )
             }
         }
     }
 
-    private fun clearGoogleCredentialState(context: android.content.Context?) {
-
-        if (context == null) return
-        viewModelScope.launch {
-            try {
-                CredentialManager.create(context).clearCredentialState(ClearCredentialStateRequest())
-            } catch (e: Exception) {
-                Log.w(TAG, "clearCredentialState failed (non-fatal): ${e.message}")
-            }
-        }
+    fun setGoogleLoginError(message: String, code: LoginErrorCode = LoginErrorCode.GOOGLE_FAILED) {
+        _loginStatus.value = loginError(message, code)
     }
 
     fun resetSignUpStatus() {
