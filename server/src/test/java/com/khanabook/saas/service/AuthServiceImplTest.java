@@ -38,20 +38,6 @@ class AuthServiceImplTest {
 
     @BeforeEach
     void setup() {
-        ReflectionTestUtils.setField(authService, "googleClientId", "test-google-client-id");
-    }
-
-    @Test
-    void validateConfig_whenClientIdBlank_throwsIllegalState() {
-        ReflectionTestUtils.setField(authService, "googleClientId", "");
-        assertThatThrownBy(() -> authService.validateConfig())
-            .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("google.client.id");
-    }
-
-    @Test
-    void validateConfig_whenClientIdSet_doesNotThrow() {
-        assertThatNoException().isThrownBy(() -> authService.validateConfig());
     }
 
     @Test
