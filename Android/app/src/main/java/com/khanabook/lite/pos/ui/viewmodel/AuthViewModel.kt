@@ -13,7 +13,6 @@ import androidx.credentials.exceptions.GetCredentialProviderConfigurationExcepti
 import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.khanabook.lite.pos.BuildConfig
@@ -397,21 +396,10 @@ constructor(
                     return@launch
                 }
 
-                val googleIdOption =
-                        GetGoogleIdOption.Builder()
-                                .setFilterByAuthorizedAccounts(false) 
-                                .setServerClientId(serverClientId)
-                                .setAutoSelectEnabled(false)
-                                .build()
-
+                val signInOption = GetSignInWithGoogleOption.Builder(serverClientId).build()
                 val request =
-                        GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
-
-                val result =
-                        credentialManager.getCredential(
-                                context = activity,
-                                request = request
-                        )
+                        GetCredentialRequest.Builder().addCredentialOption(signInOption).build()
+                val result = credentialManager.getCredential(context = activity, request = request)
 
                 val credential = result.credential
                 if (credential is CustomCredential &&
