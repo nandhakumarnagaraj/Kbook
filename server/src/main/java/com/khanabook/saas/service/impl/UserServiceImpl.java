@@ -91,11 +91,14 @@ public class UserServiceImpl implements UserService {
 
 	private User getPrimaryUser(Long tenantId) {
 		List<User> users = repository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(1L));
-		if (users.isEmpty()) {
+		if (!users.isEmpty()) {
+			return users.get(0);
+		}
+		List<User> ownerUsers = repository.findByRestaurantIdAndRoleAndIsDeletedFalse(tenantId, com.khanabook.saas.entity.UserRole.OWNER);
+		if (ownerUsers.isEmpty()) {
 			throw new IllegalStateException("Primary user for restaurant not found.");
 		}
-
-		return users.get(0);
+		return ownerUsers.get(0);
 	}
 
 	private void updatePrimaryMobileNumber(Long tenantId, User currentUser, String newMobileNumber) {

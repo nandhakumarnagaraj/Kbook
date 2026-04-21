@@ -1,8 +1,10 @@
 package com.khanabook.saas.repository;
 
 import com.khanabook.saas.entity.User;
+import com.khanabook.saas.entity.UserRole;
 import com.khanabook.saas.sync.repository.SyncRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -23,6 +25,8 @@ public interface UserRepository extends SyncRepository<User, Long> {
 	Optional<User> findByGoogleEmailIgnoreCase(String googleEmail);
 
 	Optional<User> findByPhoneNumber(String phoneNumber);
+
+	List<User> findByRestaurantIdAndRoleAndIsDeletedFalse(Long restaurantId, UserRole role);
 
 	boolean existsByEmail(String email);
 
