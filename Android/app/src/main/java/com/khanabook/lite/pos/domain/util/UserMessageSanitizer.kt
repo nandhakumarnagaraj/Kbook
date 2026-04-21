@@ -143,6 +143,24 @@ object UserMessageSanitizer {
         if (trimmedMessage.isBlank()) return fallback
 
         val lowered = trimmedMessage.lowercase()
+        
+        // Pass through specific friendly business messages
+        val friendlyFragments = listOf(
+            "already registered",
+            "already related",
+            "not found",
+            "invalid login",
+            "invalid otp",
+            "otp expired",
+            "too many",
+            "disabled",
+            "mismatch",
+            "already exists"
+        )
+        if (friendlyFragments.any { fragment -> lowered.contains(fragment) }) {
+            return trimmedMessage
+        }
+
         if (databaseFragments.any { it in lowered }) return fallback
         if (networkFragments.any { fragment -> lowered.contains(fragment) }) {
             return "Network error. Please check your connection."
@@ -154,6 +172,12 @@ object UserMessageSanitizer {
             return "Server error. Please try again later."
         }
         if (sensitivePatterns.any { it.containsMatchIn(trimmedMessage) }) return fallback
+        
+        // If it's a short, non-technical sentence, pass it through
+        if (trimmedMessage.length < 100 && !trimmedMessage.contains("\n") && !trimmedMessage.contains("/") && !trimmedMessage.contains("\\")) {
+            return trimmedMessage
+        }
+
         return fallback
     }
 

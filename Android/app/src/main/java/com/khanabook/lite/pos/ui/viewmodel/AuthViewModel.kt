@@ -388,6 +388,7 @@ constructor(
         viewModelScope.launch {
             try {
                 val credentialManager = CredentialManager.create(activity)
+
                 if (serverClientId.isBlank()) {
                     _loginStatus.value = loginError(
                         "Google Sign-In is not configured for this build.",
@@ -396,27 +397,21 @@ constructor(
                     return@launch
                 }
 
-                val result = runCatching {
-                    credentialManager.getCredential(
-                        context = activity,
-                        request = buildGoogleSignInRequest(serverClientId)
-                    )
-                }.recoverCatching { primaryError ->
-                    if (primaryError is NoCredentialException) {
-                        Log.w(
-                            TAG,
-                            "Explicit Google sign-in returned no credential; retrying with generic Google ID option. package=${activity.packageName}",
-                            primaryError
-                        )
-                        clearGoogleCredentialState(activity)
+                val googleIdOption =
+                        GetGoogleIdOption.Builder()
+                                .setFilterByAuthorizedAccounts(false) 
+                                .setServerClientId(serverClientId)
+                                .setAutoSelectEnabled(false)
+                                .build()
+
+                val request =
+                        GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
+
+                val result =
                         credentialManager.getCredential(
-                            context = activity,
-                            request = buildGoogleIdRequest(serverClientId)
+                                context = activity,
+                                request = request
                         )
-                    } else {
-                        throw primaryError
-                    }
-                }.getOrThrow()
 
                 val credential = result.credential
                 if (credential is CustomCredential &&
@@ -513,29 +508,8 @@ constructor(
         }
     }
 
-    private fun buildGoogleSignInRequest(serverClientId: String): GetCredentialRequest {
-        val signInOption = GetSignInWithGoogleOption.Builder(serverClientId).build()
-        return GetCredentialRequest.Builder()
-            .addCredentialOption(signInOption)
-            .build()
-    }
-
-    private fun buildGoogleIdRequest(serverClientId: String): GetCredentialRequest {
-        val googleIdOption =
-            GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(false)
-                .setServerClientId(serverClientId)
-                .setAutoSelectEnabled(false)
-                .build()
-
-        return GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
-    }
-
-
-
     private fun clearGoogleCredentialState(context: android.content.Context?) {
+
         if (context == null) return
         viewModelScope.launch {
             try {

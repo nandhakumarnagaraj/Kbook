@@ -31,13 +31,17 @@ public class AuthServiceImpl implements AuthService {
 	private final PasswordEncoder passwordEncoder;
 	private final com.khanabook.saas.service.PasswordResetOtpService passwordResetOtpService;
 
-	@org.springframework.beans.factory.annotation.Value("${google.client.id}")
+	@org.springframework.beans.factory.annotation.Value("${google.client.id:}")
 	private String googleClientId;
 
 	@jakarta.annotation.PostConstruct
 	public void validateConfig() {
-		if (googleClientId == null || googleClientId.isBlank()) {
-			log.warn("GOOGLE_CLIENT_ID is not configured. Google login endpoint will remain unavailable.");
+		if (googleClientId == null || googleClientId.isBlank() || googleClientId.contains("${")) {
+			log.warn("GOOGLE_CLIENT_ID is not configured or invalid. Google login will be unavailable.");
+			googleClientId = null;
+		} else {
+			log.info("Google Authentication initialized with Client ID: ...{}", 
+				googleClientId.substring(Math.max(0, googleClientId.length() - 12)));
 		}
 	}
 
@@ -135,7 +139,9 @@ public class AuthServiceImpl implements AuthService {
 			com.google.api.client.http.HttpTransport transport = new com.google.api.client.http.javanet.NetHttpTransport();
 			com.google.api.client.json.JsonFactory jsonFactory = new com.google.api.client.json.gson.GsonFactory();
 			com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier verifier = new com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier.Builder(
-					transport, jsonFactory).setAudience(java.util.Collections.singletonList(googleClientId)).build();
+					transport, jsonFactory)
+					.setAudience(java.util.Collections.singletonList(googleClientId))
+					.build();
 
 			com.google.api.client.googleapis.auth.oauth2.GoogleIdToken idToken = verifier.verify(request.getIdToken());
 			if (idToken != null) {

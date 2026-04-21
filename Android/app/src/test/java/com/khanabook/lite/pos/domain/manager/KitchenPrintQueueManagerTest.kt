@@ -193,7 +193,7 @@ class KitchenPrintQueueManagerTest {
         coVerify(exactly = 1) { printerManager.connect(kitchenMac) }
         coVerify(exactly = 0) { printerManager.printBytes(any()) }
         coVerify(exactly = 0) { queueRepository.deleteById(any()) }
-        coVerify(exactly = 1) { queueRepository.enqueueOrUpdate(queuedJob.billId, kitchenMac, any()) }
+        coVerify(exactly = 1) { queueRepository.markPending(queuedJob.id, any()) }
     }
 
     @Test
