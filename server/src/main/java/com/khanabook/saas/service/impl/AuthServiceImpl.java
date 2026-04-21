@@ -1,5 +1,6 @@
 package com.khanabook.saas.service.impl;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.khanabook.saas.controller.AuthController.AuthResponse;
 import com.khanabook.saas.controller.AuthController.LoginRequest;
 import com.khanabook.saas.controller.AuthController.SignupRequest;
@@ -14,6 +15,7 @@ import com.khanabook.saas.utility.JwtUtility;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,19 +33,8 @@ public class AuthServiceImpl implements AuthService {
 	private final PasswordEncoder passwordEncoder;
 	private final com.khanabook.saas.service.PasswordResetOtpService passwordResetOtpService;
 
-	@org.springframework.beans.factory.annotation.Value("${google.client.id:}")
-	private String googleClientId;
-
-	@jakarta.annotation.PostConstruct
-	public void validateConfig() {
-		if (googleClientId == null || googleClientId.isBlank() || googleClientId.contains("${")) {
-			log.warn("GOOGLE_CLIENT_ID is not configured or invalid. Google login will be unavailable.");
-			googleClientId = null;
-		} else {
-			log.info("Google Authentication initialized with Client ID: ...{}", 
-				googleClientId.substring(Math.max(0, googleClientId.length() - 12)));
-		}
-	}
+	@Autowired(required = false)
+	private GoogleIdTokenVerifier googleIdTokenVerifier;
 
 	private String normalizeLoginIdentifier(String raw) {
 		if (raw == null) return null;
@@ -133,17 +124,11 @@ public class AuthServiceImpl implements AuthService {
 	@Transactional
 	public AuthResponse googleLogin(com.khanabook.saas.controller.AuthController.GoogleLoginRequest request) {
 		try {
-			if (googleClientId == null || googleClientId.isBlank()) {
+			if (googleIdTokenVerifier == null) {
 				throw new IllegalArgumentException("Google login is not enabled on this server.");
 			}
-			com.google.api.client.http.HttpTransport transport = new com.google.api.client.http.javanet.NetHttpTransport();
-			com.google.api.client.json.JsonFactory jsonFactory = new com.google.api.client.json.gson.GsonFactory();
-			com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier verifier = new com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier.Builder(
-					transport, jsonFactory)
-					.setAudience(java.util.Collections.singletonList(googleClientId))
-					.build();
 
-			com.google.api.client.googleapis.auth.oauth2.GoogleIdToken idToken = verifier.verify(request.getIdToken());
+			com.google.api.client.googleapis.auth.oauth2.GoogleIdToken idToken = googleIdTokenVerifier.verify(request.getIdToken());
 			if (idToken != null) {
 				com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload payload = idToken.getPayload();
 				String email = normalizeLoginIdentifier(payload.getEmail());
