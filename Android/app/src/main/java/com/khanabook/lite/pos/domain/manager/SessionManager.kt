@@ -20,7 +20,7 @@ private const val KEY_LAST_BACKGROUND_TIME = "last_background_time"
 @Singleton
 class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {
     private val debugTag = "KhanaBookDebugAuth"
-    private val appLockGracePeriodMs = 0L
+    private val appLockGracePeriodMs = 30_000L
 
     private val securePrefs = KeystoreBackedPreferences(context, SECURE_PREFS_NAME)
     private val prefs: SharedPreferences =
@@ -167,9 +167,9 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         if (!isPinLockFlagEnabled()) return false
         
         val lastBackground = prefs.getLong(KEY_LAST_BACKGROUND_TIME, 0L)
-        // If lastBackground is 0, it means the app was likely just started or process was killed.
-        // In GPay style, we should lock on fresh start if PIN is enabled.
-        if (lastBackground == 0L) return true
+        // If lastBackground is 0, it means the app was just started from scratch.
+        // We don't lock on first launch to allow splash screen to handle navigation.
+        if (lastBackground == 0L) return false
         
         return System.currentTimeMillis() - lastBackground >= appLockGracePeriodMs
     }

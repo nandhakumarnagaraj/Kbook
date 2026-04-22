@@ -105,6 +105,7 @@ class MainActivity : FragmentActivity() {
                         currentDest != "app_lock"
 
                     if (isInPrivateArea && sessionManager.shouldShowAppLock()) {
+                        sessionManager.clearBackgroundTime()
                         navController.navigate("app_lock")
                     } else if (isInPrivateArea) {
                         sessionManager.clearBackgroundTime()
