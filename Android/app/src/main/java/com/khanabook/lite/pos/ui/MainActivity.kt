@@ -91,7 +91,7 @@ class MainActivity : FragmentActivity() {
                 val context = this
 
                 // Background Lock / Grace Period Observer
-                LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) {
+                LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
                     sessionManager.onAppBackgrounded()
                 }
 
@@ -105,11 +105,8 @@ class MainActivity : FragmentActivity() {
                         currentDest != "app_lock"
 
                     if (isInPrivateArea && sessionManager.shouldShowAppLock()) {
-                        sessionManager.clearBackgroundTime()
                         navController.navigate("app_lock")
                     } else if (isInPrivateArea) {
-                        // Only clear if we're in a private area and decided NOT to lock.
-                        // Don't clear on splash/login — SplashViewModel handles that path.
                         sessionManager.clearBackgroundTime()
                     }
                 }

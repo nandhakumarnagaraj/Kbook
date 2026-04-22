@@ -73,7 +73,9 @@ fun AppLockScreen(
                     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                         onUnlock()
                     }
-                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {}
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        android.util.Log.e("AppLockScreen", "Biometric error: $errorCode - $errString")
+                    }
                     override fun onAuthenticationFailed() {}
                 }
             )

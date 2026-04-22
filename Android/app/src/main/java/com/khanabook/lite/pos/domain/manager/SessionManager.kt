@@ -20,7 +20,7 @@ private const val KEY_LAST_BACKGROUND_TIME = "last_background_time"
 @Singleton
 class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {
     private val debugTag = "KhanaBookDebugAuth"
-    private val appLockGracePeriodMs = 30_000L
+    private val appLockGracePeriodMs = 0L
 
     private val securePrefs = KeystoreBackedPreferences(context, SECURE_PREFS_NAME)
     private val prefs: SharedPreferences =
@@ -164,15 +164,14 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     }
 
     fun shouldShowAppLock(): Boolean {
-        // If the flag is set, we SHOULD show the lock. 
-        // If getPinHash() is null but flag is true, it means keystore is corrupted/lost.
-        // We still show the lock screen, and the lock screen will handle the "hash missing" state
-        // (e.g. by forcing re-login or clear).
         if (!isPinLockFlagEnabled()) return false
         
         val lastBackground = prefs.getLong(KEY_LAST_BACKGROUND_TIME, 0L)
-        if (lastBackground == 0L) return false
-        return System.currentTimeMillis() - lastBackground > appLockGracePeriodMs
+        // If lastBackground is 0, it means the app was likely just started or process was killed.
+        // In GPay style, we should lock on fresh start if PIN is enabled.
+        if (lastBackground == 0L) return true
+        
+        return System.currentTimeMillis() - lastBackground >= appLockGracePeriodMs
     }
 
     fun clearBackgroundTime() {
