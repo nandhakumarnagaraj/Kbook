@@ -107,6 +107,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     fun clearAuthOnly() {
         securePrefs.remove("auth_token")
         securePrefs.remove("persisted_login_id")
+        clearPin()
         prefs.edit()
             .remove("active_user_id")
             .remove("active_user_role")
