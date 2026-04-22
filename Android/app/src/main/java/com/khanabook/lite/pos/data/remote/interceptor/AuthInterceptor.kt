@@ -14,6 +14,12 @@ class AuthInterceptor @Inject constructor(private val sessionManager: SessionMan
 
     val requestBuilder = request.newBuilder()
 
+    // Always send device ID so the server can validate device binding
+    val deviceId = sessionManager.getDeviceId()
+    if (deviceId.isNotBlank()) {
+        requestBuilder.addHeader("X-Device-Id", deviceId)
+    }
+
     // Public endpoints — any path under /auth/ or containing /login
     val isPublicAuthPath = path.contains("/auth/") || path.contains("/login")
 

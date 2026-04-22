@@ -64,7 +64,7 @@ public class AuthServiceImpl implements AuthService {
 		backfillLoginIdIfMissing(user);
 
 		log.info("User logged in: restaurantId={}", user.getRestaurantId());
-		String token = jwtUtility.generateToken(getLoginIdentifier(user), user.getRestaurantId(), user.getRole().name());
+		String token = jwtUtility.generateToken(getLoginIdentifier(user), user.getRestaurantId(), user.getRole().name(), request.getDeviceId());
 			return new AuthResponse(token, user.getRestaurantId(), user.getName(), getLoginIdentifier(user),
 					user.getEmail(), user.getWhatsappNumber(), user.getRole().name());
 	}
@@ -108,7 +108,7 @@ public class AuthServiceImpl implements AuthService {
 		userRepository.save(user);
 
 		log.info("New user signed up: restaurantId={}", newRestaurantId);
-		String token = jwtUtility.generateToken(getLoginIdentifier(user), newRestaurantId, user.getRole().name());
+		String token = jwtUtility.generateToken(getLoginIdentifier(user), newRestaurantId, user.getRole().name(), request.getDeviceId());
 			return new AuthResponse(token, newRestaurantId, user.getName(), getLoginIdentifier(user), user.getEmail(),
 							user.getWhatsappNumber(), user.getRole().name());
 	}
@@ -153,7 +153,7 @@ public class AuthServiceImpl implements AuthService {
 							user.setUpdatedAt(System.currentTimeMillis());
 							userRepository.save(user);
 							String token = jwtUtility.generateToken(getLoginIdentifier(user), user.getRestaurantId(),
-									user.getRole().name());
+									user.getRole().name(), request.getDeviceId());
 								return new AuthResponse(token, user.getRestaurantId(), user.getName(), getLoginIdentifier(user),
 										user.getEmail(), user.getWhatsappNumber(), user.getRole().name());
 						}).orElseGet(() -> {
@@ -188,7 +188,7 @@ public class AuthServiceImpl implements AuthService {
 					user.setCreatedAt(System.currentTimeMillis());
 					userRepository.save(user);
 
-						String token = jwtUtility.generateToken(getLoginIdentifier(user), newRestaurantId, user.getRole().name());
+						String token = jwtUtility.generateToken(getLoginIdentifier(user), newRestaurantId, user.getRole().name(), request.getDeviceId());
 							return new AuthResponse(token, newRestaurantId, user.getName(), getLoginIdentifier(user),
 									user.getEmail(), user.getWhatsappNumber(), user.getRole().name());
 					});

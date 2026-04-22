@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -25,10 +28,19 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 	private static final Logger logger = LoggerFactory.getLogger(JwtRequestFilter.class);
 
+	@Value("${admin.allowed-ips:}")
+	private String adminAllowedIpsRaw;
+
 	private final JwtUtility jwtUtility;
 	private final UserRepository userRepository;
 	private final TokenBlocklistRepository tokenBlocklistRepository;
 	private final TokenRevocationCache tokenRevocationCache;
+
+	private String getClientIp(HttpServletRequest request) {
+		String forwarded = request.getHeader("X-Forwarded-For");
+		if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
+		return request.getRemoteAddr();
+	}
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -85,6 +97,28 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 							String role = user.getRole().name();
 							TenantContext.setCurrentRole(role);
+
+							// Device binding: reject if JWT deviceId doesn't match X-Device-Id header
+							String jwtDeviceId = jwtUtility.extractDeviceId(jwt);
+							String headerDeviceId = request.getHeader("X-Device-Id");
+							if (jwtDeviceId != null && !jwtDeviceId.isBlank()
+									&& headerDeviceId != null && !headerDeviceId.isBlank()
+									&& !jwtDeviceId.equals(headerDeviceId)) {
+								logger.warn("Device binding mismatch — jwtDevice={} headerDevice={} user={}", jwtDeviceId, headerDeviceId, username);
+								response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token device mismatch");
+								return;
+							}
+
+							// Admin IP allowlist — block admin from unauthorized IPs
+							if ("KBOOK_ADMIN".equals(role) && adminAllowedIpsRaw != null && !adminAllowedIpsRaw.isBlank()) {
+								List<String> allowed = Arrays.asList(adminAllowedIpsRaw.split(","));
+								String clientIp = getClientIp(request);
+								if (allowed.stream().noneMatch(ip -> ip.trim().equals(clientIp))) {
+									logger.warn("Admin blocked from IP={} user={}", clientIp, username);
+									response.sendError(HttpServletResponse.SC_FORBIDDEN, "Admin access not allowed from this IP");
+									return;
+								}
+							}
 
 							org.springframework.security.core.authority.SimpleGrantedAuthority authority = new org.springframework.security.core.authority.SimpleGrantedAuthority(
 									"ROLE_" + role);

@@ -124,6 +124,10 @@ public class GenericSyncService {
 				record.setLocalId(record.getId());
 				record.setId(null);
 			}
+			// Always enforce the JWT tenant — never trust the client-sent restaurantId
+			if (!isKbookAdmin) {
+				record.setRestaurantId(tenantId);
+			}
 		}
 
 		Map<String, List<T>> recordsByDevice = payload.stream()

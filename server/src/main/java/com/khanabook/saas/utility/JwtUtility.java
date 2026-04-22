@@ -64,15 +64,29 @@ public class JwtUtility {
 	}
 
 	public String generateToken(String username, Long restaurantId, String role) {
-		return Jwts.builder()
+		return generateToken(username, restaurantId, role, null);
+	}
+
+	public String generateToken(String username, Long restaurantId, String role, String deviceId) {
+		var builder = Jwts.builder()
 				.setId(java.util.UUID.randomUUID().toString())
 				.setSubject(username)
 				.claim("restaurantId", restaurantId)
 				.claim("role", role)
 				.setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis() + expirationMs))
-				.signWith(getSigningKey())
-				.compact();
+				.setExpiration(new Date(System.currentTimeMillis() + expirationMs));
+		if (deviceId != null && !deviceId.isBlank()) {
+			builder.claim("deviceId", deviceId);
+		}
+		return builder.signWith(getSigningKey()).compact();
+	}
+
+	public String extractDeviceId(String token) {
+		try {
+			return extractAllClaims(token).get("deviceId", String.class);
+		} catch (Exception e) {
+			return null;
+		}
 	}
 
 	public String extractJti(String token) {

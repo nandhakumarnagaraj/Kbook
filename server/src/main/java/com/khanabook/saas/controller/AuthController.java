@@ -4,8 +4,10 @@ import com.khanabook.saas.entity.TokenBlocklist;
 import com.khanabook.saas.repository.TokenBlocklistRepository;
 import com.khanabook.saas.security.TokenRevocationCache;
 import com.khanabook.saas.service.AuthService;
+import com.khanabook.saas.service.LoginRateLimiter;
 import com.khanabook.saas.service.OtpRateLimiter;
 import com.khanabook.saas.utility.JwtUtility;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.Valid;
@@ -35,11 +37,25 @@ public class AuthController {
 	private final TokenBlocklistRepository tokenBlocklistRepository;
 	private final TokenRevocationCache tokenRevocationCache;
 	private final OtpRateLimiter otpRateLimiter;
+	private final LoginRateLimiter loginRateLimiter;
 
 	@PostMapping("/login")
-	public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-		log.debug("Login attempt identifierLen={}", request.getLoginId() == null ? 0 : request.getLoginId().length());
+	public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+		String ip = getClientIp(httpRequest);
+		if (!loginRateLimiter.tryConsume(ip)) {
+			log.warn("Login rate limit exceeded ip={}", ip);
+			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+		}
+		log.debug("Login attempt identifierLen={} ip={}", request.getLoginId() == null ? 0 : request.getLoginId().length(), ip);
 		return ResponseEntity.ok(authService.login(request));
+	}
+
+	private String getClientIp(HttpServletRequest request) {
+		String forwarded = request.getHeader("X-Forwarded-For");
+		if (forwarded != null && !forwarded.isBlank()) {
+			return forwarded.split(",")[0].trim();
+		}
+		return request.getRemoteAddr();
 	}
 
 	@PostMapping("/signup")
