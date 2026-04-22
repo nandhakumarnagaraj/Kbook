@@ -7,24 +7,15 @@ import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.domain.util.KeystoreBackedPreferences
 import com.khanabook.lite.pos.domain.util.LegacyEncryptedPrefsMigration
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
+
 
 private const val PREFS_NAME = "session_prefs"
 private const val SECURE_PREFS_NAME = "secure_session_prefs"
-private const val KEY_LAST_INTERACTION = "last_interaction_time"
 private const val KEY_LAST_BACKGROUND_TIME = "last_background_time"
-private const val SESSION_CHECK_INTERVAL_MS = 60_000L
 
 @Singleton
 class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {
@@ -35,58 +26,12 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    private var timeoutMinutes: Int
-        get() = prefs.getInt("session_timeout_minutes", 30)
-        set(value) {
-            prefs.edit().putInt("session_timeout_minutes", value).apply()
-        }
-
+    // Session is only expired by explicit logout — no inactivity timeout (GPay style).
     private val _isSessionExpired = MutableStateFlow(false)
     val isSessionExpired: StateFlow<Boolean> = _isSessionExpired
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private var sessionCheckJob: kotlinx.coroutines.Job? = null
-
     init {
         migrateLegacySecurePrefsIfNeeded()
-        startPeriodicCheck()
-    }
-
-    private var lastInteractionTime: Long
-        get() = prefs.getLong(KEY_LAST_INTERACTION, System.currentTimeMillis())
-        set(value) = prefs.edit().putLong(KEY_LAST_INTERACTION, value).apply()
-
-    fun updateTimeout(minutes: Int) {
-        timeoutMinutes = minutes
-    }
-
-    fun onUserInteraction() {
-        lastInteractionTime = System.currentTimeMillis()
-        if (_isSessionExpired.value) {
-            _isSessionExpired.value = false
-        }
-    }
-
-    fun checkSession() {
-        val elapsedMinutes = TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis() - lastInteractionTime)
-        if (elapsedMinutes >= timeoutMinutes) {
-            _isSessionExpired.value = true
-        }
-    }
-
-    fun resetSession() {
-        _isSessionExpired.value = false
-        lastInteractionTime = System.currentTimeMillis()
-    }
-
-    private fun startPeriodicCheck() {
-        sessionCheckJob?.cancel()
-        sessionCheckJob = scope.launch {
-            while (currentCoroutineContext().isActive) {
-                delay(SESSION_CHECK_INTERVAL_MS)
-                checkSession()
-            }
-        }
     }
 
     fun getAuthToken(): String? {
@@ -99,8 +44,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
 
     fun saveAuthToken(token: String) {
         securePrefs.putString("auth_token", token)
-        startPeriodicCheck()
-        resetSession()
+        _isSessionExpired.value = false
     }
 
     fun getDeviceId(): String {
@@ -161,7 +105,6 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     // Clears only the auth token and user identity — keeps device_id, last_sync_timestamp,
     // and restaurant_id intact so unsynced local data can be pushed after re-login.
     fun clearAuthOnly() {
-        sessionCheckJob?.cancel()
         securePrefs.remove("auth_token")
         securePrefs.remove("persisted_login_id")
         prefs.edit()
@@ -231,42 +174,20 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
 
     fun invalidateAuthSession() {
         if (BuildConfig.DEBUG) {
-            val tokenBefore = securePrefs.getString("auth_token", null)
-            Log.d(
-                debugTag,
-                "invalidateAuthSession tokenBeforePresent=${!tokenBefore.isNullOrBlank()}"
-            )
+            Log.d(debugTag, "invalidateAuthSession")
         }
-
-        sessionCheckJob?.cancel()
         securePrefs.remove("auth_token")
         clearLocalUserSession()
         _isSessionExpired.value = true
-
-        if (BuildConfig.DEBUG) {
-            val tokenAfter = securePrefs.getString("auth_token", null)
-            Log.d(
-                debugTag,
-                "invalidateAuthSession tokenAfterPresent=${!tokenAfter.isNullOrBlank()}"
-            )
-        }
     }
 
     fun clearSession() {
         if (BuildConfig.DEBUG) {
-            val tokenBefore = securePrefs.getString("auth_token", null)
-            Log.d(debugTag, "clearSession tokenBeforePresent=${!tokenBefore.isNullOrBlank()}")
+            Log.d(debugTag, "clearSession")
         }
-
-        sessionCheckJob?.cancel()
         securePrefs.remove("auth_token")
         prefs.edit().clear().apply()
         _isSessionExpired.value = true
-
-        if (BuildConfig.DEBUG) {
-            val tokenAfter = securePrefs.getString("auth_token", null)
-            Log.d(debugTag, "clearSession tokenAfterPresent=${!tokenAfter.isNullOrBlank()}")
-        }
     }
 
     private fun migrateLegacySecurePrefsIfNeeded() {

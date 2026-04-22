@@ -74,11 +74,6 @@ class MainActivity : FragmentActivity() {
         super.attachBaseContext(newBase.createConfigurationContext(config))
     }
 
-    override fun onUserInteraction() {
-        super.onUserInteraction()
-        sessionManager.onUserInteraction()
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.Theme_KhanaBookLite)
         super.onCreate(savedInstanceState)
