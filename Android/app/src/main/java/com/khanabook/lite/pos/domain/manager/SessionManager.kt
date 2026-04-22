@@ -158,6 +158,19 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().remove("active_user_id").remove("active_user_role").apply()
     }
 
+    // Clears only the auth token and user identity — keeps device_id, last_sync_timestamp,
+    // and restaurant_id intact so unsynced local data can be pushed after re-login.
+    fun clearAuthOnly() {
+        sessionCheckJob?.cancel()
+        securePrefs.remove("auth_token")
+        securePrefs.remove("persisted_login_id")
+        prefs.edit()
+            .remove("active_user_id")
+            .remove("active_user_role")
+            .apply()
+        _isSessionExpired.value = true
+    }
+
     fun getPersistedLoginId(): String? = securePrefs.getString("persisted_login_id", null)
 
     fun savePersistedLoginId(loginId: String) {

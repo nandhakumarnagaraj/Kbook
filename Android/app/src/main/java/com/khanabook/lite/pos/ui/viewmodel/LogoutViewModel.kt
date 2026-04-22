@@ -93,11 +93,34 @@ class LogoutViewModel @Inject constructor(
     }
 
     fun forceLogoutDespiteWarning() {
-        performHardLogout()
+        performSoftLogout()
     }
 
     fun cancelLogout() {
         _logoutState.value = LogoutState.Idle
+    }
+
+    // Soft logout: revokes token and locks the app but keeps the local Room DB intact.
+    // Used when unsynced data exists — on re-login the data will be pushed to server.
+    private fun performSoftLogout() {
+        viewModelScope.launch {
+            _logoutState.value = LogoutState.ClearingData
+            try { api.logout() } catch (e: Exception) {
+                Log.w(debugTag, "Server logout failed (continuing soft logout): ${e.message}")
+            }
+            try {
+                val credentialManager = CredentialManager.create(context)
+                credentialManager.clearCredentialState(ClearCredentialStateRequest())
+            } catch (e: Exception) {
+                Log.w(debugTag, "clearCredentialState failed (non-fatal): ${e.message}")
+            }
+            userRepository.setCurrentUser(null)
+            withContext(Dispatchers.IO) {
+                sessionManager.clearAuthOnly()
+            }
+            if (BuildConfig.DEBUG) Log.d(debugTag, "performSoftLogout: token cleared, local DB preserved for re-login sync")
+            _logoutState.value = LogoutState.LoggedOut
+        }
     }
 
     private fun performHardLogout() {

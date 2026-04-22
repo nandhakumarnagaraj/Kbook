@@ -190,10 +190,10 @@ private fun LegacyLogoutSectionUnused(viewModel: com.khanabook.lite.pos.ui.viewm
             title = "Unsynced Data Warning",
             content = {
                 Text(
-                    if (isPinEnabled) {
-                        "You have ${warning.totalCount} records not synced. Signing out now will remove them from this device. Enter your app PIN to continue."
-                    } else {
-                        "You have ${warning.totalCount} records not synced. Signing out now will remove them from this device."
+                    buildString {
+                        append("${warning.totalCount} records (${warning.summary}) are not yet synced to the server.\n\n")
+                        append("Your data is safe — it will stay on this device and sync automatically after you log back in.")
+                        if (isPinEnabled) append("\n\nEnter your app PIN to continue.")
                     },
                     color = TextLight,
                     style = MaterialTheme.typography.bodyMedium
