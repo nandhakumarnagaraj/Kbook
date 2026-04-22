@@ -3,7 +3,10 @@ package com.khanabook.lite.pos.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,18 +58,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.BuildConfig
+import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookLargeDialog
 import com.khanabook.lite.pos.ui.theme.BorderGold
@@ -79,9 +87,10 @@ import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
+import java.time.Year
 
 // TODO: Update these before release
-private const val SUPPORT_WHATSAPP = "919876543210"
+private const val SUPPORT_WHATSAPP = "918124426335"
 private const val SUPPORT_EMAIL = "support@khanabook.in"
 
 @Composable
@@ -615,6 +624,7 @@ private fun HelpSupportDialog(onDismiss: () -> Unit) {
 @Composable
 private fun AboutAppDialog(onDismiss: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
+    var showExpandedLogo by remember { mutableStateOf(false) }
 
     KhanaBookLargeDialog(
         title = "About App",
@@ -628,14 +638,16 @@ private fun AboutAppDialog(onDismiss: () -> Unit) {
             Box(
                 modifier = Modifier
                     .size(72.dp)
-                    .background(PrimaryGold.copy(alpha = 0.15f), CircleShape),
+                    .background(PrimaryGold.copy(alpha = 0.15f), CircleShape)
+                    .clip(CircleShape)
+                    .clickable { showExpandedLogo = true },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    Icons.Default.Restaurant,
+                Image(
+                    painter = painterResource(id = R.drawable.khanabook_logo),
                     contentDescription = null,
-                    tint = PrimaryGold,
-                    modifier = Modifier.size(36.dp)
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
             Text(
@@ -663,12 +675,33 @@ private fun AboutAppDialog(onDismiss: () -> Unit) {
 
         HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
 
+        val currentYear = Year.now().value
         Text(
-            "© 2025 KhanaBook. All rights reserved.",
+            "© $currentYear KhanaBook. All rights reserved.",
             color = TextGold.copy(alpha = 0.5f),
             style = MaterialTheme.typography.labelSmall,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
+    }
+
+    if (showExpandedLogo) {
+        Dialog(onDismissRequest = { showExpandedLogo = false }) {
+            Box(
+                modifier = Modifier
+                    .size(280.dp)
+                    .background(DarkBrown1, RoundedCornerShape(24.dp))
+                    .border(2.dp, PrimaryGold.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.khanabook_logo),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            }
+        }
     }
 }
