@@ -227,8 +227,9 @@ fun CustomerInfoStep(
     hideHeader: Boolean = false,
     billingViewModel: com.khanabook.lite.pos.ui.viewmodel.BillingViewModel? = null
 ) {
-    var name by remember { mutableStateOf("") }
-    var whatsapp by remember { mutableStateOf("") }
+    // Restore from ViewModel so state survives AnimatedContent recreation when going back
+    var name by remember { mutableStateOf(billingViewModel?.customerName?.value ?: "") }
+    var whatsapp by remember { mutableStateOf(billingViewModel?.customerWhatsapp?.value ?: "") }
     val spacing = KhanaBookTheme.spacing
 
     val recentCustomers by (billingViewModel?.recentCustomers ?: kotlinx.coroutines.flow.flowOf(emptyList<Pair<String,String>>())).collectAsState(initial = emptyList())
@@ -312,7 +313,11 @@ fun CustomerInfoStep(
         val showPhoneError = whatsapp.isNotEmpty() && !ValidationUtils.isValidPhone(whatsapp)
         OutlinedTextField(
                 value = whatsapp,
-                onValueChange = { whatsapp = it.filter { ch -> ch.isDigit() }.take(10) },
+                onValueChange = {
+                    val filtered = it.filter { ch -> ch.isDigit() }.take(10)
+                    whatsapp = filtered
+                    billingViewModel?.setCustomerInfo(name, filtered)
+                },
                 label = { Text("Customer WhatsApp Number *") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = menuTextFieldColors(),
@@ -329,7 +334,10 @@ fun CustomerInfoStep(
         Spacer(modifier = Modifier.height(spacing.medium))
         OutlinedTextField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = {
+                    name = it
+                    billingViewModel?.setCustomerInfo(it, whatsapp)
+                },
                 label = { Text("Customer Name (optional)") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = menuTextFieldColors(),

@@ -462,7 +462,12 @@ private fun ChangePasswordDialog(
         ) {
             if (step > 1) {
                 OutlinedButton(
-                    onClick = { localError = null; step -= 1 },
+                    onClick = {
+                        localError = null
+                        if (step == 3) { newPassword = ""; confirmPassword = "" }
+                        if (step == 2) { otp = "" }
+                        step -= 1
+                    },
                     modifier = Modifier.weight(1f),
                     border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.5f)),
                     shape = RoundedCornerShape(10.dp),

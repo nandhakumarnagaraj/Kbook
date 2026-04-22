@@ -520,7 +520,14 @@ fun ForgotPasswordDialog(
                     horizontalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {
                     OutlinedButton(
-                        onClick = { if (!isResetLoading) { step -= 1; viewModel.clearResetStatus() } },
+                        onClick = {
+                            if (!isResetLoading) {
+                                if (step == 3) { newPassword = ""; confirmPassword = "" }
+                                if (step == 2) { otp = "" }
+                                step -= 1
+                                viewModel.clearResetStatus()
+                            }
+                        },
                         modifier = Modifier.weight(1f).height(52.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
                         border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
