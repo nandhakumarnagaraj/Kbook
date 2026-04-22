@@ -58,7 +58,8 @@ public class BillServiceImpl implements BillService {
 		if (ignoreDeviceId) {
 			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp);
 		}
-		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
-				deviceId);
+		// Exclude own-device bills to avoid re-downloading what the device already created,
+		// BUT include own-device deleted bills so server-side soft-deletes propagate back.
+		return repository.findUpdatedExcludingOwnActiveOnly(tenantId, lastSyncTimestamp, deviceId);
 	}
 }
