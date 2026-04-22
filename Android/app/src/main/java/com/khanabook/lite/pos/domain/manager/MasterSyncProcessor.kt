@@ -674,6 +674,36 @@ class MasterSyncProcessor @Inject constructor(
             }
             billDao.insertSyncedBillPayments(resolvedBillPayments)
         }
+
+        // After pulling all data, ensure counters are never behind the actual bills on server.
+        // This prevents duplicate order IDs after app reinstall or data clear, where the server
+        // profile's counters can be stale (lagging behind the latest bills).
+        val currentProfile = restaurantDao.getProfile()
+        if (currentProfile != null && masterData.bills.isNotEmpty()) {
+            val maxLifetime = masterData.bills.maxOfOrNull { it.lifetimeOrderId ?: 0L } ?: 0L
+            val timezone = currentProfile.timezone ?: "Asia/Kolkata"
+            val today = java.time.LocalDate.now(java.time.ZoneId.of(timezone)).toString()
+            val maxDailyToday = masterData.bills
+                .filter { bill ->
+                    val billDate = java.time.Instant.ofEpochMilli(bill.createdAt ?: 0L)
+                        .atZone(java.time.ZoneId.of(timezone))
+                        .toLocalDate().toString()
+                    billDate == today
+                }
+                .maxOfOrNull { it.dailyOrderId ?: 0L } ?: 0L
+
+            val correctedLifetime = maxOf(currentProfile.lifetimeOrderCounter, maxLifetime)
+            val correctedDaily = maxOf(currentProfile.dailyOrderCounter, maxDailyToday)
+            if (correctedLifetime != currentProfile.lifetimeOrderCounter || correctedDaily != currentProfile.dailyOrderCounter) {
+                Log.i("MasterSyncProcessor", "Correcting counters after pull: lifetime ${currentProfile.lifetimeOrderCounter}→$correctedLifetime, daily ${currentProfile.dailyOrderCounter}→$correctedDaily")
+                restaurantDao.saveProfile(currentProfile.copy(
+                    lifetimeOrderCounter = correctedLifetime,
+                    dailyOrderCounter = correctedDaily,
+                    isSynced = false,
+                    updatedAt = System.currentTimeMillis()
+                ))
+            }
+        }
     } // end withTransaction
 
     /**
