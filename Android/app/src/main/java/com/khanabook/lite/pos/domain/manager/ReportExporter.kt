@@ -300,24 +300,25 @@ class ReportExporter(private val context: Context) {
         // ── ORDER DETAILS TABLE (always starts on a new page) ─────
         if (orderRows.isNotEmpty()) {
             newPage()
-            canvas.drawText("ORDER DETAILS  (${orderRows.size} orders)", margin, y, pSection); y += 18f
-            canvas.drawLine(margin, y, contentRight, y, pLine); y += 14f
 
-            // Column positions sized for 11f font
-            val c0 = margin           // #
-            val c1 = margin + 16f     // Invoice
-            val c2 = margin + 84f     // Date      (68px)
-            val c3 = margin + 146f    // Mode      (62px)
-            val c4 = margin + 232f    // Status    (86px)
-            val c5 = margin + 304f    // Amount    (72px)
-            val c6 = margin + 370f    // Items     (66px)
-            val itemsColW = contentRight - c6   // ~185px
+            // Column positions — balanced widths across 515px content area
+            //  S.No(28) | Invoice(55) | Date(58) | Mode(88) | Status(65) | Amount(65) | Items(156)
+            val c0 = margin            // S.No
+            val c1 = margin + 28f      // Invoice
+            val c2 = margin + 83f      // Date
+            val c3 = margin + 141f     // Mode
+            val c4 = margin + 229f     // Status
+            val c5 = margin + 294f     // Amount
+            val c6 = margin + 359f     // Items & Count
+            val itemsColW = contentRight - c6 - 4f   // ~152px
 
-            val pItems = Paint().apply { textSize = 9f; color = Color.rgb(75, 75, 75) }
-            val stripPaint = Paint().apply { color = Color.argb(12, 0, 0, 0) }
+            val hdrH   = 22f
+            val lineH  = 14f
+            val pItems = Paint().apply { textSize = 9f; color = Color.rgb(60, 60, 60) }
+            val pModeSmall = Paint().apply { textSize = 8.5f; color = Color.rgb(35, 35, 35) }
 
             fun wrapItems(text: String): List<String> {
-                if (text == "—") return listOf("—")
+                if (text == "-") return listOf("-")
                 val parts = text.split(", ")
                 val lines = mutableListOf<String>()
                 var cur = ""
@@ -327,73 +328,105 @@ class ReportExporter(private val context: Context) {
                     else { if (cur.isNotEmpty()) lines.add(cur); cur = part }
                 }
                 if (cur.isNotEmpty()) lines.add(cur)
-                return lines.ifEmpty { listOf("—") }
+                return lines.ifEmpty { listOf("-") }
             }
 
-            // Dark header background
-            val hdrH = 20f
-            canvas.drawRect(margin, y, contentRight, y + hdrH, pHeaderBg)
-            canvas.drawText("#",             c0 + 2f, y + 14f, pHeaderTxt)
-            canvas.drawText("Invoice",       c1 + 2f, y + 14f, pHeaderTxt)
-            canvas.drawText("Date",          c2 + 2f, y + 14f, pHeaderTxt)
-            canvas.drawText("Mode",          c3 + 2f, y + 14f, pHeaderTxt)
-            canvas.drawText("Status",        c4 + 2f, y + 14f, pHeaderTxt)
-            canvas.drawText("Amount (₹)",    c5 + 2f, y + 14f, pHeaderTxt)
-            canvas.drawText("Items & Count", c6 + 2f, y + 14f, pHeaderTxt)
-            y += hdrH
+            fun drawOrderTableHeader() {
+                canvas.drawRect(margin, y, contentRight, y + hdrH, pHeaderBg)
+                // vertical column dividers in header
+                listOf(c1, c2, c3, c4, c5, c6).forEach { cx ->
+                    canvas.drawLine(cx, y, cx, y + hdrH, Paint().apply { color = Color.rgb(80,80,80); strokeWidth = 0.5f })
+                }
+                canvas.drawText("S.No",          c0 + 3f, y + 15f, pHeaderTxt)
+                canvas.drawText("Invoice",        c1 + 3f, y + 15f, pHeaderTxt)
+                canvas.drawText("Date",           c2 + 3f, y + 15f, pHeaderTxt)
+                canvas.drawText("Mode",           c3 + 3f, y + 15f, pHeaderTxt)
+                canvas.drawText("Status",         c4 + 3f, y + 15f, pHeaderTxt)
+                canvas.drawText("Amount",         c5 + 3f, y + 15f, pHeaderTxt)
+                canvas.drawText("Items and Count",c6 + 3f, y + 15f, pHeaderTxt)
+                y += hdrH
+            }
 
-            val lineH = 14f
-            val tableStartY = y
+            canvas.drawText("ORDER DETAILS  (${orderRows.size} orders)", margin, y, pSection)
+            y += 20f
+            drawOrderTableHeader()
+
+            var sectionStartY = y
 
             orderRows.forEachIndexed { idx, row ->
                 val items = billDataById[row.billId]?.items
-                val itemsText = if (items.isNullOrEmpty()) "—" else
+                val itemsText = if (items.isNullOrEmpty()) "-" else
                     items.joinToString(", ") {
-                        val name = if (it.variantName != null) "${it.itemName} (${it.variantName})" else it.itemName
-                        "$name ×${it.quantity}"
+                        val n = if (it.variantName != null) "${it.itemName} (${it.variantName})" else it.itemName
+                        "${it.quantity}x $n"
                     }
                 val itemsLines = wrapItems(itemsText)
                 val rowH = (itemsLines.size * lineH) + 8f
 
-                overflow(rowH + 6f)
+                // New page — close current section border, redraw header
+                if (y > pageHeight - margin - rowH - 10f) {
+                    canvas.drawRect(margin, sectionStartY, contentRight, y, pBorder)
+                    newPage()
+                    canvas.drawText("ORDER DETAILS  (continued)", margin, y, pSection)
+                    y += 20f
+                    drawOrderTableHeader()
+                    sectionStartY = y
+                }
 
                 val status = when (row.orderStatus) {
                     OrderStatus.DRAFT -> "Pending"
                     else -> row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
                 }
 
-                val rowBg = if (idx % 2 == 0) Paint().apply { color = Color.rgb(252, 252, 252) } else Paint().apply { color = Color.WHITE }
+                val rowBg = if (idx % 2 == 0)
+                    Paint().apply { color = Color.rgb(250, 250, 250) }
+                else
+                    Paint().apply { color = Color.WHITE }
                 canvas.drawRect(margin, y, contentRight, y + rowH, rowBg)
 
+                // Vertical column dividers per row
+                listOf(c1, c2, c3, c4, c5, c6).forEach { cx ->
+                    canvas.drawLine(cx, y, cx, y + rowH,
+                        Paint().apply { color = Color.rgb(210, 210, 210); strokeWidth = 0.5f })
+                }
+
                 val textY = y + lineH
-                canvas.drawText("${idx + 1}", c0 + 2f, textY, pCell)
-                canvas.drawText("INV${row.lifetimeNo}", c1 + 2f, textY, pBoldCell)
-                canvas.drawText(fmtDate(row.salesDate), c2 + 2f, textY, pCell)
-                canvas.drawText(row.payMode.displayLabel.take(14), c3 + 2f, textY, pCell)
+                canvas.drawText("${idx + 1}",           c0 + 3f, textY, pCell)
+                canvas.drawText("INV${row.lifetimeNo}",  c1 + 3f, textY, pBoldCell)
+                canvas.drawText(fmtDate(row.salesDate),  c2 + 3f, textY, pCell)
+
+                // Dual payment mode: smaller font so it fits
+                val modeLabel = row.payMode.displayLabel
+                val modePaint = if (modeLabel.length > 8) pModeSmall else pCell
+                canvas.drawText(modeLabel, c3 + 3f, textY, modePaint)
 
                 val statusColor = when (row.orderStatus) {
-                    OrderStatus.COMPLETED -> Color.rgb(67, 160, 71)
-                    OrderStatus.CANCELLED -> Color.rgb(198, 40, 40)
+                    OrderStatus.COMPLETED -> Color.rgb(40, 140, 40)
+                    OrderStatus.CANCELLED -> Color.rgb(190, 30, 30)
                     else -> Color.GRAY
                 }
-                val statusPaint = Paint().apply { textSize = 11f; isFakeBoldText = true; color = statusColor }
-                canvas.drawText(status.take(9), c4 + 2f, textY, statusPaint)
-                canvas.drawText("₹${row.salesAmount}", c5 + 2f, textY, pBoldCell)
+                val statusPaint = Paint().apply {
+                    textSize = 10f
+                    isFakeBoldText = true
+                    color = statusColor
+                }
+                canvas.drawText(status,                      c4 + 3f, textY, statusPaint)
+                canvas.drawText("Rs.${row.salesAmount}",     c5 + 3f, textY, pBoldCell)
 
                 itemsLines.forEachIndexed { i, line ->
-                    canvas.drawText(line, c6 + 2f, textY + i * lineH, pItems)
+                    canvas.drawText(line, c6 + 3f, textY + i * lineH, pItems)
                 }
 
                 canvas.drawLine(margin, y + rowH, contentRight, y + rowH, pLine)
                 y += rowH
             }
-            // Outer border around entire table
-            canvas.drawRect(margin, tableStartY, contentRight, y, pBorder)
+            // Close final section border
+            canvas.drawRect(margin, sectionStartY, contentRight, y, pBorder)
             y += 10f
         }
 
-        overflow()
-        canvas.drawText("Generated by KhanaBook  •  $dateRange", margin, y, pFooter)
+        if (y > pageHeight - margin - 20f) newPage()
+        canvas.drawText("Generated by KhanaBook  |  $dateRange", margin, y, pFooter)
 
         document.finishPage(page)
 
@@ -442,7 +475,7 @@ class ReportExporter(private val context: Context) {
                 val status = row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
                 val bd = billDataById[row.billId]
                 val customer = bd?.bill?.customerWhatsapp?.takeIf { it.isNotBlank() } ?: "—"
-                val items = bd?.items?.joinToString(" | ") { "${it.itemName} x${it.quantity}" } ?: "—"
+                val items = bd?.items?.joinToString(" | ") { "${it.quantity}x ${it.itemName}" } ?: "-"
                 sb.appendLine("${idx + 1},INV${row.lifetimeNo},${fmtDate(row.salesDate)},${row.payMode.displayLabel},$status,${row.salesAmount},$customer,\"$items\"")
             }
         }
