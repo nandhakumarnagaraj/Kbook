@@ -244,9 +244,8 @@ fun MenuConfigurationScreen(
                     onCategorySelect = { viewModel.selectCategory(it) },
                     onAddCategory = { viewModel.addCategory(it, true) },
                     onUpdateCategory = { viewModel.updateCategory(it) },
-                    onDeleteCategory = { viewModel.deleteCategory(it) },
                     onAddItem = { name, price, type, variants ->
-                        selectedCategoryId?.let { 
+                        selectedCategoryId?.let {
                             if (variants.isEmpty()) {
                                 viewModel.addItem(it, name, price, type)
                             } else {
@@ -255,7 +254,6 @@ fun MenuConfigurationScreen(
                         }
                     },
                     onUpdateItem = { viewModel.updateItem(it) },
-                    onDeleteItem = { viewModel.deleteItem(it) },
                     onToggleAvailability = { id, available -> viewModel.toggleItem(id, available) },
                     onAddVariant = { itemId, name, price -> viewModel.addVariant(itemId, name, price) },
                     onUpdateVariant = { viewModel.updateVariant(it) },
@@ -1369,10 +1367,8 @@ fun ManualMenuView(
     onCategorySelect: (Long) -> Unit,
     onAddCategory: (String) -> Unit,
     onUpdateCategory: (CategoryEntity) -> Unit,
-    onDeleteCategory: (CategoryEntity) -> Unit,
     onAddItem: (String, Double, String, List<Pair<String, Double>>) -> Unit,
     onUpdateItem: (MenuItemEntity) -> Unit,
-    onDeleteItem: (MenuItemEntity) -> Unit,
     onToggleAvailability: (Long, Boolean) -> Unit,
     onAddVariant: (Long, String, Double) -> Unit,
     onUpdateVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit,
@@ -1381,14 +1377,11 @@ fun ManualMenuView(
     val spacing = KhanaBookTheme.spacing
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var showEditCategoryDialog by remember { mutableStateOf<CategoryEntity?>(null) }
-    var showDeleteCategoryDialog by remember { mutableStateOf<CategoryEntity?>(null) }
 
     var showAddItemDialog by remember { mutableStateOf(false) }
     var showEditItemDialog by remember { mutableStateOf<MenuWithVariants?>(null) }
-    var showDeleteItemDialog by remember { mutableStateOf<MenuItemEntity?>(null) }
     var pendingOverwrite by remember { mutableStateOf<PendingManualItemOverwrite?>(null) }
-    var optimisticallyDeletedItemIds by remember { mutableStateOf(setOf<Long>()) }
-    val visibleMenuItems = menuItems.filterNot { it.menuItem.id in optimisticallyDeletedItemIds }
+    val visibleMenuItems = menuItems
 
     val applyItemDraftToExisting: (MenuWithVariants, String, Double, String, List<Pair<String, Double>>) -> Unit =
         { existingItem, updatedName, updatedPrice, updatedFoodType, updatedVariants ->
@@ -1428,7 +1421,7 @@ fun ManualMenuView(
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                             .combinedClickable(
                                 onClick = { onCategorySelect(category.id) },
-                                onLongClick = { showDeleteCategoryDialog = category }
+                                onLongClick = { showEditCategoryDialog = category }
                             ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1538,8 +1531,7 @@ fun ManualMenuView(
                         MenuItemRow(
                             itemWithVariants = itemWithVariants,
                             onToggleAvailability = onToggleAvailability,
-                            onEditClick = { showEditItemDialog = it },
-                            onDeleteClick = { showDeleteItemDialog = it }
+                            onEditClick = { showEditItemDialog = it }
                         )
                     }
                 }
@@ -1559,7 +1551,7 @@ fun ManualMenuView(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "Tap to edit  •  Long-press to delete",
+                        "Tap to edit  •  Toggle switch to enable / disable",
                         color = TextGold.copy(alpha = 0.35f),
                         style = MaterialTheme.typography.labelSmall,
                         textAlign = TextAlign.Center
@@ -1638,24 +1630,6 @@ fun ManualMenuView(
         )
     }
 
-    if (showDeleteCategoryDialog != null) {
-        KhanaBookDialog(
-            onDismissRequest = { showDeleteCategoryDialog = null },
-            title = "Delete Category?",
-            message = "All items in \"${showDeleteCategoryDialog?.name}\" will also be deleted. This cannot be undone."
-        ) {
-            TextButton(onClick = { showDeleteCategoryDialog = null }) {
-                Text("Cancel", color = TextGold)
-            }
-            TextButton(onClick = {
-                showDeleteCategoryDialog?.let { onDeleteCategory(it) }
-                showDeleteCategoryDialog = null
-            }) {
-                Text("Delete", color = Color.Red)
-            }
-        }
-    }
-
     // Item Dialogs
     if (showAddItemDialog) {
         ItemEditDialog(
@@ -1697,34 +1671,13 @@ fun ManualMenuView(
         )
     }
 
-    if (showDeleteItemDialog != null) {
-        KhanaBookDialog(
-            onDismissRequest = { showDeleteItemDialog = null },
-            title = "Delete Item?",
-            message = "Are you sure you want to delete \"${showDeleteItemDialog?.name}\"?"
-        ) {
-            TextButton(onClick = { showDeleteItemDialog = null }) {
-                Text("Cancel", color = TextGold)
-            }
-            TextButton(onClick = {
-                showDeleteItemDialog?.let {
-                    optimisticallyDeletedItemIds = optimisticallyDeletedItemIds + it.id
-                    onDeleteItem(it)
-                }
-                showDeleteItemDialog = null
-            }) {
-                Text("Delete", color = Color.Red)
-            }
-        }
-    }
 }
 
 @Composable
 fun MenuItemRow(
     itemWithVariants: MenuWithVariants,
     onToggleAvailability: (Long, Boolean) -> Unit,
-    onEditClick: (MenuWithVariants) -> Unit,
-    onDeleteClick: (MenuItemEntity) -> Unit
+    onEditClick: (MenuWithVariants) -> Unit
 ) {
     val item = itemWithVariants.menuItem
     val variants = itemWithVariants.variants
@@ -1734,7 +1687,7 @@ fun MenuItemRow(
             .fillMaxWidth()
             .combinedClickable(
                 onClick = { onEditClick(itemWithVariants) },
-                onLongClick = { onDeleteClick(item) }
+                onLongClick = { onEditClick(itemWithVariants) }
             ),
         colors = CardDefaults.cardColors(
             containerColor = if (item.isAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
