@@ -122,6 +122,14 @@ class ReportExporter(private val context: Context) {
         val pCardLabel = Paint().apply { textSize = 11f; color = Color.rgb(90, 90, 90) }
         val pCardVal   = Paint().apply { textSize = 22f; isFakeBoldText = true; color = Color.rgb(20, 20, 20) }
 
+        // Draw text centred inside a column
+        fun drawCentered(text: String, centerX: Float, textY: Float, paint: Paint) {
+            val saved = paint.textAlign
+            paint.textAlign = android.graphics.Paint.Align.CENTER
+            canvas.drawText(text, centerX, textY, paint)
+            paint.textAlign = saved
+        }
+
         fun newPage() {
             document.finishPage(page)
             pageNum++
@@ -193,18 +201,28 @@ class ReportExporter(private val context: Context) {
 
         canvas.drawText("PAYMENT SUMMARY", margin, y, pSection); y += 18f
 
+        // Column boundaries and centers for Payment Summary
+        val psC0 = margin
+        val psC1 = margin + 110f
+        val psC2 = margin + 330f
+        val psC3 = margin + 440f
+        val psCx0 = (psC0 + psC1) / 2f
+        val psCx1 = (psC1 + psC2) / 2f
+        val psCx2 = (psC2 + psC3) / 2f
+        val psCx3 = (psC3 + contentRight) / 2f
+
         // Header row with dark background
         val summaryRowH = 22f
         canvas.drawRect(margin, y, contentRight, y + summaryRowH, pHeaderBg)
-        canvas.drawText("Mode",           margin + 6f,   y + 15f, pHeaderTxt)
-        canvas.drawText("Distribution",   margin + 130f, y + 15f, pHeaderTxt)
-        canvas.drawText("Amount (₹)",     margin + 340f, y + 15f, pHeaderTxt)
-        canvas.drawText("Share",          margin + 460f, y + 15f, pHeaderTxt)
+        drawCentered("Mode",         psCx0, y + 15f, pHeaderTxt)
+        drawCentered("Distribution", psCx1, y + 15f, pHeaderTxt)
+        drawCentered("Amount (₹)",   psCx2, y + 15f, pHeaderTxt)
+        drawCentered("Share",        psCx3, y + 15f, pHeaderTxt)
         y += summaryRowH
 
         val barMaxW = 190f
         val barH    = 13f
-        val barX    = margin + 130f
+        val barX    = psCx1 - (barMaxW / 2f)
 
         enabledModes.forEachIndexed { idx, mode ->
             val amtStr = paymentBreakdown[mode.displayLabel] ?: "0.00"
@@ -215,7 +233,7 @@ class ReportExporter(private val context: Context) {
             val rowBg  = if (idx % 2 == 0) Paint().apply { color = Color.rgb(252, 252, 252) } else Paint().apply { color = Color.WHITE }
             canvas.drawRect(margin, y, contentRight, y + 22f, rowBg)
 
-            canvas.drawText(mode.displayLabel, margin + 6f,   y + 15f, pCell)
+            drawCentered(mode.displayLabel, psCx0, y + 15f, pCell)
 
             pBar.color = Color.rgb(225, 225, 225)
             canvas.drawRoundRect(RectF(barX, y + 4f, barX + barMaxW, y + 17f), 4f, 4f, pBar)
@@ -224,8 +242,8 @@ class ReportExporter(private val context: Context) {
                 canvas.drawRoundRect(RectF(barX, y + 4f, barX + barW, y + 17f), 4f, 4f, pBar)
             }
 
-            canvas.drawText("₹$amtStr", margin + 340f, y + 15f, pBoldCell)
-            canvas.drawText(pct,        margin + 460f, y + 15f, pCell)
+            drawCentered("₹$amtStr", psCx2, y + 15f, pBoldCell)
+            drawCentered(pct,        psCx3, y + 15f, pCell)
             canvas.drawLine(margin, y + 22f, contentRight, y + 22f, pLine)
             y += 22f
         }
@@ -233,8 +251,8 @@ class ReportExporter(private val context: Context) {
         // Total row
         val totalRowBg = Paint().apply { color = Color.rgb(240, 240, 240) }
         canvas.drawRect(margin, y, contentRight, y + 22f, totalRowBg)
-        canvas.drawText("TOTAL", margin + 6f, y + 15f, pTotal)
-        canvas.drawText("₹${grandTotal.setScale(2, RoundingMode.HALF_UP)}", margin + 340f, y + 15f, pTotal)
+        drawCentered("TOTAL", psCx0, y + 15f, pTotal)
+        drawCentered("₹${grandTotal.setScale(2, RoundingMode.HALF_UP)}", psCx2, y + 15f, pTotal)
         canvas.drawRect(margin, y, contentRight, y + 22f, pBorder)
         y += 22f + 10f
         canvas.drawLine(margin, y, contentRight, y, pThick); y += 26f
@@ -274,21 +292,30 @@ class ReportExporter(private val context: Context) {
         if (topItems.isNotEmpty()) {
             canvas.drawText("TOP 5 BEST SELLING ITEMS", margin, y, pSection); y += 18f
 
+            val tsC0 = margin
+            val tsC1 = margin + 30f
+            val tsC2 = margin + 350f
+            val tsC3 = margin + 440f
+            val tsCx0 = (tsC0 + tsC1) / 2f
+            val tsCx1 = (tsC1 + tsC2) / 2f
+            val tsCx2 = (tsC2 + tsC3) / 2f
+            val tsCx3 = (tsC3 + contentRight) / 2f
+
             val topRowH = 20f
             canvas.drawRect(margin, y, contentRight, y + topRowH, pHeaderBg)
-            canvas.drawText("#",            margin + 6f,   y + 14f, pHeaderTxt)
-            canvas.drawText("Item Name",    margin + 28f,  y + 14f, pHeaderTxt)
-            canvas.drawText("Qty Sold",     margin + 350f, y + 14f, pHeaderTxt)
-            canvas.drawText("Revenue (₹)",  margin + 440f, y + 14f, pHeaderTxt)
+            drawCentered("#",            tsCx0, y + 14f, pHeaderTxt)
+            drawCentered("Item Name",    tsCx1, y + 14f, pHeaderTxt)
+            drawCentered("Qty Sold",     tsCx2, y + 14f, pHeaderTxt)
+            drawCentered("Revenue (₹)",  tsCx3, y + 14f, pHeaderTxt)
             y += topRowH
 
             topItems.forEachIndexed { idx, item ->
                 val rowBg = if (idx % 2 == 0) Paint().apply { color = Color.rgb(252, 252, 252) } else Paint().apply { color = Color.WHITE }
                 canvas.drawRect(margin, y, contentRight, y + topRowH, rowBg)
-                canvas.drawText("${idx + 1}",            margin + 6f,   y + 14f, pBoldCell)
-                canvas.drawText(item.itemName.take(50),  margin + 28f,  y + 14f, pCell)
-                canvas.drawText("${item.quantitySold}",  margin + 350f, y + 14f, pCell)
-                canvas.drawText("₹${item.revenue}",      margin + 440f, y + 14f, pCell)
+                drawCentered("${idx + 1}",            tsCx0, y + 14f, pBoldCell)
+                drawCentered(item.itemName.take(50),  tsCx1, y + 14f, pCell)
+                drawCentered("${item.quantitySold}",  tsCx2, y + 14f, pCell)
+                drawCentered("₹${item.revenue}",      tsCx3, y + 14f, pCell)
                 canvas.drawLine(margin, y + topRowH, contentRight, y + topRowH, pLine)
                 y += topRowH
             }
@@ -331,19 +358,30 @@ class ReportExporter(private val context: Context) {
                 return lines.ifEmpty { listOf("-") }
             }
 
+            // Column centre X positions for centred text
+            val cx0 = (c0 + c1) / 2f
+            val cx1 = (c1 + c2) / 2f
+            val cx2 = (c2 + c3) / 2f
+            val cx3 = (c3 + c4) / 2f
+            val cx4 = (c4 + c5) / 2f
+            val cx5 = (c5 + c6) / 2f
+            val cx6 = (c6 + contentRight) / 2f
+
+            val divPaint = Paint().apply { strokeWidth = 0.5f }
+
             fun drawOrderTableHeader() {
                 canvas.drawRect(margin, y, contentRight, y + hdrH, pHeaderBg)
-                // vertical column dividers in header
+                divPaint.color = Color.rgb(80, 80, 80)
                 listOf(c1, c2, c3, c4, c5, c6).forEach { cx ->
-                    canvas.drawLine(cx, y, cx, y + hdrH, Paint().apply { color = Color.rgb(80,80,80); strokeWidth = 0.5f })
+                    canvas.drawLine(cx, y, cx, y + hdrH, divPaint)
                 }
-                canvas.drawText("S.No",          c0 + 3f, y + 15f, pHeaderTxt)
-                canvas.drawText("Invoice",        c1 + 3f, y + 15f, pHeaderTxt)
-                canvas.drawText("Date",           c2 + 3f, y + 15f, pHeaderTxt)
-                canvas.drawText("Mode",           c3 + 3f, y + 15f, pHeaderTxt)
-                canvas.drawText("Status",         c4 + 3f, y + 15f, pHeaderTxt)
-                canvas.drawText("Amount",         c5 + 3f, y + 15f, pHeaderTxt)
-                canvas.drawText("Items and Count",c6 + 3f, y + 15f, pHeaderTxt)
+                drawCentered("S.No",           cx0, y + 15f, pHeaderTxt)
+                drawCentered("Invoice",         cx1, y + 15f, pHeaderTxt)
+                drawCentered("Date",            cx2, y + 15f, pHeaderTxt)
+                drawCentered("Mode",            cx3, y + 15f, pHeaderTxt)
+                drawCentered("Status",          cx4, y + 15f, pHeaderTxt)
+                drawCentered("Amount",          cx5, y + 15f, pHeaderTxt)
+                drawCentered("Items and Count", cx6, y + 15f, pHeaderTxt)
                 y += hdrH
             }
 
@@ -384,37 +422,33 @@ class ReportExporter(private val context: Context) {
                     Paint().apply { color = Color.WHITE }
                 canvas.drawRect(margin, y, contentRight, y + rowH, rowBg)
 
-                // Vertical column dividers per row
+                divPaint.color = Color.rgb(210, 210, 210)
                 listOf(c1, c2, c3, c4, c5, c6).forEach { cx ->
-                    canvas.drawLine(cx, y, cx, y + rowH,
-                        Paint().apply { color = Color.rgb(210, 210, 210); strokeWidth = 0.5f })
+                    canvas.drawLine(cx, y, cx, y + rowH, divPaint)
                 }
 
                 val textY = y + lineH
-                canvas.drawText("${idx + 1}",           c0 + 3f, textY, pCell)
-                canvas.drawText("INV${row.lifetimeNo}",  c1 + 3f, textY, pBoldCell)
-                canvas.drawText(fmtDate(row.salesDate),  c2 + 3f, textY, pCell)
 
-                // Dual payment mode: smaller font so it fits
+                drawCentered("${idx + 1}",          cx0, textY, pCell)
+                drawCentered("INV${row.lifetimeNo}", cx1, textY, pBoldCell)
+                drawCentered(fmtDate(row.salesDate), cx2, textY, pCell)
+
                 val modeLabel = row.payMode.displayLabel
                 val modePaint = if (modeLabel.length > 8) pModeSmall else pCell
-                canvas.drawText(modeLabel, c3 + 3f, textY, modePaint)
+                drawCentered(modeLabel, cx3, textY, modePaint)
 
                 val statusColor = when (row.orderStatus) {
                     OrderStatus.COMPLETED -> Color.rgb(40, 140, 40)
                     OrderStatus.CANCELLED -> Color.rgb(190, 30, 30)
                     else -> Color.GRAY
                 }
-                val statusPaint = Paint().apply {
-                    textSize = 10f
-                    isFakeBoldText = true
-                    color = statusColor
-                }
-                canvas.drawText(status,                      c4 + 3f, textY, statusPaint)
-                canvas.drawText("Rs.${row.salesAmount}",     c5 + 3f, textY, pBoldCell)
+                val statusPaint = Paint().apply { textSize = 10f; isFakeBoldText = true; color = statusColor }
+                drawCentered(status,               cx4, textY, statusPaint)
+                drawCentered("Rs.${row.salesAmount}", cx5, textY, pBoldCell)
 
+                // Items column: left-aligned within column (wrapping), header centred above
                 itemsLines.forEachIndexed { i, line ->
-                    canvas.drawText(line, c6 + 3f, textY + i * lineH, pItems)
+                    canvas.drawText(line, c6 + 4f, textY + i * lineH, pItems)
                 }
 
                 canvas.drawLine(margin, y + rowH, contentRight, y + rowH, pLine)
