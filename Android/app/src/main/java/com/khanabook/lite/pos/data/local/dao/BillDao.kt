@@ -61,7 +61,7 @@ interface BillDao {
     suspend fun cancelBill(id: Long, reason: String, updatedAt: Long)
 
     @Query(
-            "SELECT * FROM bills WHERE created_at BETWEEN :startMillis AND :endMillis ORDER BY created_at DESC"
+            "SELECT * FROM bills WHERE created_at BETWEEN :startMillis AND :endMillis AND is_deleted = 0 ORDER BY created_at DESC"
     )
     fun getBillsByDateRange(startMillis: Long, endMillis: Long): Flow<List<BillEntity>>
 
@@ -133,7 +133,7 @@ interface BillDao {
         SELECT item_name as itemName, SUM(quantity) as quantitySold, SUM(item_total) as revenue
         FROM bill_items
         INNER JOIN bills ON bill_items.bill_id = bills.id
-        WHERE bills.order_status = 'completed' AND bills.created_at BETWEEN :startMillis AND :endMillis
+        WHERE bills.order_status = 'completed' AND bills.is_deleted = 0 AND bills.created_at BETWEEN :startMillis AND :endMillis
         GROUP BY item_name
         ORDER BY quantitySold DESC
         LIMIT :limit
