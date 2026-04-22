@@ -143,7 +143,8 @@ class AppLockViewModel @Inject constructor(
         if (pin.length != 4) return
         viewModelScope.launch {
             val hash = sessionManager.getPinHash() ?: run {
-                onSuccess(); return@launch
+                _errorMessage.value = "Security key lost. Please use 'Forgot PIN' to reset."
+                return@launch
             }
             val valid = authManager.verifyPassword(pin, hash)
             if (valid) {
@@ -195,7 +196,7 @@ class AppLockViewModel @Inject constructor(
     }
 
     fun isPinEnabled(): Boolean =
-        sessionManager.isPinLockEnabled() && sessionManager.getPinHash() != null
+        sessionManager.isPinLockEnabled()
 
     fun hasBiometric(context: Context): Boolean {
         val manager = BiometricManager.from(context)

@@ -31,7 +31,9 @@ class KeystoreBackedPreferences(
 
     fun getString(key: String, defaultValue: String? = null): String? {
         val encoded = prefs.getString(key, null) ?: return defaultValue
-        return runCatching { decrypt(encoded) }.getOrNull() ?: defaultValue
+        return runCatching { decrypt(encoded) }
+            .onFailure { android.util.Log.e("KeystorePrefs", "Decryption failed for key: $key", it) }
+            .getOrNull() ?: defaultValue
     }
 
     fun putString(key: String, value: String) {

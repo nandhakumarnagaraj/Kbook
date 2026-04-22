@@ -38,7 +38,7 @@ class SplashViewModel @Inject constructor(
             val isSyncCompleted = sessionManager.isInitialSyncCompleted()
 
             val isPinLocked = token != null && isSyncCompleted &&
-                sessionManager.isPinLockEnabled() && sessionManager.getPinHash() != null
+                sessionManager.isPinLockEnabled()
 
             val chosen = when {
                 token == null -> SplashState.NavigateToLogin

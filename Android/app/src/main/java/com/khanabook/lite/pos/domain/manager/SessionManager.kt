@@ -142,6 +142,8 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
 
     fun isPinLockEnabled(): Boolean = prefs.getBoolean("pin_lock_enabled", false)
 
+    fun isPinLockFlagEnabled(): Boolean = prefs.getBoolean("pin_lock_enabled", false)
+
     fun setPinLockEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("pin_lock_enabled", enabled).apply()
     }
@@ -162,7 +164,12 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     }
 
     fun shouldShowAppLock(): Boolean {
-        if (!isPinLockEnabled() || getPinHash() == null) return false
+        // If the flag is set, we SHOULD show the lock. 
+        // If getPinHash() is null but flag is true, it means keystore is corrupted/lost.
+        // We still show the lock screen, and the lock screen will handle the "hash missing" state
+        // (e.g. by forcing re-login or clear).
+        if (!isPinLockFlagEnabled()) return false
+        
         val lastBackground = prefs.getLong(KEY_LAST_BACKGROUND_TIME, 0L)
         if (lastBackground == 0L) return false
         return System.currentTimeMillis() - lastBackground > appLockGracePeriodMs
@@ -181,6 +188,10 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         _isSessionExpired.value = true
     }
 
+    /**
+     * Clears all session data, including the app lock state.
+     * This is used for hard logouts.
+     */
     fun clearSession() {
         if (BuildConfig.DEBUG) {
             Log.d(debugTag, "clearSession")
