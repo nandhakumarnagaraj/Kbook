@@ -581,19 +581,20 @@ class MasterSyncProcessor @Inject constructor(
                         variantIdMap[serverId] ?: serverId
                     } ?: remoteBillItem.variantId
 
-                    if (
-                        localBillId !in knownBillIds ||
-                        (localMenuItemId != null && localMenuItemId !in knownMenuItemIds) ||
-                        (localVariantId != null && localVariantId !in knownVariantIds)
-                    ) {
+                    if (localBillId !in knownBillIds) {
                         null
                     } else {
+                        // If the menu item / variant was deleted, set FK to null.
+                        // item_name is a snapshot stored on the bill item itself — it never
+                        // depends on the menu item existing, so historical reports stay correct.
+                        val safeMenuItemId = localMenuItemId?.takeIf { it in knownMenuItemIds }
+                        val safeVariantId  = localVariantId?.takeIf  { it in knownVariantIds  }
                         BillItemEntity(
                         id = 0, // Let SQLite generate local ID
                         billId = localBillId,
-                        menuItemId = localMenuItemId,
+                        menuItemId = safeMenuItemId,
                         itemName = remoteBillItem.itemName.orFallback("Unnamed Item"),
-                        variantId = localVariantId,
+                        variantId = safeVariantId,
                         variantName = remoteBillItem.variantName,
                         price = remoteBillItem.price.toSafeAmount(),
                         quantity = remoteBillItem.quantity ?: 1,
@@ -613,23 +614,15 @@ class MasterSyncProcessor @Inject constructor(
                     }
                 }
             logSkippedRecords(
-                label = "bill item",
+                label = "bill item (orphaned bill)",
                 skipped = masterData.billItems.filter { remoteBillItem ->
                     val localBillId = remoteBillItem.serverBillId?.let { serverId ->
                         billServerIdMap[serverId] ?: serverId
                     } ?: remoteBillItem.billId
-                    val localMenuItemId = remoteBillItem.serverMenuItemId?.let { serverId ->
-                        menuItemIdMap[serverId] ?: serverId
-                    } ?: remoteBillItem.menuItemId
-                    val localVariantId = remoteBillItem.serverVariantId?.let { serverId ->
-                        variantIdMap[serverId] ?: serverId
-                    } ?: remoteBillItem.variantId
-                    localBillId !in knownBillIds ||
-                        (localMenuItemId != null && localMenuItemId !in knownMenuItemIds) ||
-                        (localVariantId != null && localVariantId !in knownVariantIds)
+                    localBillId !in knownBillIds
                 }
             ) { remoteBillItem ->
-                "billItemId=${remoteBillItem.id}, billId=${remoteBillItem.billId}, serverBillId=${remoteBillItem.serverBillId}, menuItemId=${remoteBillItem.menuItemId}, serverMenuItemId=${remoteBillItem.serverMenuItemId}, variantId=${remoteBillItem.variantId}, serverVariantId=${remoteBillItem.serverVariantId}"
+                "billItemId=${remoteBillItem.id}, billId=${remoteBillItem.billId}, serverBillId=${remoteBillItem.serverBillId}"
             }
             billDao.insertSyncedBillItems(resolvedBillItems)
         }
