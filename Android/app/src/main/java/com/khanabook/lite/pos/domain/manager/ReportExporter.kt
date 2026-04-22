@@ -113,8 +113,12 @@ class ReportExporter(private val context: Context) {
         val pFooter    = Paint().apply { textSize = 9f; color = Color.GRAY }
         val pLine      = Paint().apply { strokeWidth = 0.6f; color = Color.LTGRAY }
         val pThick     = Paint().apply { strokeWidth = 1.2f; color = Color.rgb(180, 180, 180) }
+        val pBorder    = Paint().apply { strokeWidth = 0.8f; color = Color.rgb(200, 200, 200); style = Paint.Style.STROKE }
+        val pHeaderBg  = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(50, 50, 50) }
+        val pHeaderTxt = Paint().apply { textSize = 11f; isFakeBoldText = true; color = Color.WHITE }
         val pBar       = Paint(Paint.ANTI_ALIAS_FLAG)
         val pCard      = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(245, 245, 245) }
+        val pCardBorder= Paint().apply { strokeWidth = 1f; color = Color.rgb(210, 210, 210); style = Paint.Style.STROKE }
         val pCardLabel = Paint().apply { textSize = 11f; color = Color.rgb(90, 90, 90) }
         val pCardVal   = Paint().apply { textSize = 22f; isFakeBoldText = true; color = Color.rgb(20, 20, 20) }
 
@@ -188,43 +192,51 @@ class ReportExporter(private val context: Context) {
         }
 
         canvas.drawText("PAYMENT SUMMARY", margin, y, pSection); y += 18f
-        canvas.drawLine(margin, y, contentRight, y, pLine); y += 16f
 
-        canvas.drawText("Mode",            margin,        y, pHeader)
-        canvas.drawText("Distribution",    margin + 130f, y, pHeader)
-        canvas.drawText("Amount (₹)",      margin + 340f, y, pHeader)
-        canvas.drawText("Share",           margin + 460f, y, pHeader)
-        y += 14f
+        // Header row with dark background
+        val summaryRowH = 22f
+        canvas.drawRect(margin, y, contentRight, y + summaryRowH, pHeaderBg)
+        canvas.drawText("Mode",           margin + 6f,   y + 15f, pHeaderTxt)
+        canvas.drawText("Distribution",   margin + 130f, y + 15f, pHeaderTxt)
+        canvas.drawText("Amount (₹)",     margin + 340f, y + 15f, pHeaderTxt)
+        canvas.drawText("Share",          margin + 460f, y + 15f, pHeaderTxt)
+        y += summaryRowH
 
         val barMaxW = 190f
         val barH    = 13f
         val barX    = margin + 130f
 
-        enabledModes.forEach { mode ->
+        enabledModes.forEachIndexed { idx, mode ->
             val amtStr = paymentBreakdown[mode.displayLabel] ?: "0.00"
             val amt    = amtStr.toBigDecimalOrNull() ?: BigDecimal.ZERO
             val frac   = if (grandTotal > BigDecimal.ZERO) (amt.toFloat() / grandTotal.toFloat()).coerceIn(0f, 1f) else 0f
             val barW   = if (frac > 0f) (frac * barMaxW).coerceAtLeast(4f) else 0f
             val pct    = "%.0f%%".format(frac * 100f)
+            val rowBg  = if (idx % 2 == 0) Paint().apply { color = Color.rgb(252, 252, 252) } else Paint().apply { color = Color.WHITE }
+            canvas.drawRect(margin, y, contentRight, y + 22f, rowBg)
 
-            canvas.drawText(mode.displayLabel, margin, y, pCell)
+            canvas.drawText(mode.displayLabel, margin + 6f,   y + 15f, pCell)
 
             pBar.color = Color.rgb(225, 225, 225)
-            canvas.drawRoundRect(RectF(barX, y - barH, barX + barMaxW, y), 4f, 4f, pBar)
+            canvas.drawRoundRect(RectF(barX, y + 4f, barX + barMaxW, y + 17f), 4f, 4f, pBar)
             if (barW > 0f) {
                 pBar.color = modeColor(mode.displayLabel)
-                canvas.drawRoundRect(RectF(barX, y - barH, barX + barW, y), 4f, 4f, pBar)
+                canvas.drawRoundRect(RectF(barX, y + 4f, barX + barW, y + 17f), 4f, 4f, pBar)
             }
 
-            canvas.drawText("₹$amtStr", margin + 340f, y, pBoldCell)
-            canvas.drawText(pct,        margin + 460f, y, pCell)
-            y += 25f
+            canvas.drawText("₹$amtStr", margin + 340f, y + 15f, pBoldCell)
+            canvas.drawText(pct,        margin + 460f, y + 15f, pCell)
+            canvas.drawLine(margin, y + 22f, contentRight, y + 22f, pLine)
+            y += 22f
         }
 
-        canvas.drawLine(margin + 330f, y, contentRight, y, pLine); y += 10f
-        canvas.drawText("TOTAL", margin, y, pTotal)
-        canvas.drawText("₹${grandTotal.setScale(2, RoundingMode.HALF_UP)}", margin + 340f, y, pTotal)
-        y += 26f
+        // Total row
+        val totalRowBg = Paint().apply { color = Color.rgb(240, 240, 240) }
+        canvas.drawRect(margin, y, contentRight, y + 22f, totalRowBg)
+        canvas.drawText("TOTAL", margin + 6f, y + 15f, pTotal)
+        canvas.drawText("₹${grandTotal.setScale(2, RoundingMode.HALF_UP)}", margin + 340f, y + 15f, pTotal)
+        canvas.drawRect(margin, y, contentRight, y + 22f, pBorder)
+        y += 22f + 10f
         canvas.drawLine(margin, y, contentRight, y, pThick); y += 26f
 
         // ── KEY METRICS (card boxes) ───────────────────────────────
@@ -251,6 +263,7 @@ class ReportExporter(private val context: Context) {
         cardData.forEachIndexed { i, (label, value) ->
             val cx = margin + i * (cardW + cardGap)
             canvas.drawRoundRect(RectF(cx, y, cx + cardW, y + cardH), 8f, 8f, pCard)
+            canvas.drawRoundRect(RectF(cx, y, cx + cardW, y + cardH), 8f, 8f, pCardBorder)
             canvas.drawText(label, cx + 10f, y + 20f, pCardLabel)
             canvas.drawText(value, cx + 10f, y + 52f, pCardVal)
         }
@@ -260,24 +273,26 @@ class ReportExporter(private val context: Context) {
         // ── TOP 5 BEST SELLING ITEMS ───────────────────────────────
         if (topItems.isNotEmpty()) {
             canvas.drawText("TOP 5 BEST SELLING ITEMS", margin, y, pSection); y += 18f
-            canvas.drawLine(margin, y, contentRight, y, pLine); y += 14f
 
-            canvas.drawText("#",            margin,        y, pHeader)
-            canvas.drawText("Item Name",    margin + 24f,  y, pHeader)
-            canvas.drawText("Qty Sold",     margin + 350f, y, pHeader)
-            canvas.drawText("Revenue (₹)",  margin + 440f, y, pHeader)
-            y += 12f
-            canvas.drawLine(margin, y, contentRight, y, pLine); y += 12f
+            val topRowH = 20f
+            canvas.drawRect(margin, y, contentRight, y + topRowH, pHeaderBg)
+            canvas.drawText("#",            margin + 6f,   y + 14f, pHeaderTxt)
+            canvas.drawText("Item Name",    margin + 28f,  y + 14f, pHeaderTxt)
+            canvas.drawText("Qty Sold",     margin + 350f, y + 14f, pHeaderTxt)
+            canvas.drawText("Revenue (₹)",  margin + 440f, y + 14f, pHeaderTxt)
+            y += topRowH
 
-            val stripPaint = Paint().apply { color = Color.argb(12, 0, 0, 0) }
             topItems.forEachIndexed { idx, item ->
-                if (idx % 2 == 0) canvas.drawRect(margin, y - 12f, contentRight, y + 8f, stripPaint)
-                canvas.drawText("${idx + 1}",            margin,        y, pBoldCell)
-                canvas.drawText(item.itemName.take(50),  margin + 24f,  y, pCell)
-                canvas.drawText("${item.quantitySold}",  margin + 350f, y, pCell)
-                canvas.drawText("₹${item.revenue}",      margin + 440f, y, pCell)
-                y += 20f
+                val rowBg = if (idx % 2 == 0) Paint().apply { color = Color.rgb(252, 252, 252) } else Paint().apply { color = Color.WHITE }
+                canvas.drawRect(margin, y, contentRight, y + topRowH, rowBg)
+                canvas.drawText("${idx + 1}",            margin + 6f,   y + 14f, pBoldCell)
+                canvas.drawText(item.itemName.take(50),  margin + 28f,  y + 14f, pCell)
+                canvas.drawText("${item.quantitySold}",  margin + 350f, y + 14f, pCell)
+                canvas.drawText("₹${item.revenue}",      margin + 440f, y + 14f, pCell)
+                canvas.drawLine(margin, y + topRowH, contentRight, y + topRowH, pLine)
+                y += topRowH
             }
+            canvas.drawRect(margin, y - topItems.size * topRowH, contentRight, y, pBorder)
             y += 10f
             canvas.drawLine(margin, y, contentRight, y, pThick); y += 20f
         }
@@ -315,17 +330,20 @@ class ReportExporter(private val context: Context) {
                 return lines.ifEmpty { listOf("—") }
             }
 
-            canvas.drawText("#",             c0, y, pHeader)
-            canvas.drawText("Invoice",       c1, y, pHeader)
-            canvas.drawText("Date",          c2, y, pHeader)
-            canvas.drawText("Mode",          c3, y, pHeader)
-            canvas.drawText("Status",        c4, y, pHeader)
-            canvas.drawText("Amount (₹)",    c5, y, pHeader)
-            canvas.drawText("Items & Count", c6, y, pHeader)
-            y += 13f
-            canvas.drawLine(margin, y, contentRight, y, pLine); y += 13f
+            // Dark header background
+            val hdrH = 20f
+            canvas.drawRect(margin, y, contentRight, y + hdrH, pHeaderBg)
+            canvas.drawText("#",             c0 + 2f, y + 14f, pHeaderTxt)
+            canvas.drawText("Invoice",       c1 + 2f, y + 14f, pHeaderTxt)
+            canvas.drawText("Date",          c2 + 2f, y + 14f, pHeaderTxt)
+            canvas.drawText("Mode",          c3 + 2f, y + 14f, pHeaderTxt)
+            canvas.drawText("Status",        c4 + 2f, y + 14f, pHeaderTxt)
+            canvas.drawText("Amount (₹)",    c5 + 2f, y + 14f, pHeaderTxt)
+            canvas.drawText("Items & Count", c6 + 2f, y + 14f, pHeaderTxt)
+            y += hdrH
 
             val lineH = 14f
+            val tableStartY = y
 
             orderRows.forEachIndexed { idx, row ->
                 val items = billDataById[row.billId]?.items
@@ -335,7 +353,7 @@ class ReportExporter(private val context: Context) {
                         "$name ×${it.quantity}"
                     }
                 val itemsLines = wrapItems(itemsText)
-                val rowH = (itemsLines.size * lineH) + 4f
+                val rowH = (itemsLines.size * lineH) + 8f
 
                 overflow(rowH + 6f)
 
@@ -344,22 +362,34 @@ class ReportExporter(private val context: Context) {
                     else -> row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
                 }
 
-                if (idx % 2 == 0) canvas.drawRect(margin, y - 10f, contentRight, y + rowH - 10f, stripPaint)
+                val rowBg = if (idx % 2 == 0) Paint().apply { color = Color.rgb(252, 252, 252) } else Paint().apply { color = Color.WHITE }
+                canvas.drawRect(margin, y, contentRight, y + rowH, rowBg)
 
-                canvas.drawText("${idx + 1}", c0, y, pCell)
-                canvas.drawText("INV${row.lifetimeNo}", c1, y, pCell)
-                canvas.drawText(fmtDate(row.salesDate), c2, y, pCell)
-                canvas.drawText(row.payMode.displayLabel.take(14), c3, y, pCell)
-                canvas.drawText(status.take(9), c4, y, pCell)
-                canvas.drawText("₹${row.salesAmount}", c5, y, pCell)
+                val textY = y + lineH
+                canvas.drawText("${idx + 1}", c0 + 2f, textY, pCell)
+                canvas.drawText("INV${row.lifetimeNo}", c1 + 2f, textY, pBoldCell)
+                canvas.drawText(fmtDate(row.salesDate), c2 + 2f, textY, pCell)
+                canvas.drawText(row.payMode.displayLabel.take(14), c3 + 2f, textY, pCell)
+
+                val statusColor = when (row.orderStatus) {
+                    OrderStatus.COMPLETED -> Color.rgb(67, 160, 71)
+                    OrderStatus.CANCELLED -> Color.rgb(198, 40, 40)
+                    else -> Color.GRAY
+                }
+                val statusPaint = Paint().apply { textSize = 11f; isFakeBoldText = true; color = statusColor }
+                canvas.drawText(status.take(9), c4 + 2f, textY, statusPaint)
+                canvas.drawText("₹${row.salesAmount}", c5 + 2f, textY, pBoldCell)
 
                 itemsLines.forEachIndexed { i, line ->
-                    canvas.drawText(line, c6, y + i * lineH, pItems)
+                    canvas.drawText(line, c6 + 2f, textY + i * lineH, pItems)
                 }
 
-                y += rowH + 2f
+                canvas.drawLine(margin, y + rowH, contentRight, y + rowH, pLine)
+                y += rowH
             }
-            y += 6f
+            // Outer border around entire table
+            canvas.drawRect(margin, tableStartY, contentRight, y, pBorder)
+            y += 10f
         }
 
         overflow()

@@ -445,6 +445,13 @@ fun OrderTableRow(
     var payModeExpanded by remember { mutableStateOf(false) }
     val spacing = KhanaBookTheme.spacing
     val isCancelled = row.orderStatus == OrderStatus.CANCELLED
+    val isTodayBill = remember(row.salesDate) {
+        val billDate = java.time.Instant.ofEpochMilli(row.salesDate)
+            .atZone(java.time.ZoneId.of("Asia/Kolkata"))
+            .toLocalDate()
+        billDate == java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"))
+    }
+    val canEdit = !isCancelled && isTodayBill
 
     Column(
         modifier = Modifier
@@ -476,9 +483,9 @@ fun OrderTableRow(
             )
 
             Box(modifier = Modifier.weight(COL_MODE), contentAlignment = Alignment.Center) {
-                val color = if (isCancelled) Color.Gray else getPayModeColor(row.payMode)
+                val color = if (!canEdit) Color.Gray else getPayModeColor(row.payMode)
                 Surface(
-                    onClick = { if (!isCancelled) payModeExpanded = true },
+                    onClick = { if (canEdit) payModeExpanded = true },
                     color = color,
                     shape = RoundedCornerShape(4.dp),
                     modifier = Modifier.padding(horizontal = spacing.hairline)
@@ -513,7 +520,7 @@ fun OrderTableRow(
                     else -> TextMuted
                 }
                 Surface(
-                    onClick = { if (!isCancelled) statusExpanded = true },
+                    onClick = { if (canEdit) statusExpanded = true },
                     color = statusColor,
                     shape = RoundedCornerShape(4.dp),
                     modifier = Modifier.padding(horizontal = spacing.extraSmall)
@@ -531,7 +538,7 @@ fun OrderTableRow(
                         lineHeight = 10.sp
                     )
                 }
-                if (!isCancelled) {
+                if (canEdit) {
                     DropdownMenu(
                         expanded = statusExpanded,
                         onDismissRequest = { statusExpanded = false },
