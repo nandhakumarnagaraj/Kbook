@@ -70,6 +70,14 @@ fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProf
     var ownWebsiteEnabled by remember { mutableStateOf(profile?.ownWebsiteEnabled ?: false) }
     var qrUpdateTrigger by remember { mutableStateOf(0L) }
 
+    // Easebuzz gateway config — when enabled and the device is online, the UPI
+    // flow uses the live gateway (real-time success/failed via webhook). When
+    // disabled or offline, the manual QR + counter-confirmation flow is used.
+    var easebuzzEnabled by remember { mutableStateOf(profile?.easebuzzEnabled ?: false) }
+    var easebuzzMerchantKey by remember { mutableStateOf(profile?.easebuzzMerchantKey ?: "") }
+    var easebuzzSalt by remember { mutableStateOf(profile?.easebuzzSalt ?: "") }
+    var easebuzzEnv by remember { mutableStateOf(profile?.easebuzzEnv ?: "test") }
+
     val context = LocalContext.current
     val qrLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
@@ -146,6 +154,47 @@ fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProf
                 Spacer(modifier = Modifier.height(spacing.small))
                 ParchmentTextField(value = upiMobile, onValueChange = { upiMobile = it }, label = "UPI Mobile Number")
             }
+
+            Spacer(modifier = Modifier.height(spacing.large))
+            Text(
+                "Easebuzz (Online UPI Gateway)",
+                color = PrimaryGold,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                "When enabled and online, UPI payments are verified by Easebuzz in real time. " +
+                    "When offline or disabled, the manual QR + counter-confirmation flow is used.",
+                color = TextGold,
+                style = MaterialTheme.typography.bodySmall
+            )
+            PaymentToggle("Enable Easebuzz", easebuzzEnabled) { easebuzzEnabled = it }
+            if (easebuzzEnabled) {
+                Spacer(modifier = Modifier.height(spacing.small))
+                ParchmentTextField(
+                    value = easebuzzMerchantKey,
+                    onValueChange = { easebuzzMerchantKey = it.trim() },
+                    label = "Merchant Key"
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+                ParchmentTextField(
+                    value = easebuzzSalt,
+                    onValueChange = { easebuzzSalt = it.trim() },
+                    label = "Salt"
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Environment",
+                        color = TextGold,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    EnvChip("test", easebuzzEnv == "test") { easebuzzEnv = "test" }
+                    Spacer(modifier = Modifier.size(spacing.small))
+                    EnvChip("prod", easebuzzEnv == "prod") { easebuzzEnv = "prod" }
+                }
+            }
+
             Spacer(modifier = Modifier.height(spacing.extraLarge))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
                 Button(
@@ -161,6 +210,10 @@ fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProf
                             zomatoEnabled = zomatoEnabled,
                             swiggyEnabled = swiggyEnabled,
                             ownWebsiteEnabled = ownWebsiteEnabled,
+                            easebuzzEnabled = easebuzzEnabled,
+                            easebuzzMerchantKey = easebuzzMerchantKey.ifBlank { null },
+                            easebuzzSalt = easebuzzSalt.ifBlank { null },
+                            easebuzzEnv = easebuzzEnv,
                             isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }
@@ -177,6 +230,21 @@ fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProf
                 ) { Text("Back") }
             }
         }
+    }
+}
+
+@Composable
+private fun EnvChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        border = BorderStroke(1.dp, if (selected) SuccessGreen else PrimaryGold),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Text(
+            label,
+            color = if (selected) SuccessGreen else PrimaryGold,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 
