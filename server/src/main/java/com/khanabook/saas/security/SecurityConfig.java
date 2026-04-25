@@ -109,6 +109,10 @@ public class SecurityConfig {
 								"/auth/reset-password", "/auth/reset-password/request",
 								"/error")
 						.permitAll()
+						// Easebuzz webhook — called by Easebuzz with no JWT; we authenticate
+						// it ourselves via reverse-hash check using the merchant salt.
+						.requestMatchers("/payments/easebuzz/webhook")
+						.permitAll()
 						// API docs require authenticated admin access
 						.requestMatchers("/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
 						.hasRole("KBOOK_ADMIN")

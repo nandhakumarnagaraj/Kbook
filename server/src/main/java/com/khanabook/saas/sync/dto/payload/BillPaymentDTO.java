@@ -26,4 +26,7 @@ public class BillPaymentDTO {
     private Bill bill;
     private String paymentMode;
     private java.math.BigDecimal amount;
+    private String gatewayTxnId;
+    private String gatewayStatus;
+    private String verifiedBy;
 }

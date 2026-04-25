@@ -7,6 +7,7 @@ import com.khanabook.lite.pos.data.remote.dto.*
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface KhanaBookApi {
@@ -132,4 +133,7 @@ interface KhanaBookApi {
 
         @POST("api/v1/auth/logout")
         suspend fun logout(): retrofit2.Response<Unit>
+
+        @GET("api/v1/payments/easebuzz/verify/{txnId}")
+        suspend fun verifyEasebuzzTxn(@Path("txnId") txnId: String): EasebuzzVerifyResponse
 }

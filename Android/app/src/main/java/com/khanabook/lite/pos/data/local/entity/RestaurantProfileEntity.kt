@@ -60,6 +60,21 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "own_website_enabled", defaultValue = "0")
     val ownWebsiteEnabled: Boolean = false,
 
+    // Easebuzz payment gateway — when enabled and device is online, UPI flow uses live gateway
+    // verification. When disabled OR offline, falls back to manual QR + counter confirmation.
+    @SerializedName("easebuzzEnabled")
+    @ColumnInfo(name = "easebuzz_enabled", defaultValue = "0")
+    val easebuzzEnabled: Boolean = false,
+    @SerializedName("easebuzzMerchantKey")
+    @ColumnInfo(name = "easebuzz_merchant_key")
+    val easebuzzMerchantKey: String? = null,
+    @SerializedName("easebuzzSalt")
+    @ColumnInfo(name = "easebuzz_salt")
+    val easebuzzSalt: String? = null,
+    @SerializedName("easebuzzEnv")
+    @ColumnInfo(name = "easebuzz_env", defaultValue = "test")
+    val easebuzzEnv: String = "test",
+
     
     @ColumnInfo(name = "printer_enabled", defaultValue = "0")
     val printerEnabled: Boolean = false,

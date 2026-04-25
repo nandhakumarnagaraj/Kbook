@@ -46,6 +46,10 @@ public class RestaurantProfileDTO {
     private Boolean zomatoEnabled;
     private Boolean swiggyEnabled;
     private Boolean ownWebsiteEnabled;
+    private Boolean easebuzzEnabled;
+    private String easebuzzMerchantKey;
+    private String easebuzzSalt;
+    private String easebuzzEnv;
     private Boolean printerEnabled;
     private String printerName;
     private String printerMac;

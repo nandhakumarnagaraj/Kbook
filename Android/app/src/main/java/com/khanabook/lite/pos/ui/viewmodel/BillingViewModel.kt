@@ -43,8 +43,32 @@ class BillingViewModel @Inject constructor(
     private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
     private val syncManager: com.khanabook.lite.pos.domain.manager.SyncManager,
     private val printRouter: PrintRouter,
-    val printerManager: com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
+    val printerManager: com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager,
+    private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor,
+    val easebuzzClient: com.khanabook.lite.pos.domain.manager.EasebuzzClient
 ) : ViewModel() {
+
+    val cachedProfile: StateFlow<RestaurantProfileEntity?> get() = _cachedProfile
+
+    val connectionStatus: StateFlow<com.khanabook.lite.pos.domain.util.ConnectionStatus> =
+        networkMonitor.status.stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            com.khanabook.lite.pos.domain.util.ConnectionStatus.Unavailable
+        )
+
+    private val _gatewayTxnId = MutableStateFlow<String?>(null)
+    private val _gatewayStatus = MutableStateFlow<String?>(null)
+
+    fun setGatewayResult(txnId: String?, status: String?) {
+        _gatewayTxnId.value = txnId
+        _gatewayStatus.value = status
+    }
+
+    fun clearGatewayResult() {
+        _gatewayTxnId.value = null
+        _gatewayStatus.value = null
+    }
 
     companion object {
         private const val TAG = "BillingViewModel"
@@ -302,19 +326,32 @@ class BillingViewModel @Inject constructor(
                 )
             }
 
+            // Gateway data is attached only to UPI rows; cash/POS rows stay manual.
+            val gTxn = _gatewayTxnId.value
+            val gStatus = _gatewayStatus.value
+            val verifiedBy = if (gTxn != null) "easebuzz" else "manual"
+            fun upi(amount: String) = BillPaymentEntity(
+                billId = 0,
+                paymentMode = PaymentMode.UPI.dbValue,
+                amount = amount,
+                gatewayTxnId = gTxn,
+                gatewayStatus = gStatus,
+                verifiedBy = verifiedBy
+            )
             val payments = when (_paymentMode.value) {
                 PaymentMode.PART_CASH_UPI -> listOf(
                     BillPaymentEntity(billId = 0, paymentMode = PaymentMode.CASH.dbValue, amount = _partAmount1.value),
-                    BillPaymentEntity(billId = 0, paymentMode = PaymentMode.UPI.dbValue, amount = _partAmount2.value)
+                    upi(_partAmount2.value)
                 )
                 PaymentMode.PART_CASH_POS -> listOf(
                     BillPaymentEntity(billId = 0, paymentMode = PaymentMode.CASH.dbValue, amount = _partAmount1.value),
                     BillPaymentEntity(billId = 0, paymentMode = PaymentMode.POS.dbValue, amount = _partAmount2.value)
                 )
                 PaymentMode.PART_UPI_POS -> listOf(
-                    BillPaymentEntity(billId = 0, paymentMode = PaymentMode.UPI.dbValue, amount = _partAmount1.value),
+                    upi(_partAmount1.value),
                     BillPaymentEntity(billId = 0, paymentMode = PaymentMode.POS.dbValue, amount = _partAmount2.value)
                 )
+                PaymentMode.UPI -> listOf(upi(finalSummary.total))
                 else -> listOf(
                     BillPaymentEntity(billId = 0, paymentMode = _paymentMode.value.dbValue, amount = finalSummary.total)
                 )

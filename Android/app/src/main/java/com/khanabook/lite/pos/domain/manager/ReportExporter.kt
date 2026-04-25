@@ -405,7 +405,7 @@ class ReportExporter(private val context: Context) {
                 if (y > pageHeight - margin - rowH - 10f) {
                     canvas.drawRect(margin, sectionStartY, contentRight, y, pBorder)
                     newPage()
-                    canvas.drawText("ORDER DETAILS  (continued)", margin, y, pSection)
+                    canvas.drawText("ORDER DETAILS", margin, y, pSection)
                     y += 20f
                     drawOrderTableHeader()
                     sectionStartY = y

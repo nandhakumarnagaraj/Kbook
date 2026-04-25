@@ -22,7 +22,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 39,
+        version = 40,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -37,6 +37,20 @@ abstract class AppDatabase : RoomDatabase() {
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
+
+            val MIGRATION_39_40 = object : Migration(39, 40) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    // Easebuzz config on restaurant_profile
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `easebuzz_enabled` INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `easebuzz_merchant_key` TEXT")
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `easebuzz_salt` TEXT")
+                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `easebuzz_env` TEXT NOT NULL DEFAULT 'test'")
+                    // Gateway tracking on bill_payments
+                    db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `gateway_txn_id` TEXT")
+                    db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `gateway_status` TEXT")
+                    db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `verified_by` TEXT NOT NULL DEFAULT 'manual'")
+                }
+            }
 
             val MIGRATION_38_39 = object : Migration(38, 39) {
                 override fun migrate(db: SupportSQLiteDatabase) {
