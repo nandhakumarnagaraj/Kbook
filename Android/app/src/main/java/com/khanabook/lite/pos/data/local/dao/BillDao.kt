@@ -30,6 +30,9 @@ interface BillDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBillPayments(payments: List<BillPaymentEntity>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBillPayment(payment: BillPaymentEntity)
+
     @Query("SELECT * FROM bills WHERE id = :id") suspend fun getBillById(id: Long): BillEntity?
 
     @Query("SELECT * FROM bills WHERE lifetime_order_id = :id")

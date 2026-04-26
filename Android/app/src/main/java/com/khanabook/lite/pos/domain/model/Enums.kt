@@ -30,6 +30,7 @@ enum class OrderStatus(val dbValue: String) {
 }
 
 enum class PaymentStatus(val dbValue: String) {
+    PENDING("pending"),
     SUCCESS("success"),
     FAILED("failed");
 

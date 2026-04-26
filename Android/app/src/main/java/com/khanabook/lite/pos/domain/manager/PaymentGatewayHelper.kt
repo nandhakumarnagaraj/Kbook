@@ -23,8 +23,6 @@ object PaymentGatewayHelper {
     ): Boolean {
         if (profile == null) return false
         if (!profile.easebuzzEnabled) return false
-        if (profile.easebuzzMerchantKey.isNullOrBlank()) return false
-        if (profile.easebuzzSalt.isNullOrBlank()) return false
         if (!isOnline) return false
         return isUpiSelection(mode)
     }

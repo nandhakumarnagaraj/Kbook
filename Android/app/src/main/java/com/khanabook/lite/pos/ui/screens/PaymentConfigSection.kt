@@ -37,11 +37,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -52,9 +55,15 @@ import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextGold
+import com.khanabook.lite.pos.ui.viewmodel.PaymentViewModel
 
 @Composable
-fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileEntity) -> Unit, onBack: () -> Unit) {
+fun PaymentConfigView(
+    profile: RestaurantProfileEntity?,
+    onSave: (RestaurantProfileEntity) -> Unit,
+    onBack: () -> Unit,
+    paymentViewModel: PaymentViewModel = hiltViewModel()
+) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val isCompactWidth = layout.isCompactForm
@@ -74,9 +83,26 @@ fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProf
     // flow uses the live gateway (real-time success/failed via webhook). When
     // disabled or offline, the manual QR + counter-confirmation flow is used.
     var easebuzzEnabled by remember { mutableStateOf(profile?.easebuzzEnabled ?: false) }
-    var easebuzzMerchantKey by remember { mutableStateOf(profile?.easebuzzMerchantKey ?: "") }
-    var easebuzzSalt by remember { mutableStateOf(profile?.easebuzzSalt ?: "") }
+    var easebuzzMerchantKey by remember { mutableStateOf("") }
+    var easebuzzSalt by remember { mutableStateOf("") }
     var easebuzzEnv by remember { mutableStateOf(profile?.easebuzzEnv ?: "test") }
+    val remoteConfig by paymentViewModel.config.collectAsStateWithLifecycle()
+    val remoteLoading by paymentViewModel.loading.collectAsStateWithLifecycle()
+    val remoteError by paymentViewModel.error.collectAsStateWithLifecycle()
+    val remoteSaved by paymentViewModel.saved.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        paymentViewModel.loadConfig()
+    }
+
+    LaunchedEffect(remoteConfig) {
+        remoteConfig?.let {
+            easebuzzEnabled = it.active
+            easebuzzEnv = it.environment.lowercase()
+            easebuzzMerchantKey = ""
+            easebuzzSalt = ""
+        }
+    }
 
     val context = LocalContext.current
     val qrLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -170,16 +196,24 @@ fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProf
             PaymentToggle("Enable Easebuzz", easebuzzEnabled) { easebuzzEnabled = it }
             if (easebuzzEnabled) {
                 Spacer(modifier = Modifier.height(spacing.small))
+                remoteConfig?.let {
+                    Text(
+                        "Backend key on file: ${it.merchantKeyMasked}. Enter a new key and salt only if you want to rotate credentials.",
+                        color = TextGold,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.height(spacing.small))
+                }
                 ParchmentTextField(
                     value = easebuzzMerchantKey,
                     onValueChange = { easebuzzMerchantKey = it.trim() },
-                    label = "Merchant Key"
+                    label = if (remoteConfig != null) "New Merchant Key (optional)" else "Merchant Key"
                 )
                 Spacer(modifier = Modifier.height(spacing.small))
                 ParchmentTextField(
                     value = easebuzzSalt,
                     onValueChange = { easebuzzSalt = it.trim() },
-                    label = "Salt"
+                    label = if (remoteConfig != null) "New Salt (optional)" else "Salt"
                 )
                 Spacer(modifier = Modifier.height(spacing.small))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -195,10 +229,39 @@ fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProf
                 }
             }
 
+            if (remoteLoading) {
+                Spacer(modifier = Modifier.height(spacing.small))
+                Text("Syncing payment config…", color = TextGold, style = MaterialTheme.typography.bodySmall)
+            }
+            remoteError?.let {
+                Spacer(modifier = Modifier.height(spacing.small))
+                Text(it, color = Color.Red, style = MaterialTheme.typography.bodySmall)
+            }
+            if (remoteSaved) {
+                Spacer(modifier = Modifier.height(spacing.small))
+                Text("Easebuzz config saved securely on backend.", color = SuccessGreen, style = MaterialTheme.typography.bodySmall)
+            }
+
             Spacer(modifier = Modifier.height(spacing.extraLarge))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
                 Button(
                     onClick = {
+                        val hasExistingRemoteConfig = remoteConfig?.active == true
+                        val enteredBothSecrets = easebuzzMerchantKey.isNotBlank() && easebuzzSalt.isNotBlank()
+                        if (easebuzzEnabled && !hasExistingRemoteConfig && !enteredBothSecrets) {
+                            paymentViewModel.showError("Enter Easebuzz merchant key and salt before enabling online UPI.")
+                            return@Button
+                        }
+                        if (enteredBothSecrets) {
+                            paymentViewModel.saveEasebuzzConfig(
+                                merchantKey = easebuzzMerchantKey,
+                                salt = easebuzzSalt,
+                                environment = easebuzzEnv,
+                                currentProfile = profile
+                            )
+                        } else {
+                            paymentViewModel.clearMessages()
+                        }
                         profile?.copy(
                             currency = currency,
                             upiEnabled = upiSupported,
@@ -211,9 +274,9 @@ fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProf
                             swiggyEnabled = swiggyEnabled,
                             ownWebsiteEnabled = ownWebsiteEnabled,
                             easebuzzEnabled = easebuzzEnabled,
-                            easebuzzMerchantKey = easebuzzMerchantKey.ifBlank { null },
-                            easebuzzSalt = easebuzzSalt.ifBlank { null },
-                            easebuzzEnv = easebuzzEnv,
+                            easebuzzMerchantKey = null,
+                            easebuzzSalt = null,
+                            easebuzzEnv = remoteConfig?.environment?.lowercase() ?: easebuzzEnv,
                             isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }

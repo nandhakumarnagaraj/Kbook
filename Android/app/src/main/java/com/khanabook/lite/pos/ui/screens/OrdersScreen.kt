@@ -1,4 +1,9 @@
-@file:OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@file:OptIn(
+    ExperimentalMaterial3Api::class,
+    kotlinx.coroutines.ExperimentalCoroutinesApi::class,
+    androidx.compose.foundation.ExperimentalFoundationApi::class,
+    androidx.compose.foundation.layout.ExperimentalLayoutApi::class
+)
 
 package com.khanabook.lite.pos.ui.screens
 
@@ -10,8 +15,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -26,6 +33,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.model.OrderDetailRow
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
+import com.khanabook.lite.pos.data.remote.dto.MerchantCustomerOrderDetailResponse
+import com.khanabook.lite.pos.data.remote.dto.MerchantCustomerOrderSummaryResponse
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.domain.util.DateUtils
 import com.khanabook.lite.pos.domain.util.shareBillOnWhatsApp
@@ -33,6 +42,7 @@ import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
+import com.khanabook.lite.pos.ui.viewmodel.StorefrontOrdersViewModel
 import kotlinx.coroutines.launch
 import java.util.*
 import androidx.compose.animation.animateColorAsState
@@ -52,16 +62,24 @@ import java.text.SimpleDateFormat
 fun OrdersScreen(
     onBack: () -> Unit,
     viewModel: ReportsViewModel = hiltViewModel(),
-    settingsViewModel: SettingsViewModel = hiltViewModel()
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
+    storefrontOrdersViewModel: StorefrontOrdersViewModel = hiltViewModel()
 ) {
     val allRows by viewModel.orderDetailsTable.collectAsState()
     val selectedBillDetails by viewModel.selectedBillDetails.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val timeFilter by viewModel.timeFilter.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
+    val onlineOrders by storefrontOrdersViewModel.orders.collectAsState()
+    val selectedOnlineOrder by storefrontOrdersViewModel.selectedOrder.collectAsState()
+    val onlineLoading by storefrontOrdersViewModel.isLoading.collectAsState()
+    val onlineRefreshing by storefrontOrdersViewModel.isRefreshing.collectAsState()
+    val onlineUpdatingOrderIds by storefrontOrdersViewModel.updatingOrderIds.collectAsState()
+    val onlineError by storefrontOrdersViewModel.error.collectAsState()
     val haptic = LocalHapticFeedback.current
     val spacing = KhanaBookTheme.spacing
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
+    var selectedSource by rememberSaveable { mutableStateOf("POS") }
     val enabledModes = remember(profile) { 
         profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH) 
     }
@@ -73,6 +91,11 @@ fun OrdersScreen(
 
     LaunchedEffect(Unit) {
         viewModel.setTimeFilter("Daily")
+    }
+    LaunchedEffect(selectedSource) {
+        if (selectedSource == "ONLINE" && onlineOrders.isEmpty()) {
+            storefrontOrdersViewModel.loadOrders()
+        }
     }
 
     // Standard staggered entry animation
@@ -202,6 +225,29 @@ fun OrdersScreen(
 
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                 Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = spacing.medium),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        OrderFilterChip(
+                            label = "POS Orders",
+                            isSelected = selectedSource == "POS",
+                            onClick = { selectedSource = "POS" },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OrderFilterChip(
+                            label = "Online Orders",
+                            isSelected = selectedSource == "ONLINE",
+                            onClick = { selectedSource = "ONLINE" },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(spacing.medium))
+
+                    if (selectedSource == "POS") {
                     PeriodTabs(
                         selectedFilter = timeFilter,
                         onTabSelected = {
@@ -214,12 +260,25 @@ fun OrdersScreen(
                     )
 
                     Spacer(modifier = Modifier.height(spacing.medium))
+                    }
                 }
             }
 
             val isGstEnabled = profile?.gstEnabled == true
 
-            if (isLoading) {
+            if (selectedSource == "ONLINE") {
+                AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
+                    OnlineOrdersPane(
+                        orders = onlineOrders,
+                        isLoading = onlineLoading,
+                        isRefreshing = onlineRefreshing,
+                        error = onlineError,
+                        updatingOrderIds = onlineUpdatingOrderIds,
+                        onRefresh = { storefrontOrdersViewModel.loadOrders(forceRefresh = true) },
+                        onOrderClick = { storefrontOrdersViewModel.loadOrder(it) }
+                    )
+                }
+            } else if (isLoading) {
                 AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
                     Column(
                         modifier = Modifier
@@ -338,6 +397,17 @@ fun OrdersScreen(
                 onDismiss = {
                     selectedBillId = null
                     viewModel.clearBillDetails()
+                }
+            )
+        }
+
+        selectedOnlineOrder?.let { order ->
+            OnlineOrderDetailsDialog(
+                order = order,
+                isUpdating = onlineUpdatingOrderIds.contains(order.orderId),
+                onDismiss = { storefrontOrdersViewModel.clearSelectedOrder() },
+                onStatusUpdate = { nextStatus ->
+                    storefrontOrdersViewModel.updateOrderStatus(order.orderId, nextStatus)
                 }
             )
         }
@@ -783,4 +853,311 @@ private fun formatDateRangeHeadline(startMillis: Long?, endMillis: Long?): Strin
     val startText = startMillis?.let { formatter.format(Date(it)) } ?: "Start date"
     val endText = endMillis?.let { formatter.format(Date(it)) } ?: "End date"
     return "$startText - $endText"
+}
+
+@Composable
+private fun OnlineOrdersPane(
+    orders: List<MerchantCustomerOrderSummaryResponse>,
+    isLoading: Boolean,
+    isRefreshing: Boolean,
+    error: String?,
+    updatingOrderIds: Set<Long>,
+    onRefresh: () -> Unit,
+    onOrderClick: (Long) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = spacing.medium)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("Live online orders", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "${orders.size} orders from website checkout",
+                    color = TextGold.copy(alpha = 0.75f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            FilledTonalIconButton(
+                onClick = onRefresh,
+                enabled = !isRefreshing,
+                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = DarkBrown2,
+                    contentColor = PrimaryGold
+                )
+            ) {
+                if (isRefreshing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = PrimaryGold
+                    )
+                } else {
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh online orders")
+                }
+            }
+        }
+
+        error?.takeIf { it.isNotBlank() }?.let {
+            Spacer(modifier = Modifier.height(spacing.small))
+            Surface(
+                color = DangerRed.copy(alpha = 0.14f),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.25f))
+            ) {
+                Text(
+                    text = it,
+                    color = TextLight,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(spacing.medium))
+
+        when {
+            isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = PrimaryGold)
+                }
+            }
+            orders.isEmpty() -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.Description,
+                            contentDescription = null,
+                            tint = TextGold.copy(alpha = 0.25f),
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Spacer(modifier = Modifier.height(spacing.small))
+                        Text(
+                            "No online orders yet",
+                            color = TextGold.copy(alpha = 0.55f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    items(orders, key = { it.orderId }) { order ->
+                        OnlineOrderCard(
+                            order = order,
+                            isUpdating = updatingOrderIds.contains(order.orderId),
+                            onClick = { onOrderClick(order.orderId) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnlineOrderCard(
+    order: MerchantCustomerOrderSummaryResponse,
+    isUpdating: Boolean,
+    onClick: () -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        color = DarkBrown1.copy(alpha = 0.55f),
+        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.18f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(order.publicOrderCode, color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        order.customerName,
+                        color = TextLight,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    order.customerPhone?.takeIf { it.isNotBlank() }?.let {
+                        Text(it, color = TextGold, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                if (isUpdating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = PrimaryGold
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                StatusBadge(order.fulfillmentType.replace("_", " "), Brown500, Modifier.weight(1f))
+                StatusBadge(order.orderStatus.replace("_", " "), storefrontOrderStatusColor(order.orderStatus), Modifier.weight(1f))
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    CurrencyUtils.formatPrice(order.totalAmount),
+                    color = TextLight,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                Text(
+                    DateUtils.formatDisplay(order.createdAt),
+                    color = TextGold.copy(alpha = 0.75f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnlineOrderDetailsDialog(
+    order: MerchantCustomerOrderDetailResponse,
+    isUpdating: Boolean,
+    onDismiss: () -> Unit,
+    onStatusUpdate: (String) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DarkBrown2,
+        titleContentColor = PrimaryGold,
+        textContentColor = TextLight,
+        title = {
+            Column {
+                Text(order.publicOrderCode)
+                Text(
+                    order.customerName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextGold
+                )
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                DetailRow("Status", order.orderStatus.replace("_", " "))
+                DetailRow("Payment", "${order.paymentMethod} • ${order.paymentStatus}")
+                DetailRow("Fulfillment", order.fulfillmentType.replace("_", " "))
+                order.customerPhone?.takeIf { it.isNotBlank() }?.let { DetailRow("Phone", it) }
+                order.customerNote?.takeIf { it.isNotBlank() }?.let { DetailRow("Note", it) }
+                DetailRow("Created", DateUtils.formatDisplay(order.createdAt))
+                HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+                order.items.forEach { item ->
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "${item.quantity} x ${item.itemName}${item.variantName?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""}",
+                            color = TextLight,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                        Text(
+                            CurrencyUtils.formatPrice(item.lineTotal),
+                            color = TextGold,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        item.specialInstruction?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, color = TextGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+                HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+                DetailRow("Total", CurrencyUtils.formatPrice(order.totalAmount))
+                val nextStatuses = remember(order.orderStatus) { storefrontNextStatuses(order.orderStatus) }
+                if (nextStatuses.isNotEmpty()) {
+                    Text("Update status", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        nextStatuses.forEach { nextStatus ->
+                            AssistChip(
+                                onClick = { onStatusUpdate(nextStatus) },
+                                enabled = !isUpdating,
+                                label = { Text(nextStatus.replace("_", " ")) },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = storefrontOrderStatusColor(nextStatus).copy(alpha = 0.18f),
+                                    labelColor = TextLight
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = PrimaryGold)
+            }
+        }
+    )
+}
+
+@Composable
+private fun StatusBadge(
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = color.copy(alpha = 0.18f),
+        shape = RoundedCornerShape(999.dp),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.28f))
+    ) {
+        Text(
+            text = label.uppercase(Locale.getDefault()),
+            color = color,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+        )
+    }
+}
+
+private fun storefrontOrderStatusColor(status: String): Color {
+    return when (status.uppercase(Locale.getDefault())) {
+        "PENDING_CONFIRMATION" -> PrimaryGold
+        "ACCEPTED" -> Brown500
+        "PREPARING" -> SwiggyOrange
+        "READY" -> VegGreen
+        "COMPLETED" -> SuccessGreen
+        "REJECTED", "CANCELLED" -> DangerRed
+        else -> TextMuted
+    }
+}
+
+private fun storefrontNextStatuses(currentStatus: String): List<String> {
+    return when (currentStatus.uppercase(Locale.getDefault())) {
+        "PENDING_CONFIRMATION" -> listOf("ACCEPTED", "REJECTED", "CANCELLED")
+        "ACCEPTED" -> listOf("PREPARING", "READY", "CANCELLED")
+        "PREPARING" -> listOf("READY", "CANCELLED")
+        "READY" -> listOf("COMPLETED", "CANCELLED")
+        else -> emptyList()
+    }
 }

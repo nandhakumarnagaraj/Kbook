@@ -39,6 +39,9 @@ public abstract class BaseIntegrationTest {
 
         registry.add("JWT_SECRET",       () -> "integration-test-secret-64-chars-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
         registry.add("GOOGLE_CLIENT_ID", () -> "test-google-client-id");
+        registry.add("payment.crypto.secret", () -> "integration-payment-secret-32-bytes-minimum-xxxx");
+        registry.add("APP_BASE_URL", () -> "https://test.khanabook.app");
+        registry.add("easebuzz.base-url", () -> "https://testpay.easebuzz.in");
 
         registry.add("spring.flyway.enabled",             () -> "false");
         registry.add("spring.jpa.hibernate.ddl-auto",    () -> "create-drop");

@@ -119,6 +119,7 @@ public class SecurityConfig {
 						.requestMatchers("/auth/login", "/auth/signup", "/auth/signup/request",
 								"/auth/google", "/auth/check-user",
 								"/auth/reset-password", "/auth/reset-password/request",
+								"/public/**",
 								"/error")
 						.permitAll()
 						// Easebuzz webhook — called by Easebuzz with no JWT; we authenticate
@@ -138,6 +139,8 @@ public class SecurityConfig {
 						.requestMatchers("/actuator/**")
 						.hasRole("KBOOK_ADMIN")
 						.requestMatchers("/admin/**").hasRole("KBOOK_ADMIN")
+						.requestMatchers("/business/**").hasAnyRole("OWNER", "MANAGER")
+						.requestMatchers("/storefront/**").hasRole("OWNER")
 						.requestMatchers("/sync/**").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.anyRequest().authenticated())
 

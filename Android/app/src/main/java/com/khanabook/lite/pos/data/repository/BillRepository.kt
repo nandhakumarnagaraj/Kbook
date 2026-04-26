@@ -62,6 +62,16 @@ class BillRepository(
         return billDao.getBillWithItemsByLifetimeId(id)
     }
 
+    suspend fun updateBill(bill: BillEntity) {
+        billDao.updateBill(bill)
+        triggerBackgroundSync()
+    }
+
+    suspend fun addBillPayment(payment: BillPaymentEntity) {
+        billDao.insertBillPayment(payment)
+        triggerBackgroundSync()
+    }
+
     suspend fun getBillByDailyIdAndDate(displayId: String, date: String): BillEntity? {
         val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(date)
         val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(date)

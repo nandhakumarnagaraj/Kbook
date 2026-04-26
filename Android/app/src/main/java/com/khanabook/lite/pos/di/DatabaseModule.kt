@@ -19,8 +19,10 @@ import com.khanabook.lite.pos.data.repository.CategoryRepository
 import com.khanabook.lite.pos.data.repository.InventoryRepository
 import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.data.repository.MenuRepository
+import com.khanabook.lite.pos.data.repository.PaymentRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
+import com.khanabook.lite.pos.data.repository.StorefrontOrderRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 import com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager
@@ -261,6 +263,18 @@ object DatabaseModule {
         menuRepository: MenuRepository,
         inventoryRepository: InventoryRepository
     ) = InventoryConsumptionManager(menuRepository, inventoryRepository)
+
+    @Provides
+    @Singleton
+    fun providePaymentRepository(
+        api: KhanaBookApi
+    ) = PaymentRepository(api)
+
+    @Provides
+    @Singleton
+    fun provideStorefrontOrderRepository(
+        api: KhanaBookApi
+    ) = StorefrontOrderRepository(api)
 
     @Provides
     @Singleton

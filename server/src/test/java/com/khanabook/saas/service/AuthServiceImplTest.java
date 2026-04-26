@@ -43,9 +43,10 @@ class AuthServiceImplTest {
     @Test
     void login_success() {
         User user = activeUser("9876543210", "hashed", 100L);
-        when(userRepository.findByLoginId("9876543210")).thenReturn(Optional.of(user));
+        user.setLoginId("9876543210");
+        when(userRepository.findByLoginIdIgnoreCase("9876543210")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("pass123", "hashed")).thenReturn(true);
-        when(jwtUtility.generateToken(anyString(), anyLong(), anyString())).thenReturn("jwt-token");
+        when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("jwt-token");
 
         AuthResponse resp = authService.login(loginRequest("9876543210", "pass123"));
 
@@ -55,11 +56,12 @@ class AuthServiceImplTest {
 
     @Test
     void signup_newUser_createsProfileAndUser() {
-        when(userRepository.findByLoginId("9876543210")).thenReturn(Optional.empty());
-        when(userRepository.findByEmail("9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findByLoginIdIgnoreCase("9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("9876543210")).thenReturn(Optional.empty());
         when(userRepository.findByWhatsappNumber("9876543210")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("pass123")).thenReturn("bcrypt-hash");
-        when(jwtUtility.generateToken(anyString(), anyLong(), anyString())).thenReturn("signup-token");
+        when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("signup-token");
+        doNothing().when(passwordResetOtpService).validateSignupOtpOrThrow("9876543210", "123456");
 
         SignupRequest req = new SignupRequest("9876543210", "Nandha", "pass123", "123456", "DEVICE_A");
         AuthResponse resp = authService.signup(req);
@@ -80,11 +82,12 @@ class AuthServiceImplTest {
 
     @Test
     void signup_restaurantIdIsUuidBased_notSequential() {
-        when(userRepository.findByLoginId(anyString())).thenReturn(Optional.empty());
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        when(userRepository.findByLoginIdIgnoreCase(anyString())).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(userRepository.findByWhatsappNumber(anyString())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("hash");
-        when(jwtUtility.generateToken(anyString(), anyLong(), anyString())).thenReturn("t");
+        when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("t");
+        doNothing().when(passwordResetOtpService).validateSignupOtpOrThrow(anyString(), eq("123456"));
 
         AuthResponse r1 = authService.signup(new SignupRequest("1111111111", "A", "p", "123456", "D1"));
         AuthResponse r2 = authService.signup(new SignupRequest("2222222222", "B", "p", "123456", "D2"));
@@ -95,6 +98,7 @@ class AuthServiceImplTest {
     private User activeUser(String phone, String hash, Long restaurantId) {
         User u = new User();
         u.setEmail(phone);
+        u.setLoginId(phone);
         u.setPasswordHash(hash);
         u.setRestaurantId(restaurantId);
         u.setRole(UserRole.OWNER);
@@ -107,6 +111,7 @@ class AuthServiceImplTest {
         LoginRequest r = new LoginRequest();
         r.setLoginId(phone);
         r.setPassword(password);
+        r.setDeviceId("DEVICE_A");
         return r;
     }
 }

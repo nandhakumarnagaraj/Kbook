@@ -1157,6 +1157,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                 PaymentGatewayHelper.isUpiSelection(selectedMode) && !isOnline
         var gatewayInProgress by remember { mutableStateOf(false) }
         var gatewayError by remember { mutableStateOf<String?>(null) }
+        var awaitingBillId by remember { mutableStateOf<Long?>(null) }
 
         // Awaiting-confirmation state — set after we successfully open the
         // Easebuzz checkout. While set, we poll the backend until the webhook
@@ -1176,11 +1177,16 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     PaymentReturnManager.Status.FAILURE -> {
                         viewModel.setGatewayResult(pendingTxnId, "REDIRECT_FAILURE")
                         viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                        val pendingBillId = awaitingBillId
+                        awaitingBillId = null
                         awaitingTxnId = null
-                        viewModel.completeOrder(
-                            PaymentStatus.FAILED,
-                            "Payment not completed"
-                        )
+                        if (pendingBillId != null) {
+                            viewModel.finalizeOnlineBill(
+                                pendingBillId,
+                                PaymentStatus.FAILED,
+                                "Payment not completed"
+                            )
+                        }
                         viewModel.clearGatewayResult()
                         onFailed()
                     }
@@ -1190,30 +1196,33 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
 
         // Poll backend every 3s while awaiting. Times out after ~3 min so we don't
         // poll forever; operator can then mark manually or cancel.
-        LaunchedEffect(awaitingTxnId) {
-            val txnId = awaitingTxnId ?: return@LaunchedEffect
+        LaunchedEffect(awaitingBillId) {
+            val txnId = awaitingBillId ?: return@LaunchedEffect
             val pollIntervalMs = 3_000L
             val maxPolls = 60 // ~3 minutes
             var pollsLeft = maxPolls
-            while (pollsLeft-- > 0 && awaitingTxnId == txnId) {
+            while (pollsLeft-- > 0 && awaitingBillId == txnId) {
                 kotlinx.coroutines.delay(pollIntervalMs)
-                if (awaitingTxnId != txnId) return@LaunchedEffect
-                when (val r = viewModel.easebuzzClient.verifyTxn(txnId)) {
+                if (awaitingBillId != txnId) return@LaunchedEffect
+                when (val r = viewModel.easebuzzClient.verifyBill(txnId)) {
                     is EasebuzzClient.VerifyResult.Success -> {
-                        viewModel.setGatewayResult(r.txnId, r.gatewayStatus)
+                        viewModel.setGatewayResult(r.txnId, "SUCCESS")
                         viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                        awaitingBillId = null
                         awaitingTxnId = null
-                        if (viewModel.completeOrder(PaymentStatus.SUCCESS)) {
+                        if (viewModel.finalizeOnlineBill(txnId, PaymentStatus.SUCCESS)) {
                             viewModel.clearGatewayResult()
                             onComplete()
                         }
                         return@LaunchedEffect
                     }
                     is EasebuzzClient.VerifyResult.Failed -> {
-                        viewModel.setGatewayResult(r.txnId, r.gatewayStatus)
+                        viewModel.setGatewayResult(r.txnId, "FAILED")
                         viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                        awaitingBillId = null
                         awaitingTxnId = null
-                        viewModel.completeOrder(
+                        viewModel.finalizeOnlineBill(
+                            txnId,
                             PaymentStatus.FAILED,
                             r.reason ?: "Gateway reported failure"
                         )
@@ -1231,7 +1240,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                 }
             }
             // Timed out — leave awaiting state on so operator can decide.
-            pollMessage = "No confirmation yet. Mark manually or cancel."
+            pollMessage = "No confirmation yet. Cancel if payment was not received."
         }
 
         if (showOfflineBanner) {
@@ -1296,36 +1305,34 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
         Button(
                 onClick = {
                     if (!isAmountValid) return@Button
+                    if (awaitingTxnId != null) return@Button
                     if (gatewayEligible && profile != null && awaitingTxnId == null) {
                         gatewayError = null
                         gatewayInProgress = true
                         scope.launch {
-                            val upiAmount = if (isSplitMode) {
-                                if (selectedMode == PaymentMode.PART_CASH_UPI) p2Text else p1Text
-                            } else summary.total
+                            viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                            val localBillId = viewModel.createDraftOnlineBill()
+                            if (localBillId == null) {
+                                gatewayInProgress = false
+                                return@launch
+                            }
                             val result = viewModel.easebuzzClient.initiateTxn(
-                                profile = profile!!,
-                                amount = upiAmount,
-                                productInfo = "Bill payment",
-                                firstName = viewModel.customerName.value.ifBlank { "Customer" },
-                                email = profile?.email?.ifBlank { null } ?: "noreply@khanabook.app",
-                                phone = viewModel.customerWhatsapp.value.ifBlank { "0000000000" }
+                                billId = localBillId,
+                                paymentMethod = "UPI"
                             )
                             gatewayInProgress = false
                             when (result) {
                                 is EasebuzzClient.InitResult.Success -> {
-                                    val url = viewModel.easebuzzClient.checkoutUrl(
-                                        profile?.easebuzzEnv ?: "test",
-                                        result.accessKey
-                                    )
+                                    awaitingBillId = localBillId
                                     pollMessage = "Waiting for payment confirmation…"
                                     awaitingTxnId = result.txnId
                                     try {
                                         CustomTabsIntent.Builder()
                                             .setShowTitle(true)
                                             .build()
-                                            .launchUrl(context, Uri.parse(url))
+                                            .launchUrl(context, Uri.parse(result.checkoutUrl))
                                     } catch (e: Exception) {
+                                        awaitingBillId = null
                                         awaitingTxnId = null
                                         gatewayError = "Unable to open payment browser: ${e.message ?: "unknown error"}"
                                     }
@@ -1340,12 +1347,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                         // while awaiting (e.g., webhook delayed but counter staff confirmed
                         // the payment on their phone via the bank app).
                         scope.launch {
-                            val pendingTxn = awaitingTxnId
-                            if (pendingTxn != null) {
-                                viewModel.setGatewayResult(pendingTxn, "MANUAL_OVERRIDE")
-                            }
                             viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                            awaitingTxnId = null
                             if (viewModel.completeOrder(PaymentStatus.SUCCESS)) {
                                 viewModel.clearGatewayResult()
                                 onComplete()
@@ -1358,15 +1360,15 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     .height(56.dp),
                 colors =
                         ButtonDefaults.buttonColors(
-                                containerColor = if (isAmountValid && !gatewayInProgress) SuccessGreen else Color.Gray
+                                containerColor = if (isAmountValid && !gatewayInProgress && awaitingTxnId == null) SuccessGreen else Color.Gray
                         ),
                 shape = RoundedCornerShape(12.dp),
-                enabled = isAmountValid && !gatewayInProgress
+                enabled = isAmountValid && !gatewayInProgress && awaitingTxnId == null
         ) {
             Text(
                     when {
                         gatewayInProgress -> "Processing…"
-                        awaitingTxnId != null -> "Mark Manually Paid"
+                        awaitingTxnId != null -> "Awaiting Confirmation"
                         gatewayEligible -> "Pay via Easebuzz"
                         else -> "Payment Successful"
                     },
@@ -1379,12 +1381,18 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                 onClick = {
                     scope.launch {
                         val pendingTxn = awaitingTxnId
+                        val pendingBillId = awaitingBillId
+                        awaitingBillId = null
                         awaitingTxnId = null
-                        viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                         if (pendingTxn != null) {
                             viewModel.setGatewayResult(pendingTxn, "USER_CANCELLED")
                         }
-                        viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
+                        if (pendingBillId != null) {
+                            viewModel.finalizeOnlineBill(pendingBillId, PaymentStatus.FAILED, "Customer left")
+                        } else {
+                            viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                            viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
+                        }
                         viewModel.clearGatewayResult()
                         onFailed()
                     }

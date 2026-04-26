@@ -6,6 +6,7 @@ import com.khanabook.lite.pos.data.remote.PasswordResetOtpRequest
 import com.khanabook.lite.pos.data.remote.dto.*
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -134,6 +135,27 @@ interface KhanaBookApi {
         @POST("api/v1/auth/logout")
         suspend fun logout(): retrofit2.Response<Unit>
 
-        @GET("api/v1/payments/easebuzz/verify/{txnId}")
-        suspend fun verifyEasebuzzTxn(@Path("txnId") txnId: String): EasebuzzVerifyResponse
+        @POST("api/v1/restaurants/payment-config/easebuzz")
+        suspend fun saveEasebuzzConfig(@Body request: SaveRestaurantPaymentConfigRequest): RestaurantPaymentConfigResponse
+
+        @GET("api/v1/restaurants/payment-config/easebuzz")
+        suspend fun getEasebuzzConfig(): RestaurantPaymentConfigResponse
+
+        @POST("api/v1/payments/easebuzz/create-order")
+        suspend fun createEasebuzzOrder(@Body request: CreateEasebuzzOrderRequest): CreateEasebuzzOrderResponse
+
+        @GET("api/v1/payments/easebuzz/status/{billId}")
+        suspend fun getEasebuzzPaymentStatus(@Path("billId") billId: Long): EasebuzzPaymentStatusResponse
+
+        @GET("api/v1/storefront/orders")
+        suspend fun getStorefrontOrders(): List<MerchantCustomerOrderSummaryResponse>
+
+        @GET("api/v1/storefront/orders/{orderId}")
+        suspend fun getStorefrontOrder(@Path("orderId") orderId: Long): MerchantCustomerOrderDetailResponse
+
+        @PATCH("api/v1/storefront/orders/{orderId}/status")
+        suspend fun updateStorefrontOrderStatus(
+                @Path("orderId") orderId: Long,
+                @Body request: UpdateCustomerOrderStatusRequest
+        ): MerchantCustomerOrderDetailResponse
 }

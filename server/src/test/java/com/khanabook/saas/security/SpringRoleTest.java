@@ -46,7 +46,7 @@ public class SpringRoleTest extends BaseIntegrationTest {
     void givenOwnerJwt_whenGetAdminPath_then403() throws Exception {
         String token = persistUserAndGetToken("owner3@test.com", 1L, UserRole.OWNER);
         
-        mockMvc.perform(get("/docs")
+        mockMvc.perform(get("/actuator")
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
@@ -68,7 +68,7 @@ public class SpringRoleTest extends BaseIntegrationTest {
     void givenKbookAdminJwt_whenGetAdminPath_then200() throws Exception {
         String token = persistUserAndGetToken("admin2@test.com", 999L, null, UserRole.KBOOK_ADMIN);
         
-        mockMvc.perform(get("/docs")
+        mockMvc.perform(get("/actuator")
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }

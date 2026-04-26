@@ -252,6 +252,193 @@ class BillingViewModel @Inject constructor(
         _partAmount2.value = p2.ifBlank { "0.0" }
     }
 
+    suspend fun createDraftOnlineBill(): Long? = orderMutex.withLock {
+        if (_cartItems.value.isEmpty()) {
+            _error.value = "Add at least one item before starting payment."
+            return null
+        }
+        _isLoading.value = true
+        try {
+            val profile = _cachedProfile.value ?: restaurantRepository.getProfile() ?: return null
+            val restaurantId = sessionManager.getRestaurantId()
+            if (restaurantId == 0L) {
+                _error.value = "Account not set up. Please log out and log in again."
+                return null
+            }
+
+            val finalSummary = _billSummary.value
+            val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
+            val zoneId = try {
+                java.time.ZoneId.of(profile.timezone ?: "Asia/Kolkata")
+            } catch (e: Exception) {
+                java.time.ZoneId.of("Asia/Kolkata")
+            }
+            val today = java.time.LocalDate.now(zoneId).toString()
+            val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter)
+
+            val bill = BillEntity(
+                restaurantId = restaurantId,
+                deviceId = sessionManager.getDeviceId(),
+                dailyOrderId = dailyCounter,
+                dailyOrderDisplay = displayId,
+                lifetimeOrderId = lifetimeId,
+                orderType = "order",
+                customerName = _customerName.value.ifBlank { null },
+                customerWhatsapp = _customerWhatsapp.value.ifBlank { null },
+                subtotal = finalSummary.subtotal,
+                gstPercentage = profile.gstPercentage.toString(),
+                cgstAmount = finalSummary.cgst,
+                sgstAmount = finalSummary.sgst,
+                customTaxAmount = finalSummary.customTax,
+                totalAmount = finalSummary.total,
+                paymentMode = _paymentMode.value.dbValue,
+                partAmount1 = _partAmount1.value,
+                partAmount2 = _partAmount2.value,
+                paymentStatus = PaymentStatus.PENDING.dbValue,
+                orderStatus = OrderStatus.DRAFT.dbValue,
+                cancelReason = "",
+                createdBy = sessionManager.getActiveUserId(),
+                createdAt = System.currentTimeMillis(),
+                paidAt = null,
+                lastResetDate = profile.lastResetDate ?: ""
+            )
+
+            val items = _cartItems.value.map { cartItem ->
+                val price = cartItem.variant?.price ?: cartItem.item.basePrice
+                val itemTotal = (java.math.BigDecimal(price)
+                    .multiply(java.math.BigDecimal.valueOf(cartItem.quantity.toLong())))
+                    .setScale(2, java.math.RoundingMode.HALF_UP).toString()
+                BillItemEntity(
+                    billId = 0,
+                    menuItemId = cartItem.item.id,
+                    itemName = cartItem.item.name,
+                    variantId = cartItem.variant?.id,
+                    variantName = cartItem.variant?.variantName,
+                    price = price,
+                    quantity = cartItem.quantity,
+                    itemTotal = itemTotal,
+                    specialInstruction = cartItem.note
+                )
+            }
+
+            billRepository.insertFullBill(bill, items, emptyList())
+            val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
+            _lastBill.value = inserted
+
+            val synced = syncManager.pushUnsyncedDataImmediately()
+            if (!synced) {
+                _error.value = "Draft bill saved locally, but sync failed. Online payment cannot start."
+                _isLoading.value = false
+                return null
+            }
+
+            _isLoading.value = false
+            inserted?.bill?.id
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create draft bill", e)
+            _error.value = UserMessageSanitizer.sanitize(
+                e,
+                "Unable to start online payment. Please try again."
+            )
+            _isLoading.value = false
+            null
+        }
+    }
+
+    suspend fun finalizeOnlineBill(localBillId: Long, status: PaymentStatus, cancelReason: String = ""): Boolean = orderMutex.withLock {
+        _isLoading.value = true
+        try {
+            val bill = billRepository.getBillById(localBillId) ?: run {
+                _error.value = "Bill not found."
+                _isLoading.value = false
+                return false
+            }
+            val profile = _cachedProfile.value ?: restaurantRepository.getProfile()
+            val updatedBill = bill.copy(
+                paymentStatus = status.dbValue,
+                orderStatus = if (status == PaymentStatus.SUCCESS) OrderStatus.COMPLETED.dbValue else OrderStatus.CANCELLED.dbValue,
+                cancelReason = if (status == PaymentStatus.SUCCESS) "" else cancelReason,
+                paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null,
+                isSynced = false,
+                updatedAt = System.currentTimeMillis()
+            )
+            billRepository.updateBill(updatedBill)
+
+            val gTxn = _gatewayTxnId.value
+            val gStatus = _gatewayStatus.value
+            val verifiedBy = if (gTxn != null) "easebuzz" else "manual"
+            val payments = when (_paymentMode.value) {
+                PaymentMode.PART_CASH_UPI -> listOf(
+                    BillPaymentEntity(
+                        billId = localBillId,
+                        paymentMode = PaymentMode.CASH.dbValue,
+                        amount = _partAmount1.value
+                    ),
+                    BillPaymentEntity(
+                        billId = localBillId,
+                        paymentMode = PaymentMode.UPI.dbValue,
+                        amount = _partAmount2.value,
+                        gatewayTxnId = gTxn,
+                        gatewayStatus = gStatus,
+                        verifiedBy = verifiedBy
+                    )
+                )
+                PaymentMode.PART_UPI_POS -> listOf(
+                    BillPaymentEntity(
+                        billId = localBillId,
+                        paymentMode = PaymentMode.UPI.dbValue,
+                        amount = _partAmount1.value,
+                        gatewayTxnId = gTxn,
+                        gatewayStatus = gStatus,
+                        verifiedBy = verifiedBy
+                    ),
+                    BillPaymentEntity(
+                        billId = localBillId,
+                        paymentMode = PaymentMode.POS.dbValue,
+                        amount = _partAmount2.value
+                    )
+                )
+                PaymentMode.UPI -> listOf(
+                    BillPaymentEntity(
+                        billId = localBillId,
+                        paymentMode = PaymentMode.UPI.dbValue,
+                        amount = bill.totalAmount,
+                        gatewayTxnId = gTxn,
+                        gatewayStatus = gStatus,
+                        verifiedBy = verifiedBy
+                    )
+                )
+                else -> listOf(
+                    BillPaymentEntity(
+                        billId = localBillId,
+                        paymentMode = _paymentMode.value.dbValue,
+                        amount = bill.totalAmount,
+                        gatewayTxnId = gTxn,
+                        gatewayStatus = gStatus,
+                        verifiedBy = verifiedBy
+                    )
+                )
+            }
+            payments.forEach { billRepository.addBillPayment(it.copy(restaurantId = bill.restaurantId, deviceId = bill.deviceId)) }
+
+            val updated = billRepository.getBillWithItemsById(localBillId)
+            _lastBill.value = updated
+            if (status == PaymentStatus.SUCCESS) {
+                _cartItems.value = emptyList()
+            }
+            _isLoading.value = false
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to finalize online bill", e)
+            _error.value = UserMessageSanitizer.sanitize(
+                e,
+                "Unable to finalize payment result. Please sync again."
+            )
+            _isLoading.value = false
+            false
+        }
+    }
+
     suspend fun completeOrder(status: PaymentStatus, cancelReason: String = ""): Boolean = orderMutex.withLock {
         if (_cartItems.value.isEmpty()) {
             _error.value = "Add at least one item before completing the bill."

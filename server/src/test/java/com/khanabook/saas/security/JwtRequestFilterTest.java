@@ -24,6 +24,7 @@ class JwtRequestFilterTest {
     @Mock private JwtUtility jwtUtility;
     @Mock private UserRepository userRepository;
     @Mock private TokenBlocklistRepository tokenBlocklistRepository;
+    @Mock private TokenRevocationCache tokenRevocationCache;
     @InjectMocks private JwtRequestFilter filter;
 
     @Test
@@ -44,6 +45,7 @@ class JwtRequestFilterTest {
 
         when(jwtUtility.isTokenExpired(token)).thenReturn(false);
         when(jwtUtility.extractJti(token)).thenReturn("jti-1");
+        when(tokenRevocationCache.isRevoked("jti-1")).thenReturn(false);
         when(tokenBlocklistRepository.existsByJti("jti-1")).thenReturn(false);
         when(jwtUtility.extractRestaurantId(token)).thenReturn(42L);
         when(jwtUtility.extractUsername(token)).thenReturn("user@example.com");
@@ -75,6 +77,7 @@ class JwtRequestFilterTest {
         when(jwtUtility.isTokenExpired(token)).thenReturn(false);
         when(jwtUtility.extractUsername(token)).thenReturn("user@example.com");
         when(jwtUtility.extractJti(token)).thenReturn("jti-2");
+        when(tokenRevocationCache.isRevoked("jti-2")).thenReturn(false);
         when(tokenBlocklistRepository.existsByJti("jti-2")).thenReturn(false);
         when(jwtUtility.extractRestaurantId(token)).thenReturn(42L);
         User user = new User();
