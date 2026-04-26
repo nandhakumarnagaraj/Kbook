@@ -4,8 +4,9 @@ import { Router } from '@angular/router';
 import { map, tap } from 'rxjs/operators';
 import { AuthSession, LoginRequest } from '../models/session.model';
 import { TokenStorageService } from './token-storage.service';
+import { environment } from '../../../environments/environment';
 
-const API_BASE_URL = 'https://kbook.iadv.cloud/api/v1';
+const API_BASE_URL = environment.apiBaseUrl;
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -31,7 +32,9 @@ export class AuthService {
   logout(): void {
     const token = this.tokenStorage.getToken();
     if (token) {
-      this.http.post(`${API_BASE_URL}/auth/logout`, {}).subscribe({ error: () => {} });
+      this.http.post(`${API_BASE_URL}/auth/logout`, {}).subscribe({
+        error: (err) => console.warn('Logout revocation call failed', err)
+      });
     }
     this.tokenStorage.clear();
     this.session.set(null);

@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BusinessDashboard, BusinessMenuItem, BusinessOrder, BusinessStaffItem, PaymentConfig, SavePaymentConfigRequest, StorefrontOrder, StorefrontOrderDetail } from '../models/api.models';
+import { environment } from '../../../environments/environment';
 
-const API_BASE_URL = 'https://kbook.iadv.cloud/api/v1';
+const API_BASE_URL = environment.apiBaseUrl;
 
 @Injectable({ providedIn: 'root' })
 export class BusinessApiService {
