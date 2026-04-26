@@ -127,12 +127,16 @@ export class SidebarLayoutComponent {
       ];
     }
 
-    return [
+    const links: NavLink[] = [
       { label: 'Business Dashboard', path: '/business/dashboard' },
       { label: 'Orders', path: '/business/orders' },
       { label: 'Menu', path: '/business/menu' },
       { label: 'Staff', path: '/business/staff' }
     ];
+    if (role === 'OWNER') {
+      links.push({ label: 'Payment Settings', path: '/business/payment-settings' });
+    }
+    return links;
   });
 
   logout(): void {

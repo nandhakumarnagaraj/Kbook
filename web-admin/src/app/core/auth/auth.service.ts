@@ -29,6 +29,10 @@ export class AuthService {
   }
 
   logout(): void {
+    const token = this.tokenStorage.getToken();
+    if (token) {
+      this.http.post(`${API_BASE_URL}/auth/logout`, {}).subscribe({ error: () => {} });
+    }
     this.tokenStorage.clear();
     this.session.set(null);
     void this.router.navigate(['/login']);

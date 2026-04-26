@@ -83,3 +83,52 @@ export interface BusinessStaffItem {
   active: boolean;
   updatedAt: number | null;
 }
+
+export interface PaymentConfig {
+  restaurantId: number;
+  gateway: string;
+  merchantKeyMasked: string;
+  environment: string;
+  active: boolean;
+}
+
+export interface SavePaymentConfigRequest {
+  merchantKey: string;
+  salt: string;
+  environment: 'TEST' | 'PROD';
+}
+
+export interface StorefrontOrder {
+  orderId: number;
+  publicOrderCode: string;
+  customerName: string;
+  customerPhone: string | null;
+  fulfillmentType: string;
+  orderStatus: string;
+  paymentStatus: string;
+  paymentMethod: string;
+  sourceChannel: string;
+  currency: string;
+  totalAmount: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface StorefrontOrderLineItem {
+  menuItemId: number;
+  itemVariantId: number | null;
+  itemName: string;
+  variantName: string | null;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  specialInstruction: string | null;
+}
+
+export interface StorefrontOrderDetail extends StorefrontOrder {
+  restaurantId: number;
+  trackingToken: string;
+  customerNote: string | null;
+  subtotal: number;
+  items: StorefrontOrderLineItem[];
+}
