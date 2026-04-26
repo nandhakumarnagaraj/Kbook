@@ -12,6 +12,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
@@ -142,21 +144,46 @@ public class EasebuzzController {
      * They return a tiny HTML page; the trust anchor is /webhook + /verify.
      */
     @GetMapping(value = "/return/success", produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<String> returnSuccess() {
-        return ResponseEntity.ok(returnPage("Payment received", "Returning to app..."));
+    public ResponseEntity<String> returnSuccess(@RequestParam Map<String, String> params) {
+        return ResponseEntity.ok(returnPage(
+                "Payment received",
+                "Returning to app...",
+                buildAppReturnUrl("success", params)
+        ));
     }
 
     @GetMapping(value = "/return/failure", produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<String> returnFailure() {
-        return ResponseEntity.ok(returnPage("Payment not completed", "Returning to app..."));
+    public ResponseEntity<String> returnFailure(@RequestParam Map<String, String> params) {
+        return ResponseEntity.ok(returnPage(
+                "Payment not completed",
+                "Returning to app...",
+                buildAppReturnUrl("failure", params)
+        ));
     }
 
-    private static String returnPage(String title, String message) {
+    private static String returnPage(String title, String message, String appUrl) {
         return "<!doctype html><html><head><meta charset=\"utf-8\"/>"
                 + "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>"
-                + "<title>" + title + "</title></head>"
+                + "<title>" + title + "</title>"
+                + "<script>window.location.replace('" + appUrl + "');"
+                + "setTimeout(function(){window.location.href='" + appUrl + "';},150);</script>"
+                + "</head>"
                 + "<body style=\"font-family:sans-serif;text-align:center;padding:2em;\">"
-                + "<h3>" + title + "</h3><p>" + message + "</p></body></html>";
+                + "<h3>" + title + "</h3><p>" + message + "</p>"
+                + "<p><a href=\"" + appUrl + "\">Tap here if the app does not open automatically</a></p>"
+                + "</body></html>";
+    }
+
+    private static String buildAppReturnUrl(String outcome, Map<String, String> params) {
+        String txnId = params.getOrDefault("txnid", params.getOrDefault("txnId", ""));
+        String status = params.getOrDefault("status", outcome);
+        return "khanabook://payment/" + outcome
+                + "?txnid=" + urlEncode(txnId)
+                + "&status=" + urlEncode(status);
+    }
+
+    private static String urlEncode(String value) {
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
     }
 
     static String canonicalStatus(String raw) {

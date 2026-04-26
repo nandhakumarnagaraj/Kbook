@@ -3,7 +3,9 @@
 package com.khanabook.lite.pos.ui.screens
 
 import android.graphics.BitmapFactory
+import android.net.Uri
 import coil.compose.AsyncImage
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -48,11 +50,11 @@ import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.PaymentModeManager
 import com.khanabook.lite.pos.domain.manager.PaymentGatewayHelper
 import com.khanabook.lite.pos.domain.manager.EasebuzzClient
+import com.khanabook.lite.pos.domain.manager.PaymentReturnManager
 import com.khanabook.lite.pos.domain.util.ConnectionStatus
 import com.khanabook.lite.pos.domain.manager.QrCodeManager
 import com.khanabook.lite.pos.domain.model.*
 import com.khanabook.lite.pos.domain.util.*
-import com.khanabook.lite.pos.ui.components.EasebuzzCheckoutDialog
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.designsystem.*
@@ -1161,9 +1163,30 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
         // arrives. Counter operator can override via "Mark Manually Paid" or "Cancel".
         var awaitingTxnId by remember { mutableStateOf<String?>(null) }
         var pollMessage by remember { mutableStateOf("Waiting for payment confirmation…") }
-        // In-app Easebuzz checkout. Set to the hosted-checkout URL to show the
-        // WebView dialog; cleared when the customer closes it or hits surl/furl.
-        var checkoutUrl by remember { mutableStateOf<String?>(null) }
+
+        LaunchedEffect(Unit) {
+            PaymentReturnManager.events.collect { event ->
+                val pendingTxnId = awaitingTxnId ?: return@collect
+                if (event.txnId != null && event.txnId != pendingTxnId) return@collect
+
+                when (event.status) {
+                    PaymentReturnManager.Status.SUCCESS -> {
+                        pollMessage = "Payment completed. Confirming with server..."
+                    }
+                    PaymentReturnManager.Status.FAILURE -> {
+                        viewModel.setGatewayResult(pendingTxnId, "REDIRECT_FAILURE")
+                        viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                        awaitingTxnId = null
+                        viewModel.completeOrder(
+                            PaymentStatus.FAILED,
+                            "Payment not completed"
+                        )
+                        viewModel.clearGatewayResult()
+                        onFailed()
+                    }
+                }
+            }
+        }
 
         // Poll backend every 3s while awaiting. Times out after ~3 min so we don't
         // poll forever; operator can then mark manually or cancel.
@@ -1238,13 +1261,6 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
             Text(err, color = DangerRed, style = MaterialTheme.typography.bodySmall)
         }
 
-        checkoutUrl?.let { url ->
-            EasebuzzCheckoutDialog(
-                checkoutUrl = url,
-                onClose = { checkoutUrl = null }
-            )
-        }
-
         // Awaiting-gateway-confirmation banner. Shown while we're polling the
         // backend after launching the Easebuzz checkout.
         if (awaitingTxnId != null) {
@@ -1298,16 +1314,21 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                             gatewayInProgress = false
                             when (result) {
                                 is EasebuzzClient.InitResult.Success -> {
-                                    // Render the Easebuzz hosted checkout INSIDE the app via WebView.
-                                    // The bill is NOT marked paid yet — we wait for the webhook to
-                                    // arrive (poll loop above). The server is the trust anchor;
-                                    // closing the WebView only signals the user is done with the UI.
-                                    checkoutUrl = viewModel.easebuzzClient.checkoutUrl(
+                                    val url = viewModel.easebuzzClient.checkoutUrl(
                                         profile?.easebuzzEnv ?: "test",
                                         result.accessKey
                                     )
                                     pollMessage = "Waiting for payment confirmation…"
                                     awaitingTxnId = result.txnId
+                                    try {
+                                        CustomTabsIntent.Builder()
+                                            .setShowTitle(true)
+                                            .build()
+                                            .launchUrl(context, Uri.parse(url))
+                                    } catch (e: Exception) {
+                                        awaitingTxnId = null
+                                        gatewayError = "Unable to open payment browser: ${e.message ?: "unknown error"}"
+                                    }
                                 }
                                 is EasebuzzClient.InitResult.Error -> {
                                     gatewayError = "Gateway: ${result.message}. Use manual mode."

@@ -2,6 +2,7 @@
 package com.khanabook.lite.pos.ui
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import androidx.fragment.app.FragmentActivity
@@ -26,6 +27,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.domain.manager.PaymentReturnManager
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.ui.screens.*
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
@@ -77,6 +79,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.Theme_KhanaBookLite)
         super.onCreate(savedInstanceState)
+        PaymentReturnManager.handleIntent(intent)
         if (BuildConfig.DEBUG) logWindowAndResources("onCreate")
 
         // Enable edge-to-edge for better gesture navigation support
@@ -302,6 +305,12 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        PaymentReturnManager.handleIntent(intent)
     }
 
     override fun onResume() {
