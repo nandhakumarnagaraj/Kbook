@@ -32,6 +32,12 @@ export class BusinessApiService {
     return this.http.post<PaymentConfig>(`${API_BASE_URL}/restaurants/payment-config/easebuzz`, payload);
   }
 
+  togglePaymentConfigActive(enabled: boolean) {
+    return this.http.patch<PaymentConfig>(
+      `${API_BASE_URL}/restaurants/payment-config/easebuzz/toggle?enabled=${enabled}`, {}
+    );
+  }
+
   getStorefrontOrders() {
     return this.http.get<StorefrontOrder[]>(`${API_BASE_URL}/storefront/orders`);
   }

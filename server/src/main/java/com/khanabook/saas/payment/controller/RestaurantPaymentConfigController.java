@@ -37,6 +37,14 @@ public class RestaurantPaymentConfigController {
         return ResponseEntity.ok(service.get(resolveTargetTenant(restaurantId, httpRequest)));
     }
 
+    @PatchMapping("/toggle")
+    public ResponseEntity<RestaurantPaymentConfigResponse> toggle(
+            @RequestParam boolean enabled,
+            @RequestParam(required = false) Long restaurantId,
+            HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(service.toggleActive(resolveTargetTenant(restaurantId, httpRequest), enabled));
+    }
+
     private Long resolveTargetTenant(Long overrideId, HttpServletRequest request) {
         Long tenantId = TenantContext.getCurrentTenant();
         String role = TenantContext.getCurrentRole();

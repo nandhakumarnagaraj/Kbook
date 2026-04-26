@@ -17,42 +17,43 @@ import { PaymentConfig } from '../../core/models/api.models';
         </div>
       </div>
 
-      <!-- Current config display -->
-      <div class="panel" style="margin-bottom: 1.5rem;" *ngIf="configState() === 'loaded' && config() as cfg">
-        <div class="section-head">
-          <div>
-            <h3>Current Configuration</h3>
-            <p class="muted">Gateway: {{ cfg.gateway }}</p>
-          </div>
-          <span class="chip" [class.success]="cfg.active" [class.danger]="!cfg.active">
-            {{ cfg.active ? 'Active' : 'Inactive' }}
-          </span>
-        </div>
-        <div class="stats-grid" style="margin-top: 1rem;">
-          <article class="panel stat-card">
-            <h3>Merchant Key</h3>
-            <strong style="font-family: monospace;">{{ cfg.merchantKeyMasked }}</strong>
-          </article>
-          <article class="panel stat-card">
-            <h3>Environment</h3>
-            <strong>
-              <span class="chip" [class.warn]="cfg.environment === 'TEST'" [class.success]="cfg.environment === 'PROD'">
-                {{ cfg.environment }}
-              </span>
-            </strong>
-          </article>
-        </div>
-      </div>
-
-      <div class="panel loading" *ngIf="configState() === 'not-found'">
-        No Easebuzz configuration set up yet. Use the form below to add one.
-      </div>
-
       <div class="panel loading" *ngIf="configState() === 'loading'">
         Loading payment configuration...
       </div>
 
-      <!-- Save / Update form -->
+      <!-- Current config display + toggle -->
+      <div class="panel" style="margin-bottom: 1.5rem;"
+           *ngIf="configState() === 'loaded' && config() as cfg">
+        <div class="section-head" style="margin-bottom: 1rem;">
+          <div>
+            <h3>Easebuzz</h3>
+            <p class="muted">Gateway: {{ cfg.gateway }} &nbsp;·&nbsp; Merchant Key: <span style="font-family:monospace;">{{ cfg.merchantKeyMasked }}</span> &nbsp;·&nbsp; Env:
+              <span class="chip" [class.warn]="cfg.environment === 'TEST'" [class.success]="cfg.environment === 'PROD'">{{ cfg.environment }}</span>
+            </p>
+          </div>
+
+          <!-- Toggle switch -->
+          <label class="toggle-wrap" [class.disabled]="toggling()">
+            <span class="toggle-label">{{ cfg.active ? 'Enabled' : 'Disabled' }}</span>
+            <button
+              class="toggle-btn"
+              [class.on]="cfg.active"
+              [disabled]="toggling()"
+              (click)="toggleActive(cfg.active)"
+              type="button">
+              <span class="toggle-knob"></span>
+            </button>
+          </label>
+        </div>
+      </div>
+
+      <!-- Not configured notice -->
+      <div class="panel loading" style="margin-bottom: 1.5rem;"
+           *ngIf="configState() === 'not-found'">
+        No Easebuzz configuration yet. Use the form below to add one.
+      </div>
+
+      <!-- Save / Update credentials form -->
       <div class="panel" *ngIf="configState() !== 'loading'">
         <h3>{{ configState() === 'not-found' ? 'Set Up Easebuzz' : 'Update Credentials' }}</h3>
         <p class="muted" style="margin-bottom: 1rem;">
@@ -60,42 +61,79 @@ import { PaymentConfig } from '../../core/models/api.models';
         </p>
 
         <form [formGroup]="form" (ngSubmit)="submit()" style="display: grid; gap: 1rem;">
-
           <label style="display: grid; gap: 0.4rem; font-weight: 600;">
             Merchant Key
-            <input formControlName="merchantKey" placeholder="Easebuzz merchant key" style="border: 1px solid var(--line); border-radius: 12px; padding: 0.9rem 1rem;">
+            <input formControlName="merchantKey" placeholder="Easebuzz merchant key"
+                   style="border: 1px solid var(--line); border-radius: 12px; padding: 0.9rem 1rem;">
           </label>
 
           <label style="display: grid; gap: 0.4rem; font-weight: 600;">
             Salt
-            <input formControlName="salt" placeholder="Easebuzz salt (required every save)" style="border: 1px solid var(--line); border-radius: 12px; padding: 0.9rem 1rem;">
+            <input formControlName="salt" placeholder="Easebuzz salt (required every save)"
+                   style="border: 1px solid var(--line); border-radius: 12px; padding: 0.9rem 1rem;">
           </label>
 
           <label style="display: grid; gap: 0.4rem; font-weight: 600;">
             Environment
-            <select formControlName="environment" style="border: 1px solid var(--line); border-radius: 12px; padding: 0.9rem 1rem; background: #fff;">
+            <select formControlName="environment"
+                    style="border: 1px solid var(--line); border-radius: 12px; padding: 0.9rem 1rem; background: #fff;">
               <option value="TEST">TEST</option>
               <option value="PROD">PROD</option>
             </select>
           </label>
 
-          <div *ngIf="saveState() === 'saved'" class="alert" style="color: #2d7a3a; background: #eafaf0; border-radius: 8px; padding: 0.75rem 1rem;">
-            Saved successfully — Merchant Key: <strong>{{ savedMaskedKey() }}</strong>
+          <div *ngIf="saveState() === 'saved'"
+               style="color: #2d7a3a; background: #eafaf0; border-radius: 8px; padding: 0.75rem 1rem;">
+            Saved — Merchant Key: <strong>{{ savedMaskedKey() }}</strong>
           </div>
-
-          <div *ngIf="saveState() === 'error'" class="alert" style="color: #b03030; background: #fdf0f0; border-radius: 8px; padding: 0.75rem 1rem;">
+          <div *ngIf="saveState() === 'error'"
+               style="color: #b03030; background: #fdf0f0; border-radius: 8px; padding: 0.75rem 1rem;">
             {{ saveError() }}
           </div>
 
           <button class="primary-btn" [disabled]="form.invalid || saveState() === 'saving'">
             {{ saveState() === 'saving' ? 'Saving...' : (configState() === 'not-found' ? 'Save Configuration' : 'Update Configuration') }}
           </button>
-
         </form>
       </div>
-
     </div>
-  `
+  `,
+  styles: [`
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-wrap.disabled { opacity: 0.6; cursor: not-allowed; }
+    .toggle-label { font-weight: 600; font-size: 0.95rem; min-width: 4rem; text-align: right; }
+    .toggle-btn {
+      position: relative;
+      width: 52px;
+      height: 28px;
+      border-radius: 999px;
+      border: none;
+      background: #ccc;
+      cursor: pointer;
+      transition: background 0.2s;
+      padding: 0;
+    }
+    .toggle-btn.on { background: #b56a2d; }
+    .toggle-btn:disabled { cursor: not-allowed; }
+    .toggle-knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s;
+      display: block;
+    }
+    .toggle-btn.on .toggle-knob { transform: translateX(24px); }
+  `]
 })
 export class PaymentSettingsPageComponent implements OnInit {
   private readonly api = inject(BusinessApiService);
@@ -106,6 +144,7 @@ export class PaymentSettingsPageComponent implements OnInit {
   readonly saveState = signal<'idle' | 'saving' | 'saved' | 'error'>('idle');
   readonly saveError = signal('');
   readonly savedMaskedKey = signal('');
+  readonly toggling = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     merchantKey: ['', Validators.required],
@@ -120,9 +159,15 @@ export class PaymentSettingsPageComponent implements OnInit {
         this.form.patchValue({ environment: cfg.environment as 'TEST' | 'PROD' });
         this.configState.set('loaded');
       },
-      error: () => {
-        this.configState.set('not-found');
-      }
+      error: () => { this.configState.set('not-found'); }
+    });
+  }
+
+  toggleActive(currentActive: boolean): void {
+    this.toggling.set(true);
+    this.api.togglePaymentConfigActive(!currentActive).subscribe({
+      next: (cfg) => { this.config.set(cfg); this.toggling.set(false); },
+      error: () => { this.toggling.set(false); }
     });
   }
 
@@ -130,7 +175,6 @@ export class PaymentSettingsPageComponent implements OnInit {
     if (this.form.invalid) return;
     this.saveState.set('saving');
     this.saveError.set('');
-
     this.api.savePaymentConfig(this.form.getRawValue()).subscribe({
       next: (cfg) => {
         this.config.set(cfg);

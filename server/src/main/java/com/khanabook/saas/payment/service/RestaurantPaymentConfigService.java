@@ -69,6 +69,18 @@ public class RestaurantPaymentConfigService {
         return config;
     }
 
+    @Transactional
+    public RestaurantPaymentConfigResponse toggleActive(Long restaurantId, boolean enabled) {
+        requireOwnerOrAdmin();
+        RestaurantPaymentConfig config = repository
+                .findByRestaurantIdAndGatewayName(restaurantId, PaymentGateway.EASEBUZZ)
+                .orElseThrow(() -> new IllegalArgumentException("Easebuzz config not found — save credentials first"));
+        config.setIsActive(enabled);
+        config.setUpdatedAt(System.currentTimeMillis());
+        repository.save(config);
+        return toResponse(config);
+    }
+
     public String decryptSalt(RestaurantPaymentConfig config) {
         return cryptoService.decrypt(config.getEncryptedSalt());
     }
