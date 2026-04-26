@@ -119,6 +119,14 @@ fun EasebuzzCheckoutDialog(
                                     }
                                     override fun onPageFinished(view: WebView?, url: String?) {
                                         loading = false
+                                        // Reliable fallback: if stopLoading() in onPageStarted
+                                        // didn't prevent the page from rendering, close the
+                                        // dialog as soon as it finishes loading.
+                                        if (url != null) {
+                                            handleNavigation(
+                                                url, view?.context, onSurl, onFurl, onClose
+                                            ) { errorText = it }
+                                        }
                                     }
                                     override fun onReceivedError(
                                         view: WebView?,
