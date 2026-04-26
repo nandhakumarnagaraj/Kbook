@@ -159,7 +159,7 @@ class EasebuzzClient @Inject constructor(
     }
 
     private fun returnUrl(path: String): String =
-        BuildConfig.BACKEND_URL.trimEnd('/') + path
+        BuildConfig.BACKEND_URL.trimEnd('/') + "/api/v1" + path
 
     private fun initiateUrl(env: String): String =
         if (env.equals("prod", ignoreCase = true)) {
