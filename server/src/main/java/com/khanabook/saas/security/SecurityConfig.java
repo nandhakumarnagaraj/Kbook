@@ -38,6 +38,18 @@ public class SecurityConfig {
 
 	@Bean
 	CorsConfigurationSource corsConfigurationSource() {
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+
+		// Easebuzz return pages are loaded by the customer's WebView after checkout.
+		// The WebView's Origin is Easebuzz's domain (or null for cross-origin redirects),
+		// so we allow all origins for these two static HTML safety-net pages only.
+		CorsConfiguration returnPageConfig = new CorsConfiguration();
+		returnPageConfig.addAllowedOriginPattern("*");
+		returnPageConfig.setAllowedMethods(List.of("GET"));
+		returnPageConfig.setAllowCredentials(false);
+		source.registerCorsConfiguration("/payments/easebuzz/return/**", returnPageConfig);
+
+		// Global config for all other endpoints.
 		CorsConfiguration config = new CorsConfiguration();
 		List<String> origins = (allowedOriginsRaw == null || allowedOriginsRaw.isBlank())
 				? List.of()
@@ -52,8 +64,8 @@ public class SecurityConfig {
 		config.setExposedHeaders(List.of("X-Request-Id"));
 		config.setAllowCredentials(!origins.isEmpty()); // credentials only when origins are explicit
 		config.setMaxAge(3600L);
-		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", config);
+
 		return source;
 	}
 
