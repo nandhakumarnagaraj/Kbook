@@ -75,6 +75,9 @@ public class RestaurantPaymentConfigService {
         RestaurantPaymentConfig config = repository
                 .findByRestaurantIdAndGatewayName(restaurantId, PaymentGateway.EASEBUZZ)
                 .orElseThrow(() -> new IllegalArgumentException("Easebuzz config not found — save credentials first"));
+        if (Boolean.valueOf(enabled).equals(config.getIsActive())) {
+            return toResponse(config);
+        }
         config.setIsActive(enabled);
         config.setUpdatedAt(System.currentTimeMillis());
         repository.save(config);
