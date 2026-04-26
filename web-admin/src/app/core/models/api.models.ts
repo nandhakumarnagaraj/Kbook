@@ -14,7 +14,6 @@ export interface AdminBusinessListItem {
   whatsappNumber: string | null;
   email: string | null;
   websiteEnabled: boolean;
-  easebuzzEnabled: boolean;
   staffCount: number;
   menuCount: number;
   orderCount: number;

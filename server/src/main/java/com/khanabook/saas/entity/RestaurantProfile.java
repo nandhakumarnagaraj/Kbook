@@ -94,18 +94,6 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "own_website_enabled")
 	private Boolean ownWebsiteEnabled;
 
-	@Column(name = "easebuzz_enabled")
-	private Boolean easebuzzEnabled;
-
-	@Column(name = "easebuzz_merchant_key")
-	private String easebuzzMerchantKey;
-
-	@Column(name = "easebuzz_salt")
-	private String easebuzzSalt;
-
-	@Column(name = "easebuzz_env")
-	private String easebuzzEnv;
-
 	@Column(name = "printer_enabled")
 	private Boolean printerEnabled;
 

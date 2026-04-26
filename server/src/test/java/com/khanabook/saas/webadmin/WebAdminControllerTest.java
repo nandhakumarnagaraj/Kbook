@@ -231,7 +231,6 @@ class WebAdminControllerTest extends BaseIntegrationTest {
         profile.setShopName(shopName);
         profile.setCurrency("INR");
         profile.setOwnWebsiteEnabled(true);
-        profile.setEasebuzzEnabled(true);
         profile.setPrinterEnabled(true);
         profile.setCreatedAt(now);
         profile.setUpdatedAt(now);

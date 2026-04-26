@@ -9,7 +9,6 @@ public record AdminBusinessListItemResponse(
         String whatsappNumber,
         String email,
         boolean websiteEnabled,
-        boolean easebuzzEnabled,
         long staffCount,
         long menuCount,
         long orderCount,

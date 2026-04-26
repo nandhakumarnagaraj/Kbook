@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { AdminBusinessDetail, AdminBusinessListItem, AdminDashboardSummary, PaymentConfig, SavePaymentConfigRequest } from '../models/api.models';
+import { AdminBusinessDetail, AdminBusinessListItem, AdminDashboardSummary, PaymentConfig } from '../models/api.models';
 
 const API_BASE_URL = 'https://kbook.iadv.cloud/api/v1';
 
@@ -23,13 +23,6 @@ export class AdminApiService {
   getBusinessPaymentConfig(restaurantId: number) {
     return this.http.get<PaymentConfig>(
       `${API_BASE_URL}/restaurants/payment-config/easebuzz?restaurantId=${restaurantId}`
-    );
-  }
-
-  saveBusinessPaymentConfig(restaurantId: number, payload: SavePaymentConfigRequest) {
-    return this.http.post<PaymentConfig>(
-      `${API_BASE_URL}/restaurants/payment-config/easebuzz?restaurantId=${restaurantId}`,
-      payload
     );
   }
 }

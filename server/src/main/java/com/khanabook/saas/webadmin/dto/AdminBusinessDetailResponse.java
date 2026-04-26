@@ -16,7 +16,6 @@ public record AdminBusinessDetailResponse(
         String currency,
         String timezone,
         boolean websiteEnabled,
-        boolean easebuzzEnabled,
         boolean gstEnabled,
         boolean printerEnabled,
         long staffCount,
