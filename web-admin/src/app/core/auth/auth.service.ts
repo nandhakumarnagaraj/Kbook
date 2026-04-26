@@ -5,7 +5,7 @@ import { map, tap } from 'rxjs/operators';
 import { AuthSession, LoginRequest } from '../models/session.model';
 import { TokenStorageService } from './token-storage.service';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+const API_BASE_URL = 'https://kbook.iadv.cloud/api/v1';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
