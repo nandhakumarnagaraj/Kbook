@@ -29,6 +29,19 @@ export class AuthService {
     );
   }
 
+  googleLogin(idToken: string) {
+    return this.http.post<AuthSession>(`${API_BASE_URL}/auth/google`, { idToken }).pipe(
+      tap((session) => {
+        this.tokenStorage.save(session);
+        this.session.set(session);
+      }),
+      map((session) => {
+        this.navigateByRole(session.role);
+        return session;
+      })
+    );
+  }
+
   logout(): void {
     const token = this.tokenStorage.getToken();
     if (token) {
