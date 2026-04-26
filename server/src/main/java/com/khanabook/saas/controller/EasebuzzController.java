@@ -8,6 +8,7 @@ import com.khanabook.saas.security.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -131,6 +132,31 @@ public class EasebuzzController {
         resp.put("amount", event.getAmount());
         resp.put("receivedAt", event.getReceivedAt());
         return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * Easebuzz redirects the customer to surl/furl after the hosted checkout.
+     * The Android WebView intercepts these paths before the load fires, but
+     * if the intercept races (slow remeasure, Android version quirk) the page
+     * still needs to render *something* — these endpoints are that safety net.
+     * They return a tiny HTML page; the trust anchor is /webhook + /verify.
+     */
+    @GetMapping(value = "/return/success", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> returnSuccess() {
+        return ResponseEntity.ok(returnPage("Payment received", "Returning to app..."));
+    }
+
+    @GetMapping(value = "/return/failure", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> returnFailure() {
+        return ResponseEntity.ok(returnPage("Payment not completed", "Returning to app..."));
+    }
+
+    private static String returnPage(String title, String message) {
+        return "<!doctype html><html><head><meta charset=\"utf-8\"/>"
+                + "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>"
+                + "<title>" + title + "</title></head>"
+                + "<body style=\"font-family:sans-serif;text-align:center;padding:2em;\">"
+                + "<h3>" + title + "</h3><p>" + message + "</p></body></html>";
     }
 
     static String canonicalStatus(String raw) {

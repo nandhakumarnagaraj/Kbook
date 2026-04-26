@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.domain.manager
 
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +32,13 @@ class EasebuzzClient @Inject constructor(
     private val httpClient: OkHttpClient,
     private val api: KhanaBookApi
 ) {
+
+    companion object {
+        // Path components only — host comes from BuildConfig.BACKEND_URL.
+        // The dialog matches by path so it's host-agnostic (works in test/prod).
+        const val RETURN_SUCCESS_PATH = "/payments/easebuzz/return/success"
+        const val RETURN_FAILURE_PATH = "/payments/easebuzz/return/failure"
+    }
 
     sealed class InitResult {
         data class Success(val accessKey: String, val txnId: String) : InitResult()
@@ -101,8 +109,8 @@ class EasebuzzClient @Inject constructor(
             .add("email", email)
             .add("phone", phone)
             .add("hash", hash)
-            .add("surl", "https://example.com/success")
-            .add("furl", "https://example.com/failure")
+            .add("surl", returnUrl(RETURN_SUCCESS_PATH))
+            .add("furl", returnUrl(RETURN_FAILURE_PATH))
             .build()
 
         val request = Request.Builder()
@@ -149,6 +157,9 @@ class EasebuzzClient @Inject constructor(
             VerifyResult.Error(e.message ?: "Verification network error")
         }
     }
+
+    private fun returnUrl(path: String): String =
+        BuildConfig.BACKEND_URL.trimEnd('/') + path
 
     private fun initiateUrl(env: String): String =
         if (env.equals("prod", ignoreCase = true)) {

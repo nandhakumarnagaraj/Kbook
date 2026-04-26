@@ -111,7 +111,11 @@ public class SecurityConfig {
 						.permitAll()
 						// Easebuzz webhook — called by Easebuzz with no JWT; we authenticate
 						// it ourselves via reverse-hash check using the merchant salt.
-						.requestMatchers("/payments/easebuzz/webhook")
+						// Return pages are loaded by the customer's WebView after checkout —
+						// no auth, just a static "returning to app" page (intercepted by app).
+						.requestMatchers("/payments/easebuzz/webhook",
+								"/payments/easebuzz/return/success",
+								"/payments/easebuzz/return/failure")
 						.permitAll()
 						// API docs require authenticated admin access
 						.requestMatchers("/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
