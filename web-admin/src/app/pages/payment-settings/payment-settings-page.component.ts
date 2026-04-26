@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
-import { PaymentConfig } from '../../core/models/api.models';
+import { PaymentConfig, PaymentEnvironment } from '../../core/models/api.models';
 
 @Component({
   selector: 'app-payment-settings-page',
@@ -44,6 +44,11 @@ import { PaymentConfig } from '../../core/models/api.models';
               <span class="toggle-knob"></span>
             </button>
           </label>
+        </div>
+
+        <div *ngIf="toggleError()"
+             style="margin-top: 0.75rem; color: #b03030; background: #fdf0f0; border-radius: 8px; padding: 0.75rem 1rem;">
+          {{ toggleError() }}
         </div>
       </div>
 
@@ -145,18 +150,19 @@ export class PaymentSettingsPageComponent implements OnInit {
   readonly saveError = signal('');
   readonly savedMaskedKey = signal('');
   readonly toggling = signal(false);
+  readonly toggleError = signal('');
 
   readonly form = this.fb.nonNullable.group({
     merchantKey: ['', Validators.required],
     salt: ['', Validators.required],
-    environment: ['TEST' as 'TEST' | 'PROD', Validators.required]
+    environment: ['TEST' as PaymentEnvironment, Validators.required]
   });
 
   ngOnInit(): void {
     this.api.getPaymentConfig().subscribe({
       next: (cfg) => {
         this.config.set(cfg);
-        this.form.patchValue({ environment: cfg.environment as 'TEST' | 'PROD' });
+        this.form.patchValue({ environment: cfg.environment });
         this.configState.set('loaded');
       },
       error: () => { this.configState.set('not-found'); }
@@ -165,9 +171,13 @@ export class PaymentSettingsPageComponent implements OnInit {
 
   toggleActive(currentActive: boolean): void {
     this.toggling.set(true);
+    this.toggleError.set('');
     this.api.togglePaymentConfigActive(!currentActive).subscribe({
       next: (cfg) => { this.config.set(cfg); this.toggling.set(false); },
-      error: () => { this.toggling.set(false); }
+      error: (err) => {
+        this.toggleError.set(err?.error?.error ?? err?.error?.message ?? 'Failed to update status. Please try again.');
+        this.toggling.set(false);
+      }
     });
   }
 
@@ -181,7 +191,7 @@ export class PaymentSettingsPageComponent implements OnInit {
         this.savedMaskedKey.set(cfg.merchantKeyMasked);
         this.configState.set('loaded');
         this.saveState.set('saved');
-        this.form.patchValue({ merchantKey: '', salt: '', environment: cfg.environment as 'TEST' | 'PROD' });
+        this.form.patchValue({ merchantKey: '', salt: '', environment: cfg.environment });
       },
       error: (err) => {
         this.saveState.set('error');

@@ -83,18 +83,21 @@ export interface BusinessStaffItem {
   updatedAt: number | null;
 }
 
+export type PaymentGateway = 'EASEBUZZ';
+export type PaymentEnvironment = 'TEST' | 'PROD';
+
 export interface PaymentConfig {
   restaurantId: number;
-  gateway: string;
+  gateway: PaymentGateway;
   merchantKeyMasked: string;
-  environment: string;
+  environment: PaymentEnvironment;
   active: boolean;
 }
 
 export interface SavePaymentConfigRequest {
   merchantKey: string;
   salt: string;
-  environment: 'TEST' | 'PROD';
+  environment: PaymentEnvironment;
 }
 
 export interface StorefrontOrder {
