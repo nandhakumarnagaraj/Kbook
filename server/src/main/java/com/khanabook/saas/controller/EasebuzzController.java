@@ -1,6 +1,8 @@
 package com.khanabook.saas.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import com.khanabook.saas.payment.service.EasebuzzPaymentService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,9 +24,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/payments/easebuzz")
 @RequiredArgsConstructor
+@Slf4j
 public class EasebuzzController {
-    @GetMapping(value = "/return/success", produces = MediaType.TEXT_HTML_VALUE)
+    private final EasebuzzPaymentService paymentService;
+
+    @RequestMapping(value = "/return/success", method = {RequestMethod.GET, RequestMethod.POST}, produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> returnSuccess(@RequestParam Map<String, String> params) {
+        reconcileReturnCallback(params);
         return ResponseEntity.ok(returnPage(
                 "Payment received",
                 "Returning to app...",
@@ -32,13 +38,22 @@ public class EasebuzzController {
         ));
     }
 
-    @GetMapping(value = "/return/failure", produces = MediaType.TEXT_HTML_VALUE)
+    @RequestMapping(value = "/return/failure", method = {RequestMethod.GET, RequestMethod.POST}, produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> returnFailure(@RequestParam Map<String, String> params) {
+        reconcileReturnCallback(params);
         return ResponseEntity.ok(returnPage(
                 "Payment not completed",
                 "Returning to app...",
                 buildAppReturnUrl("failure", params)
         ));
+    }
+
+    private void reconcileReturnCallback(Map<String, String> params) {
+        try {
+            paymentService.processGatewayCallback(params);
+        } catch (Exception ex) {
+            log.warn("Easebuzz return callback reconciliation failed for txnId={}: {}", params.get("txnid"), ex.getMessage());
+        }
     }
 
     private static String returnPage(String title, String message, String appUrl) {

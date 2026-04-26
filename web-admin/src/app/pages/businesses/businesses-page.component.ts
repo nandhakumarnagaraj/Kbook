@@ -18,7 +18,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         <button class="ghost-btn" (click)="loadBusinesses()">Refresh</button>
       </div>
 
-      <div class="panel table-wrap" *ngIf="businesses.length; else loading">
+      <div class="panel table-wrap" *ngIf="loaded && businesses.length; else loading">
         <table>
           <thead>
             <tr>
@@ -47,7 +47,9 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       </div>
 
       <ng-template #loading>
-        <div class="panel loading">Loading businesses...</div>
+        <div class="panel loading">
+          {{ loadError ? loadError : (loaded ? 'No businesses found.' : 'Loading businesses...') }}
+        </div>
       </ng-template>
 
       <!-- Business Detail Panel -->
@@ -138,6 +140,8 @@ export class BusinessesPageComponent {
   private readonly api = inject(AdminApiService);
 
   businesses: AdminBusinessListItem[] = [];
+  loaded = false;
+  loadError = '';
   readonly selectedDetail = signal<AdminBusinessDetail | null>(null);
   readonly paymentConfig = signal<PaymentConfig | null>(null);
   readonly paymentConfigState = signal<'loading' | 'not-found' | 'loaded'>('loading');
@@ -147,7 +151,19 @@ export class BusinessesPageComponent {
   }
 
   loadBusinesses(): void {
-    this.api.getBusinesses().subscribe({ next: (data) => { this.businesses = data; } });
+    this.loaded = false;
+    this.loadError = '';
+    this.api.getBusinesses().subscribe({
+      next: (data) => {
+        this.businesses = data;
+        this.loaded = true;
+      },
+      error: () => {
+        this.businesses = [];
+        this.loadError = 'Unable to load businesses.';
+        this.loaded = true;
+      }
+    });
   }
 
   showDetails(business: AdminBusinessListItem): void {

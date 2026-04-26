@@ -186,10 +186,7 @@ public class BusinessReadService {
     }
 
     private List<User> getBusinessUsers(Long restaurantId) {
-        return userRepository.findAll().stream()
-                .filter(user -> restaurantId.equals(user.getRestaurantId()))
-                .filter(user -> !Boolean.TRUE.equals(user.getIsDeleted()))
-                .toList();
+        return userRepository.findByRestaurantIdAndIsDeletedFalse(restaurantId);
     }
 
     private List<MenuItem> getBusinessMenuItems(Long restaurantId) {

@@ -124,7 +124,7 @@ public class EasebuzzPaymentService {
     }
 
     @Transactional
-    public Map<String, Object> processWebhook(Map<String, String> params) {
+    public Map<String, Object> processGatewayCallback(Map<String, String> params) {
         String txnId = params.getOrDefault("txnid", "");
         Payment payment = paymentRepository.findByRestaurantIdAndGatewayTxnId(
                         resolveRestaurantId(params.getOrDefault("key", "")), txnId)
@@ -159,15 +159,21 @@ public class EasebuzzPaymentService {
         }
 
         String gatewayStatus = params.getOrDefault("status", "pending");
+        PaymentStatus finalStatus = mapGatewayStatus(gatewayStatus);
+        if (payment.getPaymentStatus() == PaymentStatus.SUCCESS && finalStatus != PaymentStatus.SUCCESS) {
+            logProcessed(log);
+            return Map.of("ok", true, "ignored", true);
+        }
+
         payment.setGatewayStatus(gatewayStatus);
         payment.setGatewayPaymentId(params.get("easepayid"));
         payment.setUpdatedAt(System.currentTimeMillis());
-
-        PaymentStatus finalStatus = mapGatewayStatus(gatewayStatus);
         payment.setPaymentStatus(finalStatus);
         payment.setVerifiedAt(System.currentTimeMillis());
         if (finalStatus != PaymentStatus.SUCCESS) {
             payment.setFailureReason(gatewayStatus);
+        } else {
+            payment.setFailureReason(null);
         }
         paymentRepository.save(payment);
 
@@ -177,10 +183,14 @@ public class EasebuzzPaymentService {
         updateBillFromPayment(bill, payment);
         ensureBillPaymentRow(bill, payment);
 
-        log.setProcessed(true);
-        webhookLogRepository.save(log);
+        logProcessed(log);
 
         return Map.of("ok", true);
+    }
+
+    private void logProcessed(PaymentWebhookLog log) {
+        log.setProcessed(true);
+        webhookLogRepository.save(log);
     }
 
     private Long resolveRestaurantId(String merchantKey) {

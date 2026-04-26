@@ -3,13 +3,10 @@ package com.khanabook.saas.webadmin.service;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.entity.UserRole;
-import com.khanabook.saas.payment.entity.Payment;
-import com.khanabook.saas.payment.repository.PaymentRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
-import com.khanabook.saas.storefront.entity.CustomerOrder;
 import com.khanabook.saas.storefront.repository.CustomerOrderRepository;
 import com.khanabook.saas.webadmin.dto.AdminBusinessDetailResponse;
 import com.khanabook.saas.webadmin.dto.AdminBusinessListItemResponse;
@@ -34,78 +31,63 @@ public class AdminReadService {
     private final MenuItemRepository menuItemRepository;
     private final BillRepository billRepository;
     private final CustomerOrderRepository customerOrderRepository;
-    private final PaymentRepository paymentRepository;
 
     @Transactional(readOnly = true)
     public AdminDashboardSummaryResponse getDashboardSummary() {
-        List<RestaurantProfile> profiles = restaurantProfileRepository.findAll().stream()
-                .filter(profile -> !Boolean.TRUE.equals(profile.getIsDeleted()))
-                .toList();
-
-        List<User> users = userRepository.findAll().stream()
-                .filter(user -> !Boolean.TRUE.equals(user.getIsDeleted()))
-                .toList();
-
-        long totalOrders = billRepository.findAll().stream()
-                .filter(bill -> !Boolean.TRUE.equals(bill.getIsDeleted()))
-                .count()
-                + customerOrderRepository.count();
-
-        BigDecimal billRevenue = billRepository.findAll().stream()
-                .filter(bill -> !Boolean.TRUE.equals(bill.getIsDeleted()))
-                .filter(bill -> isRevenueBillStatus(bill.getOrderStatus(), bill.getPaymentStatus()))
-                .map(bill -> defaultAmount(bill.getTotalAmount()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal storefrontRevenue = customerOrderRepository.findAll().stream()
-                .filter(order -> isCompletedStorefrontOrder(order.getOrderStatus(), order.getPaymentStatus()))
-                .map(order -> defaultAmount(order.getTotalAmount()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long totalBusinesses   = restaurantProfileRepository.countByIsDeletedFalse();
+        long liveBusinesses    = restaurantProfileRepository.countByIsDeletedFalseAndOwnWebsiteEnabledTrue();
+        long totalStaff        = userRepository.countByIsDeletedFalse();
+        long totalBillOrders   = billRepository.countByIsDeletedFalse();
+        long totalSfOrders     = customerOrderRepository.count();
+        BigDecimal billRev     = nullSafe(billRepository.sumCompletedRevenue());
+        BigDecimal sfRev       = nullSafe(customerOrderRepository.sumCompletedRevenue());
 
         return AdminDashboardSummaryResponse.builder()
-                .totalBusinesses(profiles.size())
-                .liveBusinesses(profiles.stream().filter(profile -> Boolean.TRUE.equals(profile.getOwnWebsiteEnabled())).count())
-                .totalStaff(users.size())
-                .totalOrders(totalOrders)
-                .totalRevenue(billRevenue.add(storefrontRevenue))
+                .totalBusinesses(totalBusinesses)
+                .liveBusinesses(liveBusinesses)
+                .totalStaff(totalStaff)
+                .totalOrders(totalBillOrders + totalSfOrders)
+                .totalRevenue(billRev.add(sfRev))
                 .build();
     }
 
     @Transactional(readOnly = true)
     public List<AdminBusinessListItemResponse> getBusinesses() {
-        List<RestaurantProfile> profiles = restaurantProfileRepository.findAll().stream()
-                .filter(profile -> !Boolean.TRUE.equals(profile.getIsDeleted()))
-                .sorted(Comparator.comparing(RestaurantProfile::getUpdatedAt, Comparator.nullsLast(Long::compareTo)).reversed())
-                .toList();
+        List<RestaurantProfile> profiles = restaurantProfileRepository
+                .findAllByIsDeletedFalseOrderByUpdatedAtDesc();
 
-        List<User> users = userRepository.findAll().stream()
-                .filter(user -> !Boolean.TRUE.equals(user.getIsDeleted()))
-                .toList();
+        Map<Long, User> ownerByRestaurant = userRepository.findAllActiveOwners().stream()
+                .collect(Collectors.toMap(
+                        User::getRestaurantId,
+                        Function.identity(),
+                        (left, right) -> Comparator.comparingLong((User u) -> u.getUpdatedAt() == null ? 0L : u.getUpdatedAt())
+                                .compare(left, right) >= 0 ? left : right));
 
-        Map<Long, User> ownerByRestaurant = users.stream()
-                .filter(user -> user.getRole() == UserRole.OWNER)
-                .collect(Collectors.toMap(User::getRestaurantId, Function.identity(), (left, right) ->
-                        left.getUpdatedAt() >= right.getUpdatedAt() ? left : right));
+        Map<Long, Long> staffCount = userRepository.countStaffGroupedByRestaurant().stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]));
 
-        Map<Long, Long> staffCountByRestaurant = users.stream()
-                .collect(Collectors.groupingBy(User::getRestaurantId, Collectors.counting()));
+        Map<Long, Long> menuCount = menuItemRepository.countGroupedByRestaurant().stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]));
 
-        Map<Long, Long> menuCountByRestaurant = menuItemRepository.findAll().stream()
-                .filter(menuItem -> !Boolean.TRUE.equals(menuItem.getIsDeleted()))
-                .collect(Collectors.groupingBy(menuItem -> menuItem.getRestaurantId(), Collectors.counting()));
+        Map<Long, Long> billCount = billRepository.countGroupedByRestaurant().stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]));
 
-        Map<Long, Long> billCountByRestaurant = billRepository.findAll().stream()
-                .filter(bill -> !Boolean.TRUE.equals(bill.getIsDeleted()))
-                .collect(Collectors.groupingBy(bill -> bill.getRestaurantId(), Collectors.counting()));
-
-        Map<Long, Long> storefrontCountByRestaurant = customerOrderRepository.findAll().stream()
-                .collect(Collectors.groupingBy(CustomerOrder::getRestaurantId, Collectors.counting()));
+        Map<Long, Long> sfCount = customerOrderRepository.countGroupedByRestaurant().stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]));
 
         return profiles.stream()
                 .map(profile -> {
                     User owner = ownerByRestaurant.get(profile.getRestaurantId());
-                    long orderCount = billCountByRestaurant.getOrDefault(profile.getRestaurantId(), 0L)
-                            + storefrontCountByRestaurant.getOrDefault(profile.getRestaurantId(), 0L);
+                    long orders = billCount.getOrDefault(profile.getRestaurantId(), 0L)
+                            + sfCount.getOrDefault(profile.getRestaurantId(), 0L);
                     return AdminBusinessListItemResponse.builder()
                             .restaurantId(profile.getRestaurantId())
                             .shopName(profile.getShopName())
@@ -114,9 +96,9 @@ public class AdminReadService {
                             .whatsappNumber(profile.getWhatsappNumber())
                             .email(profile.getEmail())
                             .websiteEnabled(Boolean.TRUE.equals(profile.getOwnWebsiteEnabled()))
-                            .staffCount(staffCountByRestaurant.getOrDefault(profile.getRestaurantId(), 0L))
-                            .menuCount(menuCountByRestaurant.getOrDefault(profile.getRestaurantId(), 0L))
-                            .orderCount(orderCount)
+                            .staffCount(staffCount.getOrDefault(profile.getRestaurantId(), 0L))
+                            .menuCount(menuCount.getOrDefault(profile.getRestaurantId(), 0L))
+                            .orderCount(orders)
                             .updatedAt(profile.getUpdatedAt())
                             .build();
                 })
@@ -126,42 +108,20 @@ public class AdminReadService {
     @Transactional(readOnly = true)
     public AdminBusinessDetailResponse getBusinessDetail(Long restaurantId) {
         RestaurantProfile profile = restaurantProfileRepository.findByRestaurantId(restaurantId)
-                .filter(existing -> !Boolean.TRUE.equals(existing.getIsDeleted()))
+                .filter(p -> !Boolean.TRUE.equals(p.getIsDeleted()))
                 .orElseThrow(() -> new IllegalArgumentException("Business not found"));
 
-        List<User> users = userRepository.findAll().stream()
-                .filter(user -> restaurantId.equals(user.getRestaurantId()))
-                .filter(user -> !Boolean.TRUE.equals(user.getIsDeleted()))
-                .toList();
-
+        List<User> users = userRepository.findByRestaurantIdAndIsDeletedFalse(restaurantId);
         User owner = users.stream()
-                .filter(user -> user.getRole() == UserRole.OWNER)
+                .filter(u -> u.getRole() == UserRole.OWNER)
                 .max(Comparator.comparing(User::getUpdatedAt, Comparator.nullsLast(Long::compareTo)))
                 .orElse(null);
 
-        long menuCount = menuItemRepository.findAll().stream()
-                .filter(menuItem -> restaurantId.equals(menuItem.getRestaurantId()))
-                .filter(menuItem -> !Boolean.TRUE.equals(menuItem.getIsDeleted()))
-                .count();
-
-        List<com.khanabook.saas.entity.Bill> bills = billRepository.findAll().stream()
-                .filter(bill -> restaurantId.equals(bill.getRestaurantId()))
-                .filter(bill -> !Boolean.TRUE.equals(bill.getIsDeleted()))
-                .toList();
-
-        List<CustomerOrder> storefrontOrders = customerOrderRepository.findAll().stream()
-                .filter(order -> restaurantId.equals(order.getRestaurantId()))
-                .toList();
-
-        BigDecimal billRevenue = bills.stream()
-                .filter(bill -> isRevenueBillStatus(bill.getOrderStatus(), bill.getPaymentStatus()))
-                .map(bill -> defaultAmount(bill.getTotalAmount()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal storefrontRevenue = storefrontOrders.stream()
-                .filter(order -> isCompletedStorefrontOrder(order.getOrderStatus(), order.getPaymentStatus()))
-                .map(order -> defaultAmount(order.getTotalAmount()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long menuCount     = menuItemRepository.countByRestaurantIdAndIsDeletedFalse(restaurantId);
+        long posOrders     = billRepository.countByRestaurantIdAndIsDeletedFalse(restaurantId);
+        long onlineOrders  = customerOrderRepository.countByRestaurantId(restaurantId);
+        BigDecimal billRev = nullSafe(billRepository.sumCompletedRevenueByRestaurant(restaurantId));
+        BigDecimal sfRev   = nullSafe(customerOrderRepository.sumCompletedRevenueByRestaurant(restaurantId));
 
         return AdminBusinessDetailResponse.builder()
                 .restaurantId(profile.getRestaurantId())
@@ -178,27 +138,15 @@ public class AdminReadService {
                 .printerEnabled(Boolean.TRUE.equals(profile.getPrinterEnabled()))
                 .staffCount(users.size())
                 .menuCount(menuCount)
-                .posOrderCount(bills.size())
-                .onlineOrderCount(storefrontOrders.size())
-                .totalRevenue(billRevenue.add(storefrontRevenue))
+                .posOrderCount(posOrders)
+                .onlineOrderCount(onlineOrders)
+                .totalRevenue(billRev.add(sfRev))
                 .createdAt(profile.getCreatedAt())
                 .updatedAt(profile.getUpdatedAt())
                 .build();
     }
 
-    private boolean isRevenueBillStatus(String orderStatus, String paymentStatus) {
-        return "completed".equalsIgnoreCase(orderStatus)
-                || "paid".equalsIgnoreCase(orderStatus)
-                || "paid".equalsIgnoreCase(paymentStatus);
-    }
-
-    private boolean isCompletedStorefrontOrder(String orderStatus, String paymentStatus) {
-        return "COMPLETED".equalsIgnoreCase(orderStatus)
-                || "SUCCESS".equalsIgnoreCase(paymentStatus)
-                || "PAID".equalsIgnoreCase(paymentStatus);
-    }
-
-    private BigDecimal defaultAmount(BigDecimal amount) {
-        return amount == null ? BigDecimal.ZERO : amount;
+    private static BigDecimal nullSafe(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 }

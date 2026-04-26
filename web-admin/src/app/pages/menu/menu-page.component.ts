@@ -18,7 +18,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         <button class="ghost-btn" (click)="loadMenu()">Refresh</button>
       </div>
 
-      <div class="panel table-wrap" *ngIf="items.length; else loading">
+      <div class="panel table-wrap" *ngIf="loaded && items.length; else loading">
         <table>
           <thead>
             <tr>
@@ -53,7 +53,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       </div>
 
       <ng-template #loading>
-        <div class="panel loading">Loading menu...</div>
+        <div class="panel loading">{{ loaded ? 'No menu items found.' : 'Loading menu...' }}</div>
       </ng-template>
     </div>
   `
@@ -62,14 +62,17 @@ export class MenuPageComponent {
   private readonly api = inject(BusinessApiService);
 
   items: BusinessMenuItem[] = [];
+  loaded = false;
 
   constructor() {
     this.loadMenu();
   }
 
   loadMenu(): void {
-    this.api.getMenu().subscribe((data) => {
-      this.items = data;
+    this.loaded = false;
+    this.api.getMenu().subscribe({
+      next: (data) => { this.items = data; this.loaded = true; },
+      error: () => { this.loaded = true; }
     });
   }
 

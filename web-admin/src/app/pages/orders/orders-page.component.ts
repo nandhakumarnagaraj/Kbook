@@ -20,7 +20,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         <button class="ghost-btn" (click)="loadOrders()">Refresh</button>
       </div>
 
-      <div class="panel table-wrap" *ngIf="orders.length; else posLoading">
+      <div class="panel table-wrap" *ngIf="ordersLoaded && orders.length; else posLoading">
         <table>
           <thead>
             <tr>
@@ -50,7 +50,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         </table>
       </div>
       <ng-template #posLoading>
-        <div class="panel loading">Loading orders...</div>
+        <div class="panel loading">{{ ordersLoaded ? 'No orders yet.' : 'Loading orders...' }}</div>
       </ng-template>
 
       <!-- Storefront Orders -->
@@ -130,6 +130,7 @@ export class OrdersPageComponent {
   private readonly api = inject(BusinessApiService);
 
   orders: BusinessOrder[] = [];
+  ordersLoaded = false;
   storefrontOrders: StorefrontOrder[] = [];
   storefrontLoading = false;
   updatingOrderId: number | null = null;
@@ -140,7 +141,11 @@ export class OrdersPageComponent {
   }
 
   loadOrders(): void {
-    this.api.getOrders().subscribe({ next: (data) => { this.orders = data; } });
+    this.ordersLoaded = false;
+    this.api.getOrders().subscribe({
+      next: (data) => { this.orders = data; this.ordersLoaded = true; },
+      error: () => { this.ordersLoaded = true; }
+    });
   }
 
   loadStorefrontOrders(): void {
