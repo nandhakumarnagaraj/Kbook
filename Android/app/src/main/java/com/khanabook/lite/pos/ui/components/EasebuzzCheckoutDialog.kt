@@ -105,6 +105,15 @@ fun EasebuzzCheckoutDialog(
                                 }
                                 webViewClient = object : WebViewClient() {
                                     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                                        // shouldOverrideUrlLoading is not called for server-side
+                                        // 302 redirects on many Android versions. Check here too
+                                        // so we always catch the surl/furl before the page loads.
+                                        if (url != null && handleNavigation(
+                                                url, view?.context, onSurl, onFurl, onClose
+                                            ) { errorText = it }) {
+                                            view?.stopLoading()
+                                            return
+                                        }
                                         loading = true
                                         errorText = null
                                     }
