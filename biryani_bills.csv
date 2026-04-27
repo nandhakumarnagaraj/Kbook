@@ -1,0 +1,482 @@
+bill_id|order_no|date|customer|order_type|payment_mode|payment_status|subtotal|total_amount|order_status|item_name|variant|qty|price|item_total|split_mode|split_amount
+232|006|2026-04-22|-|order|upi|success|200.00|210.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|210.00
+231|005|2026-04-22|-|order|upi|success|628.00|659.40|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|659.40
+231|005|2026-04-22|-|order|upi|success|628.00|659.40|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|659.40
+231|005|2026-04-22|-|order|upi|success|628.00|659.40|completed|ujj|-|1|28.00|28.00|upi|659.40
+230|004|2026-04-22|-|order|upi|failed|320.00|336.00|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+229|003|2026-04-22|-|order|upi|success|520.00|546.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|546.00
+229|003|2026-04-22|-|order|upi|success|520.00|546.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|546.00
+228|002|2026-04-22|-|order|upi|failed|28.00|29.40|cancelled|ujj|-|1|28.00|28.00|upi|29.40
+227|001|2026-04-22|-|order|upi|success|720.00|756.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|756.00
+227|001|2026-04-22|-|order|upi|success|720.00|756.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|756.00
+226|015|2026-04-21|-|order|upi|success|200.00|210.00|cancelled|Bismi Fried Chicken|Half|1|200.00|200.00|upi|210.00
+225|014|2026-04-21|-|order|upi|success|600.00|630.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|630.00
+225|014|2026-04-21|-|order|upi|success|600.00|630.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|630.00
+224|013|2026-04-21|-|order|upi|success|520.00|546.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|546.00
+224|013|2026-04-21|-|order|upi|success|520.00|546.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|546.00
+223|012|2026-04-21|-|order|upi|success|1130.00|1186.50|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1186.50
+223|012|2026-04-21|-|order|upi|success|1130.00|1186.50|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|1186.50
+223|012|2026-04-21|-|order|upi|success|1130.00|1186.50|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|1186.50
+223|012|2026-04-21|-|order|upi|success|1130.00|1186.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|1186.50
+222|011|2026-04-21|-|order|upi|success|610.00|640.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|640.50
+222|011|2026-04-21|-|order|upi|success|610.00|640.50|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|640.50
+221|010|2026-04-21|-|order|upi|success|200.00|210.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|210.00
+220|009|2026-04-21|-|order|upi|failed|400.00|420.00|cancelled|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|420.00
+219|008|2026-04-21|-|order|upi|success|200.00|210.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|210.00
+218|007|2026-04-21|-|order|upi|success|320.00|336.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+217|006|2026-04-21|-|order|upi|success|320.00|336.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+216|005|2026-04-21|-|order|upi|success|410.00|430.50|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|430.50
+216|005|2026-04-21|-|order|upi|success|410.00|430.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|430.50
+209|004|2026-04-21|-|order|upi|success|530.00|556.50|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|556.50
+209|004|2026-04-21|-|order|upi|success|530.00|556.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|556.50
+208|003|2026-04-21|-|order|upi|success|530.00|556.50|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|556.50
+208|003|2026-04-21|-|order|upi|success|530.00|556.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|556.50
+207|002|2026-04-21|-|order|upi|success|530.00|556.50|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|556.50
+207|002|2026-04-21|-|order|upi|success|530.00|556.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|556.50
+204|023|2026-04-20|-|order|upi|success|640.00|672.00|completed|Bismi Fish Tikka|-|2|320.00|640.00|upi|672.00
+203|022|2026-04-20|-|order|upi|success|610.00|640.50|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|640.50
+203|022|2026-04-20|-|order|upi|success|610.00|640.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|640.50
+202|021|2026-04-20|-|order|upi|success|520.00|546.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|546.00
+202|021|2026-04-20|-|order|upi|success|520.00|546.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|546.00
+201|020|2026-04-20|-|order|upi|success|400.00|420.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|420.00
+200|019|2026-04-20|-|order|upi|success|320.00|336.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+199|018|2026-04-20|-|order|upi|success|320.00|336.00|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+198|017|2026-04-20|-|order|upi|success|380.00|399.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|399.00
+197|016|2026-04-20|-|order|upi|success|780.00|819.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|819.00
+197|016|2026-04-20|-|order|upi|success|780.00|819.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|819.00
+196|015|2026-04-20|-|order|upi|success|990.00|1039.50|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1039.50
+196|015|2026-04-20|-|order|upi|success|990.00|1039.50|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|1039.50
+196|015|2026-04-20|-|order|upi|success|990.00|1039.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|1039.50
+195|014|2026-04-20|-|order|upi|failed|590.00|619.50|cancelled|Bismi Fried Chicken|Full|1|380.00|380.00|upi|619.50
+195|014|2026-04-20|-|order|upi|failed|590.00|619.50|cancelled|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|619.50
+194|013|2026-04-20|-|order|upi|success|380.00|399.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|399.00
+193|012|2026-04-20|-|order|upi|failed|320.00|336.00|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+192|011|2026-04-20|-|order|upi|success|320.00|336.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+191|010|2026-04-20|-|order|upi|success|380.00|399.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|399.00
+189|009|2026-04-20|-|order|upi|success|760.00|798.00|completed||-||||-|-
+185|008|2026-04-20|-|order|upi|success|320.00|336.00|completed||-||||-|-
+184|007|2026-04-20|-|order|upi|success|780.00|819.00|completed||-||||-|-
+183|006|2026-04-20|-|order|upi|success|980.00|1029.00|completed||-||||-|-
+182|005|2026-04-20|-|order|upi|success|320.00|336.00|completed||-||||-|-
+181|004|2026-04-20|-|order|upi|success|700.00|735.00|completed||-||||-|-
+180|009|2026-04-20|-|order|upi|success|530.00|556.50|cancelled||-||||-|-
+179|008|2026-04-20|-|order|upi|success|700.00|735.00|completed||-||||-|-
+178|007|2026-04-20|-|order|upi|success|1020.00|1071.00|completed||-||||-|-
+188|006|2026-04-20|-|order|upi|failed|590.00|619.50|cancelled||-||||-|-
+187|005|2026-04-20|-|order|upi|success|700.00|735.00|completed||-||||-|-
+186|004|2026-04-20|-|order|upi|success|910.00|955.50|completed||-||||-|-
+174|003|2026-04-20|-|order|upi|success|380.00|399.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|399.00
+173|002|2026-04-20|-|order|upi|success|800.00|840.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|840.00
+173|002|2026-04-20|-|order|upi|success|800.00|840.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|840.00
+173|002|2026-04-20|-|order|upi|success|800.00|840.00|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|840.00
+172|001|2026-04-20|-|order|part_cash_pos|success|1510.00|1585.50|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|cash|792.75
+172|001|2026-04-20|-|order|part_cash_pos|success|1510.00|1585.50|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|pos|792.75
+172|001|2026-04-20|-|order|part_cash_pos|success|1510.00|1585.50|cancelled|Bismi Fried Chicken|Full|1|380.00|380.00|cash|792.75
+172|001|2026-04-20|-|order|part_cash_pos|success|1510.00|1585.50|cancelled|Bismi Fried Chicken|Full|1|380.00|380.00|pos|792.75
+172|001|2026-04-20|-|order|part_cash_pos|success|1510.00|1585.50|cancelled|Bismi Fried Chicken|Half|1|200.00|200.00|cash|792.75
+172|001|2026-04-20|-|order|part_cash_pos|success|1510.00|1585.50|cancelled|Bismi Fried Chicken|Half|1|200.00|200.00|pos|792.75
+172|001|2026-04-20|-|order|part_cash_pos|success|1510.00|1585.50|cancelled|Bismi Tandoori Chicken|Full|1|400.00|400.00|cash|792.75
+172|001|2026-04-20|-|order|part_cash_pos|success|1510.00|1585.50|cancelled|Bismi Tandoori Chicken|Full|1|400.00|400.00|pos|792.75
+172|001|2026-04-20|-|order|part_cash_pos|success|1510.00|1585.50|cancelled|Bismi Tandoori Chicken|Half|1|210.00|210.00|cash|792.75
+172|001|2026-04-20|-|order|part_cash_pos|success|1510.00|1585.50|cancelled|Bismi Tandoori Chicken|Half|1|210.00|210.00|pos|792.75
+168|002|2026-04-18|-|order|upi|success|700.00|735.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|735.00
+168|002|2026-04-18|-|order|upi|success|700.00|735.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|735.00
+167|001|2026-04-18|-|order|upi|success|320.00|336.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+166|023|2026-04-17|-|order|upi|success|900.00|945.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|945.00
+166|023|2026-04-17|-|order|upi|success|900.00|945.00|completed|Fish Biriyani|-|1|230.00|230.00|upi|945.00
+166|023|2026-04-17|-|order|upi|success|900.00|945.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|945.00
+165|022|2026-04-17|-|order|upi|success|590.00|619.50|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|619.50
+165|022|2026-04-17|-|order|upi|success|590.00|619.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|619.50
+164|021|2026-04-17|-|order|upi|success|230.00|241.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|241.50
+163|020|2026-04-17|-|order|upi|success|520.00|546.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|546.00
+163|020|2026-04-17|-|order|upi|success|520.00|546.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|546.00
+162|019|2026-04-17|-|order|upi|success|320.00|336.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+161|018|2026-04-17|-|order|upi|failed|400.00|420.00|cancelled|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|420.00
+160|017|2026-04-17|-|order|upi|success|890.00|934.50|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|934.50
+160|017|2026-04-17|-|order|upi|success|890.00|934.50|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|934.50
+160|017|2026-04-17|-|order|upi|success|890.00|934.50|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|934.50
+159|016|2026-04-17|-|order|upi|success|610.00|640.50|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|640.50
+159|016|2026-04-17|-|order|upi|success|610.00|640.50|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|640.50
+158|015|2026-04-17|-|order|upi|success|710.00|745.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|745.50
+158|015|2026-04-17|-|order|upi|success|710.00|745.50|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|745.50
+158|015|2026-04-17|-|order|upi|success|710.00|745.50|completed|Mutton Biriyani|-|1|200.00|200.00|upi|745.50
+157|014|2026-04-17|-|order|upi|success|750.00|787.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|787.50
+157|014|2026-04-17|-|order|upi|success|750.00|787.50|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|787.50
+157|014|2026-04-17|-|order|upi|success|750.00|787.50|completed|Fish Biriyani|-|1|230.00|230.00|upi|787.50
+156|013|2026-04-17|-|order|upi|success|520.00|546.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|546.00
+156|013|2026-04-17|-|order|upi|success|520.00|546.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|546.00
+155|012|2026-04-17|-|order|upi|failed|1040.00|1092.00|cancelled|Chicken Biriyani|-|1|170.00|170.00|upi|1092.00
+155|012|2026-04-17|-|order|upi|failed|1040.00|1092.00|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|1092.00
+155|012|2026-04-17|-|order|upi|failed|1040.00|1092.00|cancelled|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|1092.00
+155|012|2026-04-17|-|order|upi|failed|1040.00|1092.00|cancelled|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|1092.00
+154|011|2026-04-17|-|order|upi|success|367.00|385.35|completed|Anna's Special Paneer Biryani|-|1|298.00|298.00|upi|385.35
+154|011|2026-04-17|-|order|upi|success|367.00|385.35|completed|Mehfli Meethi Biryani|Half|1|69.00|69.00|upi|385.35
+153|010|2026-04-17|-|order|upi|success|640.00|672.00|completed|Bismi Fish Tikka|-|2|320.00|640.00|upi|672.00
+152|009|2026-04-17|-|order|upi|success|960.00|1008.00|completed|Bismi Fish Tikka|-|3|320.00|960.00|upi|1008.00
+151|008|2026-04-17|-|order|upi|success|530.00|556.50|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|556.50
+151|008|2026-04-17|-|order|upi|success|530.00|556.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|556.50
+150|007|2026-04-17|-|order|upi|success|700.00|735.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|735.00
+150|007|2026-04-17|-|order|upi|success|700.00|735.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|735.00
+149|006|2026-04-17|-|order|upi|success|960.00|1008.00|completed|Bismi Fish Tikka|-|3|320.00|960.00|upi|1008.00
+148|005|2026-04-17|-|order|upi|failed|1100.00|1155.00|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|1155.00
+148|005|2026-04-17|-|order|upi|failed|1100.00|1155.00|cancelled|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1155.00
+148|005|2026-04-17|-|order|upi|failed|1100.00|1155.00|cancelled|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|1155.00
+147|004|2026-04-17|-|order|upi|success|1100.00|1155.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1155.00
+147|004|2026-04-17|-|order|upi|success|1100.00|1155.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1155.00
+147|004|2026-04-17|-|order|upi|success|1100.00|1155.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|1155.00
+146|003|2026-04-17|-|order|upi|success|320.00|336.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+145|002|2026-04-17|-|order|upi|success|510.00|535.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|535.50
+145|002|2026-04-17|-|order|upi|success|510.00|535.50|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|535.50
+144|001|2026-04-16|-|order|upi|success|1100.00|1155.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1155.00
+144|001|2026-04-16|-|order|upi|success|1100.00|1155.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|1155.00
+144|001|2026-04-16|-|order|upi|success|1100.00|1155.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1155.00
+142|024|2026-04-16|-|order|upi|success|228.00|239.40|completed|Dawat-e-mushroom Biryani|Half|1|129.00|129.00|upi|239.40
+142|024|2026-04-16|-|order|upi|success|228.00|239.40|completed|Dum-pukht Kathal Biryani|Half|1|99.00|99.00|upi|239.40
+141|023|2026-04-16|-|order|upi|success|500.00|525.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|525.00
+141|023|2026-04-16|-|order|upi|success|500.00|525.00|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|525.00
+140|022|2026-04-16|-|order|upi|success|790.00|829.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|829.50
+140|022|2026-04-16|-|order|upi|success|790.00|829.50|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|829.50
+140|022|2026-04-16|-|order|upi|success|790.00|829.50|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|829.50
+139|021|2026-04-16|-|order|upi|failed|327.00|343.35|cancelled|Lazeez Anda Biryani|Half|1|99.00|99.00|upi|343.35
+139|021|2026-04-16|-|order|upi|failed|327.00|343.35|cancelled|Dawat-e-mushroom Biryani|Half|1|129.00|129.00|upi|343.35
+139|021|2026-04-16|-|order|upi|failed|327.00|343.35|cancelled|Dum-pukht Kathal Biryani|Half|1|99.00|99.00|upi|343.35
+138|020|2026-04-16|-|order|upi|success|320.00|336.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+137|019|2026-04-16|-|order|upi|success|1140.00|1197.00|completed|Bismi Fried Chicken|Full|3|380.00|1140.00|upi|1197.00
+136|018|2026-04-16|-|order|upi|success|320.00|336.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+135|017|2026-04-16|-|order|upi|success|687.00|721.35|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|721.35
+135|017|2026-04-16|-|order|upi|success|687.00|721.35|completed|Anna's Special Paneer Biryani|-|1|298.00|298.00|upi|721.35
+135|017|2026-04-16|-|order|upi|success|687.00|721.35|completed|Mehfli Meethi Biryani|Half|1|69.00|69.00|upi|721.35
+134|016|2026-04-16|-|order|upi|success|720.00|756.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|756.00
+134|016|2026-04-16|-|order|upi|success|720.00|756.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|756.00
+133|015|2026-04-16|-|order|upi|success|680.00|714.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|714.00
+133|015|2026-04-16|-|order|upi|success|680.00|714.00|completed|Chicken Biriyani|-|1|170.00|170.00|upi|714.00
+133|015|2026-04-16|-|order|upi|success|680.00|714.00|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|714.00
+127|014|2026-04-16|-|order|upi|failed|780.00|819.00|cancelled|Bismi Fried Chicken|Full|1|380.00|380.00|upi|819.00
+127|014|2026-04-16|-|order|upi|failed|780.00|819.00|cancelled|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|819.00
+126|013|2026-04-16|-|order|upi|success|720.00|756.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|756.00
+126|013|2026-04-16|-|order|upi|success|720.00|756.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|756.00
+125|012|2026-04-16|-|order|upi|success|700.00|735.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|735.00
+125|012|2026-04-16|-|order|upi|success|700.00|735.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|735.00
+124|011|2026-04-16|-|order|upi|success|590.00|619.50|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|619.50
+124|011|2026-04-16|-|order|upi|success|590.00|619.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|619.50
+120|010|2026-04-16|-|order|upi|success|510.00|535.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|535.50
+120|010|2026-04-16|-|order|upi|success|510.00|535.50|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|535.50
+119|009|2026-04-16|-|order|upi|success|460.00|483.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|483.00
+119|009|2026-04-16|-|order|upi|success|460.00|483.00|completed|Fish Biriyani|-|1|230.00|230.00|upi|483.00
+118|008|2026-04-16|-|order|upi|success|500.00|525.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|525.00
+118|008|2026-04-16|-|order|upi|success|500.00|525.00|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|525.00
+117|007|2026-04-16|-|order|upi|success|720.00|756.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|756.00
+117|007|2026-04-16|-|order|upi|success|720.00|756.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|756.00
+116|006|2026-04-16|Nandhakumar |order|upi|success|510.00|535.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|535.50
+116|006|2026-04-16|Nandhakumar |order|upi|success|510.00|535.50|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|535.50
+114|005|2026-04-16|-|order|upi|success|527.00|553.35|completed|Dum-pukht Kathal Biryani|Half|1|99.00|99.00|upi|553.35
+114|005|2026-04-16|-|order|upi|success|527.00|553.35|completed|Egg Biryani With|-|1|200.00|200.00|upi|553.35
+114|005|2026-04-16|-|order|upi|success|527.00|553.35|completed|Lazeez Anda Biryani|Half|1|99.00|99.00|upi|553.35
+114|005|2026-04-16|-|order|upi|success|527.00|553.35|completed|Dawat-e-mushroom Biryani|Half|1|129.00|129.00|upi|553.35
+113|004|2026-04-16|-|order|upi|failed|350.00|367.50|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|367.50
+113|004|2026-04-16|-|order|upi|failed|350.00|367.50|cancelled|Soft Drinks (glass Bottle)|-|1|10.00|10.00|upi|367.50
+113|004|2026-04-16|-|order|upi|failed|350.00|367.50|cancelled|Water Bottle|-|1|20.00|20.00|upi|367.50
+112|003|2026-04-16|-|order|upi|success|555.00|582.75|completed|Anna's Special Paneer Biryani|-|1|298.00|298.00|upi|582.75
+112|003|2026-04-16|-|order|upi|success|555.00|582.75|completed|Mehfli Meethi Biryani|Half|1|69.00|69.00|upi|582.75
+112|003|2026-04-16|-|order|upi|success|555.00|582.75|completed|Chettinad Chicken|Half|1|69.00|69.00|upi|582.75
+112|003|2026-04-16|-|order|upi|success|555.00|582.75|completed|Hara Bhara Paneer Thalicha|-|1|119.00|119.00|upi|582.75
+111|002|2026-04-16|-|order|upi|success|1100.00|1155.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1155.00
+111|002|2026-04-16|-|order|upi|success|1100.00|1155.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1155.00
+111|002|2026-04-16|-|order|upi|success|1100.00|1155.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|1155.00
+109|004|2026-04-15|-|order|upi|success|720.00|756.00|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|756.00
+109|004|2026-04-15|-|order|upi|success|720.00|756.00|cancelled|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|756.00
+108|003|2026-04-15|-|order|upi|success|980.00|1029.00|cancelled|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|1029.00
+108|003|2026-04-15|-|order|upi|success|980.00|1029.00|cancelled|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1029.00
+108|003|2026-04-15|-|order|upi|success|980.00|1029.00|cancelled|Bismi Fried Chicken|Half|1|200.00|200.00|upi|1029.00
+107|002|2026-04-15|-|order|upi|success|910.00|955.50|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|955.50
+107|002|2026-04-15|-|order|upi|success|910.00|955.50|cancelled|Bismi Fried Chicken|Full|1|380.00|380.00|upi|955.50
+107|002|2026-04-15|-|order|upi|success|910.00|955.50|cancelled|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|955.50
+106|001|2026-04-15|-|order|upi|success|560.00|588.00|cancelled|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|588.00
+106|001|2026-04-15|-|order|upi|success|560.00|588.00|cancelled|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|588.00
+105|001|2026-04-14|-|order|upi|success|790.00|829.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|829.50
+105|001|2026-04-14|-|order|upi|success|790.00|829.50|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|829.50
+105|001|2026-04-14|-|order|upi|success|790.00|829.50|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|829.50
+104|023|2026-04-13|-|order|upi|success|687.00|721.35|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|721.35
+104|023|2026-04-13|-|order|upi|success|687.00|721.35|completed|Mehfli Meethi Biryani|Half|1|69.00|69.00|upi|721.35
+104|023|2026-04-13|-|order|upi|success|687.00|721.35|completed|Anna's Special Paneer Biryani|-|1|298.00|298.00|upi|721.35
+103|022|2026-04-13|-|order|upi|success|800.00|840.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|840.00
+103|022|2026-04-13|-|order|upi|success|800.00|840.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|840.00
+103|022|2026-04-13|-|order|upi|success|800.00|840.00|completed|Sample |Mid|1|20.00|20.00|upi|840.00
+102|021|2026-04-13|-|order|upi|success|720.00|756.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|756.00
+102|021|2026-04-13|-|order|upi|success|720.00|756.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|756.00
+101|020|2026-04-13|-|order|part_cash_upi|success|1240.00|1302.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|cash|651.00
+101|020|2026-04-13|-|order|part_cash_upi|success|1240.00|1302.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|651.00
+101|020|2026-04-13|-|order|part_cash_upi|success|1240.00|1302.00|completed|Chicken Biriyani|-|1|170.00|170.00|cash|651.00
+101|020|2026-04-13|-|order|part_cash_upi|success|1240.00|1302.00|completed|Chicken Biriyani|-|1|170.00|170.00|upi|651.00
+101|020|2026-04-13|-|order|part_cash_upi|success|1240.00|1302.00|completed|Fish Biriyani|-|1|230.00|230.00|cash|651.00
+101|020|2026-04-13|-|order|part_cash_upi|success|1240.00|1302.00|completed|Fish Biriyani|-|1|230.00|230.00|upi|651.00
+101|020|2026-04-13|-|order|part_cash_upi|success|1240.00|1302.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|cash|651.00
+101|020|2026-04-13|-|order|part_cash_upi|success|1240.00|1302.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|651.00
+101|020|2026-04-13|-|order|part_cash_upi|success|1240.00|1302.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|cash|651.00
+101|020|2026-04-13|-|order|part_cash_upi|success|1240.00|1302.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|651.00
+100|019|2026-04-13|-|order|upi|success|740.00|777.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|777.00
+100|019|2026-04-13|-|order|upi|success|740.00|777.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|777.00
+100|019|2026-04-13|-|order|upi|success|740.00|777.00|completed|Sample |Mid|1|20.00|20.00|upi|777.00
+99|018|2026-04-13|-|order|upi|success|550.00|577.50|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|577.50
+99|018|2026-04-13|-|order|upi|success|550.00|577.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|577.50
+99|018|2026-04-13|-|order|upi|success|550.00|577.50|completed|Sample |Mid|1|20.00|20.00|upi|577.50
+98|017|2026-04-13|-|order|upi|success|327.00|343.35|completed|Dawat-e-mushroom Biryani|Half|1|129.00|129.00|upi|343.35
+98|017|2026-04-13|-|order|upi|success|327.00|343.35|completed|Dum-pukht Kathal Biryani|Half|1|99.00|99.00|upi|343.35
+98|017|2026-04-13|-|order|upi|success|327.00|343.35|completed|Lazeez Anda Biryani|Half|1|99.00|99.00|upi|343.35
+97|016|2026-04-13|-|order|upi|success|565.00|593.25|completed|Dawat-e-mushroom Biryani|Half|1|129.00|129.00|upi|593.25
+97|016|2026-04-13|-|order|upi|success|565.00|593.25|completed|Mehfli Meethi Biryani|Full|1|138.00|138.00|upi|593.25
+97|016|2026-04-13|-|order|upi|success|565.00|593.25|completed|Anna's Special Paneer Biryani|-|1|298.00|298.00|upi|593.25
+92|015|2026-04-13|-|order|upi|success|630.00|661.50|cancelled|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|661.50
+92|015|2026-04-13|-|order|upi|success|630.00|661.50|cancelled|Fish Biriyani|-|1|230.00|230.00|upi|661.50
+92|015|2026-04-13|-|order|upi|success|630.00|661.50|cancelled|Chicken Biriyani|-|1|170.00|170.00|upi|661.50
+91|014|2026-04-13|-|order|upi|success|960.00|1008.00|completed|Bismi Fish Tikka|-|3|320.00|960.00|upi|1008.00
+90|013|2026-04-13|-|order|upi|success|299.00|313.95|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|313.95
+90|013|2026-04-13|-|order|upi|success|299.00|313.95|completed|Mehfli Meethi Biryani|Half|1|69.00|69.00|upi|313.95
+89|012|2026-04-13|-|order|upi|success|800.00|840.00|completed|Sample |Mid|1|20.00|20.00|upi|840.00
+89|012|2026-04-13|-|order|upi|success|800.00|840.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|840.00
+89|012|2026-04-13|-|order|upi|success|800.00|840.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|840.00
+88|011|2026-04-13|-|order|upi|success|848.00|890.40|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|890.40
+88|011|2026-04-13|-|order|upi|success|848.00|890.40|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|890.40
+88|011|2026-04-13|-|order|upi|success|848.00|890.40|completed|Anna's Special Paneer Biryani|-|1|298.00|298.00|upi|890.40
+87|010|2026-04-13|-|order|upi|success|740.00|777.00|completed|Sample |Mid|1|20.00|20.00|upi|777.00
+87|010|2026-04-13|-|order|upi|success|740.00|777.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|777.00
+87|010|2026-04-13|-|order|upi|success|740.00|777.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|777.00
+86|009|2026-04-13|-|order|upi|success|840.00|882.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|882.00
+86|009|2026-04-13|-|order|upi|success|840.00|882.00|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|882.00
+86|009|2026-04-13|-|order|upi|success|840.00|882.00|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|882.00
+85|008|2026-04-13|-|order|upi|success|357.00|374.85|completed|Dawat-e-mushroom Biryani|Full|1|258.00|258.00|upi|374.85
+85|008|2026-04-13|-|order|upi|success|357.00|374.85|completed|Dum-pukht Kathal Biryani|Half|1|99.00|99.00|upi|374.85
+84|007|2026-04-13|-|order|upi|success|340.00|357.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|357.00
+84|007|2026-04-13|-|order|upi|success|340.00|357.00|completed|Sample |Mid|1|20.00|20.00|upi|357.00
+83|006|2026-04-13|-|order|upi|success|1120.00|1176.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1176.00
+83|006|2026-04-13|-|order|upi|success|1120.00|1176.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1176.00
+83|006|2026-04-13|-|order|upi|success|1120.00|1176.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|1176.00
+83|006|2026-04-13|-|order|upi|success|1120.00|1176.00|completed|Sample |Mid|1|20.00|20.00|upi|1176.00
+82|005|2026-04-13|-|order|upi|failed|730.00|766.50|cancelled|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|766.50
+82|005|2026-04-13|-|order|upi|failed|730.00|766.50|cancelled|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|766.50
+82|005|2026-04-13|-|order|upi|failed|730.00|766.50|cancelled|Chicken Biriyani|-|1|170.00|170.00|upi|766.50
+81|004|2026-04-13|-|order|upi|success|910.00|955.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|955.50
+81|004|2026-04-13|-|order|upi|success|910.00|955.50|completed|Fish Biriyani|-|1|230.00|230.00|upi|955.50
+81|004|2026-04-13|-|order|upi|success|910.00|955.50|completed|Chicken Biriyani|-|1|170.00|170.00|upi|955.50
+81|004|2026-04-13|-|order|upi|success|910.00|955.50|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|955.50
+80|003|2026-04-13|-|order|upi|success|230.00|241.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|241.50
+79|002|2026-04-13|-|order|upi|success|387.00|406.35|completed|Dawat-e-mushroom Biryani|Half|1|129.00|129.00|upi|406.35
+79|002|2026-04-13|-|order|upi|success|387.00|406.35|completed|Dawat-e-mushroom Biryani|Full|1|258.00|258.00|upi|406.35
+78|001|2026-04-13|-|order|upi|success|700.00|735.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|735.00
+78|001|2026-04-13|-|order|upi|success|700.00|735.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|735.00
+77|009|2026-04-11|-|order|part_cash_pos|success|800.00|840.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|cash|420.00
+77|009|2026-04-11|-|order|part_cash_pos|success|800.00|840.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|pos|420.00
+77|009|2026-04-11|-|order|part_cash_pos|success|800.00|840.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|cash|420.00
+77|009|2026-04-11|-|order|part_cash_pos|success|800.00|840.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|pos|420.00
+77|009|2026-04-11|-|order|part_cash_pos|success|800.00|840.00|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|cash|420.00
+77|009|2026-04-11|-|order|part_cash_pos|success|800.00|840.00|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|pos|420.00
+76|008|2026-04-11|-|order|upi|success|1260.00|1323.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|1323.00
+76|008|2026-04-11|-|order|upi|success|1260.00|1323.00|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|1323.00
+76|008|2026-04-11|-|order|upi|success|1260.00|1323.00|completed|Mutton Biriyani|-|1|200.00|200.00|upi|1323.00
+76|008|2026-04-11|-|order|upi|success|1260.00|1323.00|completed|Prawn Biriyani|-|1|260.00|260.00|upi|1323.00
+76|008|2026-04-11|-|order|upi|success|1260.00|1323.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|1323.00
+75|007|2026-04-11|Sample|order|upi|success|700.00|735.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|735.00
+75|007|2026-04-11|Sample|order|upi|success|700.00|735.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|735.00
+74|006|2026-04-11|-|order|upi|success|720.00|756.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|756.00
+74|006|2026-04-11|-|order|upi|success|720.00|756.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|756.00
+74|006|2026-04-11|-|order|upi|success|720.00|756.00|completed|Sample |Mid|1|20.00|20.00|upi|756.00
+73|005|2026-04-11|-|order|upi|success|367.00|385.35|completed|Anna's Special Paneer Biryani|-|1|298.00|298.00|upi|385.35
+73|005|2026-04-11|-|order|upi|success|367.00|385.35|completed|Mehfli Meethi Biryani|Half|1|69.00|69.00|upi|385.35
+72|004|2026-04-11|-|order|upi|success|920.00|966.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|966.00
+72|004|2026-04-11|-|order|upi|success|920.00|966.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|966.00
+72|004|2026-04-11|-|order|upi|success|920.00|966.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|966.00
+71|003|2026-04-11|-|order|upi|success|940.00|987.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|987.00
+71|003|2026-04-11|-|order|upi|success|940.00|987.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|987.00
+71|003|2026-04-11|-|order|upi|success|940.00|987.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|987.00
+71|003|2026-04-11|-|order|upi|success|940.00|987.00|completed|Sample |Mid|1|20.00|20.00|upi|987.00
+70|002|2026-04-11|-|order|upi|success|700.00|735.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|735.00
+70|002|2026-04-11|-|order|upi|success|700.00|735.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|735.00
+69|001|2026-04-10|-|order|cash|success|520.00|546.00|cancelled|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|546.00
+69|001|2026-04-10|-|order|cash|success|520.00|546.00|cancelled|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|546.00
+68|022|2026-04-10|-|order|upi|success|400.00|420.00|cancelled|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|420.00
+68|022|2026-04-10|-|order|upi|success|400.00|420.00|cancelled|Chicken Biriyani|-|1|170.00|170.00|upi|420.00
+67|021|2026-04-10|-|order|upi|success|207.00|217.35|completed|Mehfli Meethi Biryani|Half|1|69.00|69.00|upi|217.35
+67|021|2026-04-10|-|order|upi|success|207.00|217.35|completed|Mehfli Meethi Biryani|Full|1|138.00|138.00|upi|217.35
+66|020|2026-04-10|-|order|upi|failed|500.00|525.00|cancelled|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|525.00
+66|020|2026-04-10|-|order|upi|failed|500.00|525.00|cancelled|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|525.00
+65|019|2026-04-10|-|order|upi|success|430.00|451.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|451.50
+65|019|2026-04-10|-|order|upi|success|430.00|451.50|completed|Mutton Biriyani|-|1|200.00|200.00|upi|451.50
+64|018|2026-04-10|-|order|upi|success|230.00|241.50|cancelled|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|241.50
+63|017|2026-04-10|-|order|part_cash_upi|success|230.00|241.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|241.50
+62|016|2026-04-10|-|order|upi|success|488.00|512.40|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|512.40
+62|016|2026-04-10|-|order|upi|success|488.00|512.40|completed|Dawat-e-mushroom Biryani|Full|1|258.00|258.00|upi|512.40
+61|015|2026-04-10|-|order|upi|success|590.00|619.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|619.50
+61|015|2026-04-10|-|order|upi|success|590.00|619.50|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|619.50
+60|014|2026-04-10|-|order|upi|success|1180.00|1239.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|1239.00
+60|014|2026-04-10|-|order|upi|success|1180.00|1239.00|completed|Fish Biriyani|-|1|230.00|230.00|upi|1239.00
+60|014|2026-04-10|-|order|upi|success|1180.00|1239.00|completed|Chicken Biriyani|-|1|170.00|170.00|upi|1239.00
+60|014|2026-04-10|-|order|upi|success|1180.00|1239.00|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|1239.00
+60|014|2026-04-10|-|order|upi|success|1180.00|1239.00|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|1239.00
+59|013|2026-04-10|-|order|upi|success|750.00|787.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|787.50
+59|013|2026-04-10|-|order|upi|success|750.00|787.50|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|787.50
+59|013|2026-04-10|-|order|upi|success|750.00|787.50|completed|Fish Biriyani|-|1|230.00|230.00|upi|787.50
+58|012|2026-04-10|-|order|upi|success|1100.00|1155.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1155.00
+58|012|2026-04-10|-|order|upi|success|1100.00|1155.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1155.00
+58|012|2026-04-10|-|order|upi|success|1100.00|1155.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|1155.00
+57|011|2026-04-10|-|order|upi|success|520.00|546.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|546.00
+57|011|2026-04-10|-|order|upi|success|520.00|546.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|546.00
+56|010|2026-04-10|-|order|upi|success|520.00|546.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|546.00
+56|010|2026-04-10|-|order|upi|success|520.00|546.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|546.00
+55|009|2026-04-10|-|order|upi|success|590.00|619.50|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|619.50
+55|009|2026-04-10|-|order|upi|success|590.00|619.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|619.50
+54|008|2026-04-10|-|order|upi|success|228.00|239.40|completed|Dawat-e-mushroom Biryani|Half|1|129.00|129.00|upi|239.40
+54|008|2026-04-10|-|order|upi|success|228.00|239.40|completed|Dum-pukht Kathal Biryani|Half|1|99.00|99.00|upi|239.40
+53|007|2026-04-10|-|order|upi|success|520.00|546.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|546.00
+53|007|2026-04-10|-|order|upi|success|520.00|546.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|546.00
+52|006|2026-04-10|-|order|part_cash_upi|success|790.00|829.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|cash|414.75
+52|006|2026-04-10|-|order|part_cash_upi|success|790.00|829.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|414.75
+52|006|2026-04-10|-|order|part_cash_upi|success|790.00|829.50|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|cash|414.75
+52|006|2026-04-10|-|order|part_cash_upi|success|790.00|829.50|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|414.75
+52|006|2026-04-10|-|order|part_cash_upi|success|790.00|829.50|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|cash|414.75
+52|006|2026-04-10|-|order|part_cash_upi|success|790.00|829.50|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|414.75
+51|005|2026-04-10|-|order|upi|success|230.00|241.50|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|241.50
+50|004|2026-04-10|-|order|upi|success|50.00|52.50|completed|Fhh|-|2|25.00|50.00|upi|52.50
+49|003|2026-04-10|-|order|upi|success|700.00|735.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|735.00
+49|003|2026-04-10|-|order|upi|success|700.00|735.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|735.00
+48|002|2026-04-09|-|order|upi|success|680.00|714.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|714.00
+48|002|2026-04-09|-|order|upi|success|680.00|714.00|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|upi|714.00
+48|002|2026-04-09|-|order|upi|success|680.00|714.00|completed|Chicken Biriyani|-|1|170.00|170.00|upi|714.00
+47|001|2026-04-09|-|order|upi|failed|1080.00|1134.00|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|1134.00
+47|001|2026-04-09|-|order|upi|failed|1080.00|1134.00|cancelled|Bismi Fried Chicken|Half|1|200.00|200.00|upi|1134.00
+47|001|2026-04-09|-|order|upi|failed|1080.00|1134.00|cancelled|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|1134.00
+47|001|2026-04-09|-|order|upi|failed|1080.00|1134.00|cancelled|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|1134.00
+46|012|2026-04-09|-|order|upi|success|700.00|735.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|735.00
+46|012|2026-04-09|-|order|upi|success|700.00|735.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|735.00
+45|011|2026-04-09|-|order|upi|success|320.00|336.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|336.00
+44|010|2026-04-09|-|order|upi|success|412.00|432.60|completed|Fhh|-|1|25.00|25.00|upi|432.60
+44|010|2026-04-09|-|order|upi|success|412.00|432.60|completed|Dawat-e-mushroom Biryani|Half|3|129.00|387.00|upi|432.60
+43|009|2026-04-09|-|order|part_cash_upi|success|910.00|955.50|completed|Bismi Fish Tikka|-|1|320.00|320.00|cash|477.75
+43|009|2026-04-09|-|order|part_cash_upi|success|910.00|955.50|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|477.75
+43|009|2026-04-09|-|order|part_cash_upi|success|910.00|955.50|completed|Bismi Fried Chicken|Full|1|380.00|380.00|cash|477.75
+43|009|2026-04-09|-|order|part_cash_upi|success|910.00|955.50|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|477.75
+43|009|2026-04-09|-|order|part_cash_upi|success|910.00|955.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|cash|477.75
+43|009|2026-04-09|-|order|part_cash_upi|success|910.00|955.50|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|477.75
+42|008|2026-04-09|-|order|cash|success|880.00|924.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|924.00
+42|008|2026-04-09|-|order|cash|success|880.00|924.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|924.00
+42|008|2026-04-09|-|order|cash|success|880.00|924.00|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|924.00
+41|007|2026-04-09|-|order|pos|success|1100.00|1100.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|pos|1100.00
+41|007|2026-04-09|-|order|pos|success|1100.00|1100.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|pos|1100.00
+41|007|2026-04-09|-|order|pos|success|1100.00|1100.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|pos|1100.00
+40|006|2026-04-09|-|order|part_cash_pos|success|520.00|520.00|cancelled|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|520.00
+40|006|2026-04-09|-|order|part_cash_pos|success|520.00|520.00|cancelled|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|520.00
+39|005|2026-04-09|-|order|upi|failed|230.00|230.00|cancelled|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|230.00
+38|004|2026-04-09|-|order|cash|success|1100.00|1100.00|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|1100.00
+38|004|2026-04-09|-|order|cash|success|1100.00|1100.00|cancelled|Bismi Fried Chicken|Full Half|1|380.00|380.00|upi|1100.00
+38|004|2026-04-09|-|order|cash|success|1100.00|1100.00|cancelled|Bismi Tandoori Chicken|Full Half|1|400.00|400.00|upi|1100.00
+37|003|2026-04-09|-|order|upi|success|520.00|520.00|cancelled|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|520.00
+37|003|2026-04-09|-|order|upi|success|520.00|520.00|cancelled|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|520.00
+36|002|2026-04-09|-|order|part_upi_pos|success|520.00|520.00|cancelled|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|520.00
+36|002|2026-04-09|-|order|part_upi_pos|success|520.00|520.00|cancelled|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|520.00
+35|001|2026-04-09|-|order|upi|success|1420.00|1420.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|cash|720.00
+35|001|2026-04-09|-|order|upi|success|1420.00|1420.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|700.00
+35|001|2026-04-09|-|order|upi|success|1420.00|1420.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|cash|720.00
+35|001|2026-04-09|-|order|upi|success|1420.00|1420.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|700.00
+35|001|2026-04-09|-|order|upi|success|1420.00|1420.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|cash|720.00
+35|001|2026-04-09|-|order|upi|success|1420.00|1420.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|700.00
+35|001|2026-04-09|-|order|upi|success|1420.00|1420.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|cash|720.00
+35|001|2026-04-09|-|order|upi|success|1420.00|1420.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|700.00
+34|005|2026-04-08|-|order|part_cash_upi|success|720.00|720.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|cash|360.00
+34|005|2026-04-08|-|order|part_cash_upi|success|720.00|720.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|360.00
+34|005|2026-04-08|-|order|part_cash_upi|success|720.00|720.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|cash|360.00
+34|005|2026-04-08|-|order|part_cash_upi|success|720.00|720.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|360.00
+33|004|2026-04-08|-|order|upi|success|700.00|700.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|700.00
+33|004|2026-04-08|-|order|upi|success|700.00|700.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|700.00
+32|003|2026-04-08|-|order|upi|success|900.00|900.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|900.00
+32|003|2026-04-08|-|order|upi|success|900.00|900.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|900.00
+32|003|2026-04-08|-|order|upi|success|900.00|900.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|900.00
+31|002|2026-04-07|-|order|part_cash_upi|success|1080.00|1080.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1080.00
+31|002|2026-04-07|-|order|part_cash_upi|success|1080.00|1080.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1080.00
+31|002|2026-04-07|-|order|part_cash_upi|success|1080.00|1080.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1080.00
+30|001|2026-04-07|keerthi|order|upi|failed|1800.00|1800.00|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|1800.00
+30|001|2026-04-07|keerthi|order|upi|failed|1800.00|1800.00|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|1800.00
+30|001|2026-04-07|keerthi|order|upi|failed|1800.00|1800.00|cancelled|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1800.00
+30|001|2026-04-07|keerthi|order|upi|failed|1800.00|1800.00|cancelled|Bismi Fried Chicken|Half|1|200.00|200.00|upi|1800.00
+30|001|2026-04-07|keerthi|order|upi|failed|1800.00|1800.00|cancelled|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1800.00
+30|001|2026-04-07|keerthi|order|upi|failed|1800.00|1800.00|cancelled|Bismi Fried Chicken|Half|1|200.00|200.00|upi|1800.00
+29|016|2026-04-07|-|order|part_cash_upi|success|900.00|900.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|cash|450.00
+29|016|2026-04-07|-|order|part_cash_upi|success|900.00|900.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|450.00
+29|016|2026-04-07|-|order|part_cash_upi|success|900.00|900.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|cash|450.00
+29|016|2026-04-07|-|order|part_cash_upi|success|900.00|900.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|450.00
+29|016|2026-04-07|-|order|part_cash_upi|success|900.00|900.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|cash|450.00
+29|016|2026-04-07|-|order|part_cash_upi|success|900.00|900.00|completed|Bismi Fried Chicken|Half|1|200.00|200.00|upi|450.00
+28|015|2026-04-07|-|order|part_cash_upi|success|700.00|700.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|700.00
+28|015|2026-04-07|-|order|part_cash_upi|success|700.00|700.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|700.00
+27|014|2026-04-07|-|order|upi|failed|700.00|700.00|cancelled|Bismi Fish Tikka|-|1|320.00|320.00|upi|700.00
+27|014|2026-04-07|-|order|upi|failed|700.00|700.00|cancelled|Bismi Fried Chicken|Full|1|380.00|380.00|upi|700.00
+26|013|2026-04-07|-|order|part_cash_upi|success|610.00|610.00|completed|Bismi Tandoori Chicken|Full|1|400.00|400.00|upi|610.00
+26|013|2026-04-07|-|order|part_cash_upi|success|610.00|610.00|completed|Bismi Tandoori Chicken|Half|1|210.00|210.00|upi|610.00
+25|012|2026-04-07|-|order|upi|success|790.00|790.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|790.00
+25|012|2026-04-07|-|order|upi|success|790.00|790.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|790.00
+25|012|2026-04-07|-|order|upi|success|790.00|790.00|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|790.00
+24|011|2026-04-07|-|order|upi|success|1020.00|1020.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1020.00
+24|011|2026-04-07|-|order|upi|success|1020.00|1020.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1020.00
+24|011|2026-04-07|-|order|upi|success|1020.00|1020.00|completed|Bismi Fried Chicken|Full|1|380.00|380.00|upi|1020.00
+23|010|2026-04-07|-|order|upi|success|580.00|580.00|completed|Bismi Fried Chicken|Full Half|1|200.00|200.00|upi|580.00
+23|010|2026-04-07|-|order|upi|success|580.00|580.00|completed|Bismi Fried Chicken|Full Half|1|380.00|380.00|upi|580.00
+22|009|2026-04-07|-|order|upi|success|910.00|910.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|910.00
+22|009|2026-04-07|-|order|upi|success|910.00|910.00|completed|Bismi Fried Chicken|Full Half|1|380.00|380.00|upi|910.00
+22|009|2026-04-07|-|order|upi|success|910.00|910.00|completed|Bismi Tandoori Chicken|Full Half|1|210.00|210.00|upi|910.00
+21|008|2026-04-07|-|order|upi|success|910.00|910.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|910.00
+21|008|2026-04-07|-|order|upi|success|910.00|910.00|completed|Bismi Fried Chicken|Full Half|1|380.00|380.00|upi|910.00
+21|008|2026-04-07|-|order|upi|success|910.00|910.00|completed|Bismi Tandoori Chicken|Full Half|1|210.00|210.00|upi|910.00
+20|007|2026-04-07|-|order|upi|success|1100.00|1100.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1100.00
+20|007|2026-04-07|-|order|upi|success|1100.00|1100.00|completed|Bismi Fried Chicken|Full Half|1|380.00|380.00|upi|1100.00
+20|007|2026-04-07|-|order|upi|success|1100.00|1100.00|completed|Bismi Tandoori Chicken|Full Half|1|400.00|400.00|upi|1100.00
+19|006|2026-04-07|-|order|upi|success|1100.00|1100.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1100.00
+19|006|2026-04-07|-|order|upi|success|1100.00|1100.00|completed|Bismi Fried Chicken|Full Half|1|380.00|380.00|upi|1100.00
+19|006|2026-04-07|-|order|upi|success|1100.00|1100.00|completed|Bismi Tandoori Chicken|Full Half|1|400.00|400.00|upi|1100.00
+18|005|2026-04-07|-|order|upi|success|1130.00|1130.00|completed|Bismi Fried Chicken|Full Half|1|200.00|200.00|upi|1130.00
+18|005|2026-04-07|-|order|upi|success|1130.00|1130.00|completed|Bismi Tandoori Chicken|Full Half|1|400.00|400.00|upi|1130.00
+18|005|2026-04-07|-|order|upi|success|1130.00|1130.00|completed|Bismi Tandoori Chicken|Full Half|1|210.00|210.00|upi|1130.00
+18|005|2026-04-07|-|order|upi|success|1130.00|1130.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1130.00
+17|004|2026-04-07|-|order|upi|success|520.00|520.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|520.00
+17|004|2026-04-07|-|order|upi|success|520.00|520.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|520.00
+16|003|2026-04-07|-|order|upi|success|1100.00|1100.00|completed|Bismi Fried Chicken|Full Half|1|380.00|380.00|upi|1100.00
+16|003|2026-04-07|-|order|upi|success|1100.00|1100.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1100.00
+16|003|2026-04-07|-|order|upi|success|1100.00|1100.00|completed|Bismi Tandoori Chicken|Full Half|1|400.00|400.00|upi|1100.00
+15|002|2026-04-07|-|order|upi|success|1100.00|1100.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1100.00
+15|002|2026-04-07|-|order|upi|success|1100.00|1100.00|completed|Bismi Fried Chicken|Full Half|1|380.00|380.00|upi|1100.00
+15|002|2026-04-07|-|order|upi|success|1100.00|1100.00|completed|Bismi Tandoori Chicken|Full Half|1|400.00|400.00|upi|1100.00
+14|001|2026-04-06|-|order|upi|success|910.00|910.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|910.00
+14|001|2026-04-06|-|order|upi|success|910.00|910.00|completed|Bismi Fried Chicken|Full Half|1|380.00|380.00|upi|910.00
+14|001|2026-04-06|-|order|upi|success|910.00|910.00|completed|Bismi Tandoori Chicken|Full Half|1|210.00|210.00|upi|910.00
+13|013|2026-04-06|-|order|upi|success|520.00|520.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|520.00
+13|013|2026-04-06|-|order|upi|success|520.00|520.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|520.00
+12|012|2026-04-06|-|order|upi|success|700.00|700.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|700.00
+12|012|2026-04-06|-|order|upi|success|700.00|700.00|completed|Bismi Fried Chicken|Full Half|1|380.00|380.00|upi|700.00
+11|011|2026-04-06|-|order|upi|success|1100.00|1100.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|1100.00
+11|011|2026-04-06|-|order|upi|success|1100.00|1100.00|completed|Bismi Fried Chicken|Full Half|1|380.00|380.00|upi|1100.00
+11|011|2026-04-06|-|order|upi|success|1100.00|1100.00|completed|Bismi Tandoori Chicken|Full Half|1|400.00|400.00|upi|1100.00
+10|010|2026-04-06|-|order|upi|success|1150.00|1150.00|completed|Bismi Spl Chicken Biriyani|-|5|230.00|1150.00|upi|1150.00
+9|009|2026-04-06|-|order|upi|success|790.00|790.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|upi|790.00
+9|009|2026-04-06|-|order|upi|success|790.00|790.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|upi|790.00
+9|009|2026-04-06|-|order|upi|success|790.00|790.00|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|upi|790.00
+8|008|2026-04-06|-|order|upi|success|910.00|910.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|upi|910.00
+8|008|2026-04-06|-|order|upi|success|910.00|910.00|completed|Bismi Fried Chicken|Full Half|1|380.00|380.00|upi|910.00
+8|008|2026-04-06|-|order|upi|success|910.00|910.00|completed|Bismi Tandoori Chicken|Full Half|1|210.00|210.00|upi|910.00
+7|007|2026-04-06|-|order|cash|success|920.00|920.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|cash|920.00
+7|007|2026-04-06|-|order|cash|success|920.00|920.00|completed|Bismi Fried Chicken|Full Half|1|200.00|200.00|cash|920.00
+7|007|2026-04-06|-|order|cash|success|920.00|920.00|completed|Bismi Tandoori Chicken|Full Half|1|400.00|400.00|cash|920.00
+6|006|2026-04-06|-|order|cash|success|1070.00|1070.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|cash|1070.00
+6|006|2026-04-06|-|order|cash|success|1070.00|1070.00|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|cash|1070.00
+6|006|2026-04-06|-|order|cash|success|1070.00|1070.00|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|cash|1070.00
+6|006|2026-04-06|-|order|cash|success|1070.00|1070.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|cash|1070.00
+5|005|2026-04-06|-|order|cash|success|1470.00|1470.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|cash|1470.00
+5|005|2026-04-06|-|order|cash|success|1470.00|1470.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|cash|1470.00
+5|005|2026-04-06|-|order|cash|success|1470.00|1470.00|completed|Bismi Spl Mutton Biriyani|-|1|270.00|270.00|cash|1470.00
+5|005|2026-04-06|-|order|cash|success|1470.00|1470.00|completed|Bismi Spl Prawn Biriyani|-|1|280.00|280.00|cash|1470.00
+5|005|2026-04-06|-|order|cash|success|1470.00|1470.00|completed|Chicken Biriyani|-|1|170.00|170.00|cash|1470.00
+5|005|2026-04-06|-|order|cash|success|1470.00|1470.00|completed|Fish Biriyani|-|1|230.00|230.00|cash|1470.00
+4|004|2026-04-06|-|order|cash|success|490.00|490.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|cash|490.00
+4|004|2026-04-06|-|order|cash|success|490.00|490.00|completed|Prawn Biriyani|-|1|260.00|260.00|cash|490.00
+3|003|2026-04-06|-|order|cash|success|910.00|910.00|completed|Bismi Fish Tikka|-|1|320.00|320.00|cash|910.00
+3|003|2026-04-06|-|order|cash|success|910.00|910.00|completed|Bismi Fried Chicken|Full Half|1|380.00|380.00|cash|910.00
+3|003|2026-04-06|-|order|cash|success|910.00|910.00|completed|Bismi Tandoori Chicken|Full Half|1|210.00|210.00|cash|910.00
+2|002|2026-04-06|-|order|cash|failed|70.00|70.00|cancelled|Sample|-|2|35.00|70.00|cash|70.00
+1|001|2026-04-06|-|order|upi|success|520.00|520.00|completed|Bismi Spl Chicken Biriyani|-|1|230.00|230.00|cash|520.00
+1|001|2026-04-06|-|order|upi|success|520.00|520.00|completed|Bismi Spl Fish Biriyani|-|1|290.00|290.00|cash|520.00
