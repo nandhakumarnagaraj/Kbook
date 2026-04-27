@@ -122,12 +122,14 @@ constructor(
           }
 
           if (e is SyncConflictException) {
-            // SyncManager already performed a recovery pull (server-wins) before returning
-            // the conflict failure. The conflict is resolved — returning failure() here would
-            // make WorkManager permanently give up on this worker.
-            // Return success() so the 15-minute periodic schedule continues normally.
-            logWarn("Conflict resolved via recovery pull — treating as success for WorkManager")
-            return@withContext Result.success()
+            if (e.recoverySucceeded) {
+              // SyncManager already completed the recovery pull (server-wins).
+              // Return success so the 15-minute periodic schedule continues normally.
+              logWarn("Conflict resolved via recovery pull — treating as success for WorkManager")
+              return@withContext Result.success()
+            }
+            logWarn("Conflict recovery pull did not complete — keeping WorkManager retries active")
+            return@withContext Result.retry()
           }
 
           if (runAttemptCount > 3) {

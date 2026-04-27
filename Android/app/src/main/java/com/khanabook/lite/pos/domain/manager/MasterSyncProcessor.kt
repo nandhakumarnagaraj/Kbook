@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.domain.manager
 
 import android.util.Log
 import androidx.room.withTransaction
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.data.local.AppDatabase
 import com.khanabook.lite.pos.data.local.dao.*
 import com.khanabook.lite.pos.data.local.entity.*
@@ -30,7 +31,7 @@ class MasterSyncProcessor @Inject constructor(
 
     // INFO logs are verbose; suppress in release to reduce logcat noise.
     // WARN / ERROR always surface — production sync failures must be visible.
-    private fun logInfo(msg: String) { if (android.os.BuildConfig.DEBUG) Log.i(tag, msg) }
+    private fun logInfo(msg: String) { if (BuildConfig.DEBUG) Log.i(tag, msg) }
     private fun logWarn(msg: String, t: Throwable? = null) { if (t != null) Log.w(tag, msg, t) else Log.w(tag, msg) }
     private fun logError(msg: String, t: Throwable? = null) { if (t != null) Log.e(tag, msg, t) else Log.e(tag, msg) }
 

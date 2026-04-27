@@ -52,7 +52,22 @@ class SyncManagerTest {
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is SyncConflictException)
         assertEquals(SYNC_CONFLICT_MESSAGE, result.exceptionOrNull()?.message)
+        assertTrue((result.exceptionOrNull() as SyncConflictException).recoverySucceeded)
         coVerify(exactly = 1) { masterSyncProcessor.insertMasterData(match { it.serverTimestamp == 42L }) }
         coVerify(exactly = 1) { sessionManager.saveLastSyncTimestamp(42L) }
+    }
+
+    @Test
+    fun `performFullSync returns unresolved conflict when recovery pull fails`() = runTest {
+        coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException()
+        coEvery { api.pullMasterSync(10L, "device-1") } throws IllegalStateException("pull failed")
+
+        val result = syncManager.performFullSync()
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is SyncConflictException)
+        assertTrue(!(result.exceptionOrNull() as SyncConflictException).recoverySucceeded)
+        coVerify(exactly = 1) { masterSyncProcessor.pushAll() }
+        coVerify(exactly = 0) { sessionManager.saveLastSyncTimestamp(any()) }
     }
 }

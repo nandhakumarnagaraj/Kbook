@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { TokenStorageService } from './token-storage.service';
+import { environment } from '../../../environments/environment';
 
 /**
  * FIX #13 (Angular side) — Add X-App-Version header so the server can
@@ -27,7 +28,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const authReq = req.clone({
     setHeaders: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      'X-App-Version': '1',        // increment this on each release
+      'X-App-Version': environment.appVersion,
       'X-App-Platform': 'web-admin',
     },
   });

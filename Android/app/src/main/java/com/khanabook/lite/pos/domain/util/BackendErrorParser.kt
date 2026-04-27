@@ -29,7 +29,10 @@ open class BackendException(
     cause: Throwable? = null
 ) : Exception(details.message, cause)
 
-class SyncConflictException(cause: Throwable? = null) : BackendException(
+class SyncConflictException(
+    cause: Throwable? = null,
+    val recoverySucceeded: Boolean = false
+) : BackendException(
     details = ParsedBackendError(
         message = SYNC_CONFLICT_MESSAGE,
         statusCode = 409

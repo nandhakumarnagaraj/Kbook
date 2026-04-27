@@ -87,15 +87,17 @@ class SyncManager @Inject constructor(
             } catch (e: SyncConflictException) {
                 logWarn("Push conflict detected; pulling latest server data before resolving", e)
                 // Recovery pull uses the pre-sync checkpoint so we don't miss the conflicted window.
-                runCatching { pullAndPersistMasterData(syncCheckpointTimestamp, deviceId) }
+                val recoverySucceeded = runCatching { pullAndPersistMasterData(syncCheckpointTimestamp, deviceId) }
                     .onFailure { pullError -> logError("Conflict recovery pull failed", pullError) }
-                Result.failure(e)
+                    .isSuccess
+                Result.failure(SyncConflictException(e, recoverySucceeded))
             } catch (e: Exception) {
                 if (e is HttpException && e.code() == 409) {
                     logWarn("HTTP 409 during sync; treating as conflict", e)
-                    runCatching { pullAndPersistMasterData(syncCheckpointTimestamp, deviceId) }
+                    val recoverySucceeded = runCatching { pullAndPersistMasterData(syncCheckpointTimestamp, deviceId) }
                         .onFailure { pullError -> logError("Conflict recovery pull failed", pullError) }
-                    return@withLock Result.failure(SyncConflictException(e))
+                        .isSuccess
+                    return@withLock Result.failure(SyncConflictException(e, recoverySucceeded))
                 }
                 logError("Full sync failed", e)
                 Result.failure(e)
