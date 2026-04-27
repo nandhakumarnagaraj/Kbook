@@ -971,6 +971,11 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
         } else null
     }
 
+    val connectionStatus by viewModel.connectionStatus.collectAsState()
+    val isOnline = connectionStatus == ConnectionStatus.Available
+    val gatewayEligible = PaymentGatewayHelper.shouldUseGateway(profile, selectedMode, isOnline)
+    val showQrCode = isUpiMode && !gatewayEligible
+
     Column(
             modifier = Modifier.fillMaxSize()
                     .verticalScroll(rememberScrollState())
@@ -979,7 +984,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (isUpiMode) {
+        if (showQrCode) {
             Text("Scan to Pay", color = PrimaryGold, style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -1183,9 +1188,6 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
         val context = LocalContext.current
 
         // Offline / gateway state — auto-falls back to manual when offline.
-        val connectionStatus by viewModel.connectionStatus.collectAsState()
-        val isOnline = connectionStatus == ConnectionStatus.Available
-        val gatewayEligible = PaymentGatewayHelper.shouldUseGateway(profile, selectedMode, isOnline)
         val showOfflineBanner = profile?.easebuzzEnabled == true &&
                 PaymentGatewayHelper.isUpiSelection(selectedMode) && !isOnline
         var gatewayInProgress by remember { mutableStateOf(false) }
