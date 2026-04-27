@@ -51,6 +51,16 @@ interface BillDao {
     @Query("SELECT * FROM bills WHERE order_status = 'draft'")
     fun getDraftBills(): Flow<List<BillEntity>>
 
+    @Query("""
+        SELECT * FROM bills
+        WHERE order_status = 'draft'
+          AND payment_status = 'pending'
+          AND payment_mode IN ('upi', 'part_cash_upi', 'part_upi_pos')
+        ORDER BY created_at DESC
+        LIMIT 1
+    """)
+    suspend fun getLatestPendingOnlineBill(): BillEntity?
+
     @Query("UPDATE bills SET order_status = :status WHERE id = :id")
     suspend fun updateOrderStatus(id: Long, status: String)
 

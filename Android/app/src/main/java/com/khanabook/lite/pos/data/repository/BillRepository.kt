@@ -88,6 +88,10 @@ class BillRepository(
         return billDao.getDraftBills()
     }
 
+    suspend fun getLatestPendingOnlineBill(): BillEntity? {
+        return billDao.getLatestPendingOnlineBill()
+    }
+
     suspend fun updateOrderStatus(id: Long, status: String) {
         val current = billDao.getBillById(id) ?: return
         

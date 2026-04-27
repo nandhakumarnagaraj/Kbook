@@ -118,6 +118,14 @@ class MainActivity : FragmentActivity() {
                 // Root back handling (Double Back to Exit from Home)
                 val currentBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = currentBackStackEntry?.destination?.route
+
+                LaunchedEffect(navController) {
+                    PaymentReturnManager.latestEvent.collect { event ->
+                        if (event != null && navController.currentDestination?.route != "new_bill") {
+                            navController.navigate("new_bill")
+                        }
+                    }
+                }
                 
                 // Only intercept back if we are on the MainScreen (any tab)
                 // Sub-screens handle their own back navigation through NavHost

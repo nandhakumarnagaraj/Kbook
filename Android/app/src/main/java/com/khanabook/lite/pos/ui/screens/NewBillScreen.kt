@@ -3,9 +3,7 @@
 package com.khanabook.lite.pos.ui.screens
 
 import android.graphics.BitmapFactory
-import android.net.Uri
 import coil.compose.AsyncImage
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -56,6 +54,7 @@ import com.khanabook.lite.pos.domain.manager.QrCodeManager
 import com.khanabook.lite.pos.domain.model.*
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
+import com.khanabook.lite.pos.ui.components.EasebuzzCheckoutDialog
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.theme.*
@@ -88,6 +87,7 @@ fun NewBillScreen(
         navController: androidx.navigation.NavController? = null
 ) {
     var step by remember { mutableIntStateOf(1) }
+    var paymentFlowLocked by remember { mutableStateOf(false) }
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
 
@@ -98,8 +98,22 @@ fun NewBillScreen(
         animationSpec = tween(350, easing = FastOutSlowInEasing)
     )
 
-    // Intercept system back gesture to navigate through steps
-    androidx.activity.compose.BackHandler(enabled = step > 1) {
+    val summary by billingViewModel.billSummary.collectAsStateWithLifecycle()
+    val error by billingViewModel.error.collectAsStateWithLifecycle()
+    val isLoading by billingViewModel.isLoading.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Keep users inside the billing flow while an online payment is actively
+    // being confirmed, otherwise online and offline paths can diverge.
+    androidx.activity.compose.BackHandler(enabled = paymentFlowLocked || step > 1) {
+        if (paymentFlowLocked) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Payment confirmation in progress. Please wait.")
+            }
+            return@BackHandler
+        }
         when (step) {
             2 -> step = 1
             3 -> step = 2
@@ -107,12 +121,13 @@ fun NewBillScreen(
         }
     }
 
-    val summary by billingViewModel.billSummary.collectAsStateWithLifecycle()
-    val error by billingViewModel.error.collectAsStateWithLifecycle()
-    val isLoading by billingViewModel.isLoading.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        val hasPendingReturn = PaymentReturnManager.latestEvent.value != null
+        val pendingBillId = billingViewModel.getLatestPendingOnlineBillId()
+        if ((hasPendingReturn || pendingBillId != null) && step < 3) {
+            step = 3
+        }
+    }
 
     LaunchedEffect(error) {
         error?.let {
@@ -138,16 +153,20 @@ fun NewBillScreen(
                 CenterAlignedTopAppBar(
                     title = { Text("New Bill", color = PrimaryGold, style = MaterialTheme.typography.titleLarge) },
                     navigationIcon = {
-                        IconButton(onClick = { if (step == 1) onBack() else if (step == 2) step = 1 else if (step == 3) step = 2 else onBack() }) {
+                        IconButton(
+                            enabled = !paymentFlowLocked,
+                            onClick = {
+                                if (paymentFlowLocked) return@IconButton
+                                if (step == 1) onBack() else if (step == 2) step = 1 else if (step == 3) step = 2 else onBack()
+                            }
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1)
                 )
                 
-                if (step < 4) {
-                    BillStepper(currentStep = step)
-                }
+                BillStepper(currentStep = step)
             }
         }
     ) { paddingValues ->
@@ -201,7 +220,8 @@ fun NewBillScreen(
                                     settingsViewModel,
                                     onBackToMenu = { step = 2 },
                                     onComplete = { step = 4 },
-                                    onFailed = { step = 5 }
+                                    onFailed = { step = 5 },
+                                    onFlowLockChange = { paymentFlowLocked = it }
                             )
                     4 ->
                             SuccessStep(
@@ -906,7 +926,14 @@ fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
 }
 
 @Composable
-fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewModel, onBackToMenu: () -> Unit, onComplete: () -> Unit, onFailed: () -> Unit = {}) {
+fun PaymentStep(
+    viewModel: BillingViewModel,
+    settingsViewModel: SettingsViewModel,
+    onBackToMenu: () -> Unit,
+    onComplete: () -> Unit,
+    onFailed: () -> Unit = {},
+    onFlowLockChange: (Boolean) -> Unit = {}
+) {
     val summary by viewModel.billSummary.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val spacing = KhanaBookTheme.spacing
@@ -1185,7 +1212,6 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
         }
 
         val scope = rememberCoroutineScope()
-        val context = LocalContext.current
 
         // Offline / gateway state — auto-falls back to manual when offline.
         val showOfflineBanner = profile?.easebuzzEnabled == true &&
@@ -1193,12 +1219,34 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
         var gatewayInProgress by remember { mutableStateOf(false) }
         var gatewayError by remember { mutableStateOf<String?>(null) }
         var awaitingBillId by remember { mutableStateOf<Long?>(null) }
+        var activeCheckoutUrl by remember { mutableStateOf<String?>(null) }
 
         // Awaiting-confirmation state — set after we successfully open the
         // Easebuzz checkout. While set, we poll the backend until the webhook
         // arrives. Counter operator can override via "Mark Manually Paid" or "Cancel".
         var awaitingTxnId by remember { mutableStateOf<String?>(null) }
         var pollMessage by remember { mutableStateOf("Waiting for payment confirmation…") }
+        val paymentLocked = gatewayInProgress || awaitingTxnId != null || activeCheckoutUrl != null
+
+        LaunchedEffect(paymentLocked) {
+            onFlowLockChange(paymentLocked)
+        }
+        DisposableEffect(Unit) {
+            onDispose { onFlowLockChange(false) }
+        }
+
+        LaunchedEffect(Unit) {
+            if (awaitingBillId != null) return@LaunchedEffect
+            val pendingBillId = viewModel.getLatestPendingOnlineBillId() ?: return@LaunchedEffect
+            if (!viewModel.restorePendingOnlineBill(pendingBillId)) return@LaunchedEffect
+            awaitingBillId = pendingBillId
+            awaitingTxnId = PaymentReturnManager.latestEvent.value?.txnId
+            pollMessage = when (PaymentReturnManager.latestEvent.value?.status) {
+                PaymentReturnManager.Status.SUCCESS -> "Payment completed. Confirming with server..."
+                PaymentReturnManager.Status.FAILURE -> "Payment failed. Confirming with server..."
+                null -> "Resuming payment confirmation…"
+            }
+        }
 
         LaunchedEffect(Unit) {
             PaymentReturnManager.events.collect { event ->
@@ -1207,9 +1255,12 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
 
                 when (event.status) {
                     PaymentReturnManager.Status.SUCCESS -> {
+                        activeCheckoutUrl = null
                         pollMessage = "Payment completed. Confirming with server..."
+                        PaymentReturnManager.clearLatestEvent()
                     }
                     PaymentReturnManager.Status.FAILURE -> {
+                        activeCheckoutUrl = null
                         viewModel.setGatewayResult(pendingTxnId, "REDIRECT_FAILURE")
                         viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                         val pendingBillId = awaitingBillId
@@ -1223,6 +1274,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                             )
                         }
                         viewModel.clearGatewayResult()
+                        PaymentReturnManager.clearLatestEvent()
                         onFailed()
                     }
                 }
@@ -1243,8 +1295,10 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     is EasebuzzClient.VerifyResult.Success -> {
                         viewModel.setGatewayResult(r.txnId, "SUCCESS")
                         viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                        activeCheckoutUrl = null
                         awaitingBillId = null
                         awaitingTxnId = null
+                        PaymentReturnManager.clearLatestEvent()
                         if (viewModel.finalizeOnlineBill(txnId, PaymentStatus.SUCCESS)) {
                             viewModel.clearGatewayResult()
                             onComplete()
@@ -1254,8 +1308,10 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     is EasebuzzClient.VerifyResult.Failed -> {
                         viewModel.setGatewayResult(r.txnId, "FAILED")
                         viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                        activeCheckoutUrl = null
                         awaitingBillId = null
                         awaitingTxnId = null
+                        PaymentReturnManager.clearLatestEvent()
                         viewModel.finalizeOnlineBill(
                             txnId,
                             PaymentStatus.FAILED,
@@ -1362,16 +1418,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                                     awaitingBillId = localBillId
                                     pollMessage = "Waiting for payment confirmation…"
                                     awaitingTxnId = result.txnId
-                                    try {
-                                        CustomTabsIntent.Builder()
-                                            .setShowTitle(true)
-                                            .build()
-                                            .launchUrl(context, Uri.parse(result.checkoutUrl))
-                                    } catch (e: Exception) {
-                                        awaitingBillId = null
-                                        awaitingTxnId = null
-                                        gatewayError = "Unable to open payment browser: ${e.message ?: "unknown error"}"
-                                    }
+                                    activeCheckoutUrl = result.checkoutUrl
                                 }
                                 is EasebuzzClient.InitResult.Error -> {
                                     viewModel.finalizeOnlineBill(localBillId, PaymentStatus.FAILED, "Gateway init failed")
@@ -1419,6 +1466,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                     scope.launch {
                         val pendingTxn = awaitingTxnId
                         val pendingBillId = awaitingBillId
+                        activeCheckoutUrl = null
                         awaitingBillId = null
                         awaitingTxnId = null
                         if (pendingTxn != null) {
@@ -1431,6 +1479,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                             viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
                         }
                         viewModel.clearGatewayResult()
+                        PaymentReturnManager.clearLatestEvent()
                         onFailed()
                     }
                 },
@@ -1440,6 +1489,38 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                 if (awaitingTxnId != null) "Cancel — Payment Not Received" else "Payment Failed / Cancelled",
                 color = DangerRed,
                 style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        activeCheckoutUrl?.let { checkoutUrl ->
+            EasebuzzCheckoutDialog(
+                checkoutUrl = checkoutUrl,
+                onClose = { activeCheckoutUrl = null },
+                onSurl = {
+                    activeCheckoutUrl = null
+                    pollMessage = "Payment completed. Confirming with server..."
+                },
+                onFurl = {
+                    activeCheckoutUrl = null
+                    val pendingTxnId = awaitingTxnId ?: return@EasebuzzCheckoutDialog
+                    scope.launch {
+                        viewModel.setGatewayResult(pendingTxnId, "REDIRECT_FAILURE")
+                        viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                        val pendingBillId = awaitingBillId
+                        awaitingBillId = null
+                        awaitingTxnId = null
+                        if (pendingBillId != null) {
+                            viewModel.finalizeOnlineBill(
+                                pendingBillId,
+                                PaymentStatus.FAILED,
+                                "Payment not completed"
+                            )
+                        }
+                        viewModel.clearGatewayResult()
+                        PaymentReturnManager.clearLatestEvent()
+                        onFailed()
+                    }
+                }
             )
         }
     }
@@ -1775,6 +1856,17 @@ private fun menuTextFieldColors() =
 @Composable
 fun BillStepper(currentStep: Int) {
     val spacing = KhanaBookTheme.spacing
+    val resultLabel = when (currentStep) {
+        4 -> "Success"
+        5 -> "Failed"
+        else -> "Result"
+    }
+    val resultIcon = when (currentStep) {
+        4 -> Icons.Default.CheckCircle
+        5 -> Icons.Default.Cancel
+        else -> Icons.Default.Flag
+    }
+    val resultStepActive = currentStep >= 4
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1787,6 +1879,13 @@ fun BillStepper(currentStep: Int) {
         StepItem(icon = Icons.AutoMirrored.Filled.List, label = "Menu", isActive = currentStep >= 2, isCompleted = currentStep > 2)
         StepConnector(isCompleted = currentStep > 2)
         StepItem(icon = Icons.Default.Payments, label = "Payment", isActive = currentStep >= 3, isCompleted = currentStep > 3)
+        StepConnector(isCompleted = resultStepActive)
+        StepItem(
+            icon = resultIcon,
+            label = resultLabel,
+            isActive = resultStepActive,
+            isCompleted = currentStep == 4
+        )
     }
 }
 

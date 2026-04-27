@@ -252,6 +252,18 @@ class BillingViewModel @Inject constructor(
         _partAmount2.value = p2.ifBlank { "0.0" }
     }
 
+    suspend fun getLatestPendingOnlineBillId(): Long? {
+        return billRepository.getLatestPendingOnlineBill()?.id
+    }
+
+    suspend fun restorePendingOnlineBill(localBillId: Long): Boolean {
+        val bill = billRepository.getBillById(localBillId) ?: return false
+        _paymentMode.value = PaymentMode.fromDbValue(bill.paymentMode)
+        _partAmount1.value = bill.partAmount1
+        _partAmount2.value = bill.partAmount2
+        return true
+    }
+
     suspend fun createDraftOnlineBill(): Long? = orderMutex.withLock {
         if (_cartItems.value.isEmpty()) {
             _error.value = "Add at least one item before starting payment."
@@ -834,6 +846,18 @@ class BillingViewModel @Inject constructor(
                 in 400..499 -> "Server rejected the bill data (HTTP ${error.code()}). Please try again or contact support."
                 in 500..599 -> "Server error (HTTP ${error.code()}). Please try again shortly."
                 else -> "Sync failed: HTTP ${error.code()}. ${error.message()}"
+            }
+            is com.khanabook.lite.pos.domain.util.SyncConflictException ->
+                "Sync conflict. Please retry in a moment."
+            is IllegalStateException -> {
+                val msg = error.message ?: ""
+                when {
+                    msg.contains("Push phase aborted", ignoreCase = true) ->
+                        "Account setup is incomplete on this device. Please log out and log in again to refresh your profile."
+                    msg.contains("server timestamp", ignoreCase = true) ->
+                        "Server returned an invalid response. Please try again or contact support."
+                    else -> "Sync failed: $msg"
+                }
             }
             is java.net.UnknownHostException, is java.net.ConnectException ->
                 "Cannot reach server. Check your internet connection."
