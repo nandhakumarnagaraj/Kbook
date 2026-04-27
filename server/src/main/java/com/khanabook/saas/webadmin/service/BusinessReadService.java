@@ -158,22 +158,37 @@ public class BusinessReadService {
                 .toList();
     }
 
+    @Transactional
+    public BusinessOrderListItemResponse refundBill(Long restaurantId, Long billId, java.math.BigDecimal refundAmount, String reason) {
+        Bill bill = billRepository.findById(billId)
+                .filter(b -> b.getRestaurantId().equals(restaurantId))
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        if (!"completed".equalsIgnoreCase(bill.getOrderStatus()) || !"success".equalsIgnoreCase(bill.getPaymentStatus())) {
+            throw new IllegalArgumentException("Only completed paid orders can be refunded");
+        }
+        if (refundAmount == null || refundAmount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Refund amount must be greater than zero");
+        }
+        if (refundAmount.compareTo(safeAmount(bill.getTotalAmount())) > 0) {
+            throw new IllegalArgumentException("Refund amount cannot exceed order total");
+        }
+
+        long now = System.currentTimeMillis();
+        bill.setRefundAmount(refundAmount);
+        bill.setOrderStatus("cancelled");
+        bill.setPaymentStatus("refunded");
+        bill.setCancelReason(reason != null ? reason.trim() : "Refund issued");
+        bill.setUpdatedAt(now);
+        bill.setServerUpdatedAt(now);
+        billRepository.save(bill);
+
+        return toBillOrderResponse(bill);
+    }
+
     private List<BusinessOrderListItemResponse> buildOrders(Long restaurantId) {
         List<BusinessOrderListItemResponse> posOrders = getBusinessBills(restaurantId).stream()
-                .map(bill -> BusinessOrderListItemResponse.builder()
-                        .sourceType("POS")
-                        .orderId(bill.getId())
-                        .orderCode(bill.getDailyOrderDisplay() != null && !bill.getDailyOrderDisplay().isBlank()
-                                ? bill.getDailyOrderDisplay()
-                                : "INV" + bill.getLifetimeOrderId())
-                        .customerName(bill.getCustomerName())
-                        .customerContact(bill.getCustomerWhatsapp())
-                        .orderStatus(normalizeLabel(bill.getOrderStatus()))
-                        .paymentStatus(normalizeLabel(bill.getPaymentStatus()))
-                        .paymentMethod(normalizeLabel(bill.getPaymentMode()))
-                        .totalAmount(safeAmount(bill.getTotalAmount()))
-                        .createdAt(bill.getCreatedAt())
-                        .build())
+                .map(this::toBillOrderResponse)
                 .toList();
 
         List<BusinessOrderListItemResponse> onlineOrders = customerOrderRepository.findByRestaurantIdOrderByCreatedAtDescIdDesc(restaurantId).stream()
@@ -187,6 +202,8 @@ public class BusinessReadService {
                         .paymentStatus(normalizeLabel(order.getPaymentStatus()))
                         .paymentMethod(normalizeLabel(order.getPaymentMethod()))
                         .totalAmount(safeAmount(order.getTotalAmount()))
+                        .refundAmount(null)
+                        .cancelReason(null)
                         .createdAt(order.getCreatedAt())
                         .build())
                 .toList();
@@ -223,6 +240,25 @@ public class BusinessReadService {
         return "COMPLETED".equalsIgnoreCase(orderStatus)
                 || "SUCCESS".equalsIgnoreCase(paymentStatus)
                 || "PAID".equalsIgnoreCase(paymentStatus);
+    }
+
+    private BusinessOrderListItemResponse toBillOrderResponse(Bill bill) {
+        return BusinessOrderListItemResponse.builder()
+                .sourceType("POS")
+                .orderId(bill.getId())
+                .orderCode(bill.getDailyOrderDisplay() != null && !bill.getDailyOrderDisplay().isBlank()
+                        ? bill.getDailyOrderDisplay()
+                        : "INV" + bill.getLifetimeOrderId())
+                .customerName(bill.getCustomerName())
+                .customerContact(bill.getCustomerWhatsapp())
+                .orderStatus(normalizeLabel(bill.getOrderStatus()))
+                .paymentStatus(normalizeLabel(bill.getPaymentStatus()))
+                .paymentMethod(normalizeLabel(bill.getPaymentMode()))
+                .totalAmount(safeAmount(bill.getTotalAmount()))
+                .refundAmount(bill.getRefundAmount())
+                .cancelReason(bill.getCancelReason())
+                .createdAt(bill.getCreatedAt())
+                .build();
     }
 
     private BigDecimal safeAmount(BigDecimal amount) {

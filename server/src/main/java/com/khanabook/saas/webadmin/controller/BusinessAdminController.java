@@ -5,12 +5,11 @@ import com.khanabook.saas.webadmin.dto.BusinessDashboardResponse;
 import com.khanabook.saas.webadmin.dto.BusinessMenuListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessOrderListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessStaffListItemResponse;
+import com.khanabook.saas.webadmin.dto.RefundBillRequest;
 import com.khanabook.saas.webadmin.service.BusinessReadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -39,6 +38,14 @@ public class BusinessAdminController {
     @GetMapping("/staff")
     public ResponseEntity<List<BusinessStaffListItemResponse>> getStaff() {
         return ResponseEntity.ok(businessReadService.getStaff(requireTenant()));
+    }
+
+    @PostMapping("/bills/{billId}/refund")
+    public ResponseEntity<BusinessOrderListItemResponse> refundBill(
+            @PathVariable Long billId,
+            @RequestBody RefundBillRequest request) {
+        return ResponseEntity.ok(businessReadService.refundBill(
+                requireTenant(), billId, request.refundAmount(), request.reason()));
     }
 
     private Long requireTenant() {

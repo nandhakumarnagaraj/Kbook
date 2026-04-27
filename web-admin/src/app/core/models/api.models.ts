@@ -45,7 +45,14 @@ export interface BusinessOrder {
   paymentStatus: string;
   paymentMethod: string;
   totalAmount: number;
+  refundAmount: number | null;
+  cancelReason: string | null;
   createdAt: number | null;
+}
+
+export interface RefundOrderRequest {
+  refundAmount: number;
+  reason: string;
 }
 
 export interface BusinessDashboard {

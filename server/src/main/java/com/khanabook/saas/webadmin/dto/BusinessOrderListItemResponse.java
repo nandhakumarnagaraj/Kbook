@@ -15,6 +15,8 @@ public record BusinessOrderListItemResponse(
         String paymentStatus,
         String paymentMethod,
         BigDecimal totalAmount,
+        BigDecimal refundAmount,
+        String cancelReason,
         Long createdAt
 ) {
 }

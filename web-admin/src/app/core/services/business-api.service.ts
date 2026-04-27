@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BusinessDashboard, BusinessMenuItem, BusinessOrder, BusinessStaffItem, PaymentConfig, SavePaymentConfigRequest, StorefrontOrder, StorefrontOrderDetail } from '../models/api.models';
+import { BusinessDashboard, BusinessMenuItem, BusinessOrder, BusinessStaffItem, PaymentConfig, RefundOrderRequest, SavePaymentConfigRequest, StorefrontOrder, StorefrontOrderDetail } from '../models/api.models';
 import { environment } from '../../../environments/environment';
 
 const API_BASE_URL = environment.apiBaseUrl;
@@ -37,6 +37,10 @@ export class BusinessApiService {
     return this.http.patch<PaymentConfig>(
       `${API_BASE_URL}/restaurants/payment-config/easebuzz/toggle?enabled=${enabled}`, {}
     );
+  }
+
+  refundOrder(billId: number, payload: RefundOrderRequest) {
+    return this.http.post<BusinessOrder>(`${API_BASE_URL}/business/bills/${billId}/refund`, payload);
   }
 
   getStorefrontOrders() {
