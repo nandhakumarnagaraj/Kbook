@@ -84,8 +84,19 @@ public class RestaurantPaymentConfigService {
         return toResponse(config);
     }
 
+    @Transactional
     public String decryptSalt(RestaurantPaymentConfig config) {
-        return cryptoService.decrypt(config.getEncryptedSalt());
+        try {
+            return cryptoService.decrypt(config.getEncryptedSalt());
+        } catch (IllegalStateException e) {
+            // Salt was stored as plaintext before encryption was introduced.
+            // Return it as-is and transparently re-encrypt for future requests.
+            String plaintext = config.getEncryptedSalt();
+            config.setEncryptedSalt(cryptoService.encrypt(plaintext));
+            config.setUpdatedAt(System.currentTimeMillis());
+            repository.save(config);
+            return plaintext;
+        }
     }
 
     private RestaurantPaymentConfigResponse toResponse(RestaurantPaymentConfig config) {
