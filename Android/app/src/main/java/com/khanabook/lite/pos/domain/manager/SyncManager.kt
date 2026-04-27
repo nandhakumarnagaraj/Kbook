@@ -105,6 +105,18 @@ class SyncManager @Inject constructor(
         }
     }
 
+    suspend fun pushBillOnly(billLocalId: Long): Result<Unit> {
+        return syncMutex.withLock {
+            try {
+                masterSyncProcessor.pushSingleBill(billLocalId)
+                Result.success(Unit)
+            } catch (e: Exception) {
+                logError("pushBillOnly failed for billId=$billLocalId", e)
+                Result.failure(e)
+            }
+        }
+    }
+
     suspend fun pushUnsyncedDataImmediately(): Boolean {
         return performFullSync().isSuccess
     }

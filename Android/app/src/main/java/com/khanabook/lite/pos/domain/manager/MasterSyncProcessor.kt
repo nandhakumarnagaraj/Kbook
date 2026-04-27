@@ -150,6 +150,31 @@ class MasterSyncProcessor @Inject constructor(
         }
     }
 
+    suspend fun pushSingleBill(billLocalId: Long) {
+        val profile = restaurantDao.getProfile()
+        val restaurantId = profile?.restaurantId ?: 0L
+        if (restaurantId <= 0L) throw IllegalStateException("Push phase aborted: restaurantId not set")
+
+        val bill = billDao.getBillById(billLocalId)
+            ?: throw IllegalStateException("Bill $billLocalId not found locally")
+
+        pushBatches(
+            label = "bill",
+            records = listOf(bill),
+            transform = BillEntity::toSyncDto,
+            push = api::pushBills,
+            markSynced = billDao::markBillsAsSynced
+        )
+
+        pushBatches(
+            label = "bill items",
+            records = billDao.getUnsyncedBillItems().filter { it.billId == billLocalId },
+            transform = BillItemEntity::toSyncDto,
+            push = api::pushBillItems,
+            markSynced = billDao::markBillItemsAsSynced
+        )
+    }
+
     suspend fun pushAll(): Boolean {
         // Guard: never push data with an invalid tenant
         val profile = restaurantDao.getProfile()
@@ -158,6 +183,11 @@ class MasterSyncProcessor @Inject constructor(
             Log.w("MasterSyncProcessor", "Push aborted: restaurantId not set (value=$restaurantId)")
             return false
         }
+
+        // Heal bills that server already has but client never marked synced (e.g. network
+        // error after server accepted push but before client received the response).
+        val healed = billDao.reconcileServerAcknowledgedBills()
+        if (healed > 0) Log.i(tag, "Reconciled $healed bill(s) with serverId but isSynced=false")
 
         // Embed kitchen printer into restaurant profile before pushing.
         syncKitchenPrinterIntoProfile(profile)

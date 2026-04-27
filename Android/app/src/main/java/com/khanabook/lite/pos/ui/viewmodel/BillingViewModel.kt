@@ -345,13 +345,21 @@ class BillingViewModel @Inject constructor(
                 return null
             }
 
+            val draftBillId = inserted?.bill?.id ?: run {
+                _error.value = "Failed to retrieve draft bill. Please try again."
+                _isLoading.value = false
+                return null
+            }
+
+            // Push only this draft bill to server — avoids 409 conflicts from other
+            // pending bills that the background worker will flush independently.
             var lastError: Throwable? = null
             var synced = false
             for (attempt in 1..3) {
-                val result = syncManager.pushUnsyncedDataWithResult()
+                val result = syncManager.pushBillOnly(draftBillId)
                 if (result.isSuccess) { synced = true; break }
                 lastError = result.exceptionOrNull()
-                Log.w(TAG, "Sync attempt $attempt failed", lastError)
+                Log.w(TAG, "Easebuzz draft sync attempt $attempt failed", lastError)
                 if (attempt < 3) kotlinx.coroutines.delay(attempt * 1000L)
             }
             if (!synced) {

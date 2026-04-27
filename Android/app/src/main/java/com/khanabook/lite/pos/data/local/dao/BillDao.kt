@@ -107,6 +107,9 @@ interface BillDao {
 
     
 
+    @Query("UPDATE bills SET is_synced = 1 WHERE is_synced = 0 AND server_id IS NOT NULL")
+    suspend fun reconcileServerAcknowledgedBills(): Int
+
     @Query("SELECT * FROM bills WHERE is_synced = 0")
     suspend fun getUnsyncedBills(): List<BillEntity>
 
