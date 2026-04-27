@@ -4,6 +4,7 @@ import com.khanabook.saas.payment.entity.Payment;
 import com.khanabook.saas.payment.entity.PaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,4 +13,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findTopByRestaurantIdAndBillIdOrderByCreatedAtDesc(Long restaurantId, Long billId);
     boolean existsByRestaurantIdAndBillIdAndPaymentStatus(Long restaurantId, Long billId, PaymentStatus paymentStatus);
     List<Payment> findByRestaurantIdAndBillIdOrderByCreatedAtDesc(Long restaurantId, Long billId);
+    List<Payment> findByRestaurantIdAndBillIdIn(Long restaurantId, Collection<Long> billIds);
+    Optional<Payment> findTopByRefundGatewayRefundIdOrderByUpdatedAtDesc(String refundGatewayRefundId);
+    Optional<Payment> findTopByMerchantRefundIdOrderByUpdatedAtDesc(String merchantRefundId);
+    Optional<Payment> findTopByGatewayPaymentIdOrderByUpdatedAtDesc(String gatewayPaymentId);
 }

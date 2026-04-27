@@ -16,7 +16,11 @@ public record BusinessOrderListItemResponse(
         String paymentMethod,
         BigDecimal totalAmount,
         BigDecimal refundAmount,
+        String refundStatus,
+        String refundMode,
         String cancelReason,
+        boolean manualRefundAllowed,
+        boolean gatewayRefundAllowed,
         Long createdAt
 ) {
 }

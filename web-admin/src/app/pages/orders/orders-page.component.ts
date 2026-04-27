@@ -15,8 +15,14 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       <!-- Refund Dialog -->
       <div class="modal-backdrop" *ngIf="refundTarget" (click)="closeRefund()">
         <div class="modal-box" (click)="$event.stopPropagation()">
-          <h3>Refund Order {{ refundTarget.orderCode }}</h3>
+          <h3>{{ refundMode === 'EASEBUZZ' ? 'Refund via Easebuzz' : 'Manual Refund' }} {{ refundTarget.orderCode }}</h3>
           <p class="muted">Total: {{ formatCurrencyValue(refundTarget.totalAmount) }}</p>
+          <p class="hint-text" *ngIf="refundMode === 'EASEBUZZ'">
+            This sends a refund request to Easebuzz. Money returns only after gateway confirmation.
+          </p>
+          <p class="hint-text" *ngIf="refundMode === 'MANUAL'">
+            This only records a refund already handled outside the gateway.
+          </p>
 
           <div class="field">
             <label>Refund Amount</label>
@@ -36,7 +42,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             <button class="ghost-btn danger-btn"
               [disabled]="refunding || !refundAmountInput || refundAmountInput <= 0"
               (click)="confirmRefund()">
-              {{ refunding ? 'Processing...' : 'Confirm Refund' }}
+              {{ refunding ? 'Processing...' : (refundMode === 'EASEBUZZ' ? 'Request Gateway Refund' : 'Confirm Manual Refund') }}
             </button>
           </div>
         </div>
@@ -92,20 +98,31 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
               <td>
                 <span *ngIf="order.refundAmount && order.refundAmount > 0" class="refunded-label">
                   -{{ formatCurrencyValue(order.refundAmount) }}<br>
+                  <span class="refund-meta">{{ order.refundStatus }}<span *ngIf="order.refundMode"> / {{ order.refundMode }}</span></span><br>
                   <span class="muted" style="font-size:0.75rem">{{ order.cancelReason }}</span>
                 </span>
-                <span *ngIf="!order.refundAmount || order.refundAmount === 0" class="muted">—</span>
+                <span *ngIf="!order.refundAmount || order.refundAmount === 0" class="muted">{{ order.refundStatus || '—' }}</span>
               </td>
               <td>{{ formatDateValue(order.createdAt) }}</td>
               <td>
-                <button
-                  *ngIf="order.sourceType === 'POS' && order.orderStatus.toLowerCase() === 'completed' && order.paymentStatus.toLowerCase() === 'success'"
-                  class="ghost-btn danger-btn"
-                  (click)="openRefund(order)">
-                  Refund
-                </button>
-                <span *ngIf="!(order.sourceType === 'POS' && order.orderStatus.toLowerCase() === 'completed' && order.paymentStatus.toLowerCase() === 'success')"
-                  class="muted">—</span>
+                <div class="action-stack" *ngIf="order.sourceType === 'POS'; else noPosAction">
+                  <button
+                    *ngIf="order.manualRefundAllowed"
+                    class="ghost-btn danger-btn"
+                    (click)="openManualRefund(order)">
+                    Manual Refund
+                  </button>
+                  <button
+                    *ngIf="order.gatewayRefundAllowed"
+                    class="ghost-btn warn-btn"
+                    (click)="openGatewayRefund(order)">
+                    Refund via Easebuzz
+                  </button>
+                  <span *ngIf="!order.manualRefundAllowed && !order.gatewayRefundAllowed" class="muted">—</span>
+                </div>
+                <ng-template #noPosAction>
+                  <span class="muted">—</span>
+                </ng-template>
               </td>
             </tr>
           </tbody>
@@ -186,10 +203,13 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
   styles: [`
     .success-btn   { color: #2d7a3a; border-color: #2d7a3a; }
     .danger-btn    { color: #b03030; border-color: #b03030; }
+    .warn-btn      { color: #8a5a00; border-color: #8a5a00; }
     .refunded-label{ color: #b03030; font-weight: 500; }
+    .refund-meta   { font-size: 0.75rem; color: #7a5c00; }
     .chip.success  { background: #e6f4ea; color: #2d7a3a; }
     .chip.danger   { background: #fdecea; color: #b03030; }
     .chip.warn     { background: #fff8e1; color: #7a5c00; }
+    .action-stack  { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; }
 
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,0.45);
@@ -209,6 +229,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     .field input:focus { border-color: #4a90e2; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
     .error-text { color: #b03030; font-size: 0.85rem; margin: 0.5rem 0 0; }
+    .hint-text { color: #6b7280; font-size: 0.85rem; margin: 0.35rem 0 0; }
   `]
 })
 export class OrdersPageComponent {
@@ -221,6 +242,7 @@ export class OrdersPageComponent {
   updatingOrderId: number | null = null;
 
   refundTarget: BusinessOrder | null = null;
+  refundMode: 'MANUAL' | 'EASEBUZZ' = 'MANUAL';
   refundAmountInput: number | null = null;
   refundReasonInput = '';
   refunding = false;
@@ -247,7 +269,17 @@ export class OrdersPageComponent {
     });
   }
 
-  openRefund(order: BusinessOrder): void {
+  openManualRefund(order: BusinessOrder): void {
+    this.refundMode = 'MANUAL';
+    this.openRefundDialog(order);
+  }
+
+  openGatewayRefund(order: BusinessOrder): void {
+    this.refundMode = 'EASEBUZZ';
+    this.openRefundDialog(order);
+  }
+
+  private openRefundDialog(order: BusinessOrder): void {
     this.refundTarget = order;
     this.refundAmountInput = order.totalAmount;
     this.refundReasonInput = '';
@@ -263,10 +295,17 @@ export class OrdersPageComponent {
     if (!this.refundTarget || !this.refundAmountInput) return;
     this.refunding = true;
     this.refundError = null;
-    this.api.refundOrder(this.refundTarget.orderId, {
-      refundAmount: this.refundAmountInput,
-      reason: this.refundReasonInput.trim() || 'Refund issued'
-    }).subscribe({
+    const request$ = this.refundMode === 'EASEBUZZ'
+      ? this.api.gatewayRefundOrder(this.refundTarget.orderId, {
+          refundAmount: this.refundAmountInput,
+          reason: this.refundReasonInput.trim() || 'Customer requested cancellation'
+        })
+      : this.api.manualRefundOrder(this.refundTarget.orderId, {
+          refundAmount: this.refundAmountInput,
+          reason: this.refundReasonInput.trim() || 'Refund handled manually'
+        });
+
+    request$.subscribe({
       next: (updated) => {
         const idx = this.orders.findIndex(o => o.orderId === updated.orderId);
         if (idx !== -1) this.orders[idx] = updated;

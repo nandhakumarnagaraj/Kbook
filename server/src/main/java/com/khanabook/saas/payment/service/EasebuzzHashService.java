@@ -36,6 +36,22 @@ public class EasebuzzHashService {
         return sha512(raw);
     }
 
+    public String buildRefundRequestHash(
+            String key,
+            String merchantRefundId,
+            String easebuzzId,
+            String refundAmount,
+            String salt
+    ) {
+        String raw = String.join("|", key, merchantRefundId, easebuzzId, refundAmount, salt);
+        return sha512(raw);
+    }
+
+    public String buildRefundStatusHash(String key, String easebuzzId, String salt) {
+        String raw = String.join("|", key, easebuzzId, salt);
+        return sha512(raw);
+    }
+
     public String sha512(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-512");

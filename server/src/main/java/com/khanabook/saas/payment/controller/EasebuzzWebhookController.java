@@ -18,4 +18,9 @@ public class EasebuzzWebhookController {
     public ResponseEntity<Map<String, Object>> webhook(@RequestParam Map<String, String> params) {
         return ResponseEntity.ok(paymentService.processGatewayCallback(params));
     }
+
+    @PostMapping("/refund/webhook")
+    public ResponseEntity<Map<String, Object>> refundWebhook(@RequestParam Map<String, String> params) {
+        return ResponseEntity.ok(paymentService.processRefundWebhook(params));
+    }
 }

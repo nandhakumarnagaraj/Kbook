@@ -61,6 +61,35 @@ public class Payment {
     @Column(name = "failure_reason", columnDefinition = "TEXT")
     private String failureReason;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "refund_mode", length = 32)
+    private RefundMode refundMode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "refund_status", length = 32)
+    private RefundStatus refundStatus;
+
+    @Column(name = "refund_amount", columnDefinition = "NUMERIC(12,2)")
+    private BigDecimal refundAmount;
+
+    @Column(name = "refund_reason", columnDefinition = "TEXT")
+    private String refundReason;
+
+    @Column(name = "merchant_refund_id", length = 128)
+    private String merchantRefundId;
+
+    @Column(name = "refund_gateway_refund_id", length = 128)
+    private String refundGatewayRefundId;
+
+    @Column(name = "refund_arn_number", length = 128)
+    private String refundArnNumber;
+
+    @Column(name = "refund_requested_at")
+    private Long refundRequestedAt;
+
+    @Column(name = "refund_processed_at")
+    private Long refundProcessedAt;
+
     @Column(name = "created_at", nullable = false)
     private Long createdAt;
 

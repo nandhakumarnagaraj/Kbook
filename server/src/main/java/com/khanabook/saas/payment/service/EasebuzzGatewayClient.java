@@ -86,6 +86,73 @@ public class EasebuzzGatewayClient {
         }
     }
 
+    public RefundInitiation initiateRefund(
+            String environment,
+            String merchantKey,
+            String merchantRefundId,
+            String easebuzzId,
+            String refundAmount,
+            String requestHash
+    ) {
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("key", merchantKey);
+        form.add("merchant_refund_id", merchantRefundId);
+        form.add("easebuzz_id", easebuzzId);
+        form.add("refund_amount", refundAmount);
+        form.add("hash", requestHash);
+
+        JsonNode json = postForm(dashboardBaseUrlFor(environment) + "/transaction/v2/refund", form);
+        return RefundInitiation.builder()
+                .rawStatus(stringValue(json, "status"))
+                .message(firstNonBlank(
+                        stringValue(json, "message"),
+                        stringValue(json.path("data"), "message"),
+                        stringValue(json.path("data"), "reason"),
+                        stringValue(json, "data")))
+                .refundId(firstNonBlank(
+                        stringValue(json.path("data"), "refund_id"),
+                        stringValue(json.path("data"), "request_id"),
+                        stringValue(json, "refund_id")))
+                .build();
+    }
+
+    public RefundLookup fetchRefundStatus(
+            String environment,
+            String merchantKey,
+            String easebuzzId,
+            String requestHash
+    ) {
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("key", merchantKey);
+        form.add("easebuzz_id", easebuzzId);
+        form.add("hash", requestHash);
+
+        JsonNode json = postForm(dashboardBaseUrlFor(environment) + "/refund/v1/retrieve", form);
+        JsonNode data = json.path("data");
+        JsonNode refunds = data.path("refunds");
+        JsonNode refundNode = refunds.isArray() && refunds.size() > 0 ? refunds.get(0) : data;
+
+        return RefundLookup.builder()
+                .rawStatus(firstNonBlank(
+                        stringValue(refundNode, "refund_status"),
+                        stringValue(data, "refund_status"),
+                        stringValue(json, "refund_status"),
+                        stringValue(json, "status")))
+                .refundId(firstNonBlank(
+                        stringValue(refundNode, "refund_id"),
+                        stringValue(data, "refund_id"),
+                        stringValue(json, "refund_id")))
+                .arnNumber(firstNonBlank(
+                        stringValue(refundNode, "arn_number"),
+                        stringValue(data, "arn_number"),
+                        stringValue(json, "arn_number")))
+                .message(firstNonBlank(
+                        stringValue(refundNode, "chargeback_description"),
+                        stringValue(data, "message"),
+                        stringValue(json, "message")))
+                .build();
+    }
+
     private String baseUrlFor(String environment) {
         String raw = "TEST".equalsIgnoreCase(environment)
                 ? "https://testpay.easebuzz.in"
@@ -93,10 +160,69 @@ public class EasebuzzGatewayClient {
         return raw.endsWith("/") ? raw.substring(0, raw.length() - 1) : raw;
     }
 
+    private String dashboardBaseUrlFor(String environment) {
+        String raw = "TEST".equalsIgnoreCase(environment)
+                ? "https://testdashboard.easebuzz.in"
+                : "https://dashboard.easebuzz.in";
+        return raw.endsWith("/") ? raw.substring(0, raw.length() - 1) : raw;
+    }
+
+    private JsonNode postForm(String url, MultiValueMap<String, String> form) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                new HttpEntity<>(form, headers),
+                String.class
+        );
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new IllegalStateException("Easebuzz request failed");
+        }
+
+        try {
+            return objectMapper.readTree(response.getBody());
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to parse Easebuzz response", e);
+        }
+    }
+
+    private String stringValue(JsonNode node, String field) {
+        String value = node.path(field).asText("");
+        return value == null ? "" : value.trim();
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return "";
+    }
+
     @Getter
     @Builder
     public static class GatewaySession {
         private String accessKey;
         private String checkoutUrl;
+    }
+
+    @Getter
+    @Builder
+    public static class RefundInitiation {
+        private String rawStatus;
+        private String refundId;
+        private String message;
+    }
+
+    @Getter
+    @Builder
+    public static class RefundLookup {
+        private String rawStatus;
+        private String refundId;
+        private String arnNumber;
+        private String message;
     }
 }

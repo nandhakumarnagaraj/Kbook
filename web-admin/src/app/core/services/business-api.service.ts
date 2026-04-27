@@ -39,8 +39,12 @@ export class BusinessApiService {
     );
   }
 
-  refundOrder(billId: number, payload: RefundOrderRequest) {
-    return this.http.post<BusinessOrder>(`${API_BASE_URL}/business/bills/${billId}/refund`, payload);
+  manualRefundOrder(billId: number, payload: RefundOrderRequest) {
+    return this.http.post<BusinessOrder>(`${API_BASE_URL}/business/bills/${billId}/manual-refund`, payload);
+  }
+
+  gatewayRefundOrder(billId: number, payload: RefundOrderRequest) {
+    return this.http.post<BusinessOrder>(`${API_BASE_URL}/business/bills/${billId}/gateway-refund`, payload);
   }
 
   getStorefrontOrders() {

@@ -135,6 +135,7 @@ public class SecurityConfig {
 						// Return pages are loaded by the customer's WebView after checkout —
 						// no auth, just a static "returning to app" page (intercepted by app).
 						.requestMatchers("/payments/easebuzz/webhook",
+								"/payments/easebuzz/refund/webhook",
 								"/payments/easebuzz/return/success",
 								"/payments/easebuzz/return/failure")
 						.permitAll()
