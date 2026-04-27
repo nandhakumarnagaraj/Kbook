@@ -198,9 +198,11 @@ private fun handleNavigation(
     setError: (String) -> Unit
 ): Boolean {
     val lower = url.lowercase()
-    val path = try { Uri.parse(url).path.orEmpty() } catch (_: Exception) { "" }
-    if (path.endsWith(EasebuzzClient.RETURN_SUCCESS_PATH)) { onSurl(); onClose(); return true }
-    if (path.endsWith(EasebuzzClient.RETURN_FAILURE_PATH)) { onFurl(); onClose(); return true }
+    // Intercept the deep-link the server's return page redirects to AFTER processing
+    // the payment params. Never intercept the surl/furl directly — the WebView must
+    // load them so the server can verify the hash and update payment status first.
+    if (lower.startsWith("khanabook://payment/success")) { onSurl(); onClose(); return true }
+    if (lower.startsWith("khanabook://payment/fail")) { onFurl(); onClose(); return true }
     if (lower.startsWith("http://") || lower.startsWith("https://")) return false
 
     // Non-http scheme — dispatch to the OS.
