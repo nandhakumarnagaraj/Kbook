@@ -8,6 +8,7 @@ import com.khanabook.saas.payment.repository.RestaurantPaymentConfigRepository;
 import com.khanabook.saas.security.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -84,7 +85,7 @@ public class RestaurantPaymentConfigService {
         return toResponse(config);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String decryptSalt(RestaurantPaymentConfig config) {
         try {
             return cryptoService.decrypt(config.getEncryptedSalt());
