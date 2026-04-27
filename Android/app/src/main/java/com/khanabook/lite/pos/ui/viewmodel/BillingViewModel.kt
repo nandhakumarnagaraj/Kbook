@@ -476,6 +476,8 @@ class BillingViewModel @Inject constructor(
 
             _isLoading.value = false
             true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Failed to finalize online bill", e)
             _error.value = UserMessageSanitizer.sanitize(

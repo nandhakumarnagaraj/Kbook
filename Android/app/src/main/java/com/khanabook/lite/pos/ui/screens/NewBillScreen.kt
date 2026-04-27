@@ -1296,10 +1296,13 @@ fun PaymentStep(
                         viewModel.setGatewayResult(r.txnId, "SUCCESS")
                         viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                         activeCheckoutUrl = null
+                        // Clear awaiting state AFTER finalization so the LaunchedEffect
+                        // key change doesn't cancel the coroutine mid-finalizeOnlineBill.
+                        PaymentReturnManager.clearLatestEvent()
+                        val finalized = viewModel.finalizeOnlineBill(txnId, PaymentStatus.SUCCESS)
                         awaitingBillId = null
                         awaitingTxnId = null
-                        PaymentReturnManager.clearLatestEvent()
-                        if (viewModel.finalizeOnlineBill(txnId, PaymentStatus.SUCCESS)) {
+                        if (finalized) {
                             viewModel.clearGatewayResult()
                             onComplete()
                         }
