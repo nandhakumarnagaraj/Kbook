@@ -168,28 +168,17 @@ fun PaymentConfigView(
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(spacing.medium)) { qrContent() }
                 }
-
-                Spacer(modifier = Modifier.height(spacing.medium))
-                ParchmentTextField(value = upiHandle, onValueChange = { upiHandle = it }, label = "UPI Handle")
-                Spacer(modifier = Modifier.height(spacing.small))
-                ParchmentTextField(value = upiMobile, onValueChange = { upiMobile = it }, label = "UPI Mobile Number")
             }
 
             Spacer(modifier = Modifier.height(spacing.large))
             Text(
-                "Easebuzz (Online UPI Gateway)",
+                "Easebuzz",
                 color = PrimaryGold,
                 style = MaterialTheme.typography.titleMedium
             )
-            Text(
-                "When enabled and online, UPI payments are verified by Easebuzz in real time. " +
-                    "When offline or disabled, the manual QR + counter-confirmation flow is used.",
-                color = TextGold,
-                style = MaterialTheme.typography.bodySmall
-            )
-            if (remoteConfig != null) {
+            remoteConfig?.let { config ->
                 Text(
-                    "Merchant: ${remoteConfig.merchantKeyMasked} · ${remoteConfig.environment}",
+                    "Merchant: ${config.merchantKeyMasked} · ${config.environment}",
                     color = TextGold,
                     style = MaterialTheme.typography.bodySmall
                 )
