@@ -21,6 +21,9 @@ services:
       WHATSAPP_META_PHONE_NUMBER_ID: ${WHATSAPP_META_PHONE_NUMBER_ID}
       WHATSAPP_META_OTP_TEMPLATE_NAME: ${WHATSAPP_META_OTP_TEMPLATE_NAME}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://kbook.iadv.cloud}
+      PAYMENT_CRYPTO_SECRET: ${PAYMENT_CRYPTO_SECRET}
+      APP_BASE_URL: ${APP_BASE_URL}
+    command: ["sh", "-c", "sleep 3 && java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom -jar app.jar"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

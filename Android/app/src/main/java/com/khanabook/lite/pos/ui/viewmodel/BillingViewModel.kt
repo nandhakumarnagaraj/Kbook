@@ -271,6 +271,10 @@ class BillingViewModel @Inject constructor(
         }
         _isLoading.value = true
         try {
+            // Cancel any stale DRAFT+PENDING bills from previous failed attempts before
+            // creating a new one — prevents duplicate drafts from accumulating.
+            billRepository.cancelStalePendingOnlineDrafts()
+
             val profile = _cachedProfile.value ?: restaurantRepository.getProfile() ?: return null
             val restaurantId = sessionManager.getRestaurantId()
             if (restaurantId == 0L) {

@@ -213,6 +213,9 @@ public class GenericSyncService {
 						if (bill.getLastResetDate() == null || bill.getLastResetDate().isEmpty()) {
 							bill.setLastResetDate(java.time.LocalDate.now().toString());
 						}
+						if (bill.getRefundAmount() == null) {
+							bill.setRefundAmount(java.math.BigDecimal.ZERO);
+						}
 					}
 
 					// For KBOOK_ADMIN, ensure we use the record's restaurantId if tenantId is null
