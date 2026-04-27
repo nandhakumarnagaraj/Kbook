@@ -1,4 +1,4 @@
--- FIX #12: bills.last_reset_date VARCHAR → DATE migration
+-- FIX #12: restaurantprofiles.last_reset_date VARCHAR → DATE migration
 -- The VARCHAR column is fragile: "2026-4-1" ≠ "2026-04-01" so date comparisons
 -- for daily counter resets can silently fail. We backfill the new DATE column
 -- from the existing VARCHAR and then add a NOT NULL constraint.
@@ -9,7 +9,7 @@
 
 -- Step 1: Backfill any NULLs in the proper DATE column from the VARCHAR column.
 -- We cast via TO_DATE with a safe fallback to today's date if the VARCHAR is malformed.
-UPDATE bills
+UPDATE restaurantprofiles
 SET last_reset_date_proper = (
     CASE
         WHEN last_reset_date IS NOT NULL AND last_reset_date ~ '^\d{4}-\d{1,2}-\d{1,2}$'
@@ -20,7 +20,7 @@ SET last_reset_date_proper = (
 WHERE last_reset_date_proper IS NULL;
 
 -- Step 2: Enforce NOT NULL now that all rows are backfilled.
-ALTER TABLE bills
+ALTER TABLE restaurantprofiles
     ALTER COLUMN last_reset_date_proper SET NOT NULL,
     ALTER COLUMN last_reset_date_proper SET DEFAULT CURRENT_DATE;
 

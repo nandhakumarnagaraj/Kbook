@@ -60,7 +60,12 @@ public class SecurityConfig {
 						.toList();
 		config.setAllowedOrigins(origins);
 		config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-		config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Restaurant-Id"));
+		config.setAllowedHeaders(List.of(
+				"Authorization",
+				"Content-Type",
+				"X-Restaurant-Id",
+				"X-App-Platform",
+				"X-App-Version"));
 		config.setExposedHeaders(List.of("X-Request-Id"));
 		config.setAllowCredentials(!origins.isEmpty()); // credentials only when origins are explicit
 		config.setMaxAge(3600L);
