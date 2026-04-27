@@ -47,6 +47,10 @@ export class BusinessApiService {
     return this.http.post<BusinessOrder>(`${API_BASE_URL}/business/bills/${billId}/gateway-refund`, payload);
   }
 
+  refreshGatewayRefundStatus(billId: number) {
+    return this.http.post<BusinessOrder>(`${API_BASE_URL}/business/bills/${billId}/gateway-refund/refresh`, {});
+  }
+
   getStorefrontOrders() {
     return this.http.get<StorefrontOrder[]>(`${API_BASE_URL}/storefront/orders`);
   }

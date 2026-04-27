@@ -118,6 +118,12 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
                     (click)="openGatewayRefund(order)">
                     Refund via Easebuzz
                   </button>
+                  <button *ngIf="showRefreshRefundStatus(order)"
+                    class="ghost-btn"
+                    [disabled]="refreshingRefundOrderId === order.orderId"
+                    (click)="refreshRefundStatus(order)">
+                    {{ refreshingRefundOrderId === order.orderId ? 'Refreshing...' : 'Refresh Refund Status' }}
+                  </button>
                   <span *ngIf="!order.manualRefundAllowed && !order.gatewayRefundAllowed" class="muted">—</span>
                 </div>
                 <ng-template #noPosAction>
@@ -247,6 +253,7 @@ export class OrdersPageComponent {
   refundReasonInput = '';
   refunding = false;
   refundError: string | null = null;
+  refreshingRefundOrderId: number | null = null;
 
   constructor() {
     this.loadOrders();
@@ -319,6 +326,20 @@ export class OrdersPageComponent {
     });
   }
 
+  refreshRefundStatus(order: BusinessOrder): void {
+    this.refreshingRefundOrderId = order.orderId;
+    this.api.refreshGatewayRefundStatus(order.orderId).subscribe({
+      next: (updated) => {
+        const idx = this.orders.findIndex(o => o.orderId === updated.orderId);
+        if (idx !== -1) this.orders[idx] = updated;
+        this.refreshingRefundOrderId = null;
+      },
+      error: () => {
+        this.refreshingRefundOrderId = null;
+      }
+    });
+  }
+
   acceptOrder(orderId: number): void { this.changeStatus(orderId, 'ACCEPTED'); }
   rejectOrder(orderId: number): void { this.changeStatus(orderId, 'REJECTED'); }
 
@@ -328,6 +349,12 @@ export class OrdersPageComponent {
       next: () => { this.updatingOrderId = null; this.loadStorefrontOrders(); },
       error: () => { this.updatingOrderId = null; }
     });
+  }
+
+  showRefreshRefundStatus(order: BusinessOrder): boolean {
+    const mode = order.refundMode?.toLowerCase();
+    const status = order.refundStatus?.toLowerCase();
+    return mode === 'easebuzz' && (status === 'pending' || status === 'failed');
   }
 
   formatCurrencyValue(value: number | null): string { return formatCurrency(value ?? 0); }

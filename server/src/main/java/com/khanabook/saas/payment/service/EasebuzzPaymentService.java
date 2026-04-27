@@ -311,6 +311,18 @@ public class EasebuzzPaymentService {
         return payment;
     }
 
+    @Transactional
+    public Payment refreshRefundStatus(Long restaurantId, Long billId) {
+        Payment payment = requireLatestSuccessfulEasebuzzPayment(restaurantId, billId);
+        if (payment.getRefundMode() != RefundMode.EASEBUZZ) {
+            throw new IllegalArgumentException("This order does not use an Easebuzz gateway refund");
+        }
+        if (payment.getRefundStatus() == null || payment.getRefundStatus() == RefundStatus.NOT_REFUNDED) {
+            throw new IllegalArgumentException("No Easebuzz refund has been initiated for this order");
+        }
+        return refreshRefundStatus(payment);
+    }
+
     private void logProcessed(PaymentWebhookLog log) {
         log.setProcessed(true);
         webhookLogRepository.save(log);

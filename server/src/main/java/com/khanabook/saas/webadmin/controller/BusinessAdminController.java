@@ -58,6 +58,12 @@ public class BusinessAdminController {
         return ResponseEntity.ok(businessReadService.getPosOrder(requireTenant(), billId));
     }
 
+    @PostMapping("/bills/{billId}/gateway-refund/refresh")
+    public ResponseEntity<BusinessOrderListItemResponse> refreshGatewayRefundStatus(@PathVariable Long billId) {
+        paymentService.refreshRefundStatus(requireTenant(), billId);
+        return ResponseEntity.ok(businessReadService.getPosOrder(requireTenant(), billId));
+    }
+
     private Long requireTenant() {
         Long tenantId = TenantContext.getCurrentTenant();
         if (tenantId == null) {
