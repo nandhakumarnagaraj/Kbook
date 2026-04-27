@@ -325,9 +325,14 @@ class BillingViewModel @Inject constructor(
             val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
             _lastBill.value = inserted
 
-            val synced = syncManager.pushUnsyncedDataImmediately()
+            var synced = false
+            for (attempt in 1..3) {
+                synced = syncManager.pushUnsyncedDataImmediately()
+                if (synced) break
+                if (attempt < 3) kotlinx.coroutines.delay(attempt * 1000L)
+            }
             if (!synced) {
-                _error.value = "Draft bill saved locally, but sync failed. Online payment cannot start."
+                _error.value = "Draft bill saved locally, but sync failed. Check your connection and try again."
                 _isLoading.value = false
                 return null
             }
@@ -426,6 +431,12 @@ class BillingViewModel @Inject constructor(
             if (status == PaymentStatus.SUCCESS) {
                 _cartItems.value = emptyList()
             }
+
+            viewModelScope.launch(Dispatchers.IO) {
+                runCatching { syncManager.pushUnsyncedDataImmediately() }
+                    .onFailure { Log.w(TAG, "Post-finalization sync failed; will retry on next cycle", it) }
+            }
+
             _isLoading.value = false
             true
         } catch (e: Exception) {

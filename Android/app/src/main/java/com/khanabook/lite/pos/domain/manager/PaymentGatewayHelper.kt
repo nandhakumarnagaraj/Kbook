@@ -26,4 +26,10 @@ object PaymentGatewayHelper {
         if (!isOnline) return false
         return isUpiSelection(mode)
     }
+
+    fun gatewayPaymentMethod(mode: PaymentMode): String = when (mode) {
+        PaymentMode.PART_CASH_UPI -> "PART_CASH_UPI"
+        PaymentMode.PART_UPI_POS -> "PART_UPI_POS"
+        else -> "UPI"
+    }
 }

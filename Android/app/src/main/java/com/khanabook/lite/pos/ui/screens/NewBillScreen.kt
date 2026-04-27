@@ -1349,11 +1349,12 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                             val localBillId = viewModel.createDraftOnlineBill()
                             if (localBillId == null) {
                                 gatewayInProgress = false
+                                gatewayError = "Sync failed. Check your connection and try again."
                                 return@launch
                             }
                             val result = viewModel.easebuzzClient.initiateTxn(
                                 billId = localBillId,
-                                paymentMethod = "UPI"
+                                paymentMethod = PaymentGatewayHelper.gatewayPaymentMethod(selectedMode)
                             )
                             gatewayInProgress = false
                             when (result) {
@@ -1373,6 +1374,7 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                                     }
                                 }
                                 is EasebuzzClient.InitResult.Error -> {
+                                    viewModel.finalizeOnlineBill(localBillId, PaymentStatus.FAILED, "Gateway init failed")
                                     gatewayError = "Gateway: ${result.message}. Use manual mode."
                                 }
                             }
