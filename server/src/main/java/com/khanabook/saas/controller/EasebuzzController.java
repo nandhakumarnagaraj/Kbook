@@ -8,11 +8,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.io.BufferedReader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.Enumeration;
 import java.util.Map;
 
 /**
@@ -32,63 +30,23 @@ public class EasebuzzController {
     private final EasebuzzPaymentService paymentService;
 
     @RequestMapping(value = "/return/success", method = {RequestMethod.GET, RequestMethod.POST}, produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<String> returnSuccess(@RequestParam Map<String, String> params, HttpServletRequest request) {
-        logRawRequest("return/success", params, request);
-        Map<String, String> merged = mergeBodyParams(params, request);
-        reconcileReturnCallback(merged);
+    public ResponseEntity<String> returnSuccess(@RequestParam Map<String, String> params) {
+        reconcileReturnCallback(params);
         return ResponseEntity.ok(returnPage(
                 "Payment received",
                 "Returning to app...",
-                buildAppReturnUrl("success", merged)
+                buildAppReturnUrl("success", params)
         ));
     }
 
     @RequestMapping(value = "/return/failure", method = {RequestMethod.GET, RequestMethod.POST}, produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<String> returnFailure(@RequestParam Map<String, String> params, HttpServletRequest request) {
-        logRawRequest("return/failure", params, request);
-        Map<String, String> merged = mergeBodyParams(params, request);
-        reconcileReturnCallback(merged);
+    public ResponseEntity<String> returnFailure(@RequestParam Map<String, String> params) {
+        reconcileReturnCallback(params);
         return ResponseEntity.ok(returnPage(
                 "Payment not completed",
                 "Returning to app...",
-                buildAppReturnUrl("failure", merged)
+                buildAppReturnUrl("failure", params)
         ));
-    }
-
-    private void logRawRequest(String path, Map<String, String> params, HttpServletRequest request) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Easebuzz ").append(path)
-          .append(" method=").append(request.getMethod())
-          .append(" contentType=").append(request.getContentType())
-          .append(" queryString=").append(request.getQueryString())
-          .append(" params=").append(params);
-        try {
-            String body = request.getReader().lines().reduce("", (a, b) -> a + b);
-            if (!body.isBlank()) sb.append(" rawBody=").append(body);
-        } catch (Exception ignored) {}
-        log.info("{}", sb);
-    }
-
-    private Map<String, String> mergeBodyParams(Map<String, String> queryParams, HttpServletRequest request) {
-        if (!queryParams.isEmpty()) return queryParams;
-        // @RequestParam may miss body params if Content-Type is not form-encoded.
-        // Fall back to parsing the raw body manually.
-        try {
-            String body = request.getReader().lines().reduce("", (a, b) -> a + b);
-            if (body.isBlank()) return queryParams;
-            java.util.Map<String, String> result = new java.util.HashMap<>(queryParams);
-            for (String pair : body.split("&")) {
-                String[] kv = pair.split("=", 2);
-                if (kv.length == 2) {
-                    result.put(java.net.URLDecoder.decode(kv[0], StandardCharsets.UTF_8),
-                               java.net.URLDecoder.decode(kv[1], StandardCharsets.UTF_8));
-                }
-            }
-            return result;
-        } catch (Exception e) {
-            log.warn("Failed to parse Easebuzz return body: {}", e.getMessage());
-            return queryParams;
-        }
     }
 
     private void reconcileReturnCallback(Map<String, String> params) {
