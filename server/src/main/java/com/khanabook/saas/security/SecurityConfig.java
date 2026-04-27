@@ -41,11 +41,14 @@ public class SecurityConfig {
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
 		// Easebuzz return pages are loaded by the customer's WebView after checkout.
-		// The WebView's Origin is Easebuzz's domain (or null for cross-origin redirects),
-		// so we allow all origins for these two static HTML safety-net pages only.
+		// Easebuzz can hit these return URLs as GET or POST depending on the flow.
+		// The customer's WebView/browser arrives cross-origin from Easebuzz (or with
+		// Origin: null on some redirects), so keep this rule isolated to the two
+		// public return pages and allow the minimal method/header set needed there.
 		CorsConfiguration returnPageConfig = new CorsConfiguration();
 		returnPageConfig.addAllowedOriginPattern("*");
-		returnPageConfig.setAllowedMethods(List.of("GET"));
+		returnPageConfig.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+		returnPageConfig.setAllowedHeaders(List.of("*"));
 		returnPageConfig.setAllowCredentials(false);
 		source.registerCorsConfiguration("/payments/easebuzz/return/**", returnPageConfig);
 

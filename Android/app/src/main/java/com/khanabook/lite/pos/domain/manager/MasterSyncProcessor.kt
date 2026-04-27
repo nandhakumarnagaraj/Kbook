@@ -123,6 +123,13 @@ class MasterSyncProcessor @Inject constructor(
             .toPlainString()
     }
 
+    private fun java.math.BigDecimal?.toSafeString(): String {
+        if (this == null) return "0.00"
+        return this
+            .setScale(2, java.math.RoundingMode.HALF_UP)
+            .toPlainString()
+    }
+
     private fun String?.toSafeAmount(): String {
         if (this.isNullOrBlank()) return "0.00"
         return try {
@@ -261,6 +268,10 @@ class MasterSyncProcessor @Inject constructor(
                         zomatoEnabled = remoteProfile.zomatoEnabled ?: false,
                         swiggyEnabled = remoteProfile.swiggyEnabled ?: false,
                         ownWebsiteEnabled = remoteProfile.ownWebsiteEnabled ?: false,
+                        easebuzzEnabled = currentLocalProfile?.easebuzzEnabled ?: false,
+                        easebuzzMerchantKey = currentLocalProfile?.easebuzzMerchantKey,
+                        easebuzzSalt = currentLocalProfile?.easebuzzSalt,
+                        easebuzzEnv = currentLocalProfile?.easebuzzEnv ?: "test",
                         printerEnabled = remoteProfile.printerEnabled ?: false,
                         printerName = remoteProfile.printerName.orFallback(""),
                         printerMac = remoteProfile.printerMac.orFallback(""),
@@ -404,21 +415,21 @@ class MasterSyncProcessor @Inject constructor(
                         null
                     } else {
                         MenuItemEntity(
-                        id = remoteMenuItem.id,
-                        categoryId = localCategoryId,
+                        id = remoteMenuItem.localId ?: remoteMenuItem.serverId ?: 0L,
+                        categoryId = localCategoryId ?: 0L,
                         name = remoteMenuItem.name.orFallback("Unnamed Item"),
-                        basePrice = remoteMenuItem.basePrice.toSafeAmount(),
+                        basePrice = remoteMenuItem.basePrice.toSafeString(),
                         foodType = remoteMenuItem.foodType.orFallback("veg"),
                         description = remoteMenuItem.description,
                         isAvailable = remoteMenuItem.isAvailable ?: true,
-                        currentStock = remoteMenuItem.currentStock,
-                        lowStockThreshold = remoteMenuItem.lowStockThreshold,
+                        currentStock = remoteMenuItem.currentStock.toSafeString(),
+                        lowStockThreshold = remoteMenuItem.lowStockThreshold.toSafeString(),
                         barcode = remoteMenuItem.barcode,
                         createdAt = remoteMenuItem.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteMenuItem.restaurantId ?: 0L,
                         deviceId = remoteMenuItem.deviceId.orFallback(""),
                         isSynced = true,
-                        updatedAt = remoteMenuItem.updatedAt,
+                        updatedAt = remoteMenuItem.updatedAt ?: System.currentTimeMillis(),
                         isDeleted = remoteMenuItem.isDeleted ?: false,
                         serverId = remoteMenuItem.serverId,
                         serverUpdatedAt = remoteMenuItem.serverUpdatedAt ?: 0L
@@ -434,7 +445,7 @@ class MasterSyncProcessor @Inject constructor(
                     localCategoryId !in knownCategoryIds
                 }
             ) { remoteMenuItem ->
-                "menuItemId=${remoteMenuItem.id}, categoryId=${remoteMenuItem.categoryId}, serverCategoryId=${remoteMenuItem.serverCategoryId}"
+                "menuItemId=${remoteMenuItem.localId ?: remoteMenuItem.serverId}, categoryId=${remoteMenuItem.categoryId}, serverCategoryId=${remoteMenuItem.serverCategoryId}"
             }
             menuDao.insertSyncedMenuItems(resolvedMenuItems)
         }
@@ -453,18 +464,18 @@ class MasterSyncProcessor @Inject constructor(
                         null
                     } else {
                         ItemVariantEntity(
-                        id = remoteVariant.id,
-                        menuItemId = localMenuItemId,
+                        id = remoteVariant.localId ?: remoteVariant.serverId ?: 0L,
+                        menuItemId = localMenuItemId ?: 0L,
                         variantName = remoteVariant.variantName.orFallback("Default"),
-                        price = remoteVariant.price.toSafeAmount(),
+                        price = remoteVariant.price.toSafeString(),
                         isAvailable = remoteVariant.isAvailable ?: true,
                         sortOrder = remoteVariant.sortOrder ?: 0,
-                        currentStock = remoteVariant.currentStock,
-                        lowStockThreshold = remoteVariant.lowStockThreshold,
+                        currentStock = remoteVariant.currentStock.toSafeString(),
+                        lowStockThreshold = remoteVariant.lowStockThreshold.toSafeString(),
                         restaurantId = remoteVariant.restaurantId ?: 0L,
                         deviceId = remoteVariant.deviceId.orFallback(""),
                         isSynced = true,
-                        updatedAt = remoteVariant.updatedAt,
+                        updatedAt = remoteVariant.updatedAt ?: System.currentTimeMillis(),
                         isDeleted = remoteVariant.isDeleted ?: false,
                         serverId = remoteVariant.serverId,
                         serverUpdatedAt = remoteVariant.serverUpdatedAt ?: 0L
@@ -480,7 +491,7 @@ class MasterSyncProcessor @Inject constructor(
                     localMenuItemId !in knownMenuItemIds
                 }
             ) { remoteVariant ->
-                "variantId=${remoteVariant.id}, menuItemId=${remoteVariant.menuItemId}, serverMenuItemId=${remoteVariant.serverMenuItemId}"
+                "variantId=${remoteVariant.localId ?: remoteVariant.serverId}, menuItemId=${remoteVariant.menuItemId}, serverMenuItemId=${remoteVariant.serverMenuItemId}"
             }
             menuDao.insertSyncedItemVariants(resolvedVariants)
         }
