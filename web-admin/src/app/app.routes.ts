@@ -35,25 +35,25 @@ export const routes: Routes = [
         path: 'business/dashboard',
         component: BusinessDashboardPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER', 'MANAGER'] }
+        data: { roles: ['OWNER'] }
       },
       {
         path: 'business/orders',
         component: OrdersPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER', 'MANAGER'] }
+        data: { roles: ['OWNER'] }
       },
       {
         path: 'business/menu',
         component: MenuPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER', 'MANAGER'] }
+        data: { roles: ['OWNER'] }
       },
       {
         path: 'business/staff',
         component: StaffPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER', 'MANAGER'] }
+        data: { roles: ['OWNER'] }
       },
       {
         path: 'business/payment-settings',

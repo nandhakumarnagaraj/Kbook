@@ -4,6 +4,8 @@ export interface AdminDashboardSummary {
   totalStaff: number;
   totalOrders: number;
   totalRevenue: number;
+  refundedOrders: number;
+  refundedAmount: number;
 }
 
 export interface AdminBusinessListItem {
@@ -56,6 +58,8 @@ export interface BusinessDashboard {
   pendingOnlineOrders: number;
   totalRevenue: number;
   todayRevenue: number;
+  refundedOrders: number;
+  refundedAmount: number;
   recentOrders: BusinessOrder[];
 }
 

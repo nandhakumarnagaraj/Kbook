@@ -31,6 +31,12 @@ class UserRepository(
         private val workManager: WorkManager,
         private val api: KhanaBookApi
 ) {
+    private fun normalizeAllowedRole(role: String?): String {
+        return when (role) {
+            "OWNER", "KBOOK_ADMIN" -> role
+            else -> "OWNER"
+        }
+    }
 
     private val _currentUser = MutableStateFlow<UserEntity?>(null)
     val currentUser: StateFlow<UserEntity?> = _currentUser
@@ -114,13 +120,11 @@ class UserRepository(
             val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: loginIdInput
             val userEmail = response.userEmail?.takeIf { it.isNotBlank() } ?: loginId
 
-            if (response.role != null && response.role != "OWNER") {
-                return Result.failure(Exception("Access denied: This app is only for Restaurant Owners."))
-            }
+            val allowedRole = normalizeAllowedRole(response.role)
 
             sessionManager.saveAuthToken(response.token)
             sessionManager.saveRestaurantId(response.restaurantId)
-            sessionManager.saveActiveUserRole(response.role ?: "OWNER")
+            sessionManager.saveActiveUserRole(allowedRole)
 
             val localUser = upsertAuthenticatedUser(
                 name = response.userName,
@@ -128,7 +132,7 @@ class UserRepository(
                 userEmail = userEmail,
                 whatsappNumber = response.whatsappNumber,
                 restaurantId = response.restaurantId,
-                role = response.role ?: "OWNER",
+                role = allowedRole,
                 authProvider = "PHONE",
                 fallbackPhone = loginIdInput
             )
@@ -149,13 +153,11 @@ class UserRepository(
             val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: phoneNumber
             val userEmail = response.userEmail?.takeIf { it.isNotBlank() } ?: loginId
 
-            if (response.role != null && response.role != "OWNER") {
-                return Result.failure(Exception("Access denied: This app is only for Restaurant Owners."))
-            }
+            val allowedRole = normalizeAllowedRole(response.role)
 
             sessionManager.saveAuthToken(response.token)
             sessionManager.saveRestaurantId(response.restaurantId)
-            sessionManager.saveActiveUserRole(response.role ?: "OWNER")
+            sessionManager.saveActiveUserRole(allowedRole)
 
             val localUser = upsertAuthenticatedUser(
                 name = response.userName,
@@ -163,7 +165,7 @@ class UserRepository(
                 userEmail = userEmail,
                 whatsappNumber = response.whatsappNumber,
                 restaurantId = response.restaurantId,
-                role = response.role ?: "OWNER",
+                role = allowedRole,
                 authProvider = "PHONE",
                 fallbackPhone = phoneNumber
             )
@@ -185,13 +187,11 @@ class UserRepository(
                     ?: throw IllegalStateException("Auth response missing login identifier")
             val userEmail = response.userEmail?.takeIf { it.isNotBlank() } ?: loginId
 
-            if (response.role != null && response.role != "OWNER") {
-                return Result.failure(Exception("Access denied: This app is only for Restaurant Owners."))
-            }
+            val allowedRole = normalizeAllowedRole(response.role)
 
             sessionManager.saveAuthToken(response.token)
             sessionManager.saveRestaurantId(response.restaurantId)
-            sessionManager.saveActiveUserRole(response.role ?: "OWNER")
+            sessionManager.saveActiveUserRole(allowedRole)
 
             val localUser = upsertAuthenticatedUser(
                 name = response.userName,
@@ -199,7 +199,7 @@ class UserRepository(
                 userEmail = userEmail,
                 whatsappNumber = response.whatsappNumber,
                 restaurantId = response.restaurantId,
-                role = response.role ?: "OWNER",
+                role = allowedRole,
                 authProvider = "GOOGLE",
                 googleEmail = userEmail
             )
@@ -225,7 +225,10 @@ class UserRepository(
             if (loginId != null) {
                 val user = userDao.getUserByLoginId(loginId) ?: userDao.getUserByEmail(loginId)
                 _currentUser.value = user
-                user?.let { sessionManager.saveActiveUserId(it.id); sessionManager.saveActiveUserRole(it.role) }
+                user?.let {
+                    sessionManager.saveActiveUserId(it.id)
+                    sessionManager.saveActiveUserRole(normalizeAllowedRole(it.role))
+                }
             }
         }
     }
@@ -235,7 +238,7 @@ class UserRepository(
         if (user != null) {
             sessionManager.savePersistedLoginId(user.persistedLoginIdentity())
             sessionManager.saveActiveUserId(user.id)
-            sessionManager.saveActiveUserRole(user.role)
+            sessionManager.saveActiveUserRole(normalizeAllowedRole(user.role))
             triggerBackgroundSync()
         } else {
             sessionManager.clearPersistedLoginId()

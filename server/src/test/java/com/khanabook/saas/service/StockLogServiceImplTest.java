@@ -47,7 +47,8 @@ class StockLogServiceImplTest {
             billRepository,
             menuItemRepository,
             itemVariantRepository,
-            categoryRepository
+            categoryRepository,
+            mock(com.khanabook.saas.payment.repository.PaymentRepository.class)
         );
         service = new StockLogServiceImpl(
             stockLogRepository, menuItemRepository, itemVariantRepository, genericSyncService

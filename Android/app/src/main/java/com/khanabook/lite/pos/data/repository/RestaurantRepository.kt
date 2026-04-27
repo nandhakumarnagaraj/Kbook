@@ -47,12 +47,18 @@ class RestaurantRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun incrementAndGetCounters(): Pair<Long, Long> {
+    suspend fun incrementAndGetCounters(requireServer: Boolean = false): Pair<Long, Long> {
         return try {
             val response = api.incrementCounters()
             restaurantDao.updateCounters(response.dailyCounter, response.lifetimeCounter)
             Pair(response.dailyCounter, response.lifetimeCounter)
         } catch (e: Exception) {
+            if (requireServer) {
+                throw IllegalStateException(
+                    "Unable to reserve an online order number from the server. Check your connection and try again.",
+                    e
+                )
+            }
             val counters = restaurantDao.incrementAndGetCounters()
             triggerBackgroundSync()
             counters

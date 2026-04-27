@@ -75,6 +75,13 @@ public class BusinessReadService {
                 .filter(order -> isCompletedStorefrontOrder(order.getOrderStatus(), order.getPaymentStatus()))
                 .map(order -> safeAmount(order.getTotalAmount()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long refundedOrders = bills.stream()
+                .filter(this::isRefundedBill)
+                .count();
+        BigDecimal refundedAmount = bills.stream()
+                .filter(this::isRefundedBill)
+                .map(bill -> safeAmount(bill.getRefundAmount()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         List<BusinessOrderListItemResponse> recentOrders = buildOrders(restaurantId).stream()
                 .sorted(Comparator.comparing(BusinessOrderListItemResponse::createdAt, Comparator.nullsLast(Long::compareTo)).reversed())
@@ -93,6 +100,8 @@ public class BusinessReadService {
                         .count())
                 .totalRevenue(billRevenue.add(storefrontRevenue))
                 .todayRevenue(todayBillRevenue.add(todayStorefrontRevenue))
+                .refundedOrders(refundedOrders)
+                .refundedAmount(refundedAmount)
                 .recentOrders(recentOrders)
                 .build();
     }
@@ -202,9 +211,12 @@ public class BusinessReadService {
     }
 
     private boolean isRevenueBillStatus(String orderStatus, String paymentStatus) {
-        return "completed".equalsIgnoreCase(orderStatus)
-                || "paid".equalsIgnoreCase(orderStatus)
-                || "paid".equalsIgnoreCase(paymentStatus);
+        return ("completed".equalsIgnoreCase(orderStatus) || "paid".equalsIgnoreCase(orderStatus))
+                && ("success".equalsIgnoreCase(paymentStatus) || "paid".equalsIgnoreCase(paymentStatus));
+    }
+
+    private boolean isRefundedBill(Bill bill) {
+        return bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0;
     }
 
     private boolean isCompletedStorefrontOrder(String orderStatus, String paymentStatus) {

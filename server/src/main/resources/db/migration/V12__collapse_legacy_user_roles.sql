@@ -1,0 +1,3 @@
+UPDATE users
+SET role = 'OWNER'
+WHERE role IN ('MANAGER', 'CASHIER', 'KITCHEN');

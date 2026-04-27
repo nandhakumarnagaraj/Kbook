@@ -1,6 +1,7 @@
 package com.khanabook.saas.sync.service;
 
 import com.khanabook.saas.entity.*;
+import com.khanabook.saas.payment.repository.PaymentRepository;
 import com.khanabook.saas.repository.*;
 import com.khanabook.saas.entity.AuthProvider;
 import com.khanabook.saas.entity.RestaurantProfile;
@@ -27,6 +28,7 @@ public class GenericSyncService {
 	private final MenuItemRepository menuItemRepository;
 	private final ItemVariantRepository itemVariantRepository;
 	private final CategoryRepository categoryRepository;
+	private final PaymentRepository paymentRepository;
 
 	private User findExistingUserByIdentity(Long tenantId, User incomingUser,
 			com.khanabook.saas.repository.UserRepository userRepository) {
@@ -220,6 +222,14 @@ public class GenericSyncService {
 						continue;
 					}
 
+					if (incomingRecord instanceof BillPayment incomingBillPayment
+							&& isGatewayOwnedBillPaymentSync(targetTenantId, incomingBillPayment)) {
+						log.info("Ignoring gateway-owned bill payment sync localId={} txnId={} tenantId={}",
+								incomingBillPayment.getLocalId(), incomingBillPayment.getGatewayTxnId(), targetTenantId);
+						successfulLocalIds.add(incomingBillPayment.getLocalId());
+						continue;
+					}
+
 					T existingRecord = null;
 					if (incomingRecord.getLocalId() != null) {
 						if (incomingRecord.getId() != null) {
@@ -236,6 +246,23 @@ public class GenericSyncService {
 							&& incomingRecord instanceof User incomingUser
 							&& repository instanceof com.khanabook.saas.repository.UserRepository userRepository) {
 						existingRecord = (T) findExistingUserByIdentity(targetTenantId, incomingUser, userRepository);
+					}
+
+					if (existingRecord == null
+							&& incomingRecord instanceof Bill incomingBill
+							&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo
+							&& incomingBill.getLifetimeOrderId() != null) {
+						Bill existingBill = billRepo
+								.findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(targetTenantId, incomingBill.getLifetimeOrderId())
+								.orElse(null);
+						if (existingBill != null) {
+							if (java.util.Objects.equals(existingBill.getDeviceId(), incomingBill.getDeviceId())) {
+								existingRecord = (T) existingBill;
+							} else {
+								throw new IllegalStateException(
+										"Sync rejected: lifetime order ID already belongs to another device");
+							}
+						}
 					}
 
 					incomingRecord.setRestaurantId(targetTenantId);
@@ -304,6 +331,11 @@ public class GenericSyncService {
 							// Relational ID Resolution for Updates
 							resolveRelationalIds(incomingRecord, idMaps);
 
+							if (incomingRecord instanceof Bill incomingBill && existingRecord instanceof Bill existingBill
+									&& hasBackendGatewayPayment(targetTenantId, existingBill.getId())) {
+								preserveGatewayOwnedBillState(incomingBill, existingBill);
+							}
+
 							incomingRecord.setId(existingRecord.getId());
 							// Preserve the current row version so sync updates don't trip optimistic locking
 							// when the client payload carries a stale/default version value.
@@ -350,6 +382,29 @@ public class GenericSyncService {
 				tenantId, successfulLocalIds.size(), failedLocalIds.size(), allRecordsToSave.size());
 
 		return new PushSyncResponse(successfulLocalIds, failedLocalIds);
+	}
+
+	private boolean hasBackendGatewayPayment(Long tenantId, Long billId) {
+		return paymentRepository.findTopByRestaurantIdAndBillIdOrderByCreatedAtDesc(tenantId, billId).isPresent();
+	}
+
+	private boolean isGatewayOwnedBillPaymentSync(Long tenantId, BillPayment billPayment) {
+		String txnId = billPayment.getGatewayTxnId();
+		if (txnId == null || txnId.isBlank()) {
+			return false;
+		}
+		if (!"easebuzz".equalsIgnoreCase(billPayment.getVerifiedBy())) {
+			return false;
+		}
+		return paymentRepository.findByRestaurantIdAndGatewayTxnId(tenantId, txnId).isPresent();
+	}
+
+	private void preserveGatewayOwnedBillState(Bill incoming, Bill existing) {
+		incoming.setPaymentStatus(existing.getPaymentStatus());
+		incoming.setOrderStatus(existing.getOrderStatus());
+		incoming.setPaidAt(existing.getPaidAt());
+		incoming.setCancelReason(existing.getCancelReason());
+		incoming.setRefundAmount(existing.getRefundAmount());
 	}
 
 	/**

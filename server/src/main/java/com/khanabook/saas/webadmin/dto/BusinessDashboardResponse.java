@@ -16,6 +16,8 @@ public record BusinessDashboardResponse(
         long pendingOnlineOrders,
         BigDecimal totalRevenue,
         BigDecimal todayRevenue,
+        long refundedOrders,
+        BigDecimal refundedAmount,
         List<BusinessOrderListItemResponse> recentOrders
 ) {
 }

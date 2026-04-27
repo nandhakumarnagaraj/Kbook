@@ -27,11 +27,6 @@ export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
     return true;
   }
 
-  if (session.role === 'CASHIER' || session.role === 'KITCHEN') {
-    void router.navigate(['/limited-access']);
-    return false;
-  }
-
   authService.navigateByRole(session.role);
   return false;
 };

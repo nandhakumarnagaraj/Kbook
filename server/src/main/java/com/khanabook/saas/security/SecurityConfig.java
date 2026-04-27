@@ -147,7 +147,7 @@ public class SecurityConfig {
 						.requestMatchers("/actuator/**")
 						.hasRole("KBOOK_ADMIN")
 						.requestMatchers("/admin/**").hasRole("KBOOK_ADMIN")
-						.requestMatchers("/business/**").hasAnyRole("OWNER", "MANAGER")
+						.requestMatchers("/business/**").hasRole("OWNER")
 						.requestMatchers("/storefront/**").hasRole("OWNER")
 						.requestMatchers("/sync/**").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.requestMatchers("/restaurants/payment-config/**").hasAnyRole("OWNER", "KBOOK_ADMIN")

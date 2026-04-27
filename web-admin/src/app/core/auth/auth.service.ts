@@ -64,7 +64,7 @@ export class AuthService {
       return;
     }
 
-    if (role === 'OWNER' || role === 'MANAGER') {
+    if (role === 'OWNER') {
       void this.router.navigate(['/business/dashboard']);
       return;
     }

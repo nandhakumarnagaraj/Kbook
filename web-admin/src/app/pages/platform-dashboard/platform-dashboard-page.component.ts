@@ -39,6 +39,14 @@ import { formatCurrency } from '../../shared/formatters';
           <h3>Total Revenue</h3>
           <strong>{{ data.totalRevenueFormatted }}</strong>
         </article>
+        <article class="panel stat-card">
+          <h3>Refunded Orders</h3>
+          <strong>{{ data.refundedOrders }}</strong>
+        </article>
+        <article class="panel stat-card">
+          <h3>Refunded Amount</h3>
+          <strong>{{ data.refundedAmountFormatted }}</strong>
+        </article>
       </div>
 
       <ng-template #loading>
@@ -54,7 +62,8 @@ export class PlatformDashboardPageComponent {
     this.api.getDashboardSummary().pipe(
       map((summary) => ({
         ...summary,
-        totalRevenueFormatted: formatCurrency(summary.totalRevenue)
+        totalRevenueFormatted: formatCurrency(summary.totalRevenue),
+        refundedAmountFormatted: formatCurrency(summary.refundedAmount)
       }))
     )
   );

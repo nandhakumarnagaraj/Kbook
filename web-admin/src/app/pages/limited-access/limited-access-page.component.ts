@@ -8,8 +8,8 @@ import { Component } from '@angular/core';
       <section class="panel" style="padding: 2rem; max-width: 720px;">
         <h2>Limited Access</h2>
         <p class="muted">
-          Phase 1 web admin is enabled for <strong>KBOOK_ADMIN</strong>, <strong>OWNER</strong>, and <strong>MANAGER</strong>.
-          <strong>CASHIER</strong> and <strong>KITCHEN</strong> roles are reserved as placeholders for a later phase.
+          Web admin access is limited to <strong>KBOOK_ADMIN</strong> and <strong>OWNER</strong>.
+          Any legacy user role should be migrated before signing in here.
         </p>
       </section>
     </div>

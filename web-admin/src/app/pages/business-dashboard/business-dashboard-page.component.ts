@@ -28,6 +28,14 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <strong>{{ data.todayRevenueFormatted }}</strong>
         </article>
         <article class="panel stat-card">
+          <h3>Refunded Amount</h3>
+          <strong>{{ data.refundedAmountFormatted }}</strong>
+        </article>
+        <article class="panel stat-card">
+          <h3>Refunded Orders</h3>
+          <strong>{{ data.refundedOrders }}</strong>
+        </article>
+        <article class="panel stat-card">
           <h3>POS Orders</h3>
           <strong>{{ data.posOrderCount }}</strong>
         </article>
@@ -95,7 +103,8 @@ export class BusinessDashboardPageComponent {
       map((data) => ({
         ...data,
         totalRevenueFormatted: formatCurrency(data.totalRevenue),
-        todayRevenueFormatted: formatCurrency(data.todayRevenue)
+        todayRevenueFormatted: formatCurrency(data.todayRevenue),
+        refundedAmountFormatted: formatCurrency(data.refundedAmount)
       }))
     )
   );

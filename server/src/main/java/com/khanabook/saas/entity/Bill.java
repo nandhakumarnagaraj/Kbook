@@ -70,6 +70,9 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "order_status", nullable = false)
 	private String orderStatus;
 
+	@Column(name = "refund_amount", columnDefinition = "NUMERIC(12,2)")
+	private java.math.BigDecimal refundAmount;
+
 	@Column(name = "created_by")
 	private Long createdBy;
 

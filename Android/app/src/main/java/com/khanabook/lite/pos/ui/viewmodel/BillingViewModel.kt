@@ -279,7 +279,7 @@ class BillingViewModel @Inject constructor(
             }
 
             val finalSummary = _billSummary.value
-            val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
+            val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters(requireServer = true)
             val zoneId = try {
                 java.time.ZoneId.of(profile.timezone ?: "Asia/Kolkata")
             } catch (e: Exception) {
@@ -447,7 +447,9 @@ class BillingViewModel @Inject constructor(
                     )
                 )
             }
-            payments.forEach { billRepository.addBillPayment(it.copy(restaurantId = bill.restaurantId, deviceId = bill.deviceId)) }
+            payments
+                .filter(::shouldPersistLocally)
+                .forEach { billRepository.addBillPayment(it.copy(restaurantId = bill.restaurantId, deviceId = bill.deviceId)) }
 
             val updated = billRepository.getBillWithItemsById(localBillId)
             _lastBill.value = updated
@@ -578,7 +580,7 @@ class BillingViewModel @Inject constructor(
                 )
             }
 
-            billRepository.insertFullBill(bill, items, payments)
+            billRepository.insertFullBill(bill, items, payments.filter(::shouldPersistLocally))
             val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
             _lastBill.value = inserted
             _printStatus.value = null
@@ -686,6 +688,10 @@ class BillingViewModel @Inject constructor(
             _isLoading.value = false
             return false
         }
+    }
+
+    private fun shouldPersistLocally(payment: BillPaymentEntity): Boolean {
+        return payment.gatewayTxnId.isNullOrBlank() || !payment.verifiedBy.equals("easebuzz", ignoreCase = true)
     }
 
     fun updateCartItemNote(item: MenuItemEntity, variant: ItemVariantEntity?, note: String) {

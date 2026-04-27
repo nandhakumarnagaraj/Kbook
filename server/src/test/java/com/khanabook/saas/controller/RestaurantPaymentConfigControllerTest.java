@@ -80,14 +80,11 @@ class RestaurantPaymentConfigControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    void toggleActive_nonOwnerNonAdmin_returnsForbidden() throws Exception {
-        String managerToken = persistUserAndGetToken("manager@test.com", RESTAURANT_ID, UserRole.MANAGER);
-
+    void toggleActive_unauthenticated_returns401() throws Exception {
         mockMvc.perform(patch("/restaurants/payment-config/easebuzz/toggle?enabled=false")
-                .header("Authorization", "Bearer " + managerToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

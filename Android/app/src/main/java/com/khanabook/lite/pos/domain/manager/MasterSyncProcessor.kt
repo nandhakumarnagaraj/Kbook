@@ -26,6 +26,13 @@ class MasterSyncProcessor @Inject constructor(
     private val inventoryDao: InventoryDao,
     private val printerProfileDao: PrinterProfileDao
 ) {
+    private fun normalizeUserRole(role: String?): String {
+        return when (role) {
+            "OWNER", "KBOOK_ADMIN" -> role
+            else -> "OWNER"
+        }
+    }
+
 
     private val tag = "MasterSyncProcessor"
 
@@ -225,9 +232,22 @@ class MasterSyncProcessor @Inject constructor(
             markSynced = billDao::markBillItemsAsSynced
         )
 
+        val unsyncedBillPayments = billDao.getUnsyncedBillPayments().filter { it.restaurantId == restaurantId }
+        val gatewayOwnedBillPayments = unsyncedBillPayments.filter { payment ->
+            !payment.gatewayTxnId.isNullOrBlank() && payment.verifiedBy.equals("easebuzz", ignoreCase = true)
+        }
+        if (gatewayOwnedBillPayments.isNotEmpty()) {
+            Log.i(
+                "MasterSyncProcessor",
+                "Marking ${gatewayOwnedBillPayments.size} gateway-owned bill payment row(s) as synced; backend payments are authoritative"
+            )
+            billDao.markBillPaymentsAsSynced(gatewayOwnedBillPayments.map { it.id })
+        }
         pushBatches(
             label = "bill payments",
-            records = billDao.getUnsyncedBillPayments().filter { it.restaurantId == restaurantId },
+            records = unsyncedBillPayments.filterNot { payment ->
+                !payment.gatewayTxnId.isNullOrBlank() && payment.verifiedBy.equals("easebuzz", ignoreCase = true)
+            },
             transform = BillPaymentEntity::toSyncDto,
             push = api::pushBillPayments,
             markSynced = billDao::markBillPaymentsAsSynced
@@ -359,7 +379,7 @@ class MasterSyncProcessor @Inject constructor(
                     googleEmail = remoteUser.googleEmail ?: localUser?.googleEmail,
                     authProvider = remoteUser.authProvider ?: "PHONE",
                     whatsappNumber = remoteUser.whatsappNumber ?: localUser?.whatsappNumber ?: "",
-                    role = remoteUser.role ?: localUser?.role ?: "OWNER",
+                    role = normalizeUserRole(remoteUser.role ?: localUser?.role),
                     isActive = remoteUser.isActive ?: true,
                     tokenInvalidatedAt = remoteUser.tokenInvalidatedAt ?: localUser?.tokenInvalidatedAt,
                     createdAt = localUser?.createdAt ?: remoteUser.createdAt ?: System.currentTimeMillis(),

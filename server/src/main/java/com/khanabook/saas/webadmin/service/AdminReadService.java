@@ -41,6 +41,8 @@ public class AdminReadService {
         long totalSfOrders     = customerOrderRepository.count();
         BigDecimal billRev     = nullSafe(billRepository.sumCompletedRevenue());
         BigDecimal sfRev       = nullSafe(customerOrderRepository.sumCompletedRevenue());
+        long refundedOrders    = billRepository.countRefundedBills();
+        BigDecimal refundedAmt = nullSafe(billRepository.sumRefundAmount());
 
         return AdminDashboardSummaryResponse.builder()
                 .totalBusinesses(totalBusinesses)
@@ -48,6 +50,8 @@ public class AdminReadService {
                 .totalStaff(totalStaff)
                 .totalOrders(totalBillOrders + totalSfOrders)
                 .totalRevenue(billRev.add(sfRev))
+                .refundedOrders(refundedOrders)
+                .refundedAmount(refundedAmt)
                 .build();
     }
 

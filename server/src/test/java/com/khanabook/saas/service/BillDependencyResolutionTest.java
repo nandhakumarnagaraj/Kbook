@@ -40,7 +40,13 @@ class BillDependencyResolutionTest {
 
     @BeforeEach
     void setUp() {
-        GenericSyncService gs = new GenericSyncService(billRepo, menuItemRepo, itemVariantRepo, categoryRepo);
+        GenericSyncService gs = new GenericSyncService(
+                billRepo,
+                menuItemRepo,
+                itemVariantRepo,
+                categoryRepo,
+                mock(com.khanabook.saas.payment.repository.PaymentRepository.class)
+        );
         billItemService = new BillItemServiceImpl(billItemRepo, billRepo, menuItemRepo, itemVariantRepo, gs);
         billPaymentService = new BillPaymentServiceImpl(billPaymentRepo, billRepo, gs);
     }

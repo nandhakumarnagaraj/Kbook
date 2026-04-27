@@ -1,8 +1,12 @@
 package com.khanabook.saas.sync.service;
 
 import com.khanabook.saas.entity.Bill;
+import com.khanabook.saas.entity.BillPayment;
+import com.khanabook.saas.payment.entity.Payment;
+import com.khanabook.saas.payment.repository.PaymentRepository;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
@@ -33,8 +37,11 @@ class GenericSyncServiceTest {
     @Mock private MenuItemRepository menuItemRepository;
     @Mock private ItemVariantRepository itemVariantRepository;
     @Mock private CategoryRepository categoryRepository;
+    @Mock private PaymentRepository paymentRepository;
+    @Mock private BillPaymentRepository billPaymentRepository;
 
     @Captor private ArgumentCaptor<Iterable<Bill>> billSaveCaptor;
+    @Captor private ArgumentCaptor<Iterable<BillPayment>> billPaymentSaveCaptor;
     @Captor private ArgumentCaptor<Iterable<RestaurantProfile>> profileSaveCaptor;
 
     private GenericSyncService service;
@@ -48,7 +55,8 @@ class GenericSyncServiceTest {
             billRepo,
             menuItemRepository,
             itemVariantRepository,
-            categoryRepository
+            categoryRepository,
+            paymentRepository
         );
     }
 
@@ -74,6 +82,7 @@ class GenericSyncServiceTest {
     @Test
     void newRecord_insertsAndAcknowledges() {
         Bill incoming = bill(1L, 1000L);
+        incoming.setLifetimeOrderId(101L);
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
 
@@ -93,6 +102,7 @@ class GenericSyncServiceTest {
     void lww_mobileNewer_updatesRecord() {
         Bill existing = existingBill(5L, 1L, 1000L);
         Bill incoming = bill(1L, 2000L);
+        incoming.setLifetimeOrderId(101L);
         stubExisting(List.of(existing));
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
 
@@ -111,6 +121,7 @@ class GenericSyncServiceTest {
     void lww_serverNewer_clientAcknowledgedWithoutSave() {
         Bill existing = existingBill(5L, 1L, 9000L);
         Bill incoming = bill(1L, 1000L);  
+        incoming.setLifetimeOrderId(101L);
         stubExisting(List.of(existing));
 
         PushSyncResponse resp = service.handlePushSync(TENANT_ID, List.of(incoming), billRepo);
@@ -125,6 +136,7 @@ class GenericSyncServiceTest {
     @Test
     void tenantIsolation_payloadRestaurantIdOverriddenByServer() {
         Bill incoming = bill(1L, 1000L);
+        incoming.setLifetimeOrderId(101L);
         incoming.setRestaurantId(666L); 
         stubNoExisting();
 
@@ -140,6 +152,7 @@ class GenericSyncServiceTest {
     @Test
     void createdAtNull_defaultsToUpdatedAt() {
         Bill incoming = bill(1L, 5000L);
+        incoming.setLifetimeOrderId(101L);
         incoming.setCreatedAt(null);
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
@@ -154,6 +167,7 @@ class GenericSyncServiceTest {
     @Test
     void createdAtPresent_notOverridden() {
         Bill incoming = bill(1L, 5000L);
+        incoming.setLifetimeOrderId(101L);
         incoming.setCreatedAt(1000L); 
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
@@ -170,6 +184,7 @@ class GenericSyncServiceTest {
     @Test
     void serverUpdatedAt_alwaysSetByServer_notClient() {
         Bill incoming = bill(1L, 5000L);
+        incoming.setLifetimeOrderId(101L);
         incoming.setServerUpdatedAt(9_999_999_999L); 
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
@@ -189,6 +204,8 @@ class GenericSyncServiceTest {
     void batchWithDuplicateLocalIds_onlyLatestSaved() {
         Bill older = bill(1L, 1000L);
         Bill newer = bill(1L, 3000L);
+        older.setLifetimeOrderId(101L);
+        newer.setLifetimeOrderId(101L);
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
 
@@ -229,6 +246,7 @@ class GenericSyncServiceTest {
     @Test
     void billWithLocalId1_doesNotTriggerCrossDeviceFallback() {
         Bill incoming = bill(1L, 5000L); 
+        incoming.setLifetimeOrderId(101L);
 
         when(billRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(eq(TENANT_ID), eq(DEVICE_A), anyList()))
             .thenReturn(List.of());
@@ -249,6 +267,7 @@ class GenericSyncServiceTest {
         incoming.setLocalId(null);
         incoming.setDeviceId(DEVICE_A);
         incoming.setRestaurantId(TENANT_ID);
+        incoming.setLifetimeOrderId(101L);
         incoming.setUpdatedAt(1000L);
 
         stubNoExisting();
@@ -271,6 +290,9 @@ class GenericSyncServiceTest {
         Bill b1 = bill(1L, 1000L);
         Bill b2 = bill(2L, 2000L);
         Bill b3 = bill(3L, 3000L);
+        b1.setLifetimeOrderId(101L);
+        b2.setLifetimeOrderId(102L);
+        b3.setLifetimeOrderId(103L);
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
 
@@ -278,6 +300,96 @@ class GenericSyncServiceTest {
 
         
         verify(billRepo, times(1)).saveAll(any());
+    }
+
+    @Test
+    void sameDeviceLifetimeCollision_updatesExistingBillInsteadOfInsertingDuplicate() {
+        Bill incoming = bill(7L, 4000L);
+        incoming.setLifetimeOrderId(271L);
+        Bill existing = existingBill(55L, 2L, 1000L);
+        existing.setLifetimeOrderId(271L);
+
+        stubNoExisting();
+        when(billRepo.findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(TENANT_ID, 271L))
+            .thenReturn(java.util.Optional.of(existing));
+        doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
+
+        PushSyncResponse resp = service.handlePushSync(TENANT_ID, List.of(incoming), billRepo);
+
+        assertThat(resp.getSuccessfulLocalIds()).containsExactly(7L);
+        verify(billRepo).saveAll(billSaveCaptor.capture());
+        Bill saved = billSaveCaptor.getValue().iterator().next();
+        assertThat(saved.getId()).isEqualTo(55L);
+        assertThat(saved.getLocalId()).isEqualTo(7L);
+    }
+
+    @Test
+    void crossDeviceLifetimeCollision_rejectedWithoutSave() {
+        Bill incoming = bill(7L, 4000L);
+        incoming.setLifetimeOrderId(271L);
+        Bill existing = existingBill(55L, 2L, 1000L);
+        existing.setDeviceId("DEVICE_B");
+        existing.setLifetimeOrderId(271L);
+
+        stubNoExisting();
+        when(billRepo.findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(TENANT_ID, 271L))
+            .thenReturn(java.util.Optional.of(existing));
+
+        PushSyncResponse resp = service.handlePushSync(TENANT_ID, List.of(incoming), billRepo);
+
+        assertThat(resp.getSuccessfulLocalIds()).isEmpty();
+        assertThat(resp.getFailedLocalIds()).containsExactly(7L);
+        verify(billRepo, never()).saveAll(any());
+    }
+
+    @Test
+    void gatewayBackedBill_syncPreservesServerOwnedPaymentState() {
+        Bill existing = existingBill(5L, 1L, 1000L);
+        existing.setOrderStatus("draft");
+        existing.setPaymentStatus("pending");
+        existing.setCancelReason("");
+
+        Bill incoming = bill(1L, 2000L);
+        incoming.setLifetimeOrderId(101L);
+        incoming.setOrderStatus("completed");
+        incoming.setPaymentStatus("success");
+        incoming.setCancelReason("client overwrite");
+
+        stubExisting(List.of(existing));
+        when(paymentRepository.findTopByRestaurantIdAndBillIdOrderByCreatedAtDesc(TENANT_ID, 5L))
+            .thenReturn(java.util.Optional.of(new Payment()));
+        doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
+
+        PushSyncResponse resp = service.handlePushSync(TENANT_ID, List.of(incoming), billRepo);
+
+        assertThat(resp.getSuccessfulLocalIds()).containsExactly(1L);
+        verify(billRepo).saveAll(billSaveCaptor.capture());
+        Bill saved = billSaveCaptor.getValue().iterator().next();
+        assertThat(saved.getOrderStatus()).isEqualTo("draft");
+        assertThat(saved.getPaymentStatus()).isEqualTo("pending");
+        assertThat(saved.getCancelReason()).isEmpty();
+        assertThat(saved.getUpdatedAt()).isEqualTo(2000L);
+    }
+
+    @Test
+    void gatewayOwnedBillPayment_syncAcknowledgedWithoutSave() {
+        BillPayment incoming = new BillPayment();
+        incoming.setLocalId(88L);
+        incoming.setUpdatedAt(2000L);
+        incoming.setDeviceId(DEVICE_A);
+        incoming.setRestaurantId(TENANT_ID);
+        incoming.setGatewayTxnId("TXN-1");
+        incoming.setVerifiedBy("easebuzz");
+
+        when(billPaymentRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
+            .thenReturn(List.of());
+        when(paymentRepository.findByRestaurantIdAndGatewayTxnId(TENANT_ID, "TXN-1"))
+            .thenReturn(java.util.Optional.of(new Payment()));
+
+        PushSyncResponse resp = service.handlePushSync(TENANT_ID, List.of(incoming), billPaymentRepository);
+
+        assertThat(resp.getSuccessfulLocalIds()).containsExactly(88L);
+        verify(billPaymentRepository, never()).saveAll(any());
     }
 
     
@@ -288,6 +400,7 @@ class GenericSyncServiceTest {
         b.setUpdatedAt(updatedAt);
         b.setDeviceId(DEVICE_A);
         b.setRestaurantId(TENANT_ID);
+        b.setLifetimeOrderId(localId);
         return b;
     }
 
@@ -319,6 +432,8 @@ class GenericSyncServiceTest {
     private void stubNoExisting() {
         when(billRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
             .thenReturn(new ArrayList<>());
+        when(billRepo.findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(any(), any()))
+            .thenReturn(java.util.Optional.empty());
     }
 
     private void stubExisting(List<Bill> records) {

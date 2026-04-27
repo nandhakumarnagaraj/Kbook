@@ -58,10 +58,10 @@ class WebAdminControllerTest extends BaseIntegrationTest {
         seedBusiness(OTHER_RESTAURANT_ID, "Beta Foods", now + 1);
 
         persistUser("owner-alpha@test.com", RESTAURANT_ID, UserRole.OWNER);
-        User manager = persistUser("manager-alpha@test.com", RESTAURANT_ID, UserRole.MANAGER);
-        manager.setName("Alpha Manager");
-        manager.setWhatsappNumber("9876500001");
-        userRepository.save(manager);
+        User ownerStaff = persistUser("owner-staff-alpha@test.com", RESTAURANT_ID, UserRole.OWNER);
+        ownerStaff.setName("Alpha Owner Two");
+        ownerStaff.setWhatsappNumber("9876500001");
+        userRepository.save(ownerStaff);
 
         persistUser("owner-beta@test.com", OTHER_RESTAURANT_ID, UserRole.OWNER);
 
@@ -188,9 +188,8 @@ class WebAdminControllerTest extends BaseIntegrationTest {
     }
 
     @Test
-    void owner_and_manager_can_access_business_admin_apis() throws Exception {
+    void owner_can_access_business_admin_apis() throws Exception {
         String ownerToken = persistUserAndGetToken("owner-web@test.com", RESTAURANT_ID, UserRole.OWNER);
-        String managerToken = persistUserAndGetToken("manager-web@test.com", RESTAURANT_ID, UserRole.MANAGER);
 
         mockMvc.perform(get("/business/dashboard")
                         .header("Authorization", "Bearer " + ownerToken))
@@ -199,24 +198,24 @@ class WebAdminControllerTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.onlineOrderCount").value(1));
 
         mockMvc.perform(get("/business/orders")
-                        .header("Authorization", "Bearer " + managerToken))
+                        .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].sourceType").exists());
 
         mockMvc.perform(get("/business/menu")
-                        .header("Authorization", "Bearer " + managerToken))
+                        .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Veg Fried Rice"));
 
         mockMvc.perform(get("/business/staff")
-                        .header("Authorization", "Bearer " + managerToken))
+                        .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.role=='MANAGER')]").exists());
+                .andExpect(jsonPath("$[?(@.role=='OWNER')]").exists());
     }
 
     @Test
-    void cashier_cannot_access_business_admin_apis() throws Exception {
-        String token = persistUserAndGetToken("cashier@test.com", RESTAURANT_ID, UserRole.CASHIER);
+    void admin_cannot_access_business_admin_apis() throws Exception {
+        String token = persistUserAndGetToken("admin-business@test.com", 0L, RESTAURANT_ID, UserRole.KBOOK_ADMIN);
 
         mockMvc.perform(get("/business/dashboard")
                         .header("Authorization", "Bearer " + token))

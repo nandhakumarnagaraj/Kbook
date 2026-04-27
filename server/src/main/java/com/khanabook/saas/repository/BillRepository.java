@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BillRepository extends SyncRepository<Bill, Long> {
@@ -26,12 +27,33 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
 
     long countByRestaurantIdAndIsDeletedFalse(Long restaurantId);
 
-    @Query("SELECT SUM(b.totalAmount) FROM Bill b WHERE b.isDeleted = false AND (LOWER(b.orderStatus) IN ('completed','paid') OR LOWER(b.paymentStatus) = 'paid')")
+    @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Bill b " +
+           "WHERE b.isDeleted = false " +
+           "AND LOWER(b.orderStatus) IN ('completed','paid') " +
+           "AND LOWER(b.paymentStatus) IN ('success','paid')")
     BigDecimal sumCompletedRevenue();
 
-    @Query("SELECT SUM(b.totalAmount) FROM Bill b WHERE b.restaurantId = :restaurantId AND b.isDeleted = false AND (LOWER(b.orderStatus) IN ('completed','paid') OR LOWER(b.paymentStatus) = 'paid')")
+    @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Bill b " +
+           "WHERE b.restaurantId = :restaurantId " +
+           "AND b.isDeleted = false " +
+           "AND LOWER(b.orderStatus) IN ('completed','paid') " +
+           "AND LOWER(b.paymentStatus) IN ('success','paid')")
     BigDecimal sumCompletedRevenueByRestaurant(@Param("restaurantId") Long restaurantId);
+
+    @Query("SELECT COALESCE(SUM(b.refundAmount), 0) FROM Bill b WHERE b.isDeleted = false")
+    BigDecimal sumRefundAmount();
+
+    @Query("SELECT COALESCE(SUM(b.refundAmount), 0) FROM Bill b WHERE b.restaurantId = :restaurantId AND b.isDeleted = false")
+    BigDecimal sumRefundAmountByRestaurant(@Param("restaurantId") Long restaurantId);
+
+    @Query("SELECT COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.refundAmount > 0")
+    long countRefundedBills();
+
+    @Query("SELECT COUNT(b) FROM Bill b WHERE b.restaurantId = :restaurantId AND b.isDeleted = false AND b.refundAmount > 0")
+    long countRefundedBillsByRestaurant(@Param("restaurantId") Long restaurantId);
 
     @Query("SELECT b.restaurantId, COUNT(b) FROM Bill b WHERE b.isDeleted = false GROUP BY b.restaurantId")
     List<Object[]> countGroupedByRestaurant();
+
+    Optional<Bill> findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(Long restaurantId, Long lifetimeOrderId);
 }

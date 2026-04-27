@@ -10,6 +10,8 @@ public record AdminDashboardSummaryResponse(
         long liveBusinesses,
         long totalStaff,
         long totalOrders,
-        BigDecimal totalRevenue
+        BigDecimal totalRevenue,
+        long refundedOrders,
+        BigDecimal refundedAmount
 ) {
 }
