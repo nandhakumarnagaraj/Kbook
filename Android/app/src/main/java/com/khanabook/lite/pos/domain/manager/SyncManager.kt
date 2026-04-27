@@ -109,6 +109,10 @@ class SyncManager @Inject constructor(
         return performFullSync().isSuccess
     }
 
+    suspend fun pushUnsyncedDataWithResult(): Result<Unit> {
+        return performFullSync()
+    }
+
     /**
      * Pulls all master data since [lastSyncTimestamp] and persists it atomically.
      * The [sessionManager.saveLastSyncTimestamp] call happens LAST — after Room

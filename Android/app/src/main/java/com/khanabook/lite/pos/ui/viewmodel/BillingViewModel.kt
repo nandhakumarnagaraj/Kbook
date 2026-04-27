@@ -325,14 +325,25 @@ class BillingViewModel @Inject constructor(
             val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
             _lastBill.value = inserted
 
+            // Pre-flight: ensure profile.restaurantId is set; sync's pushAll() returns false silently otherwise.
+            val profileForSync = restaurantRepository.getProfile()
+            if (profileForSync == null || (profileForSync.restaurantId ?: 0L) <= 0L) {
+                _error.value = "Account setup incomplete. Please log out and log in again to refresh your profile."
+                _isLoading.value = false
+                return null
+            }
+
+            var lastError: Throwable? = null
             var synced = false
             for (attempt in 1..3) {
-                synced = syncManager.pushUnsyncedDataImmediately()
-                if (synced) break
+                val result = syncManager.pushUnsyncedDataWithResult()
+                if (result.isSuccess) { synced = true; break }
+                lastError = result.exceptionOrNull()
+                Log.w(TAG, "Sync attempt $attempt failed", lastError)
                 if (attempt < 3) kotlinx.coroutines.delay(attempt * 1000L)
             }
             if (!synced) {
-                _error.value = "Draft bill saved locally, but sync failed. Check your connection and try again."
+                _error.value = describeSyncFailure(lastError)
                 _isLoading.value = false
                 return null
             }
@@ -809,6 +820,28 @@ class BillingViewModel @Inject constructor(
         super.onCleared()
         viewModelScope.launch(Dispatchers.IO) {
             printerManager.disconnect()
+        }
+    }
+
+    private fun describeSyncFailure(error: Throwable?): String {
+        if (error == null) {
+            return "Sync did not complete. Please check your connection and try again."
+        }
+        return when (error) {
+            is retrofit2.HttpException -> when (error.code()) {
+                401, 403 -> "Session expired. Please log out and log in again."
+                409 -> "Sync conflict. Please retry in a moment."
+                in 400..499 -> "Server rejected the bill data (HTTP ${error.code()}). Please try again or contact support."
+                in 500..599 -> "Server error (HTTP ${error.code()}). Please try again shortly."
+                else -> "Sync failed: HTTP ${error.code()}. ${error.message()}"
+            }
+            is java.net.UnknownHostException, is java.net.ConnectException ->
+                "Cannot reach server. Check your internet connection."
+            is java.net.SocketTimeoutException ->
+                "Server is slow to respond. Please try again."
+            is java.io.IOException ->
+                "Network error: ${error.message ?: "connection lost"}. Please try again."
+            else -> "Sync failed: ${error.message ?: error.javaClass.simpleName}"
         }
     }
 }
