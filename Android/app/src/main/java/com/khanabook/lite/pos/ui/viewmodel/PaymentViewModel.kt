@@ -47,24 +47,12 @@ class PaymentViewModel @Inject constructor(
         }
     }
 
-    fun saveEasebuzzConfig(
-        merchantKey: String,
-        salt: String,
-        environment: String,
-        currentProfile: RestaurantProfileEntity?
-    ) {
+    fun toggleEasebuzzActive(enabled: Boolean, currentProfile: RestaurantProfileEntity?) {
         viewModelScope.launch {
             _loading.value = true
-            _saved.value = false
             _error.value = null
             try {
-                val response = paymentRepository.saveEasebuzzConfig(
-                    SaveRestaurantPaymentConfigRequest(
-                        merchantKey = merchantKey.trim(),
-                        salt = salt.trim(),
-                        environment = environment.uppercase()
-                    )
-                )
+                val response = paymentRepository.toggleEasebuzzActive(enabled)
                 _config.value = response
                 currentProfile?.copy(
                     easebuzzEnabled = response.active,
@@ -74,7 +62,7 @@ class PaymentViewModel @Inject constructor(
                 )?.let { restaurantRepository.saveProfile(it) }
                 _saved.value = true
             } catch (e: Exception) {
-                _error.value = e.message ?: "Unable to save Easebuzz config"
+                _error.value = e.message ?: "Unable to toggle Easebuzz"
             } finally {
                 _loading.value = false
             }

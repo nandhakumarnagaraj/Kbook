@@ -5,11 +5,11 @@ import com.khanabook.lite.pos.data.remote.api.*
 class PaymentRepository(
     private val api: KhanaBookApi
 ) {
-    suspend fun saveEasebuzzConfig(request: SaveRestaurantPaymentConfigRequest): RestaurantPaymentConfigResponse =
-        api.saveEasebuzzConfig(request)
-
     suspend fun getEasebuzzConfig(): RestaurantPaymentConfigResponse =
         api.getEasebuzzConfig()
+
+    suspend fun toggleEasebuzzActive(enabled: Boolean): RestaurantPaymentConfigResponse =
+        api.toggleEasebuzzActive(enabled)
 
     suspend fun createEasebuzzOrder(request: CreateEasebuzzOrderRequest): CreateEasebuzzOrderResponse =
         api.createEasebuzzOrder(request)

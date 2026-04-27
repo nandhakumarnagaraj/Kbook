@@ -83,9 +83,6 @@ fun PaymentConfigView(
     // flow uses the live gateway (real-time success/failed via webhook). When
     // disabled or offline, the manual QR + counter-confirmation flow is used.
     var easebuzzEnabled by remember { mutableStateOf(profile?.easebuzzEnabled ?: false) }
-    var easebuzzMerchantKey by remember { mutableStateOf("") }
-    var easebuzzSalt by remember { mutableStateOf("") }
-    var easebuzzEnv by remember { mutableStateOf(profile?.easebuzzEnv ?: "test") }
     val remoteConfig by paymentViewModel.config.collectAsStateWithLifecycle()
     val remoteLoading by paymentViewModel.loading.collectAsStateWithLifecycle()
     val remoteError by paymentViewModel.error.collectAsStateWithLifecycle()
@@ -98,9 +95,6 @@ fun PaymentConfigView(
     LaunchedEffect(remoteConfig) {
         remoteConfig?.let {
             easebuzzEnabled = it.active
-            easebuzzEnv = it.environment.lowercase()
-            easebuzzMerchantKey = ""
-            easebuzzSalt = ""
         }
     }
 
@@ -193,75 +187,36 @@ fun PaymentConfigView(
                 color = TextGold,
                 style = MaterialTheme.typography.bodySmall
             )
-            PaymentToggle("Enable Easebuzz", easebuzzEnabled) { easebuzzEnabled = it }
-            if (easebuzzEnabled) {
-                Spacer(modifier = Modifier.height(spacing.small))
-                remoteConfig?.let {
-                    Text(
-                        "Backend key on file: ${it.merchantKeyMasked}. Enter a new key and salt only if you want to rotate credentials.",
-                        color = TextGold,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Spacer(modifier = Modifier.height(spacing.small))
-                }
-                ParchmentTextField(
-                    value = easebuzzMerchantKey,
-                    onValueChange = { easebuzzMerchantKey = it.trim() },
-                    label = if (remoteConfig != null) "New Merchant Key (optional)" else "Merchant Key"
+            if (remoteConfig != null) {
+                Text(
+                    "Merchant: ${remoteConfig.merchantKeyMasked} · ${remoteConfig.environment}",
+                    color = TextGold,
+                    style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(modifier = Modifier.height(spacing.small))
-                ParchmentTextField(
-                    value = easebuzzSalt,
-                    onValueChange = { easebuzzSalt = it.trim() },
-                    label = if (remoteConfig != null) "New Salt (optional)" else "Salt"
+                Text(
+                    "To update credentials, use the web admin dashboard.",
+                    color = TextGold,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                 )
                 Spacer(modifier = Modifier.height(spacing.small))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Environment",
-                        color = TextGold,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    EnvChip("test", easebuzzEnv == "test") { easebuzzEnv = "test" }
-                    Spacer(modifier = Modifier.size(spacing.small))
-                    EnvChip("prod", easebuzzEnv == "prod") { easebuzzEnv = "prod" }
-                }
+            }
+            PaymentToggle("Enable Easebuzz", easebuzzEnabled) { newState ->
+                easebuzzEnabled = newState
+                paymentViewModel.toggleEasebuzzActive(newState, profile)
             }
 
-            if (remoteLoading) {
-                Spacer(modifier = Modifier.height(spacing.small))
-                Text("Syncing payment config…", color = TextGold, style = MaterialTheme.typography.bodySmall)
-            }
             remoteError?.let {
                 Spacer(modifier = Modifier.height(spacing.small))
                 Text(it, color = Color.Red, style = MaterialTheme.typography.bodySmall)
-            }
-            if (remoteSaved) {
-                Spacer(modifier = Modifier.height(spacing.small))
-                Text("Easebuzz config saved securely on backend.", color = SuccessGreen, style = MaterialTheme.typography.bodySmall)
             }
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
                 Button(
                     onClick = {
-                        val hasExistingRemoteConfig = remoteConfig?.active == true
-                        val enteredBothSecrets = easebuzzMerchantKey.isNotBlank() && easebuzzSalt.isNotBlank()
-                        if (easebuzzEnabled && !hasExistingRemoteConfig && !enteredBothSecrets) {
-                            paymentViewModel.showError("Enter Easebuzz merchant key and salt before enabling online UPI.")
-                            return@Button
-                        }
-                        if (enteredBothSecrets) {
-                            paymentViewModel.saveEasebuzzConfig(
-                                merchantKey = easebuzzMerchantKey,
-                                salt = easebuzzSalt,
-                                environment = easebuzzEnv,
-                                currentProfile = profile
-                            )
-                        } else {
-                            paymentViewModel.clearMessages()
-                        }
+                        paymentViewModel.clearMessages()
                         profile?.copy(
                             currency = currency,
                             upiEnabled = upiSupported,
@@ -276,7 +231,7 @@ fun PaymentConfigView(
                             easebuzzEnabled = easebuzzEnabled,
                             easebuzzMerchantKey = null,
                             easebuzzSalt = null,
-                            easebuzzEnv = remoteConfig?.environment?.lowercase() ?: easebuzzEnv,
+                            easebuzzEnv = remoteConfig?.environment?.lowercase() ?: "test",
                             isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }
@@ -293,21 +248,6 @@ fun PaymentConfigView(
                 ) { Text("Back") }
             }
         }
-    }
-}
-
-@Composable
-private fun EnvChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        border = BorderStroke(1.dp, if (selected) SuccessGreen else PrimaryGold),
-        shape = RoundedCornerShape(20.dp)
-    ) {
-        Text(
-            label,
-            color = if (selected) SuccessGreen else PrimaryGold,
-            style = MaterialTheme.typography.bodyMedium
-        )
     }
 }
 

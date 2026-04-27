@@ -90,6 +90,9 @@ interface KhanaBookApi {
         @GET("api/v1/restaurants/payment-config/easebuzz")
         suspend fun getEasebuzzConfig(): RestaurantPaymentConfigResponse
 
+        @PATCH("api/v1/restaurants/payment-config/easebuzz/toggle")
+        suspend fun toggleEasebuzzActive(@Query("enabled") enabled: Boolean): RestaurantPaymentConfigResponse
+
         @POST("api/v1/payments/easebuzz/create-order")
         suspend fun createEasebuzzOrder(@Body request: CreateEasebuzzOrderRequest): CreateEasebuzzOrderResponse
 
