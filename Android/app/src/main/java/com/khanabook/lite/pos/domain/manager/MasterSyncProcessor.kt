@@ -7,7 +7,7 @@ import com.khanabook.lite.pos.data.local.dao.*
 import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.api.MasterSyncResponse
-import com.khanabook.lite.pos.data.remote.dto.PushSyncResponse
+import com.khanabook.lite.pos.data.remote.dto.*
 import com.khanabook.lite.pos.domain.util.SyncConflictException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,43 +26,57 @@ class MasterSyncProcessor @Inject constructor(
     private val printerProfileDao: PrinterProfileDao
 ) {
 
-    private suspend fun <T> pushBatches(
+    private val tag = "MasterSyncProcessor"
+
+    // INFO logs are verbose; suppress in release to reduce logcat noise.
+    // WARN / ERROR always surface — production sync failures must be visible.
+    private fun logInfo(msg: String) { if (android.os.BuildConfig.DEBUG) Log.i(tag, msg) }
+    private fun logWarn(msg: String, t: Throwable? = null) { if (t != null) Log.w(tag, msg, t) else Log.w(tag, msg) }
+    private fun logError(msg: String, t: Throwable? = null) { if (t != null) Log.e(tag, msg, t) else Log.e(tag, msg) }
+
+    /**
+     * Pushes [Entity] records to the server as [Dto] payloads.
+     *
+     * [T] = Room entity type (source of truth for local state)
+     * [R] = Network DTO type (stable API contract, decoupled from Room schema)
+     *
+     * The [transform] lambda converts each entity to its DTO immediately before
+     * the batch is sent — no entity objects ever reach Retrofit/Moshi directly.
+     */
+    private suspend fun <T, R> pushBatches(
         label: String,
         records: List<T>,
-        push: suspend (List<T>) -> PushSyncResponse,
+        transform: (T) -> R,
+        push: suspend (List<R>) -> PushSyncResponse,
         markSynced: suspend (List<Long>) -> Unit
     ) {
         if (records.isEmpty()) return
 
         val batches = records.chunked(50)
-        Log.i("MasterSyncProcessor", "Pushing ${records.size} $label record(s) in ${batches.size} batch(es)")
+        logInfo("Pushing ${records.size} $label record(s) in ${batches.size} batch(es)")
 
         batches.forEachIndexed { index, batch ->
             try {
-                val response = push(batch)
+                val response = push(batch.map(transform))
                 markSynced(response.successfulLocalIds)
 
-                Log.i(
-                    "MasterSyncProcessor",
+                logInfo(
                     "Pushed $label batch ${index + 1}/${batches.size}: success=${response.successfulLocalIds.size}, failed=${response.failedLocalIds.size}"
                 )
 
                 if (response.failedLocalIds.isNotEmpty()) {
-                    Log.w(
-                        "MasterSyncProcessor",
+                    logWarn(
                         "Server rejected $label localIds=${response.failedLocalIds.joinToString(",")}"
                     )
                 }
             } catch (e: Exception) {
                 if (e is HttpException && e.code() == 409) {
-                    Log.w(
-                        "MasterSyncProcessor",
+                    logWarn(
                         "Conflict while pushing $label batch ${index + 1}/${batches.size}"
                     )
                     throw SyncConflictException(e)
                 }
-                Log.e(
-                    "MasterSyncProcessor",
+                logError(
                     "Failed pushing $label batch ${index + 1}/${batches.size}",
                     e
                 )
@@ -122,7 +136,7 @@ class MasterSyncProcessor @Inject constructor(
     }
 
     suspend fun pushAll(): Boolean {
-        // Guard: never push data with an invalid tenant — it would be written to the null bucket
+        // Guard: never push data with an invalid tenant
         val profile = restaurantDao.getProfile()
         val restaurantId = profile?.restaurantId ?: 0L
         if (restaurantId <= 0L) {
@@ -130,13 +144,13 @@ class MasterSyncProcessor @Inject constructor(
             return false
         }
 
-        // Embed kitchen printer into restaurant profile before pushing so the server
-        // always has the latest kitchen printer config (survives reinstall / new device).
+        // Embed kitchen printer into restaurant profile before pushing.
         syncKitchenPrinterIntoProfile(profile)
 
         pushBatches(
             label = "restaurant profiles",
             records = restaurantDao.getUnsyncedRestaurantProfiles(),
+            transform = RestaurantProfileEntity::toSyncDto,
             push = api::pushRestaurantProfiles,
             markSynced = restaurantDao::markRestaurantProfilesAsSynced
         )
@@ -144,6 +158,7 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "users",
             records = userDao.getUnsyncedUsers(),
+            transform = UserEntity::toSyncDto,
             push = api::pushUsers,
             markSynced = userDao::markUsersAsSynced
         )
@@ -151,6 +166,7 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "categories",
             records = categoryDao.getUnsyncedCategories(),
+            transform = CategoryEntity::toSyncDto,
             push = api::pushCategories,
             markSynced = categoryDao::markCategoriesAsSynced
         )
@@ -158,6 +174,7 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "menu items",
             records = menuDao.getUnsyncedMenuItems(),
+            transform = MenuItemEntity::toSyncDto,
             push = api::pushMenuItems,
             markSynced = menuDao::markMenuItemsAsSynced
         )
@@ -165,6 +182,7 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "item variants",
             records = menuDao.getUnsyncedItemVariants(),
+            transform = ItemVariantEntity::toSyncDto,
             push = api::pushItemVariants,
             markSynced = menuDao::markItemVariantsAsSynced
         )
@@ -172,6 +190,7 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "stock logs",
             records = inventoryDao.getUnsyncedStockLogs(),
+            transform = StockLogEntity::toSyncDto,
             push = api::pushStockLogs,
             markSynced = inventoryDao::markStockLogsAsSynced
         )
@@ -185,6 +204,7 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "bills",
             records = validBills,
+            transform = BillEntity::toSyncDto,
             push = api::pushBills,
             markSynced = billDao::markBillsAsSynced
         )
@@ -192,6 +212,7 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "bill items",
             records = billDao.getUnsyncedBillItems().filter { it.restaurantId == restaurantId },
+            transform = BillItemEntity::toSyncDto,
             push = api::pushBillItems,
             markSynced = billDao::markBillItemsAsSynced
         )
@@ -199,6 +220,7 @@ class MasterSyncProcessor @Inject constructor(
         pushBatches(
             label = "bill payments",
             records = billDao.getUnsyncedBillPayments().filter { it.restaurantId == restaurantId },
+            transform = BillPaymentEntity::toSyncDto,
             push = api::pushBillPayments,
             markSynced = billDao::markBillPaymentsAsSynced
         )

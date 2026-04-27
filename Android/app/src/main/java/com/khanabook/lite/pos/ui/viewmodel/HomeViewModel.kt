@@ -7,6 +7,7 @@ import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
+import java.time.LocalTime
 
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 @HiltViewModel
@@ -31,6 +32,23 @@ class HomeViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 0
         )
+
+    /** Emits the shop name for a personalised greeting. Falls back to "Your Shop". */
+    val shopName: StateFlow<String> = profileFlow
+        .map { it?.shopName?.takeIf { n -> n.isNotBlank() } ?: "Your Shop" }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = "Your Shop"
+        )
+
+    /** Time-aware greeting: Good Morning / Afternoon / Evening. */
+    val greeting: String
+        get() = when (LocalTime.now().hour) {
+            in 5..11  -> "Good Morning"
+            in 12..16 -> "Good Afternoon"
+            else       -> "Good Evening"
+        }
 
     val statsReady: StateFlow<Boolean> = profileFlow
         .filterNotNull()

@@ -75,6 +75,8 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 
 @Composable
 fun NewBillScreen(
@@ -409,6 +411,8 @@ fun MenuSelectionStep(
     val searchQuery by menuViewModel.searchQuery.collectAsStateWithLifecycle()
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
+    val connectionStatus by billingViewModel.connectionStatus.collectAsStateWithLifecycle()
+    val isOffline = connectionStatus == ConnectionStatus.Unavailable
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val displayItems = if (searchQuery.isNotBlank()) searchResults else items
@@ -446,6 +450,35 @@ fun MenuSelectionStep(
                 }
             }
 
+            // ── Offline sync banner ───────────────────────────────────────────
+            // Visible only when the device has no network. Lets the cashier know
+            // the bill is safely saved locally and will sync once back online.
+            AnimatedVisibility(
+                visible = isOffline,
+                enter = expandVertically() + fadeIn(tween(300)),
+                exit  = shrinkVertically() + fadeOut(tween(200))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(WarningYellow.copy(alpha = 0.15f))
+                        .padding(horizontal = spacing.medium, vertical = spacing.small),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CloudOff,
+                        contentDescription = null,
+                        tint = WarningYellow,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Offline — bill will sync when back online",
+                        color = WarningYellow,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { menuViewModel.setSearchQuery(it) },

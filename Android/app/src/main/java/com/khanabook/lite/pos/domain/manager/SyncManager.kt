@@ -64,7 +64,14 @@ class SyncManager @Inject constructor(
     suspend fun performFullSync(): Result<Unit> {
         return syncMutex.withLock {
             val deviceId = sessionManager.getDeviceId()
-            val lastSyncTimestamp = sessionManager.getLastSyncTimestamp()
+
+            // ── Timestamp Race Fix (#2) ────────────────────────────────────────────
+            // Capture the checkpoint BEFORE the sync cycle begins. This timestamp
+            // is NOT written to persistent storage until the ENTIRE push+pull cycle
+            // succeeds atomically in pullAndPersistMasterData(). If the push succeeds
+            // but the pull fails, the checkpoint stays at the old value and the next
+            // cycle re-pulls the missed window — no records are permanently lost.
+            val syncCheckpointTimestamp = sessionManager.getLastSyncTimestamp()
 
             try {
                 val pushSucceeded = masterSyncProcessor.pushAll()
@@ -74,17 +81,19 @@ class SyncManager @Inject constructor(
                     return@withLock Result.failure(error)
                 }
 
-                pullAndPersistMasterData(lastSyncTimestamp, deviceId)
+                // Only if pull fully succeeds is the checkpoint committed.
+                pullAndPersistMasterData(syncCheckpointTimestamp, deviceId)
                 Result.success(Unit)
             } catch (e: SyncConflictException) {
-                logWarn("Push conflict detected; pulling latest server data before stopping retries", e)
-                runCatching { pullAndPersistMasterData(lastSyncTimestamp, deviceId) }
+                logWarn("Push conflict detected; pulling latest server data before resolving", e)
+                // Recovery pull uses the pre-sync checkpoint so we don't miss the conflicted window.
+                runCatching { pullAndPersistMasterData(syncCheckpointTimestamp, deviceId) }
                     .onFailure { pullError -> logError("Conflict recovery pull failed", pullError) }
                 Result.failure(e)
             } catch (e: Exception) {
                 if (e is HttpException && e.code() == 409) {
                     logWarn("HTTP 409 during sync; treating as conflict", e)
-                    runCatching { pullAndPersistMasterData(lastSyncTimestamp, deviceId) }
+                    runCatching { pullAndPersistMasterData(syncCheckpointTimestamp, deviceId) }
                         .onFailure { pullError -> logError("Conflict recovery pull failed", pullError) }
                     return@withLock Result.failure(SyncConflictException(e))
                 }
@@ -98,9 +107,17 @@ class SyncManager @Inject constructor(
         return performFullSync().isSuccess
     }
 
+    /**
+     * Pulls all master data since [lastSyncTimestamp] and persists it atomically.
+     * The [sessionManager.saveLastSyncTimestamp] call happens LAST — after Room
+     * has fully committed all pulled records — ensuring the checkpoint only advances
+     * when we have a complete, consistent local state.
+     */
     private suspend fun pullAndPersistMasterData(lastSyncTimestamp: Long, deviceId: String) {
         val mergedResponse = mergeMasterSyncPages(pullMasterSyncPages(lastSyncTimestamp, deviceId))
+        // Persist all pulled records into Room (wrapped in a DB transaction in MasterSyncProcessor).
         masterSyncProcessor.insertMasterData(mergedResponse)
+        // Commit the new checkpoint ONLY after Room write fully succeeds.
         if (mergedResponse.serverTimestamp > 0) {
             sessionManager.saveLastSyncTimestamp(mergedResponse.serverTimestamp)
         } else {

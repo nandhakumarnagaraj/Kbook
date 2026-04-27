@@ -50,6 +50,8 @@ fun HomeScreen(
     val stats by viewModel.todayStats.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
     val unsyncedCount by viewModel.unsyncedCount.collectAsState()
+    val shopName by viewModel.shopName.collectAsState()
+    val greeting = viewModel.greeting
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val isWideScreen = !layout.isCompact
@@ -98,19 +100,20 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Dashboard",
-                            color = PrimaryGold,
-                            style = MaterialTheme.typography.headlineMedium
-                        )
+                        Column {
+                            Text(
+                                text = greeting,
+                                color = TextGold,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                            Text(
+                                text = shopName,
+                                color = PrimaryGold,
+                                style = MaterialTheme.typography.headlineMedium
+                            )
+                        }
                         SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
                     }
-                    Text(
-                        text = "Welcome back! Manage your restaurant billing efficiently.",
-                        color = TextGold,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = spacing.large)
-                    )
                 }
             }
 
@@ -298,29 +301,37 @@ fun SyncStatusHeader(
     val currentUser by authViewModel.currentUser.collectAsState()
     val isSessionValid = currentUser != null
     val shouldShowSync = isOnline && isSessionValid && unsyncedCount > 0
-    
-    // Animation for the rotating icon (only when syncing)
-    val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rotation"
-    )
 
-    // Pulse animation for the "Syncing" background (only when syncing)
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.1f,
-        targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
+    // ── Animate ONLY when there is actually something pending to sync ──────────
+    // Previously, rememberInfiniteTransition() was always composed, running
+    // rotation + pulse on every frame even when fully synced — wasting battery.
+    // Now both values are static 0f when idle.
+    val rotation: Float
+    val pulseAlpha: Float
+    if (shouldShowSync) {
+        val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
+        rotation = infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "rotation"
+        ).value
+        pulseAlpha = infiniteTransition.animateFloat(
+            initialValue = 0.1f,
+            targetValue = 0.3f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "pulse"
+        ).value
+    } else {
+        rotation = 0f
+        pulseAlpha = 0.15f
+    }
 
     val containerColor = when {
         !isOnline -> DangerRed

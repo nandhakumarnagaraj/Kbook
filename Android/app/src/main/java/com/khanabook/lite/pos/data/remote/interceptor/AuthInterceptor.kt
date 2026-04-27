@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.data.remote.interceptor
 
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import javax.inject.Inject
 import okhttp3.Interceptor
@@ -19,6 +20,11 @@ class AuthInterceptor @Inject constructor(private val sessionManager: SessionMan
     if (deviceId.isNotBlank()) {
         requestBuilder.addHeader("X-Device-Id", deviceId)
     }
+
+    // FIX #13 — API versioning: send version code so the server can track
+    // which app versions are active and issue deprecation warnings.
+    requestBuilder.addHeader("X-App-Version", BuildConfig.VERSION_CODE.toString())
+    requestBuilder.addHeader("X-App-Platform", "android")
 
     // Public endpoints — any path under /auth/ or containing /login
     val isPublicAuthPath = path.contains("/auth/") || path.contains("/login")
