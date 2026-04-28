@@ -147,7 +147,7 @@ fun NewBillScreen(
 
     Scaffold(
         containerColor = DarkBrown1,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
         topBar = {
             Column(modifier = Modifier.background(DarkBrown1)) {
                 CenterAlignedTopAppBar(
@@ -1411,9 +1411,15 @@ fun PaymentStep(
                                 gatewayError = "Sync failed. Check your connection and try again."
                                 return@launch
                             }
+                            val gatewayAmount = when (selectedMode) {
+                                PaymentMode.PART_CASH_UPI -> p2Text   // p2 = UPI leg
+                                PaymentMode.PART_UPI_POS  -> p1Text   // p1 = UPI leg
+                                else -> summary.total
+                            }
                             val result = viewModel.easebuzzClient.initiateTxn(
                                 billId = localBillId,
-                                paymentMethod = PaymentGatewayHelper.gatewayPaymentMethod(selectedMode)
+                                paymentMethod = PaymentGatewayHelper.gatewayPaymentMethod(selectedMode),
+                                gatewayAmount = gatewayAmount
                             )
                             gatewayInProgress = false
                             when (result) {

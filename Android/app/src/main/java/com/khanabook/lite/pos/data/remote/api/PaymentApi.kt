@@ -16,7 +16,8 @@ data class RestaurantPaymentConfigResponse(
 
 data class CreateEasebuzzOrderRequest(
     val billId: Long,
-    val paymentMethod: String
+    val paymentMethod: String,
+    val gatewayAmount: String? = null
 )
 
 data class CreateEasebuzzOrderResponse(

@@ -42,13 +42,15 @@ class EasebuzzClient @Inject constructor(
 
     suspend fun initiateTxn(
         billId: Long,
-        paymentMethod: String
+        paymentMethod: String,
+        gatewayAmount: String? = null
     ): InitResult = withContext(Dispatchers.IO) {
         try {
             val response = api.createEasebuzzOrder(
                 com.khanabook.lite.pos.data.remote.api.CreateEasebuzzOrderRequest(
                     billId = billId,
-                    paymentMethod = paymentMethod
+                    paymentMethod = paymentMethod,
+                    gatewayAmount = gatewayAmount
                 )
             )
             InitResult.Success(

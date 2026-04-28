@@ -53,7 +53,15 @@ public class EasebuzzPaymentService {
 
         RestaurantPaymentConfig config = paymentConfigService.getActiveConfig(restaurantId);
         String salt = paymentConfigService.decryptSalt(config);
-        String amount = bill.getTotalAmount().setScale(2, RoundingMode.HALF_UP).toPlainString();
+        BigDecimal billTotal = bill.getTotalAmount();
+        BigDecimal chargeAmount = request.getGatewayAmount() != null
+                ? request.getGatewayAmount()
+                : billTotal;
+        if (chargeAmount.signum() <= 0 || chargeAmount.compareTo(billTotal) > 0) {
+            throw new IllegalArgumentException("Invalid gateway amount: must be > 0 and <= bill total");
+        }
+        chargeAmount = chargeAmount.setScale(2, RoundingMode.HALF_UP);
+        String amount = chargeAmount.toPlainString();
         String txnId = buildTxnId(restaurantId, request.getBillId());
         String firstName = bill.getCustomerName() == null || bill.getCustomerName().isBlank()
                 ? "Customer" : bill.getCustomerName();
@@ -87,7 +95,7 @@ public class EasebuzzPaymentService {
         payment.setRestaurantId(restaurantId);
         payment.setBillId(bill.getId());
         payment.setUserId(userId);
-        payment.setAmount(bill.getTotalAmount());
+        payment.setAmount(chargeAmount);
         payment.setCurrency("INR");
         payment.setGateway(PaymentGateway.EASEBUZZ);
         payment.setGatewayTxnId(txnId);
