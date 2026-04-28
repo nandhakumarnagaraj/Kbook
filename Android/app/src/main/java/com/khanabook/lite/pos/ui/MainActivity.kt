@@ -30,6 +30,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.manager.PaymentReturnManager
@@ -134,8 +136,9 @@ class MainActivity : FragmentActivity() {
 
                 LaunchedEffect(navController) {
                     PaymentReturnManager.latestEvent.collect { event ->
-                        if (event != null && navController.currentDestination?.route != "new_bill") {
-                            navController.navigate("new_bill")
+                        val currentRoute = navController.currentDestination?.route
+                        if (event != null && currentRoute?.startsWith("new_bill") != true) {
+                            navController.navigate("new_bill?resumePayment=true")
                         }
                     }
                 }
@@ -279,11 +282,21 @@ class MainActivity : FragmentActivity() {
                             }
                         )
                     }
-                    composable("new_bill") {
+                    composable(
+                        route = "new_bill?resumePayment={resumePayment}",
+                        arguments = listOf(
+                            navArgument("resumePayment") {
+                                type = NavType.BoolType
+                                defaultValue = false
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val resumePayment = backStackEntry.arguments?.getBoolean("resumePayment") == true
                         NewBillScreen(
                             onBack = { navController.popBackStack() },
                             modifier = Modifier.fillMaxSize(),
-                            navController = navController
+                            navController = navController,
+                            resumePendingPayment = resumePayment
                         )
                     }
                     composable("ocr_scanner/{source}") { backStackEntry ->

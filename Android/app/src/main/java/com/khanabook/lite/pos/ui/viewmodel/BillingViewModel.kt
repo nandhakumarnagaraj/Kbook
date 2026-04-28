@@ -246,6 +246,19 @@ class BillingViewModel @Inject constructor(
         _customerWhatsapp.value = whatsapp
     }
 
+    fun resetForNewBill() {
+        _cartItems.value = emptyList()
+        _customerName.value = ""
+        _customerWhatsapp.value = ""
+        _paymentMode.value = PaymentMode.UPI
+        _partAmount1.value = "0.0"
+        _partAmount2.value = "0.0"
+        _lastBill.value = null
+        _error.value = null
+        _printStatus.value = null
+        clearGatewayResult()
+    }
+
     fun setPaymentMode(mode: PaymentMode, p1: String = "0.0", p2: String = "0.0") {
         _paymentMode.value = mode
         _partAmount1.value = p1.ifBlank { "0.0" }

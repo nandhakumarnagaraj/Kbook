@@ -84,7 +84,8 @@ fun NewBillScreen(
         billingViewModel: BillingViewModel = hiltViewModel(),
         menuViewModel: MenuViewModel = hiltViewModel(),
         settingsViewModel: SettingsViewModel = hiltViewModel(),
-        navController: androidx.navigation.NavController? = null
+        navController: androidx.navigation.NavController? = null,
+        resumePendingPayment: Boolean = false
 ) {
     var step by remember { mutableIntStateOf(1) }
     var paymentFlowLocked by remember { mutableStateOf(false) }
@@ -121,10 +122,13 @@ fun NewBillScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        val hasPendingReturn = PaymentReturnManager.latestEvent.value != null
-        val pendingBillId = billingViewModel.getLatestPendingOnlineBillId()
-        if ((hasPendingReturn || pendingBillId != null) && step < 3) {
+    LaunchedEffect(resumePendingPayment) {
+        if (!resumePendingPayment) {
+            billingViewModel.resetForNewBill()
+            step = 1
+            return@LaunchedEffect
+        }
+        if (PaymentReturnManager.latestEvent.value != null && step < 3) {
             step = 3
         }
     }
@@ -221,7 +225,8 @@ fun NewBillScreen(
                                     onBackToMenu = { step = 2 },
                                     onComplete = { step = 4 },
                                     onFailed = { step = 5 },
-                                    onFlowLockChange = { paymentFlowLocked = it }
+                                    onFlowLockChange = { paymentFlowLocked = it },
+                                    resumePendingPayment = resumePendingPayment
                             )
                     4 ->
                             SuccessStep(
@@ -932,7 +937,8 @@ fun PaymentStep(
     onBackToMenu: () -> Unit,
     onComplete: () -> Unit,
     onFailed: () -> Unit = {},
-    onFlowLockChange: (Boolean) -> Unit = {}
+    onFlowLockChange: (Boolean) -> Unit = {},
+    resumePendingPayment: Boolean = false
 ) {
     val summary by viewModel.billSummary.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
@@ -1241,7 +1247,8 @@ fun PaymentStep(
             onDispose { onFlowLockChange(false) }
         }
 
-        LaunchedEffect(Unit) {
+        LaunchedEffect(resumePendingPayment) {
+            if (!resumePendingPayment) return@LaunchedEffect
             if (awaitingBillId != null) return@LaunchedEffect
             val pendingBillId = viewModel.getLatestPendingOnlineBillId() ?: return@LaunchedEffect
             if (!viewModel.restorePendingOnlineBill(pendingBillId)) return@LaunchedEffect
