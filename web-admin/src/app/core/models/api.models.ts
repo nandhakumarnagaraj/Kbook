@@ -68,6 +68,7 @@ export interface BusinessDashboard {
   posOrderCount: number;
   onlineOrderCount: number;
   pendingOnlineOrders: number;
+  pendingPosPayments: number;
   totalRevenue: number;
   todayRevenue: number;
   refundedOrders: number;

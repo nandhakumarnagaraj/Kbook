@@ -124,10 +124,12 @@ class BillRepository(
     }
 
     suspend fun cancelStalePendingOnlineDrafts(): Int {
-        return billDao.cancelStalePendingOnlineDrafts(
+        val cancelled = billDao.cancelStalePendingOnlineDrafts(
             reason = "Superseded by new payment attempt",
             updatedAt = System.currentTimeMillis()
         )
+        if (cancelled > 0) triggerBackgroundSync()
+        return cancelled
     }
 
     suspend fun updatePaymentMode(id: Long, mode: String, partAmount1: String = "0.0", partAmount2: String = "0.0") {

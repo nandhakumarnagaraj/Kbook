@@ -269,6 +269,10 @@ class BillingViewModel @Inject constructor(
         return billRepository.getLatestPendingOnlineBill()?.id
     }
 
+    suspend fun cancelPendingOnlineDrafts(): Int {
+        return billRepository.cancelStalePendingOnlineDrafts()
+    }
+
     suspend fun restorePendingOnlineBill(localBillId: Long): Boolean {
         val bill = billRepository.getBillById(localBillId) ?: return false
         _paymentMode.value = PaymentMode.fromDbValue(bill.paymentMode)

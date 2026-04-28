@@ -51,6 +51,10 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <strong>{{ data.pendingOnlineOrders }}</strong>
         </article>
         <article class="panel stat-card">
+          <h3>Pending POS Pay</h3>
+          <strong>{{ data.pendingPosPayments }}</strong>
+        </article>
+        <article class="panel stat-card">
           <h3>Staff / Menu</h3>
           <strong>{{ data.totalStaff }} / {{ data.totalMenuItems }}</strong>
         </article>
@@ -66,6 +70,11 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
               <h3>Review Pending Online Orders</h3>
               <p>Use the orders page to clear pending online requests quickly so storefront customers do not stall at confirmation.</p>
               <span class="chip warn">{{ data.pendingOnlineOrders }} pending</span>
+            </article>
+            <article class="suggestion-card">
+              <h3>Resume Pending POS Payments</h3>
+              <p>Draft POS bills with pending payments should be resumed or cancelled before starting new gateway attempts.</p>
+              <span class="chip warn">{{ data.pendingPosPayments }} pending</span>
             </article>
             <article class="suggestion-card">
               <h3>Balance Menu Against Sales</h3>

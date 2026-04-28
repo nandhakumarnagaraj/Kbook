@@ -89,6 +89,9 @@ fun NewBillScreen(
 ) {
     var step by remember { mutableIntStateOf(1) }
     var paymentFlowLocked by remember { mutableStateOf(false) }
+    var shouldResumePendingPayment by remember { mutableStateOf(resumePendingPayment) }
+    var showPendingDraftDialog by remember { mutableStateOf(false) }
+    var pendingDraftBillId by remember { mutableStateOf<Long?>(null) }
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
 
@@ -122,14 +125,26 @@ fun NewBillScreen(
         }
     }
 
-    LaunchedEffect(resumePendingPayment) {
-        if (!resumePendingPayment) {
+    LaunchedEffect(shouldResumePendingPayment) {
+        if (!shouldResumePendingPayment) {
             billingViewModel.resetForNewBill()
+            pendingDraftBillId = billingViewModel.getLatestPendingOnlineBillId()
+            showPendingDraftDialog = pendingDraftBillId != null
             step = 1
             return@LaunchedEffect
         }
         if (PaymentReturnManager.latestEvent.value != null && step < 3) {
             step = 3
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        PaymentReturnManager.latestEvent.collect { event ->
+            if (event != null) {
+                shouldResumePendingPayment = true
+                showPendingDraftDialog = false
+                if (step < 3) step = 3
+            }
         }
     }
 
@@ -155,7 +170,13 @@ fun NewBillScreen(
         topBar = {
             Column(modifier = Modifier.background(DarkBrown1)) {
                 CenterAlignedTopAppBar(
-                    title = { Text("New Bill", color = PrimaryGold, style = MaterialTheme.typography.titleLarge) },
+                    title = {
+                        Text(
+                            if (shouldResumePendingPayment) "Resume Payment" else "New Bill",
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
                     navigationIcon = {
                         IconButton(
                             enabled = !paymentFlowLocked,
@@ -226,7 +247,7 @@ fun NewBillScreen(
                                     onComplete = { step = 4 },
                                     onFailed = { step = 5 },
                                     onFlowLockChange = { paymentFlowLocked = it },
-                                    resumePendingPayment = resumePendingPayment
+                                    resumePendingPayment = shouldResumePendingPayment
                             )
                     4 ->
                             SuccessStep(
@@ -248,8 +269,51 @@ fun NewBillScreen(
                 visible = isLoading,
                 type = LoadingType.SAVING
             )
+
+            if (showPendingDraftDialog) {
+                PendingPaymentChoiceDialog(
+                    onResume = {
+                        showPendingDraftDialog = false
+                        shouldResumePendingPayment = true
+                        step = 3
+                    },
+                    onStartNew = {
+                        coroutineScope.launch {
+                            billingViewModel.cancelPendingOnlineDrafts()
+                            pendingDraftBillId = null
+                            showPendingDraftDialog = false
+                            shouldResumePendingPayment = false
+                            step = 1
+                        }
+                    }
+                )
+            }
         }
         } // end AnimatedVisibility
+    }
+}
+
+@Composable
+private fun PendingPaymentChoiceDialog(
+    onResume: () -> Unit,
+    onStartNew: () -> Unit
+) {
+    KhanaBookDialog(
+        onDismissRequest = {},
+        title = "Pending Payment Found",
+        message = "A previous online payment is still waiting for confirmation.",
+        dismissOnClickOutside = false,
+        dismissOnBackPress = false
+    ) {
+        TextButton(onClick = onStartNew) {
+            Text("Start New", color = TextGold, style = MaterialTheme.typography.labelLarge)
+        }
+        Button(
+            onClick = onResume,
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)
+        ) {
+            Text("Resume", color = DarkBrown1, style = MaterialTheme.typography.labelLarge)
+        }
     }
 }
 
@@ -1899,49 +1963,112 @@ fun BillStepper(currentStep: Int) {
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.Center
     ) {
-        StepItem(icon = Icons.Default.Person, label = "Customer", isActive = currentStep >= 1, isCompleted = currentStep > 1)
-        StepConnector(isCompleted = currentStep > 1)
-        StepItem(icon = Icons.AutoMirrored.Filled.List, label = "Menu", isActive = currentStep >= 2, isCompleted = currentStep > 2)
-        StepConnector(isCompleted = currentStep > 2)
-        StepItem(icon = Icons.Default.Payments, label = "Payment", isActive = currentStep >= 3, isCompleted = currentStep > 3)
-        StepConnector(isCompleted = resultStepActive)
+        StepItem(
+            icon = Icons.Default.Person,
+            label = "Customer",
+            isActive = currentStep >= 1,
+            isCompleted = currentStep > 1,
+            showEndConnector = true,
+            endConnectorCompleted = currentStep > 1,
+            modifier = Modifier.weight(1f)
+        )
+        StepItem(
+            icon = Icons.AutoMirrored.Filled.List,
+            label = "Menu",
+            isActive = currentStep >= 2,
+            isCompleted = currentStep > 2,
+            showStartConnector = true,
+            startConnectorCompleted = currentStep > 1,
+            showEndConnector = true,
+            endConnectorCompleted = currentStep > 2,
+            modifier = Modifier.weight(1f)
+        )
+        StepItem(
+            icon = Icons.Default.Payments,
+            label = "Payment",
+            isActive = currentStep >= 3,
+            isCompleted = currentStep > 3,
+            showStartConnector = true,
+            startConnectorCompleted = currentStep > 2,
+            showEndConnector = true,
+            endConnectorCompleted = resultStepActive,
+            modifier = Modifier.weight(1f)
+        )
         StepItem(
             icon = resultIcon,
             label = resultLabel,
             isActive = resultStepActive,
-            isCompleted = currentStep == 4
+            isCompleted = currentStep == 4,
+            showStartConnector = true,
+            startConnectorCompleted = resultStepActive,
+            modifier = Modifier.weight(1f)
         )
     }
 }
 
 @Composable
-fun StepItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, isActive: Boolean, isCompleted: Boolean) {
+fun StepItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    isActive: Boolean,
+    isCompleted: Boolean,
+    modifier: Modifier = Modifier,
+    showStartConnector: Boolean = false,
+    startConnectorCompleted: Boolean = false,
+    showEndConnector: Boolean = false,
+    endConnectorCompleted: Boolean = false
+) {
     val color = if (isActive) PrimaryGold else Color.Gray
     val containerColor = if (isActive) PrimaryGold.copy(alpha = 0.1f) else Color.Transparent
-    
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .size(36.dp)
-                .background(containerColor, CircleShape)
-                .border(1.dp, color, CircleShape),
+                .fillMaxWidth()
+                .height(36.dp),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                icon, 
-                contentDescription = null, 
-                tint = color,
-                modifier = Modifier.size(18.dp)
-            )
-            if (isCompleted) {
+            if (showStartConnector) {
                 Box(
                     modifier = Modifier
-                        .size(14.dp)
-                        .align(Alignment.BottomEnd)
-                        .background(VegGreen, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(10.dp))
+                        .align(Alignment.CenterStart)
+                        .fillMaxWidth(0.5f)
+                        .height(1.dp)
+                        .background(if (startConnectorCompleted) PrimaryGold else Color.Gray)
+                )
+            }
+            if (showEndConnector) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxWidth(0.5f)
+                        .height(1.dp)
+                        .background(if (endConnectorCompleted) PrimaryGold else Color.Gray)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(if (isActive) containerColor else DarkBrown1, CircleShape)
+                    .border(1.dp, color, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(18.dp)
+                )
+                if (isCompleted) {
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .align(Alignment.BottomEnd)
+                            .background(VegGreen, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(10.dp))
+                    }
                 }
             }
         }
@@ -1949,16 +2076,3 @@ fun StepItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: Strin
     }
 }
 
-@Composable
-fun RowScope.StepConnector(isCompleted: Boolean) {
-    val color = if (isCompleted) PrimaryGold else Color.Gray
-    val spacing = KhanaBookTheme.spacing
-    // padding(top=17.dp) aligns the 1dp line with the center of the 36dp icon circle
-    Box(
-        modifier = Modifier
-            .weight(1f)
-            .padding(top = 17.dp, start = spacing.extraSmall, end = spacing.extraSmall)
-            .height(1.dp)
-            .background(color)
-    )
-}

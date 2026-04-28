@@ -14,6 +14,7 @@ public record BusinessDashboardResponse(
         long posOrderCount,
         long onlineOrderCount,
         long pendingOnlineOrders,
+        long pendingPosPayments,
         BigDecimal totalRevenue,
         BigDecimal todayRevenue,
         long refundedOrders,

@@ -108,6 +108,9 @@ public class BusinessReadService {
                 .pendingOnlineOrders(storefrontOrders.stream()
                         .filter(order -> "PENDING_CONFIRMATION".equalsIgnoreCase(order.getOrderStatus()))
                         .count())
+                .pendingPosPayments(bills.stream()
+                        .filter(this::isPendingPosPayment)
+                        .count())
                 .totalRevenue(billRevenue.add(storefrontRevenue))
                 .todayRevenue(todayBillRevenue.add(todayStorefrontRevenue))
                 .refundedOrders(refundedOrders)
@@ -227,6 +230,11 @@ public class BusinessReadService {
     private boolean isRevenueBillStatus(String orderStatus, String paymentStatus) {
         return ("completed".equalsIgnoreCase(orderStatus) || "paid".equalsIgnoreCase(orderStatus))
                 && ("success".equalsIgnoreCase(paymentStatus) || "paid".equalsIgnoreCase(paymentStatus));
+    }
+
+    private boolean isPendingPosPayment(Bill bill) {
+        return "draft".equalsIgnoreCase(bill.getOrderStatus())
+                && "pending".equalsIgnoreCase(bill.getPaymentStatus());
     }
 
     private boolean isRefundedBill(Bill bill, Payment payment) {
