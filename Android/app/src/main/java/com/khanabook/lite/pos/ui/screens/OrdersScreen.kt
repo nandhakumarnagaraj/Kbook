@@ -37,7 +37,8 @@ import com.khanabook.lite.pos.data.remote.dto.MerchantCustomerOrderDetailRespons
 import com.khanabook.lite.pos.data.remote.dto.MerchantCustomerOrderSummaryResponse
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.domain.util.DateUtils
-import com.khanabook.lite.pos.domain.util.shareBillOnWhatsApp
+import com.khanabook.lite.pos.domain.util.sendInvoiceViaSms
+import com.khanabook.lite.pos.domain.util.shareInvoiceViaWhatsAppLink
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
@@ -339,14 +340,14 @@ fun OrdersScreen(
                                 onShare = {
                                     scope.launch {
                                         viewModel.getOrderDetail(row.billId)?.let { detail ->
-                                            shareBillOnWhatsApp(context, detail, profile)
+                                            sendInvoiceViaSms(context, detail, profile)
                                         }
                                     }
                                 },
                                 onShareText = {
                                     scope.launch {
                                         viewModel.getOrderDetail(row.billId)?.let { detail ->
-                                            com.khanabook.lite.pos.domain.util.shareBillTextOnWhatsApp(context, detail, profile)
+                                            shareInvoiceViaWhatsAppLink(context, detail, profile)
                                         }
                                     }
                                 },

@@ -138,7 +138,103 @@ fun generateBillText(bill: BillWithItems, profile: RestaurantProfileEntity?): St
 }
 
 /**
- * Shares the bill as a text message on WhatsApp. 
+ * Opens the native SMS app pre-filled with the invoice text and customer phone.
+ * No permissions required — uses ACTION_SENDTO intent.
+ */
+fun sendInvoiceViaSms(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
+    val text = generateBillText(billWithItems, profile)
+    val raw = billWithItems.bill.customerWhatsapp
+    val digits = raw?.replace(Regex("[^0-9]"), "") ?: ""
+    // For Indian SMS: use 10-digit number; strip country code if present
+    val smsPhone = when {
+        digits.length == 10 -> digits
+        digits.length == 12 && digits.startsWith("91") -> digits.drop(2)
+        digits.length > 10 -> digits.takeLast(10)
+        else -> ""
+    }
+    val intent = Intent(Intent.ACTION_SENDTO).apply {
+        data = android.net.Uri.parse("smsto:$smsPhone")
+        putExtra("sms_body", text)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    try {
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(context, "Unable to open SMS app.", Toast.LENGTH_SHORT).show()
+    }
+}
+
+/**
+ * Builds the public invoice URL hosted on the backend.
+ * Returns null if the bill has not been synced yet (no serverId).
+ */
+fun buildInvoiceShareUrl(billWithItems: BillWithItems): String? {
+    val serverId = billWithItems.bill.serverId ?: return null
+    val restaurantId = billWithItems.bill.restaurantId
+    val base = com.khanabook.lite.pos.BuildConfig.BACKEND_URL.trimEnd('/')
+    return "$base/public/invoice/$restaurantId/$serverId"
+}
+
+/**
+ * Shares the invoice on WhatsApp as a LINK only.
+ * The link points to the backend's hosted invoice page.
+ *
+ * Requires the bill to be synced (serverId present). If not synced,
+ * falls back to sending the full invoice text — same behaviour as before
+ * so the user is never blocked.
+ *
+ * Uses whatsapp://send (direct app URI) so it works offline — WhatsApp
+ * queues the message and delivers when internet returns.
+ */
+fun shareInvoiceViaWhatsAppLink(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
+    val link = buildInvoiceShareUrl(billWithItems)
+    val message = if (link != null) {
+        val shop = profile?.shopName?.takeIf { it.isNotBlank() } ?: "Invoice"
+        val total = billWithItems.bill.totalAmount
+        val currency = if (profile?.currency == "INR" || profile?.currency == "Rupee") "Rs." else profile?.currency ?: ""
+        "*$shop*\nInvoice INV${billWithItems.bill.lifetimeOrderId}\nTotal: $currency$total\n\nView: $link"
+    } else {
+        Toast.makeText(context, "Sync pending — sharing as text", Toast.LENGTH_SHORT).show()
+        generateBillText(billWithItems, profile)
+    }
+
+    val raw = billWithItems.bill.customerWhatsapp
+    val digits = raw?.replace(Regex("[^0-9]"), "") ?: ""
+    val formattedPhone = when {
+        digits.length == 10 -> "91$digits"
+        digits.length > 10 -> digits
+        else -> null
+    }
+    val encoded = android.net.Uri.encode(message)
+
+    if (formattedPhone != null) {
+        try {
+            val uri = android.net.Uri.parse("whatsapp://send?phone=$formattedPhone&text=$encoded")
+            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            TrustedExternalAppReturn.mark(context)
+            context.startActivity(intent)
+            return
+        } catch (e: Exception) {
+            android.util.Log.w(UTILS_TAG, "WhatsApp direct URI failed, falling back to share sheet", e)
+        }
+    }
+
+    val fallback = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, message)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    try {
+        context.startActivity(Intent.createChooser(fallback, "Share Invoice via"))
+    } catch (e: Exception) {
+        Toast.makeText(context, "Unable to open WhatsApp.", Toast.LENGTH_SHORT).show()
+    }
+}
+
+/**
+ * Shares the bill as a text message on WhatsApp.
  * This method works WITHOUT contact permission and does NOT save temporary contacts.
  */
 fun shareBillTextOnWhatsApp(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {

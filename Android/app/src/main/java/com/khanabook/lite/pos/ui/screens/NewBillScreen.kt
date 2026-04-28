@@ -1761,21 +1761,21 @@ fun SuccessStep(
         ) {
             Button(
                     onClick = {
-                        lastBill?.let { shareBillOnWhatsApp(context, it, profile) }
+                        lastBill?.let { sendInvoiceViaSms(context, it, profile) }
                     },
                     modifier = Modifier.weight(1f).height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
                     shape = RoundedCornerShape(12.dp),
                     enabled = lastBill != null
             ) {
-                Icon(Icons.Default.PictureAsPdf, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
+                Icon(Icons.Default.Sms, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                 Spacer(modifier = Modifier.width(spacing.extraSmall))
-                Text("PDF", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                Text("SMS", color = Color.White, style = MaterialTheme.typography.titleMedium)
             }
 
             Button(
                     onClick = {
-                        lastBill?.let { shareBillTextOnWhatsApp(context, it, profile) }
+                        lastBill?.let { shareInvoiceViaWhatsAppLink(context, it, profile) }
                     },
                     modifier = Modifier.weight(1f).height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
@@ -1784,7 +1784,7 @@ fun SuccessStep(
             ) {
                 Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                 Spacer(modifier = Modifier.width(spacing.extraSmall))
-                Text("Text", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                Text("WhatsApp", color = Color.White, style = MaterialTheme.typography.titleMedium)
             }
         }
         Spacer(modifier = Modifier.height(spacing.medium))

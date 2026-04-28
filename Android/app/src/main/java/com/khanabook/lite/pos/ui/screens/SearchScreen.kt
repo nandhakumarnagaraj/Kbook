@@ -412,21 +412,21 @@ fun SearchScreen(
                                 ) {
                                     Button(
                                         onClick = {
-                                            result?.let { shareBillOnWhatsApp(context, it, profile) }
+                                            result?.let { sendInvoiceViaSms(context, it, profile) }
                                         },
                                         enabled = currentResult.items.isNotEmpty(),
                                         modifier = Modifier.weight(1f).height(48.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Icon(Icons.Default.PictureAsPdf, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
+                                        Icon(Icons.Default.Sms, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                                         Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                        Text("PDF", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                        Text("SMS", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                     }
 
                                     Button(
                                         onClick = {
-                                            result?.let { shareBillTextOnWhatsApp(context, it, profile) }
+                                            result?.let { shareInvoiceViaWhatsAppLink(context, it, profile) }
                                         },
                                         enabled = currentResult.items.isNotEmpty(),
                                         modifier = Modifier.weight(1f).height(48.dp),
@@ -435,7 +435,7 @@ fun SearchScreen(
                                     ) {
                                         Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                                         Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                        Text("Text", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                        Text("WhatsApp", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                     }
                                 }
 
