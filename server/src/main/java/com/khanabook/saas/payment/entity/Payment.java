@@ -90,6 +90,12 @@ public class Payment {
     @Column(name = "refund_processed_at")
     private Long refundProcessedAt;
 
+    @Column(name = "refund_last_gateway_payload", columnDefinition = "TEXT")
+    private String refundLastGatewayPayload;
+
+    @Column(name = "refund_last_gateway_sync_at")
+    private Long refundLastGatewaySyncAt;
+
     @Column(name = "created_at", nullable = false)
     private Long createdAt;
 

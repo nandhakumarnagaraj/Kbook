@@ -19,6 +19,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
 
 @Service
@@ -200,20 +201,22 @@ public class EasebuzzPaymentService {
         return Map.of("ok", true);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = RuntimeException.class)
     public Payment initiateGatewayRefund(Long restaurantId, Long billId, BigDecimal refundAmount, String reason) {
         Bill bill = billRepository.findById(billId)
                 .filter(existing -> existing.getRestaurantId().equals(restaurantId))
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
         Payment payment = requireLatestSuccessfulEasebuzzPayment(restaurantId, billId);
-        validateRefundEligibility(bill, payment, refundAmount);
+        BigDecimal canonicalRefundAmount = canonicalRefundAmount(refundAmount);
+        validateRefundEligibility(bill, payment, canonicalRefundAmount);
 
         long now = System.currentTimeMillis();
         RestaurantPaymentConfig config = paymentConfigService.getActiveConfig(restaurantId);
         String salt = paymentConfigService.decryptSalt(config);
-        String merchantRefundId = "KBR_" + payment.getId() + "_" + now;
-        String amount = refundAmount.setScale(2, RoundingMode.HALF_UP).toPlainString();
+        String normalizedReason = normalizeRefundReason(reason);
+        String merchantRefundId = resolveMerchantRefundId(payment, canonicalRefundAmount, normalizedReason, now);
+        String amount = canonicalRefundAmount.toPlainString();
         String requestHash = hashService.buildRefundRequestHash(
                 config.getMerchantKey(),
                 merchantRefundId,
@@ -222,23 +225,46 @@ public class EasebuzzPaymentService {
                 salt
         );
 
-        EasebuzzGatewayClient.RefundInitiation response = gatewayClient.initiateRefund(
-                config.getEnvironment(),
-                config.getMerchantKey(),
-                merchantRefundId,
-                payment.getGatewayPaymentId(),
-                amount,
-                requestHash
-        );
+        EasebuzzGatewayClient.RefundInitiation response;
+        try {
+            response = gatewayClient.initiateRefund(
+                    config.getEnvironment(),
+                    config.getMerchantKey(),
+                    merchantRefundId,
+                    payment.getGatewayPaymentId(),
+                    amount,
+                    requestHash
+            );
+        } catch (RuntimeException ex) {
+            markGatewayRefundFailure(payment, bill, canonicalRefundAmount, merchantRefundId, now, ex.getMessage(), null);
+            throw ex;
+        }
+        if (!response.isApiAccepted()) {
+            String failureMessage = response.getMessage().isBlank()
+                    ? "Easebuzz refund request was rejected"
+                    : response.getMessage();
+            markGatewayRefundFailure(
+                    payment,
+                    bill,
+                    canonicalRefundAmount,
+                    merchantRefundId,
+                    now,
+                    failureMessage,
+                    response.getRawPayload()
+            );
+            throw new IllegalArgumentException(failureMessage);
+        }
 
         payment.setRefundMode(RefundMode.EASEBUZZ);
-        payment.setRefundStatus(mapRefundStatus(response.getRawStatus(), RefundStatus.PENDING));
-        payment.setRefundAmount(refundAmount);
-        payment.setRefundReason(normalizeRefundReason(reason));
+        payment.setRefundStatus(mapRefundStatus(response.getRefundStatus(), RefundStatus.PENDING));
+        payment.setRefundAmount(canonicalRefundAmount);
+        payment.setRefundReason(normalizedReason);
         payment.setMerchantRefundId(merchantRefundId);
         payment.setRefundGatewayRefundId(response.getRefundId());
         payment.setRefundRequestedAt(now);
         payment.setRefundProcessedAt(payment.getRefundStatus() == RefundStatus.SUCCESS ? now : null);
+        payment.setRefundLastGatewayPayload(response.getRawPayload());
+        payment.setRefundLastGatewaySyncAt(now);
         payment.setUpdatedAt(now);
         paymentRepository.save(payment);
 
@@ -278,10 +304,23 @@ public class EasebuzzPaymentService {
     @Transactional
     public Map<String, Object> processRefundWebhook(Map<String, String> params) {
         Payment payment = resolveRefundPayment(params);
-        if (payment == null) {
+        PaymentWebhookLog log = new PaymentWebhookLog();
+        log.setGateway(PaymentGateway.EASEBUZZ);
+        log.setTxnId(blankToNull(params.getOrDefault("merchant_refund_id", params.getOrDefault("refund_id", params.get("easebuzz_id")))));
+        log.setPayload(params.toString());
+        log.setReceivedAt(System.currentTimeMillis());
+        log.setProcessed(false);
+        log.setPaymentId(payment != null ? payment.getId() : null);
+
+        boolean sourceValid = payment != null && isRefundWebhookSourceValid(params, payment);
+        log.setSignatureValid(sourceValid);
+        webhookLogRepository.save(log);
+
+        if (!sourceValid) {
             return Map.of("ok", true, "ignored", true);
         }
         refreshRefundStatus(payment);
+        logProcessed(log);
         return Map.of("ok", true);
     }
 
@@ -314,6 +353,8 @@ public class EasebuzzPaymentService {
         if (status == RefundStatus.SUCCESS && payment.getRefundProcessedAt() == null) {
             payment.setRefundProcessedAt(System.currentTimeMillis());
         }
+        payment.setRefundLastGatewayPayload(lookup.getRawPayload());
+        payment.setRefundLastGatewaySyncAt(System.currentTimeMillis());
         payment.setUpdatedAt(System.currentTimeMillis());
         paymentRepository.save(payment);
 
@@ -371,11 +412,22 @@ public class EasebuzzPaymentService {
 
     private void syncBillRefundState(Bill bill, Payment payment) {
         long now = System.currentTimeMillis();
-        bill.setRefundAmount(payment.getRefundAmount() == null ? BigDecimal.ZERO : payment.getRefundAmount());
-        bill.setCancelReason(payment.getRefundReason() == null ? "" : payment.getRefundReason());
-        bill.setOrderStatus("cancelled");
-        if ("refunded".equalsIgnoreCase(bill.getPaymentStatus())) {
+        if (payment.getRefundStatus() == RefundStatus.SUCCESS) {
+            bill.setRefundAmount(payment.getRefundAmount() == null ? BigDecimal.ZERO : payment.getRefundAmount());
+            bill.setCancelReason(payment.getRefundReason() == null ? "" : payment.getRefundReason());
+            bill.setOrderStatus("cancelled");
             bill.setPaymentStatus("success");
+        } else {
+            bill.setRefundAmount(BigDecimal.ZERO);
+            if (bill.getPaymentStatus() == null || bill.getPaymentStatus().isBlank() || "refunded".equalsIgnoreCase(bill.getPaymentStatus())) {
+                bill.setPaymentStatus("success");
+            }
+            if ("cancelled".equalsIgnoreCase(bill.getOrderStatus()) && payment.getPaymentStatus() == PaymentStatus.SUCCESS) {
+                bill.setOrderStatus("completed");
+            }
+            if (payment.getRefundStatus() != RefundStatus.FAILED) {
+                bill.setCancelReason("");
+            }
         }
         bill.setUpdatedAt(now);
         bill.setServerUpdatedAt(now);
@@ -390,6 +442,30 @@ public class EasebuzzPaymentService {
         bill.setUpdatedAt(now);
         bill.setServerUpdatedAt(now);
         billRepository.save(bill);
+    }
+
+    private void markGatewayRefundFailure(
+            Payment payment,
+            Bill bill,
+            BigDecimal refundAmount,
+            String merchantRefundId,
+            long now,
+            String failureMessage,
+            String rawPayload
+    ) {
+        payment.setRefundMode(RefundMode.EASEBUZZ);
+        payment.setRefundStatus(RefundStatus.FAILED);
+        payment.setRefundAmount(refundAmount);
+        payment.setRefundReason((failureMessage == null || failureMessage.isBlank())
+                ? "Easebuzz refund request failed"
+                : failureMessage.trim());
+        payment.setMerchantRefundId(merchantRefundId);
+        payment.setRefundRequestedAt(now);
+        payment.setRefundLastGatewayPayload(rawPayload);
+        payment.setRefundLastGatewaySyncAt(now);
+        payment.setUpdatedAt(now);
+        paymentRepository.save(payment);
+        syncBillRefundState(bill, payment);
     }
 
     private void ensureBillPaymentRow(Bill bill, Payment payment) {
@@ -434,9 +510,6 @@ public class EasebuzzPaymentService {
     }
 
     private void validateRefundEligibility(Bill bill, Payment payment, BigDecimal refundAmount) {
-        if (refundAmount == null || refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Refund amount must be greater than zero");
-        }
         if (refundAmount.compareTo(bill.getTotalAmount().setScale(2, RoundingMode.HALF_UP)) > 0) {
             throw new IllegalArgumentException("Refund amount cannot exceed order total");
         }
@@ -515,6 +588,29 @@ public class EasebuzzPaymentService {
                 : paymentRepository.findTopByGatewayPaymentIdOrderByUpdatedAtDesc(gatewayPaymentId).orElse(null);
     }
 
+    private boolean isRefundWebhookSourceValid(Map<String, String> params, Payment payment) {
+        String merchantRefundId = blankToNull(params.get("merchant_refund_id"));
+        String refundId = blankToNull(params.get("refund_id"));
+        String gatewayPaymentId = blankToNull(params.getOrDefault("easepayid", params.get("easebuzz_id")));
+        boolean matchesKnownReference =
+                (merchantRefundId != null && merchantRefundId.equals(payment.getMerchantRefundId()))
+                        || (refundId != null && refundId.equals(payment.getRefundGatewayRefundId()))
+                        || (gatewayPaymentId != null && gatewayPaymentId.equals(payment.getGatewayPaymentId()));
+        if (!matchesKnownReference) {
+            return false;
+        }
+
+        String merchantKey = blankToNull(params.get("key"));
+        if (merchantKey == null) {
+            return true;
+        }
+        try {
+            return merchantKey.equals(paymentConfigService.getActiveConfig(payment.getRestaurantId()).getMerchantKey());
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     private RefundStatus mapRefundStatus(String raw, RefundStatus fallback) {
         if (raw == null || raw.isBlank()) {
             return fallback;
@@ -531,6 +627,29 @@ public class EasebuzzPaymentService {
 
     private String normalizeRefundReason(String reason) {
         return reason == null || reason.isBlank() ? "Refund issued" : reason.trim();
+    }
+
+    private BigDecimal canonicalRefundAmount(BigDecimal refundAmount) {
+        if (refundAmount == null) {
+            throw new IllegalArgumentException("Refund amount is required");
+        }
+        BigDecimal canonical = refundAmount.setScale(2, RoundingMode.HALF_UP);
+        if (canonical.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Refund amount must be greater than zero");
+        }
+        return canonical;
+    }
+
+    private String resolveMerchantRefundId(Payment payment, BigDecimal refundAmount, String reason, long now) {
+        boolean sameRequest = payment.getRefundMode() == RefundMode.EASEBUZZ
+                && payment.getMerchantRefundId() != null
+                && payment.getRefundAmount() != null
+                && payment.getRefundAmount().compareTo(refundAmount) == 0
+                && Objects.equals(normalizeRefundReason(payment.getRefundReason()), reason)
+                && payment.getRefundStatus() != RefundStatus.SUCCESS;
+        return sameRequest
+                ? payment.getMerchantRefundId()
+                : "KBR_" + payment.getId() + "_" + now;
     }
 
     private String blankToNull(String value) {

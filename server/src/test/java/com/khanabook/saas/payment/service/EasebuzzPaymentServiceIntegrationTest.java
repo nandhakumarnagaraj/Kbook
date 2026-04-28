@@ -6,6 +6,8 @@ import com.khanabook.saas.entity.BillPayment;
 import com.khanabook.saas.payment.entity.Payment;
 import com.khanabook.saas.payment.entity.PaymentGateway;
 import com.khanabook.saas.payment.entity.PaymentStatus;
+import com.khanabook.saas.payment.entity.RefundMode;
+import com.khanabook.saas.payment.entity.RefundStatus;
 import com.khanabook.saas.payment.entity.PaymentWebhookLog;
 import com.khanabook.saas.payment.entity.RestaurantPaymentConfig;
 import com.khanabook.saas.payment.repository.PaymentRepository;
@@ -16,13 +18,20 @@ import com.khanabook.saas.repository.BillRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.math.BigDecimal;
+import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class EasebuzzPaymentServiceIntegrationTest extends BaseIntegrationTest {
 
@@ -40,6 +49,7 @@ class EasebuzzPaymentServiceIntegrationTest extends BaseIntegrationTest {
     @Autowired private PaymentWebhookLogRepository webhookLogRepository;
     @Autowired private BillRepository billRepository;
     @Autowired private BillPaymentRepository billPaymentRepository;
+    @MockBean private EasebuzzGatewayClient gatewayClient;
 
     @BeforeEach
     void setUp() {
@@ -149,6 +159,291 @@ class EasebuzzPaymentServiceIntegrationTest extends BaseIntegrationTest {
                 "Manual fallback"
         )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Easebuzz payments must be refunded via Easebuzz");
+    }
+
+    @Test
+    void initiateGatewayRefund_rejectedByEasebuzz_marksRefundFailed_withoutCancellingBill() {
+        Bill bill = saveDraftBill();
+        bill.setPaymentStatus("success");
+        bill.setOrderStatus("completed");
+        billRepository.save(bill);
+        saveActiveConfig();
+
+        Payment payment = savePendingPayment(bill);
+        payment.setPaymentStatus(PaymentStatus.SUCCESS);
+        payment.setGatewayPaymentId("EZP123");
+        payment.setGatewayStatus("success");
+        payment.setVerifiedAt(System.currentTimeMillis());
+        paymentRepository.save(payment);
+
+        when(gatewayClient.initiateRefund(anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(EasebuzzGatewayClient.RefundInitiation.builder()
+                        .apiStatus("0")
+                        .apiAccepted(false)
+                        .message("Refund rejected by gateway")
+                        .build());
+
+        assertThatThrownBy(() -> paymentService.initiateGatewayRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("10"),
+                "Customer requested cancellation"
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Refund rejected by gateway");
+
+        Payment updatedPayment = paymentRepository.findById(payment.getId()).orElseThrow();
+        Bill updatedBill = billRepository.findById(bill.getId()).orElseThrow();
+
+        assertThat(updatedPayment.getRefundMode()).isEqualTo(RefundMode.EASEBUZZ);
+        assertThat(updatedPayment.getRefundStatus()).isEqualTo(RefundStatus.FAILED);
+        assertThat(updatedPayment.getRefundAmount()).isEqualByComparingTo("10.00");
+        assertThat(updatedBill.getOrderStatus()).isEqualTo("completed");
+        assertThat(updatedBill.getPaymentStatus()).isEqualTo("success");
+        assertThat(updatedBill.getRefundAmount()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void initiateGatewayRefund_reusesMerchantRefundId_forSameRetryRequest() {
+        Bill bill = saveDraftBill();
+        bill.setPaymentStatus("success");
+        bill.setOrderStatus("completed");
+        billRepository.save(bill);
+        saveActiveConfig();
+
+        Payment payment = savePendingPayment(bill);
+        payment.setPaymentStatus(PaymentStatus.SUCCESS);
+        payment.setGatewayPaymentId("EZP123");
+        payment.setGatewayStatus("success");
+        payment.setVerifiedAt(System.currentTimeMillis());
+        payment.setRefundMode(RefundMode.EASEBUZZ);
+        payment.setRefundStatus(RefundStatus.FAILED);
+        payment.setRefundAmount(new BigDecimal("10.00"));
+        payment.setRefundReason("Customer requested cancellation");
+        payment.setMerchantRefundId("KBR_EXISTING");
+        paymentRepository.save(payment);
+
+        when(gatewayClient.initiateRefund(anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(EasebuzzGatewayClient.RefundInitiation.builder()
+                        .apiStatus("1")
+                        .apiAccepted(true)
+                        .refundStatus("pending")
+                        .refundId("RF123")
+                        .message("Request accepted")
+                        .build());
+
+        Payment updatedPayment = paymentService.initiateGatewayRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("10"),
+                "Customer requested cancellation"
+        );
+
+        assertThat(updatedPayment.getMerchantRefundId()).isEqualTo("KBR_EXISTING");
+        assertThat(updatedPayment.getRefundStatus()).isEqualTo(RefundStatus.PENDING);
+        assertThat(updatedPayment.getRefundAmount()).isEqualByComparingTo("10.00");
+        verify(gatewayClient, never()).fetchRefundStatus(anyString(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void initiateGatewayRefund_rejectsDuplicateClickWhileRefundPending() {
+        Bill bill = saveCompletedEasebuzzBill();
+        Payment payment = saveSuccessfulEasebuzzPayment(bill);
+        payment.setRefundMode(RefundMode.EASEBUZZ);
+        payment.setRefundStatus(RefundStatus.PENDING);
+        payment.setRefundAmount(new BigDecimal("100.00"));
+        payment.setMerchantRefundId("KBR_PENDING");
+        paymentRepository.save(payment);
+
+        assertThatThrownBy(() -> paymentService.initiateGatewayRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("100.00"),
+                "Duplicate click"
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already pending");
+
+        verify(gatewayClient, never()).initiateRefund(anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void initiateGatewayRefund_rejectsSecondRefundAfterPartialRefundSucceeded() {
+        Bill bill = saveCompletedEasebuzzBill();
+        Payment payment = saveSuccessfulEasebuzzPayment(bill);
+        payment.setRefundMode(RefundMode.EASEBUZZ);
+        payment.setRefundStatus(RefundStatus.SUCCESS);
+        payment.setRefundAmount(new BigDecimal("100.00"));
+        payment.setRefundReason("Partial refund processed");
+        payment.setMerchantRefundId("KBR_PARTIAL");
+        paymentRepository.save(payment);
+
+        Bill updatedBill = billRepository.findById(bill.getId()).orElseThrow();
+        updatedBill.setRefundAmount(new BigDecimal("100.00"));
+        updatedBill.setOrderStatus("cancelled");
+        updatedBill.setCancelReason("Partial refund processed");
+        billRepository.save(updatedBill);
+
+        assertThatThrownBy(() -> paymentService.initiateGatewayRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("50.00"),
+                "Second refund attempt"
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already refunded");
+    }
+
+    @Test
+    void initiateGatewayRefund_rejectsRefundGreaterThanOrderAmount() {
+        Bill bill = saveCompletedEasebuzzBill();
+        saveSuccessfulEasebuzzPayment(bill);
+
+        assertThatThrownBy(() -> paymentService.initiateGatewayRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("300.00"),
+                "Over refund"
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cannot exceed order total");
+    }
+
+    @Test
+    void initiateGatewayRefund_rejectsAlreadyRefundedOrder() {
+        Bill bill = saveCompletedEasebuzzBill();
+        Payment payment = saveSuccessfulEasebuzzPayment(bill);
+        payment.setRefundMode(RefundMode.EASEBUZZ);
+        payment.setRefundStatus(RefundStatus.SUCCESS);
+        payment.setRefundAmount(new BigDecimal("262.50"));
+        payment.setMerchantRefundId("KBR_DONE");
+        paymentRepository.save(payment);
+
+        Bill updatedBill = billRepository.findById(bill.getId()).orElseThrow();
+        updatedBill.setRefundAmount(new BigDecimal("262.50"));
+        updatedBill.setOrderStatus("cancelled");
+        billRepository.save(updatedBill);
+
+        assertThatThrownBy(() -> paymentService.initiateGatewayRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("262.50"),
+                "Already refunded"
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already refunded");
+    }
+
+    @Test
+    void initiateGatewayRefund_marksFailedWhenGatewayNetworkFails() {
+        Bill bill = saveCompletedEasebuzzBill();
+        Payment payment = saveSuccessfulEasebuzzPayment(bill);
+
+        when(gatewayClient.initiateRefund(anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new ResourceAccessException("Connection reset"));
+
+        assertThatThrownBy(() -> paymentService.initiateGatewayRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("10.00"),
+                "Network failure"
+        )).isInstanceOf(ResourceAccessException.class)
+                .hasMessageContaining("Connection reset");
+
+        Payment updatedPayment = paymentRepository.findById(payment.getId()).orElseThrow();
+        Bill updatedBill = billRepository.findById(bill.getId()).orElseThrow();
+
+        assertThat(updatedPayment.getRefundStatus()).isEqualTo(RefundStatus.FAILED);
+        assertThat(updatedPayment.getRefundReason()).contains("Connection reset");
+        assertThat(updatedBill.getOrderStatus()).isEqualTo("completed");
+        assertThat(updatedBill.getRefundAmount()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void initiateGatewayRefund_marksFailedWhenGatewayTimesOut() {
+        Bill bill = saveCompletedEasebuzzBill();
+        Payment payment = saveSuccessfulEasebuzzPayment(bill);
+
+        when(gatewayClient.initiateRefund(anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenThrow(new ResourceAccessException("Read timed out", new SocketTimeoutException("Read timed out")));
+
+        assertThatThrownBy(() -> paymentService.initiateGatewayRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("10.00"),
+                "Timeout"
+        )).isInstanceOf(ResourceAccessException.class)
+                .hasMessageContaining("Read timed out");
+
+        Payment updatedPayment = paymentRepository.findById(payment.getId()).orElseThrow();
+        assertThat(updatedPayment.getRefundStatus()).isEqualTo(RefundStatus.FAILED);
+        assertThat(updatedPayment.getRefundReason()).contains("Read timed out");
+    }
+
+    @Test
+    void initiateGatewayRefund_marksFailedWhenCredentialsAreWrong() {
+        Bill bill = saveCompletedEasebuzzBill();
+        Payment payment = saveSuccessfulEasebuzzPayment(bill);
+
+        when(gatewayClient.initiateRefund(anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(EasebuzzGatewayClient.RefundInitiation.builder()
+                        .apiStatus("0")
+                        .apiAccepted(false)
+                        .message("Authentication failed: invalid key or hash")
+                        .rawPayload("{\"status\":0,\"message\":\"Authentication failed: invalid key or hash\"}")
+                        .build());
+
+        assertThatThrownBy(() -> paymentService.initiateGatewayRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("10.00"),
+                "Wrong credentials"
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Authentication failed");
+
+        Payment updatedPayment = paymentRepository.findById(payment.getId()).orElseThrow();
+        assertThat(updatedPayment.getRefundStatus()).isEqualTo(RefundStatus.FAILED);
+        assertThat(updatedPayment.getRefundLastGatewayPayload()).contains("Authentication failed");
+    }
+
+    @Test
+    void initiateGatewayRefund_marksFailedWhenEnvironmentDoesNotMatch() {
+        Bill bill = saveCompletedEasebuzzBill();
+        Payment payment = saveSuccessfulEasebuzzPayment(bill);
+
+        when(gatewayClient.initiateRefund(anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(EasebuzzGatewayClient.RefundInitiation.builder()
+                        .apiStatus("0")
+                        .apiAccepted(false)
+                        .message("Transaction not found in selected environment")
+                        .rawPayload("{\"status\":0,\"message\":\"Transaction not found in selected environment\"}")
+                        .build());
+
+        assertThatThrownBy(() -> paymentService.initiateGatewayRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("10.00"),
+                "Env mismatch"
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("selected environment");
+
+        Payment updatedPayment = paymentRepository.findById(payment.getId()).orElseThrow();
+        assertThat(updatedPayment.getRefundStatus()).isEqualTo(RefundStatus.FAILED);
+        assertThat(updatedPayment.getRefundReason()).contains("selected environment");
+    }
+
+    private Bill saveCompletedEasebuzzBill() {
+        Bill bill = saveDraftBill();
+        bill.setPaymentStatus("success");
+        bill.setOrderStatus("completed");
+        bill.setPaymentMode("easebuzz_upi");
+        billRepository.save(bill);
+        saveActiveConfig();
+        return bill;
+    }
+
+    private Payment saveSuccessfulEasebuzzPayment(Bill bill) {
+        Payment payment = savePendingPayment(bill);
+        payment.setPaymentStatus(PaymentStatus.SUCCESS);
+        payment.setGatewayPaymentId("EZP123");
+        payment.setGatewayStatus("success");
+        payment.setVerifiedAt(System.currentTimeMillis());
+        return paymentRepository.save(payment);
     }
 
     private RestaurantPaymentConfig saveActiveConfig() {

@@ -102,16 +102,23 @@ public class EasebuzzGatewayClient {
         form.add("hash", requestHash);
 
         JsonNode json = postForm(dashboardBaseUrlFor(environment) + "/transaction/v2/refund", form);
+        JsonNode data = json.path("data");
         return RefundInitiation.builder()
-                .rawStatus(stringValue(json, "status"))
+                .rawPayload(json.toString())
+                .apiStatus(stringValue(json, "status"))
+                .apiAccepted("1".equals(stringValue(json, "status")))
+                .refundStatus(firstNonBlank(
+                        stringValue(data, "refund_status"),
+                        stringValue(json, "refund_status")))
                 .message(firstNonBlank(
                         stringValue(json, "message"),
-                        stringValue(json.path("data"), "message"),
-                        stringValue(json.path("data"), "reason"),
+                        stringValue(data, "message"),
+                        stringValue(data, "reason"),
+                        stringValue(data, "error_desc"),
                         stringValue(json, "data")))
                 .refundId(firstNonBlank(
-                        stringValue(json.path("data"), "refund_id"),
-                        stringValue(json.path("data"), "request_id"),
+                        stringValue(data, "refund_id"),
+                        stringValue(data, "request_id"),
                         stringValue(json, "refund_id")))
                 .build();
     }
@@ -133,6 +140,7 @@ public class EasebuzzGatewayClient {
         JsonNode refundNode = refunds.isArray() && refunds.size() > 0 ? refunds.get(0) : data;
 
         return RefundLookup.builder()
+                .rawPayload(json.toString())
                 .rawStatus(firstNonBlank(
                         stringValue(refundNode, "refund_status"),
                         stringValue(data, "refund_status"),
@@ -212,7 +220,10 @@ public class EasebuzzGatewayClient {
     @Getter
     @Builder
     public static class RefundInitiation {
-        private String rawStatus;
+        private String rawPayload;
+        private String apiStatus;
+        private boolean apiAccepted;
+        private String refundStatus;
         private String refundId;
         private String message;
     }
@@ -220,6 +231,7 @@ public class EasebuzzGatewayClient {
     @Getter
     @Builder
     public static class RefundLookup {
+        private String rawPayload;
         private String rawStatus;
         private String refundId;
         private String arnNumber;
