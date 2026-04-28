@@ -56,7 +56,8 @@ class MasterSyncProcessor @Inject constructor(
         records: List<T>,
         transform: (T) -> R,
         push: suspend (List<R>) -> PushSyncResponse,
-        markSynced: suspend (List<Long>) -> Unit
+        markSynced: suspend (List<Long>) -> Unit,
+        onServerIds: (suspend (Map<Long, Long>) -> Unit)? = null
     ) {
         if (records.isEmpty()) return
 
@@ -67,6 +68,7 @@ class MasterSyncProcessor @Inject constructor(
             try {
                 val response = push(batch.map(transform))
                 markSynced(response.successfulLocalIds)
+                response.localToServerIdMap?.takeIf { it.isNotEmpty() }?.let { onServerIds?.invoke(it) }
 
                 logInfo(
                     "Pushed $label batch ${index + 1}/${batches.size}: success=${response.successfulLocalIds.size}, failed=${response.failedLocalIds.size}"
@@ -163,7 +165,8 @@ class MasterSyncProcessor @Inject constructor(
             records = listOf(bill),
             transform = BillEntity::toSyncDto,
             push = api::pushBills,
-            markSynced = billDao::markBillsAsSynced
+            markSynced = billDao::markBillsAsSynced,
+            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId) } }
         )
 
         pushBatches(
@@ -251,7 +254,8 @@ class MasterSyncProcessor @Inject constructor(
             records = validBills,
             transform = BillEntity::toSyncDto,
             push = api::pushBills,
-            markSynced = billDao::markBillsAsSynced
+            markSynced = billDao::markBillsAsSynced,
+            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId) } }
         )
 
         pushBatches(

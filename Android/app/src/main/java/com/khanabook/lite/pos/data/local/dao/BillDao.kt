@@ -124,6 +124,9 @@ interface BillDao {
     @Query("UPDATE bills SET is_synced = 1 WHERE id IN (:billIds)")
     suspend fun markBillsAsSynced(billIds: List<Long>)
 
+    @Query("UPDATE bills SET server_id = :serverId WHERE id = :localId")
+    suspend fun updateServerIdByLocalId(localId: Long, serverId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedBills(bills: List<BillEntity>)
 

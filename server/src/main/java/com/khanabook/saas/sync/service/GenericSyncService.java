@@ -375,8 +375,14 @@ public class GenericSyncService {
 			allRecordsToSave.addAll(recordsToSaveMap.values());
 		}
 
+		Map<Long, Long> localToServerIdMap = new HashMap<>();
 		if (!allRecordsToSave.isEmpty()) {
-			repository.saveAll(allRecordsToSave);
+			List<T> saved = repository.saveAll(allRecordsToSave);
+			for (T entity : saved) {
+				if (entity.getLocalId() != null && entity.getId() != null) {
+					localToServerIdMap.put(entity.getLocalId(), entity.getId());
+				}
+			}
 		}
 
 		log.info("Successfully batch synced {} records for Tenant ID: {}", successfulLocalIds.size(), tenantId);
@@ -384,7 +390,9 @@ public class GenericSyncService {
 		log.info("Push sync completed tenantId={} success={} failed={} saved={}",
 				tenantId, successfulLocalIds.size(), failedLocalIds.size(), allRecordsToSave.size());
 
-		return new PushSyncResponse(successfulLocalIds, failedLocalIds);
+		PushSyncResponse response = new PushSyncResponse(successfulLocalIds, failedLocalIds);
+		response.setLocalToServerIdMap(localToServerIdMap);
+		return response;
 	}
 
 	private boolean hasBackendGatewayPayment(Long tenantId, Long billId) {
