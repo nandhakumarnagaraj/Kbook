@@ -398,7 +398,7 @@ fun LoginScreen(
             type = if (isGoogleLogin) LoadingType.GOOGLE_LOGIN else LoadingType.LOGIN
         )
 
-        SnackbarHost(
+        KhanaBookSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
         )

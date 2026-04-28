@@ -1,12 +1,12 @@
-@file:OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+@file:OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class, ExperimentalLayoutApi::class)
 
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
@@ -87,9 +88,14 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(spacing.medium)
+                .statusBarsPadding()
+                .padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
+            // Equal flex space at the top — pairs with the bottom flex spacer
+            // so the content block stays vertically centred and the top/bottom
+            // breathing room is the same on tall screens.
+            Spacer(modifier = Modifier.weight(1f, fill = true))
 
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                 Column {
@@ -97,22 +103,28 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = spacing.medium),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = greeting,
                                 color = TextGold,
-                                style = MaterialTheme.typography.labelMedium
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = shopName,
                                 color = PrimaryGold,
-                                style = MaterialTheme.typography.headlineMedium
+                                style = MaterialTheme.typography.headlineSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
-                        SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
+                        Box(modifier = Modifier.widthIn(max = 160.dp)) {
+                            SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
+                        }
                     }
                 }
             }
@@ -126,7 +138,7 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
-                            modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.mediumLarge)
+                            modifier = Modifier.padding(spacing.medium)
                         ) {
                             Text(
                                 text = "Today's Summary",
@@ -134,37 +146,20 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Spacer(modifier = Modifier.height(spacing.small))
-                            Row(
+                            FlowRow(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                                verticalArrangement = Arrangement.spacedBy(spacing.small),
+                                maxItemsInEachRow = 3
                             ) {
-                                StatItem("Orders", stats.orderCount.toString(), Modifier.weight(1f))
-                                StatItem("Revenue", CurrencyUtils.formatPrice(stats.revenue), Modifier.weight(1f))
-                                StatItem("Customers", stats.customerCount.toString(), Modifier.weight(1f))
-                            }
-                            if (stats.orderCount > 0 || stats.kdsPendingCount > 0) {
-                                Spacer(modifier = Modifier.height(spacing.small))
-                                HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
-                                Spacer(modifier = Modifier.height(spacing.small))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    StatItem(
-                                        "Avg Order",
-                                        CurrencyUtils.formatPrice(stats.avgOrderValue),
-                                        Modifier.weight(1f)
-                                    )
-                                    StatItem(
-                                        "Cancelled",
-                                        stats.cancelledCount.toString(),
-                                        Modifier.weight(1f)
-                                    )
-                                    StatItem(
-                                        "KDS Pending",
-                                        stats.kdsPendingCount.toString(),
-                                        Modifier.weight(1f)
-                                    )
+                                val statMod = Modifier.weight(1f)
+                                StatItem("Orders", stats.orderCount.toString(), statMod)
+                                StatItem("Revenue", CurrencyUtils.formatPriceCompact(stats.revenue), statMod)
+                                StatItem("Customers", stats.customerCount.toString(), statMod)
+                                if (stats.orderCount > 0 || stats.kdsPendingCount > 0) {
+                                    StatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), statMod)
+                                    StatItem("Cancelled", stats.cancelledCount.toString(), statMod)
+                                    StatItem("KDS Pending", stats.kdsPendingCount.toString(), statMod)
                                 }
                             }
                         }
@@ -172,20 +167,17 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(spacing.large))
-
             AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
                 KhanaBookCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     onClick = { onNewBill() },
                     colors = CardDefaults.cardColors(containerColor = PrimaryGold),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
+                            .heightIn(min = 120.dp)
                             .padding(spacing.large),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -198,7 +190,7 @@ fun HomeScreen(
                             )
                             Text(
                                 text = "Start taking orders",
-                                color = DarkBrown2,
+                                color = DarkBrown1.copy(alpha = 0.85f),
                                 style = MaterialTheme.typography.labelMedium,
                                 modifier = Modifier.padding(top = spacing.extraSmall)
                             )
@@ -213,11 +205,9 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(spacing.large))
-
             AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
             if (isWideScreen) {
-                // Adaptive grid for tablets/landscape
+                // Single row of 3 actions on tablets — no empty filler.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(spacing.medium)
@@ -236,12 +226,6 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f),
                         onClick = onOrderStatus
                     )
-                }
-                Spacer(modifier = Modifier.height(spacing.medium))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.medium)
-                ) {
                     HomeActionCard(
                         text = "Call Customers",
                         icon = Icons.Default.Call,
@@ -249,7 +233,6 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f),
                         onClick = onCallCustomer
                     )
-                    Spacer(modifier = Modifier.weight(1f)) // Empty space for balance
                 }
             } else {
                 // Vertical list for phones
@@ -284,7 +267,9 @@ fun HomeScreen(
             }
             } // end AnimatedVisibility(actionsVisible)
 
-            Spacer(modifier = Modifier.height(spacing.medium))
+            // Mirror of the top flex spacer — keeps top and bottom whitespace
+            // equal so the content block looks vertically centred.
+            Spacer(modifier = Modifier.weight(1f, fill = true))
         }
     }
 }
@@ -430,15 +415,15 @@ fun HomeActionCard(
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     KhanaBookCard(
-        modifier = modifier
-            .height(70.dp),
+        modifier = modifier,
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .heightIn(min = 70.dp)
                 .padding(spacing.medium),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -451,20 +436,22 @@ fun HomeActionCard(
                     imageVector = icon,
                     contentDescription = null,
                     tint = PrimaryGold,
-                    modifier = Modifier.size(iconSize.large)
+                    modifier = Modifier.size(iconSize.medium)
                 )
                 Spacer(modifier = Modifier.width(spacing.small))
                 Text(
                     text = text,
                     color = TextLight,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = PrimaryGold,
-                modifier = Modifier.size(iconSize.medium)
+                modifier = Modifier.size(iconSize.small)
             )
         }
     }

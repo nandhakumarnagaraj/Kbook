@@ -13,10 +13,14 @@ declare const google: any;
   template: `
     <section class="login-shell">
       <div class="login-card panel">
-        <div>
+        <div class="login-copy">
           <span class="eyebrow">KhanaBook</span>
           <h1>Web Admin</h1>
-          <p class="muted">Sign in to manage your business.</p>
+          <p class="muted">Sign in to manage storefront operations, menu data, team access, and payments from one place.</p>
+          <div class="hero-meta">
+            <span class="chip">Fast Access</span>
+            <span class="chip success">Business Control</span>
+          </div>
         </div>
 
         <!-- Google Sign-In button -->
@@ -62,6 +66,11 @@ declare const google: any;
       gap: 1.5rem;
     }
 
+    .login-copy {
+      display: grid;
+      gap: 0.75rem;
+    }
+
     h1 { margin: 0.25rem 0 0.5rem; font-size: 2rem; }
 
     .eyebrow {
@@ -81,6 +90,13 @@ declare const google: any;
       border-radius: 12px;
       padding: 0.9rem 1rem;
       background: #fff;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(181, 106, 45, 0.14);
     }
 
     .divider {

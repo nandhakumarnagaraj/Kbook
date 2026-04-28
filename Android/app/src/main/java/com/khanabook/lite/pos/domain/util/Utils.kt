@@ -76,10 +76,21 @@ object CurrencyUtils {
     fun formatPrice(amount: Double, currency: String = "\u20b9"): String {
         return "$currency ${String.format("%.2f", amount)}"
     }
-    
+
     fun formatPrice(amount: String?, currency: String = "\u20b9"): String {
         val d = amount?.toDoubleOrNull() ?: 0.0
         return formatPrice(d, currency)
+    }
+
+    /**
+     * Compact form for dashboards: drops the .00 when the amount is a whole
+     * rupee value, keeps two decimals when paise are present. Receipts and
+     * invoices should keep using formatPrice() for full precision.
+     */
+    fun formatPriceCompact(amount: Double, currency: String = "\u20b9"): String {
+        val whole = amount.toLong()
+        return if (amount == whole.toDouble()) "$currency $whole"
+        else "$currency ${String.format("%.2f", amount)}"
     }
 }
 

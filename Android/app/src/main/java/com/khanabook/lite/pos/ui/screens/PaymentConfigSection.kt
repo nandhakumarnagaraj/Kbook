@@ -24,8 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -40,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -115,20 +114,45 @@ fun PaymentConfigView(
             .padding(layout.contentPadding)
     ) {
         ConfigCard {
-            ParchmentTextField(value = currency, onValueChange = { currency = it }, label = "Currency *")
+            ParchmentTextField(
+                value = currency,
+                onValueChange = {},
+                label = "Currency *",
+                enabled = false
+            )
             Spacer(modifier = Modifier.height(spacing.large))
-            Text("Enable Payment Methods", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
+            Text("Payment Methods", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
             PaymentToggle("Cash Payment", cashEnabled) { cashEnabled = it }
             PaymentToggle("POS Machine", posEnabled) { posEnabled = it }
             PaymentToggle("Zomato Orders", zomatoEnabled) { zomatoEnabled = it }
             PaymentToggle("Swiggy Orders", swiggyEnabled) { swiggyEnabled = it }
             PaymentToggle("Own Website", ownWebsiteEnabled) { ownWebsiteEnabled = it }
-
-            Spacer(modifier = Modifier.height(spacing.medium))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = upiSupported, onCheckedChange = { upiSupported = it }, colors = CheckboxDefaults.colors(checkedColor = SuccessGreen))
-                Text("Enable UPI QR Payments", color = TextGold, style = MaterialTheme.typography.bodyMedium)
+            PaymentToggle("Easebuzz", easebuzzEnabled) { newState ->
+                easebuzzEnabled = newState
+                paymentViewModel.toggleEasebuzzActive(newState, profile)
             }
+            remoteConfig?.let { config ->
+                Spacer(modifier = Modifier.height(spacing.small))
+                Text(
+                    "Merchant: ${config.merchantKeyMasked} · ${config.environment}",
+                    color = TextGold,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+                Text(
+                    "To update credentials, use the web admin dashboard.",
+                    color = TextGold,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
+            }
+
+            remoteError?.let {
+                Spacer(modifier = Modifier.height(spacing.small))
+                Text(it, color = Color.Red, style = MaterialTheme.typography.bodySmall)
+            }
+
+            PaymentToggle("Offline UPI QR", upiSupported) { upiSupported = it }
             if (upiSupported) {
                 Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -168,37 +192,6 @@ fun PaymentConfigView(
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(spacing.medium)) { qrContent() }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(spacing.large))
-            Text(
-                "Easebuzz",
-                color = PrimaryGold,
-                style = MaterialTheme.typography.titleMedium
-            )
-            remoteConfig?.let { config ->
-                Text(
-                    "Merchant: ${config.merchantKeyMasked} · ${config.environment}",
-                    color = TextGold,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(modifier = Modifier.height(spacing.small))
-                Text(
-                    "To update credentials, use the web admin dashboard.",
-                    color = TextGold,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                )
-                Spacer(modifier = Modifier.height(spacing.small))
-            }
-            PaymentToggle("Enable Easebuzz", easebuzzEnabled) { newState ->
-                easebuzzEnabled = newState
-                paymentViewModel.toggleEasebuzzActive(newState, profile)
-            }
-
-            remoteError?.let {
-                Spacer(modifier = Modifier.height(spacing.small))
-                Text(it, color = Color.Red, style = MaterialTheme.typography.bodySmall)
             }
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
@@ -248,6 +241,11 @@ fun PaymentToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) ->
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(label, color = TextGold, style = MaterialTheme.typography.bodyMedium)
-        Switch(checked = checked, onCheckedChange = onCheckedChange, colors = SwitchDefaults.colors(checkedTrackColor = SuccessGreen))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(checkedTrackColor = SuccessGreen),
+            modifier = Modifier.scale(0.8f)
+        )
     }
 }

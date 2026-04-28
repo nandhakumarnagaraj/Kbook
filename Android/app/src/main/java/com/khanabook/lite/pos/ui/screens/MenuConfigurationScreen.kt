@@ -34,6 +34,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
@@ -215,7 +216,7 @@ fun MenuConfigurationScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBrown1)
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
         containerColor = DarkBrown1,
         contentWindowInsets = WindowInsets.systemBars
     ) { padding ->
@@ -1737,7 +1738,8 @@ fun MenuItemRow(
                     checkedTrackColor = PrimaryGold.copy(alpha = 0.3f),
                     uncheckedThumbColor = TextMuted,
                     uncheckedTrackColor = BrownSelected
-                )
+                ),
+                modifier = Modifier.scale(0.8f)
             )
         }
     }

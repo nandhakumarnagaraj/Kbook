@@ -5,7 +5,6 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Intent
 import android.os.Build
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -62,6 +61,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -71,6 +71,7 @@ import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
 import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.Brown500
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
@@ -303,7 +304,7 @@ fun PrinterConfigView(
             }
         }
 
-        SnackbarHost(
+        KhanaBookSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -400,7 +401,12 @@ private fun PrinterTargetCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(title, color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
-                Switch(checked = enabled, onCheckedChange = onEnabledChange, colors = SwitchDefaults.colors(checkedTrackColor = VegGreen))
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = onEnabledChange,
+                    colors = SwitchDefaults.colors(checkedTrackColor = VegGreen),
+                    modifier = Modifier.scale(0.8f)
+                )
             }
             if (enabled) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

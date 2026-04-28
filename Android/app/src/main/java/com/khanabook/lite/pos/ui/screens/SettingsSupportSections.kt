@@ -3,7 +3,6 @@ package com.khanabook.lite.pos.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,6 +38,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookDialog
+import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.ToastKind
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import com.khanabook.lite.pos.ui.theme.DangerRed
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
@@ -88,9 +91,10 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
     var showPinDialog by remember { mutableStateOf(false) }
     val isPinEnabled = remember(logoutState) { appLockViewModel.isPinEnabled() }
 
+    val toastScope = rememberCoroutineScope()
     LaunchedEffect(logoutState) {
         if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.LoggedOut) {
-            Toast.makeText(context, context.getString(R.string.toast_signed_out), Toast.LENGTH_SHORT).show()
+            toastScope.launch { KhanaToast.show(context.getString(R.string.toast_signed_out), ToastKind.Success) }
         }
     }
 

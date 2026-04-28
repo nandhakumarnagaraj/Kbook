@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -64,7 +65,7 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
             .padding(spacing.medium)
     ) {
         ConfigCard {
-            ParchmentTextField(value = country, onValueChange = { country = it }, label = "Country")
+            ParchmentTextField(value = country, onValueChange = {}, label = "Country", enabled = false)
             Spacer(modifier = Modifier.height(spacing.medium))
             ParchmentTextField(
                 value = fssaiNumber,
@@ -81,7 +82,12 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("GST Registered", color = TextGold, style = MaterialTheme.typography.bodyMedium)
-                Switch(checked = gstEnabled, onCheckedChange = { gstEnabled = it }, colors = SwitchDefaults.colors(checkedTrackColor = VegGreen))
+                Switch(
+                    checked = gstEnabled,
+                    onCheckedChange = { gstEnabled = it },
+                    colors = SwitchDefaults.colors(checkedTrackColor = VegGreen),
+                    modifier = Modifier.scale(0.8f)
+                )
             }
             if (gstEnabled) {
                 ParchmentTextField(

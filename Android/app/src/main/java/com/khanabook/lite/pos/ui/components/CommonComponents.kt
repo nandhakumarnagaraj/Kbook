@@ -105,7 +105,8 @@ fun ParchmentTextField(
     isError: Boolean = false,
     supportingText: String? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    singleLine: Boolean = true
+    singleLine: Boolean = true,
+    enabled: Boolean = true
 ) {
     KhanaBookInputField(
         value = value,
@@ -116,6 +117,7 @@ fun ParchmentTextField(
         isError = isError,
         supportingText = supportingText?.let { { Text(it, color = DangerRed, style = MaterialTheme.typography.labelSmall) } },
         singleLine = singleLine,
-        keyboardOptions = keyboardOptions
+        keyboardOptions = keyboardOptions,
+        enabled = enabled
     )
 }

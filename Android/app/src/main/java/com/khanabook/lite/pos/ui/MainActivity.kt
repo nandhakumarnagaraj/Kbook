@@ -9,12 +9,17 @@ import androidx.fragment.app.FragmentActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.launch
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
+import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -92,6 +97,7 @@ class MainActivity : FragmentActivity() {
                 val menuViewModel: MenuViewModel = hiltViewModel()
                 val currentUser by authViewModel.currentUser.collectAsState()
                 val context = this
+                val toastScope = rememberCoroutineScope()
 
                 // Background Lock / Grace Period Observer
                 LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
@@ -134,9 +140,14 @@ class MainActivity : FragmentActivity() {
                 androidx.activity.compose.BackHandler(enabled = isAtRoot) {
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastBackPressTime < 2000) {
-                        finish() 
+                        finish()
                     } else {
-                        Toast.makeText(context, context.getString(R.string.press_back_again_to_exit), Toast.LENGTH_SHORT).show()
+                        toastScope.launch {
+                            KhanaToast.show(
+                                context.getString(R.string.press_back_again_to_exit),
+                                ToastKind.Info,
+                            )
+                        }
                         lastBackPressTime = currentTime
                     }
                 }
@@ -151,6 +162,7 @@ class MainActivity : FragmentActivity() {
                     }
                 }
 
+                Box(modifier = Modifier.fillMaxSize()) {
                 NavHost(
                     navController = navController,
                     startDestination = "splash",
@@ -311,6 +323,11 @@ class MainActivity : FragmentActivity() {
                         )
                     }
                 }
+                KhanaBookSnackbarHost(
+                    hostState = KhanaToast.host,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+                } // end Box
             }
         }
     }

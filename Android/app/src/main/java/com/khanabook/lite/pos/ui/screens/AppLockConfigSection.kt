@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -59,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -76,7 +80,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookLargeDialog
 import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
@@ -94,27 +97,95 @@ private const val SUPPORT_WHATSAPP = "918124426335"
 private const val SUPPORT_EMAIL = "support@khanabook.in"
 
 @Composable
-fun AppLockConfigView(
-    onBack: () -> Unit,
-    viewModel: AppLockViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+fun SettingsListView(
+    onSelectItem: (String) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+    ) {
+        SettingsGroupLabel("Security")
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column {
+                SettingsItem(
+                    icon = Icons.Filled.Lock,
+                    text = "App Lock",
+                    onClick = { onSelectItem("app_lock") }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = spacing.medium),
+                    color = BorderGold.copy(alpha = 0.1f)
+                )
+                SettingsItem(
+                    icon = Icons.Filled.Password,
+                    text = "Change Password",
+                    onClick = { onSelectItem("change_password") }
+                )
+            }
+        }
+
+        SettingsGroupLabel("About")
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column {
+                SettingsItem(
+                    icon = Icons.AutoMirrored.Filled.HelpOutline,
+                    text = "Help & Support",
+                    onClick = { onSelectItem("help_support") }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = spacing.medium),
+                    color = BorderGold.copy(alpha = 0.1f)
+                )
+                SettingsItem(
+                    icon = Icons.Filled.Info,
+                    text = "About App",
+                    onClick = { onSelectItem("about_app") }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsGroupLabel(text: String) {
+    val spacing = KhanaBookTheme.spacing
+    Text(
+        text = text.uppercase(),
+        color = PrimaryGold.copy(alpha = 0.7f),
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(horizontal = spacing.small, vertical = spacing.extraSmall)
+    )
+}
+
+@Composable
+fun AppLockView(
+    viewModel: AppLockViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
 
     val setupState by viewModel.pinSetupState.collectAsStateWithLifecycle()
-    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     var isEnabled by remember { mutableStateOf(viewModel.isPinEnabled()) }
     val showBiometric = remember { viewModel.hasBiometric(context) }
     val showPinOptions = isEnabled && (
         setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Idle ||
             setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Success
         )
-
-    var showChangePassword by remember { mutableStateOf(false) }
-    var showHelpSupport by remember { mutableStateOf(false) }
-    var showAboutApp by remember { mutableStateOf(false) }
 
     LaunchedEffect(setupState) {
         if (setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Success) {
@@ -126,33 +197,52 @@ fun AppLockConfigView(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+            .padding(horizontal = spacing.large, vertical = spacing.large),
+        verticalArrangement = Arrangement.spacedBy(spacing.large)
     ) {
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(16.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(spacing.medium),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(spacing.large),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(spacing.medium)
             ) {
-                Icon(
-                    Icons.Filled.Lock,
-                    contentDescription = null,
-                    tint = if (isEnabled) SuccessGreen else TextGold.copy(alpha = 0.5f),
-                    modifier = Modifier.size(iconSize.medium)
-                )
-                Spacer(modifier = Modifier.width(spacing.medium))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("App Lock", color = TextLight, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        if (isEnabled) "PIN lock is active" else "Disabled - anyone can open the app",
-                        color = if (isEnabled) SuccessGreen else TextGold.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.bodySmall
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .background(
+                            if (isEnabled) SuccessGreen.copy(alpha = 0.15f) else TextGold.copy(alpha = 0.1f),
+                            CircleShape
+                        )
+                        .border(
+                            2.dp,
+                            if (isEnabled) SuccessGreen.copy(alpha = 0.4f) else BorderGold.copy(alpha = 0.3f),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Filled.Lock,
+                        contentDescription = null,
+                        tint = if (isEnabled) SuccessGreen else TextGold.copy(alpha = 0.5f),
+                        modifier = Modifier.size(48.dp)
                     )
                 }
+                Text(
+                    "App Lock",
+                    color = TextLight,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    if (isEnabled) "PIN lock is active" else "Disabled — anyone can open the app",
+                    color = if (isEnabled) SuccessGreen else TextGold.copy(alpha = 0.6f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
                 Switch(
                     checked = isEnabled,
                     onCheckedChange = { enable ->
@@ -261,75 +351,18 @@ fun AppLockConfigView(
             }
             else -> {}
         }
-
-        if (setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Idle ||
-            setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Success) {
-
-            KhanaBookCard(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = CardBG),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column {
-                    SettingsItem(
-                        icon = Icons.Filled.Password,
-                        text = "Change Password",
-                        onClick = {
-                            authViewModel.clearResetStatus()
-                            showChangePassword = true
-                        }
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = spacing.medium),
-                        color = BorderGold.copy(alpha = 0.1f)
-                    )
-                    SettingsItem(
-                        icon = Icons.AutoMirrored.Filled.HelpOutline,
-                        text = "Help & Support",
-                        onClick = { showHelpSupport = true }
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = spacing.medium),
-                        color = BorderGold.copy(alpha = 0.1f)
-                    )
-                    SettingsItem(
-                        icon = Icons.Filled.Info,
-                        text = "About App",
-                        onClick = { showAboutApp = true }
-                    )
-                }
-            }
-        }
-    }
-
-    if (showChangePassword) {
-        ChangePasswordDialog(
-            initialPhone = currentUser?.phoneNumber ?: currentUser?.whatsappNumber ?: "",
-            authViewModel = authViewModel,
-            onDismiss = {
-                authViewModel.clearResetStatus()
-                showChangePassword = false
-            }
-        )
-    }
-
-    if (showHelpSupport) {
-        HelpSupportDialog(onDismiss = { showHelpSupport = false })
-    }
-
-    if (showAboutApp) {
-        AboutAppDialog(onDismiss = { showAboutApp = false })
     }
 }
 
 @Composable
-private fun ChangePasswordDialog(
-    initialPhone: String,
-    authViewModel: AuthViewModel,
-    onDismiss: () -> Unit
+fun ChangePasswordView(
+    onBack: () -> Unit,
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
+    val initialPhone = currentUser?.phoneNumber ?: currentUser?.whatsappNumber ?: ""
     val resetStatus by authViewModel.resetPasswordStatus.collectAsStateWithLifecycle()
 
     var step by remember { mutableStateOf(1) }
@@ -342,13 +375,20 @@ private fun ChangePasswordDialog(
 
     val isLoading = resetStatus is AuthViewModel.ResetPasswordResult.Loading
 
+    LaunchedEffect(Unit) {
+        authViewModel.clearResetStatus()
+    }
+
     LaunchedEffect(resetStatus) {
         when (resetStatus) {
             is AuthViewModel.ResetPasswordResult.OtpSent -> {
                 step = 2
                 localError = null
             }
-            is AuthViewModel.ResetPasswordResult.Success -> onDismiss()
+            is AuthViewModel.ResetPasswordResult.Success -> {
+                authViewModel.clearResetStatus()
+                onBack()
+            }
             is AuthViewModel.ResetPasswordResult.Error -> {
                 localError = (resetStatus as AuthViewModel.ResetPasswordResult.Error).message
             }
@@ -356,117 +396,131 @@ private fun ChangePasswordDialog(
         }
     }
 
-    KhanaBookLargeDialog(
-        title = "Change Password",
-        onDismissRequest = onDismiss,
-        subtitle = {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = spacing.large, vertical = spacing.large),
+            verticalArrangement = Arrangement.spacedBy(spacing.large)
+        ) {
+            CpStepIndicator(currentStep = step, totalSteps = 3)
+
             Text(
                 text = when (step) {
-                    1 -> "Step 1 of 3 — Verify your phone"
-                    2 -> "Step 2 of 3 — Enter OTP"
-                    else -> "Step 3 of 3 — Set new password"
+                    1 -> "Verify your phone"
+                    2 -> "Enter the OTP"
+                    else -> "Set a new password"
                 },
-                color = PrimaryGold.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.bodySmall
+                color = TextLight,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
             )
-        }
-    ) {
-        if (step >= 2) {
-            CpVerifiedBadge(icon = Icons.Default.Phone, label = phone, note = "Verified")
-        }
-        if (step >= 3) {
-            CpVerifiedBadge(icon = Icons.Default.Lock, label = "OTP Verified", note = "Confirmed")
-        }
 
-        if (step == 1) {
-            OutlinedTextField(
-                value = phone,
-                onValueChange = { phone = it },
-                label = { Text("Registered Phone Number", color = TextGold) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Phone, null, tint = PrimaryGold.copy(alpha = 0.7f)) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryGold,
-                    unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                    focusedTextColor = TextLight,
-                    unfocusedTextColor = TextLight
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+            if (step >= 2) {
+                CpVerifiedBadge(icon = Icons.Default.Phone, label = phone, note = "Verified")
+            }
+            if (step >= 3) {
+                CpVerifiedBadge(icon = Icons.Default.Lock, label = "OTP Verified", note = "Confirmed")
+            }
 
-        if (step == 2) {
-            OutlinedTextField(
-                value = otp,
-                onValueChange = { if (it.length <= 6) otp = it },
-                label = { Text("Enter OTP", color = TextGold) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryGold,
-                    unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                    focusedTextColor = TextLight,
-                    unfocusedTextColor = TextLight
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-            TextButton(
-                onClick = {
-                    localError = null
-                    authViewModel.sendOtp(phone.trim(), "reset")
-                },
-                enabled = !isLoading
-            ) {
-                Text("Resend OTP", color = PrimaryGold.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall)
+            if (step == 1) {
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { phone = it },
+                    label = { Text("Registered Phone Number", color = TextGold) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = PrimaryGold.copy(alpha = 0.7f)) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PrimaryGold,
+                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                        focusedTextColor = TextLight,
+                        unfocusedTextColor = TextLight
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (step == 2) {
+                OutlinedTextField(
+                    value = otp,
+                    onValueChange = { if (it.length <= 6) otp = it },
+                    label = { Text("Enter OTP", color = TextGold) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PrimaryGold,
+                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                        focusedTextColor = TextLight,
+                        unfocusedTextColor = TextLight
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TextButton(
+                    onClick = {
+                        localError = null
+                        authViewModel.sendOtp(phone.trim(), "reset")
+                    },
+                    enabled = !isLoading
+                ) {
+                    Text("Resend OTP", color = PrimaryGold.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            if (step == 3) {
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it },
+                    label = { Text("New Password", color = TextGold) },
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                null, tint = PrimaryGold.copy(alpha = 0.7f)
+                            )
+                        }
+                    },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PrimaryGold,
+                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                        focusedTextColor = TextLight,
+                        unfocusedTextColor = TextLight
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text("Confirm New Password", color = TextGold) },
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PrimaryGold,
+                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                        focusedTextColor = TextLight,
+                        unfocusedTextColor = TextLight
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            localError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         }
 
-        if (step == 3) {
-            OutlinedTextField(
-                value = newPassword,
-                onValueChange = { newPassword = it },
-                label = { Text("New Password", color = TextGold) },
-                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = { showPassword = !showPassword }) {
-                        Icon(
-                            if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            null, tint = PrimaryGold.copy(alpha = 0.7f)
-                        )
-                    }
-                },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryGold,
-                    unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                    focusedTextColor = TextLight,
-                    unfocusedTextColor = TextLight
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                label = { Text("Confirm New Password", color = TextGold) },
-                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryGold,
-                    unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                    focusedTextColor = TextLight,
-                    unfocusedTextColor = TextLight
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        localError?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
-
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(DarkBrown1.copy(alpha = 0.5f))
+                .padding(horizontal = spacing.large, vertical = spacing.medium),
             horizontalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
             if (step > 1) {
@@ -477,9 +531,9 @@ private fun ChangePasswordDialog(
                         if (step == 2) { otp = "" }
                         step -= 1
                     },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).height(56.dp),
                     border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(28.dp),
                     enabled = !isLoading
                 ) {
                     Text("Back", color = TextGold)
@@ -511,9 +565,9 @@ private fun ChangePasswordDialog(
                         }
                     }
                 },
-                modifier = Modifier.weight(2f),
+                modifier = Modifier.weight(2f).height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(28.dp),
                 enabled = !isLoading
             ) {
                 if (isLoading) {
@@ -525,6 +579,31 @@ private fun ChangePasswordDialog(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CpStepIndicator(currentStep: Int, totalSteps: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        for (i in 1..totalSteps) {
+            val isCompleted = i < currentStep
+            val isActive = i == currentStep
+            val color = when {
+                isCompleted -> SuccessGreen
+                isActive -> PrimaryGold
+                else -> BorderGold.copy(alpha = 0.3f)
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(6.dp)
+                    .background(color, RoundedCornerShape(3.dp))
+            )
         }
     }
 }
@@ -553,28 +632,56 @@ private fun CpVerifiedBadge(icon: ImageVector, label: String, note: String) {
 }
 
 @Composable
-private fun HelpSupportDialog(onDismiss: () -> Unit) {
+fun HelpSupportView() {
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
 
-    KhanaBookLargeDialog(
-        title = "Help & Support",
-        onDismissRequest = onDismiss,
-        subtitle = {
-            Text(
-                "We're here to help you succeed",
-                color = PrimaryGold.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = spacing.large, vertical = spacing.large),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = spacing.medium),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(108.dp)
+                    .background(PrimaryGold.copy(alpha = 0.12f), CircleShape)
+                    .border(2.dp, PrimaryGold.copy(alpha = 0.3f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.HelpOutline,
+                    contentDescription = null,
+                    tint = PrimaryGold,
+                    modifier = Modifier.size(56.dp)
+                )
+            }
+        }
+
+        Text(
+            "We're here to help you succeed",
+            color = PrimaryGold,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
         Text(
             "Need help with KhanaBook POS? Reach out to our support team — we respond quickly.",
             color = TextLight.copy(alpha = 0.85f),
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(spacing.small))
 
         Button(
             onClick = {
@@ -583,13 +690,17 @@ private fun HelpSupportDialog(onDismiss: () -> Unit) {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                 } catch (_: Exception) {}
             },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
+            modifier = Modifier.fillMaxWidth().height(72.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366), contentColor = Color.White),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(14.dp),
+            contentPadding = PaddingValues(horizontal = spacing.medium)
         ) {
-            Icon(Icons.Default.Chat, null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Chat on WhatsApp", fontWeight = FontWeight.Bold)
+            Icon(Icons.Default.Chat, null, modifier = Modifier.size(28.dp))
+            Spacer(modifier = Modifier.width(spacing.medium))
+            Column(horizontalAlignment = Alignment.Start) {
+                Text("Chat on WhatsApp", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                Text("Fastest reply", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.85f))
+            }
         }
 
         OutlinedButton(
@@ -602,80 +713,112 @@ private fun HelpSupportDialog(onDismiss: () -> Unit) {
                     context.startActivity(intent)
                 } catch (_: Exception) {}
             },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
+            modifier = Modifier.fillMaxWidth().height(72.dp),
             border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.6f)),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(14.dp),
+            contentPadding = PaddingValues(horizontal = spacing.medium)
         ) {
-            Icon(Icons.Default.Email, null, tint = PrimaryGold, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Email Support", color = PrimaryGold, fontWeight = FontWeight.Medium)
+            Icon(Icons.Default.Email, null, tint = PrimaryGold, modifier = Modifier.size(28.dp))
+            Spacer(modifier = Modifier.width(spacing.medium))
+            Column(horizontalAlignment = Alignment.Start, modifier = Modifier.weight(1f)) {
+                Text("Email Support", color = PrimaryGold, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                Text(SUPPORT_EMAIL, color = TextGold.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+            }
         }
 
-        Text(
-            "Mon – Sat, 10 AM – 7 PM IST",
-            color = TextGold.copy(alpha = 0.55f),
-            style = MaterialTheme.typography.labelSmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
+        Spacer(modifier = Modifier.height(spacing.small))
+
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(spacing.medium),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Filled.Schedule,
+                    contentDescription = null,
+                    tint = PrimaryGold.copy(alpha = 0.8f),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(spacing.medium))
+                Column {
+                    Text("Support Hours", color = TextLight, style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        "Mon – Sat, 10 AM – 7 PM IST",
+                        color = TextGold.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun AboutAppDialog(onDismiss: () -> Unit) {
+fun AboutAppView() {
     val spacing = KhanaBookTheme.spacing
-    var showExpandedLogo by remember { mutableStateOf(false) }
+    val currentYear = Year.now().value
 
-    KhanaBookLargeDialog(
-        title = "About App",
-        onDismissRequest = onDismiss
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = spacing.large, vertical = spacing.extraLarge),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(spacing.large)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(spacing.small)
+        Box(
+            modifier = Modifier
+                .size(160.dp)
+                .background(PrimaryGold.copy(alpha = 0.12f), CircleShape)
+                .border(2.dp, PrimaryGold.copy(alpha = 0.3f), CircleShape)
+                .clip(CircleShape)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .background(PrimaryGold.copy(alpha = 0.15f), CircleShape)
-                    .clip(CircleShape)
-                    .clickable { showExpandedLogo = true },
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.khanabook_logo),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            Image(
+                painter = painterResource(id = R.drawable.khanabook_logo),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+        ) {
             Text(
                 "KhanaBook Lite",
                 color = PrimaryGold,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 "Version ${BuildConfig.VERSION_NAME}",
                 color = TextGold.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium
             )
         }
 
-        HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+        HorizontalDivider(
+            color = BorderGold.copy(alpha = 0.2f),
+            modifier = Modifier.padding(horizontal = spacing.large)
+        )
 
         Text(
             "A smart, offline-first POS solution built for restaurants and food businesses. Manage orders, track payments, and generate reports — all from your Android device.",
             color = TextLight.copy(alpha = 0.85f),
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
 
-        HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+        Spacer(modifier = Modifier.height(spacing.large))
 
-        val currentYear = Year.now().value
         Text(
             "© $currentYear KhanaBook. All rights reserved.",
             color = TextGold.copy(alpha = 0.5f),
@@ -683,25 +826,5 @@ private fun AboutAppDialog(onDismiss: () -> Unit) {
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
-    }
-
-    if (showExpandedLogo) {
-        Dialog(onDismissRequest = { showExpandedLogo = false }) {
-            Box(
-                modifier = Modifier
-                    .size(280.dp)
-                    .background(DarkBrown1, RoundedCornerShape(24.dp))
-                    .border(2.dp, PrimaryGold.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.khanabook_logo),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
-                )
-            }
-        }
     }
 }

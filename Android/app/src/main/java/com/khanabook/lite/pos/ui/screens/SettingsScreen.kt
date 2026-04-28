@@ -2,8 +2,8 @@
 package com.khanabook.lite.pos.ui.screens
 
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import kotlinx.coroutines.launch
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 
@@ -24,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -71,11 +72,16 @@ fun SettingsScreen(
         screenVisible = true
     }
 
+    val toastScope = rememberCoroutineScope()
+    val ctx = LocalContext.current
+
+    val settingsSubSections = setOf("app_lock", "change_password", "help_support", "about_app")
+
     BackHandler {
-        if (section != "menu") {
-            section = "menu"
-        } else {
-            onBack()
+        when {
+            section in settingsSubSections -> section = "security"
+            section != "menu" -> section = "menu"
+            else -> onBack()
         }
     }
 
@@ -110,10 +116,20 @@ fun SettingsScreen(
                 "printer" -> "Printer Configuration"
                 "tax" -> "Tax Configuration"
                 "security" -> "Settings"
+                "app_lock" -> "App Lock"
+                "change_password" -> "Change Password"
+                "help_support" -> "Help & Support"
+                "about_app" -> "About App"
                 "menu" -> "Profile"
                 else -> "Profile"
             },
-            onBack = { if (section == "menu") onBack() else section = "menu" },
+            onBack = {
+                when {
+                    section in settingsSubSections -> section = "security"
+                    section != "menu" -> section = "menu"
+                    else -> onBack()
+                }
+            },
             titleStyleCompact = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
             titleStyleExpanded = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall
         ) {
@@ -137,19 +153,40 @@ fun SettingsScreen(
                         ShopConfigView(profile, viewModel, authViewModel) { section = "menu" }
                     }
                     "payment" -> {
-                        val ctx = LocalContext.current
-                        PaymentConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, ctx.getString(R.string.toast_payment_settings_saved), Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" })
+                        PaymentConfigView(profile, onSave = {
+                            viewModel.saveProfile(it)
+                            toastScope.launch { KhanaToast.show(ctx.getString(R.string.toast_payment_settings_saved), ToastKind.Success) }
+                            section = "menu"
+                        }, onBack = { section = "menu" })
                     }
                     "printer" -> {
-                        val ctx = LocalContext.current
-                        PrinterConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, ctx.getString(R.string.toast_printer_settings_saved), Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" }, viewModel = viewModel)
+                        PrinterConfigView(profile, onSave = {
+                            viewModel.saveProfile(it)
+                            toastScope.launch { KhanaToast.show(ctx.getString(R.string.toast_printer_settings_saved), ToastKind.Success) }
+                            section = "menu"
+                        }, onBack = { section = "menu" }, viewModel = viewModel)
                     }
                     "tax" -> {
-                        val ctx = LocalContext.current
-                        TaxConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, ctx.getString(R.string.toast_tax_settings_saved), Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" })
+                        TaxConfigView(profile, onSave = {
+                            viewModel.saveProfile(it)
+                            toastScope.launch { KhanaToast.show(ctx.getString(R.string.toast_tax_settings_saved), ToastKind.Success) }
+                            section = "menu"
+                        }, onBack = { section = "menu" })
                     }
                     "security" -> {
-                        AppLockConfigView(onBack = { section = "menu" })
+                        SettingsListView(onSelectItem = { section = it })
+                    }
+                    "app_lock" -> {
+                        AppLockView()
+                    }
+                    "change_password" -> {
+                        ChangePasswordView(onBack = { section = "security" })
+                    }
+                    "help_support" -> {
+                        HelpSupportView()
+                    }
+                    "about_app" -> {
+                        AboutAppView()
                     }
                 }
             }
@@ -169,7 +206,12 @@ private fun LegacyLogoutSectionUnused(viewModel: com.khanabook.lite.pos.ui.viewm
     var showPinDialog by remember { mutableStateOf(false) }
     val isPinEnabled = remember(logoutState) { appLockViewModel.isPinEnabled() }
 
-    LaunchedEffect(logoutState) { if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.LoggedOut) Toast.makeText(context, context.getString(R.string.toast_signed_out), Toast.LENGTH_SHORT).show() }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(logoutState) {
+        if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.LoggedOut) {
+            scope.launch { KhanaToast.show(context.getString(R.string.toast_signed_out), ToastKind.Success) }
+        }
+    }
 
     LaunchedEffect(enteredPin, showPinDialog) {
         if (showPinDialog && enteredPin.length == 4) {
@@ -338,6 +380,7 @@ private fun LegacyAppLockConfigViewUnused(
                     )
                 }
                 Switch(
+                    modifier = Modifier.scale(0.8f),
                     checked = isEnabled,
                     onCheckedChange = { enable ->
                         if (enable) viewModel.startEnablePin()

@@ -43,18 +43,19 @@ type NavLink = { label: string; path: string };
       min-height: 100vh;
       display: grid;
       grid-template-columns: 280px 1fr;
-      gap: 1rem;
-      padding: 1rem;
+      gap: 1.25rem;
+      padding: 1.25rem;
+      align-items: start;
     }
 
     .sidebar {
-      padding: 1.4rem;
+      padding: 1.5rem;
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
       position: sticky;
-      top: 1rem;
-      height: calc(100vh - 2rem);
+      top: 1.25rem;
+      height: calc(100vh - 2.5rem);
       background:
         linear-gradient(180deg, rgba(181, 106, 45, 0.08), transparent 28%),
         var(--panel);
@@ -86,11 +87,20 @@ type NavLink = { label: string; path: string };
       color: var(--ink);
       text-decoration: none;
       font-weight: 600;
+      border: 1px solid transparent;
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .nav-link:hover {
+      background: rgba(181, 106, 45, 0.08);
+      border-color: rgba(181, 106, 45, 0.12);
+      transform: translateX(2px);
     }
 
     .nav-link.active-link {
       background: linear-gradient(135deg, rgba(181, 106, 45, 0.16), rgba(126, 68, 23, 0.12));
       color: var(--brand-deep);
+      border-color: rgba(181, 106, 45, 0.18);
     }
 
     .logout-btn {
@@ -104,6 +114,7 @@ type NavLink = { label: string; path: string };
     @media (max-width: 960px) {
       .layout-shell {
         grid-template-columns: 1fr;
+        padding: 1rem;
       }
 
       .sidebar {

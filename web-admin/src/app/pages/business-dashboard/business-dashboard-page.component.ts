@@ -11,12 +11,15 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
   imports: [CommonModule],
   template: `
     <div class="page-shell" *ngIf="dashboard() as data; else loading">
-      <div class="section-head">
-        <div>
-          <h2>{{ data.shopName || 'Business Dashboard' }}</h2>
-          <p class="muted">Owner and manager summary view.</p>
+      <section class="panel page-hero">
+        <h2>{{ data.shopName || 'Business Dashboard' }}</h2>
+        <p class="muted">Owner and manager view with aligned KPIs, recent order visibility, and practical next-step suggestions.</p>
+        <div class="hero-meta">
+          <span class="chip">Daily Revenue</span>
+          <span class="chip">Order Health</span>
+          <span class="chip success">Staff and Menu Coverage</span>
         </div>
-      </div>
+      </section>
 
       <div class="stats-grid">
         <article class="panel stat-card">
@@ -51,9 +54,34 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <h3>Staff / Menu</h3>
           <strong>{{ data.totalStaff }} / {{ data.totalMenuItems }}</strong>
         </article>
+        <section class="panel soft-section" style="grid-column: 1 / -1;">
+          <div class="section-head">
+            <div>
+              <h3>Suggested Next Steps</h3>
+              <p class="muted">Quick checks based on the metrics on this page.</p>
+            </div>
+          </div>
+          <div class="suggestion-grid">
+            <article class="suggestion-card">
+              <h3>Review Pending Online Orders</h3>
+              <p>Use the orders page to clear pending online requests quickly so storefront customers do not stall at confirmation.</p>
+              <span class="chip warn">{{ data.pendingOnlineOrders }} pending</span>
+            </article>
+            <article class="suggestion-card">
+              <h3>Balance Menu Against Sales</h3>
+              <p>Check whether menu size is growing faster than order volume. That is usually a sign the catalog needs cleanup.</p>
+              <span class="chip">{{ data.totalMenuItems }} items listed</span>
+            </article>
+            <article class="suggestion-card">
+              <h3>Watch Refund Frequency</h3>
+              <p>Refund spikes are easier to catch here than after reconciliation. Verify causes before they repeat.</p>
+              <span class="chip danger">{{ data.refundedOrders }} refunded</span>
+            </article>
+          </div>
+        </section>
       </div>
 
-      <section class="panel page-shell" style="margin-top: 1rem;">
+      <section class="panel soft-section">
         <div class="section-head">
           <div>
             <h3>Recent Orders</h3>
@@ -62,7 +90,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         </div>
 
         <div class="table-wrap">
-          <table>
+          <table class="data-table">
             <thead>
               <tr>
                 <th>Source</th>

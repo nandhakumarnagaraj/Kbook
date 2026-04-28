@@ -1,6 +1,5 @@
 package com.khanabook.lite.pos.ui.screens
 
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -60,6 +59,10 @@ import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookDialog
+import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.ToastKind
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import com.khanabook.lite.pos.ui.theme.DangerRed
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
@@ -77,6 +80,7 @@ fun ShopConfigView(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val toastScope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val iconSize = KhanaBookTheme.iconSize
@@ -95,6 +99,8 @@ fun ShopConfigView(
     val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsState()
     val isUserChecking by viewModel.isUserChecking.collectAsStateWithLifecycle()
     val userExistsError by viewModel.userExistsError.collectAsStateWithLifecycle()
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val isGoogleAuth = currentUser?.authProvider.equals("GOOGLE", ignoreCase = true)
 
     val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, logoPath, profile) {
         name != (profile?.shopName ?: "") ||
@@ -128,18 +134,19 @@ fun ShopConfigView(
 
     LaunchedEffect(saveProfileError) {
         saveProfileError?.let { error ->
-            Toast.makeText(
-                context,
-                UserMessageSanitizer.sanitizeBackendMessage(error, "Couldn't save profile. Please try again."),
-                Toast.LENGTH_LONG
-            ).show()
+            toastScope.launch {
+                KhanaToast.show(
+                    UserMessageSanitizer.sanitizeBackendMessage(error, "Couldn't save profile. Please try again."),
+                    ToastKind.Error,
+                )
+            }
             viewModel.clearSaveProfileState()
         }
     }
 
     LaunchedEffect(saveProfileSuccess) {
         if (saveProfileSuccess) {
-            Toast.makeText(context, context.getString(R.string.toast_profile_saved), Toast.LENGTH_SHORT).show()
+            toastScope.launch { KhanaToast.show(context.getString(R.string.toast_profile_saved), ToastKind.Success) }
             viewModel.clearSaveProfileState()
             authViewModel.clearOtpStatus()
             onBack()
@@ -178,21 +185,22 @@ fun ShopConfigView(
                 otpSent = true
                 isOtpVerified = false
                 otpTimer = 120
-                Toast.makeText(context, context.getString(R.string.toast_otp_sent), Toast.LENGTH_SHORT).show()
+                toastScope.launch { KhanaToast.show(context.getString(R.string.toast_otp_sent), ToastKind.Info) }
             }
             is AuthViewModel.OtpVerificationResult.Success -> {
                 isOtpVerified = true
-                Toast.makeText(context, context.getString(R.string.toast_verified), Toast.LENGTH_SHORT).show()
+                toastScope.launch { KhanaToast.show(context.getString(R.string.toast_verified), ToastKind.Success) }
                 authViewModel.clearOtpStatus()
             }
             is AuthViewModel.OtpVerificationResult.Error -> {
                 val errorMsg = (otpStatus as? AuthViewModel.OtpVerificationResult.Error)?.message.orEmpty()
                 isOtpVerified = false
-                Toast.makeText(
-                    context,
-                    UserMessageSanitizer.sanitizeBackendMessage(errorMsg, "Couldn't verify OTP. Please try again."),
-                    Toast.LENGTH_SHORT
-                ).show()
+                toastScope.launch {
+                    KhanaToast.show(
+                        UserMessageSanitizer.sanitizeBackendMessage(errorMsg, "Couldn't verify OTP. Please try again."),
+                        ToastKind.Error,
+                    )
+                }
                 authViewModel.clearOtpStatus()
             }
             else -> {}
@@ -346,7 +354,12 @@ fun ShopConfigView(
             }
 
             Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = email, onValueChange = { email = it }, label = "Email")
+            ParchmentTextField(
+                value = email,
+                onValueChange = { if (!isGoogleAuth) email = it },
+                label = if (isGoogleAuth) "Email (Google account)" else "Email",
+                enabled = !isGoogleAuth
+            )
             Spacer(modifier = Modifier.height(spacing.medium))
             ParchmentTextField(value = reviewUrl, onValueChange = { reviewUrl = it }, label = "Review Link")
             Spacer(modifier = Modifier.height(spacing.large))
@@ -372,7 +385,9 @@ fun ShopConfigView(
                     onClick = {
                         if (!isSaveEnabled) return@Button
                         if (numberChanged && !isOtpVerified) {
-                            Toast.makeText(context, context.getString(R.string.toast_verify_new_whatsapp), Toast.LENGTH_SHORT).show()
+                            toastScope.launch {
+                                KhanaToast.show(context.getString(R.string.toast_verify_new_whatsapp), ToastKind.Warning)
+                            }
                         } else {
                             val updatedProfile = profile?.copy(
                                 shopName = name,
