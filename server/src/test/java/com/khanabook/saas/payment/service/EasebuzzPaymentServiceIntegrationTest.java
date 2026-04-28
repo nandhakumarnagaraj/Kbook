@@ -106,6 +106,26 @@ class EasebuzzPaymentServiceIntegrationTest extends BaseIntegrationTest {
         assertThat(logs).allMatch(log -> Boolean.TRUE.equals(log.getSignatureValid()));
     }
 
+    @Test
+    void markManualRefund_recordsRefundForCancelledOfflineUpiBill_withoutEasebuzzPayment() {
+        Bill bill = saveDraftBill();
+        bill.setPaymentStatus("success");
+        bill.setOrderStatus("cancelled");
+        bill.setPaymentMode("upi");
+        bill.setCancelReason("Customer requested cancellation");
+        billRepository.save(bill);
+
+        paymentService.markManualRefund(RESTAURANT_ID, bill.getId(), new BigDecimal("262.50"), "Sent by UPI");
+
+        Bill updatedBill = billRepository.findById(bill.getId()).orElseThrow();
+
+        assertThat(paymentRepository.findByRestaurantIdAndBillIdOrderByCreatedAtDesc(RESTAURANT_ID, bill.getId())).isEmpty();
+        assertThat(updatedBill.getOrderStatus()).isEqualTo("cancelled");
+        assertThat(updatedBill.getPaymentStatus()).isEqualTo("success");
+        assertThat(updatedBill.getRefundAmount()).isEqualByComparingTo("262.50");
+        assertThat(updatedBill.getCancelReason()).isEqualTo("Sent by UPI");
+    }
+
     private RestaurantPaymentConfig saveActiveConfig() {
         long now = System.currentTimeMillis();
         RestaurantPaymentConfig config = new RestaurantPaymentConfig();

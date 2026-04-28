@@ -294,7 +294,10 @@ public class BusinessReadService {
         if (payment != null && payment.getRefundStatus() == RefundStatus.FAILED) {
             return true;
         }
-        if (!"completed".equalsIgnoreCase(bill.getOrderStatus()) || !"success".equalsIgnoreCase(bill.getPaymentStatus())) {
+        if (!isRefundableOrderStatus(bill.getOrderStatus()) || !"success".equalsIgnoreCase(bill.getPaymentStatus())) {
+            return false;
+        }
+        if (bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
             return false;
         }
         return payment == null || payment.getRefundStatus() == null
@@ -309,6 +312,10 @@ public class BusinessReadService {
         return payment.getPaymentStatus() == PaymentStatus.SUCCESS
                 && payment.getGatewayPaymentId() != null
                 && !payment.getGatewayPaymentId().isBlank();
+    }
+
+    private boolean isRefundableOrderStatus(String orderStatus) {
+        return "completed".equalsIgnoreCase(orderStatus) || "cancelled".equalsIgnoreCase(orderStatus);
     }
 
     private BigDecimal safeAmount(BigDecimal amount) {

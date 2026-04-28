@@ -247,27 +247,32 @@ public class EasebuzzPaymentService {
     }
 
     @Transactional
-    public Payment markManualRefund(Long restaurantId, Long billId, BigDecimal refundAmount, String reason) {
+    public void markManualRefund(Long restaurantId, Long billId, BigDecimal refundAmount, String reason) {
         Bill bill = billRepository.findById(billId)
                 .filter(existing -> existing.getRestaurantId().equals(restaurantId))
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        Payment payment = requireLatestSuccessfulEasebuzzPayment(restaurantId, billId);
-        validateRefundEligibility(bill, payment, refundAmount);
+        Payment payment = paymentRepository.findTopByRestaurantIdAndBillIdOrderByCreatedAtDesc(restaurantId, billId)
+                .filter(existing -> existing.getPaymentStatus() == PaymentStatus.SUCCESS)
+                .orElse(null);
+        validateManualRefundEligibility(bill, payment, refundAmount);
 
         long now = System.currentTimeMillis();
-        payment.setRefundMode(RefundMode.MANUAL);
-        payment.setRefundStatus(RefundStatus.SUCCESS);
-        payment.setRefundAmount(refundAmount);
-        payment.setRefundReason(normalizeRefundReason(reason));
-        payment.setMerchantRefundId("MANUAL_" + payment.getId() + "_" + now);
-        payment.setRefundRequestedAt(now);
-        payment.setRefundProcessedAt(now);
-        payment.setUpdatedAt(now);
-        paymentRepository.save(payment);
+        if (payment != null) {
+            payment.setRefundMode(RefundMode.MANUAL);
+            payment.setRefundStatus(RefundStatus.SUCCESS);
+            payment.setRefundAmount(refundAmount);
+            payment.setRefundReason(normalizeRefundReason(reason));
+            payment.setMerchantRefundId("MANUAL_" + payment.getId() + "_" + now);
+            payment.setRefundRequestedAt(now);
+            payment.setRefundProcessedAt(now);
+            payment.setUpdatedAt(now);
+            paymentRepository.save(payment);
+            syncBillRefundState(bill, payment);
+            return;
+        }
 
-        syncBillRefundState(bill, payment);
-        return payment;
+        syncBillManualRefundState(bill, refundAmount, normalizeRefundReason(reason));
     }
 
     @Transactional
@@ -377,6 +382,16 @@ public class EasebuzzPaymentService {
         billRepository.save(bill);
     }
 
+    private void syncBillManualRefundState(Bill bill, BigDecimal refundAmount, String reason) {
+        long now = System.currentTimeMillis();
+        bill.setRefundAmount(refundAmount == null ? BigDecimal.ZERO : refundAmount);
+        bill.setCancelReason(reason == null ? "" : reason);
+        bill.setOrderStatus("cancelled");
+        bill.setUpdatedAt(now);
+        bill.setServerUpdatedAt(now);
+        billRepository.save(bill);
+    }
+
     private void ensureBillPaymentRow(Bill bill, Payment payment) {
         if (payment.getPaymentStatus() != PaymentStatus.SUCCESS) {
             return;
@@ -437,6 +452,31 @@ public class EasebuzzPaymentService {
         if (!"completed".equalsIgnoreCase(bill.getOrderStatus()) && bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
             throw new IllegalArgumentException("This order already has a refund record");
         }
+    }
+
+    private void validateManualRefundEligibility(Bill bill, Payment payment, BigDecimal refundAmount) {
+        if (refundAmount == null || refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Refund amount must be greater than zero");
+        }
+        if (refundAmount.compareTo(bill.getTotalAmount().setScale(2, RoundingMode.HALF_UP)) > 0) {
+            throw new IllegalArgumentException("Refund amount cannot exceed order total");
+        }
+        if (!isRefundableOrderStatus(bill.getOrderStatus())) {
+            throw new IllegalArgumentException("Only completed or cancelled orders can be refunded");
+        }
+        if (bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
+            throw new IllegalArgumentException("This order already has a refund record");
+        }
+        if (payment != null && payment.getRefundStatus() == RefundStatus.PENDING) {
+            throw new IllegalArgumentException("A gateway refund is already pending for this order");
+        }
+        if (payment != null && payment.getRefundStatus() == RefundStatus.SUCCESS) {
+            throw new IllegalArgumentException("This order is already refunded");
+        }
+    }
+
+    private boolean isRefundableOrderStatus(String orderStatus) {
+        return "completed".equalsIgnoreCase(orderStatus) || "cancelled".equalsIgnoreCase(orderStatus);
     }
 
     private Payment resolveRefundPayment(Map<String, String> params) {
