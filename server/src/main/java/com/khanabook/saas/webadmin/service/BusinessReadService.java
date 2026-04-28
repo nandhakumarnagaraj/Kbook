@@ -298,7 +298,7 @@ public class BusinessReadService {
         if (bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
             return false;
         }
-        if (isEasebuzzPayment(payment)) {
+        if (isEasebuzzBill(bill) || isEasebuzzPayment(payment)) {
             return false;
         }
         return payment == null || payment.getRefundStatus() == null
@@ -332,6 +332,11 @@ public class BusinessReadService {
                 && payment.getGateway() == PaymentGateway.EASEBUZZ
                 && payment.getGatewayPaymentId() != null
                 && !payment.getGatewayPaymentId().isBlank();
+    }
+
+    private boolean isEasebuzzBill(Bill bill) {
+        return bill.getPaymentMode() != null
+                && bill.getPaymentMode().toLowerCase(Locale.ROOT).contains("easebuzz");
     }
 
     private BigDecimal safeAmount(BigDecimal amount) {

@@ -170,7 +170,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
               <td>
                 <div class="action-stack" *ngIf="order.sourceType === 'POS'; else noPosAction">
                   <button
-                    *ngIf="order.manualRefundAllowed"
+                    *ngIf="showManualRefundAction(order)"
                     class="ghost-btn danger-btn"
                     (click)="openManualRefund(order)"
                   >
@@ -191,7 +191,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
                   >
                     {{ refreshingRefundOrderId === order.orderId ? 'Refreshing...' : 'Refresh Refund Status' }}
                   </button>
-                  <span *ngIf="!order.manualRefundAllowed && !order.gatewayRefundAllowed" class="muted">-</span>
+                  <span *ngIf="!showManualRefundAction(order) && !order.gatewayRefundAllowed" class="muted">-</span>
                 </div>
                 <ng-template #noPosAction>
                   <span class="muted">-</span>
@@ -632,6 +632,14 @@ export class OrdersPageComponent {
     const mode = order.refundMode?.toLowerCase();
     const status = order.refundStatus?.toLowerCase();
     return mode === 'easebuzz' && (status === 'pending' || status === 'failed');
+  }
+
+  showManualRefundAction(order: BusinessOrder): boolean {
+    return order.manualRefundAllowed && !this.isEasebuzzPaymentMethod(order);
+  }
+
+  private isEasebuzzPaymentMethod(order: BusinessOrder): boolean {
+    return order.paymentMethod.toLowerCase().includes('easebuzz');
   }
 
   formatCurrencyValue(value: number | null): string { return formatCurrency(value ?? 0); }

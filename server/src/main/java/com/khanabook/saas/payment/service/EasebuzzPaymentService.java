@@ -464,7 +464,7 @@ public class EasebuzzPaymentService {
         if (!isRefundableOrderStatus(bill.getOrderStatus())) {
             throw new IllegalArgumentException("Only completed or cancelled orders can be refunded");
         }
-        if (isEasebuzzPayment(payment)) {
+        if (isEasebuzzBill(bill) || isEasebuzzPayment(payment)) {
             throw new IllegalArgumentException("Easebuzz payments must be refunded via Easebuzz");
         }
         if (bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
@@ -487,6 +487,11 @@ public class EasebuzzPaymentService {
                 && payment.getGateway() == PaymentGateway.EASEBUZZ
                 && payment.getGatewayPaymentId() != null
                 && !payment.getGatewayPaymentId().isBlank();
+    }
+
+    private boolean isEasebuzzBill(Bill bill) {
+        return bill.getPaymentMode() != null
+                && bill.getPaymentMode().toLowerCase().contains("easebuzz");
     }
 
     private Payment resolveRefundPayment(Map<String, String> params) {
