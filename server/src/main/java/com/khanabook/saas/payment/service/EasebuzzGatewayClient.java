@@ -103,23 +103,29 @@ public class EasebuzzGatewayClient {
 
         JsonNode json = postForm(dashboardBaseUrlFor(environment) + "/transaction/v2/refund", form);
         JsonNode data = json.path("data");
+        String apiStatus = firstNonBlank(
+                stringValue(json, "status"),
+                stringValue(data, "status"));
+        String message = firstNonBlank(
+                stringValue(json, "message"),
+                stringValue(data, "message"),
+                stringValue(data, "reason"),
+                stringValue(data, "error_desc"),
+                stringValue(json, "data"));
+        String refundId = firstNonBlank(
+                stringValue(data, "refund_id"),
+                stringValue(data, "request_id"),
+                stringValue(json, "refund_id"));
         return RefundInitiation.builder()
                 .rawPayload(json.toString())
-                .apiStatus(stringValue(json, "status"))
-                .apiAccepted("1".equals(stringValue(json, "status")))
+                .apiStatus(apiStatus)
+                .apiAccepted(isAcceptedRefundInitiation(apiStatus, message, refundId))
                 .refundStatus(firstNonBlank(
                         stringValue(data, "refund_status"),
-                        stringValue(json, "refund_status")))
-                .message(firstNonBlank(
-                        stringValue(json, "message"),
-                        stringValue(data, "message"),
-                        stringValue(data, "reason"),
-                        stringValue(data, "error_desc"),
-                        stringValue(json, "data")))
-                .refundId(firstNonBlank(
-                        stringValue(data, "refund_id"),
-                        stringValue(data, "request_id"),
-                        stringValue(json, "refund_id")))
+                        stringValue(json, "refund_status"),
+                        inferRefundStatus(message, refundId)))
+                .message(message)
+                .refundId(refundId)
                 .build();
     }
 
@@ -206,6 +212,43 @@ public class EasebuzzGatewayClient {
             if (value != null && !value.isBlank()) {
                 return value;
             }
+        }
+        return "";
+    }
+
+    private boolean isAcceptedRefundInitiation(String apiStatus, String message, String refundId) {
+        String normalizedStatus = apiStatus == null ? "" : apiStatus.trim().toLowerCase();
+        if ("1".equals(normalizedStatus)
+                || "success".equals(normalizedStatus)
+                || "successful".equals(normalizedStatus)
+                || "accepted".equals(normalizedStatus)
+                || "initiated".equals(normalizedStatus)) {
+            return true;
+        }
+        if (refundId != null && !refundId.isBlank()) {
+            return true;
+        }
+        if (message == null || message.isBlank()) {
+            return false;
+        }
+        String normalizedMessage = message.trim().toLowerCase();
+        return normalizedMessage.contains("refund initiated")
+                || normalizedMessage.contains("request id:")
+                || normalizedMessage.contains("request id ");
+    }
+
+    private String inferRefundStatus(String message, String refundId) {
+        if (refundId != null && !refundId.isBlank()) {
+            return "pending";
+        }
+        if (message == null || message.isBlank()) {
+            return "";
+        }
+        String normalizedMessage = message.trim().toLowerCase();
+        if (normalizedMessage.contains("refund initiated")
+                || normalizedMessage.contains("request id:")
+                || normalizedMessage.contains("request id ")) {
+            return "pending";
         }
         return "";
     }

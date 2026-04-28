@@ -427,6 +427,36 @@ class EasebuzzPaymentServiceIntegrationTest extends BaseIntegrationTest {
         assertThat(updatedPayment.getRefundReason()).contains("selected environment");
     }
 
+    @Test
+    void initiateGatewayRefund_acceptsEasebuzzRequestIdStyleResponse() {
+        Bill bill = saveCompletedEasebuzzBill();
+        Payment payment = saveSuccessfulEasebuzzPayment(bill);
+
+        when(gatewayClient.initiateRefund(anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(EasebuzzGatewayClient.RefundInitiation.builder()
+                        .apiStatus("0")
+                        .apiAccepted(true)
+                        .refundStatus("pending")
+                        .refundId("RFZ13Y3BAX")
+                        .message("Refund initiated, Your Request Id:RFZ13Y3BAX")
+                        .rawPayload("{\"status\":0,\"message\":\"Refund initiated, Your Request Id:RFZ13Y3BAX\"}")
+                        .build());
+
+        Payment updatedPayment = paymentService.initiateGatewayRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("10.00"),
+                "Customer requested cancellation"
+        );
+
+        Bill updatedBill = billRepository.findById(bill.getId()).orElseThrow();
+        assertThat(updatedPayment.getRefundStatus()).isEqualTo(RefundStatus.PENDING);
+        assertThat(updatedPayment.getRefundGatewayRefundId()).isEqualTo("RFZ13Y3BAX");
+        assertThat(updatedPayment.getRefundReason()).isEqualTo("Customer requested cancellation");
+        assertThat(updatedBill.getOrderStatus()).isEqualTo("completed");
+        assertThat(updatedBill.getRefundAmount()).isEqualByComparingTo("0");
+    }
+
     private Bill saveCompletedEasebuzzBill() {
         Bill bill = saveDraftBill();
         bill.setPaymentStatus("success");

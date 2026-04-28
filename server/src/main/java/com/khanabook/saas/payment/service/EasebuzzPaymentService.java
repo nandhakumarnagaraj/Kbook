@@ -239,7 +239,7 @@ public class EasebuzzPaymentService {
             markGatewayRefundFailure(payment, bill, canonicalRefundAmount, merchantRefundId, now, ex.getMessage(), null);
             throw ex;
         }
-        if (!response.isApiAccepted()) {
+        if (!isAcceptedRefundInitiation(response)) {
             String failureMessage = response.getMessage().isBlank()
                     ? "Easebuzz refund request was rejected"
                     : response.getMessage();
@@ -623,6 +623,22 @@ public class EasebuzzPaymentService {
             case "not_refunded", "none" -> RefundStatus.NOT_REFUNDED;
             default -> fallback;
         };
+    }
+
+    private boolean isAcceptedRefundInitiation(EasebuzzGatewayClient.RefundInitiation response) {
+        if (response.isApiAccepted()) {
+            return true;
+        }
+        if (response.getRefundId() != null && !response.getRefundId().isBlank()) {
+            return true;
+        }
+        if (response.getMessage() == null || response.getMessage().isBlank()) {
+            return false;
+        }
+        String normalizedMessage = response.getMessage().trim().toLowerCase();
+        return normalizedMessage.contains("refund initiated")
+                || normalizedMessage.contains("request id:")
+                || normalizedMessage.contains("request id ");
     }
 
     private String normalizeRefundReason(String reason) {
