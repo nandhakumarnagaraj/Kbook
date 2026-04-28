@@ -952,9 +952,11 @@ fun PaymentStep(
     
     LaunchedEffect(enabledModes) {
         if (enabledModes.isNotEmpty()) {
-            selectedMode =
-                    if (enabledModes.contains(PaymentMode.UPI)) PaymentMode.UPI
-                    else enabledModes.first()
+            selectedMode = when {
+                enabledModes.contains(PaymentMode.EASEBUZZ) -> PaymentMode.EASEBUZZ
+                enabledModes.contains(PaymentMode.UPI) -> PaymentMode.UPI
+                else -> enabledModes.first()
+            }
         }
     }
 
@@ -966,7 +968,9 @@ fun PaymentStep(
     val isSplitMode =
             selectedMode == PaymentMode.PART_CASH_UPI ||
                     selectedMode == PaymentMode.PART_CASH_POS ||
-                    selectedMode == PaymentMode.PART_UPI_POS
+                    selectedMode == PaymentMode.PART_UPI_POS ||
+                    selectedMode == PaymentMode.PART_CASH_EASEBUZZ ||
+                    selectedMode == PaymentMode.PART_EASEBUZZ_POS
 
     LaunchedEffect(selectedMode, summary.total) {
         if (isSplitMode) {
@@ -1150,6 +1154,8 @@ fun PaymentStep(
                             PaymentMode.PART_CASH_UPI -> "Cash Amount" to "UPI Amount"
                             PaymentMode.PART_CASH_POS -> "Cash Amount" to "POS Amount"
                             PaymentMode.PART_UPI_POS -> "UPI Amount" to "POS Amount"
+                            PaymentMode.PART_CASH_EASEBUZZ -> "Cash Amount" to "Easebuzz Amount"
+                            PaymentMode.PART_EASEBUZZ_POS -> "Easebuzz Amount" to "POS Amount"
                             else -> "" to ""
                         }
 
@@ -1214,8 +1220,9 @@ fun PaymentStep(
         val scope = rememberCoroutineScope()
 
         // Offline / gateway state — auto-falls back to manual when offline.
-        val showOfflineBanner = profile?.easebuzzEnabled == true &&
-                PaymentGatewayHelper.isUpiSelection(selectedMode) && !isOnline
+        val showOfflineBanner = (selectedMode == PaymentMode.EASEBUZZ ||
+                selectedMode == PaymentMode.PART_CASH_EASEBUZZ ||
+                selectedMode == PaymentMode.PART_EASEBUZZ_POS) && !isOnline
         var gatewayInProgress by remember { mutableStateOf(false) }
         var gatewayError by remember { mutableStateOf<String?>(null) }
         var awaitingBillId by remember { mutableStateOf<Long?>(null) }
@@ -1412,8 +1419,10 @@ fun PaymentStep(
                                 return@launch
                             }
                             val gatewayAmount = when (selectedMode) {
-                                PaymentMode.PART_CASH_UPI -> p2Text   // p2 = UPI leg
-                                PaymentMode.PART_UPI_POS  -> p1Text   // p1 = UPI leg
+                                PaymentMode.PART_CASH_UPI -> p2Text           // p2 = UPI leg
+                                PaymentMode.PART_UPI_POS  -> p1Text           // p1 = UPI leg
+                                PaymentMode.PART_CASH_EASEBUZZ -> p2Text      // p2 = Easebuzz leg
+                                PaymentMode.PART_EASEBUZZ_POS  -> p1Text      // p1 = Easebuzz leg
                                 else -> summary.total
                             }
                             val result = viewModel.easebuzzClient.initiateTxn(

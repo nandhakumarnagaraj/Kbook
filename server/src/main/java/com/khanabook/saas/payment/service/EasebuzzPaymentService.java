@@ -396,7 +396,7 @@ public class EasebuzzPaymentService {
         billPayment.setIsDeleted(false);
         billPayment.setBillId(bill.getId());
         billPayment.setServerBillId(bill.getId());
-        billPayment.setPaymentMode("upi");
+        billPayment.setPaymentMode("easebuzz");
         billPayment.setAmount(payment.getAmount());
         billPayment.setGatewayTxnId(payment.getGatewayTxnId());
         billPayment.setGatewayStatus(payment.getGatewayStatus());

@@ -24,7 +24,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -379,19 +378,13 @@ private fun LegacyAppLockConfigViewUnused(
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
-                Switch(
-                    modifier = Modifier.scale(0.8f),
+                KhanaBookSwitch(
                     checked = isEnabled,
                     onCheckedChange = { enable ->
                         if (enable) viewModel.startEnablePin()
                         else viewModel.startDisablePin()
                     },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = SuccessGreen,
-                        checkedTrackColor = SuccessGreen.copy(alpha = 0.4f),
-                        uncheckedThumbColor = TextGold.copy(alpha = 0.5f),
-                        uncheckedTrackColor = DarkBrown1
-                    )
+                    checkedTrackColor = SuccessGreen
                 )
             }
         }

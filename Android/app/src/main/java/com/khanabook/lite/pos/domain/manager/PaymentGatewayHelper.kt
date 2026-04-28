@@ -24,12 +24,10 @@ object PaymentGatewayHelper {
         if (profile == null) return false
         if (!profile.easebuzzEnabled) return false
         if (!isOnline) return false
-        return isUpiSelection(mode)
+        return mode == PaymentMode.EASEBUZZ ||
+               mode == PaymentMode.PART_CASH_EASEBUZZ ||
+               mode == PaymentMode.PART_EASEBUZZ_POS
     }
 
-    fun gatewayPaymentMethod(mode: PaymentMode): String = when (mode) {
-        PaymentMode.PART_CASH_UPI -> "PART_CASH_UPI"
-        PaymentMode.PART_UPI_POS -> "PART_UPI_POS"
-        else -> "UPI"
-    }
+    fun gatewayPaymentMethod(mode: PaymentMode): String = "UPI"
 }
