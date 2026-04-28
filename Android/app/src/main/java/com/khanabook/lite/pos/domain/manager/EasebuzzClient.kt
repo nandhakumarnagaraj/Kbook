@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.domain.manager
 
+import com.khanabook.lite.pos.data.remote.api.InitiateRefundRequest
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,6 +34,11 @@ class EasebuzzClient @Inject constructor(
         data class Error(val message: String) : InitResult()
     }
 
+    sealed class RefundResult {
+        object Success : RefundResult()
+        data class Error(val message: String) : RefundResult()
+    }
+
     sealed class VerifyResult {
         data class Success(val paymentId: Long, val billId: Long, val txnId: String, val message: String) : VerifyResult()
         data class Failed(val paymentId: Long, val billId: Long, val txnId: String, val reason: String?) : VerifyResult()
@@ -63,6 +69,16 @@ class EasebuzzClient @Inject constructor(
             InitResult.Error(e.message ?: "Network error")
         }
     }
+
+    suspend fun initiateRefund(serverBillId: Long, amount: String, reason: String): RefundResult =
+        withContext(Dispatchers.IO) {
+            try {
+                api.initiateEasebuzzRefund(serverBillId, InitiateRefundRequest(amount, reason))
+                RefundResult.Success
+            } catch (e: Exception) {
+                RefundResult.Error(e.message ?: "Refund request failed")
+            }
+        }
 
     suspend fun verifyBill(billId: Long): VerifyResult = withContext(Dispatchers.IO) {
         try {

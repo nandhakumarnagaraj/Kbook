@@ -143,7 +143,7 @@ class AppLockViewModel @Inject constructor(
         if (pin.length != 4) return
         viewModelScope.launch {
             val hash = sessionManager.getPinHash() ?: run {
-                _errorMessage.value = "Security key lost. Please use 'Forgot PIN' to reset."
+                _errorMessage.value = "Security key lost. Please log in again."
                 return@launch
             }
             val valid = authManager.verifyPassword(pin, hash)
@@ -185,13 +185,6 @@ class AppLockViewModel @Inject constructor(
             } else {
                 onError()
             }
-        }
-    }
-
-    fun forgotPin(onComplete: () -> Unit) {
-        viewModelScope.launch {
-            sessionManager.clearPin()
-            onComplete()
         }
     }
 

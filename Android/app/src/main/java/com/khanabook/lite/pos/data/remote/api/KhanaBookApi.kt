@@ -99,6 +99,12 @@ interface KhanaBookApi {
         @GET("api/v1/payments/easebuzz/status/{billId}")
         suspend fun getEasebuzzPaymentStatus(@Path("billId") billId: Long): EasebuzzPaymentStatusResponse
 
+        @POST("api/v1/payments/easebuzz/refund/{billId}")
+        suspend fun initiateEasebuzzRefund(
+                @Path("billId") billId: Long,
+                @Body request: InitiateRefundRequest
+        ): InitiateRefundResponse
+
         // ── Storefront ───────────────────────────────────────────────────────
         @GET("api/v1/storefront/orders")
         suspend fun getStorefrontOrders(): List<MerchantCustomerOrderSummaryResponse>

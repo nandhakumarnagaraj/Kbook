@@ -38,3 +38,12 @@ data class EasebuzzPaymentStatusResponse(
     val amount: String,
     val message: String
 )
+
+data class InitiateRefundRequest(
+    val refundAmount: String,
+    val reason: String
+)
+
+data class InitiateRefundResponse(
+    val status: String
+)

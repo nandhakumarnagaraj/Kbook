@@ -10,6 +10,7 @@ import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.manager.InvoicePDFGenerator
+import com.khanabook.lite.pos.domain.manager.TrustedExternalAppReturn
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -155,6 +156,7 @@ fun shareBillTextOnWhatsApp(context: Context, billWithItems: BillWithItems, prof
             val uri = android.net.Uri.parse("whatsapp://send?phone=$formattedPhone&text=${android.net.Uri.encode(text)}")
             val intent = Intent(Intent.ACTION_VIEW, uri)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            TrustedExternalAppReturn.mark(context)
             context.startActivity(intent)
         } catch (e: Exception) {
             // Fallback to generic share if WhatsApp not installed or URI fails
@@ -268,6 +270,7 @@ private fun tryJidWhatsApp(context: Context, phone: String, pdfUri: android.net.
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
+            TrustedExternalAppReturn.mark(context)
             context.startActivity(intent)
             return true
         } catch (e: Exception) {
@@ -300,6 +303,7 @@ private fun launchWhatsAppPdfPicker(context: Context, pdfUri: android.net.Uri): 
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
+            TrustedExternalAppReturn.mark(context)
             context.startActivity(intent)
             return true
         } catch (e: Exception) {

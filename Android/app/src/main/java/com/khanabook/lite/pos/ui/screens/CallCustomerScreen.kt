@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
+import com.khanabook.lite.pos.domain.manager.TrustedExternalAppReturn
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
@@ -286,6 +287,7 @@ fun CallCustomerScreen(
                                     currentResult.bill.customerWhatsapp?.let { phone ->
                                         val intent =
                                                 Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
+                                        TrustedExternalAppReturn.mark(context)
                                         context.startActivity(intent)
                                     }
                                 },

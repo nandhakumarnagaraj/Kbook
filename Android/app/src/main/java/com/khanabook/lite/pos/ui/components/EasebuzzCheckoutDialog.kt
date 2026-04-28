@@ -28,6 +28,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.khanabook.lite.pos.domain.manager.EasebuzzClient
+import com.khanabook.lite.pos.domain.manager.TrustedExternalAppReturn
 
 /**
  * In-app Easebuzz hosted checkout. Loads the access_key URL inside a WebView
@@ -220,6 +221,7 @@ private fun handleNavigation(
     }
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     return try {
+        TrustedExternalAppReturn.mark(ctx)
         ctx.startActivity(intent)
         true
     } catch (e: ActivityNotFoundException) {

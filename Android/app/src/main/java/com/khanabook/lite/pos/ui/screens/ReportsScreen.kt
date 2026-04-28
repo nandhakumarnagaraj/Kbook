@@ -442,7 +442,7 @@ fun ReportDownloadBottomBar(
             onClick = onDownloadClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(45.dp)
                 .padding(horizontal = spacing.medium),
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
             shape = RoundedCornerShape(12.dp)

@@ -34,6 +34,7 @@ import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.manager.PaymentReturnManager
 import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.domain.manager.TrustedExternalAppReturn
 import com.khanabook.lite.pos.ui.screens.*
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
@@ -99,27 +100,33 @@ class MainActivity : FragmentActivity() {
                 val context = this
                 val toastScope = rememberCoroutineScope()
 
-                // Background Lock / Grace Period Observer
+                // Background lock observer. Returns from trusted external apps
+                // (WhatsApp, dialer, payment apps) get one bypass; normal reopen
+                // still asks for PIN after the grace period.
                 LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
                     sessionManager.onAppBackgrounded()
                 }
 
                 LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
                     val currentDest = navController.currentDestination?.route
-                    // Only lock if we are NOT on a public/auth screen
                     val isInPrivateArea = currentDest != null &&
                         currentDest != "splash" &&
                         currentDest != "login" &&
                         currentDest != "signup" &&
                         currentDest != "app_lock"
 
-                    if (isInPrivateArea && sessionManager.shouldShowAppLock()) {
+                    if (!isInPrivateArea) return@LifecycleEventEffect
+
+                    if (TrustedExternalAppReturn.consume(context)) {
+                        sessionManager.clearBackgroundTime()
+                    } else if (sessionManager.shouldShowAppLock()) {
                         sessionManager.clearBackgroundTime()
                         navController.navigate("app_lock")
-                    } else if (isInPrivateArea) {
+                    } else {
                         sessionManager.clearBackgroundTime()
                     }
                 }
+
 
                 // Root back handling (Double Back to Exit from Home)
                 val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -219,9 +226,6 @@ class MainActivity : FragmentActivity() {
                                 } else {
                                     navController.navigate("main/0") { popUpTo("app_lock") { inclusive = true } }
                                 }
-                            },
-                            onNavigateToLogin = {
-                                navController.navigate("login") { popUpTo(0) { inclusive = true } }
                             }
                         )
                     }
