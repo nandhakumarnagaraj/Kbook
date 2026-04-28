@@ -510,8 +510,11 @@ public class EasebuzzPaymentService {
     }
 
     private void validateRefundEligibility(Bill bill, Payment payment, BigDecimal refundAmount) {
-        if (refundAmount.compareTo(bill.getTotalAmount().setScale(2, RoundingMode.HALF_UP)) > 0) {
-            throw new IllegalArgumentException("Refund amount cannot exceed order total");
+        BigDecimal gatewayPaidAmount = payment.getAmount() == null
+                ? BigDecimal.ZERO
+                : payment.getAmount().setScale(2, RoundingMode.HALF_UP);
+        if (refundAmount.compareTo(gatewayPaidAmount) > 0) {
+            throw new IllegalArgumentException("Refund amount cannot exceed Easebuzz paid amount");
         }
         if (payment.getRefundStatus() == RefundStatus.PENDING) {
             throw new IllegalArgumentException("A gateway refund is already pending for this order");

@@ -15,6 +15,7 @@ public record BusinessOrderListItemResponse(
         String paymentStatus,
         String paymentMethod,
         BigDecimal totalAmount,
+        BigDecimal gatewayPaidAmount,
         BigDecimal refundAmount,
         String refundStatus,
         String refundMode,

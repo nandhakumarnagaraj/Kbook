@@ -45,6 +45,7 @@ export interface BusinessOrder {
   paymentStatus: string;
   paymentMethod: string;
   totalAmount: number;
+  gatewayPaidAmount: number | null;
   refundAmount: number | null;
   refundStatus: string;
   refundMode: string | null;

@@ -25,6 +25,9 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         <div class="modal-box" (click)="$event.stopPropagation()">
           <h3>{{ refundMode === 'EASEBUZZ' ? 'Refund via Easebuzz' : 'Manual Refund' }} {{ refundTarget.orderCode }}</h3>
           <p class="muted">Total: {{ formatCurrencyValue(refundTarget.totalAmount) }}</p>
+          <p class="muted" *ngIf="refundMode === 'EASEBUZZ' && refundCapAmount() !== refundTarget.totalAmount">
+            Easebuzz Paid Amount: {{ formatCurrencyValue(refundCapAmount()) }}
+          </p>
           <p class="hint-text" *ngIf="refundMode === 'EASEBUZZ'">
             This sends a refund request to Easebuzz. Money returns only after gateway confirmation.
           </p>
@@ -37,7 +40,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             <input
               type="number"
               [(ngModel)]="refundAmountInput"
-              [max]="refundTarget.totalAmount"
+              [max]="refundCapAmount()"
               min="0.01"
               step="0.01"
               placeholder="Enter amount"
@@ -561,7 +564,9 @@ export class OrdersPageComponent {
 
   private openRefundDialog(order: BusinessOrder): void {
     this.refundTarget = order;
-    this.refundAmountInput = order.totalAmount;
+    this.refundAmountInput = this.refundMode === 'EASEBUZZ'
+      ? this.refundCapAmount(order)
+      : order.totalAmount;
     this.refundReasonInput = '';
     this.refundError = null;
   }
@@ -640,6 +645,14 @@ export class OrdersPageComponent {
 
   private isEasebuzzPaymentMethod(order: BusinessOrder): boolean {
     return order.paymentMethod.toLowerCase().includes('easebuzz');
+  }
+
+  refundCapAmount(order: BusinessOrder | null = this.refundTarget): number {
+    if (!order) return 0;
+    if (this.refundMode === 'EASEBUZZ') {
+      return order.gatewayPaidAmount ?? order.totalAmount;
+    }
+    return order.totalAmount;
   }
 
   formatCurrencyValue(value: number | null): string { return formatCurrency(value ?? 0); }

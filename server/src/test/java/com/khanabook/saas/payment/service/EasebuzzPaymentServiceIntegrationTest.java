@@ -302,7 +302,23 @@ class EasebuzzPaymentServiceIntegrationTest extends BaseIntegrationTest {
                 new BigDecimal("300.00"),
                 "Over refund"
         )).isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("cannot exceed order total");
+                .hasMessageContaining("cannot exceed Easebuzz paid amount");
+    }
+
+    @Test
+    void initiateGatewayRefund_rejectsRefundGreaterThanEasebuzzPaidAmount_forPartPayment() {
+        Bill bill = saveCompletedEasebuzzBill();
+        Payment payment = saveSuccessfulEasebuzzPayment(bill);
+        payment.setAmount(new BigDecimal("100.00"));
+        paymentRepository.save(payment);
+
+        assertThatThrownBy(() -> paymentService.initiateGatewayRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("150.00"),
+                "Refund part payment"
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cannot exceed Easebuzz paid amount");
     }
 
     @Test
