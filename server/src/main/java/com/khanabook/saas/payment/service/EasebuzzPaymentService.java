@@ -464,6 +464,9 @@ public class EasebuzzPaymentService {
         if (!isRefundableOrderStatus(bill.getOrderStatus())) {
             throw new IllegalArgumentException("Only completed or cancelled orders can be refunded");
         }
+        if (isEasebuzzPayment(payment)) {
+            throw new IllegalArgumentException("Easebuzz payments must be refunded via Easebuzz");
+        }
         if (bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
             throw new IllegalArgumentException("This order already has a refund record");
         }
@@ -477,6 +480,13 @@ public class EasebuzzPaymentService {
 
     private boolean isRefundableOrderStatus(String orderStatus) {
         return "completed".equalsIgnoreCase(orderStatus) || "cancelled".equalsIgnoreCase(orderStatus);
+    }
+
+    private boolean isEasebuzzPayment(Payment payment) {
+        return payment != null
+                && payment.getGateway() == PaymentGateway.EASEBUZZ
+                && payment.getGatewayPaymentId() != null
+                && !payment.getGatewayPaymentId().isBlank();
     }
 
     private Payment resolveRefundPayment(Map<String, String> params) {

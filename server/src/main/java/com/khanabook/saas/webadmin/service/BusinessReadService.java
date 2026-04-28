@@ -5,6 +5,7 @@ import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.payment.entity.Payment;
+import com.khanabook.saas.payment.entity.PaymentGateway;
 import com.khanabook.saas.payment.entity.PaymentStatus;
 import com.khanabook.saas.payment.entity.RefundMode;
 import com.khanabook.saas.payment.entity.RefundStatus;
@@ -291,13 +292,13 @@ public class BusinessReadService {
     }
 
     private boolean canManualRefund(Bill bill, Payment payment) {
-        if (payment != null && payment.getRefundStatus() == RefundStatus.FAILED) {
-            return true;
-        }
         if (!isRefundableOrderStatus(bill.getOrderStatus()) || !"success".equalsIgnoreCase(bill.getPaymentStatus())) {
             return false;
         }
         if (bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
+            return false;
+        }
+        if (isEasebuzzPayment(payment)) {
             return false;
         }
         return payment == null || payment.getRefundStatus() == null
@@ -306,16 +307,31 @@ public class BusinessReadService {
     }
 
     private boolean canGatewayRefund(Bill bill, Payment payment) {
-        if (!canManualRefund(bill, payment) || payment == null) {
+        if (!isRefundableOrderStatus(bill.getOrderStatus()) || !"success".equalsIgnoreCase(bill.getPaymentStatus())) {
             return false;
         }
-        return payment.getPaymentStatus() == PaymentStatus.SUCCESS
-                && payment.getGatewayPaymentId() != null
+        if (bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
+            return false;
+        }
+        if (payment == null || payment.getPaymentStatus() != PaymentStatus.SUCCESS) {
+            return false;
+        }
+        if (payment.getRefundStatus() == RefundStatus.PENDING || payment.getRefundStatus() == RefundStatus.SUCCESS) {
+            return false;
+        }
+        return isEasebuzzPayment(payment)
                 && !payment.getGatewayPaymentId().isBlank();
     }
 
     private boolean isRefundableOrderStatus(String orderStatus) {
         return "completed".equalsIgnoreCase(orderStatus) || "cancelled".equalsIgnoreCase(orderStatus);
+    }
+
+    private boolean isEasebuzzPayment(Payment payment) {
+        return payment != null
+                && payment.getGateway() == PaymentGateway.EASEBUZZ
+                && payment.getGatewayPaymentId() != null
+                && !payment.getGatewayPaymentId().isBlank();
     }
 
     private BigDecimal safeAmount(BigDecimal amount) {

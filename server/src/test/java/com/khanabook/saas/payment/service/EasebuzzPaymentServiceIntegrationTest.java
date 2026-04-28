@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class EasebuzzPaymentServiceIntegrationTest extends BaseIntegrationTest {
 
@@ -124,6 +125,30 @@ class EasebuzzPaymentServiceIntegrationTest extends BaseIntegrationTest {
         assertThat(updatedBill.getPaymentStatus()).isEqualTo("success");
         assertThat(updatedBill.getRefundAmount()).isEqualByComparingTo("262.50");
         assertThat(updatedBill.getCancelReason()).isEqualTo("Sent by UPI");
+    }
+
+    @Test
+    void markManualRefund_rejectsSuccessfulEasebuzzPayment() {
+        Bill bill = saveDraftBill();
+        bill.setPaymentStatus("success");
+        bill.setOrderStatus("cancelled");
+        bill.setPaymentMode("easebuzz");
+        billRepository.save(bill);
+
+        Payment payment = savePendingPayment(bill);
+        payment.setPaymentStatus(PaymentStatus.SUCCESS);
+        payment.setGatewayPaymentId("EZP123");
+        payment.setGatewayStatus("success");
+        payment.setVerifiedAt(System.currentTimeMillis());
+        paymentRepository.save(payment);
+
+        assertThatThrownBy(() -> paymentService.markManualRefund(
+                RESTAURANT_ID,
+                bill.getId(),
+                new BigDecimal("262.50"),
+                "Manual fallback"
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Easebuzz payments must be refunded via Easebuzz");
     }
 
     private RestaurantPaymentConfig saveActiveConfig() {
