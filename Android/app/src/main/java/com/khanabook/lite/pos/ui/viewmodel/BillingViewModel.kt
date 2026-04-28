@@ -608,6 +608,10 @@ class BillingViewModel @Inject constructor(
                         withContext(Dispatchers.Main) {
                             _error.value = "Bill saved locally. Sync is pending."
                         }
+                    } else {
+                        // Reload so serverId is populated — WhatsApp share link needs it
+                        val refreshed = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
+                        if (refreshed != null) withContext(Dispatchers.Main) { _lastBill.value = refreshed }
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "Immediate bill sync failed after save", e)
