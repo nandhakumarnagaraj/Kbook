@@ -700,10 +700,9 @@ fun PartAmountDialog(
 ) {
     val spacing = KhanaBookTheme.spacing
     val labels = PaymentModeManager.getPartLabels(mode)
-    val totalVal = totalAmount.toDoubleOrNull() ?: 0.0
-    val half = totalVal / 2.0
-    var p1Text by remember { mutableStateOf("%.2f".format(half)) }
-    var p2Text by remember { mutableStateOf("%.2f".format(totalVal - half)) }
+    val split = remember(totalAmount) { BillCalculator.splitPartPayment(totalAmount) }
+    var p1Text by remember(totalAmount) { mutableStateOf(split.first) }
+    var p2Text by remember(totalAmount) { mutableStateOf(split.second) }
 
     val p1 = p1Text.toDoubleOrNull() ?: 0.0
     val p2 = p2Text.toDoubleOrNull() ?: 0.0

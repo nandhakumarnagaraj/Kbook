@@ -74,6 +74,12 @@ fun HomeScreen(
         actionsVisible = true
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.message.collect { message ->
+            KhanaToast.show(message, ToastKind.Info)
+        }
+    }
+
     val enterSpec = fadeIn(tween(350)) + slideInVertically(
         initialOffsetY = { it / 6 },
         animationSpec = tween(350, easing = FastOutSlowInEasing)
@@ -220,6 +226,13 @@ fun HomeScreen(
                         onClick = onSearchBill
                     )
                     HomeActionCard(
+                        text = "Reprint KDS",
+                        icon = Icons.Default.Restaurant,
+                        backgroundColor = CardBG,
+                        modifier = Modifier.weight(1f),
+                        onClick = { viewModel.reprintPendingKds() }
+                    )
+                    HomeActionCard(
                         text = "Order Status",
                         icon = Icons.Default.Info,
                         backgroundColor = CardBG,
@@ -246,6 +259,14 @@ fun HomeScreen(
                         backgroundColor = CardBG,
                         modifier = Modifier.fillMaxWidth(),
                         onClick = onSearchBill
+                    )
+
+                    HomeActionCard(
+                        text = "Reprint KDS",
+                        icon = Icons.Default.Restaurant,
+                        backgroundColor = CardBG,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { viewModel.reprintPendingKds() }
                     )
 
                     HomeActionCard(

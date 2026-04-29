@@ -3,6 +3,7 @@
 package com.khanabook.lite.pos.ui.screens
 
 import android.graphics.BitmapFactory
+import android.speech.tts.TextToSpeech
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -11,6 +12,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -34,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -67,6 +70,9 @@ import kotlinx.coroutines.withContext
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -76,6 +82,9 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.ui.geometry.Offset
+import kotlin.math.roundToLong
+import java.util.Locale
 
 @Composable
 fun NewBillScreen(
@@ -84,14 +93,12 @@ fun NewBillScreen(
         billingViewModel: BillingViewModel = hiltViewModel(),
         menuViewModel: MenuViewModel = hiltViewModel(),
         settingsViewModel: SettingsViewModel = hiltViewModel(),
-        navController: androidx.navigation.NavController? = null,
-        resumePendingPayment: Boolean = false
+    navController: androidx.navigation.NavController? = null,
+    resumePendingPayment: Boolean = false
 ) {
     var step by remember { mutableIntStateOf(1) }
     var paymentFlowLocked by remember { mutableStateOf(false) }
-    var shouldResumePendingPayment by remember { mutableStateOf(resumePendingPayment) }
-    var showPendingDraftDialog by remember { mutableStateOf(false) }
-    var pendingDraftBillId by remember { mutableStateOf<Long?>(null) }
+    val shouldResumePendingPayment = false
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
 
@@ -125,27 +132,11 @@ fun NewBillScreen(
         }
     }
 
-    LaunchedEffect(shouldResumePendingPayment) {
-        if (!shouldResumePendingPayment) {
-            billingViewModel.resetForNewBill()
-            pendingDraftBillId = billingViewModel.getLatestPendingOnlineBillId()
-            showPendingDraftDialog = pendingDraftBillId != null
-            step = 1
-            return@LaunchedEffect
-        }
-        if (PaymentReturnManager.latestEvent.value != null && step < 3) {
-            step = 3
-        }
-    }
-
     LaunchedEffect(Unit) {
-        PaymentReturnManager.latestEvent.collect { event ->
-            if (event != null) {
-                shouldResumePendingPayment = true
-                showPendingDraftDialog = false
-                if (step < 3) step = 3
-            }
-        }
+        billingViewModel.resetForNewBill()
+        billingViewModel.cancelPendingOnlineDrafts()
+        PaymentReturnManager.clearLatestEvent()
+        step = 1
     }
 
     LaunchedEffect(error) {
@@ -172,7 +163,7 @@ fun NewBillScreen(
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
-                            if (shouldResumePendingPayment) "Resume Payment" else "New Bill",
+                            "New Bill",
                             color = PrimaryGold,
                             style = MaterialTheme.typography.titleLarge
                         )
@@ -270,50 +261,8 @@ fun NewBillScreen(
                 type = LoadingType.SAVING
             )
 
-            if (showPendingDraftDialog) {
-                PendingPaymentChoiceDialog(
-                    onResume = {
-                        showPendingDraftDialog = false
-                        shouldResumePendingPayment = true
-                        step = 3
-                    },
-                    onStartNew = {
-                        coroutineScope.launch {
-                            billingViewModel.cancelPendingOnlineDrafts()
-                            pendingDraftBillId = null
-                            showPendingDraftDialog = false
-                            shouldResumePendingPayment = false
-                            step = 1
-                        }
-                    }
-                )
-            }
         }
         } // end AnimatedVisibility
-    }
-}
-
-@Composable
-private fun PendingPaymentChoiceDialog(
-    onResume: () -> Unit,
-    onStartNew: () -> Unit
-) {
-    KhanaBookDialog(
-        onDismissRequest = {},
-        title = "Pending Payment Found",
-        message = "A previous online payment is still waiting for confirmation.",
-        dismissOnClickOutside = false,
-        dismissOnBackPress = false
-    ) {
-        TextButton(onClick = onStartNew) {
-            Text("Start New", color = TextGold, style = MaterialTheme.typography.labelLarge)
-        }
-        Button(
-            onClick = onResume,
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)
-        ) {
-            Text("Resume", color = DarkBrown1, style = MaterialTheme.typography.labelLarge)
-        }
     }
 }
 
@@ -1040,15 +989,20 @@ fun PaymentStep(
 
     LaunchedEffect(selectedMode, summary.total) {
         if (isSplitMode) {
-            val totalVal = summary.total.toDoubleOrNull() ?: 0.0
-            val half = totalVal / 2.0
-            p1Text = "%.2f".format(half)
-            p2Text = "%.2f".format(totalVal - half)
+            val split = BillCalculator.splitPartPayment(summary.total)
+            p1Text = split.first
+            p2Text = split.second
         }
     }
 
     val p1 = p1Text.toDoubleOrNull() ?: 0.0
     val p2 = p2Text.toDoubleOrNull() ?: 0.0
+    val upiPayableAmount =
+            when (selectedMode) {
+                PaymentMode.PART_CASH_UPI -> p2
+                PaymentMode.PART_UPI_POS -> p1
+                else -> summary.total.toDoubleOrNull() ?: 0.0
+            }
     val isAmountValid =
             if (isSplitMode) {
                 BillCalculator.validatePartPayment(p1Text, p2Text, summary.total)
@@ -1058,12 +1012,21 @@ fun PaymentStep(
     val scope = rememberCoroutineScope()
 
     // Generate UPI QR off the main thread — ZXing encoding is CPU-heavy and caused UI freeze
-    val dynamicUpiQrBitmap by produceState<android.graphics.Bitmap?>(null, profile?.upiHandle, summary.total) {
+    val dynamicUpiQrBitmap by produceState<android.graphics.Bitmap?>(
+        null,
+        profile?.upiHandle,
+        profile?.shopName,
+        upiPayableAmount
+    ) {
         val handle = profile?.upiHandle
         value = if (!handle.isNullOrBlank()) {
-            val amount = summary.total.toDoubleOrNull() ?: 0.0
             withContext(Dispatchers.Default) {
-                QrCodeManager.generateUpiQr(handle, profile?.shopName ?: "RESTAURANT", amount, 512)
+                QrCodeManager.generateUpiQr(
+                    handle,
+                    profile?.shopName ?: "RESTAURANT",
+                    upiPayableAmount,
+                    512
+                )
             }
         } else null
     }
@@ -1405,7 +1368,7 @@ fun PaymentStep(
 
                         Spacer(modifier = Modifier.height(spacing.medium))
                         Text(
-                                "₹${"%.2f".format(summary.total.toDoubleOrNull() ?: 0.0)}",
+                                "₹${"%.2f".format(upiPayableAmount)}",
                                 color = Color.Black,
                                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
                         )
@@ -1513,114 +1476,162 @@ fun SuccessStep(
     val profile by settingsViewModel.profile.collectAsState()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+    val totalAmount = lastBill?.bill?.totalAmount?.toDoubleOrNull() ?: 0.0
+    var successAnimated by remember { mutableStateOf(false) }
+    var isTtsReady by remember { mutableStateOf(false) }
+    val tts = remember { mutableStateOf<TextToSpeech?>(null) }
+    val burstProgress by animateFloatAsState(
+        targetValue = if (successAnimated) 1f else 0f,
+        animationSpec = tween(850, easing = FastOutSlowInEasing),
+        label = "success_burst_progress"
+    )
+    val ringAlpha by animateFloatAsState(
+        targetValue = if (successAnimated) 0f else 0.45f,
+        animationSpec = tween(700, easing = FastOutSlowInEasing),
+        label = "success_ring_alpha"
+    )
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (successAnimated) 1f else 0f,
+        animationSpec = tween(450, delayMillis = 180),
+        label = "success_content_alpha"
+    )
+
+    DisposableEffect(context) {
+        val engine = TextToSpeech(context.applicationContext) { status ->
+            isTtsReady = status == TextToSpeech.SUCCESS
+            if (status == TextToSpeech.SUCCESS) {
+                tts.value?.language = Locale("en", "IN")
+            }
+        }
+        tts.value = engine
+        onDispose {
+            engine.stop()
+            engine.shutdown()
+            tts.value = null
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        successAnimated = true
+    }
+
+    LaunchedEffect(isTtsReady, lastBill?.bill?.id) {
+        if (!isTtsReady || lastBill == null) return@LaunchedEffect
+        tts.value?.speak(
+            "Payment of ${formatAmountForSpeech(totalAmount)} received successfully.",
+            TextToSpeech.QUEUE_FLUSH,
+            null,
+            "payment-success-${lastBill?.bill?.id}"
+        )
+    }
+
     Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(spacing.large),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
     ) {
-        Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(KhanaBookTheme.iconSize.hero))
+        Box(
+            modifier = Modifier.size(176.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val colors = listOf(
+                    SuccessGreen,
+                    PrimaryGold,
+                    VegGreen,
+                    Color(0xFF8FE388),
+                    WarningYellow,
+                    SuccessGreen
+                )
+                val center = Offset(size.width / 2f, size.height / 2f)
+                val radius = size.minDimension * (0.18f + 0.34f * burstProgress)
+                colors.forEachIndexed { index, color ->
+                    val angle = Math.toRadians((index * 60 + 18).toDouble())
+                    val dotCenter = Offset(
+                        x = center.x + kotlin.math.cos(angle).toFloat() * radius,
+                        y = center.y + kotlin.math.sin(angle).toFloat() * radius
+                    )
+                    drawCircle(
+                        color = color.copy(alpha = (1f - burstProgress).coerceIn(0f, 1f)),
+                        radius = 5.dp.toPx() * (1f - 0.35f * burstProgress),
+                        center = dotCenter
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .size(132.dp)
+                    .graphicsLayer {
+                        scaleX = 0.7f + burstProgress * 0.9f
+                        scaleY = 0.7f + burstProgress * 0.9f
+                        alpha = ringAlpha
+                    }
+                    .background(SuccessGreen.copy(alpha = 0.22f), CircleShape)
+            )
+            Icon(
+                Icons.Default.CheckCircle,
+                null,
+                tint = SuccessGreen,
+                modifier = Modifier
+                    .size(132.dp)
+            )
+        }
         Text(
                 "Payment Successful!",
                 color = TextLight,
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.graphicsLayer { alpha = contentAlpha }
         )
 
-        val totalAmount = lastBill?.bill?.totalAmount?.toDoubleOrNull() ?: 0.0
         Text(
                 "Payment of ₹${"%.2f".format(totalAmount)} received successfully.",
                 color = TextGold,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(vertical = spacing.smallMedium)
+                modifier = Modifier
+                    .padding(vertical = spacing.smallMedium)
+                    .graphicsLayer { alpha = contentAlpha }
         )
 
         Spacer(modifier = Modifier.height(spacing.extraLarge))
         LaunchedEffect(printStatus) {
             printStatus?.let { onShowMessage(it) }
         }
-        printStatus?.let { status ->
-            Surface(
+        Column(
                 modifier = Modifier.fillMaxWidth(),
-                color = CardBG.copy(alpha = 0.45f),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.35f))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(spacing.medium),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Print, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.medium))
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Text(status, color = TextLight, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-            Spacer(modifier = Modifier.height(spacing.medium))
-        }
-        Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                verticalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
             Button(
                     onClick = {
-                        lastBill?.let { sendInvoiceViaSms(context, it, profile) }
+                        lastBill?.let {
+                            if (it.bill.serverId == null) {
+                                sendInvoiceViaSms(context, it, profile)
+                            } else {
+                                shareInvoiceViaWhatsAppLink(context, it, profile)
+                            }
+                        }
                     },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = lastBill != null
-            ) {
-                Icon(Icons.Default.Sms, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
-                Spacer(modifier = Modifier.width(spacing.extraSmall))
-                Text("SMS", color = Color.White, style = MaterialTheme.typography.titleMedium)
-            }
-
-            Button(
-                    onClick = {
-                        lastBill?.let { shareInvoiceViaWhatsAppLink(context, it, profile) }
-                    },
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
                     shape = RoundedCornerShape(12.dp),
                     enabled = lastBill != null
             ) {
                 Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                 Spacer(modifier = Modifier.width(spacing.extraSmall))
-                Text("WhatsApp", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                Text("Share Invoice", color = Color.White, style = MaterialTheme.typography.titleMedium)
             }
-        }
-        Spacer(modifier = Modifier.height(spacing.medium))
-        Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-        ) {
+
             Button(
                     onClick = {
                         lastBill?.let { viewModel.printReceipt(it) }
                     },
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                     shape = RoundedCornerShape(12.dp),
                     enabled = lastBill?.let { it.bill.orderStatus != "cancelled" } ?: false
             ) {
                 Icon(Icons.Default.Receipt, null, tint = DarkBrown1)
                 Spacer(modifier = Modifier.width(spacing.extraSmall))
-                Text("Receipt", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
-            }
-
-            OutlinedButton(
-                    onClick = {
-                        lastBill?.let { viewModel.printKitchenTicket(it) }
-                    },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                    border = BorderStroke(1.dp, PrimaryGold),
-                    enabled = lastBill?.let { it.bill.orderStatus != "cancelled" } ?: false
-            ) {
-                Icon(Icons.Default.Restaurant, null, tint = PrimaryGold)
-                Spacer(modifier = Modifier.width(spacing.extraSmall))
-                Text("Reprint KDS", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
+                Text("Print Invoice", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
             }
         }
         Spacer(modifier = Modifier.height(spacing.extraLarge))
@@ -1630,6 +1641,17 @@ fun SuccessStep(
                 border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
                 shape = RoundedCornerShape(12.dp)
         ) { Text("Back to Home", color = TextGold, style = MaterialTheme.typography.titleMedium) }
+    }
+}
+
+private fun formatAmountForSpeech(amount: Double): String {
+    val totalPaise = (amount * 100).roundToLong().coerceAtLeast(0)
+    val rupees = totalPaise / 100
+    val paise = totalPaise % 100
+    return if (paise == 0L) {
+        "$rupees rupees"
+    } else {
+        "$rupees rupees and $paise paise"
     }
 }
 

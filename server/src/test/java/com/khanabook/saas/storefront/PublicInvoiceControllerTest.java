@@ -47,6 +47,9 @@ class PublicInvoiceControllerTest extends BaseIntegrationTest {
         profile.setDeviceId("DEV_TEST");
         profile.setShopName("Anna Biriyani");
         profile.setShopAddress("Chennai");
+        profile.setWhatsappNumber("9876543210");
+        profile.setEmail("anna@example.com");
+        profile.setFssaiNumber("12345678901234");
         profile.setCurrency("INR");
         profile.setGstEnabled(true);
         profile.setGstin("33ABCDE1234F1Z5");
@@ -65,6 +68,8 @@ class PublicInvoiceControllerTest extends BaseIntegrationTest {
         bill.setLifetimeOrderId(1234L);
         bill.setOrderType("order");
         bill.setSubtotal(new BigDecimal("400.00"));
+        bill.setCgstAmount(new BigDecimal("25.00"));
+        bill.setSgstAmount(new BigDecimal("25.00"));
         bill.setTotalAmount(new BigDecimal("450.00"));
         bill.setPaymentMode("cash");
         bill.setPaymentStatus("paid");
@@ -106,8 +111,15 @@ class PublicInvoiceControllerTest extends BaseIntegrationTest {
         assertThat(html).contains("INV1234");
         assertThat(html).contains("Chicken Biryani");
         assertThat(html).contains("Rs. 450.00");
-        assertThat(html).contains("GSTIN: 33ABCDE1234F1Z5");
+        assertThat(html).contains("<b>GSTIN:</b> 33ABCDE1234F1Z5");
+        assertThat(html).contains("<b>FSSAI:</b> 12345678901234");
+        assertThat(html).contains("<b>Email:</b> anna@example.com");
+        assertThat(html).contains("<b>Contact Number:</b> 9876543210");
         assertThat(html).contains("Tax Invoice No");
+        assertThat(html).contains("CGST");
+        assertThat(html).contains("SGST");
+        assertThat(html).contains("<b>Payment Type:</b> Cash");
+        assertThat(html).contains("<th>Item</th><th class='c'>Qty</th><th class='r'>Total</th>");
     }
 
     @Test

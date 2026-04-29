@@ -63,31 +63,18 @@ class LogoutViewModel @Inject constructor(
             try {
                 val initialSummary = getUnsyncedDataSummary()
                 if (initialSummary.totalCount > 0) {
-                    syncManager.pushUnsyncedDataImmediately()
-                    val remainingSummary = getUnsyncedDataSummary()
-                    if (remainingSummary.totalCount == 0) {
-                        performHardLogout()
-                    } else {
-                        _logoutState.value =
-                            LogoutState.WarningOfflineData(
-                                totalCount = remainingSummary.totalCount,
-                                summary = remainingSummary.summary
-                            )
+                    try {
+                        syncManager.pushUnsyncedDataImmediately()
+                    } catch (e: Exception) {
+                        Log.w(debugTag, "Immediate sync before logout failed; preserving local DB: ${e.message}")
                     }
+                    performSoftLogout()
                 } else {
                     performHardLogout()
                 }
             } catch (e: Exception) {
-                val remainingSummary = getUnsyncedDataSummary()
-                if (remainingSummary.totalCount > 0) {
-                    _logoutState.value =
-                        LogoutState.WarningOfflineData(
-                            totalCount = remainingSummary.totalCount,
-                            summary = remainingSummary.summary
-                        )
-                } else {
-                    performHardLogout()
-                }
+                Log.w(debugTag, "Logout pre-check failed; preserving local DB: ${e.message}")
+                performSoftLogout()
             }
         }
     }

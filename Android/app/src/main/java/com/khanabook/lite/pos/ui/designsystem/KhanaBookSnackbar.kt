@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.ui.theme.*
+import kotlinx.coroutines.delay
 
 enum class ToastKind { Success, Error, Warning, Info }
 
@@ -61,6 +63,13 @@ fun KhanaBookSnackbar(data: SnackbarData) {
     val kind = (data.visuals as? KhanaSnackbarVisuals)?.kind ?: ToastKind.Info
     val style = styleFor(kind)
 
+    LaunchedEffect(data) {
+        if (data.visuals.actionLabel == null) {
+            delay(2_000)
+            data.dismiss()
+        }
+    }
+
     Surface(
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -102,7 +111,7 @@ fun KhanaBookSnackbarHost(
     hostState: SnackbarHostState,
     modifier: Modifier = Modifier,
 ) {
-    SnackbarHost(hostState = hostState, modifier = modifier) { data ->
+    SnackbarHost(hostState = hostState, modifier = modifier.padding(bottom = 28.dp)) { data ->
         KhanaBookSnackbar(data)
     }
 }

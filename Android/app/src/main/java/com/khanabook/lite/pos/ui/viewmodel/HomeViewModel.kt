@@ -4,7 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
+import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
+import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
+import com.khanabook.lite.pos.domain.model.PrinterRole
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import java.time.LocalTime
@@ -14,6 +18,8 @@ import java.time.LocalTime
 class HomeViewModel @Inject constructor(
     private val billRepository: BillRepository,
     private val kitchenPrintQueueRepository: KitchenPrintQueueRepository,
+    private val kitchenPrintQueueManager: KitchenPrintQueueManager,
+    private val printerProfileRepository: PrinterProfileRepository,
     private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor
 ) : ViewModel() {
 
@@ -89,6 +95,35 @@ class HomeViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = HomeStats()
         )
+
+    private val _message = MutableSharedFlow<String>()
+    val message: SharedFlow<String> = _message.asSharedFlow()
+
+    fun reprintPendingKds() {
+        viewModelScope.launch {
+            val pendingCount = kitchenPrintQueueRepository.getPendingCountFlow().first()
+            if (pendingCount == 0) {
+                _message.emit("No pending KDS tickets.")
+                return@launch
+            }
+
+            val kitchenPrinter = printerProfileRepository.getProfiles().firstOrNull {
+                it.role == PrinterRole.KITCHEN.name && it.enabled && it.macAddress.isNotBlank()
+            }
+            if (kitchenPrinter == null) {
+                _message.emit("No kitchen printer configured.")
+                return@launch
+            }
+
+            kitchenPrintQueueManager.flushPendingForPrinter(kitchenPrinter.macAddress)
+            val remainingCount = kitchenPrintQueueRepository.getPendingCountFlow().first()
+            if (remainingCount == 0) {
+                _message.emit("KDS tickets reprinted.")
+            } else {
+                _message.emit("$remainingCount KDS ticket(s) still pending.")
+            }
+        }
+    }
 
 
     data class HomeStats(

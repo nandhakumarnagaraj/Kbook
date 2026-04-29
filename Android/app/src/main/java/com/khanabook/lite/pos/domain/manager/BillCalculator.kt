@@ -81,6 +81,15 @@ object BillCalculator {
             false
         }
     }
+
+    fun splitPartPayment(total: String): Pair<String, String> {
+        val bdTotal = total.ifBlank { "0" }.toBigDecimalOrNull()
+            ?.setScale(2, RoundingMode.HALF_UP)
+            ?: BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
+        val first = bdTotal.divide(BigDecimal.valueOf(2), 2, RoundingMode.DOWN)
+        val second = bdTotal.subtract(first).setScale(2, RoundingMode.HALF_UP)
+        return first.toString() to second.toString()
+    }
     
     fun toFixedString(value: Double): String {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).toString()

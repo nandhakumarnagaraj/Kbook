@@ -98,14 +98,45 @@ public class PublicInvoiceController {
         String invLabel = gstEnabled ? "Tax Invoice No" : "Invoice No";
         String address = profile != null && profile.getShopAddress() != null
                 ? esc(profile.getShopAddress()) : "";
-        String gstinRow = profile != null && profile.getGstin() != null && !profile.getGstin().isBlank()
-                ? "<div class='gstin'>GSTIN: " + esc(profile.getGstin()) + "</div>" : "";
         String logo = profile != null && profile.getLogoUrl() != null && !profile.getLogoUrl().isBlank()
                 ? "<img class='logo' src='" + esc(profile.getLogoUrl()) + "' alt=''>"
                 : "";
         String footer = profile != null && profile.getInvoiceFooter() != null && !profile.getInvoiceFooter().isBlank()
                 ? esc(profile.getInvoiceFooter())
                 : "Thank you for your visit!";
+        String paymentMode = paymentModeLabel(bill.getPaymentMode());
+
+        StringBuilder headerInfo = new StringBuilder();
+        appendInfoPill(headerInfo, "GSTIN", profile != null ? profile.getGstin() : null);
+        appendInfoPill(headerInfo, "FSSAI", profile != null ? profile.getFssaiNumber() : null);
+        appendInfoPill(headerInfo, "Email", profile != null ? profile.getEmail() : null);
+        appendInfoPill(headerInfo, "Contact Number", profile != null ? profile.getWhatsappNumber() : null);
+
+        BigDecimal subtotal = bill.getSubtotal() == null ? BigDecimal.ZERO : bill.getSubtotal();
+        BigDecimal cgst = bill.getCgstAmount() == null ? BigDecimal.ZERO : bill.getCgstAmount();
+        BigDecimal sgst = bill.getSgstAmount() == null ? BigDecimal.ZERO : bill.getSgstAmount();
+        BigDecimal customTax = bill.getCustomTaxAmount() == null ? BigDecimal.ZERO : bill.getCustomTaxAmount();
+        String customTaxName = profile != null && profile.getCustomTaxName() != null && !profile.getCustomTaxName().isBlank()
+                ? profile.getCustomTaxName()
+                : "Other Tax";
+        boolean hasTaxBreakdown = cgst.signum() > 0 || sgst.signum() > 0 || customTax.signum() > 0;
+        StringBuilder totals = new StringBuilder();
+        if (hasTaxBreakdown) {
+            totals.append("<div class='summary-row'><span>Subtotal</span><span>")
+                    .append(currency).append(' ').append(money(subtotal)).append("</span></div>");
+            if (cgst.signum() > 0) {
+                totals.append("<div class='summary-row'><span>CGST</span><span>")
+                        .append(currency).append(' ').append(money(cgst)).append("</span></div>");
+            }
+            if (sgst.signum() > 0) {
+                totals.append("<div class='summary-row'><span>SGST</span><span>")
+                        .append(currency).append(' ').append(money(sgst)).append("</span></div>");
+            }
+            if (customTax.signum() > 0) {
+                totals.append("<div class='summary-row'><span>").append(esc(customTaxName)).append("</span><span>")
+                        .append(currency).append(' ').append(money(customTax)).append("</span></div>");
+            }
+        }
 
         return "<!doctype html><html lang='en'><head>"
                 + "<meta charset='utf-8'>"
@@ -120,31 +151,62 @@ public class PublicInvoiceController {
                 + ".logo{display:block;max-width:120px;max-height:90px;object-fit:contain;margin:0 auto 12px}"
                 + ".shop{font-size:22px;font-weight:700;text-align:center;margin-bottom:4px}"
                 + ".addr{text-align:center;color:#555;font-size:13px;margin-bottom:4px}"
-                + ".gstin{text-align:center;color:#555;font-size:12px;margin-bottom:12px}"
+                + ".info{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 12px;margin:10px 0 12px}"
+                + ".pill{font-size:12px;color:#555}.pill b{color:#333;font-weight:700}"
                 + "hr{border:0;border-top:1px dashed #ccc;margin:12px 0}"
                 + ".meta{display:flex;justify-content:space-between;font-size:13px;margin:4px 0}"
-                + ".meta span:first-child{color:#666}"
+                + ".meta span:first-child{color:#666;font-weight:700}"
                 + "table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}"
                 + "th,td{padding:6px 4px;border-bottom:1px solid #eee;text-align:left}"
-                + "th{font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.5px}"
+                + "th{font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.5px;font-weight:700}"
                 + ".c{text-align:center}.r{text-align:right;white-space:nowrap}"
+                + ".summary{margin-top:12px}.summary-row{display:flex;justify-content:space-between;"
+                + "font-size:13px;color:#555;margin:4px 0}.summary-row span:first-child{font-weight:700;color:#555}"
                 + ".total{display:flex;justify-content:space-between;font-size:18px;"
                 + "font-weight:700;margin-top:14px;padding-top:12px;border-top:2px solid #222}"
-                + ".thanks{text-align:center;color:#666;font-size:13px;margin-top:16px}"
+                + ".footer-meta{margin-top:12px;padding-top:10px;border-top:1px dashed #ddd;color:#555;font-size:12px}"
+                + ".footer-meta b{color:#333}.thanks{text-align:center;color:#666;font-size:13px;margin-top:12px}"
                 + "</style></head><body><div class='card'>"
                 + logo
                 + "<div class='shop'>" + esc(shopName) + "</div>"
                 + (address.isEmpty() ? "" : "<div class='addr'>" + address + "</div>")
-                + gstinRow
+                + (headerInfo.isEmpty() ? "" : "<div class='info'>" + headerInfo + "</div>")
                 + "<hr>"
                 + "<div class='meta'><span>Order ID</span><span>#" + esc(orderNo) + "</span></div>"
                 + "<div class='meta'><span>" + invLabel + "</span><span>INV" + bill.getLifetimeOrderId() + "</span></div>"
                 + "<div class='meta'><span>Date</span><span>" + date + "</span></div>"
                 + "<table><thead><tr><th>Item</th><th class='c'>Qty</th><th class='r'>Total</th></tr></thead>"
                 + "<tbody>" + rows + "</tbody></table>"
+                + (totals.isEmpty() ? "" : "<div class='summary'>" + totals + "</div>")
                 + "<div class='total'><span>Total</span><span>" + currency + ' ' + money(bill.getTotalAmount()) + "</span></div>"
+                + "<div class='footer-meta'><b>Payment Type:</b> " + esc(paymentMode) + "</div>"
                 + "<div class='thanks'>" + footer + "</div>"
                 + "</div></body></html>";
+    }
+
+    private void appendInfoPill(StringBuilder builder, String label, String value) {
+        if (value == null || value.isBlank()) return;
+        builder.append("<span class='pill'><b>")
+                .append(esc(label))
+                .append(":</b> ")
+                .append(esc(value))
+                .append("</span>");
+    }
+
+    private String paymentModeLabel(String mode) {
+        if (mode == null || mode.isBlank()) return "Not specified";
+        return switch (mode) {
+            case "cash" -> "Cash";
+            case "upi" -> "UPI";
+            case "pos" -> "POS";
+            case "part_cash_upi" -> "Cash + UPI";
+            case "part_cash_pos" -> "Cash + POS";
+            case "part_upi_pos" -> "UPI + POS";
+            case "zomato" -> "Zomato";
+            case "swiggy" -> "Swiggy";
+            case "own_website" -> "Own Website";
+            default -> mode.replace('_', ' ');
+        };
     }
 
     private String notFound() {

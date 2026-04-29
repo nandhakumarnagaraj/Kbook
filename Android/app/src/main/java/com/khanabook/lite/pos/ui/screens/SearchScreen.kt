@@ -406,73 +406,42 @@ fun SearchScreen(
                                     }
                                 }
                             } else {
-                                Row(
+                                Column(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                                    verticalArrangement = Arrangement.spacedBy(spacing.small)
                                 ) {
                                     Button(
                                         onClick = {
-                                            result?.let { sendInvoiceViaSms(context, it, profile) }
+                                            result?.let {
+                                                if (it.bill.serverId == null) {
+                                                    sendInvoiceViaSms(context, it, profile)
+                                                } else {
+                                                    shareInvoiceViaWhatsAppLink(context, it, profile)
+                                                }
+                                            }
                                         },
                                         enabled = currentResult.items.isNotEmpty(),
-                                        modifier = Modifier.weight(1f).height(48.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Icon(Icons.Default.Sms, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
-                                        Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                        Text("SMS", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-                                    }
-
-                                    Button(
-                                        onClick = {
-                                            result?.let { shareInvoiceViaWhatsAppLink(context, it, profile) }
-                                        },
-                                        enabled = currentResult.items.isNotEmpty(),
-                                        modifier = Modifier.weight(1f).height(48.dp),
+                                        modifier = Modifier.fillMaxWidth().height(48.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
                                         Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                                         Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                        Text("WhatsApp", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                        Text("Share Invoice", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                     }
-                                }
 
-                                Spacer(modifier = Modifier.height(spacing.small))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                                ) {
-                                    OutlinedButton(
+                                    Button(
                                         onClick = {
                                             result?.let { billingViewModel.printReceipt(it) }
                                         },
                                         enabled = currentResult.items.isNotEmpty() && currentResult.bill.orderStatus != "cancelled",
-                                        modifier = Modifier.weight(1f).height(48.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                                        border = BorderStroke(1.5.dp, PrimaryGold)
+                                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Icon(Icons.Default.Receipt, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.small))
+                                        Icon(Icons.Default.Receipt, null, tint = DarkBrown1, modifier = Modifier.size(iconSize.small))
                                         Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                        Text("Receipt", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-                                    }
-
-                                    OutlinedButton(
-                                        onClick = {
-                                            result?.let { billingViewModel.printKitchenTicket(it) }
-                                        },
-                                        enabled = currentResult.items.isNotEmpty() && currentResult.bill.orderStatus != "cancelled",
-                                        modifier = Modifier.weight(1f).height(48.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                                        border = BorderStroke(1.5.dp, PrimaryGold)
-                                    ) {
-                                        Icon(Icons.Default.Restaurant, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.small))
-                                        Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                        Text("Reprint KDS", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                        Text("Print Receipt", color = DarkBrown1, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                     }
                                 }
 
