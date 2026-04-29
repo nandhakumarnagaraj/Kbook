@@ -41,6 +41,9 @@ class PaymentViewModel @Inject constructor(
     private val _upiQrUploadLoading = MutableStateFlow(false)
     val upiQrUploadLoading: StateFlow<Boolean> = _upiQrUploadLoading.asStateFlow()
 
+    private val _upiQrUploadSuccess = MutableStateFlow(false)
+    val upiQrUploadSuccess: StateFlow<Boolean> = _upiQrUploadSuccess.asStateFlow()
+
     fun loadConfig() {
         viewModelScope.launch {
             _loading.value = true
@@ -81,6 +84,7 @@ class PaymentViewModel @Inject constructor(
     fun clearMessages() {
         _error.value = null
         _saved.value = false
+        _upiQrUploadSuccess.value = false
     }
 
     fun showError(message: String) {
@@ -91,11 +95,13 @@ class PaymentViewModel @Inject constructor(
         viewModelScope.launch {
             _upiQrUploadLoading.value = true
             _error.value = null
+            _upiQrUploadSuccess.value = false
             try {
                 val part = withContext(Dispatchers.IO) {
                     MultipartUtils.imageUriToPart(context.applicationContext, uri)
                 }
                 val url = restaurantRepository.uploadUpiQr(part)
+                _upiQrUploadSuccess.value = true
                 onUploaded(url)
             } catch (e: Exception) {
                 _error.value = UserMessageSanitizer.sanitize(e, "UPI QR upload failed. Please try again.")

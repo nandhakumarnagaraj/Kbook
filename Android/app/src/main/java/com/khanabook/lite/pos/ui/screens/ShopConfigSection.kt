@@ -89,32 +89,33 @@ fun ShopConfigView(
     var address by remember { mutableStateOf(profile?.shopAddress ?: "") }
     var whatsapp by remember { mutableStateOf(profile?.whatsappNumber ?: "") }
     var email by remember { mutableStateOf(profile?.email ?: "") }
-    var logoPath by remember { mutableStateOf(profile?.logoPath) }
-    var logoUrl by remember { mutableStateOf(profile?.logoUrl) }
     var consent by remember { mutableStateOf(profile?.emailInvoiceConsent ?: false) }
     var reviewUrl by remember { mutableStateOf(profile?.reviewUrl ?: "") }
     var invoiceFooter by remember { mutableStateOf(profile?.invoiceFooter ?: "") }
     var logoUpdateTrigger by remember { mutableLongStateOf(0L) }
 
+    val profileLogoUrl by viewModel.profile.collectAsStateWithLifecycle()
+    val logoUrl = profileLogoUrl?.logoUrl
+    val logoPath = profileLogoUrl?.logoPath
+
     val saveProfileLoading by viewModel.saveProfileLoading.collectAsState()
     val saveProfileError by viewModel.saveProfileError.collectAsState()
     val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsState()
     val logoUploadLoading by viewModel.logoUploadLoading.collectAsState()
+    val logoUploadError by viewModel.logoUploadError.collectAsState()
     val isUserChecking by viewModel.isUserChecking.collectAsStateWithLifecycle()
     val userExistsError by viewModel.userExistsError.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsState()
     val isGoogleAuth = currentUser?.authProvider.equals("GOOGLE", ignoreCase = true)
 
-    val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, invoiceFooter, logoPath, logoUrl, profile) {
+    val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, invoiceFooter, profile) {
         name != (profile?.shopName ?: "") ||
             address != (profile?.shopAddress ?: "") ||
             whatsapp != (profile?.whatsappNumber ?: "") ||
             email != (profile?.email ?: "") ||
             consent != (profile?.emailInvoiceConsent ?: false) ||
             reviewUrl != (profile?.reviewUrl ?: "") ||
-            invoiceFooter != (profile?.invoiceFooter ?: "") ||
-            logoPath != profile?.logoPath ||
-            logoUrl != profile?.logoUrl
+            invoiceFooter != (profile?.invoiceFooter ?: "")
     }
 
     var showUnsavedDialog by remember { mutableStateOf(false) }
@@ -149,6 +150,15 @@ fun ShopConfigView(
         }
     }
 
+    LaunchedEffect(logoUploadError) {
+        logoUploadError?.let { error ->
+            toastScope.launch {
+                KhanaToast.show(error, ToastKind.Error)
+            }
+            viewModel.clearLogoUploadState()
+        }
+    }
+
     LaunchedEffect(saveProfileSuccess) {
         if (saveProfileSuccess) {
             toastScope.launch { KhanaToast.show(context.getString(R.string.toast_profile_saved), ToastKind.Success) }
@@ -164,8 +174,6 @@ fun ShopConfigView(
             address = it.shopAddress ?: ""
             whatsapp = it.whatsappNumber ?: ""
             email = it.email ?: ""
-            logoPath = it.logoPath
-            logoUrl = it.logoUrl
             consent = it.emailInvoiceConsent
             reviewUrl = it.reviewUrl ?: ""
             invoiceFooter = it.invoiceFooter ?: ""
@@ -223,9 +231,7 @@ fun ShopConfigView(
 
     val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            viewModel.uploadLogo(context, it) { uploadedUrl ->
-                logoUrl = uploadedUrl
-                logoPath = null
+            viewModel.uploadLogo(context, it) {
                 logoUpdateTrigger = System.currentTimeMillis()
             }
         }
@@ -411,8 +417,8 @@ fun ShopConfigView(
                                 shopAddress = address,
                                 whatsappNumber = whatsapp,
                                 email = email,
-                                logoPath = logoPath,
-                                logoUrl = logoUrl,
+                                logoPath = profileLogoUrl?.logoPath,
+                                logoUrl = profileLogoUrl?.logoUrl,
                                 emailInvoiceConsent = consent,
                                 reviewUrl = reviewUrl,
                                 invoiceFooter = invoiceFooter,

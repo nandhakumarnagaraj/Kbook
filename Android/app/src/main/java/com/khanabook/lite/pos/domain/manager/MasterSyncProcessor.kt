@@ -295,15 +295,18 @@ class MasterSyncProcessor @Inject constructor(
             val currentLocalProfile = restaurantDao.getProfile()
             restaurantDao.insertSyncedRestaurantProfiles(
                 masterData.profiles.map { remoteProfile ->
+                    val localProfile = currentLocalProfile
+                    val useRemoteLogo = remoteProfile.logoVersion > (localProfile?.logoVersion ?: 0)
+                    val useRemoteQr = remoteProfile.upiQrVersion > (localProfile?.upiQrVersion ?: 0)
                     RestaurantProfileEntity(
                         id = currentLocalProfile?.id ?: 1,
                         shopName = remoteProfile.shopName.orFallback("My Shop"),
                         shopAddress = remoteProfile.shopAddress.orFallback(""),
                         whatsappNumber = remoteProfile.whatsappNumber.orFallback(""),
                         email = remoteProfile.email.orFallback(""),
-                        logoPath = remoteProfile.logoPath, 
-                        logoUrl = remoteProfile.logoUrl,
-                        logoVersion = remoteProfile.logoVersion,
+                        logoPath = if (useRemoteLogo) remoteProfile.logoPath else localProfile?.logoPath,
+                        logoUrl = if (useRemoteLogo) remoteProfile.logoUrl else localProfile?.logoUrl,
+                        logoVersion = maxOf(remoteProfile.logoVersion, localProfile?.logoVersion ?: 0),
                         fssaiNumber = remoteProfile.fssaiNumber.orFallback(""),
                         emailInvoiceConsent = remoteProfile.emailInvoiceConsent ?: false,
                         country = remoteProfile.country.orFallback(currentLocalProfile?.country ?: "India"),
@@ -316,9 +319,9 @@ class MasterSyncProcessor @Inject constructor(
                         customTaxPercentage = remoteProfile.customTaxPercentage ?: 0.0,
                         currency = remoteProfile.currency.orFallback(currentLocalProfile?.currency ?: "INR"),
                         upiEnabled = remoteProfile.upiEnabled ?: false,
-                        upiQrPath = remoteProfile.upiQrPath,
-                        upiQrUrl = remoteProfile.upiQrUrl,
-                        upiQrVersion = remoteProfile.upiQrVersion,
+                        upiQrPath = if (useRemoteQr) remoteProfile.upiQrPath else localProfile?.upiQrPath,
+                        upiQrUrl = if (useRemoteQr) remoteProfile.upiQrUrl else localProfile?.upiQrUrl,
+                        upiQrVersion = maxOf(remoteProfile.upiQrVersion, localProfile?.upiQrVersion ?: 0),
                         upiHandle = remoteProfile.upiHandle.orFallback(""),
                         upiMobile = remoteProfile.upiMobile.orFallback(""),
                         cashEnabled = remoteProfile.cashEnabled ?: true,

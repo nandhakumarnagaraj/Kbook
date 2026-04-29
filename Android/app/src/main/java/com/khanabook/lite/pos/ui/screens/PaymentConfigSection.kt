@@ -48,11 +48,15 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.util.AppAssetStore
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
+import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.viewmodel.PaymentViewModel
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun PaymentConfigView(
@@ -98,6 +102,26 @@ fun PaymentConfigView(
     }
 
     val context = LocalContext.current
+    val toastScope = rememberCoroutineScope()
+    val qrUploadSuccess by paymentViewModel.upiQrUploadSuccess.collectAsStateWithLifecycle()
+    val qrUploadError by paymentViewModel.error.collectAsStateWithLifecycle()
+
+    LaunchedEffect(qrUploadSuccess) {
+        if (qrUploadSuccess) {
+            toastScope.launch { KhanaToast.show("UPI QR uploaded successfully", ToastKind.Success) }
+            paymentViewModel.clearMessages()
+        }
+    }
+
+    LaunchedEffect(qrUploadError) {
+        qrUploadError?.let { error ->
+            if (error.contains("UPI QR", ignoreCase = true)) {
+                toastScope.launch { KhanaToast.show(error, ToastKind.Error) }
+                paymentViewModel.clearMessages()
+            }
+        }
+    }
+
     val qrLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             paymentViewModel.uploadUpiQr(context, it) { uploadedUrl ->

@@ -276,6 +276,10 @@ class SettingsViewModel @Inject constructor(
         _saveProfileSuccess.value = false
     }
 
+    fun clearLogoUploadState() {
+        _logoUploadError.value = null
+    }
+
     fun saveProfile(profile: RestaurantProfileEntity) {
         viewModelScope.launch {
             _saveProfileLoading.value = true
@@ -298,9 +302,13 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    private val _logoUploadError = MutableStateFlow<String?>(null)
+    val logoUploadError: StateFlow<String?> = _logoUploadError.asStateFlow()
+
     fun uploadLogo(context: Context, uri: Uri, onUploaded: (String) -> Unit) {
         viewModelScope.launch {
             _logoUploadLoading.value = true
+            _logoUploadError.value = null
             _saveProfileError.value = null
             try {
                 val part = withContext(Dispatchers.IO) {
@@ -309,7 +317,7 @@ class SettingsViewModel @Inject constructor(
                 val url = restaurantRepository.uploadLogo(part)
                 onUploaded(url)
             } catch (e: Exception) {
-                _saveProfileError.value = UserMessageSanitizer.sanitize(e, "Logo upload failed. Please try again.")
+                _logoUploadError.value = UserMessageSanitizer.sanitize(e, "Logo upload failed. Please try again.")
             } finally {
                 _logoUploadLoading.value = false
             }

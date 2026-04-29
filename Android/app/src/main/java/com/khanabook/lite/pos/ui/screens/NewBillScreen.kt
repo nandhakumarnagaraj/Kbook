@@ -4,6 +4,8 @@ package com.khanabook.lite.pos.ui.screens
 
 import android.graphics.BitmapFactory
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -1107,8 +1109,13 @@ fun PaymentStep(
                         modifier = Modifier.fillMaxSize()
                     )
                     !profile?.upiQrUrl.isNullOrBlank() || !profile?.upiQrPath.isNullOrBlank() -> AsyncImage(
-                        model = profile?.upiQrUrl?.takeIf { it.isNotBlank() }
-                            ?: AppAssetStore.resolveAssetPath(profile?.upiQrPath),
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(profile?.upiQrUrl?.takeIf { it.isNotBlank() }
+                                ?: AppAssetStore.resolveAssetPath(profile?.upiQrPath))
+                            .crossfade(true)
+                            .memoryCacheKey("${profile?.upiQrUrl ?: profile?.upiQrPath}:${profile?.upiQrVersion ?: 0}")
+                            .diskCachePolicy(CachePolicy.ENABLED)
+                            .build(),
                         contentDescription = "QR Code",
                         modifier = Modifier.fillMaxSize()
                     )
@@ -1660,8 +1667,13 @@ fun PaymentStep(
                                     modifier = Modifier.fillMaxSize()
                                 )
                                 !profile?.upiQrUrl.isNullOrBlank() || !profile?.upiQrPath.isNullOrBlank() -> AsyncImage(
-                                    model = profile?.upiQrUrl?.takeIf { it.isNotBlank() }
-                                        ?: AppAssetStore.resolveAssetPath(profile?.upiQrPath),
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(profile?.upiQrUrl?.takeIf { it.isNotBlank() }
+                                            ?: AppAssetStore.resolveAssetPath(profile?.upiQrPath))
+                                        .crossfade(true)
+                                        .memoryCacheKey("${profile?.upiQrUrl ?: profile?.upiQrPath}:${profile?.upiQrVersion ?: 0}")
+                                        .diskCachePolicy(CachePolicy.ENABLED)
+                                        .build(),
                                     contentDescription = "QR Code",
                                     modifier = Modifier.fillMaxSize()
                                 )
