@@ -226,9 +226,13 @@ class ReportsViewModel @Inject constructor(
         val exporter = com.khanabook.lite.pos.domain.manager.ReportExporter(context)
         val billDataById = _orderDetailsTable.value
             .map { it.billId }
-            .mapNotNull { id -> billRepository.getBillWithItemsById(id)?.let { id to it } }
+            .mapNotNull { id ->
+                runCatching { billRepository.getBillWithItemsById(id) }
+                    .getOrNull()
+                    ?.let { id to it }
+            }
             .toMap()
-        val topItems = reportGenerator.getTopSellingItems(currentFrom, currentTo, 5)
+        val topItems = runCatching { reportGenerator.getTopSellingItems(currentFrom, currentTo, 5) }.getOrNull() ?: emptyList()
         return if (format == "PDF") {
             exporter.exportToPdf(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, profile, topItems, billDataById, currentFrom, currentTo)
         } else {

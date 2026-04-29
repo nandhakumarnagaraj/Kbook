@@ -87,6 +87,8 @@ fun ReportsScreen(
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
 
+    var isExporting by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         viewModel.setTimeFilter("Daily")
     }
@@ -280,16 +282,28 @@ fun ReportsScreen(
             ReportDownloadBottomBar(
                 onDownloadClick = {
                     scope.launch {
-                        val file = viewModel.exportReport(context, "PDF", profile)
-                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "application/pdf"
-                            putExtra(Intent.EXTRA_STREAM, uri)
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        try {
+                            isExporting = true
+                            val file = viewModel.exportReport(context, "PDF", profile)
+                            if (!file.exists() || file.length() == 0L) {
+                                android.widget.Toast.makeText(context, "Report export failed — empty file", android.widget.Toast.LENGTH_LONG).show()
+                                return@launch
+                            }
+                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "application/pdf"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Save / Share PDF"))
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(context, "Report export failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                        } finally {
+                            isExporting = false
                         }
-                        context.startActivity(Intent.createChooser(intent, "Save / Share PDF"))
                     }
-                }
+                },
+                isExporting = isExporting
             )
         }
 
@@ -429,6 +443,7 @@ fun PaymentLevelView(
 @Composable
 fun ReportDownloadBottomBar(
     onDownloadClick: () -> Unit,
+    isExporting: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -440,6 +455,7 @@ fun ReportDownloadBottomBar(
     ) {
         Button(
             onClick = onDownloadClick,
+            enabled = !isExporting,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(45.dp)
@@ -447,18 +463,32 @@ fun ReportDownloadBottomBar(
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(
-                Icons.Default.Download,
-                contentDescription = null,
-                tint = DarkBrown1,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(spacing.small))
-            Text(
-                "Download Reports",
-                color = DarkBrown1,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-            )
+            if (isExporting) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = DarkBrown1
+                )
+                Spacer(modifier = Modifier.width(spacing.small))
+                Text(
+                    "Exporting...",
+                    color = DarkBrown1,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            } else {
+                Icon(
+                    Icons.Default.Download,
+                    contentDescription = null,
+                    tint = DarkBrown1,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(spacing.small))
+                Text(
+                    "Download Reports",
+                    color = DarkBrown1,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
         }
     }
 }

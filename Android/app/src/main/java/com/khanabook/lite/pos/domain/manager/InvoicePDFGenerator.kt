@@ -123,9 +123,10 @@ class InvoicePDFGenerator(private val context: Context) {
             val fssaiH   = if (!profile?.fssaiNumber.isNullOrBlank()) 10 else 0
             val gstinH   = if (profile?.gstEnabled == true && !profile.gstin.isNullOrBlank()) 11 else 0
             val shopWaH  = if (!profile?.whatsappNumber.isNullOrBlank()) 9 else 0
+            val shopEmailH = if (!profile?.email.isNullOrBlank()) 9 else 0
             val gstTaxH  = if (profile?.gstEnabled == true) 22 else 0
 
-            val headerH  = 145 + logoH + waH + fssaiH + gstinH + shopWaH
+            val headerH  = 145 + logoH + waH + fssaiH + gstinH + shopWaH + shopEmailH
             val summaryH = 100 + gstTaxH
             val upiQrH   = if (profile?.upiHandle?.isNotBlank() == true) 110 else 0
             val reviewQrH = if (profile?.reviewUrl?.isNotBlank() == true) 110 else 0
@@ -219,6 +220,10 @@ class InvoicePDFGenerator(private val context: Context) {
             }
             if (!profile?.whatsappNumber.isNullOrBlank()) {
                 drawCenteredLabelValue("Contact: ", profile?.whatsappNumber ?: "")
+                y += 9f
+            }
+            if (!profile?.email.isNullOrBlank()) {
+                drawCenteredLabelValue("Email: ", profile?.email ?: "")
                 y += 9f
             }
 
