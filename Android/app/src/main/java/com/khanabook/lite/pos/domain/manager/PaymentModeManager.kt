@@ -10,7 +10,6 @@ object PaymentModeManager {
         val modes = mutableListOf<PaymentMode>()
         if (profile.cashEnabled) modes.add(PaymentMode.CASH)
         if (profile.upiEnabled) modes.add(PaymentMode.UPI)
-        if (profile.easebuzzEnabled) modes.add(PaymentMode.EASEBUZZ)
         if (profile.posEnabled) modes.add(PaymentMode.POS)
         if (profile.zomatoEnabled) modes.add(PaymentMode.ZOMATO)
         if (profile.swiggyEnabled) modes.add(PaymentMode.SWIGGY)
@@ -20,8 +19,6 @@ object PaymentModeManager {
         if (profile.cashEnabled && profile.upiEnabled) modes.add(PaymentMode.PART_CASH_UPI)
         if (profile.cashEnabled && profile.posEnabled) modes.add(PaymentMode.PART_CASH_POS)
         if (profile.upiEnabled && profile.posEnabled) modes.add(PaymentMode.PART_UPI_POS)
-        if (profile.cashEnabled && profile.easebuzzEnabled) modes.add(PaymentMode.PART_CASH_EASEBUZZ)
-        if (profile.easebuzzEnabled && profile.posEnabled) modes.add(PaymentMode.PART_EASEBUZZ_POS)
 
         return modes
     }
@@ -29,9 +26,7 @@ object PaymentModeManager {
     fun isPartPayment(mode: PaymentMode): Boolean {
         return mode == PaymentMode.PART_CASH_UPI ||
                mode == PaymentMode.PART_CASH_POS ||
-               mode == PaymentMode.PART_UPI_POS ||
-               mode == PaymentMode.PART_CASH_EASEBUZZ ||
-               mode == PaymentMode.PART_EASEBUZZ_POS
+               mode == PaymentMode.PART_UPI_POS
     }
 
     fun getPartLabels(mode: PaymentMode): Pair<String, String> {
@@ -39,8 +34,6 @@ object PaymentModeManager {
             PaymentMode.PART_CASH_UPI -> "Cash" to "UPI"
             PaymentMode.PART_CASH_POS -> "Cash" to "POS"
             PaymentMode.PART_UPI_POS -> "UPI" to "POS"
-            PaymentMode.PART_CASH_EASEBUZZ -> "Cash" to "Easebuzz"
-            PaymentMode.PART_EASEBUZZ_POS -> "Easebuzz" to "POS"
             else -> "" to ""
         }
     }

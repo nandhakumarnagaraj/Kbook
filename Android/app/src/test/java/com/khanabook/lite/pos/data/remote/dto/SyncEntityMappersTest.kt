@@ -21,16 +21,16 @@ class SyncEntityMappersTest {
             serverId = 88L,
             serverBillId = 99L,
             serverUpdatedAt = 3000L,
-            gatewayTxnId = "EZP-TXN-123",
+            gatewayTxnId = "TXN-123",
             gatewayStatus = "SUCCESS",
-            verifiedBy = "easebuzz"
+            verifiedBy = "manual"
         )
 
         val dto = entity.toSyncDto()
 
-        assertEquals("EZP-TXN-123", dto.gatewayTxnId)
+        assertEquals("TXN-123", dto.gatewayTxnId)
         assertEquals("SUCCESS", dto.gatewayStatus)
-        assertEquals("easebuzz", dto.verifiedBy)
+        assertEquals("manual", dto.verifiedBy)
         assertEquals("262.50", dto.amount)
         assertEquals(101L, dto.billId)
         assertEquals(99L, dto.serverBillId)

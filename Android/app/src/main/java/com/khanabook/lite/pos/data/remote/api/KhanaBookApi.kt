@@ -96,16 +96,7 @@ interface KhanaBookApi {
         @POST("api/v1/sync/config/users/update-mobile/request")
         suspend fun requestMobileNumberUpdateOtp(@Body request: UpdateMobileOtpRequest): retrofit2.Response<Unit>
 
-        // ── Payment gateway (Easebuzz) ───────────────────────────────────────
-        @POST("api/v1/restaurants/payment-config/easebuzz")
-        suspend fun saveEasebuzzConfig(@Body request: SaveRestaurantPaymentConfigRequest): RestaurantPaymentConfigResponse
-
-        @GET("api/v1/restaurants/payment-config/easebuzz")
-        suspend fun getEasebuzzConfig(): RestaurantPaymentConfigResponse
-
-        @PATCH("api/v1/restaurants/payment-config/easebuzz/toggle")
-        suspend fun toggleEasebuzzActive(@Query("enabled") enabled: Boolean): RestaurantPaymentConfigResponse
-
+        // ── File uploads ─────────────────────────────────────────────────────
         @Multipart
         @POST("api/v1/restaurants/logo")
         suspend fun uploadLogo(@Part file: MultipartBody.Part): LogoUploadResponse
@@ -113,18 +104,6 @@ interface KhanaBookApi {
         @Multipart
         @POST("api/v1/restaurants/upi-qr")
         suspend fun uploadUpiQr(@Part file: MultipartBody.Part): UpiQrUploadResponse
-
-        @POST("api/v1/payments/easebuzz/create-order")
-        suspend fun createEasebuzzOrder(@Body request: CreateEasebuzzOrderRequest): CreateEasebuzzOrderResponse
-
-        @GET("api/v1/payments/easebuzz/status/{billId}")
-        suspend fun getEasebuzzPaymentStatus(@Path("billId") billId: Long): EasebuzzPaymentStatusResponse
-
-        @POST("api/v1/payments/easebuzz/refund/{billId}")
-        suspend fun initiateEasebuzzRefund(
-                @Path("billId") billId: Long,
-                @Body request: InitiateRefundRequest
-        ): InitiateRefundResponse
 
         // ── Storefront ───────────────────────────────────────────────────────
         @GET("api/v1/storefront/orders")

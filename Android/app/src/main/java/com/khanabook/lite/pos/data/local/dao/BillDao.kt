@@ -56,8 +56,7 @@ interface BillDao {
         WHERE order_status = 'draft'
           AND payment_status = 'pending'
           AND payment_mode IN (
-            'upi', 'part_cash_upi', 'part_upi_pos',
-            'easebuzz', 'part_cash_easebuzz', 'part_easebuzz_pos'
+            'upi', 'part_cash_upi', 'part_upi_pos'
           )
         ORDER BY created_at DESC
         LIMIT 1
@@ -81,8 +80,7 @@ interface BillDao {
         cancel_reason = :reason, is_synced = 0, updated_at = :updatedAt
         WHERE order_status = 'draft' AND payment_status = 'pending'
         AND payment_mode IN (
-            'upi', 'part_cash_upi', 'part_upi_pos',
-            'easebuzz', 'part_cash_easebuzz', 'part_easebuzz_pos'
+            'upi', 'part_cash_upi', 'part_upi_pos'
         )
     """)
     suspend fun cancelStalePendingOnlineDrafts(reason: String, updatedAt: Long): Int

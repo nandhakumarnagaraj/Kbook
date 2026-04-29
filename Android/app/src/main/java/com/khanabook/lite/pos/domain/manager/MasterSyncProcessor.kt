@@ -267,21 +267,9 @@ class MasterSyncProcessor @Inject constructor(
         )
 
         val unsyncedBillPayments = billDao.getUnsyncedBillPayments().filter { it.restaurantId == restaurantId }
-        val gatewayOwnedBillPayments = unsyncedBillPayments.filter { payment ->
-            !payment.gatewayTxnId.isNullOrBlank() && payment.verifiedBy.equals("easebuzz", ignoreCase = true)
-        }
-        if (gatewayOwnedBillPayments.isNotEmpty()) {
-            Log.i(
-                "MasterSyncProcessor",
-                "Marking ${gatewayOwnedBillPayments.size} gateway-owned bill payment row(s) as synced; backend payments are authoritative"
-            )
-            billDao.markBillPaymentsAsSynced(gatewayOwnedBillPayments.map { it.id })
-        }
         pushBatches(
             label = "bill payments",
-            records = unsyncedBillPayments.filterNot { payment ->
-                !payment.gatewayTxnId.isNullOrBlank() && payment.verifiedBy.equals("easebuzz", ignoreCase = true)
-            },
+            records = unsyncedBillPayments,
             transform = BillPaymentEntity::toSyncDto,
             push = api::pushBillPayments,
             markSynced = billDao::markBillPaymentsAsSynced
@@ -329,10 +317,6 @@ class MasterSyncProcessor @Inject constructor(
                         zomatoEnabled = remoteProfile.zomatoEnabled ?: false,
                         swiggyEnabled = remoteProfile.swiggyEnabled ?: false,
                         ownWebsiteEnabled = remoteProfile.ownWebsiteEnabled ?: false,
-                        easebuzzEnabled = currentLocalProfile?.easebuzzEnabled ?: false,
-                        easebuzzMerchantKey = currentLocalProfile?.easebuzzMerchantKey,
-                        easebuzzSalt = currentLocalProfile?.easebuzzSalt,
-                        easebuzzEnv = currentLocalProfile?.easebuzzEnv ?: "test",
                         printerEnabled = remoteProfile.printerEnabled ?: false,
                         printerName = remoteProfile.printerName.orFallback(""),
                         printerMac = remoteProfile.printerMac.orFallback(""),

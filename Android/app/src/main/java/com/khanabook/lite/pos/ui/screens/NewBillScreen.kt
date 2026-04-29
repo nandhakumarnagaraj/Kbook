@@ -49,14 +49,12 @@ import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.PaymentModeManager
 import com.khanabook.lite.pos.domain.manager.PaymentGatewayHelper
-import com.khanabook.lite.pos.domain.manager.EasebuzzClient
 import com.khanabook.lite.pos.domain.manager.PaymentReturnManager
 import com.khanabook.lite.pos.domain.util.ConnectionStatus
 import com.khanabook.lite.pos.domain.manager.QrCodeManager
 import com.khanabook.lite.pos.domain.model.*
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
-import com.khanabook.lite.pos.ui.components.EasebuzzCheckoutDialog
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.theme.*
@@ -1017,7 +1015,6 @@ fun PaymentStep(
     var expanded by remember { mutableStateOf(false) }
     var showQrModal by remember { mutableStateOf(false) }
 
-    
     var p1Text by remember { mutableStateOf("") }
     var p2Text by remember { mutableStateOf("") }
 
@@ -1025,7 +1022,6 @@ fun PaymentStep(
     LaunchedEffect(enabledModes) {
         if (enabledModes.isNotEmpty()) {
             selectedMode = when {
-                enabledModes.contains(PaymentMode.EASEBUZZ) -> PaymentMode.EASEBUZZ
                 enabledModes.contains(PaymentMode.UPI) -> PaymentMode.UPI
                 else -> enabledModes.first()
             }
@@ -1040,9 +1036,7 @@ fun PaymentStep(
     val isSplitMode =
             selectedMode == PaymentMode.PART_CASH_UPI ||
                     selectedMode == PaymentMode.PART_CASH_POS ||
-                    selectedMode == PaymentMode.PART_UPI_POS ||
-                    selectedMode == PaymentMode.PART_CASH_EASEBUZZ ||
-                    selectedMode == PaymentMode.PART_EASEBUZZ_POS
+                    selectedMode == PaymentMode.PART_UPI_POS
 
     LaunchedEffect(selectedMode, summary.total) {
         if (isSplitMode) {
@@ -1074,10 +1068,7 @@ fun PaymentStep(
         } else null
     }
 
-    val connectionStatus by viewModel.connectionStatus.collectAsState()
-    val isOnline = connectionStatus == ConnectionStatus.Available
-    val gatewayEligible = PaymentGatewayHelper.shouldUseGateway(profile, selectedMode, isOnline)
-    val showQrCode = isUpiMode && !gatewayEligible
+    val showQrCode = isUpiMode
 
     Column(
             modifier = Modifier.fillMaxSize()
@@ -1152,23 +1143,6 @@ fun PaymentStep(
             Spacer(modifier = Modifier.height(spacing.large))
         }
 
-        // Offline / gateway state — must be declared before the mode dropdown that reads them.
-        val showOfflineBanner = (selectedMode == PaymentMode.EASEBUZZ ||
-                selectedMode == PaymentMode.PART_CASH_EASEBUZZ ||
-                selectedMode == PaymentMode.PART_EASEBUZZ_POS) && !isOnline
-        var gatewayPaid by remember { mutableStateOf(false) }
-        var gatewayInProgress by remember { mutableStateOf(false) }
-        var gatewayError by remember { mutableStateOf<String?>(null) }
-        var awaitingBillId by remember { mutableStateOf<Long?>(null) }
-        var activeCheckoutUrl by remember { mutableStateOf<String?>(null) }
-
-        // Awaiting-confirmation state — set after we successfully open the
-        // Easebuzz checkout. While set, we poll the backend until the webhook
-        // arrives. Counter operator can override via "Mark Manually Paid" or "Cancel".
-        var awaitingTxnId by remember { mutableStateOf<String?>(null) }
-        var pollMessage by remember { mutableStateOf("Waiting for payment confirmation…") }
-        val paymentLocked = gatewayInProgress || awaitingTxnId != null || activeCheckoutUrl != null
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1212,8 +1186,8 @@ fun PaymentStep(
                             Modifier.fillMaxWidth()
                                     .height(56.dp)
                                     .background(BrownSelected, RoundedCornerShape(8.dp))
-                                    .border(1.dp, if (gatewayPaid) BorderGold.copy(alpha = 0.3f) else BorderGold)
-                                    .then(if (!gatewayPaid) Modifier.clickable { expanded = true } else Modifier)
+                                    .border(1.dp, BorderGold)
+                                    .clickable { expanded = true }
                                     .padding(horizontal = spacing.medium),
                     contentAlignment = Alignment.CenterStart
             ) {
@@ -1222,8 +1196,8 @@ fun PaymentStep(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(selectedMode.displayLabel, color = if (gatewayPaid) PrimaryGold.copy(alpha = 0.5f) else PrimaryGold, style = MaterialTheme.typography.bodyLarge)
-                    if (!gatewayPaid) Icon(Icons.Default.ArrowDropDown, null, tint = PrimaryGold)
+                    Text(selectedMode.displayLabel, color = PrimaryGold, style = MaterialTheme.typography.bodyLarge)
+                    Icon(Icons.Default.ArrowDropDown, null, tint = PrimaryGold)
                 }
                 DropdownMenu(
                         expanded = expanded,
@@ -1249,8 +1223,6 @@ fun PaymentStep(
                             PaymentMode.PART_CASH_UPI -> "Cash Amount" to "UPI Amount"
                             PaymentMode.PART_CASH_POS -> "Cash Amount" to "POS Amount"
                             PaymentMode.PART_UPI_POS -> "UPI Amount" to "POS Amount"
-                            PaymentMode.PART_CASH_EASEBUZZ -> "Cash Amount" to "Easebuzz Amount"
-                            PaymentMode.PART_EASEBUZZ_POS -> "Easebuzz Amount" to "POS Amount"
                             else -> "" to ""
                         }
 
@@ -1312,227 +1284,21 @@ fun PaymentStep(
             }
         }
 
-        LaunchedEffect(paymentLocked) {
-            onFlowLockChange(paymentLocked)
-        }
-        DisposableEffect(Unit) {
-            onDispose { onFlowLockChange(false) }
-        }
-
         LaunchedEffect(resumePendingPayment) {
             if (!resumePendingPayment) return@LaunchedEffect
-            if (awaitingBillId != null) return@LaunchedEffect
             val pendingBillId = viewModel.getLatestPendingOnlineBillId() ?: return@LaunchedEffect
             if (!viewModel.restorePendingOnlineBill(pendingBillId)) return@LaunchedEffect
-            awaitingBillId = pendingBillId
-            awaitingTxnId = PaymentReturnManager.latestEvent.value?.txnId
-            pollMessage = when (PaymentReturnManager.latestEvent.value?.status) {
-                PaymentReturnManager.Status.SUCCESS -> "Payment completed. Confirming with server..."
-                PaymentReturnManager.Status.FAILURE -> "Payment failed. Confirming with server..."
-                null -> "Resuming payment confirmation…"
-            }
-        }
-
-        LaunchedEffect(Unit) {
-            PaymentReturnManager.events.collect { event ->
-                val pendingTxnId = awaitingTxnId ?: return@collect
-                if (event.txnId != null && event.txnId != pendingTxnId) return@collect
-
-                when (event.status) {
-                    PaymentReturnManager.Status.SUCCESS -> {
-                        activeCheckoutUrl = null
-                        pollMessage = "Payment completed. Confirming with server..."
-                        PaymentReturnManager.clearLatestEvent()
-                    }
-                    PaymentReturnManager.Status.FAILURE -> {
-                        activeCheckoutUrl = null
-                        viewModel.setGatewayResult(pendingTxnId, "REDIRECT_FAILURE")
-                        viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                        val pendingBillId = awaitingBillId
-                        awaitingBillId = null
-                        awaitingTxnId = null
-                        if (pendingBillId != null) {
-                            viewModel.finalizeOnlineBill(
-                                pendingBillId,
-                                PaymentStatus.FAILED,
-                                "Payment not completed"
-                            )
-                        }
-                        viewModel.clearGatewayResult()
-                        PaymentReturnManager.clearLatestEvent()
-                        onFailed()
-                    }
-                }
-            }
-        }
-
-        // Poll backend every 3s while awaiting. Times out after ~3 min so we don't
-        // poll forever; operator can then mark manually or cancel.
-        LaunchedEffect(awaitingBillId) {
-            val txnId = awaitingBillId ?: return@LaunchedEffect
-            val pollIntervalMs = 3_000L
-            val maxPolls = 60 // ~3 minutes
-            var pollsLeft = maxPolls
-            while (pollsLeft-- > 0 && awaitingBillId == txnId) {
-                kotlinx.coroutines.delay(pollIntervalMs)
-                if (awaitingBillId != txnId) return@LaunchedEffect
-                when (val r = viewModel.easebuzzClient.verifyBill(txnId)) {
-                    is EasebuzzClient.VerifyResult.Success -> {
-                        gatewayPaid = true
-                        viewModel.setGatewayResult(r.txnId, "SUCCESS")
-                        viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                        activeCheckoutUrl = null
-                        // Clear awaiting state AFTER finalization so the LaunchedEffect
-                        // key change doesn't cancel the coroutine mid-finalizeOnlineBill.
-                        PaymentReturnManager.clearLatestEvent()
-                        val finalized = viewModel.finalizeOnlineBill(txnId, PaymentStatus.SUCCESS)
-                        awaitingBillId = null
-                        awaitingTxnId = null
-                        if (finalized) {
-                            viewModel.clearGatewayResult()
-                            onComplete()
-                        }
-                        return@LaunchedEffect
-                    }
-                    is EasebuzzClient.VerifyResult.Failed -> {
-                        viewModel.setGatewayResult(r.txnId, "FAILED")
-                        viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                        activeCheckoutUrl = null
-                        awaitingBillId = null
-                        awaitingTxnId = null
-                        PaymentReturnManager.clearLatestEvent()
-                        viewModel.finalizeOnlineBill(
-                            txnId,
-                            PaymentStatus.FAILED,
-                            r.reason ?: "Gateway reported failure"
-                        )
-                        viewModel.clearGatewayResult()
-                        onFailed()
-                        return@LaunchedEffect
-                    }
-                    is EasebuzzClient.VerifyResult.Pending -> {
-                        // keep polling
-                    }
-                    is EasebuzzClient.VerifyResult.Error -> {
-                        // transient — keep polling, surface the latest error to UI
-                        pollMessage = "Awaiting confirmation… (${r.message})"
-                    }
-                }
-            }
-            // Timed out — leave awaiting state on so operator can decide.
-            pollMessage = "No confirmation yet. Cancel if payment was not received."
-        }
-
-        if (showOfflineBanner) {
-            Spacer(modifier = Modifier.height(spacing.medium))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = DangerRed.copy(alpha = 0.15f)),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(spacing.medium),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.CloudOff, null, tint = DangerRed,
-                        modifier = Modifier.size(KhanaBookTheme.iconSize.small))
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Text(
-                        "Offline — using manual payment confirmation",
-                        color = DangerRed,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        }
-        gatewayError?.let { err ->
-            Spacer(modifier = Modifier.height(spacing.small))
-            Text(err, color = DangerRed, style = MaterialTheme.typography.bodySmall)
-        }
-
-        // Awaiting-gateway-confirmation banner. Shown while we're polling the
-        // backend after launching the Easebuzz checkout.
-        if (awaitingTxnId != null) {
-            Spacer(modifier = Modifier.height(spacing.medium))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = TextGold.copy(alpha = 0.15f)),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(spacing.medium),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = PrimaryGold
-                    )
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Column {
-                        Text(pollMessage, color = TextGold, style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            "Txn: ${awaitingTxnId}",
-                            color = TextGold.copy(alpha = 0.6f),
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                }
-            }
         }
 
         Spacer(modifier = Modifier.height(spacing.extraLarge))
         Button(
                 onClick = {
                     if (!isAmountValid) return@Button
-                    if (awaitingTxnId != null) return@Button
-                    if (gatewayEligible && profile != null && awaitingTxnId == null) {
-                        gatewayError = null
-                        gatewayInProgress = true
-                        scope.launch {
-                            viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                            val localBillId = viewModel.createDraftOnlineBill()
-                            if (localBillId == null) {
-                                gatewayInProgress = false
-                                gatewayError = "Sync failed. Check your connection and try again."
-                                return@launch
-                            }
-                            val gatewayAmount = when (selectedMode) {
-                                PaymentMode.PART_CASH_UPI -> p2Text           // p2 = UPI leg
-                                PaymentMode.PART_UPI_POS  -> p1Text           // p1 = UPI leg
-                                PaymentMode.PART_CASH_EASEBUZZ -> p2Text      // p2 = Easebuzz leg
-                                PaymentMode.PART_EASEBUZZ_POS  -> p1Text      // p1 = Easebuzz leg
-                                else -> summary.total
-                            }
-                            val result = viewModel.easebuzzClient.initiateTxn(
-                                billId = localBillId,
-                                paymentMethod = PaymentGatewayHelper.gatewayPaymentMethod(selectedMode),
-                                gatewayAmount = gatewayAmount
-                            )
-                            gatewayInProgress = false
-                            when (result) {
-                                is EasebuzzClient.InitResult.Success -> {
-                                    awaitingBillId = localBillId
-                                    pollMessage = "Waiting for payment confirmation…"
-                                    awaitingTxnId = result.txnId
-                                    activeCheckoutUrl = result.checkoutUrl
-                                }
-                                is EasebuzzClient.InitResult.Error -> {
-                                    viewModel.finalizeOnlineBill(localBillId, PaymentStatus.FAILED, "Gateway init failed")
-                                    gatewayError = "Gateway: ${result.message}. Use manual mode."
-                                }
-                            }
-                        }
-                    } else {
-                        // Manual flow — also used as the "Mark Manually Paid" override
-                        // while awaiting (e.g., webhook delayed but counter staff confirmed
-                        // the payment on their phone via the bank app).
-                        scope.launch {
-                            viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                            if (viewModel.completeOrder(PaymentStatus.SUCCESS)) {
-                                viewModel.clearGatewayResult()
-                                onComplete()
-                            }
+                    scope.launch {
+                        viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                        if (viewModel.completeOrder(PaymentStatus.SUCCESS)) {
+                            viewModel.clearGatewayResult()
+                            onComplete()
                         }
                     }
                 },
@@ -1541,18 +1307,13 @@ fun PaymentStep(
                     .height(56.dp),
                 colors =
                         ButtonDefaults.buttonColors(
-                                containerColor = if (isAmountValid && !gatewayInProgress && awaitingTxnId == null) SuccessGreen else Color.Gray
+                                containerColor = if (isAmountValid) SuccessGreen else Color.Gray
                         ),
                 shape = RoundedCornerShape(12.dp),
-                enabled = isAmountValid && !gatewayInProgress && awaitingTxnId == null
+                enabled = isAmountValid
         ) {
             Text(
-                    when {
-                        gatewayInProgress -> "Processing…"
-                        awaitingTxnId != null -> "Awaiting Confirmation"
-                        gatewayEligible -> "Pay via Easebuzz"
-                        else -> "Payment Successful"
-                    },
+                    "Payment Successful",
                     color = Color.White,
                     style = MaterialTheme.typography.titleMedium
             )
@@ -1561,20 +1322,8 @@ fun PaymentStep(
         TextButton(
                 onClick = {
                     scope.launch {
-                        val pendingTxn = awaitingTxnId
-                        val pendingBillId = awaitingBillId
-                        activeCheckoutUrl = null
-                        awaitingBillId = null
-                        awaitingTxnId = null
-                        if (pendingTxn != null) {
-                            viewModel.setGatewayResult(pendingTxn, "USER_CANCELLED")
-                        }
-                        if (pendingBillId != null) {
-                            viewModel.finalizeOnlineBill(pendingBillId, PaymentStatus.FAILED, "Customer left")
-                        } else {
-                            viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                            viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
-                        }
+                        viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                        viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
                         viewModel.clearGatewayResult()
                         PaymentReturnManager.clearLatestEvent()
                         onFailed()
@@ -1583,41 +1332,9 @@ fun PaymentStep(
                 modifier = Modifier.fillMaxWidth().height(48.dp)
         ) {
             Text(
-                if (awaitingTxnId != null) "Cancel — Payment Not Received" else "Payment Failed / Cancelled",
+                "Payment Failed / Cancelled",
                 color = DangerRed,
                 style = MaterialTheme.typography.bodyMedium
-            )
-        }
-
-        activeCheckoutUrl?.let { checkoutUrl ->
-            EasebuzzCheckoutDialog(
-                checkoutUrl = checkoutUrl,
-                onClose = { activeCheckoutUrl = null },
-                onSurl = {
-                    activeCheckoutUrl = null
-                    pollMessage = "Payment completed. Confirming with server..."
-                },
-                onFurl = {
-                    activeCheckoutUrl = null
-                    val pendingTxnId = awaitingTxnId ?: return@EasebuzzCheckoutDialog
-                    scope.launch {
-                        viewModel.setGatewayResult(pendingTxnId, "REDIRECT_FAILURE")
-                        viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                        val pendingBillId = awaitingBillId
-                        awaitingBillId = null
-                        awaitingTxnId = null
-                        if (pendingBillId != null) {
-                            viewModel.finalizeOnlineBill(
-                                pendingBillId,
-                                PaymentStatus.FAILED,
-                                "Payment not completed"
-                            )
-                        }
-                        viewModel.clearGatewayResult()
-                        PaymentReturnManager.clearLatestEvent()
-                        onFailed()
-                    }
-                }
             )
         }
     }

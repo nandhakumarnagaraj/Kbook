@@ -45,7 +45,7 @@ data class BillPaymentEntity(
     @SerializedName("serverBillId") @ColumnInfo(name = "server_bill_id") val serverBillId: Long? = null,
     @SerializedName("serverUpdatedAt") @ColumnInfo(name = "server_updated_at", defaultValue = "0") val serverUpdatedAt: Long = 0L,
 
-    // Gateway fields — populated only for Easebuzz-verified payments. Manual payments leave these null.
+    // Gateway fields — populated only for gateway-verified payments. Manual payments leave these null.
     @SerializedName("gatewayTxnId") @ColumnInfo(name = "gateway_txn_id") val gatewayTxnId: String? = null,
     @SerializedName("gatewayStatus") @ColumnInfo(name = "gateway_status") val gatewayStatus: String? = null,
     @SerializedName("verifiedBy") @ColumnInfo(name = "verified_by", defaultValue = "'manual'") val verifiedBy: String = "manual"

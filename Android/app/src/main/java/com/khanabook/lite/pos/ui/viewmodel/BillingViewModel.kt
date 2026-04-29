@@ -44,8 +44,7 @@ class BillingViewModel @Inject constructor(
     private val syncManager: com.khanabook.lite.pos.domain.manager.SyncManager,
     private val printRouter: PrintRouter,
     val printerManager: com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager,
-    private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor,
-    val easebuzzClient: com.khanabook.lite.pos.domain.manager.EasebuzzClient
+    private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor
 ) : ViewModel() {
 
     val cachedProfile: StateFlow<RestaurantProfileEntity?> get() = _cachedProfile
@@ -380,7 +379,7 @@ class BillingViewModel @Inject constructor(
                 val result = syncManager.pushBillOnly(draftBillId)
                 if (result.isSuccess) { synced = true; break }
                 lastError = result.exceptionOrNull()
-                Log.w(TAG, "Easebuzz draft sync attempt $attempt failed", lastError)
+                Log.w(TAG, "Draft sync attempt $attempt failed", lastError)
                 if (attempt < 3) kotlinx.coroutines.delay(attempt * 1000L)
             }
             if (!synced) {
@@ -423,7 +422,7 @@ class BillingViewModel @Inject constructor(
 
             val gTxn = _gatewayTxnId.value
             val gStatus = _gatewayStatus.value
-            val verifiedBy = if (gTxn != null) "easebuzz" else "manual"
+            val verifiedBy = "manual"
             val payments = when (_paymentMode.value) {
                 PaymentMode.PART_CASH_UPI -> listOf(
                     BillPaymentEntity(
@@ -435,8 +434,8 @@ class BillingViewModel @Inject constructor(
                         billId = localBillId,
                         paymentMode = PaymentMode.UPI.dbValue,
                         amount = _partAmount2.value,
-                        gatewayTxnId = gTxn,
-                        gatewayStatus = gStatus,
+                        gatewayTxnId = null,
+                        gatewayStatus = null,
                         verifiedBy = verifiedBy
                     )
                 )
@@ -445,8 +444,8 @@ class BillingViewModel @Inject constructor(
                         billId = localBillId,
                         paymentMode = PaymentMode.UPI.dbValue,
                         amount = _partAmount1.value,
-                        gatewayTxnId = gTxn,
-                        gatewayStatus = gStatus,
+                        gatewayTxnId = null,
+                        gatewayStatus = null,
                         verifiedBy = verifiedBy
                     ),
                     BillPaymentEntity(
@@ -460,8 +459,8 @@ class BillingViewModel @Inject constructor(
                         billId = localBillId,
                         paymentMode = PaymentMode.UPI.dbValue,
                         amount = bill.totalAmount,
-                        gatewayTxnId = gTxn,
-                        gatewayStatus = gStatus,
+                        gatewayTxnId = null,
+                        gatewayStatus = null,
                         verifiedBy = verifiedBy
                     )
                 )
@@ -470,8 +469,8 @@ class BillingViewModel @Inject constructor(
                         billId = localBillId,
                         paymentMode = _paymentMode.value.dbValue,
                         amount = bill.totalAmount,
-                        gatewayTxnId = gTxn,
-                        gatewayStatus = gStatus,
+                        gatewayTxnId = null,
+                        gatewayStatus = null,
                         verifiedBy = verifiedBy
                     )
                 )
@@ -581,15 +580,13 @@ class BillingViewModel @Inject constructor(
             }
 
             // Gateway data is attached only to UPI rows; cash/POS rows stay manual.
-            val gTxn = _gatewayTxnId.value
-            val gStatus = _gatewayStatus.value
-            val verifiedBy = if (gTxn != null) "easebuzz" else "manual"
+            val verifiedBy = "manual"
             fun upi(amount: String) = BillPaymentEntity(
                 billId = 0,
                 paymentMode = PaymentMode.UPI.dbValue,
                 amount = amount,
-                gatewayTxnId = gTxn,
-                gatewayStatus = gStatus,
+                gatewayTxnId = null,
+                gatewayStatus = null,
                 verifiedBy = verifiedBy
             )
             val payments = when (_paymentMode.value) {
@@ -726,7 +723,7 @@ class BillingViewModel @Inject constructor(
     }
 
     private fun shouldPersistLocally(payment: BillPaymentEntity): Boolean {
-        return payment.gatewayTxnId.isNullOrBlank() || !payment.verifiedBy.equals("easebuzz", ignoreCase = true)
+        return payment.gatewayTxnId.isNullOrBlank()
     }
 
     fun updateCartItemNote(item: MenuItemEntity, variant: ItemVariantEntity?, note: String) {

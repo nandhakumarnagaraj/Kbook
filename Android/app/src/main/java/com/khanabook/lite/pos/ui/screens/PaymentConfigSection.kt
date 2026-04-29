@@ -81,25 +81,7 @@ fun PaymentConfigView(
     var ownWebsiteEnabled by remember { mutableStateOf(profile?.ownWebsiteEnabled ?: false) }
     var qrUpdateTrigger by remember { mutableStateOf(0L) }
 
-    // Easebuzz gateway config — when enabled and the device is online, the UPI
-    // flow uses the live gateway (real-time success/failed via webhook). When
-    // disabled or offline, the manual QR + counter-confirmation flow is used.
-    var easebuzzEnabled by remember { mutableStateOf(profile?.easebuzzEnabled ?: false) }
-    val remoteConfig by paymentViewModel.config.collectAsStateWithLifecycle()
-    val remoteLoading by paymentViewModel.loading.collectAsStateWithLifecycle()
-    val remoteError by paymentViewModel.error.collectAsStateWithLifecycle()
-    val remoteSaved by paymentViewModel.saved.collectAsStateWithLifecycle()
     val qrUploadLoading by paymentViewModel.upiQrUploadLoading.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        paymentViewModel.loadConfig()
-    }
-
-    LaunchedEffect(remoteConfig) {
-        remoteConfig?.let {
-            easebuzzEnabled = it.active
-        }
-    }
 
     val context = LocalContext.current
     val toastScope = rememberCoroutineScope()
@@ -154,31 +136,6 @@ fun PaymentConfigView(
             PaymentToggle("Zomato Orders", zomatoEnabled) { zomatoEnabled = it }
             PaymentToggle("Swiggy Orders", swiggyEnabled) { swiggyEnabled = it }
             PaymentToggle("Own Website", ownWebsiteEnabled) { ownWebsiteEnabled = it }
-            PaymentToggle("Easebuzz", easebuzzEnabled) { newState ->
-                easebuzzEnabled = newState
-                paymentViewModel.toggleEasebuzzActive(newState, profile)
-            }
-            remoteConfig?.let { config ->
-                Spacer(modifier = Modifier.height(spacing.small))
-                Text(
-                    "Merchant: ${config.merchantKeyMasked} · ${config.environment}",
-                    color = TextGold,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(modifier = Modifier.height(spacing.small))
-                Text(
-                    "To update credentials, use the web admin dashboard.",
-                    color = TextGold,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                )
-            }
-
-            remoteError?.let {
-                Spacer(modifier = Modifier.height(spacing.small))
-                Text(it, color = Color.Red, style = MaterialTheme.typography.bodySmall)
-            }
-
             PaymentToggle("Offline UPI QR", upiSupported) { upiSupported = it }
             if (upiSupported) {
                 Spacer(modifier = Modifier.height(spacing.medium))
@@ -247,10 +204,6 @@ fun PaymentConfigView(
                             zomatoEnabled = zomatoEnabled,
                             swiggyEnabled = swiggyEnabled,
                             ownWebsiteEnabled = ownWebsiteEnabled,
-                            easebuzzEnabled = easebuzzEnabled,
-                            easebuzzMerchantKey = null,
-                            easebuzzSalt = null,
-                            easebuzzEnv = remoteConfig?.environment?.lowercase() ?: "test",
                             isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }
