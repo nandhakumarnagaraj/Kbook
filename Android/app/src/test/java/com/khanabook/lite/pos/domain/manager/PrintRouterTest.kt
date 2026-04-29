@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.domain.manager
 
+import android.content.Context
 import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.local.entity.PrinterProfileEntity
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
@@ -29,6 +30,7 @@ import org.junit.Test
  */
 class PrintRouterTest {
 
+    private val context: Context = mockk(relaxed = true)
     private val printerProfileRepository: PrinterProfileRepository = mockk(relaxed = true)
     private val printerManager: BluetoothPrinterManager = mockk(relaxed = true)
     private val kitchenQueueManager: KitchenPrintQueueManager = mockk(relaxed = true)
@@ -87,7 +89,7 @@ class PrintRouterTest {
         mockkObject(KitchenTicketFormatter)
         every { KitchenTicketFormatter.format(any(), any(), any()) } returns byteArrayOf(0x02)
 
-        router = PrintRouter(printerProfileRepository, printerManager, kitchenQueueManager)
+        router = PrintRouter(context, printerProfileRepository, printerManager, kitchenQueueManager)
     }
 
     @After
