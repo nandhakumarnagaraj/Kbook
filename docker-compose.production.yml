@@ -40,7 +40,7 @@ services:
       PAYMENT_CRYPTO_SECRET: ${PAYMENT_CRYPTO_SECRET}
       APP_BASE_URL: ${APP_BASE_URL}
       CDN_BASE_PATH: ${CDN_BASE_PATH:-/var/www/cdn.kbook.iadv.cloud/restaurants/}
-      CDN_URL_PREFIX: ${CDN_URL_PREFIX:-https://cdn.kbook.iadv.cloud/restaurants/}
+      CDN_URL_PREFIX: ${CDN_URL_PREFIX:-https://kbook.iadv.cloud/cdn/}
       CDN_TMP_PATH: ${CDN_TMP_PATH:-/var/www/cdn.kbook.iadv.cloud/tmp/}
       CWEBP_BIN: ${CWEBP_BIN:-cwebp}
       SERVER_FORWARD_HEADERS_STRATEGY: ${SERVER_FORWARD_HEADERS_STRATEGY:-framework}
