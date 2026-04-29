@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/root/.m2 \
 # ── Runtime stage ───────────────────────────────────────────────────────────────
 FROM eclipse-temurin:17-jre-alpine AS runtime
 
-RUN apk add --no-cache wget
+RUN apk add --no-cache wget libwebp-tools
 RUN addgroup -S kbook && adduser -S kbook -G kbook
 
 WORKDIR /app

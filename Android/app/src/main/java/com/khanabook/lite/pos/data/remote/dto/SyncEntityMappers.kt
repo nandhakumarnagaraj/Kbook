@@ -180,6 +180,8 @@ fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
     whatsappNumber   = whatsappNumber.orEmpty(),
     email            = email.orEmpty(),
     logoPath         = logoPath,
+    logoUrl          = logoUrl,
+    logoVersion      = logoVersion,
     fssaiNumber      = fssaiNumber.orEmpty(),
     country          = country.orEmpty(),
     currency         = currency.orEmpty(),
@@ -193,6 +195,8 @@ fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
     customTaxPercentage = customTaxPercentage,
     upiEnabled       = upiEnabled,
     upiQrPath        = upiQrPath,
+    upiQrUrl         = upiQrUrl,
+    upiQrVersion     = upiQrVersion,
     upiHandle        = upiHandle.orEmpty(),
     upiMobile        = upiMobile.orEmpty(),
     cashEnabled      = cashEnabled,
@@ -214,6 +218,7 @@ fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
     kitchenPrinterName      = kitchenPrinterName,
     kitchenPrinterMac       = kitchenPrinterMac,
     kitchenPrinterPaperSize = kitchenPrinterPaperSize,
+    invoiceFooter           = invoiceFooter,
 )
 
 fun UserEntity.toSyncDto() = UserSyncDto(

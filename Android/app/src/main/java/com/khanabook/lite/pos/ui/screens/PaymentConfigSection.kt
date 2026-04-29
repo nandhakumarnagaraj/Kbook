@@ -69,6 +69,7 @@ fun PaymentConfigView(
     var upiHandle by remember { mutableStateOf(profile?.upiHandle ?: "") }
     var upiMobile by remember { mutableStateOf(profile?.upiMobile ?: "") }
     var qrPath by remember { mutableStateOf(profile?.upiQrPath) }
+    var qrUrl by remember { mutableStateOf(profile?.upiQrUrl) }
     var cashEnabled by remember { mutableStateOf(profile?.cashEnabled ?: true) }
     var posEnabled by remember { mutableStateOf(profile?.posEnabled ?: false) }
     var zomatoEnabled by remember { mutableStateOf(profile?.zomatoEnabled ?: false) }
@@ -84,6 +85,7 @@ fun PaymentConfigView(
     val remoteLoading by paymentViewModel.loading.collectAsStateWithLifecycle()
     val remoteError by paymentViewModel.error.collectAsStateWithLifecycle()
     val remoteSaved by paymentViewModel.saved.collectAsStateWithLifecycle()
+    val qrUploadLoading by paymentViewModel.upiQrUploadLoading.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         paymentViewModel.loadConfig()
@@ -98,8 +100,11 @@ fun PaymentConfigView(
     val context = LocalContext.current
     val qrLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            qrPath = AppAssetStore.saveUriToAppAsset(context, it, "qr", "upi_qr.png")
-            qrUpdateTrigger = System.currentTimeMillis()
+            paymentViewModel.uploadUpiQr(context, it) { uploadedUrl ->
+                qrUrl = uploadedUrl
+                qrPath = null
+                qrUpdateTrigger = System.currentTimeMillis()
+            }
         }
     }
 
@@ -163,16 +168,24 @@ fun PaymentConfigView(
                             .padding(spacing.extraSmall),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (!qrPath.isNullOrBlank()) {
+                        val qrModel = qrUrl?.takeIf { it.isNotBlank() }
+                            ?: AppAssetStore.resolveAssetPath(qrPath)
+                        if (!qrModel.isNullOrBlank()) {
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
-                                    .data(AppAssetStore.resolveAssetPath(qrPath))
+                                    .data(qrModel)
                                     .setParameter("refresh", qrUpdateTrigger)
                                     .crossfade(true)
-                                    .diskCachePolicy(CachePolicy.DISABLED)
+                                    .diskCachePolicy(CachePolicy.ENABLED)
                                     .build(),
                                 contentDescription = "QR Code",
                                 modifier = Modifier.fillMaxSize()
+                            )
+                        } else if (qrUploadLoading) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(KhanaBookTheme.iconSize.medium),
+                                strokeWidth = 2.dp,
+                                color = PrimaryGold
                             )
                         } else {
                             Icon(Icons.Default.QrCode, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge))
@@ -181,8 +194,9 @@ fun PaymentConfigView(
                     OutlinedButton(
                         onClick = { qrLauncher.launch("image/*") },
                         border = BorderStroke(1.dp, PrimaryGold),
-                        shape = RoundedCornerShape(20.dp)
-                    ) { Text("Upload QR", color = PrimaryGold) }
+                        shape = RoundedCornerShape(20.dp),
+                        enabled = !qrUploadLoading
+                    ) { Text(if (qrUploadLoading) "Uploading..." else "Upload QR", color = PrimaryGold) }
                 }
 
                 if (isCompactWidth) {
@@ -203,6 +217,7 @@ fun PaymentConfigView(
                             upiHandle = upiHandle,
                             upiMobile = upiMobile,
                             upiQrPath = qrPath,
+                            upiQrUrl = qrUrl,
                             cashEnabled = cashEnabled,
                             posEnabled = posEnabled,
                             zomatoEnabled = zomatoEnabled,

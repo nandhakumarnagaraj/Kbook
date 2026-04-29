@@ -7,12 +7,20 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.pdf.PdfDocument
+import androidx.core.graphics.drawable.toBitmap
+import coil.imageLoader
+import coil.request.CachePolicy
+import coil.request.ImageRequest
+import coil.request.SuccessResult
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.model.OrderDetailRow
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.model.TopSellingItem
+import com.khanabook.lite.pos.domain.util.AppAssetStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileOutputStream
 import java.math.BigDecimal
@@ -81,6 +89,32 @@ class ReportExporter(private val context: Context) {
         return lines
     }
 
+    private fun loadLogoBitmap(profile: RestaurantProfileEntity?): Bitmap? {
+        val logoUrl = profile?.logoUrl?.takeIf { it.isNotBlank() }
+        if (logoUrl != null) {
+            val bitmap = runBlocking(Dispatchers.IO) {
+                try {
+                    val request = ImageRequest.Builder(context)
+                        .data(logoUrl)
+                        .allowHardware(false)
+                        .size(160, 160)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .build()
+                    val result = context.imageLoader.execute(request)
+                    (result as? SuccessResult)?.drawable?.toBitmap()
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            if (bitmap != null) return bitmap
+        }
+
+        return profile?.logoPath?.takeIf { it.isNotBlank() }?.let { path ->
+            try { BitmapFactory.decodeFile(AppAssetStore.resolveAssetPath(path)) } catch (_: Exception) { null }
+        }
+    }
+
     fun exportToPdf(
         reportType: String,
         timeFilter: String,
@@ -141,9 +175,7 @@ class ReportExporter(private val context: Context) {
         fun overflow(need: Float = 26f) { if (y > pageHeight - margin - need) newPage() }
 
         // ── SHOP HEADER ────────────────────────────────────────────
-        val logoBitmap: Bitmap? = profile?.logoPath?.takeIf { it.isNotBlank() }?.let {
-            try { BitmapFactory.decodeFile(it) } catch (e: Exception) { null }
-        }
+        val logoBitmap: Bitmap? = loadLogoBitmap(profile)
 
         val logoSize = 80f
         val hasLogo = logoBitmap != null

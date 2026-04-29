@@ -34,6 +34,12 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "logo_path")
 	private String logoPath;
 
+	@Column(name = "logo_url")
+	private String logoUrl;
+
+	@Column(name = "logo_version")
+	private Integer logoVersion;
+
 	@Column(name = "fssai_number")
 	private String fssaiNumber;
 
@@ -72,6 +78,12 @@ public class RestaurantProfile extends BaseSyncEntity {
 
 	@Column(name = "upi_qr_path")
 	private String upiQrPath;
+
+	@Column(name = "upi_qr_url")
+	private String upiQrUrl;
+
+	@Column(name = "upi_qr_version")
+	private Integer upiQrVersion;
 
 	@Column(name = "upi_handle")
 	private String upiHandle;
@@ -144,6 +156,9 @@ public class RestaurantProfile extends BaseSyncEntity {
 
 	@Column(name = "review_url")
 	private String reviewUrl;
+
+	@Column(name = "invoice_footer", columnDefinition = "TEXT")
+	private String invoiceFooter;
 
 	@Column(name = "show_branding")
 	private Boolean showBranding = true;

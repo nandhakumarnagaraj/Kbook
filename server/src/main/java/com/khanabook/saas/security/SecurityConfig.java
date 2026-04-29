@@ -116,7 +116,7 @@ public class SecurityConfig {
 						.referrerPolicy(rp -> rp
 								.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
 						.contentSecurityPolicy(csp -> csp
-								.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'")))
+								.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.kbook.iadv.cloud; frame-ancestors 'none'")))
 
 				.exceptionHandling(ex -> ex
 						.authenticationEntryPoint(jsonAuthenticationEntryPoint())
@@ -152,6 +152,7 @@ public class SecurityConfig {
 						.requestMatchers("/storefront/**").hasRole("OWNER")
 						.requestMatchers("/sync/**").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.requestMatchers("/restaurants/payment-config/**").hasAnyRole("OWNER", "KBOOK_ADMIN")
+						.requestMatchers("/restaurants/logo", "/restaurants/upi-qr").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.anyRequest().authenticated())
 
 				.addFilterBefore(requestIdFilter, UsernamePasswordAuthenticationFilter.class)

@@ -100,17 +100,24 @@ public class PublicInvoiceController {
                 ? esc(profile.getShopAddress()) : "";
         String gstinRow = profile != null && profile.getGstin() != null && !profile.getGstin().isBlank()
                 ? "<div class='gstin'>GSTIN: " + esc(profile.getGstin()) + "</div>" : "";
+        String logo = profile != null && profile.getLogoUrl() != null && !profile.getLogoUrl().isBlank()
+                ? "<img class='logo' src='" + esc(profile.getLogoUrl()) + "' alt=''>"
+                : "";
+        String footer = profile != null && profile.getInvoiceFooter() != null && !profile.getInvoiceFooter().isBlank()
+                ? esc(profile.getInvoiceFooter())
+                : "Thank you for your visit!";
 
         return "<!doctype html><html lang='en'><head>"
                 + "<meta charset='utf-8'>"
                 + "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-                + "<title>" + esc(shopName) + " — Invoice INV" + bill.getLifetimeOrderId() + "</title>"
+                + "<title>" + esc(shopName) + " - Invoice INV" + bill.getLifetimeOrderId() + "</title>"
                 + "<style>"
                 + "*{box-sizing:border-box}"
                 + "body{font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;"
                 + "background:#f5f5f5;margin:0;padding:16px;color:#222}"
                 + ".card{max-width:480px;margin:0 auto;background:#fff;border-radius:12px;"
                 + "box-shadow:0 2px 12px rgba(0,0,0,.08);padding:24px}"
+                + ".logo{display:block;max-width:120px;max-height:90px;object-fit:contain;margin:0 auto 12px}"
                 + ".shop{font-size:22px;font-weight:700;text-align:center;margin-bottom:4px}"
                 + ".addr{text-align:center;color:#555;font-size:13px;margin-bottom:4px}"
                 + ".gstin{text-align:center;color:#555;font-size:12px;margin-bottom:12px}"
@@ -125,6 +132,7 @@ public class PublicInvoiceController {
                 + "font-weight:700;margin-top:14px;padding-top:12px;border-top:2px solid #222}"
                 + ".thanks{text-align:center;color:#666;font-size:13px;margin-top:16px}"
                 + "</style></head><body><div class='card'>"
+                + logo
                 + "<div class='shop'>" + esc(shopName) + "</div>"
                 + (address.isEmpty() ? "" : "<div class='addr'>" + address + "</div>")
                 + gstinRow
@@ -135,7 +143,7 @@ public class PublicInvoiceController {
                 + "<table><thead><tr><th>Item</th><th class='c'>Qty</th><th class='r'>Total</th></tr></thead>"
                 + "<tbody>" + rows + "</tbody></table>"
                 + "<div class='total'><span>Total</span><span>" + currency + ' ' + money(bill.getTotalAmount()) + "</span></div>"
-                + "<div class='thanks'>Thank you for your visit!</div>"
+                + "<div class='thanks'>" + footer + "</div>"
                 + "</div></body></html>";
     }
 

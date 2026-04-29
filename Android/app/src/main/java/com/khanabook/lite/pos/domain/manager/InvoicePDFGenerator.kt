@@ -4,9 +4,16 @@ import android.content.Context
 import android.graphics.*
 import android.graphics.pdf.PdfDocument
 import android.util.Log
+import androidx.core.graphics.drawable.toBitmap
+import coil.imageLoader
+import coil.request.CachePolicy
+import coil.request.ImageRequest
+import coil.request.SuccessResult
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.util.AppAssetStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileOutputStream
 
@@ -53,6 +60,33 @@ class InvoicePDFGenerator(private val context: Context) {
         return BitmapFactory.decodeFile(path, opts)
     }
 
+    private fun loadLogoBitmap(profile: RestaurantProfileEntity?, maxWidth: Int): Bitmap? {
+        val logoUrl = profile?.logoUrl?.takeIf { it.isNotBlank() }
+        if (logoUrl != null) {
+            val bitmap = runBlocking(Dispatchers.IO) {
+                try {
+                    val request = ImageRequest.Builder(context)
+                        .data(logoUrl)
+                        .allowHardware(false)
+                        .size(maxWidth, maxWidth)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .build()
+                    val result = context.imageLoader.execute(request)
+                    (result as? SuccessResult)?.drawable?.toBitmap()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to load CDN logo for PDF", e)
+                    null
+                }
+            }
+            if (bitmap != null) return bitmap
+        }
+
+        return AppAssetStore.resolveAssetPath(profile?.logoPath)?.let { path ->
+            try { decodeSampledBitmap(path, maxWidth) } catch (e: Exception) { null }
+        }
+    }
+
     fun generatePDF(
             bill: BillWithItems,
             profile: RestaurantProfileEntity?,
@@ -65,9 +99,7 @@ class InvoicePDFGenerator(private val context: Context) {
 
         var logoBitmap: Bitmap? = null
         try {
-            logoBitmap = AppAssetStore.resolveAssetPath(profile?.logoPath)?.let { path ->
-                try { decodeSampledBitmap(path, pageWidth * 2) } catch (e: Exception) { null }
-            }
+            logoBitmap = loadLogoBitmap(profile, pageWidth * 2)
 
             val includeLogo      = profile?.includeLogoInPrint == true
             val includeCustomerWa = profile?.printCustomerWhatsapp == true
@@ -476,7 +508,9 @@ class InvoicePDFGenerator(private val context: Context) {
                 canvas.drawRect(5f, y - 9f, (pageWidth - 5).toFloat(), y + 4f, paint)
                 paint.color = Color.WHITE
             }
-            canvas.drawText("THANK YOU! VISIT AGAIN.", (pageWidth / 2).toFloat(), y, paint)
+            val footerText = profile?.invoiceFooter?.takeIf { it.isNotBlank() }
+                ?: "THANK YOU! VISIT AGAIN."
+            canvas.drawText(footerText.take(if (is80mm) 42 else 30), (pageWidth / 2).toFloat(), y, paint)
 
             paint.color    = colorText
             paint.typeface = normalTypeface

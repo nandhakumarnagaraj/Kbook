@@ -105,7 +105,7 @@ fun Context.findActivity(): ComponentActivity? = when (this) {
 }
 
 /**
- * Generates a plain-text version of the bill for WhatsApp sharing.
+ * Generates a plain-text version of the bill for SMS sharing.
  */
 fun generateBillText(bill: BillWithItems, profile: RestaurantProfileEntity?): String {
     val sb = StringBuilder()
@@ -132,7 +132,7 @@ fun generateBillText(bill: BillWithItems, profile: RestaurantProfileEntity?): St
     sb.append("--------------------------\n")
     sb.append("*Total Amount: ${currency}${bill.bill.totalAmount}*\n")
     sb.append("--------------------------\n")
-    sb.append("Thank you for your visit!\n")
+    sb.append("${profile?.invoiceFooter?.takeIf { it.isNotBlank() } ?: "Thank you for your visit!"}\n")
     
     return sb.toString()
 }
@@ -179,24 +179,20 @@ fun buildInvoiceShareUrl(billWithItems: BillWithItems): String? {
  * Shares the invoice on WhatsApp as a LINK only.
  * The link points to the backend's hosted invoice page.
  *
- * Requires the bill to be synced (serverId present). If not synced,
- * falls back to sending the full invoice text — same behaviour as before
- * so the user is never blocked.
- *
- * Uses whatsapp://send (direct app URI) so it works offline — WhatsApp
- * queues the message and delivers when internet returns.
+ * Requires the bill to be synced (serverId present). No Android-side invoice
+ * text/PDF fallback is generated for WhatsApp.
  */
 fun shareInvoiceViaWhatsAppLink(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
     val link = buildInvoiceShareUrl(billWithItems)
-    val message = if (link != null) {
-        val shop = profile?.shopName?.takeIf { it.isNotBlank() } ?: "Invoice"
-        val total = billWithItems.bill.totalAmount
-        val currency = if (profile?.currency == "INR" || profile?.currency == "Rupee") "Rs." else profile?.currency ?: ""
-        "*$shop*\nInvoice INV${billWithItems.bill.lifetimeOrderId}\nTotal: $currency$total\n\nView: $link"
-    } else {
-        Toast.makeText(context, "Sync pending — sharing as text", Toast.LENGTH_SHORT).show()
-        generateBillText(billWithItems, profile)
+    if (link == null) {
+        Toast.makeText(context, "Sync pending. Try again after the invoice syncs.", Toast.LENGTH_SHORT).show()
+        return
     }
+
+    val shop = profile?.shopName?.takeIf { it.isNotBlank() } ?: "Invoice"
+    val total = billWithItems.bill.totalAmount
+    val currency = if (profile?.currency == "INR" || profile?.currency == "Rupee") "Rs." else profile?.currency ?: ""
+    val message = "*$shop*\nInvoice INV${billWithItems.bill.lifetimeOrderId}\nTotal: $currency$total\n\nView: $link"
 
     val raw = billWithItems.bill.customerWhatsapp
     val digits = raw?.replace(Regex("[^0-9]"), "") ?: ""
@@ -231,197 +227,6 @@ fun shareInvoiceViaWhatsAppLink(context: Context, billWithItems: BillWithItems, 
     } catch (e: Exception) {
         Toast.makeText(context, "Unable to open WhatsApp.", Toast.LENGTH_SHORT).show()
     }
-}
-
-/**
- * Shares the bill as a text message on WhatsApp.
- * This method works WITHOUT contact permission and does NOT save temporary contacts.
- */
-fun shareBillTextOnWhatsApp(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
-    val text = generateBillText(billWithItems, profile)
-    val rawPhone = billWithItems.bill.customerWhatsapp
-    val digits = rawPhone?.replace(Regex("[^0-9]"), "") ?: ""
-    val formattedPhone = when {
-        digits.length == 10 -> "91$digits"
-        digits.length > 10 -> digits
-        else -> null
-    }
-
-    if (formattedPhone != null) {
-        try {
-            val uri = android.net.Uri.parse("whatsapp://send?phone=$formattedPhone&text=${android.net.Uri.encode(text)}")
-            val intent = Intent(Intent.ACTION_VIEW, uri)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            TrustedExternalAppReturn.mark(context)
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            // Fallback to generic share if WhatsApp not installed or URI fails
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, text)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(Intent.createChooser(intent, "Share Invoice via"))
-        }
-    } else {
-        // No number, just generic share
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, text)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(Intent.createChooser(intent, "Share Invoice via"))
-    }
-}
-
-/**
- * Shares a bill/invoice via WhatsApp.
- * Shares the PDF through the best available WhatsApp path without
- * READ_CONTACTS/WRITE_CONTACTS permission.
- *
- * Strategy:
- * 1. Copy the number so it is ready if WhatsApp opens search.
- * 2. Try direct PDF targeting via WhatsApp jid.
- * 3. If that cannot launch, open WhatsApp's PDF picker so
- *    the user can paste the number into WhatsApp search and select the unsaved chat.
- * 4. Last resort: generic PDF share sheet.
- *
- * Text-only WhatsApp sharing is kept as the separate shareBillTextOnWhatsApp feature.
- */
-fun shareBillOnWhatsApp(
-    context: Context,
-    billWithItems: BillWithItems,
-    profile: RestaurantProfileEntity?
-) {
-    // PDF generation (including review QR via ZXing) is CPU/IO heavy — run off main thread
-    CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
-        try {
-            val pdfGenerator = InvoicePDFGenerator(context)
-            val pdfFile = pdfGenerator.generatePDF(billWithItems, profile)
-            val pdfUri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.provider",
-                pdfFile
-            )
-
-            val rawPhone = billWithItems.bill.customerWhatsapp
-            val digits = rawPhone?.replace(Regex("[^0-9]"), "") ?: ""
-            val formattedPhone = when {
-                digits.length == 10 -> "91$digits"
-                digits.length > 10 -> digits
-                else -> null
-            }
-
-            kotlinx.coroutines.withContext(Dispatchers.Main) {
-                if (formattedPhone != null) {
-                    copyTextToClipboard(context, "WhatsApp Number", "+$formattedPhone")
-                    if (tryJidWhatsApp(context, formattedPhone, pdfUri)) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.toast_whatsapp_search_number_copied),
-                            Toast.LENGTH_LONG
-                        ).show()
-                        return@withContext
-                    }
-                    if (launchWhatsAppPdfSearchFallback(context, formattedPhone, pdfUri)) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.toast_whatsapp_search_number_copied),
-                            Toast.LENGTH_LONG
-                        ).show()
-                        return@withContext
-                    }
-                }
-                launchInvoiceShare(context, pdfUri)
-            }
-        } catch (e: Exception) {
-            kotlinx.coroutines.withContext(Dispatchers.Main) {
-                Toast.makeText(
-                    context,
-                    UserMessageSanitizer.sanitize(e, "Unable to share invoice."),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-    }
-}
-
-private fun copyTextToClipboard(context: Context, label: String, text: String) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-    clipboard?.setPrimaryClip(android.content.ClipData.newPlainText(label, text))
-}
-
-private fun tryJidWhatsApp(context: Context, phone: String, pdfUri: android.net.Uri): Boolean {
-    val packages = listOf("com.whatsapp", "com.whatsapp.w4b")
-    for (pkg in packages) {
-        try {
-            context.packageManager.getPackageInfo(pkg, 0)
-            context.grantUriPermission(pkg, pdfUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/pdf"
-                putExtra(Intent.EXTRA_STREAM, pdfUri)
-                putExtra("jid", "$phone@s.whatsapp.net")
-                clipData = android.content.ClipData.newRawUri("Invoice PDF", pdfUri)
-                `package` = pkg
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            TrustedExternalAppReturn.mark(context)
-            context.startActivity(intent)
-            return true
-        } catch (e: Exception) {
-            android.util.Log.w(UTILS_TAG, "WhatsApp direct share failed for package=$pkg", e)
-        }
-    }
-    return false
-}
-
-private fun launchWhatsAppPdfSearchFallback(
-    context: Context,
-    phone: String,
-    pdfUri: android.net.Uri
-): Boolean {
-    android.util.Log.d(UTILS_TAG, "Falling back to WhatsApp PDF picker for phone suffix=${phone.takeLast(4)}")
-    return launchWhatsAppPdfPicker(context, pdfUri)
-}
-
-private fun launchWhatsAppPdfPicker(context: Context, pdfUri: android.net.Uri): Boolean {
-    val packages = listOf("com.whatsapp", "com.whatsapp.w4b")
-    for (pkg in packages) {
-        try {
-            context.packageManager.getPackageInfo(pkg, 0)
-            context.grantUriPermission(pkg, pdfUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/pdf"
-                putExtra(Intent.EXTRA_STREAM, pdfUri)
-                clipData = android.content.ClipData.newRawUri("Invoice PDF", pdfUri)
-                `package` = pkg
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            TrustedExternalAppReturn.mark(context)
-            context.startActivity(intent)
-            return true
-        } catch (e: Exception) {
-            android.util.Log.w(UTILS_TAG, "WhatsApp picker share failed for package=$pkg", e)
-        }
-    }
-    return false
-}
-
-private fun launchInvoiceShare(
-    context: Context,
-    pdfUri: android.net.Uri
-) {
-    val baseIntent = Intent(Intent.ACTION_SEND).apply {
-        type = "application/pdf"
-        putExtra(Intent.EXTRA_STREAM, pdfUri)
-        clipData = android.content.ClipData.newRawUri("Invoice PDF", pdfUri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
-
-    context.startActivity(Intent.createChooser(baseIntent, "Share Invoice"))
 }
 
 /**
@@ -474,7 +279,7 @@ fun directPrint(
         }
         
         if (printerManager.isConnected()) {
-            val bytes = InvoiceFormatter.formatForThermalPrinter(billWithItems, profile)
+            val bytes = InvoiceFormatter.formatForThermalPrinter(billWithItems, profile, context)
             printerManager.printBytes(bytes)
         } else {
             kotlinx.coroutines.withContext(Dispatchers.Main) {

@@ -1106,8 +1106,9 @@ fun PaymentStep(
                         contentDescription = "Scan to pay ${profile?.upiHandle}",
                         modifier = Modifier.fillMaxSize()
                     )
-                    !profile?.upiQrPath.isNullOrBlank() -> AsyncImage(
-                        model = AppAssetStore.resolveAssetPath(profile?.upiQrPath),
+                    !profile?.upiQrUrl.isNullOrBlank() || !profile?.upiQrPath.isNullOrBlank() -> AsyncImage(
+                        model = profile?.upiQrUrl?.takeIf { it.isNotBlank() }
+                            ?: AppAssetStore.resolveAssetPath(profile?.upiQrPath),
                         contentDescription = "QR Code",
                         modifier = Modifier.fillMaxSize()
                     )
@@ -1658,8 +1659,9 @@ fun PaymentStep(
                                     contentDescription = "Scan to pay ${profile?.upiHandle}",
                                     modifier = Modifier.fillMaxSize()
                                 )
-                                !profile?.upiQrPath.isNullOrBlank() -> AsyncImage(
-                                    model = AppAssetStore.resolveAssetPath(profile?.upiQrPath),
+                                !profile?.upiQrUrl.isNullOrBlank() || !profile?.upiQrPath.isNullOrBlank() -> AsyncImage(
+                                    model = profile?.upiQrUrl?.takeIf { it.isNotBlank() }
+                                        ?: AppAssetStore.resolveAssetPath(profile?.upiQrPath),
                                     contentDescription = "QR Code",
                                     modifier = Modifier.fillMaxSize()
                                 )

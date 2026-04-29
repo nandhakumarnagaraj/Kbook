@@ -166,6 +166,8 @@ data class RestaurantProfileSyncDto(
     @SerializedName("whatsappNumber") val whatsappNumber: String,
     @SerializedName("email") val email: String,
     @SerializedName("logoPath") val logoPath: String?,
+    @SerializedName("logoUrl") val logoUrl: String?,
+    @SerializedName("logoVersion") val logoVersion: Int,
     @SerializedName("fssaiNumber") val fssaiNumber: String,
     @SerializedName("country") val country: String,
     @SerializedName("currency") val currency: String,
@@ -179,6 +181,8 @@ data class RestaurantProfileSyncDto(
     @SerializedName("customTaxPercentage") val customTaxPercentage: Double,
     @SerializedName("upiEnabled") val upiEnabled: Boolean,
     @SerializedName("upiQrPath") val upiQrPath: String?,
+    @SerializedName("upiQrUrl") val upiQrUrl: String?,
+    @SerializedName("upiQrVersion") val upiQrVersion: Int,
     @SerializedName("upiHandle") val upiHandle: String,
     @SerializedName("upiMobile") val upiMobile: String,
     @SerializedName("cashEnabled") val cashEnabled: Boolean,
@@ -200,6 +204,7 @@ data class RestaurantProfileSyncDto(
     @SerializedName("kitchenPrinterName") val kitchenPrinterName: String?,
     @SerializedName("kitchenPrinterMac") val kitchenPrinterMac: String?,
     @SerializedName("kitchenPrinterPaperSize") val kitchenPrinterPaperSize: String?,
+    @SerializedName("invoiceFooter") val invoiceFooter: String?,
 )
 
 data class UserSyncDto(

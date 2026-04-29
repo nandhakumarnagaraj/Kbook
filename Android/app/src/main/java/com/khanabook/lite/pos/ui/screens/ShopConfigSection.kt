@@ -90,26 +90,31 @@ fun ShopConfigView(
     var whatsapp by remember { mutableStateOf(profile?.whatsappNumber ?: "") }
     var email by remember { mutableStateOf(profile?.email ?: "") }
     var logoPath by remember { mutableStateOf(profile?.logoPath) }
+    var logoUrl by remember { mutableStateOf(profile?.logoUrl) }
     var consent by remember { mutableStateOf(profile?.emailInvoiceConsent ?: false) }
     var reviewUrl by remember { mutableStateOf(profile?.reviewUrl ?: "") }
+    var invoiceFooter by remember { mutableStateOf(profile?.invoiceFooter ?: "") }
     var logoUpdateTrigger by remember { mutableLongStateOf(0L) }
 
     val saveProfileLoading by viewModel.saveProfileLoading.collectAsState()
     val saveProfileError by viewModel.saveProfileError.collectAsState()
     val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsState()
+    val logoUploadLoading by viewModel.logoUploadLoading.collectAsState()
     val isUserChecking by viewModel.isUserChecking.collectAsStateWithLifecycle()
     val userExistsError by viewModel.userExistsError.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsState()
     val isGoogleAuth = currentUser?.authProvider.equals("GOOGLE", ignoreCase = true)
 
-    val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, logoPath, profile) {
+    val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, invoiceFooter, logoPath, logoUrl, profile) {
         name != (profile?.shopName ?: "") ||
             address != (profile?.shopAddress ?: "") ||
             whatsapp != (profile?.whatsappNumber ?: "") ||
             email != (profile?.email ?: "") ||
             consent != (profile?.emailInvoiceConsent ?: false) ||
             reviewUrl != (profile?.reviewUrl ?: "") ||
-            logoPath != profile?.logoPath
+            invoiceFooter != (profile?.invoiceFooter ?: "") ||
+            logoPath != profile?.logoPath ||
+            logoUrl != profile?.logoUrl
     }
 
     var showUnsavedDialog by remember { mutableStateOf(false) }
@@ -160,8 +165,10 @@ fun ShopConfigView(
             whatsapp = it.whatsappNumber ?: ""
             email = it.email ?: ""
             logoPath = it.logoPath
+            logoUrl = it.logoUrl
             consent = it.emailInvoiceConsent
             reviewUrl = it.reviewUrl ?: ""
+            invoiceFooter = it.invoiceFooter ?: ""
         }
     }
 
@@ -216,8 +223,11 @@ fun ShopConfigView(
 
     val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            logoPath = AppAssetStore.saveUriToAppAsset(context, it, "logo", "shop_logo.png")
-            logoUpdateTrigger = System.currentTimeMillis()
+            viewModel.uploadLogo(context, it) { uploadedUrl ->
+                logoUrl = uploadedUrl
+                logoPath = null
+                logoUpdateTrigger = System.currentTimeMillis()
+            }
         }
     }
 
@@ -241,17 +251,21 @@ fun ShopConfigView(
                         .border(1.dp, Color.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (!logoPath.isNullOrBlank()) {
+                    val logoModel = logoUrl?.takeIf { it.isNotBlank() }
+                        ?: AppAssetStore.resolveAssetPath(logoPath)
+                    if (!logoModel.isNullOrBlank()) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(AppAssetStore.resolveAssetPath(logoPath))
+                                .data(logoModel)
                                 .setParameter("refresh", logoUpdateTrigger)
                                 .crossfade(true)
-                                .diskCachePolicy(CachePolicy.DISABLED)
+                                .diskCachePolicy(CachePolicy.ENABLED)
                                 .build(),
                             contentDescription = "Logo",
                             modifier = Modifier.fillMaxSize().padding(spacing.extraSmall)
                         )
+                    } else if (logoUploadLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(iconSize.medium), color = PrimaryGold, strokeWidth = 2.dp)
                     } else {
                         Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge))
                     }
@@ -259,8 +273,9 @@ fun ShopConfigView(
                 OutlinedButton(
                     onClick = { logoLauncher.launch("image/*") },
                     border = BorderStroke(1.dp, PrimaryGold),
-                    shape = RoundedCornerShape(20.dp)
-                ) { Text("Change Logo", color = PrimaryGold) }
+                    shape = RoundedCornerShape(20.dp),
+                    enabled = !logoUploadLoading
+                ) { Text(if (logoUploadLoading) "Uploading..." else "Change Logo", color = PrimaryGold) }
             }
 
             if (isCompactWidth) {
@@ -362,6 +377,8 @@ fun ShopConfigView(
             )
             Spacer(modifier = Modifier.height(spacing.medium))
             ParchmentTextField(value = reviewUrl, onValueChange = { reviewUrl = it }, label = "Review Link")
+            Spacer(modifier = Modifier.height(spacing.medium))
+            ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer")
             Spacer(modifier = Modifier.height(spacing.large))
 
             val isSaveEnabled = isDirty && (!numberChanged || isOtpVerified) && !saveProfileLoading
@@ -395,8 +412,10 @@ fun ShopConfigView(
                                 whatsappNumber = whatsapp,
                                 email = email,
                                 logoPath = logoPath,
+                                logoUrl = logoUrl,
                                 emailInvoiceConsent = consent,
                                 reviewUrl = reviewUrl,
+                                invoiceFooter = invoiceFooter,
                                 isSynced = false,
                                 updatedAt = System.currentTimeMillis()
                             )

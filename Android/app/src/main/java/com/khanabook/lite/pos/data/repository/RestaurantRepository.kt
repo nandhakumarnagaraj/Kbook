@@ -10,6 +10,7 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import kotlinx.coroutines.flow.Flow
+import okhttp3.MultipartBody
 
 class RestaurantRepository(
         private val restaurantDao: RestaurantDao,
@@ -73,6 +74,36 @@ class RestaurantRepository(
     suspend fun updateLogoPath(path: String?) {
         restaurantDao.updateLogoPath(path, System.currentTimeMillis())
         triggerBackgroundSync()
+    }
+
+    suspend fun uploadLogo(file: MultipartBody.Part): String {
+        val current = restaurantDao.getProfile()
+        val response = api.uploadLogo(file)
+        val version = response.logoVersion.takeIf { it > 0 }
+            ?: ((current?.logoVersion ?: 0) + 1)
+        restaurantDao.updateLogoUrl(
+            response.logoUrl,
+            version,
+            current?.isSynced ?: true,
+            System.currentTimeMillis()
+        )
+        if (current?.isSynced == false) triggerBackgroundSync()
+        return response.logoUrl
+    }
+
+    suspend fun uploadUpiQr(file: MultipartBody.Part): String {
+        val current = restaurantDao.getProfile()
+        val response = api.uploadUpiQr(file)
+        val version = response.upiQrVersion.takeIf { it > 0 }
+            ?: ((current?.upiQrVersion ?: 0) + 1)
+        restaurantDao.updateUpiQrUrl(
+            response.upiQrUrl,
+            version,
+            current?.isSynced ?: true,
+            System.currentTimeMillis()
+        )
+        if (current?.isSynced == false) triggerBackgroundSync()
+        return response.upiQrUrl
     }
 
     private fun triggerBackgroundSync() {

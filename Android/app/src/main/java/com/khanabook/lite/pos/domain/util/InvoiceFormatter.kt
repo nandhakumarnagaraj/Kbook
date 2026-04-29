@@ -1,11 +1,19 @@
 package com.khanabook.lite.pos.domain.util
 
+import android.content.Context
 import android.util.Log
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import androidx.core.graphics.drawable.toBitmap
+import coil.imageLoader
+import coil.request.CachePolicy
+import coil.request.ImageRequest
+import coil.request.SuccessResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.SimpleDateFormat
@@ -37,6 +45,33 @@ object InvoiceFormatter {
         return BitmapFactory.decodeFile(path, opts)
     }
 
+    private fun loadLogoBitmap(context: Context?, profile: RestaurantProfileEntity?, maxWidth: Int): Bitmap? {
+        val logoUrl = profile?.logoUrl?.takeIf { it.isNotBlank() }
+        if (context != null && logoUrl != null) {
+            val bitmap = runBlocking(Dispatchers.IO) {
+                try {
+                    val request = ImageRequest.Builder(context)
+                        .data(logoUrl)
+                        .allowHardware(false)
+                        .size(maxWidth, maxWidth)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .build()
+                    val result = context.imageLoader.execute(request)
+                    (result as? SuccessResult)?.drawable?.toBitmap()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error loading CDN logo", e)
+                    null
+                }
+            }
+            if (bitmap != null) return bitmap
+        }
+
+        return AppAssetStore.resolveAssetPath(profile?.logoPath)?.let { path ->
+            try { decodeSampledBitmap(path, maxWidth) } catch (_: Exception) { null }
+        }
+    }
+
     private fun resolveCurrency(profile: RestaurantProfileEntity?): String {
         return if (profile?.currency == "INR" || profile?.currency == "Rupee") "Rs." else profile?.currency ?: ""
     }
@@ -51,13 +86,16 @@ object InvoiceFormatter {
         }
     }
 
-    fun formatForThermalPrinter(bill: BillWithItems, profile: RestaurantProfileEntity?): ByteArray {
+    fun formatForThermalPrinter(
+        bill: BillWithItems,
+        profile: RestaurantProfileEntity?,
+        context: Context? = null
+    ): ByteArray {
         val is80mm = profile?.paperSize == "80mm"
         val width = if (is80mm) 40 else 32
         val leftPad = if (is80mm) "    " else "" // 4 spaces to center 40 chars on 48-char standard 80mm printer
         val currency = resolveCurrency(profile)
         val isGst = profile?.gstEnabled == true
-        val resolvedLogoPath = AppAssetStore.resolveAssetPath(profile?.logoPath)
         
         val line = leftPad + "-".repeat(width)
         val doubleLine = leftPad + "=".repeat(width)
@@ -73,10 +111,10 @@ object InvoiceFormatter {
         add(ALIGN_CENTER)
         
         // 1. Logo (if enabled)
-        if (profile?.includeLogoInPrint == true && !resolvedLogoPath.isNullOrBlank()) {
+        if (profile?.includeLogoInPrint == true && (!profile.logoUrl.isNullOrBlank() || !profile.logoPath.isNullOrBlank())) {
             try {
                 val targetWidth = if (is80mm) 384 else 256
-                val bitmap = decodeSampledBitmap(resolvedLogoPath, targetWidth)
+                val bitmap = loadLogoBitmap(context, profile, targetWidth)
                 if (bitmap != null) {
                     try {
                         add(decodeBitmapToESC_POS(bitmap, targetWidth))
@@ -227,7 +265,7 @@ object InvoiceFormatter {
 
         // 7. Footer
         add(ALIGN_CENTER)
-        add("Thank you! Visit again.\n")
+        add("${profile?.invoiceFooter?.takeIf { it.isNotBlank() } ?: "Thank you! Visit again."}\n")
         if (profile?.showBranding != false) {
             add(BOLD_ON)
             add("Powered by KhanaBook\n")
@@ -254,90 +292,6 @@ object InvoiceFormatter {
         }
         if (currentLine.isNotEmpty()) lines.add(currentLine.toString())
         return if (lines.isEmpty()) listOf("") else lines
-    }
-
-    fun formatForWhatsApp(bill: BillWithItems, profile: RestaurantProfileEntity?): String {
-        val sb = StringBuilder()
-        val width = if (profile?.paperSize == "80mm") 42 else 32
-        val line = "-".repeat(width)
-        
-        val currency = if (profile?.currency == "INR" || profile?.currency == "Rupee") "₹" else profile?.currency ?: ""
-        
-        sb.append("🏛️ *${profile?.shopName?.uppercase() ?: "RESTAURANT"}*\n")
-        if (!profile?.shopAddress.isNullOrBlank()) sb.append("📍 ${profile?.shopAddress}\n")
-        if (!profile?.whatsappNumber.isNullOrBlank()) sb.append("📞 Contact: ${profile?.whatsappNumber}\n")
-        if (!profile?.gstin.isNullOrBlank()) sb.append("📜 GSTIN: ${profile?.gstin}\n")
-        
-        val title = if (profile?.gstEnabled == true) "TAX INVOICE" else "INVOICE"
-        sb.append("\n🧾 *--- $title ---*\n")
-        
-        val invLabel = if (profile?.gstEnabled == true) "Tax Invoice No" else "Invoice No"
-        sb.append("🔢 *$invLabel:* INV${bill.bill.lifetimeOrderId}\n")
-        val formattedDate = com.khanabook.lite.pos.domain.util.DateUtils.formatDisplay(bill.bill.createdAt)
-        sb.append("📅 *Date:* ${formattedDate}\n")
-        
-        sb.append("👤 *Customer:* ${bill.bill.customerName?.takeIf { it.isNotBlank() && it != "Walking Customer" } ?: "Guest"}\n")
-        
-        sb.append("\n📦 *ORDER SUMMARY*\n")
-        sb.append("$line\n")
-        for (item in bill.items) {
-            val name = if (item.variantName != null) "${item.itemName} (${item.variantName})" else item.itemName
-            sb.append("🔹 *${name.uppercase()}*\n")
-            sb.append("   ${item.quantity} x $currency${formatMoney(item.price)} = $currency${formatMoney(item.itemTotal)}\n")
-        }
-        sb.append("$line\n")
-        
-        sb.append("💵 *Subtotal: $currency${formatMoney(bill.bill.subtotal)}*\n")
-        
-        if (profile?.gstEnabled == true) {
-            val halfGst = try {
-                BigDecimal(bill.bill.gstPercentage)
-                    .divide(BigDecimal("2"), 2, RoundingMode.HALF_UP)
-                    .stripTrailingZeros().toPlainString()
-            } catch (e: Exception) { "0" }
-
-            val cgst = try {
-                BigDecimal(bill.bill.cgstAmount)
-                    .setScale(2, RoundingMode.HALF_UP).toPlainString()
-            } catch (e: Exception) { "0.00" }
-
-            val sgst = try {
-                BigDecimal(bill.bill.sgstAmount)
-                    .setScale(2, RoundingMode.HALF_UP).toPlainString()
-            } catch (e: Exception) { "0.00" }
-
-            sb.append("   CGST ($halfGst%): $currency$cgst\n")
-            sb.append("   SGST ($halfGst%): $currency$sgst\n")
-        }
-
-        if (profile?.gstEnabled == false) {
-            val customAmt = try {
-                BigDecimal(bill.bill.customTaxAmount)
-            } catch (e: Exception) { BigDecimal.ZERO }
-
-            if (customAmt.compareTo(BigDecimal.ZERO) > 0) {
-                val taxLabel = profile.customTaxName?.takeIf { it.isNotBlank() } ?: "Tax"
-                sb.append("   $taxLabel: $currency${formatMoney(bill.bill.customTaxAmount)}\n")
-            }
-        }
-        
-        sb.append("\n💰 *TOTAL AMOUNT: $currency${formatMoney(bill.bill.totalAmount)}*\n")
-        sb.append("$line\n")
-        sb.append("💳 *Payment:* ${
-            com.khanabook.lite.pos.domain.model.PaymentMode
-                .fromDbValue(bill.bill.paymentMode).displayLabel
-        }\n")
-        
-        if (!profile?.reviewUrl.isNullOrBlank()) {
-            sb.append("\n⭐ *Rate Us / Feedback:* ${profile?.reviewUrl}\n")
-        }
-
-        sb.append("\nThank you! Visit Again 🙏\n")
-        if (profile?.showBranding != false) {
-            sb.append("_Software by KhanaBook_")
-        }
-        
-        return sb.toString()
     }
 
     private fun centerText(text: String, width: Int): String {

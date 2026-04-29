@@ -3,12 +3,25 @@ package com.khanabook.lite.pos.data.remote.api
 import com.khanabook.lite.pos.data.remote.ResetPasswordRequest
 import com.khanabook.lite.pos.data.remote.PasswordResetOtpRequest
 import com.khanabook.lite.pos.data.remote.dto.*
+import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.PATCH
+import retrofit2.http.Part
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
+
+data class LogoUploadResponse(
+        val logoUrl: String,
+        val logoVersion: Int = 0
+)
+
+data class UpiQrUploadResponse(
+        val upiQrUrl: String,
+        val upiQrVersion: Int = 0
+)
 
 interface KhanaBookApi {
 
@@ -92,6 +105,14 @@ interface KhanaBookApi {
 
         @PATCH("api/v1/restaurants/payment-config/easebuzz/toggle")
         suspend fun toggleEasebuzzActive(@Query("enabled") enabled: Boolean): RestaurantPaymentConfigResponse
+
+        @Multipart
+        @POST("api/v1/restaurants/logo")
+        suspend fun uploadLogo(@Part file: MultipartBody.Part): LogoUploadResponse
+
+        @Multipart
+        @POST("api/v1/restaurants/upi-qr")
+        suspend fun uploadUpiQr(@Part file: MultipartBody.Part): UpiQrUploadResponse
 
         @POST("api/v1/payments/easebuzz/create-order")
         suspend fun createEasebuzzOrder(@Body request: CreateEasebuzzOrderRequest): CreateEasebuzzOrderResponse

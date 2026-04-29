@@ -26,6 +26,8 @@ public class RestaurantProfileDTO {
     private String whatsappNumber;
     private String email;
     private String logoPath;
+    private String logoUrl;
+    private Integer logoVersion;
     private String fssaiNumber;
     private Boolean emailInvoiceConsent;
     private String country;
@@ -39,6 +41,8 @@ public class RestaurantProfileDTO {
     private String currency;
     private Boolean upiEnabled;
     private String upiQrPath;
+    private String upiQrUrl;
+    private Integer upiQrVersion;
     private String upiHandle;
     private String upiMobile;
     private Boolean cashEnabled;
@@ -63,6 +67,7 @@ public class RestaurantProfileDTO {
     private Integer sessionTimeoutMinutes;
     private String timezone;
     private String reviewUrl;
+    private String invoiceFooter;
     private Boolean showBranding;
     private Boolean maskCustomerPhone;
 }

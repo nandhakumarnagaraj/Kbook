@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.ui.viewmodel
 
 import android.bluetooth.BluetoothDevice
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +13,8 @@ import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.domain.util.MultipartUtils
+import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +25,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -231,6 +235,9 @@ class SettingsViewModel @Inject constructor(
     private val _saveProfileSuccess = MutableStateFlow(false)
     val saveProfileSuccess: StateFlow<Boolean> = _saveProfileSuccess.asStateFlow()
 
+    private val _logoUploadLoading = MutableStateFlow(false)
+    val logoUploadLoading: StateFlow<Boolean> = _logoUploadLoading.asStateFlow()
+
     private val _isUserChecking = MutableStateFlow(false)
     val isUserChecking: StateFlow<Boolean> = _isUserChecking.asStateFlow()
 
@@ -288,6 +295,24 @@ class SettingsViewModel @Inject constructor(
             }
             _saveProfileSuccess.value = true
             _saveProfileLoading.value = false
+        }
+    }
+
+    fun uploadLogo(context: Context, uri: Uri, onUploaded: (String) -> Unit) {
+        viewModelScope.launch {
+            _logoUploadLoading.value = true
+            _saveProfileError.value = null
+            try {
+                val part = withContext(Dispatchers.IO) {
+                    MultipartUtils.imageUriToPart(context.applicationContext, uri)
+                }
+                val url = restaurantRepository.uploadLogo(part)
+                onUploaded(url)
+            } catch (e: Exception) {
+                _saveProfileError.value = UserMessageSanitizer.sanitize(e, "Logo upload failed. Please try again.")
+            } finally {
+                _logoUploadLoading.value = false
+            }
         }
     }
 

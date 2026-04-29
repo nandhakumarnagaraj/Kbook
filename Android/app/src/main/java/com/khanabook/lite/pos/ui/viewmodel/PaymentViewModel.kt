@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
@@ -7,11 +9,15 @@ import com.khanabook.lite.pos.data.remote.api.RestaurantPaymentConfigResponse
 import com.khanabook.lite.pos.data.remote.api.SaveRestaurantPaymentConfigRequest
 import com.khanabook.lite.pos.data.repository.PaymentRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
+import com.khanabook.lite.pos.domain.util.MultipartUtils
+import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -31,6 +37,9 @@ class PaymentViewModel @Inject constructor(
 
     private val _saved = MutableStateFlow(false)
     val saved: StateFlow<Boolean> = _saved.asStateFlow()
+
+    private val _upiQrUploadLoading = MutableStateFlow(false)
+    val upiQrUploadLoading: StateFlow<Boolean> = _upiQrUploadLoading.asStateFlow()
 
     fun loadConfig() {
         viewModelScope.launch {
@@ -76,5 +85,23 @@ class PaymentViewModel @Inject constructor(
 
     fun showError(message: String) {
         _error.value = message
+    }
+
+    fun uploadUpiQr(context: Context, uri: Uri, onUploaded: (String) -> Unit) {
+        viewModelScope.launch {
+            _upiQrUploadLoading.value = true
+            _error.value = null
+            try {
+                val part = withContext(Dispatchers.IO) {
+                    MultipartUtils.imageUriToPart(context.applicationContext, uri)
+                }
+                val url = restaurantRepository.uploadUpiQr(part)
+                onUploaded(url)
+            } catch (e: Exception) {
+                _error.value = UserMessageSanitizer.sanitize(e, "UPI QR upload failed. Please try again.")
+            } finally {
+                _upiQrUploadLoading.value = false
+            }
+        }
     }
 }

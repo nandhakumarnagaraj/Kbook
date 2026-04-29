@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.domain.manager
 
+import android.content.Context
 import android.util.Log
 import com.khanabook.lite.pos.data.local.entity.PrinterProfileEntity
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
@@ -7,6 +8,7 @@ import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.domain.util.InvoiceFormatter
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,6 +29,7 @@ data class PrintDispatchResult(
 
 @Singleton
 class PrintRouter @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val printerProfileRepository: PrinterProfileRepository,
     private val printerManager: BluetoothPrinterManager,
     private val kitchenPrintQueueManager: KitchenPrintQueueManager
@@ -121,7 +124,7 @@ class PrintRouter @Inject constructor(
                         includeLogoInPrint = target.includeLogo
                     ) ?: return@repeat
                     val bytes = when (PrinterRole.fromValue(target.role)) {
-                        PrinterRole.CUSTOMER -> InvoiceFormatter.formatForThermalPrinter(bill, printProfile)
+                        PrinterRole.CUSTOMER -> InvoiceFormatter.formatForThermalPrinter(bill, printProfile, context)
                         PrinterRole.KITCHEN -> KitchenTicketFormatter.format(bill, restaurantProfile, target)
                     }
                     if (printerManager.printBytes(bytes)) {

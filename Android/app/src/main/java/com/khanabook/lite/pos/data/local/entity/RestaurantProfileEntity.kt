@@ -16,6 +16,10 @@ data class RestaurantProfileEntity(
     val email: String? = null,
     @ColumnInfo(name = "logo_path")
     val logoPath: String? = null,
+    @ColumnInfo(name = "logo_url")
+    val logoUrl: String? = null,
+    @ColumnInfo(name = "logo_version", defaultValue = "0")
+    val logoVersion: Int = 0,
     @ColumnInfo(name = "fssai_number")
     val fssaiNumber: String? = null,
     @ColumnInfo(name = "email_invoice_consent", defaultValue = "0")
@@ -45,6 +49,10 @@ data class RestaurantProfileEntity(
     val upiEnabled: Boolean = false,
     @ColumnInfo(name = "upi_qr_path")
     val upiQrPath: String? = null,
+    @ColumnInfo(name = "upi_qr_url")
+    val upiQrUrl: String? = null,
+    @ColumnInfo(name = "upi_qr_version", defaultValue = "0")
+    val upiQrVersion: Int = 0,
     @ColumnInfo(name = "upi_handle")
     val upiHandle: String? = null,
     @ColumnInfo(name = "upi_mobile")
@@ -125,6 +133,9 @@ data class RestaurantProfileEntity(
 
     @ColumnInfo(name = "review_url")
     val reviewUrl: String? = null,
+
+    @ColumnInfo(name = "invoice_footer")
+    val invoiceFooter: String? = null,
 
     @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
     @ColumnInfo(name = "show_branding", defaultValue = "1")
