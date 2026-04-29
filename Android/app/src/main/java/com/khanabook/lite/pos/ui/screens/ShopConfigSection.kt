@@ -257,8 +257,8 @@ fun ShopConfigView(
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
                                 .data(logoModel)
-                                .setParameter("refresh", logoUpdateTrigger)
                                 .crossfade(true)
+                                .memoryCacheKey("$logoModel:$logoUpdateTrigger")
                                 .diskCachePolicy(CachePolicy.ENABLED)
                                 .build(),
                             contentDescription = "Logo",

@@ -174,8 +174,8 @@ fun PaymentConfigView(
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
                                     .data(qrModel)
-                                    .setParameter("refresh", qrUpdateTrigger)
                                     .crossfade(true)
+                                    .memoryCacheKey("$qrModel:$qrUpdateTrigger")
                                     .diskCachePolicy(CachePolicy.ENABLED)
                                     .build(),
                                 contentDescription = "QR Code",
