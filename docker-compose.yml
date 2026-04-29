@@ -23,11 +23,15 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://kbook.iadv.cloud}
       PAYMENT_CRYPTO_SECRET: ${PAYMENT_CRYPTO_SECRET}
       APP_BASE_URL: ${APP_BASE_URL}
+      CDN_BASE_PATH: /var/www/cdn.kbook.iadv.cloud/restaurants/
+      CDN_TMP_PATH: /var/www/cdn.kbook.iadv.cloud/tmp/
+      CDN_URL_PREFIX: https://kbook.iadv.cloud/cdn/
     command: ["sh", "-c", "sleep 3 && java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom -jar app.jar"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - /var/www/kbook.iadv.cloud/server/uploads:/app/uploads
+      - /var/www/cdn.kbook.iadv.cloud:/var/www/cdn.kbook.iadv.cloud
     ports:
       - "127.0.0.1:8081:8081"
 
