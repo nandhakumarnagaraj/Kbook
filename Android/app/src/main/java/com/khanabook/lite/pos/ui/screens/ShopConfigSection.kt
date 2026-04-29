@@ -387,15 +387,13 @@ fun ShopConfigView(
             ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer")
             Spacer(modifier = Modifier.height(spacing.large))
 
-            val isSaveEnabled = isDirty && (!numberChanged || isOtpVerified) && !saveProfileLoading
-
             val saveButtonScale by animateFloatAsState(
-                targetValue = if (isSaveEnabled) 1f else 0.97f,
+                targetValue = if (!saveProfileLoading) 1f else 0.97f,
                 animationSpec = tween(durationMillis = 250),
                 label = "save_scale"
             )
             val saveButtonAlpha by animateFloatAsState(
-                targetValue = if (isSaveEnabled) 1f else 0.45f,
+                targetValue = if (!saveProfileLoading) 1f else 0.45f,
                 animationSpec = tween(durationMillis = 250),
                 label = "save_alpha"
             )
@@ -406,7 +404,6 @@ fun ShopConfigView(
             ) {
                 Button(
                     onClick = {
-                        if (!isSaveEnabled) return@Button
                         if (numberChanged && !isOtpVerified) {
                             toastScope.launch {
                                 KhanaToast.show(context.getString(R.string.toast_verify_new_whatsapp), ToastKind.Warning)
@@ -438,7 +435,7 @@ fun ShopConfigView(
                         },
                     colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
                     shape = RoundedCornerShape(28.dp),
-                    enabled = isSaveEnabled
+                    enabled = !saveProfileLoading
                 ) {
                     if (saveProfileLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(iconSize.medium), color = Color.White, strokeWidth = 2.dp)
@@ -447,9 +444,7 @@ fun ShopConfigView(
                     }
                 }
                 OutlinedButton(
-                    onClick = {
-                        if (isDirty) showUnsavedDialog = true else onBack()
-                    },
+                    onClick = { onBack() },
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
