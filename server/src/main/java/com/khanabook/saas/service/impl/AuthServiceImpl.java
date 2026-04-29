@@ -165,6 +165,9 @@ public class AuthServiceImpl implements AuthService {
 					profile.setDeviceId(request.getDeviceId());
 					profile.setLocalId(1L);
 					profile.setShopName((name != null ? name : "User") + "'s Restaurant");
+					String today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString();
+					profile.setLastResetDate(today);
+					profile.setLastResetDateProper(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")));
 					profile.setUpdatedAt(System.currentTimeMillis());
 					profile.setServerUpdatedAt(System.currentTimeMillis());
 					profile.setCreatedAt(System.currentTimeMillis());
