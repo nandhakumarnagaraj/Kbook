@@ -219,6 +219,7 @@ fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
     kitchenPrinterMac       = kitchenPrinterMac,
     kitchenPrinterPaperSize = kitchenPrinterPaperSize,
     invoiceFooter           = invoiceFooter,
+    reviewUrl               = reviewUrl,
 )
 
 fun UserEntity.toSyncDto() = UserSyncDto(

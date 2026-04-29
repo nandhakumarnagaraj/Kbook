@@ -205,6 +205,7 @@ data class RestaurantProfileSyncDto(
     @SerializedName("kitchenPrinterMac") val kitchenPrinterMac: String?,
     @SerializedName("kitchenPrinterPaperSize") val kitchenPrinterPaperSize: String?,
     @SerializedName("invoiceFooter") val invoiceFooter: String?,
+    @SerializedName("reviewUrl") val reviewUrl: String?,
 )
 
 data class UserSyncDto(
