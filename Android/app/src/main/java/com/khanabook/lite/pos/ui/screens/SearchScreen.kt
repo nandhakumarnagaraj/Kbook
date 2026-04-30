@@ -472,12 +472,11 @@ fun SearchScreen(
                         }
                     }
                 }
-               } // end inner Column
-             } // end AnimatedVisibility body
-             } // end else (selectedTab != 2)
-        }
-    }
-}
+              } // end inner Column
+              } // end AnimatedVisibility body
+         }
+     }
+ }
 
 @Composable
 private fun outlinedSearchFieldColors() =

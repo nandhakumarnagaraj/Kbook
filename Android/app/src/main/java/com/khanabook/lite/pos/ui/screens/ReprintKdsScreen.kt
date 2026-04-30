@@ -114,7 +114,7 @@ fun ReprintKdsScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(spacing.small),
-                    contentPadding = PaddingValues(horizontal = spacing.medium, vertical = spacing.medium, bottom = spacing.bottomListPadding),
+                    contentPadding = PaddingValues(start = spacing.medium, end = spacing.medium, top = spacing.medium, bottom = spacing.bottomListPadding),
                     state = rememberLazyListState()
                 ) {
                     item {
