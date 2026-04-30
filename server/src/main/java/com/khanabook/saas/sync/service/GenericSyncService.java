@@ -341,6 +341,7 @@ public class GenericSyncService {
 
 							if (incomingRecord instanceof RestaurantProfile incomingProfile
 									&& existingRecord instanceof RestaurantProfile existingProfile) {
+								incomingProfile.setTimezone("Asia/Kolkata");
 								mergeCounterState(incomingProfile, existingProfile);
 							}
 
@@ -360,6 +361,10 @@ public class GenericSyncService {
 					} else {
 						// Relational ID Resolution for New Records
 						resolveRelationalIds(incomingRecord, idMaps);
+
+						if (incomingRecord instanceof RestaurantProfile incomingProfile) {
+							incomingProfile.setTimezone("Asia/Kolkata");
+						}
 
 						T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
 						if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {

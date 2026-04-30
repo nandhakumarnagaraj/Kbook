@@ -70,8 +70,7 @@ public class PublicInvoiceController {
                 && ("INR".equals(profile.getCurrency()) || "Rupee".equals(profile.getCurrency()))
                 ? "Rs." : (profile != null && profile.getCurrency() != null ? profile.getCurrency() : "Rs.");
         boolean gstEnabled = profile != null && Boolean.TRUE.equals(profile.getGstEnabled());
-        String tz = profile != null && profile.getTimezone() != null
-                ? profile.getTimezone() : "Asia/Kolkata";
+        String tz = "Asia/Kolkata";
 
         String date = DateTimeFormatter
                 .ofPattern("dd MMM yyyy, hh:mm a", Locale.ENGLISH)
