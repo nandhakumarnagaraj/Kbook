@@ -8,11 +8,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
-import android.content.ContentValues
-import android.content.Context
-import android.os.Build
-import android.os.Environment
-import android.provider.MediaStore
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -50,8 +45,6 @@ import com.khanabook.lite.pos.domain.util.DateUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
-import java.io.File
-import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -294,8 +287,17 @@ fun ReportsScreen(
                                 android.widget.Toast.makeText(context, "Report export failed — empty file", android.widget.Toast.LENGTH_LONG).show()
                                 return@launch
                             }
-                            val savedName = saveReportToDownloads(context, file)
-                            android.widget.Toast.makeText(context, "Report downloaded: $savedName", android.widget.Toast.LENGTH_LONG).show()
+                            val pdfUri = androidx.core.content.FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.provider",
+                                file
+                            )
+                            val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "application/pdf"
+                                putExtra(android.content.Intent.EXTRA_STREAM, pdfUri)
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Report"))
                         } catch (e: Exception) {
                             android.widget.Toast.makeText(context, "Report export failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
                         } finally {
@@ -322,45 +324,6 @@ fun ReportsScreen(
             )
         }
     }
-}
-
-private fun saveReportToDownloads(context: Context, sourceFile: File): String {
-    val fileName = sourceFile.name
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        val values = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-            put(MediaStore.Downloads.MIME_TYPE, "application/pdf")
-            put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/KhanaBook")
-            put(MediaStore.Downloads.IS_PENDING, 1)
-        }
-        val resolver = context.contentResolver
-        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-            ?: throw IllegalStateException("Cannot create download file")
-        try {
-            resolver.openOutputStream(uri)?.use { output ->
-                sourceFile.inputStream().use { input -> input.copyTo(output) }
-            } ?: throw IllegalStateException("Cannot open download file")
-            values.clear()
-            values.put(MediaStore.Downloads.IS_PENDING, 0)
-            resolver.update(uri, values, null, null)
-        } catch (e: Exception) {
-            resolver.delete(uri, null, null)
-            throw e
-        }
-    } else {
-        val downloadsDir = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            "KhanaBook"
-        )
-        if (!downloadsDir.exists() && !downloadsDir.mkdirs()) {
-            throw IllegalStateException("Cannot create Downloads/KhanaBook")
-        }
-        val destination = File(downloadsDir, fileName)
-        FileOutputStream(destination).use { output ->
-            sourceFile.inputStream().use { input -> input.copyTo(output) }
-        }
-    }
-    return fileName
 }
 
 @Composable
