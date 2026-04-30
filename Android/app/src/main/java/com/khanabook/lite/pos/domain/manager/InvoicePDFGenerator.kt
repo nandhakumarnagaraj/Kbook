@@ -468,11 +468,11 @@ class InvoicePDFGenerator(private val context: Context) {
                 .fromDbValue(bill.bill.paymentMode).displayLabel.uppercase()
             canvas.drawText("PAYMENT: $paymentLabel", 5f, y, paint)
 
-            // ── Review QR (validated URL only) ────────────────────────────────────
-            if (isValidReviewUrl(profile?.reviewUrl)) {
+            val reviewUrl = profile?.reviewUrl
+            if (isValidReviewUrl(reviewUrl)) {
                 y += 18f
                 try {
-                    val reviewQrBitmap = QrCodeManager.generateQr(profile.reviewUrl ?: "", 200)
+                    val reviewQrBitmap = QrCodeManager.generateQr(reviewUrl!!, 200)
                     reviewQrBitmap?.let {
                         val qrSize = if (is80mm) 80f else 64f
                         val left   = (pageWidth - qrSize) / 2f

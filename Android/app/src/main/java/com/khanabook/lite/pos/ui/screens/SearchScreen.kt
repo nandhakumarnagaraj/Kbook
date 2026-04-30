@@ -532,72 +532,72 @@ private fun KdsPendingCard(
 ) {
     val spacing = KhanaBookTheme.spacing
     val bill = billWithItems.bill
-    com.khanabook.lite.pos.ui.theme.KhanaBookCard(
+    Card(
         modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = com.khanabook.lite.pos.ui.theme.CardBG),
-        shape = com.khanabook.lite.pos.ui.theme.RoundedCornerShape(12.dp)
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        androidx.compose.foundation.layout.Column(modifier = Modifier.padding(spacing.medium)) {
-            androidx.compose.foundation.layout.Row(
+        Column(modifier = Modifier.padding(spacing.medium)) {
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                androidx.compose.foundation.layout.Column {
-                    androidx.compose.material3.Text(
+                Column {
+                    Text(
                         text = "Order #${bill.dailyOrderDisplay.split("-").last()}",
-                        color = com.khanabook.lite.pos.ui.theme.PrimaryGold,
-                        style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        color = PrimaryGold,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
-                    androidx.compose.material3.Text(
+                    Text(
                         text = "INV${bill.lifetimeOrderId}",
-                        color = com.khanabook.lite.pos.ui.theme.TextLight,
-                        style = androidx.compose.material3.MaterialTheme.typography.bodySmall
+                        color = TextLight,
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
-                androidx.compose.material3.Surface(
-                    color = com.khanabook.lite.pos.ui.theme.DangerRed.copy(alpha = 0.15f),
-                    shape = androidx.compose.foundation.shape.CircleShape
+                Surface(
+                    color = DangerRed.copy(alpha = 0.15f),
+                    shape = CircleShape
                 ) {
-                    androidx.compose.material3.Text(
+                    Text(
                         text = "KDS PENDING",
-                        color = com.khanabook.lite.pos.ui.theme.DangerRed,
-                        style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        color = DangerRed,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
             }
-            androidx.compose.material3.HorizontalDivider(
+            HorizontalDivider(
                 modifier = Modifier.padding(vertical = spacing.small),
-                color = com.khanabook.lite.pos.ui.theme.BorderGold.copy(alpha = 0.2f)
+                color = BorderGold.copy(alpha = 0.2f)
             )
-            androidx.compose.material3.Text(
+            Text(
                 text = billWithItems.items.joinToString(", ") { "${it.quantity}x ${it.itemName}" },
-                color = com.khanabook.lite.pos.ui.theme.TextLight,
-                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                color = TextLight,
+                style = MaterialTheme.typography.bodySmall,
                 maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis
             )
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(spacing.small))
-            androidx.compose.material3.Button(
+            Spacer(modifier = Modifier.height(spacing.small))
+            Button(
                 onClick = { onPrint(billWithItems) },
                 modifier = Modifier.fillMaxWidth().height(40.dp),
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = com.khanabook.lite.pos.ui.theme.PrimaryGold),
-                shape = com.khanabook.lite.pos.ui.theme.RoundedCornerShape(8.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                androidx.compose.material3.Icon(
-                    androidx.compose.material.icons.Icons.Default.Print,
+                Icon(
+                    Icons.Default.Print,
                     null,
-                    tint = com.khanabook.lite.pos.ui.theme.DarkBrown1,
-                    modifier = Modifier.size(com.khanabook.lite.pos.ui.theme.KhanaBookTheme.iconSize.xsmall)
+                    tint = DarkBrown1,
+                    modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall)
                 )
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(4.dp))
-                androidx.compose.material3.Text(
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
                     "Reprint",
-                    color = com.khanabook.lite.pos.ui.theme.DarkBrown1,
-                    style = androidx.compose.material3.MaterialTheme.typography.labelMedium
+                    color = DarkBrown1,
+                    style = MaterialTheme.typography.labelMedium
                 )
             }
         }
