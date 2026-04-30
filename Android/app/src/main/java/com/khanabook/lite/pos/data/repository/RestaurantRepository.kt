@@ -66,11 +66,6 @@ class RestaurantRepository(
         }
     }
 
-    suspend fun updateUpiQrPath(path: String?) {
-        restaurantDao.updateUpiQrPath(path, System.currentTimeMillis())
-        triggerBackgroundSync()
-    }
-
     suspend fun updateLogoPath(path: String?) {
         restaurantDao.updateLogoPath(path, System.currentTimeMillis())
         triggerBackgroundSync()
@@ -89,21 +84,6 @@ class RestaurantRepository(
         )
         if (current?.isSynced == false) triggerBackgroundSync()
         return response.logoUrl
-    }
-
-    suspend fun uploadUpiQr(file: MultipartBody.Part): String {
-        val current = restaurantDao.getProfile()
-        val response = api.uploadUpiQr(file)
-        val version = response.upiQrVersion.takeIf { it > 0 }
-            ?: ((current?.upiQrVersion ?: 0) + 1)
-        restaurantDao.updateUpiQrUrl(
-            response.upiQrUrl,
-            version,
-            current?.isSynced ?: true,
-            System.currentTimeMillis()
-        )
-        if (current?.isSynced == false) triggerBackgroundSync()
-        return response.upiQrUrl
     }
 
     private fun triggerBackgroundSync() {

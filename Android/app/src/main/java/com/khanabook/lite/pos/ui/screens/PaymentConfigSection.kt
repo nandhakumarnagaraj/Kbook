@@ -28,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
@@ -38,7 +37,6 @@ import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextGold
-import com.khanabook.lite.pos.ui.viewmodel.PaymentViewModel
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 
@@ -46,8 +44,7 @@ import kotlinx.coroutines.launch
 fun PaymentConfigView(
     profile: RestaurantProfileEntity?,
     onSave: (RestaurantProfileEntity) -> Unit,
-    onBack: () -> Unit,
-    paymentViewModel: PaymentViewModel = hiltViewModel()
+    onBack: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -111,7 +108,6 @@ fun PaymentConfigView(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
                 Button(
                     onClick = {
-                        paymentViewModel.clearMessages()
                         if (upiSupported && upiHandle.isBlank()) {
                             toastScope.launch {
                                 KhanaToast.show("Enter UPI ID to generate amount QR", ToastKind.Error)

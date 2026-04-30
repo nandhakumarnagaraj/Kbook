@@ -152,7 +152,7 @@ public class SecurityConfig {
 						.requestMatchers("/storefront/**").hasRole("OWNER")
 						.requestMatchers("/sync/**").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.requestMatchers("/restaurants/payment-config/**").hasAnyRole("OWNER", "KBOOK_ADMIN")
-						.requestMatchers("/restaurants/logo", "/restaurants/upi-qr").hasAnyRole("OWNER", "KBOOK_ADMIN")
+						.requestMatchers("/restaurants/logo").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.anyRequest().authenticated())
 
 				.addFilterBefore(requestIdFilter, UsernamePasswordAuthenticationFilter.class)

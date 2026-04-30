@@ -29,16 +29,4 @@ public class RestaurantAssetController {
 		assetStorageService.deleteLogo(TenantContext.getCurrentTenant());
 		return ResponseEntity.noContent().build();
 	}
-
-	@PostMapping(value = "/upi-qr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<Map<String, Object>> uploadUpiQr(@RequestPart("file") MultipartFile file) {
-		AssetUploadResult result = assetStorageService.uploadUpiQr(TenantContext.getCurrentTenant(), file);
-		return ResponseEntity.ok(Map.of("upiQrUrl", result.url(), "upiQrVersion", result.version()));
-	}
-
-	@DeleteMapping("/upi-qr")
-	public ResponseEntity<Void> deleteUpiQr() {
-		assetStorageService.deleteUpiQr(TenantContext.getCurrentTenant());
-		return ResponseEntity.noContent().build();
-	}
 }

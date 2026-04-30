@@ -48,19 +48,8 @@ public class AssetStorageService {
 	}
 
 	@Transactional
-	public AssetUploadResult uploadUpiQr(Long restaurantId, MultipartFile file) {
-		// UPI QR: lossless WebP; any pixel artifact can break QR scanning.
-		return uploadAsset(restaurantId, file, "upi_qr", true, 100);
-	}
-
-	@Transactional
 	public void deleteLogo(Long restaurantId) {
 		deleteAsset(restaurantId, "logo");
-	}
-
-	@Transactional
-	public void deleteUpiQr(Long restaurantId) {
-		deleteAsset(restaurantId, "upi_qr");
 	}
 
 	private AssetUploadResult uploadAsset(Long restaurantId, MultipartFile file, String kind,
@@ -163,19 +152,14 @@ public class AssetStorageService {
 	}
 
 	private int nextVersion(RestaurantProfile profile, String kind) {
-		Integer current = "logo".equals(kind) ? profile.getLogoVersion() : profile.getUpiQrVersion();
+		Integer current = profile.getLogoVersion();
 		return (current == null ? 0 : current) + 1;
 	}
 
 	private void applyToProfile(RestaurantProfile profile, String kind, String url, int version) {
 		long now = System.currentTimeMillis();
-		if ("logo".equals(kind)) {
-			profile.setLogoUrl(url);
-			profile.setLogoVersion(version);
-		} else {
-			profile.setUpiQrUrl(url);
-			profile.setUpiQrVersion(version);
-		}
+		profile.setLogoUrl(url);
+		profile.setLogoVersion(version);
 		profile.setUpdatedAt(now);
 		profile.setServerUpdatedAt(now);
 	}

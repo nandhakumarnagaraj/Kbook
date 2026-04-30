@@ -285,7 +285,6 @@ class MasterSyncProcessor @Inject constructor(
                 masterData.profiles.map { remoteProfile ->
                     val localProfile = currentLocalProfile
                     val useRemoteLogo = remoteProfile.logoVersion > (localProfile?.logoVersion ?: 0)
-                    val useRemoteQr = remoteProfile.upiQrVersion > (localProfile?.upiQrVersion ?: 0)
                     RestaurantProfileEntity(
                         id = currentLocalProfile?.id ?: 1,
                         shopName = remoteProfile.shopName.orFallback("My Shop"),
@@ -307,9 +306,9 @@ class MasterSyncProcessor @Inject constructor(
                         customTaxPercentage = remoteProfile.customTaxPercentage ?: 0.0,
                         currency = remoteProfile.currency.orFallback(currentLocalProfile?.currency ?: "INR"),
                         upiEnabled = remoteProfile.upiEnabled ?: false,
-                        upiQrPath = if (useRemoteQr) remoteProfile.upiQrPath else localProfile?.upiQrPath,
-                        upiQrUrl = if (useRemoteQr) remoteProfile.upiQrUrl else localProfile?.upiQrUrl,
-                        upiQrVersion = maxOf(remoteProfile.upiQrVersion, localProfile?.upiQrVersion ?: 0),
+                        upiQrPath = null,
+                        upiQrUrl = null,
+                        upiQrVersion = 0,
                         upiHandle = remoteProfile.upiHandle.orFallback(""),
                         upiMobile = remoteProfile.upiMobile.orFallback(""),
                         cashEnabled = remoteProfile.cashEnabled ?: true,

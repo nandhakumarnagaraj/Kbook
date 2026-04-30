@@ -18,11 +18,6 @@ data class LogoUploadResponse(
         val logoVersion: Int = 0
 )
 
-data class UpiQrUploadResponse(
-        val upiQrUrl: String,
-        val upiQrVersion: Int = 0
-)
-
 interface KhanaBookApi {
 
         // ── Auth ────────────────────────────────────────────────────────────
@@ -100,10 +95,6 @@ interface KhanaBookApi {
         @Multipart
         @POST("api/v1/restaurants/logo")
         suspend fun uploadLogo(@Part file: MultipartBody.Part): LogoUploadResponse
-
-        @Multipart
-        @POST("api/v1/restaurants/upi-qr")
-        suspend fun uploadUpiQr(@Part file: MultipartBody.Part): UpiQrUploadResponse
 
         // ── Storefront ───────────────────────────────────────────────────────
         @GET("api/v1/storefront/orders")
