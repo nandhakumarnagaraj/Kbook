@@ -48,6 +48,7 @@ fun BillEntity.toSyncDto() = BillSyncDto(
     lastResetDate   = lastResetDate,
     serverUpdatedAt = serverUpdatedAt,
     refundAmount    = "0.00",
+    publicToken     = publicToken,
 )
 
 fun BillItemEntity.toSyncDto() = BillItemSyncDto(

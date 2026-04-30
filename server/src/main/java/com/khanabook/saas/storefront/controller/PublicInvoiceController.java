@@ -25,7 +25,7 @@ import java.util.Optional;
 /**
  * Public, no-auth endpoint that renders an HTML invoice page.
  * URL shared via WhatsApp:
- *   {BACKEND_URL}/public/invoice/{restaurantId}/{billId}
+ *   {BACKEND_URL}/public/invoice/{restaurantId}/{billId}/{token}
  *
  * Returns a self-contained HTML document so the customer can view the
  * invoice in any browser — no app required.
@@ -35,23 +35,25 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PublicInvoiceController {
 
-    private final BillRepository billRepository;
-    private final BillItemRepository billItemRepository;
-    private final RestaurantProfileRepository restaurantProfileRepository;
+	private final BillRepository billRepository;
+	private final BillItemRepository billItemRepository;
+	private final RestaurantProfileRepository restaurantProfileRepository;
 
-    @GetMapping(value = "/invoice/{restaurantId}/{billId}",
-            produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<String> getInvoice(@PathVariable Long restaurantId,
-                                             @PathVariable Long billId) {
-        Optional<Bill> billOpt = billRepository.findById(billId);
-        if (billOpt.isEmpty()) {
-            return ResponseEntity.status(404).body(notFound());
-        }
-        Bill bill = billOpt.get();
-        if (Boolean.TRUE.equals(bill.getIsDeleted())
-                || !restaurantId.equals(bill.getRestaurantId())) {
-            return ResponseEntity.status(404).body(notFound());
-        }
+	@GetMapping(value = "/invoice/{restaurantId}/{billId}/{token}",
+			produces = MediaType.TEXT_HTML_VALUE)
+	public ResponseEntity<String> getInvoice(@PathVariable Long restaurantId,
+											 @PathVariable Long billId,
+											 @PathVariable String token) {
+		Optional<Bill> billOpt = billRepository.findById(billId);
+		if (billOpt.isEmpty()) {
+			return ResponseEntity.status(404).body(notFound());
+		}
+		Bill bill = billOpt.get();
+		if (Boolean.TRUE.equals(bill.getIsDeleted())
+				|| !restaurantId.equals(bill.getRestaurantId())
+				|| !token.equals(bill.getPublicToken().toString())) {
+			return ResponseEntity.status(404).body(notFound());
+		}
 
         RestaurantProfile profile = restaurantProfileRepository
                 .findByRestaurantId(restaurantId)
@@ -147,7 +149,7 @@ public class PublicInvoiceController {
                 + "background:#f5f5f5;margin:0;padding:16px;color:#222}"
                 + ".card{max-width:480px;margin:0 auto;background:#fff;border-radius:12px;"
                 + "box-shadow:0 2px 12px rgba(0,0,0,.08);padding:24px}"
-                + ".logo{display:block;max-width:120px;max-height:90px;object-fit:contain;margin:0 auto 12px}"
+			+ ".logo{display:block;max-width:160px;max-height:160px;object-fit:contain;margin:0 auto 12px}"
                 + ".shop{font-size:22px;font-weight:700;text-align:center;margin-bottom:4px}"
                 + ".addr{text-align:center;color:#555;font-size:13px;margin-bottom:4px}"
                 + ".info{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 12px;margin:10px 0 12px}"

@@ -43,8 +43,8 @@ public class AssetStorageService {
 
 	@Transactional
 	public AssetUploadResult uploadLogo(Long restaurantId, MultipartFile file) {
-		// Logos: lossy WebP at q=85; small files, photo-like content tolerates it.
-		return uploadAsset(restaurantId, file, "logo", false, 85);
+		// Logos: lossless WebP — logos have sharp edges/solid colors, lossy creates artifacts.
+		return uploadAsset(restaurantId, file, "logo", true, 85);
 	}
 
 	@Transactional

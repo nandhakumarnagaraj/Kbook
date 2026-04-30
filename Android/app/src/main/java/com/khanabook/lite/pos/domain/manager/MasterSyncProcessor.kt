@@ -636,7 +636,8 @@ class MasterSyncProcessor @Inject constructor(
                         isDeleted = remoteBill.isDeleted ?: false,
                         serverId = remoteBill.serverId,
                         serverUpdatedAt = remoteBill.serverUpdatedAt ?: 0L,
-                        cancelReason = remoteBill.cancelReason.orFallback("")
+                        cancelReason = remoteBill.cancelReason.orFallback(""),
+                        publicToken = remoteBill.publicToken
                     )
                 }
             )

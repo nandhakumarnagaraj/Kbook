@@ -170,9 +170,10 @@ fun sendInvoiceViaSms(context: Context, billWithItems: BillWithItems, profile: R
  */
 fun buildInvoiceShareUrl(billWithItems: BillWithItems): String? {
     val serverId = billWithItems.bill.serverId ?: return null
+    val publicToken = billWithItems.bill.publicToken ?: return null
     val restaurantId = billWithItems.bill.restaurantId
     val base = com.khanabook.lite.pos.BuildConfig.BACKEND_URL.trimEnd('/')
-    return "$base/api/v1/public/invoice/$restaurantId/$serverId"
+    return "$base/api/v1/public/invoice/$restaurantId/$serverId/$publicToken"
 }
 
 /**

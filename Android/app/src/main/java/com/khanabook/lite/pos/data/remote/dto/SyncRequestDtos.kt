@@ -37,6 +37,7 @@ data class BillSyncDto(
     @SerializedName("lastResetDate") val lastResetDate: String,
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
     @SerializedName("refundAmount") val refundAmount: String = "0.00",
+    @SerializedName("publicToken") val publicToken: String? = null,
 )
 
 data class BillItemSyncDto(

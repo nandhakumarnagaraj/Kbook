@@ -385,6 +385,13 @@ public class GenericSyncService {
 			allRecordsToSave.addAll(recordsToSaveMap.values());
 		}
 
+		// Generate public_token for new bills that don't have one
+		for (T record : allRecordsToSave) {
+			if (record instanceof Bill bill && bill.getPublicToken() == null) {
+				bill.setPublicToken(java.util.UUID.randomUUID());
+			}
+		}
+
 		Map<Long, Long> localToServerIdMap = new HashMap<>();
 		if (!allRecordsToSave.isEmpty()) {
 			List<T> saved = repository.saveAll(allRecordsToSave);
