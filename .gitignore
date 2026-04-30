@@ -57,3 +57,17 @@ Android/app/*.aab
 
 # Windows
 Thumbs.db
+
+# Android Studio root-project metadata generated when the repo root is opened
+*.iml
+/.idea/.gitignore
+/.idea/AndroidProjectSystem.xml
+/.idea/Kbook.iml
+/.idea/caches/
+/.idea/deploymentTargetSelector.xml
+/.idea/markdown.xml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/runConfigurations.xml
+/.idea/vcs.xml
+/.idea/workspace.xml

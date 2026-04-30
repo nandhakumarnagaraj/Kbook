@@ -139,6 +139,24 @@ fun PaymentConfigView(
             PaymentToggle("Offline UPI QR", upiSupported) { upiSupported = it }
             if (upiSupported) {
                 Spacer(modifier = Modifier.height(spacing.medium))
+                ParchmentTextField(
+                    value = upiHandle,
+                    onValueChange = { upiHandle = it.trim() },
+                    label = "UPI ID *"
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+                ParchmentTextField(
+                    value = upiMobile,
+                    onValueChange = { upiMobile = it.filter(Char::isDigit).take(10) },
+                    label = "UPI Mobile"
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+                Text(
+                    "UPI ID is required for amount QR. Uploaded QR is only a saved reference.",
+                    color = TextGold.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Spacer(modifier = Modifier.height(spacing.medium))
 
                 val qrContent = @Composable {
                     Box(
@@ -192,10 +210,16 @@ fun PaymentConfigView(
                 Button(
                     onClick = {
                         paymentViewModel.clearMessages()
+                        if (upiSupported && upiHandle.isBlank()) {
+                            toastScope.launch {
+                                KhanaToast.show("Enter UPI ID to generate amount QR", ToastKind.Error)
+                            }
+                            return@Button
+                        }
                         profile?.copy(
                             currency = currency,
                             upiEnabled = upiSupported,
-                            upiHandle = upiHandle,
+                            upiHandle = upiHandle.trim(),
                             upiMobile = upiMobile,
                             upiQrPath = qrPath,
                             upiQrUrl = qrUrl,
