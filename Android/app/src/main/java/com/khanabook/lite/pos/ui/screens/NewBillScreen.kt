@@ -4,9 +4,6 @@ package com.khanabook.lite.pos.ui.screens
 
 import android.speech.tts.TextToSpeech
 import android.graphics.BitmapFactory
-import coil.compose.AsyncImage
-import coil.request.CachePolicy
-import coil.request.ImageRequest
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -1006,6 +1003,11 @@ fun PaymentStep(
             if (isSplitMode) {
                 BillCalculator.validatePartPayment(p1Text, p2Text, summary.total)
             } else true
+    val canGenerateAmountQr =
+        isUpiMode &&
+            isAmountValid &&
+            upiPayableAmount > 0.0 &&
+            !profile?.upiHandle.isNullOrBlank()
 
     val relocationRequester = remember { BringIntoViewRequester() }
     val scope = rememberCoroutineScope()
@@ -1015,10 +1017,11 @@ fun PaymentStep(
         null,
         profile?.upiHandle,
         profile?.shopName,
-        upiPayableAmount
+        upiPayableAmount,
+        canGenerateAmountQr
     ) {
         val handle = profile?.upiHandle
-        value = if (!handle.isNullOrBlank()) {
+        value = if (canGenerateAmountQr && !handle.isNullOrBlank()) {
             withContext(Dispatchers.Default) {
                 QrCodeManager.generateUpiQr(
                     handle,
@@ -1061,17 +1064,6 @@ fun PaymentStep(
                         contentDescription = "Scan to pay ${profile?.upiHandle}",
                         modifier = Modifier.fillMaxSize()
                     )
-                    !profile?.upiQrUrl.isNullOrBlank() || !profile?.upiQrPath.isNullOrBlank() -> AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(profile?.upiQrUrl?.takeIf { it.isNotBlank() }
-                                ?: AppAssetStore.resolveAssetPath(profile?.upiQrPath))
-                            .crossfade(true)
-                            .memoryCacheKey("${profile?.upiQrUrl ?: profile?.upiQrPath}:${profile?.upiQrVersion ?: 0}")
-                            .diskCachePolicy(CachePolicy.ENABLED)
-                            .build(),
-                        contentDescription = "QR Code",
-                        modifier = Modifier.fillMaxSize()
-                    )
                     else -> Icon(
                         Icons.Default.QrCode,
                         null,
@@ -1086,6 +1078,18 @@ fun PaymentStep(
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(top = spacing.extraSmall)
             )
+            if (!canGenerateAmountQr) {
+                Text(
+                    when {
+                        profile?.upiHandle.isNullOrBlank() -> "Set UPI ID in Payment Configuration"
+                        !isAmountValid -> "Enter a valid UPI split amount"
+                        else -> "Add items before scanning UPI QR"
+                    },
+                    color = WarningYellow,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(top = spacing.extraSmall)
+                )
+            }
 
             Spacer(modifier = Modifier.height(spacing.large))
         } else {
@@ -1345,17 +1349,6 @@ fun PaymentStep(
                                     contentDescription = "Scan to pay ${profile?.upiHandle}",
                                     modifier = Modifier.fillMaxSize()
                                 )
-                                !profile?.upiQrUrl.isNullOrBlank() || !profile?.upiQrPath.isNullOrBlank() -> AsyncImage(
-                                    model = ImageRequest.Builder(LocalContext.current)
-                                        .data(profile?.upiQrUrl?.takeIf { it.isNotBlank() }
-                                            ?: AppAssetStore.resolveAssetPath(profile?.upiQrPath))
-                                        .crossfade(true)
-                                        .memoryCacheKey("${profile?.upiQrUrl ?: profile?.upiQrPath}:${profile?.upiQrVersion ?: 0}")
-                                        .diskCachePolicy(CachePolicy.ENABLED)
-                                        .build(),
-                                    contentDescription = "QR Code",
-                                    modifier = Modifier.fillMaxSize()
-                                )
                                 else -> Icon(
                                     Icons.Default.QrCode,
                                     null,
@@ -1371,6 +1364,13 @@ fun PaymentStep(
                                 color = Color.Black,
                                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
                         )
+                        if (!canGenerateAmountQr) {
+                            Text(
+                                "Amount QR is unavailable. Check UPI ID and amount.",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                         Text(profile?.shopName ?: "", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
                     }
 
