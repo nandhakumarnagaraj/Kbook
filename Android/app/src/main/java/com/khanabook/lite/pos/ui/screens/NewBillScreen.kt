@@ -2,8 +2,8 @@
 
 package com.khanabook.lite.pos.ui.screens
 
-import android.graphics.BitmapFactory
 import android.speech.tts.TextToSpeech
+import android.graphics.BitmapFactory
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -12,7 +12,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -36,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -49,9 +47,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.PaymentModeManager
-import com.khanabook.lite.pos.domain.manager.PaymentGatewayHelper
 import com.khanabook.lite.pos.domain.manager.PaymentReturnManager
 import com.khanabook.lite.pos.domain.util.ConnectionStatus
 import com.khanabook.lite.pos.domain.manager.QrCodeManager
@@ -71,7 +72,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -82,7 +82,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.ui.geometry.Offset
 import kotlin.math.roundToLong
 import java.util.Locale
 
@@ -1477,24 +1476,14 @@ fun SuccessStep(
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val totalAmount = lastBill?.bill?.totalAmount?.toDoubleOrNull() ?: 0.0
-    var successAnimated by remember { mutableStateOf(false) }
+    val successComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.anim_success))
+    val successProgress by animateLottieCompositionAsState(
+        composition = successComposition,
+        iterations = 1,
+        restartOnPlay = true
+    )
     var isTtsReady by remember { mutableStateOf(false) }
     val tts = remember { mutableStateOf<TextToSpeech?>(null) }
-    val burstProgress by animateFloatAsState(
-        targetValue = if (successAnimated) 1f else 0f,
-        animationSpec = tween(850, easing = FastOutSlowInEasing),
-        label = "success_burst_progress"
-    )
-    val ringAlpha by animateFloatAsState(
-        targetValue = if (successAnimated) 0f else 0.45f,
-        animationSpec = tween(700, easing = FastOutSlowInEasing),
-        label = "success_ring_alpha"
-    )
-    val contentAlpha by animateFloatAsState(
-        targetValue = if (successAnimated) 1f else 0f,
-        animationSpec = tween(450, delayMillis = 180),
-        label = "success_content_alpha"
-    )
 
     DisposableEffect(context) {
         val engine = TextToSpeech(context.applicationContext) { status ->
@@ -1509,10 +1498,6 @@ fun SuccessStep(
             engine.shutdown()
             tts.value = null
         }
-    }
-
-    LaunchedEffect(Unit) {
-        successAnimated = true
     }
 
     LaunchedEffect(isTtsReady, lastBill?.bill?.id) {
@@ -1530,57 +1515,15 @@ fun SuccessStep(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
     ) {
-        Box(
-            modifier = Modifier.size(176.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(modifier = Modifier.matchParentSize()) {
-                val colors = listOf(
-                    SuccessGreen,
-                    PrimaryGold,
-                    VegGreen,
-                    Color(0xFF8FE388),
-                    WarningYellow,
-                    SuccessGreen
-                )
-                val center = Offset(size.width / 2f, size.height / 2f)
-                val radius = size.minDimension * (0.18f + 0.34f * burstProgress)
-                colors.forEachIndexed { index, color ->
-                    val angle = Math.toRadians((index * 60 + 18).toDouble())
-                    val dotCenter = Offset(
-                        x = center.x + kotlin.math.cos(angle).toFloat() * radius,
-                        y = center.y + kotlin.math.sin(angle).toFloat() * radius
-                    )
-                    drawCircle(
-                        color = color.copy(alpha = (1f - burstProgress).coerceIn(0f, 1f)),
-                        radius = 5.dp.toPx() * (1f - 0.35f * burstProgress),
-                        center = dotCenter
-                    )
-                }
-            }
-            Box(
-                modifier = Modifier
-                    .size(132.dp)
-                    .graphicsLayer {
-                        scaleX = 0.7f + burstProgress * 0.9f
-                        scaleY = 0.7f + burstProgress * 0.9f
-                        alpha = ringAlpha
-                    }
-                    .background(SuccessGreen.copy(alpha = 0.22f), CircleShape)
-            )
-            Icon(
-                Icons.Default.CheckCircle,
-                null,
-                tint = SuccessGreen,
-                modifier = Modifier
-                    .size(132.dp)
-            )
-        }
+        LottieAnimation(
+            composition = successComposition,
+            progress = { successProgress },
+            modifier = Modifier.size(176.dp)
+        )
         Text(
                 "Payment Successful!",
                 color = TextLight,
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.graphicsLayer { alpha = contentAlpha }
+                style = MaterialTheme.typography.headlineSmall
         )
 
         Text(
@@ -1589,7 +1532,6 @@ fun SuccessStep(
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
                     .padding(vertical = spacing.smallMedium)
-                    .graphicsLayer { alpha = contentAlpha }
         )
 
         Spacer(modifier = Modifier.height(spacing.extraLarge))
