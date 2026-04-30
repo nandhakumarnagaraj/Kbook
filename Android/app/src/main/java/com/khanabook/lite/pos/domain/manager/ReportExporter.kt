@@ -126,6 +126,10 @@ class ReportExporter(private val context: Context) {
         fromMillis: Long = 0L,
         toMillis: Long = 0L
     ): File {
+        if (orderRows.isEmpty() && paymentBreakdown.isEmpty()) {
+            throw IllegalStateException("No data available for report export")
+        }
+
         val document = PdfDocument()
         var pageNum = 1
         var page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNum).create())

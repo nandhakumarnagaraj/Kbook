@@ -241,8 +241,11 @@ fun OrdersScreen(
                         OrderFilterChip(
                             label = "Online Orders",
                             isSelected = selectedSource == "ONLINE",
-                            onClick = { selectedSource = "ONLINE" },
-                            modifier = Modifier.weight(1f)
+                            onClick = {
+                                android.widget.Toast.makeText(context, "Online orders not available in v1. Coming in v2!", android.widget.Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.weight(1f),
+                            enabled = false
                         )
                     }
 
@@ -436,7 +439,7 @@ fun PeriodTabs(selectedFilter: String, onTabSelected: (String) -> Unit) {
 }
 
 @Composable
-fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     val containerColor by animateColorAsState(
         targetValue = if (isSelected) PrimaryGold else Color.Transparent,
         animationSpec = tween(200),
@@ -453,7 +456,8 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
         shape = RoundedCornerShape(8.dp),
         color = containerColor,
         border = if (isSelected) null else BorderStroke(1.dp, BorderGold),
-        contentColor = contentColor
+        contentColor = contentColor,
+        enabled = enabled
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(

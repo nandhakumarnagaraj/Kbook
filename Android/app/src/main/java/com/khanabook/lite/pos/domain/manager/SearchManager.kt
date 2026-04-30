@@ -20,6 +20,14 @@ class SearchManager(private val billRepository: BillRepository) {
         return billRepository.getBillWithItemsByLifetimeId(id)
     }
 
+    suspend fun searchByInvoiceNo(invoiceNo: Long): BillWithItems? {
+        return billRepository.getBillWithItemsByInvoiceNo(invoiceNo)
+    }
+
+    suspend fun getBillsWithPendingKds(): List<BillWithItems> {
+        return billRepository.getBillsWithPendingKds()
+    }
+
     fun buildCallIntent(whatsappNumber: String): Intent {
         val intent = Intent(Intent.ACTION_DIAL)
         intent.data = Uri.parse("tel:$whatsappNumber")

@@ -19,6 +19,19 @@ import java.io.FileOutputStream
 
 private const val TAG = "InvoicePDFGenerator"
 
+private fun isValidReviewUrl(url: String?): Boolean {
+    if (url.isNullOrBlank()) return false
+    return try {
+        val parsed = android.net.Uri.parse(url)
+        parsed.scheme in listOf("http", "https") &&
+            parsed.host != null &&
+            parsed.host != "localhost" &&
+            url.length > 10
+    } catch (e: Exception) {
+        false
+    }
+}
+
 class InvoicePDFGenerator(private val context: Context) {
 
     private fun formatAmount(amount: String): String {
@@ -128,10 +141,9 @@ class InvoicePDFGenerator(private val context: Context) {
 
             val headerH  = 145 + logoH + waH + fssaiH + gstinH + shopWaH + shopEmailH
             val summaryH = 100 + gstTaxH
-            val upiQrH   = if (profile?.upiHandle?.isNotBlank() == true) 110 else 0
-            val reviewQrH = if (profile?.reviewUrl?.isNotBlank() == true) 110 else 0
+            val reviewQrH = if (isValidReviewUrl(profile?.reviewUrl)) 110 else 0
             val footerH  = 80
-            val pageHeight = headerH + itemSectionHeight + summaryH + upiQrH + reviewQrH + footerH + 30 // 30px safety margin
+            val pageHeight = headerH + itemSectionHeight + summaryH + reviewQrH + footerH + 30 // 30px safety margin
 
             val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
             val page     = pdfDocument.startPage(pageInfo)
@@ -456,34 +468,8 @@ class InvoicePDFGenerator(private val context: Context) {
                 .fromDbValue(bill.bill.paymentMode).displayLabel.uppercase()
             canvas.drawText("PAYMENT: $paymentLabel", 5f, y, paint)
 
-            // ── UPI QR ────────────────────────────────────────────────────────────
-            if (profile?.upiHandle?.isNotBlank() == true) {
-                y += 18f
-                try {
-                    val amount = try { java.math.BigDecimal(bill.bill.totalAmount).toDouble() } catch (e: Exception) { 0.0 }
-                    val qrBitmap = QrCodeManager.generateUpiQr(
-                        profile.upiHandle ?: "",
-                        profile.shopName ?: "RESTAURANT",
-                        amount, 200
-                    )
-                    qrBitmap?.let {
-                        val qrSize = if (is80mm) 80f else 64f
-                        val left   = (pageWidth - qrSize) / 2f
-                        canvas.drawBitmap(it, null, RectF(left, y, left + qrSize, y + qrSize), paint)
-                        y += qrSize + 8f
-                        paint.textAlign = Paint.Align.CENTER
-                        paint.textSize  = 6f
-                        canvas.drawText("SCAN TO PAY", (pageWidth / 2).toFloat(), y, paint)
-                        y += 6f
-                        it.recycle()
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to draw UPI QR", e)
-                }
-            }
-
-            // ── Review QR ─────────────────────────────────────────────────────────
-            if (profile?.reviewUrl?.isNotBlank() == true) {
+            // ── Review QR (validated URL only) ────────────────────────────────────
+            if (isValidReviewUrl(profile?.reviewUrl)) {
                 y += 18f
                 try {
                     val reviewQrBitmap = QrCodeManager.generateQr(profile.reviewUrl ?: "", 200)

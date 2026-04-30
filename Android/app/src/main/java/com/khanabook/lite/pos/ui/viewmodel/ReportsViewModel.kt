@@ -233,10 +233,14 @@ class ReportsViewModel @Inject constructor(
             }
             .toMap()
         val topItems = runCatching { reportGenerator.getTopSellingItems(currentFrom, currentTo, 5) }.getOrNull() ?: emptyList()
+        val rows = _reportType.value
         return if (format == "PDF") {
-            exporter.exportToPdf(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, profile, topItems, billDataById, currentFrom, currentTo)
+            if (rows == "Payment" && _paymentBreakdown.value.isEmpty()) {
+                throw IllegalStateException("No payment data available to export")
+            }
+            exporter.exportToPdf(rows, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, profile, topItems, billDataById, currentFrom, currentTo)
         } else {
-            exporter.exportToCsv(_reportType.value, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, profile?.shopName, billDataById, currentFrom, currentTo)
+            exporter.exportToCsv(rows, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, profile?.shopName, billDataById, currentFrom, currentTo)
         }
     }
 

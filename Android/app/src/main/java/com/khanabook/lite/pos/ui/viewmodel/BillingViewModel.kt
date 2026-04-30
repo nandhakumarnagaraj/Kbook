@@ -744,7 +744,10 @@ class BillingViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL_RECEIPT_ONLY)
-                if (result.attempted == 0) {
+                if (result.attempted == 0 && result.failures.isEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        android.widget.Toast.makeText(appContext, "Printer not connected. Opening PDF viewer.", android.widget.Toast.LENGTH_SHORT).show()
+                    }
                     openBillPdfFallback(
                         bill = bill,
                         profile = profile,
@@ -757,6 +760,9 @@ class BillingViewModel @Inject constructor(
                             _printStatus.value = "Receipt reprinted with some failures."
                         }
                     } else {
+                        withContext(Dispatchers.Main) {
+                            android.widget.Toast.makeText(appContext, "Printer not connected. Opening PDF viewer.", android.widget.Toast.LENGTH_SHORT).show()
+                        }
                         openBillPdfFallback(
                             bill = bill,
                             profile = profile,
@@ -770,6 +776,9 @@ class BillingViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Manual receipt print failed", e)
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(appContext, "Printer not connected. Opening PDF viewer.", android.widget.Toast.LENGTH_SHORT).show()
+                }
                 openBillPdfFallback(
                     bill = bill,
                     profile = profile,

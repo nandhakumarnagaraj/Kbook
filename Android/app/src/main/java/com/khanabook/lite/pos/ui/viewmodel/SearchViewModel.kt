@@ -38,6 +38,17 @@ class SearchViewModel @Inject constructor(
         }
     }
 
+    fun searchByInvoiceNo(invoiceNo: Long) {
+        viewModelScope.launch {
+            _hasSearched.value = true
+            _searchResult.value = searchManager.searchByInvoiceNo(invoiceNo)
+        }
+    }
+
+    suspend fun getBillsWithPendingKds(): List<BillWithItems> {
+        return searchManager.getBillsWithPendingKds()
+    }
+
     fun clearSearch() {
         _searchResult.value = null
         _hasSearched.value = false

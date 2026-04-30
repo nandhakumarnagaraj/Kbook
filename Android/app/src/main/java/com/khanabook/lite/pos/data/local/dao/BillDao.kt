@@ -179,4 +179,17 @@ interface BillDao {
 
     @Query("SELECT * FROM bills WHERE customer_whatsapp IS NOT NULL AND customer_whatsapp != '' ORDER BY created_at DESC LIMIT 20")
     suspend fun getRecentBillsWithCustomers(): List<BillEntity>
+
+    @Query("SELECT * FROM bills WHERE lifetime_order_id = :lifetimeNo AND is_deleted = 0 LIMIT 1")
+    suspend fun getBillByLifetimeNo(lifetimeNo: Long): BillEntity?
+
+    @Query(
+        """
+        SELECT b.* FROM bills b
+        INNER JOIN kitchen_print_queue kpq ON b.id = kpq.bill_id
+        WHERE kpq.dispatch_status != 'SENT'
+        ORDER BY b.created_at DESC
+        """
+    )
+    suspend fun getBillsWithPendingKds(): List<BillEntity>
 }

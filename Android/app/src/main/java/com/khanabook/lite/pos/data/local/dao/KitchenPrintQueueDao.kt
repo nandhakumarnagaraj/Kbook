@@ -119,4 +119,13 @@ interface KitchenPrintQueueDao {
 
     @Query("DELETE FROM kitchen_print_queue WHERE bill_id = :billId")
     suspend fun deleteByBillId(billId: Long)
+
+    @Query(
+        """
+        SELECT DISTINCT kpq.bill_id FROM kitchen_print_queue kpq
+        WHERE kpq.dispatch_status != '${KitchenPrintDispatchStatus.SENT}'
+        ORDER BY kpq.created_at DESC
+        """
+    )
+    suspend fun getBillIdsWithPendingKds(): List<Long>
 }

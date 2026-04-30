@@ -205,4 +205,16 @@ class BillRepository(
                 phone to (bill.customerName ?: "")
             }
     }
+
+    suspend fun getBillWithItemsByInvoiceNo(invoiceNo: Long): BillWithItems? {
+        return billDao.getBillByLifetimeNo(invoiceNo)?.let { bill ->
+            billDao.getBillWithItemsById(bill.id)
+        }
+    }
+
+    suspend fun getBillsWithPendingKds(): List<BillWithItems> {
+        return billDao.getBillsWithPendingKds().mapNotNull { bill ->
+            billDao.getBillWithItemsById(bill.id)
+        }
+    }
 }
