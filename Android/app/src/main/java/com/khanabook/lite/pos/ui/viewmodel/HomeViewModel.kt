@@ -10,6 +10,7 @@ import com.khanabook.lite.pos.domain.model.PrinterRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import java.time.LocalTime
 
@@ -98,6 +99,12 @@ class HomeViewModel @Inject constructor(
 
     private val _message = MutableSharedFlow<String>()
     val message: SharedFlow<String> = _message.asSharedFlow()
+
+    fun reprintPendingKdsList(): List<com.khanabook.lite.pos.data.local.relation.BillWithItems> {
+        return runBlocking {
+            billRepository.getBillsWithPendingKds()
+        }
+    }
 
     fun reprintPendingKds() {
         viewModelScope.launch {

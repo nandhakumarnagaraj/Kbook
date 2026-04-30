@@ -38,6 +38,7 @@ fun MainScreen(
     navController: NavController,
     onNewBill: () -> Unit,
     onSearchBill: () -> Unit,
+    onReprintKds: () -> Unit,
     onOrderStatus: () -> Unit,
     onCallCustomer: () -> Unit,
     menuViewModel: MenuViewModel,
@@ -83,7 +84,7 @@ fun MainScreen(
                 return@AnimatedContent
             }
             when (currentTab.label) {
-                "Home" -> HomeScreen(onNewBill, onSearchBill, onOrderStatus, onCallCustomer)
+                "Home" -> HomeScreen(onNewBill, onSearchBill, onReprintKds, onOrderStatus, onCallCustomer)
                 "Reports" -> ReportsScreen(onBack = backToHome)
                 "Orders" -> OrdersScreen(onBack = backToHome)
                 "Profile" -> SettingsScreen(

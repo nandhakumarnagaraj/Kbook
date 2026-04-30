@@ -20,7 +20,6 @@ import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.model.TopSellingItem
 import com.khanabook.lite.pos.domain.util.AppAssetStore
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileOutputStream
 import java.math.BigDecimal
@@ -92,20 +91,18 @@ class ReportExporter(private val context: Context) {
     private fun loadLogoBitmap(profile: RestaurantProfileEntity?): Bitmap? {
         val logoUrl = profile?.logoUrl?.takeIf { it.isNotBlank() }
         if (logoUrl != null) {
-            val bitmap = runBlocking(Dispatchers.IO) {
-                try {
-                    val request = ImageRequest.Builder(context)
-                        .data(logoUrl)
-                        .allowHardware(false)
-                        .size(160, 160)
-                        .memoryCachePolicy(CachePolicy.ENABLED)
-                        .diskCachePolicy(CachePolicy.ENABLED)
-                        .build()
-                    val result = context.imageLoader.execute(request)
-                    (result as? SuccessResult)?.drawable?.toBitmap()
-                } catch (_: Exception) {
-                    null
-                }
+            val bitmap = try {
+                val request = ImageRequest.Builder(context)
+                    .data(logoUrl)
+                    .allowHardware(false)
+                    .size(160, 160)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .build()
+                val result = context.imageLoader.execute(request)
+                (result as? SuccessResult)?.drawable?.toBitmap()
+            } catch (_: Exception) {
+                null
             }
             if (bitmap != null) return bitmap
         }

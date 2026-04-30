@@ -64,17 +64,6 @@ fun SearchScreen(
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
 
-    var pendingKdsBills by remember { mutableStateOf<List<BillWithItems>>(emptyList()) }
-    var loadingKds by remember { mutableStateOf(false) }
-
-    LaunchedEffect(selectedTab) {
-        if (selectedTab == 2) {
-            loadingKds = true
-            pendingKdsBills = runCatching { viewModel.getBillsWithPendingKds() }.getOrDefault(emptyList())
-            loadingKds = false
-        }
-    }
-
     // Standard staggered entry animation
     var headerVisible by remember { mutableStateOf(false) }
     var bodyVisible by remember { mutableStateOf(false) }
@@ -149,11 +138,6 @@ fun SearchScreen(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
                         text = { Text("Invoice No", style = MaterialTheme.typography.labelLarge) }
-                    )
-                    Tab(
-                        selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
-                        text = { Text("KDS Pending", style = MaterialTheme.typography.labelLarge) }
                     )
                 }
 
@@ -264,35 +248,6 @@ fun SearchScreen(
 
             Spacer(modifier = Modifier.height(spacing.large))
 
-            if (selectedTab == 2) {
-                if (loadingKds) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = PrimaryGold)
-                    }
-                } else if (pendingKdsBills.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen.copy(alpha = 0.4f), modifier = Modifier.size(64.dp))
-                            Spacer(modifier = Modifier.height(spacing.medium))
-                            Text("All KDS orders printed", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(spacing.small),
-                        contentPadding = PaddingValues(bottom = spacing.bottomListPadding)
-                    ) {
-                        items(pendingKdsBills) { billWithItems ->
-                            KdsPendingCard(
-                                billWithItems = billWithItems,
-                                profile = profile,
-                                onPrint = { billingViewModel.printReceipt(it) }
-                            )
-                        }
-                    }
-                }
-            } else {
 
             AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
               Column {
@@ -520,86 +475,6 @@ fun SearchScreen(
                } // end inner Column
              } // end AnimatedVisibility body
              } // end else (selectedTab != 2)
-        }
-    }
-}
-
-@Composable
-private fun KdsPendingCard(
-    billWithItems: BillWithItems,
-    profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?,
-    onPrint: (BillWithItems) -> Unit
-) {
-    val spacing = KhanaBookTheme.spacing
-    val bill = billWithItems.bill
-    Card(
-        modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-        colors = CardDefaults.cardColors(containerColor = CardBG),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(spacing.medium)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Order #${bill.dailyOrderDisplay.split("-").last()}",
-                        color = PrimaryGold,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "INV${bill.lifetimeOrderId}",
-                        color = TextLight,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                Surface(
-                    color = DangerRed.copy(alpha = 0.15f),
-                    shape = CircleShape
-                ) {
-                    Text(
-                        text = "KDS PENDING",
-                        color = DangerRed,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = spacing.small),
-                color = BorderGold.copy(alpha = 0.2f)
-            )
-            Text(
-                text = billWithItems.items.joinToString(", ") { "${it.quantity}x ${it.itemName}" },
-                color = TextLight,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(spacing.small))
-            Button(
-                onClick = { onPrint(billWithItems) },
-                modifier = Modifier.fillMaxWidth().height(40.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(
-                    Icons.Default.Print,
-                    null,
-                    tint = DarkBrown1,
-                    modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    "Reprint",
-                    color = DarkBrown1,
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
         }
     }
 }

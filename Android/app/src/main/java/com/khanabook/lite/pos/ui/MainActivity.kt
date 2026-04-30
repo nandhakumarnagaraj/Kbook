@@ -273,6 +273,7 @@ class MainActivity : FragmentActivity() {
                             navController = navController,
                             onNewBill = { navController.navigate("new_bill") },
                             onSearchBill = { navController.navigate("search_bill") },
+                            onReprintKds = { navController.navigate("reprint_kds") },
                             onOrderStatus = { navController.navigate("order_status") },
                             onCallCustomer = { navController.navigate("call_customer") },
                             menuViewModel = menuViewModel,
@@ -335,6 +336,12 @@ class MainActivity : FragmentActivity() {
                     }
                     composable("call_customer") {
                         CallCustomerScreen(
+                            onBack = { navController.popBackStack() },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    composable("reprint_kds") {
+                        ReprintKdsScreen(
                             onBack = { navController.popBackStack() },
                             modifier = Modifier.fillMaxSize()
                         )

@@ -43,6 +43,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 fun HomeScreen(
     onNewBill: () -> Unit,
     onSearchBill: () -> Unit,
+    onReprintKds: () -> Unit,
     onOrderStatus: () -> Unit,
     onCallCustomer: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -230,7 +231,7 @@ fun HomeScreen(
                         icon = Icons.Default.Restaurant,
                         backgroundColor = CardBG,
                         modifier = Modifier.weight(1f),
-                        onClick = { viewModel.reprintPendingKds() }
+                        onClick = onReprintKds
                     )
                     HomeActionCard(
                         text = "Order Status",
@@ -266,7 +267,7 @@ fun HomeScreen(
                         icon = Icons.Default.Restaurant,
                         backgroundColor = CardBG,
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = { viewModel.reprintPendingKds() }
+                        onClick = onReprintKds
                     )
 
                     HomeActionCard(
