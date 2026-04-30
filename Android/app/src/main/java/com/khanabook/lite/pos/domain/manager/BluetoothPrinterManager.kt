@@ -79,7 +79,7 @@ class BluetoothPrinterManager(private val context: Context) {
     private val _connectedDeviceMacs = MutableStateFlow<Set<String>>(emptySet())
     val connectedDeviceMacs: StateFlow<Set<String>> = _connectedDeviceMacs
 
-    private val _connectedDeviceEvents = MutableSharedFlow<String>(extraBufferCapacity = 16)
+    private val _connectedDeviceEvents = MutableSharedFlow<String>(extraBufferCapacity = 16, replay = 1)
     val connectedDeviceEvents: SharedFlow<String> = _connectedDeviceEvents
 
     init {

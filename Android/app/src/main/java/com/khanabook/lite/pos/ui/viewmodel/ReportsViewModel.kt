@@ -222,7 +222,7 @@ class ReportsViewModel @Inject constructor(
         context: android.content.Context,
         format: String,
         profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?
-    ): java.io.File {
+    ): java.io.File = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         val exporter = com.khanabook.lite.pos.domain.manager.ReportExporter(context)
         val billDataById = _orderDetailsTable.value
             .map { it.billId }
@@ -234,7 +234,7 @@ class ReportsViewModel @Inject constructor(
             .toMap()
         val topItems = runCatching { reportGenerator.getTopSellingItems(currentFrom, currentTo, 5) }.getOrNull() ?: emptyList()
         val rows = _reportType.value
-        return if (format == "PDF") {
+        if (format == "PDF") {
             if (rows == "Payment" && _paymentBreakdown.value.isEmpty()) {
                 throw IllegalStateException("No payment data available to export")
             }

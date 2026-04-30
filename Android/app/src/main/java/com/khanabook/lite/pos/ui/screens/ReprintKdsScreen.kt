@@ -70,13 +70,13 @@ fun ReprintKdsScreen(
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             // Header
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(DarkBrown1.copy(alpha = 0.6f))
-                    .padding(spacing.medium)
+                    .padding(horizontal = spacing.medium, vertical = spacing.medium)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

@@ -20,7 +20,7 @@ import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.model.TopSellingItem
 import com.khanabook.lite.pos.domain.util.AppAssetStore
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.math.BigDecimal
@@ -93,11 +93,11 @@ class ReportExporter(private val context: Context) {
         return lines
     }
 
-    private fun loadLogoBitmap(profile: RestaurantProfileEntity?): Bitmap? {
+    private suspend fun loadLogoBitmap(profile: RestaurantProfileEntity?): Bitmap? {
         val logoUrl = profile?.logoUrl?.takeIf { it.isNotBlank() }
         if (logoUrl != null) {
             logoCache[logoUrl]?.let { return it }
-            val bitmap = runBlocking(Dispatchers.IO) {
+            val bitmap = withContext(Dispatchers.IO) {
                 try {
                     val request = ImageRequest.Builder(context)
                         .data(logoUrl)
@@ -121,7 +121,7 @@ class ReportExporter(private val context: Context) {
         }
     }
 
-    fun exportToPdf(
+    suspend fun exportToPdf(
         reportType: String,
         timeFilter: String,
         paymentBreakdown: Map<String, String>,

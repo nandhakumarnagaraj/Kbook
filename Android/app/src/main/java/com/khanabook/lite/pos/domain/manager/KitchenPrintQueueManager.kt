@@ -38,6 +38,12 @@ class KitchenPrintQueueManager @Inject constructor(
                 flushPendingForPrinter(printerMac)
             }
         }
+
+        scope.launch {
+            kotlinx.coroutines.delay(2000)
+            val mac = printerManager.connectedDeviceMac.value ?: return@launch
+            if (mac.isNotBlank()) flushPendingForPrinter(mac)
+        }
     }
 
     fun initialize() = Unit
