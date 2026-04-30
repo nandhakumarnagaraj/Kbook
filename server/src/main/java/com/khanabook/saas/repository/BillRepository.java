@@ -56,4 +56,7 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     List<Object[]> countGroupedByRestaurant();
 
     Optional<Bill> findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(Long restaurantId, Long lifetimeOrderId);
+
+    Optional<Bill> findByRestaurantIdAndDeviceIdAndLocalIdAndIsDeletedFalse(
+            Long restaurantId, String deviceId, Long localId);
 }

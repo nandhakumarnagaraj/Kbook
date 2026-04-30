@@ -62,7 +62,7 @@ class BillServiceTest {
             categoryRepository,
             mock(com.khanabook.saas.payment.repository.PaymentRepository.class)
         );
-        billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository);
+        billService = new BillServiceImpl(billRepository, genericSyncService);
     }
 
     private Bill createMobileBill(Long localId, Long updatedAt) {

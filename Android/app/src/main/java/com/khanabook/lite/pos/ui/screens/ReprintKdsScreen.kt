@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -24,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
+import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
@@ -43,8 +43,8 @@ fun ReprintKdsScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     var invoiceQuery by remember { mutableStateOf("") }
     var dailyId by remember { mutableStateOf("") }
-    var showInvoiceError by remember { mutableStateOf(false) }
     var showDailyIdError by remember { mutableStateOf(false) }
+    var showInvoiceError by remember { mutableStateOf(false) }
     var dailyDate by remember {
         mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
     }
@@ -56,15 +56,15 @@ fun ReprintKdsScreen(
 
     fun doSearch() {
         if (selectedTab == 0) {
-            val q = invoiceQuery.trim()
-            if (q.isEmpty()) { showInvoiceError = true; return }
-            showInvoiceError = false
-            searchViewModel.searchByInvoiceNo(q.toLongOrNull() ?: 0L)
-        } else {
             val q = dailyId.trim()
             if (q.isEmpty()) { showDailyIdError = true; return }
             showDailyIdError = false
             searchViewModel.searchByDailyId(q, dailyDate)
+        } else {
+            val q = invoiceQuery.trim()
+            if (q.isEmpty()) { showInvoiceError = true; return }
+            showInvoiceError = false
+            searchViewModel.searchByInvoiceNo(q.toLongOrNull() ?: 0L)
         }
     }
 
@@ -113,13 +113,13 @@ fun ReprintKdsScreen(
             ) {
                 Tab(
                     selected = selectedTab == 0,
-                    onClick = { selectedTab = 0; searchViewModel.clearSearch(); invoiceQuery = "" },
-                    text = { Text("Invoice No", style = MaterialTheme.typography.labelLarge) }
+                    onClick = { selectedTab = 0; searchViewModel.clearSearch(); dailyId = "" },
+                    text = { Text("Order No", style = MaterialTheme.typography.labelLarge) }
                 )
                 Tab(
                     selected = selectedTab == 1,
-                    onClick = { selectedTab = 1; searchViewModel.clearSearch(); dailyId = "" },
-                    text = { Text("Order No", style = MaterialTheme.typography.labelLarge) }
+                    onClick = { selectedTab = 1; searchViewModel.clearSearch(); invoiceQuery = "" },
+                    text = { Text("Invoice No", style = MaterialTheme.typography.labelLarge) }
                 )
             }
 
@@ -128,30 +128,16 @@ fun ReprintKdsScreen(
             // Search Fields
             if (selectedTab == 0) {
                 OutlinedTextField(
-                    value = invoiceQuery,
-                    onValueChange = { invoiceQuery = it; showInvoiceError = false },
-                    label = { Text("Enter Invoice Number", color = TextGold) },
-                    isError = showInvoiceError,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.medium),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = outlinedSearchFieldColors(),
-                    trailingIcon = {
-                        IconButton(onClick = { doSearch() }) {
-                            Icon(Icons.Default.Search, "Search", tint = PrimaryGold)
-                        }
-                    }
-                )
-                if (showInvoiceError) {
-                    Text("Please enter invoice number", color = DangerRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
-                }
-            } else {
-                OutlinedTextField(
                     value = dailyId,
-                    onValueChange = { dailyId = it; showDailyIdError = false },
-                    label = { Text("Enter Order Number", color = TextGold) },
+                    onValueChange = {
+                        if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                            dailyId = it
+                            showDailyIdError = false
+                        } else {
+                            showDailyIdError = true
+                        }
+                    },
+                    label = { Text("Order No", color = TextGold) },
                     isError = showDailyIdError,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -166,7 +152,47 @@ fun ReprintKdsScreen(
                     }
                 )
                 if (showDailyIdError) {
-                    Text("Please enter order number", color = DangerRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
+                    Text("Please enter numbers only", color = DangerRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
+                }
+
+                Spacer(modifier = Modifier.height(spacing.small))
+
+                Box(modifier = Modifier.padding(horizontal = spacing.medium)) {
+                    KhanaDatePickerField(
+                        label = "Select Date",
+                        selectedDate = dailyDate,
+                        onDateSelected = { dailyDate = it }
+                    )
+                }
+            } else {
+                OutlinedTextField(
+                    value = invoiceQuery,
+                    onValueChange = {
+                        val invoiceNo = it.removePrefix("INV").removePrefix("inv")
+                        if (invoiceNo.isEmpty() || invoiceNo.all { char -> char.isDigit() }) {
+                            invoiceQuery = invoiceNo
+                            showInvoiceError = false
+                        } else {
+                            showInvoiceError = true
+                        }
+                    },
+                    label = { Text("Invoice No", color = TextGold) },
+                    prefix = { Text("INV") },
+                    isError = showInvoiceError,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = outlinedSearchFieldColors(),
+                    trailingIcon = {
+                        IconButton(onClick = { doSearch() }) {
+                            Icon(Icons.Default.Search, "Search", tint = PrimaryGold)
+                        }
+                    }
+                )
+                if (showInvoiceError) {
+                    Text("Please enter numbers only", color = DangerRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
                 }
             }
 

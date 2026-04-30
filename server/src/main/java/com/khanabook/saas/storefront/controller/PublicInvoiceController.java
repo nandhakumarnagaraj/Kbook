@@ -21,6 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Public, no-auth endpoint that renders an HTML invoice page.
@@ -51,7 +52,7 @@ public class PublicInvoiceController {
 		Bill bill = billOpt.get();
 		if (Boolean.TRUE.equals(bill.getIsDeleted())
 				|| !restaurantId.equals(bill.getRestaurantId())
-				|| !token.equals(bill.getPublicToken().toString())) {
+				|| !tokenMatches(bill, token)) {
 			return ResponseEntity.status(404).body(notFound());
 		}
 
@@ -64,6 +65,32 @@ public class PublicInvoiceController {
 
         return ResponseEntity.ok(render(bill, items, profile));
     }
+
+	@GetMapping(value = "/invoice/pending/{restaurantId}/{deviceId}/{localBillId}/{token}",
+			produces = MediaType.TEXT_HTML_VALUE)
+	public ResponseEntity<String> getPendingInvoice(@PathVariable Long restaurantId,
+													@PathVariable String deviceId,
+													@PathVariable Long localBillId,
+													@PathVariable String token) {
+		Optional<Bill> billOpt = billRepository
+				.findByRestaurantIdAndDeviceIdAndLocalIdAndIsDeletedFalse(
+						restaurantId, deviceId, localBillId);
+		if (billOpt.isEmpty()) {
+			return ResponseEntity.status(202).body(pending());
+		}
+
+		Bill bill = billOpt.get();
+		if (!tokenMatches(bill, token)) {
+			return ResponseEntity.status(404).body(notFound());
+		}
+
+		RestaurantProfile profile = restaurantProfileRepository
+				.findByRestaurantId(restaurantId)
+				.orElse(null);
+		List<BillItem> items = billItemRepository
+				.findByServerBillIdAndIsDeletedFalseOrderById(bill.getId());
+		return ResponseEntity.ok(render(bill, items, profile));
+	}
 
     private String render(Bill bill, List<BillItem> items, RestaurantProfile profile) {
         String shopName = profile != null && profile.getShopName() != null
@@ -216,6 +243,28 @@ public class PublicInvoiceController {
                 + "<style>body{font-family:sans-serif;text-align:center;padding:48px;color:#555}</style>"
                 + "</head><body><h2>Invoice not found</h2>"
                 + "<p>This invoice link is invalid or has been removed.</p></body></html>";
+    }
+
+    private String pending() {
+        return "<!doctype html><html><head><meta charset='utf-8'>"
+                + "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+                + "<meta http-equiv='refresh' content='8'>"
+                + "<title>Invoice preparing</title>"
+                + "<style>body{font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;"
+                + "background:#f5f5f5;margin:0;padding:32px;color:#333}.card{max-width:420px;"
+                + "margin:0 auto;background:#fff;border-radius:14px;padding:28px;text-align:center;"
+                + "box-shadow:0 2px 12px rgba(0,0,0,.08)}.dot{width:64px;height:64px;border-radius:50%;"
+                + "background:#2fa84f;margin:0 auto 18px;color:#fff;display:flex;align-items:center;"
+                + "justify-content:center;font-size:28px;font-weight:700}.muted{color:#666;line-height:1.45}</style>"
+                + "</head><body><div class='card'><div class='dot'>...</div>"
+                + "<h2>Invoice is being prepared</h2>"
+                + "<p class='muted'>The bill was shared before sync completed. This page refreshes automatically; "
+                + "please check again in a moment.</p></div></body></html>";
+    }
+
+    private boolean tokenMatches(Bill bill, String token) {
+        UUID publicToken = bill.getPublicToken();
+        return publicToken != null && token != null && token.equals(publicToken.toString());
     }
 
     private String money(BigDecimal amount) {

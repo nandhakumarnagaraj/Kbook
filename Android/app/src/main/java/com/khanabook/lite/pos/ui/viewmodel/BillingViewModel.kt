@@ -1,8 +1,10 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.annotation.StringRes
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.R
@@ -14,11 +16,11 @@ import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.MenuRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.domain.manager.BillCalculator
+import com.khanabook.lite.pos.domain.manager.InvoicePDFGenerator
 import com.khanabook.lite.pos.domain.manager.OrderIdManager
 import com.khanabook.lite.pos.domain.manager.PrintDispatchMode
 import com.khanabook.lite.pos.domain.manager.PrintRouter
 import com.khanabook.lite.pos.domain.model.*
-import com.khanabook.lite.pos.domain.util.openBillToPrint
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import androidx.compose.runtime.Immutable
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -125,6 +127,9 @@ class BillingViewModel @Inject constructor(
 
     private val _printStatus = MutableStateFlow<String?>(null)
     val printStatus: StateFlow<String?> = _printStatus
+
+    private val _receiptPrinting = MutableStateFlow(false)
+    val receiptPrinting: StateFlow<Boolean> = _receiptPrinting
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -328,7 +333,8 @@ class BillingViewModel @Inject constructor(
                 createdBy = sessionManager.getActiveUserId(),
                 createdAt = System.currentTimeMillis(),
                 paidAt = null,
-                lastResetDate = profile.lastResetDate ?: ""
+                lastResetDate = profile.lastResetDate ?: "",
+                publicToken = UUID.randomUUID().toString()
             )
 
             val items = _cartItems.value.map { cartItem ->
@@ -550,7 +556,8 @@ class BillingViewModel @Inject constructor(
                 createdBy = sessionManager.getActiveUserId(),
                 createdAt = System.currentTimeMillis(),
                 paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null,
-                lastResetDate = profile.lastResetDate ?: ""
+                lastResetDate = profile.lastResetDate ?: "",
+                publicToken = UUID.randomUUID().toString()
             )
 
             val items = _cartItems.value.map { cartItem ->
@@ -731,7 +738,29 @@ class BillingViewModel @Inject constructor(
         _error.value = null
     }
 
+    suspend fun prepareLastBillForInvoiceShare(): BillWithItems? {
+        val current = _lastBill.value ?: return null
+        if (current.bill.serverId != null && current.bill.publicToken != null) return current
+
+        return withContext(Dispatchers.IO) {
+            runCatching { syncManager.pushUnsyncedDataImmediately() }
+                .onFailure { Log.w(TAG, "Invoice share sync failed", it) }
+
+            val refreshed = billRepository.getBillWithItemsById(current.bill.id)
+                ?: billRepository.getBillWithItemsByLifetimeId(current.bill.lifetimeOrderId)
+
+            if (refreshed != null) {
+                withContext(Dispatchers.Main) {
+                    _lastBill.value = refreshed
+                }
+            }
+
+            refreshed
+        }
+    }
+
     fun printReceipt(bill: BillWithItems) {
+        if (_receiptPrinting.value) return
         if (bill.bill.orderStatus.equals(OrderStatus.CANCELLED.dbValue, ignoreCase = true)) {
             _error.value = "Cannot print receipt for a cancelled order."
             return
@@ -742,6 +771,7 @@ class BillingViewModel @Inject constructor(
         }
 
         viewModelScope.launch(Dispatchers.IO) {
+            _receiptPrinting.value = true
             try {
                 val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL_RECEIPT_ONLY)
                 if (result.attempted == 0 && result.failures.isEmpty()) {
@@ -785,6 +815,8 @@ class BillingViewModel @Inject constructor(
                     statusMessage = appContext.getString(R.string.toast_printer_opening_pdf),
                     errorMessage = UserMessageSanitizer.sanitize(e, "Unable to print bill.")
                 )
+            } finally {
+                _receiptPrinting.value = false
             }
         }
     }
@@ -860,10 +892,47 @@ class BillingViewModel @Inject constructor(
         statusMessage: String,
         errorMessage: String? = null
     ) {
+        val pdfIntent = try {
+            withContext(Dispatchers.IO) {
+                val pdfFile = InvoicePDFGenerator(appContext).generatePDF(bill, profile)
+                val pdfUri = FileProvider.getUriForFile(
+                    appContext,
+                    "${appContext.packageName}.provider",
+                    pdfFile
+                )
+                Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(pdfUri, "application/pdf")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            }
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                _error.value = errorMessage
+                _printStatus.value = null
+                android.widget.Toast.makeText(
+                    appContext,
+                    UserMessageSanitizer.sanitize(e, "Unable to prepare invoice."),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+            return
+        }
+
         withContext(Dispatchers.Main) {
             _error.value = errorMessage
             _printStatus.value = statusMessage
-            openBillToPrint(appContext, bill, profile)
+            try {
+                appContext.startActivity(Intent.createChooser(pdfIntent, "Open PDF to Print").apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(
+                    appContext,
+                    UserMessageSanitizer.sanitize(e, "Unable to open invoice."),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 

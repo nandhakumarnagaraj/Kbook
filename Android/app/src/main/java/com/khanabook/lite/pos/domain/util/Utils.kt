@@ -177,6 +177,19 @@ fun buildInvoiceShareUrl(billWithItems: BillWithItems): String? {
 }
 
 /**
+ * Builds an invoice URL that can be shared immediately after local save.
+ * The backend resolves it to the synced server invoice once sync catches up.
+ */
+fun buildPendingInvoiceShareUrl(billWithItems: BillWithItems): String? {
+    val publicToken = billWithItems.bill.publicToken ?: return null
+    val restaurantId = billWithItems.bill.restaurantId
+    val deviceId = billWithItems.bill.deviceId.takeIf { it.isNotBlank() } ?: return null
+    val localBillId = billWithItems.bill.id.takeIf { it > 0L } ?: return null
+    val base = com.khanabook.lite.pos.BuildConfig.BACKEND_URL.trimEnd('/')
+    return "$base/api/v1/public/invoice/pending/$restaurantId/${android.net.Uri.encode(deviceId)}/$localBillId/$publicToken"
+}
+
+/**
  * Shares the invoice on WhatsApp as a LINK only.
  * The link points to the backend's hosted invoice page.
  *
@@ -189,7 +202,25 @@ fun shareInvoiceViaWhatsAppLink(context: Context, billWithItems: BillWithItems, 
         Toast.makeText(context, "Sync pending. Try again after the invoice syncs.", Toast.LENGTH_SHORT).show()
         return
     }
+    shareInvoiceLink(context, billWithItems, profile, link)
+}
 
+fun shareInstantInvoiceLink(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
+    val link = buildInvoiceShareUrl(billWithItems) ?: buildPendingInvoiceShareUrl(billWithItems)
+    if (link == null) {
+        Toast.makeText(context, "Invoice link not ready. Sharing invoice text.", Toast.LENGTH_SHORT).show()
+        shareInvoiceTextViaWhatsApp(context, billWithItems, profile)
+        return
+    }
+    shareInvoiceLink(context, billWithItems, profile, link)
+}
+
+private fun shareInvoiceLink(
+    context: Context,
+    billWithItems: BillWithItems,
+    profile: RestaurantProfileEntity?,
+    link: String
+) {
     val shop = profile?.shopName?.takeIf { it.isNotBlank() } ?: "Invoice"
     val total = billWithItems.bill.totalAmount
     val currency = if (profile?.currency == "INR" || profile?.currency == "Rupee") "Rs." else profile?.currency ?: ""
@@ -227,6 +258,47 @@ fun shareInvoiceViaWhatsAppLink(context: Context, billWithItems: BillWithItems, 
         context.startActivity(Intent.createChooser(fallback, "Share Invoice via"))
     } catch (e: Exception) {
         Toast.makeText(context, "Unable to open WhatsApp.", Toast.LENGTH_SHORT).show()
+    }
+}
+
+/**
+ * Shares a local invoice text immediately. Works before sync because it only
+ * uses bill data already stored on the device.
+ */
+fun shareInvoiceTextViaWhatsApp(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
+    val message = generateBillText(billWithItems, profile)
+    val raw = billWithItems.bill.customerWhatsapp
+    val digits = raw?.replace(Regex("[^0-9]"), "") ?: ""
+    val formattedPhone = when {
+        digits.length == 10 -> "91$digits"
+        digits.length > 10 -> digits
+        else -> null
+    }
+    val encoded = android.net.Uri.encode(message)
+
+    if (formattedPhone != null) {
+        try {
+            val uri = android.net.Uri.parse("whatsapp://send?phone=$formattedPhone&text=$encoded")
+            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            TrustedExternalAppReturn.mark(context)
+            context.startActivity(intent)
+            return
+        } catch (e: Exception) {
+            android.util.Log.w(UTILS_TAG, "WhatsApp text URI failed, falling back to share sheet", e)
+        }
+    }
+
+    val fallback = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, message)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    try {
+        context.startActivity(Intent.createChooser(fallback, "Share Invoice via"))
+    } catch (e: Exception) {
+        Toast.makeText(context, "Unable to open share options.", Toast.LENGTH_SHORT).show()
     }
 }
 

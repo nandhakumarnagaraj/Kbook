@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -32,6 +33,7 @@ class PublicInvoiceControllerTest extends BaseIntegrationTest {
     @Autowired private BillItemRepository billItemRepository;
 
     private Long savedBillId;
+    private UUID savedBillToken;
 
     @BeforeEach
     void seed() {
@@ -78,8 +80,10 @@ class PublicInvoiceControllerTest extends BaseIntegrationTest {
         bill.setCreatedAt(now);
         bill.setUpdatedAt(now);
         bill.setServerUpdatedAt(now);
+        bill.setPublicToken(UUID.randomUUID());
         Bill saved = billRepository.save(bill);
         savedBillId = saved.getId();
+        savedBillToken = saved.getPublicToken();
 
         BillItem item = new BillItem();
         item.setRestaurantId(RESTAURANT_ID);
@@ -101,7 +105,7 @@ class PublicInvoiceControllerTest extends BaseIntegrationTest {
     @Test
     void rendersInvoiceHtml() throws Exception {
         MvcResult result = mockMvc.perform(
-                        get("/public/invoice/{rid}/{bid}", RESTAURANT_ID, savedBillId))
+                        get("/public/invoice/{rid}/{bid}/{token}", RESTAURANT_ID, savedBillId, savedBillToken))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/html"))
                 .andReturn();
@@ -124,13 +128,40 @@ class PublicInvoiceControllerTest extends BaseIntegrationTest {
 
     @Test
     void returns404ForUnknownBill() throws Exception {
-        mockMvc.perform(get("/public/invoice/{rid}/{bid}", RESTAURANT_ID, 99999L))
+        mockMvc.perform(get("/public/invoice/{rid}/{bid}/{token}", RESTAURANT_ID, 99999L, savedBillToken))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void returns404WhenRestaurantIdMismatches() throws Exception {
-        mockMvc.perform(get("/public/invoice/{rid}/{bid}", 99999L, savedBillId))
+        mockMvc.perform(get("/public/invoice/{rid}/{bid}/{token}", 99999L, savedBillId, savedBillToken))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void rendersInvoiceFromPendingLinkAfterBillSyncs() throws Exception {
+        MvcResult result = mockMvc.perform(
+                        get("/public/invoice/pending/{rid}/{device}/{localId}/{token}",
+                                RESTAURANT_ID, "DEV_TEST", 101L, savedBillToken))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/html"))
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString())
+                .contains("Anna Biriyani")
+                .contains("INV1234");
+    }
+
+    @Test
+    void pendingLinkShowsPreparingBeforeBillSyncs() throws Exception {
+        MvcResult result = mockMvc.perform(
+                        get("/public/invoice/pending/{rid}/{device}/{localId}/{token}",
+                                RESTAURANT_ID, "DEV_TEST", 99999L, UUID.randomUUID()))
+                .andExpect(status().isAccepted())
+                .andExpect(content().contentTypeCompatibleWith("text/html"))
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString())
+                .contains("Invoice is being prepared");
     }
 }

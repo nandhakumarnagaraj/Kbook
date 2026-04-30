@@ -44,10 +44,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.animateLottieCompositionAsState
-import com.airbnb.lottie.compose.rememberLottieComposition
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.PaymentModeManager
 import com.khanabook.lite.pos.domain.manager.PaymentReturnManager
@@ -1472,16 +1468,14 @@ fun SuccessStep(
     val context = LocalContext.current
     val lastBill by viewModel.lastBill.collectAsState()
     val printStatus by viewModel.printStatus.collectAsState()
+    val receiptPrinting by viewModel.receiptPrinting.collectAsState()
+    val connectionStatus by viewModel.connectionStatus.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val totalAmount = lastBill?.bill?.totalAmount?.toDoubleOrNull() ?: 0.0
-    val successComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.anim_success))
-    val successProgress by animateLottieCompositionAsState(
-        composition = successComposition,
-        iterations = 1,
-        restartOnPlay = true
-    )
+    val scope = rememberCoroutineScope()
+    var isSharingInvoice by remember { mutableStateOf(false) }
     var isTtsReady by remember { mutableStateOf(false) }
     val tts = remember { mutableStateOf<TextToSpeech?>(null) }
 
@@ -1515,11 +1509,7 @@ fun SuccessStep(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
     ) {
-        LottieAnimation(
-            composition = successComposition,
-            progress = { successProgress },
-            modifier = Modifier.size(176.dp)
-        )
+        PaymentSuccessBadge()
         Text(
                 "Payment Successful!",
                 color = TextLight,
@@ -1543,23 +1533,43 @@ fun SuccessStep(
                 verticalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
             Button(
-                    onClick = {
-                        lastBill?.let {
-                            if (it.bill.serverId == null) {
-                                sendInvoiceViaSms(context, it, profile)
-                            } else {
-                                shareInvoiceViaWhatsAppLink(context, it, profile)
+                onClick = {
+                    val currentBill = lastBill ?: return@Button
+                    scope.launch {
+                        isSharingInvoice = true
+                        try {
+                            if (connectionStatus == ConnectionStatus.Unavailable) {
+                                onShowMessage("Offline. Sharing invoice text by SMS.")
+                                sendInvoiceViaSms(context, currentBill, profile)
+                                return@launch
                             }
+
+                            shareInstantInvoiceLink(context, currentBill, profile)
+                        } finally {
+                            isSharingInvoice = false
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = lastBill != null
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                shape = RoundedCornerShape(12.dp),
+                enabled = lastBill != null && !isSharingInvoice
             ) {
-                Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
+                if (isSharingInvoice) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(iconSize.small),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
+                }
                 Spacer(modifier = Modifier.width(spacing.extraSmall))
-                Text("Share Invoice", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (isSharingInvoice) "Preparing Link" else "Share Invoice",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
 
             Button(
@@ -1569,11 +1579,23 @@ fun SuccessStep(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                     shape = RoundedCornerShape(12.dp),
-                    enabled = lastBill?.let { it.bill.orderStatus != "cancelled" } ?: false
+                    enabled = lastBill?.let { it.bill.orderStatus != "cancelled" } == true && !receiptPrinting
             ) {
-                Icon(Icons.Default.Receipt, null, tint = DarkBrown1)
+                if (receiptPrinting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(iconSize.small),
+                        color = DarkBrown1,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(Icons.Default.Receipt, null, tint = DarkBrown1)
+                }
                 Spacer(modifier = Modifier.width(spacing.extraSmall))
-                Text("Print Invoice", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (receiptPrinting) "Preparing Invoice" else "Print Invoice",
+                    color = DarkBrown1,
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
         }
         Spacer(modifier = Modifier.height(spacing.extraLarge))
@@ -1583,6 +1605,86 @@ fun SuccessStep(
                 border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
                 shape = RoundedCornerShape(12.dp)
         ) { Text("Back to Home", color = TextGold, style = MaterialTheme.typography.titleMedium) }
+    }
+}
+
+@Composable
+private fun PaymentSuccessBadge() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(190.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        SuccessSpark(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 44.dp, top = 34.dp),
+            color = PrimaryGold
+        )
+        SuccessSpark(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = 48.dp, top = 52.dp),
+            color = SuccessGreen
+        )
+        SuccessSpark(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 66.dp, bottom = 38.dp),
+            color = SuccessGreen.copy(alpha = 0.9f)
+        )
+        SuccessSpark(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 62.dp, bottom = 28.dp),
+            color = PrimaryGold.copy(alpha = 0.9f)
+        )
+        Surface(
+            modifier = Modifier.size(132.dp),
+            shape = CircleShape,
+            color = SuccessGreen.copy(alpha = 0.16f)
+        ) {}
+        Surface(
+            modifier = Modifier.size(104.dp),
+            shape = CircleShape,
+            color = SuccessGreen
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(64.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuccessSpark(
+    modifier: Modifier = Modifier,
+    color: Color
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Star,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(18.dp)
+        )
+        Surface(
+            modifier = Modifier
+                .width(26.dp)
+                .height(4.dp),
+            color = color.copy(alpha = 0.75f),
+            shape = RoundedCornerShape(2.dp)
+        ) {}
     }
 }
 
