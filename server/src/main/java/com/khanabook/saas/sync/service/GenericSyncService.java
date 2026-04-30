@@ -339,6 +339,11 @@ public class GenericSyncService {
 								preserveGatewayOwnedBillState(incomingBill, existingBill);
 							}
 
+							if (incomingRecord instanceof RestaurantProfile incomingProfile
+									&& existingRecord instanceof RestaurantProfile existingProfile) {
+								mergeCounterState(incomingProfile, existingProfile);
+							}
+
 							incomingRecord.setId(existingRecord.getId());
 							// Preserve the current row version so sync updates don't trip optimistic locking
 							// when the client payload carries a stale/default version value.
@@ -416,6 +421,50 @@ public class GenericSyncService {
 		incoming.setPaidAt(existing.getPaidAt());
 		incoming.setCancelReason(existing.getCancelReason());
 		incoming.setRefundAmount(existing.getRefundAmount());
+	}
+
+	private void mergeCounterState(RestaurantProfile incoming, RestaurantProfile existing) {
+		Long mergedLifetime = maxNullable(existing.getLifetimeOrderCounter(), incoming.getLifetimeOrderCounter());
+		incoming.setLifetimeOrderCounter(mergedLifetime);
+
+		java.time.LocalDate existingDate = parseDate(existing.getLastResetDate(), existing.getLastResetDateProper());
+		java.time.LocalDate incomingDate = parseDate(incoming.getLastResetDate(), incoming.getLastResetDateProper());
+
+		if (existingDate == null && incomingDate == null) {
+			incoming.setDailyOrderCounter(maxNullable(existing.getDailyOrderCounter(), incoming.getDailyOrderCounter()));
+			incoming.setLastResetDate(existing.getLastResetDate());
+			incoming.setLastResetDateProper(existing.getLastResetDateProper());
+			return;
+		}
+
+		if (incomingDate == null || (existingDate != null && incomingDate.isBefore(existingDate))) {
+			incoming.setDailyOrderCounter(existing.getDailyOrderCounter());
+			incoming.setLastResetDate(existing.getLastResetDate());
+			incoming.setLastResetDateProper(existing.getLastResetDateProper());
+			return;
+		}
+
+		if (existingDate != null && incomingDate.isEqual(existingDate)) {
+			incoming.setDailyOrderCounter(maxNullable(existing.getDailyOrderCounter(), incoming.getDailyOrderCounter()));
+			incoming.setLastResetDate(existing.getLastResetDate());
+			incoming.setLastResetDateProper(existing.getLastResetDateProper());
+		}
+	}
+
+	private Long maxNullable(Long a, Long b) {
+		if (a == null) return b;
+		if (b == null) return a;
+		return Math.max(a, b);
+	}
+
+	private java.time.LocalDate parseDate(String textDate, java.time.LocalDate properDate) {
+		if (properDate != null) return properDate;
+		if (textDate == null || textDate.isBlank()) return null;
+		try {
+			return java.time.LocalDate.parse(textDate);
+		} catch (Exception ignored) {
+			return null;
+		}
 	}
 
 	/**
