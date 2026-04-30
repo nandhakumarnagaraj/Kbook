@@ -30,6 +30,10 @@ import java.time.format.DateTimeFormatter
 
 class ReportExporter(private val context: Context) {
 
+    companion object {
+        private val logoCache = mutableMapOf<String, Bitmap?>()
+    }
+
     private val dateFmt = DateTimeFormatter.ofPattern("dd MMM yy").withZone(ZoneId.systemDefault())
     private val fileDateFmt = DateTimeFormatter.ofPattern("ddMMMyy").withZone(ZoneId.systemDefault())
 
@@ -91,6 +95,7 @@ class ReportExporter(private val context: Context) {
     private fun loadLogoBitmap(profile: RestaurantProfileEntity?): Bitmap? {
         val logoUrl = profile?.logoUrl?.takeIf { it.isNotBlank() }
         if (logoUrl != null) {
+            logoCache[logoUrl]?.let { return it }
             val bitmap = try {
                 val request = ImageRequest.Builder(context)
                     .data(logoUrl)
@@ -104,6 +109,7 @@ class ReportExporter(private val context: Context) {
             } catch (_: Exception) {
                 null
             }
+            logoCache[logoUrl] = bitmap
             if (bitmap != null) return bitmap
         }
 
