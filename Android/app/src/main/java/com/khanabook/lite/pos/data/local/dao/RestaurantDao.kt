@@ -29,7 +29,7 @@ interface RestaurantDao {
     suspend fun incrementAndGetCounters(): Pair<Long, Long> {
         val profile = getProfile() ?: throw Exception("Profile not found")
         
-        val zoneId = java.time.ZoneId.of(profile.timezone ?: "Asia/Kolkata")
+        val zoneId = java.time.ZoneId.of("Asia/Kolkata")
         val today = java.time.LocalDate.now(zoneId).toString()
         val isNewDay = profile.lastResetDate != today
         val now = System.currentTimeMillis()
@@ -55,7 +55,7 @@ interface RestaurantDao {
     @Transaction
     suspend fun updateCounters(daily: Long, lifetime: Long) {
         val current = getProfile() ?: return
-        val zoneId = java.time.ZoneId.of(current.timezone ?: "Asia/Kolkata")
+        val zoneId = java.time.ZoneId.of("Asia/Kolkata")
         val today = java.time.LocalDate.now(zoneId).toString()
         saveProfile(current.copy(
             dailyOrderCounter = daily,

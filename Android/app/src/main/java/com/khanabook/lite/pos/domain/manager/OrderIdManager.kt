@@ -1,13 +1,11 @@
 package com.khanabook.lite.pos.domain.manager
 
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
-import java.time.LocalDate
-import java.time.ZoneId
-
 /**
  * Manages the generation and resetting of Daily and Lifetime Order IDs.
  */
 object OrderIdManager {
+    private const val INDIA_TIMEZONE = "Asia/Kolkata"
     
     /**
      * Returns the formatted daily order ID (e.g., "001").
@@ -40,7 +38,7 @@ object OrderIdManager {
     /**
      * Returns today's date string in YYYY-MM-DD format.
      */
-    fun getTodayString(timezone: String = "Asia/Kolkata"): String {
-        return LocalDate.now(ZoneId.of(timezone)).toString()
+    fun getTodayString(timezone: String = INDIA_TIMEZONE): String {
+        return java.time.LocalDate.now(java.time.ZoneId.of(INDIA_TIMEZONE)).toString()
     }
 }

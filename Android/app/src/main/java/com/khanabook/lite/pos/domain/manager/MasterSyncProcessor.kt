@@ -753,7 +753,7 @@ class MasterSyncProcessor @Inject constructor(
         val currentProfile = restaurantDao.getProfile()
         if (currentProfile != null && masterData.bills.isNotEmpty()) {
             val maxLifetime = masterData.bills.maxOfOrNull { it.lifetimeOrderId ?: 0L } ?: 0L
-            val timezone = currentProfile.timezone ?: "Asia/Kolkata"
+            val timezone = "Asia/Kolkata"
             val today = java.time.LocalDate.now(java.time.ZoneId.of(timezone)).toString()
             val maxDailyToday = masterData.bills
                 .filter { bill ->

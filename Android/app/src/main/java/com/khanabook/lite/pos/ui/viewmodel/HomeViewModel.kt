@@ -68,7 +68,7 @@ class HomeViewModel @Inject constructor(
     val todayStats: StateFlow<HomeStats> = profileFlow
         .filterNotNull()
         .flatMapLatest { profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity ->
-            val zoneId = profile.timezone ?: "Asia/Kolkata"
+            val zoneId = "Asia/Kolkata"
             val today = java.time.LocalDate.now(java.time.ZoneId.of(zoneId)).toString()
             val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(today, zoneId)
             val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(today, zoneId)

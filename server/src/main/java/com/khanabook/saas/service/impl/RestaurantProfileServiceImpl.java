@@ -37,14 +37,7 @@ public class RestaurantProfileServiceImpl implements RestaurantProfileService {
 	@Transactional
 	public RestaurantProfileService.CounterResponse incrementAndGetCounters(Long tenantId) {
 		Long now = System.currentTimeMillis();
-		String timezone = repository.findByRestaurantId(tenantId).map(RestaurantProfile::getTimezone)
-				.orElse("Asia/Kolkata");
-		ZoneId zoneId;
-		try {
-			zoneId = ZoneId.of(timezone);
-		} catch (Exception e) {
-			zoneId = ZoneId.of("Asia/Kolkata");
-		}
+		ZoneId zoneId = ZoneId.of("Asia/Kolkata");
 		String today = LocalDate.now(zoneId).toString();
 
 		int updated = repository.incrementCountersAtomic(tenantId, today, now);

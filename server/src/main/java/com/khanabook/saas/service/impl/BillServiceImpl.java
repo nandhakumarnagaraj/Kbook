@@ -1,9 +1,7 @@
 package com.khanabook.saas.service.impl;
 
 import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.service.BillService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
@@ -20,26 +18,10 @@ import java.time.format.DateTimeFormatter;
 public class BillServiceImpl implements BillService {
 	private final BillRepository repository;
 	private final GenericSyncService genericSyncService;
-	private final RestaurantProfileRepository profileRepository;
-	private final java.util.Map<Long, String> timezoneCache = java.util.Collections.synchronizedMap(
-			new java.util.LinkedHashMap<Long, String>(101, 0.75f, true) {
-				@Override
-				protected boolean removeEldestEntry(java.util.Map.Entry<Long, String> eldest) {
-					return size() > 100;
-				}
-			}
-	);
 
 	@Override
 	public PushSyncResponse pushData(Long tenantId, List<Bill> payload) {
-		String timezone = timezoneCache.computeIfAbsent(tenantId, tid -> profileRepository.findByRestaurantId(tid)
-				.map(RestaurantProfile::getTimezone).orElse("Asia/Kolkata"));
-		ZoneId zoneId;
-		try {
-			zoneId = ZoneId.of(timezone);
-		} catch (Exception e) {
-			zoneId = ZoneId.of("Asia/Kolkata");
-		}
+		ZoneId zoneId = ZoneId.of("Asia/Kolkata");
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zoneId);
 
 		for (Bill bill : payload) {

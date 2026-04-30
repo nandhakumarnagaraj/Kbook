@@ -300,11 +300,7 @@ class BillingViewModel @Inject constructor(
 
             val finalSummary = _billSummary.value
             val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters(requireServer = true)
-            val zoneId = try {
-                java.time.ZoneId.of(profile.timezone ?: "Asia/Kolkata")
-            } catch (e: Exception) {
-                java.time.ZoneId.of("Asia/Kolkata")
-            }
+            val zoneId = java.time.ZoneId.of("Asia/Kolkata")
             val today = java.time.LocalDate.now(zoneId).toString()
             val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter)
 
@@ -526,11 +522,7 @@ class BillingViewModel @Inject constructor(
             val finalSummary = _billSummary.value
 
             val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
-            val zoneId = try {
-                java.time.ZoneId.of(profile.timezone ?: "Asia/Kolkata")
-            } catch (e: Exception) {
-                java.time.ZoneId.of("Asia/Kolkata")
-            }
+            val zoneId = java.time.ZoneId.of("Asia/Kolkata")
             val today = java.time.LocalDate.now(zoneId).toString()
             val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter)
 

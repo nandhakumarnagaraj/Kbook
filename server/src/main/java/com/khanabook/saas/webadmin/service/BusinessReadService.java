@@ -60,7 +60,7 @@ public class BusinessReadService {
         Map<Long, Payment> latestPaymentByBillId = getLatestPaymentsByBillId(restaurantId, bills);
         List<CustomerOrder> storefrontOrders = customerOrderRepository.findByRestaurantIdOrderByCreatedAtDescIdDesc(restaurantId);
 
-        ZoneId zoneId = ZoneId.of(profile.getTimezone() == null || profile.getTimezone().isBlank() ? "Asia/Kolkata" : profile.getTimezone());
+        ZoneId zoneId = ZoneId.of("Asia/Kolkata");
         LocalDate today = LocalDate.now(zoneId);
         long startOfToday = today.atStartOfDay(zoneId).toInstant().toEpochMilli();
 
