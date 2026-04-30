@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "836086274000-827i839h6mh2lmnah73ame0p31omt65s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.khanabook.lite.pos",
+            "certificate_hash": "2a75d4794db1e0cd3125e75b11d2353fd9f0b3bc"
+          }
+        },
+        {
           "client_id": "836086274000-cej52serva8lqbnchtah4pnjgrk39sep.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
@@ -27,6 +35,14 @@
           "android_info": {
             "package_name": "com.khanabook.lite.pos",
             "certificate_hash": "042c8f0cb2f68cd2b1c5dd1020f551b39f0b2142"
+          }
+        },
+        {
+          "client_id": "836086274000-iq1a4kvpntbvo4tluc86oua1bmj55ann.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.khanabook.lite.pos",
+            "certificate_hash": "a642c0b226224e9dd33be5360e27641d86b9934a"
           }
         },
         {
