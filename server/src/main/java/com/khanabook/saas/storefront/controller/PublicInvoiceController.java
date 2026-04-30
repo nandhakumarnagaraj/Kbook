@@ -132,6 +132,13 @@ public class PublicInvoiceController {
         String footer = profile != null && profile.getInvoiceFooter() != null && !profile.getInvoiceFooter().isBlank()
                 ? esc(profile.getInvoiceFooter())
                 : "Thank you for your visit!";
+        String reviewUrl = profile != null && profile.getReviewUrl() != null && !profile.getReviewUrl().isBlank()
+                ? profile.getReviewUrl().trim()
+                : "";
+        String reviewFooter = reviewUrl.isBlank()
+                ? ""
+                : "<div class='review'>Review us on Google: <a href='" + esc(reviewUrl) + "'>"
+                    + esc(reviewUrl) + "</a></div>";
         String paymentMode = paymentModeLabel(bill.getPaymentMode());
 
         StringBuilder headerInfo = new StringBuilder();
@@ -194,6 +201,8 @@ public class PublicInvoiceController {
                 + "font-weight:700;margin-top:14px;padding-top:12px;border-top:2px solid #222}"
                 + ".footer-meta{margin-top:12px;padding-top:10px;border-top:1px dashed #ddd;color:#555;font-size:12px}"
                 + ".footer-meta b{color:#333}.thanks{text-align:center;color:#666;font-size:13px;margin-top:12px}"
+                + ".review{text-align:center;font-size:12px;line-height:1.4;margin-top:8px;word-break:break-word}"
+                + ".review a{color:#0b57d0;text-decoration:none}"
                 + "</style></head><body><div class='card'>"
                 + logo
                 + "<div class='shop'>" + esc(shopName) + "</div>"
@@ -209,6 +218,7 @@ public class PublicInvoiceController {
                 + "<div class='total'><span>Total</span><span>" + currency + ' ' + money(bill.getTotalAmount()) + "</span></div>"
                 + "<div class='footer-meta'><b>Payment Type:</b> " + esc(paymentMode) + "</div>"
                 + "<div class='thanks'>" + footer + "</div>"
+                + reviewFooter
                 + "</div></body></html>";
     }
 

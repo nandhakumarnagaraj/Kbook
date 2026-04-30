@@ -133,6 +133,9 @@ fun generateBillText(bill: BillWithItems, profile: RestaurantProfileEntity?): St
     sb.append("*Total Amount: ${currency}${bill.bill.totalAmount}*\n")
     sb.append("--------------------------\n")
     sb.append("${profile?.invoiceFooter?.takeIf { it.isNotBlank() } ?: "Thank you for your visit!"}\n")
+    profile?.reviewUrl?.takeIf { it.isNotBlank() }?.let {
+        sb.append("Review us on Google: $it\n")
+    }
     
     return sb.toString()
 }
@@ -224,7 +227,11 @@ private fun shareInvoiceLink(
     val shop = profile?.shopName?.takeIf { it.isNotBlank() } ?: "Invoice"
     val total = billWithItems.bill.totalAmount
     val currency = if (profile?.currency == "INR" || profile?.currency == "Rupee") "Rs." else profile?.currency ?: ""
-    val message = "*$shop*\nInvoice INV${billWithItems.bill.lifetimeOrderId}\nTotal: $currency$total\n\nView: $link"
+    val reviewLine = profile?.reviewUrl
+        ?.takeIf { it.isNotBlank() }
+        ?.let { "\n\nReview us on Google: $it" }
+        ?: ""
+    val message = "*$shop*\nInvoice INV${billWithItems.bill.lifetimeOrderId}\nTotal: $currency$total\n\nView: $link$reviewLine"
 
     val raw = billWithItems.bill.customerWhatsapp
     val digits = raw?.replace(Regex("[^0-9]"), "") ?: ""

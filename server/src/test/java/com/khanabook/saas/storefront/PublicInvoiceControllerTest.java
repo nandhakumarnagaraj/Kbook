@@ -55,6 +55,7 @@ class PublicInvoiceControllerTest extends BaseIntegrationTest {
         profile.setCurrency("INR");
         profile.setGstEnabled(true);
         profile.setGstin("33ABCDE1234F1Z5");
+        profile.setReviewUrl("https://share.google/vVWFocwM93kT7ah4w");
         profile.setTimezone("Asia/Kolkata");
         profile.setCreatedAt(now);
         profile.setUpdatedAt(now);
@@ -123,6 +124,8 @@ class PublicInvoiceControllerTest extends BaseIntegrationTest {
         assertThat(html).contains("CGST");
         assertThat(html).contains("SGST");
         assertThat(html).contains("<b>Payment Type:</b> Cash");
+        assertThat(html).contains("Review us on Google");
+        assertThat(html).contains("https://share.google/vVWFocwM93kT7ah4w");
         assertThat(html).contains("<th>Item</th><th class='c'>Qty</th><th class='r'>Total</th>");
     }
 

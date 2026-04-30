@@ -266,6 +266,10 @@ object InvoiceFormatter {
         // 7. Footer
         add(ALIGN_CENTER)
         add("${profile?.invoiceFooter?.takeIf { it.isNotBlank() } ?: "Thank you! Visit again."}\n")
+        profile?.reviewUrl?.takeIf { it.isNotBlank() }?.let { reviewUrl ->
+            add("Review us on Google\n")
+            wrapText(reviewUrl, width).forEach { add("$leftPad$it\n") }
+        }
         if (profile?.showBranding != false) {
             add(BOLD_ON)
             add("Powered by KhanaBook\n")

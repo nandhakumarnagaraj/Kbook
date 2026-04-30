@@ -142,7 +142,7 @@ class InvoicePDFGenerator(private val context: Context) {
             val headerH  = 145 + logoH + waH + fssaiH + gstinH + shopWaH + shopEmailH
             val summaryH = 100 + gstTaxH
             val reviewQrH = if (isValidReviewUrl(profile?.reviewUrl)) 110 else 0
-            val footerH  = 80
+            val footerH  = if (isValidReviewUrl(profile?.reviewUrl)) 100 else 80
             val pageHeight = headerH + itemSectionHeight + summaryH + reviewQrH + footerH + 30 // 30px safety margin
 
             val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
@@ -507,6 +507,14 @@ class InvoicePDFGenerator(private val context: Context) {
             paint.typeface = normalTypeface
             paint.textSize = bodySize
             y += 12f
+            if (isValidReviewUrl(reviewUrl)) {
+                paint.textSize = 6f
+                canvas.drawText("Review us on Google", (pageWidth / 2).toFloat(), y, paint)
+                y += 8f
+                canvas.drawText(reviewUrl!!.take(if (is80mm) 46 else 32), (pageWidth / 2).toFloat(), y, paint)
+                y += 10f
+                paint.textSize = bodySize
+            }
             if (profile?.showBranding != false) {
                 canvas.drawText("Powered by KhanaBook", (pageWidth / 2).toFloat(), y, paint)
                 y += 10f
