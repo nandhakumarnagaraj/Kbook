@@ -1,12 +1,7 @@
 package com.khanabook.lite.pos.ui.screens
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,15 +11,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -33,19 +24,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
-import coil.request.CachePolicy
-import coil.request.ImageRequest
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
-import com.khanabook.lite.pos.domain.util.AppAssetStore
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
@@ -67,52 +51,17 @@ fun PaymentConfigView(
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
-    val isCompactWidth = layout.isCompactForm
     var currency by remember { mutableStateOf(profile?.currency ?: "INR") }
     var upiSupported by remember { mutableStateOf(profile?.upiEnabled ?: false) }
     var upiHandle by remember { mutableStateOf(profile?.upiHandle ?: "") }
     var upiMobile by remember { mutableStateOf(profile?.upiMobile ?: "") }
-    var qrPath by remember { mutableStateOf(profile?.upiQrPath) }
-    var qrUrl by remember { mutableStateOf(profile?.upiQrUrl) }
     var cashEnabled by remember { mutableStateOf(profile?.cashEnabled ?: true) }
     var posEnabled by remember { mutableStateOf(profile?.posEnabled ?: false) }
     var zomatoEnabled by remember { mutableStateOf(profile?.zomatoEnabled ?: false) }
     var swiggyEnabled by remember { mutableStateOf(profile?.swiggyEnabled ?: false) }
     var ownWebsiteEnabled by remember { mutableStateOf(profile?.ownWebsiteEnabled ?: false) }
-    var qrUpdateTrigger by remember { mutableStateOf(0L) }
 
-    val qrUploadLoading by paymentViewModel.upiQrUploadLoading.collectAsStateWithLifecycle()
-
-    val context = LocalContext.current
     val toastScope = rememberCoroutineScope()
-    val qrUploadSuccess by paymentViewModel.upiQrUploadSuccess.collectAsStateWithLifecycle()
-    val qrUploadError by paymentViewModel.error.collectAsStateWithLifecycle()
-
-    LaunchedEffect(qrUploadSuccess) {
-        if (qrUploadSuccess) {
-            toastScope.launch { KhanaToast.show("UPI QR uploaded successfully", ToastKind.Success) }
-            paymentViewModel.clearMessages()
-        }
-    }
-
-    LaunchedEffect(qrUploadError) {
-        qrUploadError?.let { error ->
-            if (error.contains("UPI QR", ignoreCase = true)) {
-                toastScope.launch { KhanaToast.show(error, ToastKind.Error) }
-                paymentViewModel.clearMessages()
-            }
-        }
-    }
-
-    val qrLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            paymentViewModel.uploadUpiQr(context, it) { uploadedUrl ->
-                qrUrl = uploadedUrl
-                qrPath = null
-                qrUpdateTrigger = System.currentTimeMillis()
-            }
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -152,57 +101,10 @@ fun PaymentConfigView(
                 )
                 Spacer(modifier = Modifier.height(spacing.small))
                 Text(
-                    "UPI ID is required for amount QR. Uploaded QR is only a saved reference.",
+                    "UPI ID is enough. The app generates each bill's amount QR offline.",
                     color = TextGold.copy(alpha = 0.72f),
                     style = MaterialTheme.typography.labelSmall
                 )
-                Spacer(modifier = Modifier.height(spacing.medium))
-
-                val qrContent = @Composable {
-                    Box(
-                        modifier = Modifier
-                            .size(KhanaBookTheme.iconSize.hero)
-                            .background(Color.White)
-                            .border(1.dp, Color.LightGray)
-                            .padding(spacing.extraSmall),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val qrModel = qrUrl?.takeIf { it.isNotBlank() }
-                            ?: AppAssetStore.resolveAssetPath(qrPath)
-                        if (!qrModel.isNullOrBlank()) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(qrModel)
-                                    .crossfade(true)
-                                    .memoryCacheKey("$qrModel:$qrUpdateTrigger")
-                                    .diskCachePolicy(CachePolicy.ENABLED)
-                                    .build(),
-                                contentDescription = "QR Code",
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else if (qrUploadLoading) {
-                            androidx.compose.material3.CircularProgressIndicator(
-                                modifier = Modifier.size(KhanaBookTheme.iconSize.medium),
-                                strokeWidth = 2.dp,
-                                color = PrimaryGold
-                            )
-                        } else {
-                            Icon(Icons.Default.QrCode, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge))
-                        }
-                    }
-                    OutlinedButton(
-                        onClick = { qrLauncher.launch("image/*") },
-                        border = BorderStroke(1.dp, PrimaryGold),
-                        shape = RoundedCornerShape(20.dp),
-                        enabled = !qrUploadLoading
-                    ) { Text(if (qrUploadLoading) "Uploading..." else "Upload QR", color = PrimaryGold) }
-                }
-
-                if (isCompactWidth) {
-                    Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) { qrContent() }
-                } else {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(spacing.medium)) { qrContent() }
-                }
             }
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
@@ -221,8 +123,8 @@ fun PaymentConfigView(
                             upiEnabled = upiSupported,
                             upiHandle = upiHandle.trim(),
                             upiMobile = upiMobile,
-                            upiQrPath = qrPath,
-                            upiQrUrl = qrUrl,
+                            upiQrPath = null,
+                            upiQrUrl = null,
                             cashEnabled = cashEnabled,
                             posEnabled = posEnabled,
                             zomatoEnabled = zomatoEnabled,
