@@ -81,7 +81,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.khanabook.lite.pos"
+        applicationId = "com.piquantservices.khanabooklite"
         minSdk = 26
         targetSdk = 35
         versionCode = releaseVersionCode

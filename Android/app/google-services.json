@@ -73,6 +73,43 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:836086274000:android:b1f82aa6c065ebcb4e8bd5",
+        "android_client_info": {
+          "package_name": "com.piquantservices.khanabooklite"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "836086274000-q9vpsq3ljrr69i2i50egpg1s8vf7l62v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.piquantservices.khanabooklite",
+            "certificate_hash": "02c5418802b4a3349f1a825019c6e857809e83a1"
+          }
+        },
+        {
+          "client_id": "836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGp7pbYCV7RBLecpXmq5VUoTznreNZnKY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

@@ -136,31 +136,73 @@ END;
 $$;
 
 
--- ── 3. WhatsApp link generator ───────────────────────────────
--- Returns a wa.me link pre-filled with the invoice text.
--- If customer_whatsapp exists → link opens chat directly.
--- If not → link opens WhatsApp with text only (user picks chat).
+-- ── 3. Public Invoice URL generator ──────────────────────────
+-- Generates a secure link for the customer to view their invoice online.
+CREATE OR REPLACE FUNCTION khanabook_public_invoice_url(p_bill_id BIGINT)
+RETURNS TEXT
+LANGUAGE plpgsql STABLE
+AS $$
+DECLARE
+  v_bill RECORD;
+  v_base_url TEXT := 'https://kbook.iadv.cloud/api/v1'; -- Update if backend URL changes
+BEGIN
+  SELECT restaurant_id, public_token INTO v_bill
+  FROM bills
+  WHERE id = p_bill_id AND is_deleted = false;
+
+  IF NOT FOUND OR v_bill.public_token IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  RETURN v_base_url || '/public/invoice/' 
+    || v_bill.restaurant_id || '/' 
+    || p_bill_id || '/' 
+    || v_bill.public_token;
+END;
+$$;
+
+
+-- ── 4. WhatsApp link generator ───────────────────────────────
+-- Returns a wa.me link pre-filled with a short message and the invoice URL.
 CREATE OR REPLACE FUNCTION khanabook_whatsapp_link(p_bill_id BIGINT)
 RETURNS TEXT
 LANGUAGE plpgsql STABLE
 AS $$
 DECLARE
-  v_phone           TEXT;
-  v_digits          TEXT;
+  v_bill            RECORD;
+  v_profile         RECORD;
   v_phone_formatted TEXT;
-  v_text            TEXT;
+  v_url             TEXT;
+  v_message         TEXT;
+  v_digits          TEXT;
 BEGIN
-  SELECT customer_whatsapp INTO v_phone
+  SELECT * INTO v_bill
   FROM bills
   WHERE id = p_bill_id AND is_deleted = false;
 
-  v_text := khanabook_invoice_text(p_bill_id);
-  IF v_text IS NULL THEN
+  IF NOT FOUND THEN
     RETURN NULL;
   END IF;
 
+  SELECT * INTO v_profile
+  FROM restaurant_profile
+  WHERE restaurant_id = v_bill.restaurant_id
+  LIMIT 1;
+
+  v_url := khanabook_public_invoice_url(p_bill_id);
+  
+  -- Fallback to full text if URL cannot be generated (missing token)
+  IF v_url IS NULL THEN
+     v_message := khanabook_invoice_text(p_bill_id);
+  ELSE
+     v_message := '*' || upper(coalesce(v_profile.shop_name, 'Shop')) || '*' || E'\n'
+               || 'Thank you for your visit!' || E'\n\n'
+               || 'View your digital invoice here:' || E'\n'
+               || v_url;
+  END IF;
+
   -- Strip non-digits, add country code if 10-digit Indian number
-  v_digits := regexp_replace(coalesce(v_phone, ''), '[^0-9]', '', 'g');
+  v_digits := regexp_replace(coalesce(v_bill.customer_whatsapp, ''), '[^0-9]', '', 'g');
   v_phone_formatted := CASE
     WHEN length(v_digits) = 10 THEN '91' || v_digits
     WHEN length(v_digits) > 10 THEN v_digits
@@ -169,15 +211,15 @@ BEGIN
 
   IF v_phone_formatted IS NOT NULL THEN
     RETURN 'https://wa.me/' || v_phone_formatted
-      || '?text=' || khanabook_url_encode(v_text);
+      || '?text=' || khanabook_url_encode(v_message);
   ELSE
-    RETURN 'https://wa.me/?text=' || khanabook_url_encode(v_text);
+    RETURN 'https://wa.me/?text=' || khanabook_url_encode(v_message);
   END IF;
 END;
 $$;
 
 
--- ── 4. Convenience view ──────────────────────────────────────
+-- ── 5. Convenience view ──────────────────────────────────────
 -- Lists all paid/completed bills with their WhatsApp links.
 CREATE OR REPLACE VIEW v_invoice_whatsapp_links AS
 SELECT
