@@ -25,8 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
@@ -88,8 +88,8 @@ import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import java.time.Year
 
 // TODO: Update these before release
-private const val SUPPORT_WHATSAPP = "918124426335"
-private const val SUPPORT_EMAIL = "support@khanabook.in"
+private const val SUPPORT_WHATSAPP = "919471676935"
+private const val SUPPORT_EMAIL = "kbook@pcts.tech"
 
 @Composable
 fun SettingsListView(
@@ -647,10 +647,10 @@ fun HelpSupportView() {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.AutoMirrored.Filled.HelpOutline,
+                    Icons.AutoMirrored.Filled.Chat,
                     contentDescription = null,
                     tint = PrimaryGold,
-                    modifier = Modifier.size(56.dp)
+                    modifier = Modifier.size(58.dp)
                 )
             }
         }
@@ -685,7 +685,7 @@ fun HelpSupportView() {
             shape = RoundedCornerShape(14.dp),
             contentPadding = PaddingValues(horizontal = spacing.medium)
         ) {
-            Icon(Icons.Default.Chat, null, modifier = Modifier.size(28.dp))
+            Icon(Icons.AutoMirrored.Filled.Chat, null, modifier = Modifier.size(28.dp))
             Spacer(modifier = Modifier.width(spacing.medium))
             Column(horizontalAlignment = Alignment.Start) {
                 Text("Chat on WhatsApp", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
@@ -762,15 +762,14 @@ fun AboutAppView() {
     ) {
         Box(
             modifier = Modifier
-                .size(160.dp)
+                .size(184.dp)
                 .background(PrimaryGold.copy(alpha = 0.12f), CircleShape)
                 .border(2.dp, PrimaryGold.copy(alpha = 0.3f), CircleShape)
-                .clip(CircleShape)
-                .padding(16.dp),
+                .clip(CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.khanabook_logo),
+                painter = painterResource(id = R.drawable.about_app_logo),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize()

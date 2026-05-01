@@ -714,7 +714,7 @@ fun OrderDetailsDialog(
                 .fillMaxWidth(0.94f)
                 .widthIn(max = 900.dp)
                 .padding(spacing.medium),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
+            colors = CardDefaults.cardColors(containerColor = DarkBrown1),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(
