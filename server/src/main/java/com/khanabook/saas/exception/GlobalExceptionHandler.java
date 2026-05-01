@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -93,6 +94,16 @@ public class GlobalExceptionHandler {
 		log.warn("Duplicate menu item [{}]: {}", request.getRequestURI(), e.getMessage());
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
 				"error", e.getMessage(),
+				"path", request.getRequestURI()
+		));
+	}
+
+	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+	public ResponseEntity<Map<String, Object>> handleMethodNotSupported(
+			HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
+		log.warn("Method not allowed [{}]: {}", request.getRequestURI(), e.getMessage());
+		return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(Map.of(
+				"error", "Method not allowed",
 				"path", request.getRequestURI()
 		));
 	}

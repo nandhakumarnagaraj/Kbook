@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KhanaBook Privacy Policy</title>
+  <meta name="description" content="Privacy Policy for KhanaBook restaurant billing and POS software." />
+  <style>
+    :root {
+      --bg: #f6efe3;
+      --surface: rgba(255, 250, 242, 0.94);
+      --text: #26170f;
+      --muted: #6d5649;
+      --line: rgba(120, 87, 59, 0.18);
+      --gold: #b77927;
+      --gold-deep: #8f5714;
+      --good-bg: #eef7ef;
+      --good-border: #7ea26f;
+      --shadow: 0 24px 80px rgba(62, 35, 11, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(183, 121, 39, 0.18), transparent 32%),
+        radial-gradient(circle at top right, rgba(143, 87, 20, 0.12), transparent 26%),
+        linear-gradient(180deg, #fff8ee 0%, var(--bg) 100%);
+      line-height: 1.65;
+    }
+    .page { width: min(980px, calc(100% - 32px)); margin: 32px auto 64px; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(255, 250, 242, 0.97), rgba(249, 236, 214, 0.92));
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 40px 32px;
+      box-shadow: var(--shadow);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -40px -60px auto;
+      width: 220px;
+      height: 220px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(183, 121, 39, 0.18), transparent 68%);
+    }
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(183, 121, 39, 0.12);
+      color: var(--gold-deep);
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.15; }
+    h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); max-width: 12ch; }
+    h2 { font-size: 1.55rem; color: var(--gold-deep); }
+    h3 { font-size: 1.05rem; color: var(--text); margin-top: 18px; }
+    p, li { font-size: 1rem; color: var(--text); }
+    .lede { max-width: 66ch; font-size: 1.07rem; color: var(--muted); }
+    .meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+    .meta span {
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(120, 87, 59, 0.14);
+      font-size: 0.95rem;
+    }
+    .callout {
+      margin-top: 24px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      border: 1px solid var(--good-border);
+      background: var(--good-bg);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+      margin-top: 22px;
+    }
+    .card, .section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+    .card { padding: 24px; }
+    main { display: grid; gap: 20px; margin-top: 22px; }
+    .section { padding: 28px; }
+    ul { margin: 10px 0 0; padding-left: 20px; }
+    li + li { margin-top: 8px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      overflow: hidden;
+      border-radius: 16px;
+    }
+    th, td {
+      text-align: left;
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    th { color: var(--gold-deep); background: rgba(183, 121, 39, 0.08); font-weight: 700; }
+    tr:last-child td { border-bottom: none; }
+    a { color: var(--gold-deep); }
+    .foot { margin-top: 20px; text-align: center; color: var(--muted); font-size: 0.94rem; }
+    @media (max-width: 640px) {
+      .page { width: min(100% - 20px, 980px); margin: 16px auto 40px; }
+      .hero, .section, .card { padding: 22px 18px; border-radius: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <span class="eyebrow">KhanaBook Legal</span>
+      <h1>Privacy Policy</h1>
+      <p class="lede">This Privacy Policy explains how KhanaBook collects, uses, stores, and protects personal and business data when you use the KhanaBook Android app and the KhanaBook cloud backend for restaurant billing, POS, reporting, and sync services.</p>
+      <div class="meta">
+        <span>Effective: 1 May 2026</span>
+        <span>Version: 1.0</span>
+        <span>Applies to the Android App and Cloud Backend</span>
+      </div>
+      <div class="callout"><strong>Offline-first by design.</strong> KhanaBook stores working data on the device and syncs with the cloud when connectivity is available.</div>
+    </header>
+
+    <section class="grid" aria-label="Highlights">
+      <article class="card"><h2>Operator</h2><p>KhanaBook is operated by <strong>Piquant Consultancy Services</strong>, Chennai, Tamil Nadu, India.</p></article>
+      <article class="card"><h2>Data Ownership</h2><p>Restaurants retain ownership of their business data. KhanaBook processes that data to provide billing, sync, reporting, security, and support features.</p></article>
+      <article class="card"><h2>No Ads</h2><p>KhanaBook does not display third-party ads and does not use third-party advertising trackers.</p></article>
+    </section>
+
+    <main>
+      <section class="section"><h2>1. Introduction</h2><p>KhanaBook is restaurant billing and POS software that includes an Android application and a cloud backend hosted at <a href="https://kbook.iadv.cloud">https://kbook.iadv.cloud</a>.</p><p>By using KhanaBook, you consent to the collection and use of data as described in this Privacy Policy, subject to your rights under applicable law.</p></section>
+      <section class="section"><h2>2. Data Controller and Processing Roles</h2><p>For the purposes of applicable data protection laws, <strong>Piquant Consultancy Services</strong> acts as the data controller for account, authentication, support, security, and platform operations data collected through KhanaBook.</p><p>For restaurant operational data entered into KhanaBook, such as menu, billing, invoice, payment, stock, and staff records, KhanaBook primarily acts as a software provider and processor on behalf of the restaurant using the service.</p></section>
+      <section class="section"><h2>3. Data We Collect</h2><h3>Account and business data</h3><ul><li>Name, mobile number, email address, login identifiers, and role information</li><li>Restaurant profile data such as business name, address, GST details, printer settings, and tax configuration</li></ul><h3>Billing and operational data</h3><ul><li>Orders, invoices, bill items, bill payments, stock logs, menu items, categories, and related timestamps</li><li>Optional customer contact details used for invoice sharing or order-related communication</li></ul><h3>Technical and security data</h3><ul><li>Device identifiers used for sync and session protection, app version, request metadata, IP address, and security logs</li><li>Authentication events, OTP challenge metadata, and token revocation or session integrity records</li></ul></section>
+      <section class="section"><h2>4. App Permissions</h2><ul><li><strong>Camera:</strong> Used for OCR-based menu scanning and import workflows</li><li><strong>Bluetooth:</strong> Used to discover and connect supported thermal printers</li><li><strong>Location on older Android versions:</strong> Required by Android for Bluetooth discovery on Android 11 and below</li><li><strong>Internet:</strong> Required for login, sync, support flows, and cloud services</li></ul></section>
+      <section class="section"><h2>5. How We Use Data</h2><ul><li>To provide restaurant billing, POS, reporting, printing, and sync functionality</li><li>To authenticate users, secure accounts, validate sessions, and prevent abuse or fraud</li><li>To generate invoices, tax records, operational reports, and payment records</li><li>To support features such as Google sign-in, OCR import, payment return flows, and invoice sharing</li><li>To monitor reliability, investigate incidents, and improve service quality</li></ul></section>
+      <section class="section"><h2>6. Third-Party Services</h2><p>We share data only where needed to deliver specific platform features.</p><ul><li><strong>Google Sign-In:</strong> Used when you choose Google-based authentication</li><li><strong>Google ML Kit:</strong> Used for OCR menu scanning workflows</li><li><strong>WhatsApp / Meta:</strong> Used when you choose to send invoices or OTP-related messages through WhatsApp channels</li><li><strong>Easebuzz:</strong> Used for payment processing, status updates, and payment return or webhook workflows</li><li><strong>Infrastructure providers:</strong> Used to host and operate the KhanaBook backend and supporting systems</li></ul><p>We do not sell or rent personal data.</p></section>
+      <section class="section"><h2>7. Storage, Sync, and Security</h2><ul><li>KhanaBook is designed to work offline first. Local app data is stored on-device and later synchronized with the backend.</li><li>The Android app uses encrypted local database storage and keystore-backed secret storage for sensitive local data.</li><li>API communication is intended to occur over HTTPS/TLS.</li><li>The backend uses JWT-based authentication, device and session integrity checks, tenant-scoped data handling, and rate limiting on sensitive flows.</li></ul></section>
+      <section class="section"><h2>8. Data Retention</h2><table><thead><tr><th>Data Type</th><th>Typical Retention</th></tr></thead><tbody><tr><td>Account and restaurant profile data</td><td>While the account remains active, and for a reasonable period thereafter where needed for support, security, or compliance</td></tr><tr><td>Invoices, payment records, and tax-related records</td><td>Retained for the period required by applicable law, including tax and accounting obligations. Where applicable, this may be at least 7 years</td></tr><tr><td>Security, login, and operational logs</td><td>Retained for limited periods as reasonably needed for abuse prevention, troubleshooting, and audit purposes</td></tr><tr><td>OTP records and temporary verification data</td><td>Retained only for the period needed to validate the transaction or security flow</td></tr></tbody></table></section>
+      <section class="section"><h2>9. International Data Transfers</h2><p>Some third-party services used by KhanaBook, including services operated by Google or Meta, may process data outside India. Where this happens, we take reasonable steps to ensure such transfers are handled in compliance with applicable data protection law.</p></section>
+      <section class="section"><h2>10. Your Rights</h2><p>Subject to applicable law, you may request to:</p><ul><li>Access the personal data we hold about you</li><li>Correct inaccurate or incomplete data</li><li>Request deletion, subject to legal and operational retention obligations</li><li>Request export of relevant data where technically feasible</li></ul></section>
+      <section class="section"><h2>11. What We Do Not Do</h2><ul><li>We do not sell personal data</li><li>We do not display third-party ads inside the app</li><li>We do not collect card numbers, CVV values, or UPI PINs through KhanaBook</li><li>We do not use third-party advertising trackers</li></ul></section>
+      <section class="section"><h2>12. Children's Privacy</h2><p>KhanaBook is intended for restaurant owners, operators, and staff. It is not directed to children under 18, and we do not knowingly collect personal data from children.</p></section>
+      <section class="section"><h2>13. Grievance Officer and Contact</h2><p><strong>Grievance Officer:</strong> Piquant Consultancy Services</p><p><strong>Email:</strong> <a href="mailto:privacy@iadv.cloud">privacy@iadv.cloud</a></p><p><strong>Location:</strong> Chennai, Tamil Nadu, India</p><p><strong>Response time target:</strong> Within 30 days</p></section>
+      <section class="section"><h2>14. Changes to This Policy</h2><p>We may update this Privacy Policy from time to time to reflect product changes, security improvements, legal requirements, or operational updates. Material changes will be reflected by updating the effective date and version shown on this page.</p></section>
+    </main>
+
+    <p class="foot">Last updated: 1 May 2026 · KhanaBook Privacy Policy Version 1.0</p>
+  </div>
+</body>
+</html>
