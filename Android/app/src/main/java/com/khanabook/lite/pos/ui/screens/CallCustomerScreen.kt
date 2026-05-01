@@ -131,6 +131,16 @@ fun CallCustomerScreen(
             Spacer(modifier = Modifier.height(spacing.large))
 
             if (selectedTab == 0) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    KhanaDatePickerField(
+                            label = "Select Date",
+                            selectedDate = dailyDate,
+                            onDateSelected = { dailyDate = it }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(spacing.medium))
+
                 OutlinedTextField(
                         value = dailyId,
                         onValueChange = {
@@ -153,15 +163,6 @@ fun CallCustomerScreen(
                             }
                         }
                 )
-                Spacer(modifier = Modifier.height(spacing.medium))
-
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    KhanaDatePickerField(
-                            label = "Select Date",
-                            selectedDate = dailyDate,
-                            onDateSelected = { dailyDate = it }
-                    )
-                }
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 

@@ -226,6 +226,21 @@ fun OrdersScreen(
 
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                 Column {
+                    if (selectedSource == "POS") {
+                        PeriodTabs(
+                            selectedFilter = timeFilter,
+                            onTabSelected = {
+                                if (it == "Custom") {
+                                    showDateRangePicker = true
+                                } else {
+                                    viewModel.setTimeFilter(it)
+                                }
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(spacing.medium))
+                    }
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -250,21 +265,6 @@ fun OrdersScreen(
                     }
 
                     Spacer(modifier = Modifier.height(spacing.medium))
-
-                    if (selectedSource == "POS") {
-                    PeriodTabs(
-                        selectedFilter = timeFilter,
-                        onTabSelected = {
-                            if (it == "Custom") {
-                                showDateRangePicker = true
-                            } else {
-                                viewModel.setTimeFilter(it)
-                            }
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
-                    }
                 }
             }
 

@@ -52,6 +52,7 @@ fun ReprintKdsScreen(
     val vmResult by searchViewModel.searchResult.collectAsState()
     val vmHasSearched by searchViewModel.hasSearched.collectAsState()
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
     val scope = rememberCoroutineScope()
 
     fun doSearch() {
@@ -127,6 +128,16 @@ fun ReprintKdsScreen(
 
             // Search Fields
             if (selectedTab == 0) {
+                Box(modifier = Modifier.padding(horizontal = spacing.medium)) {
+                    KhanaDatePickerField(
+                        label = "Select Date",
+                        selectedDate = dailyDate,
+                        onDateSelected = { dailyDate = it }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(spacing.medium))
+
                 OutlinedTextField(
                     value = dailyId,
                     onValueChange = {
@@ -144,24 +155,35 @@ fun ReprintKdsScreen(
                         .padding(horizontal = spacing.medium),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = outlinedSearchFieldColors(),
-                    trailingIcon = {
-                        IconButton(onClick = { doSearch() }) {
-                            Icon(Icons.Default.Search, "Search", tint = PrimaryGold)
-                        }
-                    }
+                    colors = outlinedSearchFieldColors()
                 )
                 if (showDailyIdError) {
                     Text("Please enter numbers only", color = DangerRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
                 }
 
-                Spacer(modifier = Modifier.height(spacing.small))
+                Spacer(modifier = Modifier.height(spacing.medium))
 
-                Box(modifier = Modifier.padding(horizontal = spacing.medium)) {
-                    KhanaDatePickerField(
-                        label = "Select Date",
-                        selectedDate = dailyDate,
-                        onDateSelected = { dailyDate = it }
+                Button(
+                    onClick = { doSearch() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(horizontal = spacing.medium),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = dailyId.isNotEmpty()
+                ) {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = null,
+                        tint = DarkBrown1,
+                        modifier = Modifier.size(iconSize.small)
+                    )
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Text(
+                        "Search Order",
+                        color = DarkBrown1,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }
             } else {
@@ -184,15 +206,36 @@ fun ReprintKdsScreen(
                         .padding(horizontal = spacing.medium),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = outlinedSearchFieldColors(),
-                    trailingIcon = {
-                        IconButton(onClick = { doSearch() }) {
-                            Icon(Icons.Default.Search, "Search", tint = PrimaryGold)
-                        }
-                    }
+                    colors = outlinedSearchFieldColors()
                 )
                 if (showInvoiceError) {
                     Text("Please enter numbers only", color = DangerRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
+                }
+
+                Spacer(modifier = Modifier.height(spacing.medium))
+
+                Button(
+                    onClick = { doSearch() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(horizontal = spacing.medium),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = invoiceQuery.isNotEmpty()
+                ) {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = null,
+                        tint = DarkBrown1,
+                        modifier = Modifier.size(iconSize.small)
+                    )
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Text(
+                        "Search Order",
+                        color = DarkBrown1,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
 

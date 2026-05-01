@@ -144,6 +144,14 @@ fun SearchScreen(
                 Spacer(modifier = Modifier.height(spacing.medium))
 
                 if (selectedTab == 0) {
+                    KhanaDatePickerField(
+                        label = "Select Date",
+                        selectedDate = dailyDate,
+                        onDateSelected = { dailyDate = it }
+                    )
+
+                    Spacer(modifier = Modifier.height(spacing.medium))
+
                     OutlinedTextField(
                         value = dailyId,
                         onValueChange = {
@@ -165,13 +173,6 @@ fun SearchScreen(
                                 Text(context.getString(R.string.field_numbers_only))
                             }
                         }
-                    )
-                    Spacer(modifier = Modifier.height(spacing.small))
-
-                    KhanaDatePickerField(
-                        label = "Select Date",
-                        selectedDate = dailyDate,
-                        onDateSelected = { dailyDate = it }
                     )
 
                     Spacer(modifier = Modifier.height(spacing.medium))

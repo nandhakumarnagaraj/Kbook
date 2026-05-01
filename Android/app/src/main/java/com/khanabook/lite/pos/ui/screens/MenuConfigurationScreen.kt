@@ -9,10 +9,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -1159,7 +1157,6 @@ fun ModeSelectionView(
     onGalleryClick: () -> Unit,
     onPdfClick: () -> Unit
 ) {
-    var isSmartAIExpanded by remember { mutableStateOf(false) }
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
 
@@ -1213,34 +1210,60 @@ fun ModeSelectionView(
 
         // 1. Manual Entry (View & Edit)
         Card(
-            onClick = onManualClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(MenuConfigurationTags.manualEntryCard),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f))
+            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.35f))
         ) {
-            Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
-                Surface(color = PrimaryGold.copy(alpha = 0.1f), shape = CircleShape, modifier = Modifier.size(iconSize.avatar)) {
-                    Icon(Icons.Default.Edit, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
+            Column {
+                Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(color = PrimaryGold.copy(alpha = 0.18f), shape = CircleShape, modifier = Modifier.size(iconSize.avatar)) {
+                        Icon(Icons.Default.Edit, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
+                    }
+                    Spacer(modifier = Modifier.width(spacing.medium))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Manual Entry", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Add, view & Edit items one by one", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
-                Spacer(modifier = Modifier.width(spacing.medium))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Manual Entry", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("View & edit items one by one", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
+
+                HorizontalDivider(color = BorderGold.copy(alpha = 0.1f), modifier = Modifier.padding(horizontal = 20.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    SmartAIOption(
+                        icon = Icons.Default.Add,
+                        label = "Add",
+                        onClick = onManualClick,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SmartAIOption(
+                        icon = Icons.Default.Visibility,
+                        label = "View",
+                        onClick = onManualClick,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SmartAIOption(
+                        icon = Icons.Default.Edit,
+                        label = "Edit",
+                        onClick = onManualClick,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = TextGold.copy(alpha = 0.4f))
             }
         }
 
         // 2. Smart AI
         Card(
-            onClick = { isSmartAIExpanded = !isSmartAIExpanded },
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(MenuConfigurationTags.smartAiCard),
             colors = CardDefaults.cardColors(containerColor = CardBG),
-            border = BorderStroke(1.dp, if (isSmartAIExpanded) PrimaryGold.copy(alpha = 0.5f) else BorderGold.copy(alpha = 0.2f))
+            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.5f))
         ) {
             Column {
                 Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
@@ -1256,57 +1279,49 @@ fun ModeSelectionView(
                                 Text("AI", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = DarkBrown1)
                             }
                         }
-                        Text("Extract from Camera, Gallery or PDF", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
+                        Text("Extract from camera gallery, pdf.", color = Color.White, style = MaterialTheme.typography.bodySmall)
                     }
-                    Icon(
-                        if (isSmartAIExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        null,
-                        tint = TextGold.copy(alpha = 0.5f)
-                    )
                 }
 
-                AnimatedVisibility(
-                    visible = isSmartAIExpanded,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    Column {
-                        HorizontalDivider(color = BorderGold.copy(alpha = 0.1f), modifier = Modifier.padding(horizontal = 20.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            SmartAIOption(
-                                icon = Icons.Default.CameraAlt,
-                                label = "Camera",
-                                onClick = onSmartImportClick,
-                                testTag = MenuConfigurationTags.smartAiCamera
-                            )
-                            SmartAIOption(
-                                icon = Icons.Default.PhotoLibrary,
-                                label = "Gallery",
-                                onClick = onGalleryClick,
-                                testTag = MenuConfigurationTags.smartAiGallery
-                            )
-                            SmartAIOption(
-                                icon = Icons.Default.PictureAsPdf,
-                                label = "PDF",
-                                onClick = onPdfClick,
-                                testTag = MenuConfigurationTags.smartAiPdf
-                            )
-                        }
-                        Text(
-                            text = "AI can make mistakes. Please review before saving.",
-                            color = TextGold.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                Column {
+                    HorizontalDivider(color = BorderGold.copy(alpha = 0.1f), modifier = Modifier.padding(horizontal = 20.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        SmartAIOption(
+                            icon = Icons.Default.CameraAlt,
+                            label = "Camera",
+                            onClick = onSmartImportClick,
+                            testTag = MenuConfigurationTags.smartAiCamera,
+                            modifier = Modifier.weight(1f)
+                        )
+                        SmartAIOption(
+                            icon = Icons.Default.PhotoLibrary,
+                            label = "Gallery",
+                            onClick = onGalleryClick,
+                            testTag = MenuConfigurationTags.smartAiGallery,
+                            modifier = Modifier.weight(1f)
+                        )
+                        SmartAIOption(
+                            icon = Icons.Default.PictureAsPdf,
+                            label = "PDF",
+                            onClick = onPdfClick,
+                            testTag = MenuConfigurationTags.smartAiPdf,
+                            modifier = Modifier.weight(1f)
                         )
                     }
+                    Text(
+                        text = "AI can make mistakes.please view before saving..",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                    )
                 }
             }
         }
@@ -1318,10 +1333,11 @@ fun SmartAIOption(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     onClick: () -> Unit,
-    testTag: String? = null
+    testTag: String? = null,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() }
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
@@ -1338,7 +1354,13 @@ fun SmartAIOption(
             Icon(icon, null, tint = PrimaryGold, modifier = Modifier.padding(12.dp))
         }
         Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.small))
-        Text(label, color = TextLight, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Text(
+            label,
+            color = TextLight,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center
+        )
     }
 }
 

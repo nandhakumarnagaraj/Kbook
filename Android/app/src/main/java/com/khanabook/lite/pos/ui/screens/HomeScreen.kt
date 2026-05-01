@@ -445,7 +445,7 @@ fun HomeActionCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 70.dp)
+                .heightIn(min = 68.dp)
                 .padding(spacing.medium),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
