@@ -7,81 +7,20 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:836086274000:android:3f78339ef7eb074f4e8bd5",
-        "android_client_info": {
-          "package_name": "com.khanabook.lite.pos"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "836086274000-827i839h6mh2lmnah73ame0p31omt65s.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.khanabook.lite.pos",
-            "certificate_hash": "2a75d4794db1e0cd3125e75b11d2353fd9f0b3bc"
-          }
-        },
-        {
-          "client_id": "836086274000-cej52serva8lqbnchtah4pnjgrk39sep.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.khanabook.lite.pos",
-            "certificate_hash": "1b075d99cf1bcb02961299bbdad78ce58018ada9"
-          }
-        },
-        {
-          "client_id": "836086274000-gg2tgt0c4ds6nbc06f3i9jo63rfms5tq.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.khanabook.lite.pos",
-            "certificate_hash": "042c8f0cb2f68cd2b1c5dd1020f551b39f0b2142"
-          }
-        },
-        {
-          "client_id": "836086274000-iq1a4kvpntbvo4tluc86oua1bmj55ann.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.khanabook.lite.pos",
-            "certificate_hash": "a642c0b226224e9dd33be5360e27641d86b9934a"
-          }
-        },
-        {
-          "client_id": "836086274000-vq8nlv6gtpk7vt4l09ijs071k8qek082.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.khanabook.lite.pos",
-            "certificate_hash": "9e0fcab6ebe22f6168483133ee21791bbdfcca6f"
-          }
-        },
-        {
-          "client_id": "836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBGp7pbYCV7RBLecpXmq5VUoTznreNZnKY"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:836086274000:android:b1f82aa6c065ebcb4e8bd5",
         "android_client_info": {
           "package_name": "com.piquantservices.khanabooklite"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "836086274000-cfcn0q343fm5455bt7mhdt1sl0vmlv3c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.piquantservices.khanabooklite",
+            "certificate_hash": "042c8f0cb2f68cd2b1c5dd1020f551b39f0b2142"
+          }
+        },
         {
           "client_id": "836086274000-q9vpsq3ljrr69i2i50egpg1s8vf7l62v.apps.googleusercontent.com",
           "client_type": 1,
