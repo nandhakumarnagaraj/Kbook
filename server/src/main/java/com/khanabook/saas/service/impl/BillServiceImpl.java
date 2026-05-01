@@ -2,6 +2,7 @@ package com.khanabook.saas.service.impl;
 
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.service.BillService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
@@ -18,20 +19,36 @@ import java.time.format.DateTimeFormatter;
 public class BillServiceImpl implements BillService {
 	private final BillRepository repository;
 	private final GenericSyncService genericSyncService;
+	private final RestaurantProfileRepository restaurantProfileRepository;
 
 	@Override
 	public PushSyncResponse pushData(Long tenantId, List<Bill> payload) {
-		ZoneId zoneId = ZoneId.of("Asia/Kolkata");
+		ZoneId zoneId = restaurantProfileRepository.findByRestaurantId(tenantId)
+				.map(profile -> resolveZoneId(profile.getTimezone()))
+				.orElse(ZoneId.of("Asia/Kolkata"));
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zoneId);
 
 		for (Bill bill : payload) {
 			if (bill.getLastResetDate() == null) {
 
-				Long created = bill.getCreatedAt() != null ? bill.getCreatedAt() : System.currentTimeMillis();
+				Long created = bill.getCreatedAt() != null
+						? bill.getCreatedAt()
+						: bill.getUpdatedAt() != null ? bill.getUpdatedAt() : System.currentTimeMillis();
 				bill.setLastResetDate(formatter.format(Instant.ofEpochMilli(created)));
 			}
 		}
 		return genericSyncService.handlePushSync(tenantId, payload, repository);
+	}
+
+	private ZoneId resolveZoneId(String timezone) {
+		if (timezone == null || timezone.isBlank()) {
+			return ZoneId.of("Asia/Kolkata");
+		}
+		try {
+			return ZoneId.of(timezone);
+		} catch (RuntimeException ignored) {
+			return ZoneId.of("Asia/Kolkata");
+		}
 	}
 
 	@Override

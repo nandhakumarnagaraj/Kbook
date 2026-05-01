@@ -3,6 +3,7 @@ package com.khanabook.saas.entity;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Index;
 import jakarta.persistence.UniqueConstraint;
@@ -87,4 +88,11 @@ public class Bill extends BaseSyncEntity {
 
 	@Column(name = "public_token", nullable = false, columnDefinition = "UUID DEFAULT gen_random_uuid()")
 	private java.util.UUID publicToken;
+
+	@PrePersist
+	void ensurePublicToken() {
+		if (publicToken == null) {
+			publicToken = java.util.UUID.randomUUID();
+		}
+	}
 }

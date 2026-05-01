@@ -7,6 +7,7 @@ import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.repository.BillItemRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.CategoryRepository;
+import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
     @Autowired BillItemRepository billItemRepo;
     @Autowired CategoryRepository categoryRepo;
     @Autowired MenuItemRepository menuItemRepo;
+    @Autowired ItemVariantRepository itemVariantRepo;
 
     private static final Long TENANT_A = 1001L;
     private static final Long TENANT_B = 1002L;
@@ -35,6 +37,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
     void clean() {
         billItemRepo.deleteAll();
         billRepo.deleteAll();
+        itemVariantRepo.deleteAll();
         menuItemRepo.deleteAll();
         categoryRepo.deleteAll();
     }
