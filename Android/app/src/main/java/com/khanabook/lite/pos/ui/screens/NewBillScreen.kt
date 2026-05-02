@@ -1043,15 +1043,14 @@ fun PaymentStep(
             Text("Scan to Pay", color = PrimaryGold, style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            
             Box(
-                    modifier =
-                            Modifier.size(200.dp)
-                                    .background(Color.White, RoundedCornerShape(12.dp))
-                                    .border(2.dp, PrimaryGold, RoundedCornerShape(12.dp))
-                                    .padding(spacing.smallMedium)
-                                    .clickable { showQrModal = true },
-                    contentAlignment = Alignment.Center
+                modifier =
+                Modifier.size(200.dp)
+                    .background(Color.White, RoundedCornerShape(12.dp))
+                    .border(2.dp, PrimaryGold, RoundedCornerShape(12.dp))
+                    .padding(spacing.smallMedium)
+                    .clickable { showQrModal = true },
+                contentAlignment = Alignment.Center
             ) {
                 val qrBitmap1 = dynamicUpiQrBitmap
                 when {
@@ -1069,10 +1068,10 @@ fun PaymentStep(
                 }
             }
             Text(
-                    "Tap to Enlarge",
-                    color = PrimaryGold.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(top = spacing.extraSmall)
+                "Tap to Enlarge",
+                color = PrimaryGold.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(top = spacing.extraSmall)
             )
             if (!canGenerateAmountQr) {
                 Text(
@@ -1081,26 +1080,62 @@ fun PaymentStep(
                         !isAmountValid -> "Enter a valid UPI split amount"
                         else -> "Add items before scanning UPI QR"
                     },
-                    color = WarningYellow,
+                    color = DangerRed,
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(top = spacing.extraSmall)
                 )
             }
-
             Spacer(modifier = Modifier.height(spacing.large))
-        } else {
+        }
+
+        if (showQrModal && dynamicUpiQrBitmap != null) {
+            KhanaBookDialog(
+                onDismissRequest = { showQrModal = false },
+                title = "Scan to Pay",
+                content = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .background(Color.White, RoundedCornerShape(12.dp))
+                            .padding(spacing.medium),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            bitmap = dynamicUpiQrBitmap!!.asImageBitmap(),
+                            contentDescription = "Enlarged QR Code",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(spacing.medium))
+                    Text(
+                        "UPI ID: ${profile?.upiHandle}",
+                        color = TextGold,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                },
+                actions = {
+                    TextButton(onClick = { showQrModal = false }) {
+                        Text("Close", color = PrimaryGold)
+                    }
+                }
+            )
+        }
+
+        if (!isUpiMode) {
             Spacer(modifier = Modifier.height(spacing.large))
             Icon(
-                    Icons.Default.Payment,
-                    null,
-                    tint = PrimaryGold.copy(alpha = 0.3f),
-                    modifier = Modifier.size(KhanaBookTheme.iconSize.heroCircle)
+                Icons.Default.Payment,
+                null,
+                tint = PrimaryGold.copy(alpha = 0.3f),
+                modifier = Modifier.size(KhanaBookTheme.iconSize.heroCircle)
             )
             Spacer(modifier = Modifier.height(spacing.medium))
             Text(
-                    "Complete Payment",
-                    color = TextLight,
-                    style = MaterialTheme.typography.titleLarge
+                "Complete Payment",
+                color = TextLight,
+                style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.height(spacing.large))
         }
@@ -1298,85 +1333,6 @@ fun PaymentStep(
                 color = DangerRed,
                 style = MaterialTheme.typography.bodyMedium
             )
-        }
-    }
-
-    if (showQrModal) {
-        androidx.compose.ui.window.Dialog(onDismissRequest = { showQrModal = false }) {
-            Card(
-                    modifier = Modifier.fillMaxWidth(0.95f).wrapContentHeight(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                            modifier = Modifier.fillMaxWidth().padding(spacing.medium),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                                "UPI Payment",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = Color.Black
-                        )
-                        IconButton(onClick = { showQrModal = false }) {
-                            Icon(Icons.Default.Close, null, tint = Color.Black)
-                        }
-                    }
-
-                    androidx.compose.material3.HorizontalDivider(
-                            color = Color.LightGray.copy(alpha = 0.5f)
-                    )
-
-                    Column(
-                            modifier = Modifier.fillMaxWidth().padding(spacing.large),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                                modifier =
-                                        Modifier.size(280.dp).background(Color.White).padding(spacing.small),
-                                contentAlignment = Alignment.Center
-                        ) {
-                            val qrBitmap2 = dynamicUpiQrBitmap
-                            when {
-                                qrBitmap2 != null -> Image(
-                                    bitmap = qrBitmap2.asImageBitmap(),
-                                    contentDescription = "Scan to pay ${profile?.upiHandle}",
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                                else -> Icon(
-                                    Icons.Default.QrCode,
-                                    null,
-                                    modifier = Modifier.size(180.dp),
-                                    tint = Color.LightGray
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                        Text(
-                                "₹${"%.2f".format(upiPayableAmount)}",
-                                color = Color.Black,
-                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
-                        )
-                        if (!canGenerateAmountQr) {
-                            Text(
-                                "Amount QR is unavailable. Check UPI ID and amount.",
-                                color = Color.Gray,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                        Text(profile?.shopName ?: "", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
-                    }
-
-                    Button(
-                            onClick = { showQrModal = false },
-                            modifier = Modifier.fillMaxWidth().padding(spacing.medium),
-                            colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1)
-                    ) { Text("CLOSE", color = PrimaryGold, style = MaterialTheme.typography.titleMedium) }
-                }
-            }
         }
     }
 }

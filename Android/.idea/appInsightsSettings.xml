@@ -8,8 +8,8 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.khanabook.lite.pos" />
-                  <option name="mobileSdkAppId" value="1:836086274000:android:3f78339ef7eb074f4e8bd5" />
+                  <option name="appId" value="com.piquantservices.khanabooklite" />
+                  <option name="mobileSdkAppId" value="1:836086274000:android:b1f82aa6c065ebcb4e8bd5" />
                   <option name="projectId" value="new-khanabook-li" />
                   <option name="projectNumber" value="836086274000" />
                 </ConnectionSetting>

@@ -24,6 +24,9 @@ class KhanaBookApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
 
+        // Load SQLCipher native library for 16KB page support and modern architecture
+        System.loadLibrary("sqlcipher")
+
         GlobalCrashHandler.initialize(this)
         AppAssetStore.initialize(this)
 

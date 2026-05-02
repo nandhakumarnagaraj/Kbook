@@ -34,7 +34,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
-import net.sqlcipher.database.SupportFactory
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 private const val TAG = "DatabaseModule"
 private const val SECURE_DB_PREFS = "secure_db_prefs"
@@ -107,7 +107,7 @@ object DatabaseModule {
     }
 
     private fun buildDatabase(context: Context, passphrase: ByteArray): AppDatabase {
-        val factory = SupportFactory(passphrase)
+        val factory = SupportOpenHelperFactory(passphrase)
 
         return Room.databaseBuilder(
             context,

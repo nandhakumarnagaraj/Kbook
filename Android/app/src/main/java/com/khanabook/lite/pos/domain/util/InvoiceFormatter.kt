@@ -223,27 +223,6 @@ object InvoiceFormatter {
 
         // 6. Payment & QR
         add(leftPad + "Payment Mode : ${bill.bill.paymentMode.uppercase()}\n")
-        
-        if (profile?.upiHandle?.isNotBlank() == true) {
-            try {
-                val amount = BigDecimal(bill.bill.totalAmount).toDouble()
-                val qrBitmap = com.khanabook.lite.pos.domain.manager.QrCodeManager.generateUpiQr(
-                    profile.upiHandle ?: "", 
-                    profile.shopName ?: "RESTAURANT", 
-                    amount, 
-                    256
-                )
-                qrBitmap?.let {
-                    add(ALIGN_CENTER)
-                    add("\n")
-                    add(decodeBitmapToESC_POS(it, 256))
-                    add("\nSCAN TO PAY\n")
-                    it.recycle()
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error printing UPI QR", e)
-            }
-        }
 
         if (profile?.reviewUrl?.isNotBlank() == true) {
             try {
@@ -266,10 +245,6 @@ object InvoiceFormatter {
         // 7. Footer
         add(ALIGN_CENTER)
         add("${profile?.invoiceFooter?.takeIf { it.isNotBlank() } ?: "Thank you! Visit again."}\n")
-        profile?.reviewUrl?.takeIf { it.isNotBlank() }?.let { reviewUrl ->
-            add("Review us on Google\n")
-            wrapText(reviewUrl, width).forEach { add("$leftPad$it\n") }
-        }
         if (profile?.showBranding != false) {
             add(BOLD_ON)
             add("Powered by KhanaBook\n")

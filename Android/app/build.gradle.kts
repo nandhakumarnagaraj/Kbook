@@ -79,6 +79,7 @@ java {
 android {
     namespace = "com.khanabook.lite.pos"
     compileSdk = 35
+    ndkVersion = "26.1.10909125"
 
     defaultConfig {
         applicationId = "com.piquantservices.khanabooklite"
@@ -130,11 +131,17 @@ android {
     }
     packaging {
         jniLibs {
-            useLegacyPackaging = true
+            useLegacyPackaging = false
         }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        force("net.zetetic:sqlcipher-android:4.6.1")
     }
 }
 
@@ -232,6 +239,7 @@ dependencies {
     // Security
     implementation("org.mindrot:jbcrypt:0.4")
     implementation(libs.sqlcipher)
+    implementation("androidx.sqlite:sqlite:2.4.0")
     implementation(libs.androidx.sqlite.ktx)
     implementation("androidx.security:security-crypto:1.1.0")
     implementation("androidx.biometric:biometric:1.1.0")
