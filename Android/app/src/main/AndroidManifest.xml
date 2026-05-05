@@ -21,7 +21,6 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
-        android:extractNativeLibs="false"
         android:name="com.khanabook.lite.pos.KhanaBookApplication"
         android:allowBackup="false"
         android:largeHeap="true"

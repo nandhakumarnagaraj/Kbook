@@ -22,10 +22,11 @@ class KhanaBookApplication : Application(), Configuration.Provider {
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
     override fun onCreate() {
-        super.onCreate()
-
-        // Load SQLCipher native library for 16KB page support and modern architecture
+        // Load SQLCipher native library BEFORE super.onCreate() since Hilt injection
+        // opens the database during super.onCreate() and needs native libs available
         System.loadLibrary("sqlcipher")
+
+        super.onCreate()
 
         GlobalCrashHandler.initialize(this)
         AppAssetStore.initialize(this)
