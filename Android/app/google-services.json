@@ -22,14 +22,6 @@
           }
         },
         {
-          "client_id": "836086274000-jfsj0nbpk0v9a0qgsd5svijpvr3qm6rp.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.piquantservices.khanabooklite",
-            "certificate_hash": "9e0fcab6ebe22f6168483133ee21791bbdfcca6f"
-          }
-        },
-        {
           "client_id": "836086274000-q9vpsq3ljrr69i2i50egpg1s8vf7l62v.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
@@ -38,7 +30,7 @@
           }
         },
         {
-          "client_id": "836086274000-v4886cs6es07v3p23b0urohcnn8qvdoo.apps.googleusercontent.com",
+          "client_id": "836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
