@@ -144,9 +144,6 @@ export class SidebarLayoutComponent {
       { label: 'Menu', path: '/business/menu' },
       { label: 'Staff', path: '/business/staff' }
     ];
-    if (role === 'OWNER') {
-      links.push({ label: 'Payment Settings', path: '/business/payment-settings' });
-    }
     return links;
   });
 

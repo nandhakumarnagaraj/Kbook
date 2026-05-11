@@ -52,8 +52,7 @@ class BillServiceImplTest {
             billRepository,
             menuItemRepository,
             itemVariantRepository,
-            categoryRepository,
-            mock(com.khanabook.saas.payment.repository.PaymentRepository.class)
+            categoryRepository
         );
         billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository);
     }

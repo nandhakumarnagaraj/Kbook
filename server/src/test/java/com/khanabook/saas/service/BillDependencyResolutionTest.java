@@ -44,8 +44,7 @@ class BillDependencyResolutionTest {
                 billRepo,
                 menuItemRepo,
                 itemVariantRepo,
-                categoryRepo,
-                mock(com.khanabook.saas.payment.repository.PaymentRepository.class)
+                categoryRepo
         );
         billItemService = new BillItemServiceImpl(billItemRepo, billRepo, menuItemRepo, itemVariantRepo, gs);
         billPaymentService = new BillPaymentServiceImpl(billPaymentRepo, billRepo, gs);

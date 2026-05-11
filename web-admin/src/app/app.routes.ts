@@ -8,7 +8,6 @@ import { OrdersPageComponent } from './pages/orders/orders-page.component';
 import { MenuPageComponent } from './pages/menu/menu-page.component';
 import { StaffPageComponent } from './pages/staff/staff-page.component';
 import { LimitedAccessPageComponent } from './pages/limited-access/limited-access-page.component';
-import { PaymentSettingsPageComponent } from './pages/payment-settings/payment-settings-page.component';
 import { authGuard, roleGuard } from './core/auth/role.guard';
 
 export const routes: Routes = [
@@ -52,12 +51,6 @@ export const routes: Routes = [
       {
         path: 'business/staff',
         component: StaffPageComponent,
-        canActivate: [roleGuard],
-        data: { roles: ['OWNER'] }
-      },
-      {
-        path: 'business/payment-settings',
-        component: PaymentSettingsPageComponent,
         canActivate: [roleGuard],
         data: { roles: ['OWNER'] }
       },

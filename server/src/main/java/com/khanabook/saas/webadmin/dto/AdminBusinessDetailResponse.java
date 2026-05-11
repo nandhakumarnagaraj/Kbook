@@ -21,7 +21,6 @@ public record AdminBusinessDetailResponse(
         long staffCount,
         long menuCount,
         long posOrderCount,
-        long onlineOrderCount,
         BigDecimal totalRevenue,
         Long createdAt,
         Long updatedAt

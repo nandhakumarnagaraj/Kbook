@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { AdminBusinessDetail, AdminBusinessListItem, AdminDashboardSummary, PaymentConfig } from '../models/api.models';
+import { AdminBusinessDetail, AdminBusinessListItem, AdminDashboardSummary } from '../models/api.models';
 import { environment } from '../../../environments/environment';
 
 const API_BASE_URL = environment.apiBaseUrl;
@@ -21,9 +21,4 @@ export class AdminApiService {
     return this.http.get<AdminBusinessDetail>(`${API_BASE_URL}/admin/businesses/${restaurantId}`);
   }
 
-  getBusinessPaymentConfig(restaurantId: number) {
-    return this.http.get<PaymentConfig>(
-      `${API_BASE_URL}/restaurants/payment-config/easebuzz?restaurantId=${restaurantId}`
-    );
-  }
 }

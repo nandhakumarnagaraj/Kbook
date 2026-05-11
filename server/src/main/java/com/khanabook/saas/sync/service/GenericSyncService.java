@@ -1,7 +1,6 @@
 package com.khanabook.saas.sync.service;
 
 import com.khanabook.saas.entity.*;
-import com.khanabook.saas.payment.repository.PaymentRepository;
 import com.khanabook.saas.repository.*;
 import com.khanabook.saas.entity.AuthProvider;
 import com.khanabook.saas.entity.RestaurantProfile;
@@ -28,7 +27,6 @@ public class GenericSyncService {
 	private final MenuItemRepository menuItemRepository;
 	private final ItemVariantRepository itemVariantRepository;
 	private final CategoryRepository categoryRepository;
-	private final PaymentRepository paymentRepository;
 
 	private User findExistingUserByIdentity(Long tenantId, User incomingUser,
 			com.khanabook.saas.repository.UserRepository userRepository) {
@@ -275,7 +273,7 @@ public class GenericSyncService {
 					}
 
 					if (existingRecord != null) {
-						if (incomingRecord.getUpdatedAt() > existingRecord.getUpdatedAt()) {
+						if (incomingRecord.getUpdatedAt() >= existingRecord.getUpdatedAt()) {
 
 								if (incomingRecord instanceof User user && existingRecord instanceof User existingUser) {
 									if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
@@ -413,26 +411,14 @@ public class GenericSyncService {
 	}
 
 	private boolean hasBackendGatewayPayment(Long tenantId, Long billId) {
-		return paymentRepository.findTopByRestaurantIdAndBillIdOrderByCreatedAtDesc(tenantId, billId).isPresent();
+		return false;
 	}
 
 	private boolean isGatewayOwnedBillPaymentSync(Long tenantId, BillPayment billPayment) {
-		String txnId = billPayment.getGatewayTxnId();
-		if (txnId == null || txnId.isBlank()) {
-			return false;
-		}
-		if (!"easebuzz".equalsIgnoreCase(billPayment.getVerifiedBy())) {
-			return false;
-		}
-		return paymentRepository.findByRestaurantIdAndGatewayTxnId(tenantId, txnId).isPresent();
+		return false;
 	}
 
 	private void preserveGatewayOwnedBillState(Bill incoming, Bill existing) {
-		incoming.setPaymentStatus(existing.getPaymentStatus());
-		incoming.setOrderStatus(existing.getOrderStatus());
-		incoming.setPaidAt(existing.getPaidAt());
-		incoming.setCancelReason(existing.getCancelReason());
-		incoming.setRefundAmount(existing.getRefundAmount());
 	}
 
 	private void mergeCounterState(RestaurantProfile incoming, RestaurantProfile existing) {

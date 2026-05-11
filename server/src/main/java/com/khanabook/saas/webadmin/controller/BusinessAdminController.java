@@ -5,8 +5,6 @@ import com.khanabook.saas.webadmin.dto.BusinessDashboardResponse;
 import com.khanabook.saas.webadmin.dto.BusinessMenuListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessOrderListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessStaffListItemResponse;
-import com.khanabook.saas.webadmin.dto.RefundBillRequest;
-import com.khanabook.saas.payment.service.EasebuzzPaymentService;
 import com.khanabook.saas.webadmin.service.BusinessReadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +18,6 @@ import java.util.List;
 public class BusinessAdminController {
 
     private final BusinessReadService businessReadService;
-    private final EasebuzzPaymentService paymentService;
 
     @GetMapping("/dashboard")
     public ResponseEntity<BusinessDashboardResponse> getDashboard() {
@@ -45,22 +42,8 @@ public class BusinessAdminController {
     @PostMapping("/bills/{billId}/manual-refund")
     public ResponseEntity<BusinessOrderListItemResponse> manualRefundBill(
             @PathVariable Long billId,
-            @RequestBody RefundBillRequest request) {
-        paymentService.markManualRefund(requireTenant(), billId, request.refundAmount(), request.reason());
-        return ResponseEntity.ok(businessReadService.getPosOrder(requireTenant(), billId));
-    }
-
-    @PostMapping("/bills/{billId}/gateway-refund")
-    public ResponseEntity<BusinessOrderListItemResponse> gatewayRefundBill(
-            @PathVariable Long billId,
-            @RequestBody RefundBillRequest request) {
-        paymentService.initiateGatewayRefund(requireTenant(), billId, request.refundAmount(), request.reason());
-        return ResponseEntity.ok(businessReadService.getPosOrder(requireTenant(), billId));
-    }
-
-    @PostMapping("/bills/{billId}/gateway-refund/refresh")
-    public ResponseEntity<BusinessOrderListItemResponse> refreshGatewayRefundStatus(@PathVariable Long billId) {
-        paymentService.refreshRefundStatus(requireTenant(), billId);
+            @RequestBody com.khanabook.saas.webadmin.dto.RefundBillRequest request) {
+        businessReadService.markManualRefund(requireTenant(), billId, request.refundAmount(), request.reason());
         return ResponseEntity.ok(businessReadService.getPosOrder(requireTenant(), billId));
     }
 

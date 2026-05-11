@@ -60,7 +60,7 @@ import { formatCurrency } from '../../shared/formatters';
           <div class="suggestion-grid">
             <article class="suggestion-card">
               <h3>Audit Low Activity Stores</h3>
-              <p>Compare live storefronts against total businesses and review stores that are configured but not active.</p>
+              <p>Review stores that are configured but not active.</p>
               <span class="chip warn">Good weekly check</span>
             </article>
             <article class="suggestion-card">

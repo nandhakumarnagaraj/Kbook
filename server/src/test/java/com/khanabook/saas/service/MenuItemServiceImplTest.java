@@ -47,8 +47,7 @@ class MenuItemServiceImplTest {
             billRepository,
             menuItemRepo,
             itemVariantRepository,
-            categoryRepo,
-            mock(com.khanabook.saas.payment.repository.PaymentRepository.class)
+            categoryRepo
         );
         service = new MenuItemServiceImpl(menuItemRepo, categoryRepo, genericSyncService);
     }

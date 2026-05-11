@@ -40,18 +40,6 @@ public class SecurityConfig {
 	CorsConfigurationSource corsConfigurationSource() {
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
-		// Easebuzz return pages are loaded by the customer's WebView after checkout.
-		// Easebuzz can hit these return URLs as GET or POST depending on the flow.
-		// The customer's WebView/browser arrives cross-origin from Easebuzz (or with
-		// Origin: null on some redirects), so keep this rule isolated to the two
-		// public return pages and allow the minimal method/header set needed there.
-		CorsConfiguration returnPageConfig = new CorsConfiguration();
-		returnPageConfig.addAllowedOriginPattern("*");
-		returnPageConfig.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
-		returnPageConfig.setAllowedHeaders(List.of("*"));
-		returnPageConfig.setAllowCredentials(false);
-		source.registerCorsConfiguration("/payments/easebuzz/return/**", returnPageConfig);
-
 		// Global config for all other endpoints.
 		CorsConfiguration config = new CorsConfiguration();
 		List<String> origins = (allowedOriginsRaw == null || allowedOriginsRaw.isBlank())
@@ -130,15 +118,7 @@ public class SecurityConfig {
 								"/public/**",
 								"/error")
 						.permitAll()
-						// Easebuzz webhook — called by Easebuzz with no JWT; we authenticate
-						// it ourselves via reverse-hash check using the merchant salt.
-						// Return pages are loaded by the customer's WebView after checkout —
-						// no auth, just a static "returning to app" page (intercepted by app).
-						.requestMatchers("/payments/easebuzz/webhook",
-								"/payments/easebuzz/refund/webhook",
-								"/payments/easebuzz/return/success",
-								"/payments/easebuzz/return/failure")
-						.permitAll()
+
 						// API docs require authenticated admin access
 						.requestMatchers("/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
 						.hasRole("KBOOK_ADMIN")
@@ -149,9 +129,7 @@ public class SecurityConfig {
 						.hasRole("KBOOK_ADMIN")
 						.requestMatchers("/admin/**").hasRole("KBOOK_ADMIN")
 						.requestMatchers("/business/**").hasRole("OWNER")
-						.requestMatchers("/storefront/**").hasRole("OWNER")
 						.requestMatchers("/sync/**").hasAnyRole("OWNER", "KBOOK_ADMIN")
-						.requestMatchers("/restaurants/payment-config/**").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.requestMatchers("/restaurants/logo").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.anyRequest().authenticated())
 

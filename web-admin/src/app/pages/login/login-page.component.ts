@@ -16,7 +16,7 @@ declare const google: any;
         <div class="login-copy">
           <span class="eyebrow">KhanaBook</span>
           <h1>Web Admin</h1>
-          <p class="muted">Sign in to manage storefront operations, menu data, team access, and payments from one place.</p>
+          <p class="muted">Sign in to manage menu data, team access, and orders from one place.</p>
           <div class="hero-meta">
             <span class="chip">Fast Access</span>
             <span class="chip success">Business Control</span>

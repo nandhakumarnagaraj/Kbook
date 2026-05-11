@@ -7,7 +7,6 @@ import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
-import com.khanabook.saas.storefront.repository.CustomerOrderRepository;
 import com.khanabook.saas.webadmin.dto.AdminBusinessDetailResponse;
 import com.khanabook.saas.webadmin.dto.AdminBusinessListItemResponse;
 import com.khanabook.saas.webadmin.dto.AdminDashboardSummaryResponse;
@@ -30,7 +29,6 @@ public class AdminReadService {
     private final UserRepository userRepository;
     private final MenuItemRepository menuItemRepository;
     private final BillRepository billRepository;
-    private final CustomerOrderRepository customerOrderRepository;
 
     @Transactional(readOnly = true)
     public AdminDashboardSummaryResponse getDashboardSummary() {
@@ -38,9 +36,7 @@ public class AdminReadService {
         long liveBusinesses    = restaurantProfileRepository.countByIsDeletedFalseAndOwnWebsiteEnabledTrue();
         long totalStaff        = userRepository.countByIsDeletedFalse();
         long totalBillOrders   = billRepository.countByIsDeletedFalse();
-        long totalSfOrders     = customerOrderRepository.count();
         BigDecimal billRev     = nullSafe(billRepository.sumCompletedRevenue());
-        BigDecimal sfRev       = nullSafe(customerOrderRepository.sumCompletedRevenue());
         long refundedOrders    = billRepository.countRefundedBills();
         BigDecimal refundedAmt = nullSafe(billRepository.sumRefundAmount());
 
@@ -48,8 +44,8 @@ public class AdminReadService {
                 .totalBusinesses(totalBusinesses)
                 .liveBusinesses(liveBusinesses)
                 .totalStaff(totalStaff)
-                .totalOrders(totalBillOrders + totalSfOrders)
-                .totalRevenue(billRev.add(sfRev))
+                .totalOrders(totalBillOrders)
+                .totalRevenue(billRev)
                 .refundedOrders(refundedOrders)
                 .refundedAmount(refundedAmt)
                 .build();
@@ -82,16 +78,10 @@ public class AdminReadService {
                         row -> (Long) row[0],
                         row -> (Long) row[1]));
 
-        Map<Long, Long> sfCount = customerOrderRepository.countGroupedByRestaurant().stream()
-                .collect(Collectors.toMap(
-                        row -> (Long) row[0],
-                        row -> (Long) row[1]));
-
         return profiles.stream()
                 .map(profile -> {
                     User owner = ownerByRestaurant.get(profile.getRestaurantId());
-                    long orders = billCount.getOrDefault(profile.getRestaurantId(), 0L)
-                            + sfCount.getOrDefault(profile.getRestaurantId(), 0L);
+                    long orders = billCount.getOrDefault(profile.getRestaurantId(), 0L);
                     return AdminBusinessListItemResponse.builder()
                             .restaurantId(profile.getRestaurantId())
                             .shopName(profile.getShopName())
@@ -123,9 +113,7 @@ public class AdminReadService {
 
         long menuCount     = menuItemRepository.countByRestaurantIdAndIsDeletedFalse(restaurantId);
         long posOrders     = billRepository.countByRestaurantIdAndIsDeletedFalse(restaurantId);
-        long onlineOrders  = customerOrderRepository.countByRestaurantId(restaurantId);
         BigDecimal billRev = nullSafe(billRepository.sumCompletedRevenueByRestaurant(restaurantId));
-        BigDecimal sfRev   = nullSafe(customerOrderRepository.sumCompletedRevenueByRestaurant(restaurantId));
 
         return AdminBusinessDetailResponse.builder()
                 .restaurantId(profile.getRestaurantId())
@@ -143,8 +131,7 @@ public class AdminReadService {
                 .staffCount(users.size())
                 .menuCount(menuCount)
                 .posOrderCount(posOrders)
-                .onlineOrderCount(onlineOrders)
-                .totalRevenue(billRev.add(sfRev))
+                .totalRevenue(billRev)
                 .createdAt(profile.getCreatedAt())
                 .updatedAt(profile.getUpdatedAt())
                 .build();

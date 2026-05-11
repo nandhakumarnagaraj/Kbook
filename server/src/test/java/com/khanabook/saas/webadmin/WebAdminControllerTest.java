@@ -13,8 +13,6 @@ import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
-import com.khanabook.saas.storefront.entity.CustomerOrder;
-import com.khanabook.saas.storefront.repository.CustomerOrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,14 +39,12 @@ class WebAdminControllerTest extends BaseIntegrationTest {
     @Autowired private CategoryRepository categoryRepository;
     @Autowired private ItemVariantRepository itemVariantRepository;
     @Autowired private BillRepository billRepository;
-    @Autowired private CustomerOrderRepository customerOrderRepository;
 
     @BeforeEach
     void seedData() {
         itemVariantRepository.deleteAll();
         menuItemRepository.deleteAll();
         categoryRepository.deleteAll();
-        customerOrderRepository.deleteAll();
         billRepository.deleteAll();
         userRepository.deleteAll();
         restaurantProfileRepository.deleteAll();
@@ -140,7 +136,7 @@ class WebAdminControllerTest extends BaseIntegrationTest {
         pendingPosBill.setOrderType("DINE_IN");
         pendingPosBill.setSubtotal(new BigDecimal("120.00"));
         pendingPosBill.setTotalAmount(new BigDecimal("120.00"));
-        pendingPosBill.setPaymentMode("easebuzz");
+        pendingPosBill.setPaymentMode("cash");
         pendingPosBill.setPaymentStatus("pending");
         pendingPosBill.setOrderStatus("draft");
         pendingPosBill.setLastResetDate("2026-04-26");
@@ -148,24 +144,6 @@ class WebAdminControllerTest extends BaseIntegrationTest {
         pendingPosBill.setUpdatedAt(now + 2);
         pendingPosBill.setServerUpdatedAt(now + 2);
         billRepository.save(pendingPosBill);
-
-        CustomerOrder customerOrder = new CustomerOrder();
-        customerOrder.setRestaurantId(RESTAURANT_ID);
-        customerOrder.setPublicOrderCode("KB9201-ORDER1");
-        customerOrder.setTrackingToken("track-alpha");
-        customerOrder.setCustomerName("Asha");
-        customerOrder.setCustomerPhone("8888888888");
-        customerOrder.setFulfillmentType("DELIVERY");
-        customerOrder.setOrderStatus("PENDING_CONFIRMATION");
-        customerOrder.setPaymentStatus("PENDING");
-        customerOrder.setPaymentMethod("ONLINE");
-        customerOrder.setSourceChannel("B2C_WEB");
-        customerOrder.setCurrency("INR");
-        customerOrder.setSubtotal(new BigDecimal("220.00"));
-        customerOrder.setTotalAmount(new BigDecimal("220.00"));
-        customerOrder.setCreatedAt(now + 5);
-        customerOrder.setUpdatedAt(now + 5);
-        customerOrderRepository.save(customerOrder);
     }
 
     @Test
@@ -192,7 +170,7 @@ class WebAdminControllerTest extends BaseIntegrationTest {
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalBusinesses").value(2))
-                .andExpect(jsonPath("$.totalOrders").value(3));
+                .andExpect(jsonPath("$.totalOrders").value(2));
 
         mockMvc.perform(get("/admin/businesses")
                         .header("Authorization", "Bearer " + token))
@@ -203,7 +181,7 @@ class WebAdminControllerTest extends BaseIntegrationTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.shopName").value("Alpha Foods"))
-                .andExpect(jsonPath("$.onlineOrderCount").value(1));
+                .andExpect(jsonPath("$.posOrderCount").value(2));
     }
 
     @Test
@@ -214,7 +192,6 @@ class WebAdminControllerTest extends BaseIntegrationTest {
                         .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.shopName").value("Alpha Foods"))
-                .andExpect(jsonPath("$.onlineOrderCount").value(1))
                 .andExpect(jsonPath("$.pendingPosPayments").value(1));
 
         mockMvc.perform(get("/business/orders")

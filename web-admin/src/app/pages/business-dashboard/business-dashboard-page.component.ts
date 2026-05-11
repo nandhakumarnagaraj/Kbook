@@ -43,14 +43,6 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <strong>{{ data.posOrderCount }}</strong>
         </article>
         <article class="panel stat-card">
-          <h3>Online Orders</h3>
-          <strong>{{ data.onlineOrderCount }}</strong>
-        </article>
-        <article class="panel stat-card">
-          <h3>Pending Online</h3>
-          <strong>{{ data.pendingOnlineOrders }}</strong>
-        </article>
-        <article class="panel stat-card">
           <h3>Pending POS Pay</h3>
           <strong>{{ data.pendingPosPayments }}</strong>
         </article>
@@ -66,12 +58,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             </div>
           </div>
           <div class="suggestion-grid">
-            <article class="suggestion-card">
-              <h3>Review Pending Online Orders</h3>
-              <p>Use the orders page to clear pending online requests quickly so storefront customers do not stall at confirmation.</p>
-              <span class="chip warn">{{ data.pendingOnlineOrders }} pending</span>
-            </article>
-            <article class="suggestion-card">
+              <article class="suggestion-card">
               <h3>Resume Pending POS Payments</h3>
               <p>Draft POS bills with pending payments should be resumed or cancelled before starting new gateway attempts.</p>
               <span class="chip warn">{{ data.pendingPosPayments }} pending</span>
@@ -94,7 +81,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         <div class="section-head">
           <div>
             <h3>Recent Orders</h3>
-            <p class="muted">Latest POS and storefront activity.</p>
+            <p class="muted">Latest POS activity.</p>
           </div>
         </div>
 

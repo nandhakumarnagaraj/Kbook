@@ -4,20 +4,12 @@ import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.User;
-import com.khanabook.saas.payment.entity.Payment;
-import com.khanabook.saas.payment.entity.PaymentGateway;
-import com.khanabook.saas.payment.entity.PaymentStatus;
-import com.khanabook.saas.payment.entity.RefundMode;
-import com.khanabook.saas.payment.entity.RefundStatus;
-import com.khanabook.saas.payment.repository.PaymentRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
-import com.khanabook.saas.storefront.entity.CustomerOrder;
-import com.khanabook.saas.storefront.repository.CustomerOrderRepository;
 import com.khanabook.saas.webadmin.dto.BusinessDashboardResponse;
 import com.khanabook.saas.webadmin.dto.BusinessMenuListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessOrderListItemResponse;
@@ -45,8 +37,6 @@ public class BusinessReadService {
     private final ItemVariantRepository itemVariantRepository;
     private final CategoryRepository categoryRepository;
     private final BillRepository billRepository;
-    private final PaymentRepository paymentRepository;
-    private final CustomerOrderRepository customerOrderRepository;
 
     @Transactional(readOnly = true)
     public BusinessDashboardResponse getDashboard(Long restaurantId) {
@@ -57,8 +47,6 @@ public class BusinessReadService {
         List<User> staff = getBusinessUsers(restaurantId);
         List<MenuItem> menuItems = getBusinessMenuItems(restaurantId);
         List<Bill> bills = getBusinessBills(restaurantId);
-        Map<Long, Payment> latestPaymentByBillId = getLatestPaymentsByBillId(restaurantId, bills);
-        List<CustomerOrder> storefrontOrders = customerOrderRepository.findByRestaurantIdOrderByCreatedAtDescIdDesc(restaurantId);
 
         ZoneId zoneId = ZoneId.of("Asia/Kolkata");
         LocalDate today = LocalDate.now(zoneId);
@@ -68,32 +56,22 @@ public class BusinessReadService {
                 .filter(bill -> isRevenueBillStatus(bill.getOrderStatus(), bill.getPaymentStatus()))
                 .map(bill -> safeAmount(bill.getTotalAmount()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal storefrontRevenue = storefrontOrders.stream()
-                .filter(order -> isCompletedStorefrontOrder(order.getOrderStatus(), order.getPaymentStatus()))
-                .map(order -> safeAmount(order.getTotalAmount()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal todayBillRevenue = bills.stream()
                 .filter(bill -> bill.getCreatedAt() != null && bill.getCreatedAt() >= startOfToday)
                 .filter(bill -> isRevenueBillStatus(bill.getOrderStatus(), bill.getPaymentStatus()))
                 .map(bill -> safeAmount(bill.getTotalAmount()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal todayStorefrontRevenue = storefrontOrders.stream()
-                .filter(order -> order.getCreatedAt() != null && order.getCreatedAt() >= startOfToday)
-                .filter(order -> isCompletedStorefrontOrder(order.getOrderStatus(), order.getPaymentStatus()))
-                .map(order -> safeAmount(order.getTotalAmount()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         long refundedOrders = bills.stream()
-                .filter(bill -> isRefundedBill(bill, latestPaymentByBillId.get(bill.getId())))
+                .filter(bill -> isRefundedBill(bill))
                 .count();
         BigDecimal refundedAmount = bills.stream()
-                .filter(bill -> isRefundedBill(bill, latestPaymentByBillId.get(bill.getId())))
-                .map(bill -> safeAmount(latestPaymentByBillId.get(bill.getId()) != null
-                        ? latestPaymentByBillId.get(bill.getId()).getRefundAmount()
-                        : bill.getRefundAmount()))
+                .filter(bill -> isRefundedBill(bill))
+                .map(bill -> safeAmount(bill.getRefundAmount()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        List<BusinessOrderListItemResponse> recentOrders = buildOrders(restaurantId, bills, latestPaymentByBillId).stream()
+        List<BusinessOrderListItemResponse> recentOrders = buildOrders(bills).stream()
                 .sorted(Comparator.comparing(BusinessOrderListItemResponse::createdAt, Comparator.nullsLast(Long::compareTo)).reversed())
                 .limit(8)
                 .toList();
@@ -104,15 +82,11 @@ public class BusinessReadService {
                 .totalStaff(staff.size())
                 .totalMenuItems(menuItems.size())
                 .posOrderCount(bills.size())
-                .onlineOrderCount(storefrontOrders.size())
-                .pendingOnlineOrders(storefrontOrders.stream()
-                        .filter(order -> "PENDING_CONFIRMATION".equalsIgnoreCase(order.getOrderStatus()))
-                        .count())
                 .pendingPosPayments(bills.stream()
                         .filter(this::isPendingPosPayment)
                         .count())
-                .totalRevenue(billRevenue.add(storefrontRevenue))
-                .todayRevenue(todayBillRevenue.add(todayStorefrontRevenue))
+                .totalRevenue(billRevenue)
+                .todayRevenue(todayBillRevenue)
                 .refundedOrders(refundedOrders)
                 .refundedAmount(refundedAmount)
                 .recentOrders(recentOrders)
@@ -122,7 +96,7 @@ public class BusinessReadService {
     @Transactional(readOnly = true)
     public List<BusinessOrderListItemResponse> getOrders(Long restaurantId) {
         List<Bill> bills = getBusinessBills(restaurantId);
-        return buildOrders(restaurantId, bills, getLatestPaymentsByBillId(restaurantId, bills)).stream()
+        return buildOrders(bills).stream()
                 .sorted(Comparator.comparing(BusinessOrderListItemResponse::createdAt, Comparator.nullsLast(Long::compareTo)).reversed())
                 .toList();
     }
@@ -177,38 +151,25 @@ public class BusinessReadService {
         Bill bill = billRepository.findById(billId)
                 .filter(existing -> existing.getRestaurantId().equals(restaurantId))
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
-        Payment latestPayment = getLatestPaymentsByBillId(restaurantId, List.of(bill)).get(bill.getId());
-        return toBillOrderResponse(bill, latestPayment);
+        return toBillOrderResponse(bill);
     }
 
-    private List<BusinessOrderListItemResponse> buildOrders(Long restaurantId, List<Bill> bills, Map<Long, Payment> latestPaymentByBillId) {
-        List<BusinessOrderListItemResponse> posOrders = bills.stream()
-                .map(bill -> toBillOrderResponse(bill, latestPaymentByBillId.get(bill.getId())))
-                .toList();
+    @Transactional
+    public void markManualRefund(Long restaurantId, Long billId, BigDecimal refundAmount, String reason) {
+        Bill bill = billRepository.findById(billId)
+                .filter(existing -> existing.getRestaurantId().equals(restaurantId))
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+        bill.setRefundAmount(refundAmount);
+        bill.setCancelReason(reason);
+        bill.setOrderStatus("cancelled");
+        bill.setPaymentStatus("refunded");
+        billRepository.save(bill);
+    }
 
-        List<BusinessOrderListItemResponse> onlineOrders = customerOrderRepository.findByRestaurantIdOrderByCreatedAtDescIdDesc(restaurantId).stream()
-                .map(order -> BusinessOrderListItemResponse.builder()
-                        .sourceType("ONLINE")
-                        .orderId(order.getId())
-                        .orderCode(order.getPublicOrderCode())
-                        .customerName(order.getCustomerName())
-                        .customerContact(order.getCustomerPhone())
-                        .orderStatus(normalizeLabel(order.getOrderStatus()))
-                        .paymentStatus(normalizeLabel(order.getPaymentStatus()))
-                        .paymentMethod(normalizeLabel(order.getPaymentMethod()))
-                        .totalAmount(safeAmount(order.getTotalAmount()))
-                        .gatewayPaidAmount(null)
-                        .refundAmount(null)
-                        .refundStatus("Not refunded")
-                        .refundMode(null)
-                        .cancelReason(null)
-                        .manualRefundAllowed(false)
-                        .gatewayRefundAllowed(false)
-                        .createdAt(order.getCreatedAt())
-                        .build())
+    private List<BusinessOrderListItemResponse> buildOrders(List<Bill> bills) {
+        return bills.stream()
+                .map(bill -> toBillOrderResponse(bill))
                 .toList();
-
-        return java.util.stream.Stream.concat(posOrders.stream(), onlineOrders.stream()).toList();
     }
 
     private List<User> getBusinessUsers(Long restaurantId) {
@@ -237,24 +198,13 @@ public class BusinessReadService {
                 && "pending".equalsIgnoreCase(bill.getPaymentStatus());
     }
 
-    private boolean isRefundedBill(Bill bill, Payment payment) {
-        if (payment != null && payment.getRefundStatus() == RefundStatus.SUCCESS) {
-            return payment.getRefundAmount() != null && payment.getRefundAmount().compareTo(BigDecimal.ZERO) > 0;
-        }
+    private boolean isRefundedBill(Bill bill) {
         return bill.getRefundAmount() != null
                 && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0
                 && "refunded".equalsIgnoreCase(bill.getPaymentStatus());
     }
 
-    private boolean isCompletedStorefrontOrder(String orderStatus, String paymentStatus) {
-        return "COMPLETED".equalsIgnoreCase(orderStatus)
-                || "SUCCESS".equalsIgnoreCase(paymentStatus)
-                || "PAID".equalsIgnoreCase(paymentStatus);
-    }
-
-    private BusinessOrderListItemResponse toBillOrderResponse(Bill bill, Payment payment) {
-        RefundStatus refundStatus = effectiveRefundStatus(bill, payment);
-        RefundMode refundMode = payment != null ? payment.getRefundMode() : null;
+    private BusinessOrderListItemResponse toBillOrderResponse(Bill bill) {
         return BusinessOrderListItemResponse.builder()
                 .sourceType("POS")
                 .orderId(bill.getId())
@@ -267,86 +217,30 @@ public class BusinessReadService {
                 .paymentStatus(normalizeLabel(bill.getPaymentStatus()))
                 .paymentMethod(normalizeLabel(bill.getPaymentMode()))
                 .totalAmount(safeAmount(bill.getTotalAmount()))
-                .gatewayPaidAmount(payment != null ? safeAmount(payment.getAmount()) : null)
-                .refundAmount(payment != null && payment.getRefundAmount() != null ? payment.getRefundAmount() : bill.getRefundAmount())
-                .refundStatus(normalizeLabel(refundStatus.name()))
-                .refundMode(refundMode == null ? null : normalizeLabel(refundMode.name()))
+                .gatewayPaidAmount(null)
+                .refundAmount(bill.getRefundAmount())
+                .refundStatus(bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0
+                        ? "Refunded" : "Not refunded")
+                .refundMode(null)
                 .cancelReason(bill.getCancelReason())
-                .manualRefundAllowed(canManualRefund(bill, payment))
-                .gatewayRefundAllowed(canGatewayRefund(bill, payment))
+                .manualRefundAllowed(canManualRefund(bill))
+                .gatewayRefundAllowed(false)
                 .createdAt(bill.getCreatedAt())
                 .build();
     }
 
-    private Map<Long, Payment> getLatestPaymentsByBillId(Long restaurantId, List<Bill> bills) {
-        if (bills.isEmpty()) {
-            return Map.of();
-        }
-        List<Long> billIds = bills.stream().map(Bill::getId).toList();
-        return paymentRepository.findByRestaurantIdAndBillIdIn(restaurantId, billIds).stream()
-                .collect(Collectors.toMap(
-                        Payment::getBillId,
-                        payment -> payment,
-                        (left, right) -> left.getCreatedAt() >= right.getCreatedAt() ? left : right
-                ));
-    }
-
-    private RefundStatus effectiveRefundStatus(Bill bill, Payment payment) {
-        if (payment != null && payment.getRefundStatus() != null) {
-            return payment.getRefundStatus();
-        }
-        if (bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
-            return "refunded".equalsIgnoreCase(bill.getPaymentStatus()) ? RefundStatus.SUCCESS : RefundStatus.PENDING;
-        }
-        return RefundStatus.NOT_REFUNDED;
-    }
-
-    private boolean canManualRefund(Bill bill, Payment payment) {
+    private boolean canManualRefund(Bill bill) {
         if (!isRefundableOrderStatus(bill.getOrderStatus()) || !"success".equalsIgnoreCase(bill.getPaymentStatus())) {
             return false;
         }
         if (bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
             return false;
         }
-        if (isEasebuzzBill(bill) || isEasebuzzPayment(payment)) {
-            return false;
-        }
-        return payment == null || payment.getRefundStatus() == null
-                || payment.getRefundStatus() == RefundStatus.NOT_REFUNDED
-                || payment.getRefundStatus() == RefundStatus.FAILED;
-    }
-
-    private boolean canGatewayRefund(Bill bill, Payment payment) {
-        if (!isRefundableOrderStatus(bill.getOrderStatus()) || !"success".equalsIgnoreCase(bill.getPaymentStatus())) {
-            return false;
-        }
-        if (bill.getRefundAmount() != null && bill.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
-            return false;
-        }
-        if (payment == null || payment.getPaymentStatus() != PaymentStatus.SUCCESS) {
-            return false;
-        }
-        if (payment.getRefundStatus() == RefundStatus.PENDING || payment.getRefundStatus() == RefundStatus.SUCCESS) {
-            return false;
-        }
-        return isEasebuzzPayment(payment)
-                && !payment.getGatewayPaymentId().isBlank();
+        return true;
     }
 
     private boolean isRefundableOrderStatus(String orderStatus) {
         return "completed".equalsIgnoreCase(orderStatus) || "cancelled".equalsIgnoreCase(orderStatus);
-    }
-
-    private boolean isEasebuzzPayment(Payment payment) {
-        return payment != null
-                && payment.getGateway() == PaymentGateway.EASEBUZZ
-                && payment.getGatewayPaymentId() != null
-                && !payment.getGatewayPaymentId().isBlank();
-    }
-
-    private boolean isEasebuzzBill(Bill bill) {
-        return bill.getPaymentMode() != null
-                && bill.getPaymentMode().toLowerCase(Locale.ROOT).contains("easebuzz");
     }
 
     private BigDecimal safeAmount(BigDecimal amount) {
