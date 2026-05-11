@@ -108,4 +108,24 @@ interface KhanaBookApi {
                 @Path("orderId") orderId: Long,
                 @Body request: UpdateCustomerOrderStatusRequest
         ): MerchantCustomerOrderDetailResponse
+
+        // ── Easebuzz Payments ────────────────────────────────────────────────
+        @POST("api/v1/payments/easebuzz/order")
+        suspend fun createEasebuzzOrder(
+            @Query("deviceId") deviceId: String,
+            @Body request: CreateEasebuzzOrderRequest
+        ): CreateEasebuzzOrderResponse
+
+        @GET("api/v1/payments/easebuzz/status")
+        suspend fun getEasebuzzPaymentStatus(
+            @Query("deviceId") deviceId: String,
+            @Query("billId") billId: Long,
+            @Query("refresh") refresh: Boolean = false
+        ): EasebuzzPaymentStatusResponse
+
+        @POST("api/v1/payments/easebuzz/verify")
+        suspend fun verifyEasebuzzPayment(
+            @Query("deviceId") deviceId: String,
+            @Query("billId") billId: Long
+        ): EasebuzzPaymentStatusResponse
 }

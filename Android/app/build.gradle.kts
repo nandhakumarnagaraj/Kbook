@@ -58,7 +58,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.room)
+    // alias(libs.plugins.room)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
 }
@@ -126,9 +126,11 @@ android {
         compose = true
         buildConfig = true
     }
-    room {
-        schemaDirectory("$projectDir/schemas")
-    }
+    // Workaround: Room Gradle plugin has issues with spaces in paths.
+    // Disabling its extension and using manual KSP argument with a relative path instead.
+    // room {
+    //    schemaDirectory("schemas")
+    // }
     packaging {
         jniLibs {
             useLegacyPackaging = false
@@ -137,6 +139,10 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "schemas")
 }
 
 configurations.all {

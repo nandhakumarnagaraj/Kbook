@@ -7,6 +7,43 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:836086274000:android:c29ed43df4e5970e4e8bd5",
+        "android_client_info": {
+          "package_name": "com.piquantservices.khanabook"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "836086274000-r5uku7qmp65tk49n9m64p7olm58atisc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.piquantservices.khanabook",
+            "certificate_hash": "2a75d4794db1e0cd3125e75b11d2353fd9f0b3bc"
+          }
+        },
+        {
+          "client_id": "836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGp7pbYCV7RBLecpXmq5VUoTznreNZnKY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:836086274000:android:b1f82aa6c065ebcb4e8bd5",
         "android_client_info": {
           "package_name": "com.piquantservices.khanabooklite"
@@ -14,11 +51,27 @@
       },
       "oauth_client": [
         {
+          "client_id": "836086274000-4up94umrcombh7grja4ut7o5mlpnggvp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.piquantservices.khanabooklite",
+            "certificate_hash": "2a75d4794db1e0cd3125e75b11d2353fd9f0b3bc"
+          }
+        },
+        {
           "client_id": "836086274000-cfcn0q343fm5455bt7mhdt1sl0vmlv3c.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.piquantservices.khanabooklite",
             "certificate_hash": "042c8f0cb2f68cd2b1c5dd1020f551b39f0b2142"
+          }
+        },
+        {
+          "client_id": "836086274000-jfsj0nbpk0v9a0qgsd5svijpvr3qm6rp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.piquantservices.khanabooklite",
+            "certificate_hash": "9e0fcab6ebe22f6168483133ee21791bbdfcca6f"
           }
         },
         {

@@ -354,7 +354,7 @@ public class GenericSyncService {
 							}
 							successfulLocalIds.add(incomingRecord.getLocalId());
 						} else {
-							successfulLocalIds.add(incomingRecord.getLocalId());
+							failedLocalIds.add(incomingRecord.getLocalId());
 						}
 					} else {
 						// Relational ID Resolution for New Records

@@ -182,6 +182,11 @@ public class AssetStorageService {
 
 	private void runCwebp(Path input, Path output, boolean lossless, int quality)
 			throws IOException, InterruptedException {
+		if (cwebpBin == null || cwebpBin.isBlank()) {
+			log.warn("cwebp not configured; copying {} -> {}", input, output);
+			Files.copy(input, output, StandardCopyOption.REPLACE_EXISTING);
+			return;
+		}
 		List<String> cmd = new java.util.ArrayList<>();
 		cmd.add(cwebpBin);
 		if (lossless) {

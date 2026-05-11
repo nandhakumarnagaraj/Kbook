@@ -187,11 +187,6 @@ class MasterSyncProcessor @Inject constructor(
             return false
         }
 
-        // Heal bills that server already has but client never marked synced (e.g. network
-        // error after server accepted push but before client received the response).
-        val healed = billDao.reconcileServerAcknowledgedBills()
-        if (healed > 0) Log.i(tag, "Reconciled $healed bill(s) with serverId but isSynced=false")
-
         // Embed kitchen printer into restaurant profile before pushing.
         syncKitchenPrinterIntoProfile(profile)
 

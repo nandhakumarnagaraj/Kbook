@@ -4,6 +4,12 @@ package com.khanabook.lite.pos.ui.screens
 
 import android.speech.tts.TextToSpeech
 import android.graphics.BitmapFactory
+import coil.imageLoader
+import coil.request.CachePolicy
+import coil.request.ImageRequest
+import coil.request.SuccessResult
+import androidx.core.graphics.drawable.toBitmap
+import com.khanabook.lite.pos.domain.util.AppAssetStore
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -1009,20 +1015,25 @@ fun PaymentStep(
     val scope = rememberCoroutineScope()
 
     // Generate UPI QR off the main thread — ZXing encoding is CPU-heavy and caused UI freeze
+    val context = LocalContext.current
     val dynamicUpiQrBitmap by produceState<android.graphics.Bitmap?>(
         null,
         profile?.upiHandle,
         profile?.shopName,
         upiPayableAmount,
-        canGenerateAmountQr
+        canGenerateAmountQr,
+        profile?.logoUrl,
+        profile?.logoPath
     ) {
         val handle = profile?.upiHandle
         value = if (canGenerateAmountQr && !handle.isNullOrBlank()) {
+            val logo = loadShopLogoBlocking(context, profile?.logoUrl, profile?.logoPath)
             withContext(Dispatchers.Default) {
-                QrCodeManager.generateUpiQr(
+                QrCodeManager.generateUpiQrWithLogo(
                     handle,
                     profile?.shopName ?: "RESTAURANT",
                     upiPayableAmount,
+                    logo,
                     512
                 )
             }
@@ -1826,6 +1837,32 @@ fun StepItem(
             }
         }
         Text(label, color = color, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp))
+    }
+}
+
+private suspend fun loadShopLogoBlocking(
+    context: android.content.Context,
+    logoUrl: String?,
+    logoPath: String?
+): android.graphics.Bitmap? {
+    if (!logoUrl.isNullOrBlank()) {
+        try {
+            val request = ImageRequest.Builder(context)
+                .data(logoUrl)
+                .allowHardware(false)
+                .size(128)
+                .memoryCachePolicy(CachePolicy.ENABLED)
+                .diskCachePolicy(CachePolicy.ENABLED)
+                .build()
+            val result = context.imageLoader.execute(request)
+            val bitmap = (result as? SuccessResult)?.drawable?.toBitmap()
+            if (bitmap != null) return bitmap
+        } catch (_: Exception) { }
+    }
+    return AppAssetStore.resolveAssetPath(logoPath)?.let { path ->
+        try {
+            BitmapFactory.decodeFile(path)
+        } catch (_: Exception) { null }
     }
 }
 

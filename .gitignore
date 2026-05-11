@@ -48,6 +48,9 @@ Android/app/*.aab
 # Python scripts (one-time utilities)
 *.py
 
+# Local dev CDN uploads (not for VCS)
+/cdn/
+
 # Claude Code local session data
 .claude/
 

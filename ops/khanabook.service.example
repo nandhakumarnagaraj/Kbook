@@ -1,0 +1,19 @@
+[Unit]
+Description=KhanaBook SaaS backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kbook
+Group=kbook
+WorkingDirectory=/var/www/kbook.iadv.cloud/server
+EnvironmentFile=/var/www/kbook.iadv.cloud/.env
+Environment=SPRING_PROFILES_ACTIVE=prod
+ExecStart=/usr/bin/java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom -jar /var/www/kbook.iadv.cloud/server/target/saas-backend-0.0.1-SNAPSHOT.jar
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
