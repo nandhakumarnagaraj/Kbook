@@ -1,0 +1,430 @@
+[0;36m================================================================[0m
+[0;36m  KBOOK PRODUCTION HEALTH REPORT  2026-05-08 11:54:13 UTC[0m
+[0;36m================================================================[0m
+
+[0;36m==== 1. OS & ENVIRONMENT ====[0m
+  OS: Ubuntu 24.04.3 LTS
+  Kernel: 6.8.0-111-generic
+  Hostname: srv1315142
+  Uptime: up 39 minutes
+  Last boot: 2026-05-08 11:15
+  Load avg: 1.48 1.08 0.75 3/829 25148
+  Hypervisor: Standard PC (i440FX + PIIX, 1996)
+  VPS provider: unknown
+  CPUs: 8
+  Arch: x86_64
+
+[0;36m==== 2. STACK DISCOVERY ====[0m
+  Docker: Docker version 29.2.1, build a5c7197
+  Docker Compose: Docker Compose version v5.0.2
+  Java: openjdk version "21.0.10" 2026-01-20
+  Node.js: v20.20.1
+  Apache: Server version: Apache/2.4.58 (Ubuntu)
+  Nginx: nginx version: nginx/1.24.0 (Ubuntu)
+  MongoDB: db version v6.0.27
+  PostgreSQL client: psql (PostgreSQL) 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
+  Certbot: certbot 2.9.0
+  Docker Compose project: kbook.iadv.cloud
+  Spring Boot app port: 8081
+
+[0;36m==== 3. RESOURCE USAGE ====[0m
+  --- CPU ---
+  User: 12.00%  System: 1.00%  Idle: 84.88%  Iowait: 0.00%  Steal: 0.25%
+  --- Memory ---
+  Total: 31Gi  Used: 3.1Gi  Free: 22Gi  Available: 28Gi  (10.0% used)
+  --- Disk ---
+  Total: 387G  Used: 36G  Avail: 352G  Used: 10%
+  --- Swap ---
+  [NO SWAP CONFIGURED - risk of OOM under load]
+  --- Top CPU consumers ---
+  /usr/lib/node_modules/opencode-ai/bin/.opencode 18046 60.4% /usr/lib/node_modules/opencode-ai/bin/.opencode
+  /usr/sbin/xrdp 2909  11.0% /usr/sbin/xrdp
+  /usr/lib/xorg/Xorg 2947  6.5%  .xorgxrdp.%s.log
+  xfce4-terminal 4356  3.5%  xfce4-terminal
+  java   2062  2.5%  app.jar
+  --- Top RAM consumers ---
+  /usr/lib/node_modules/opencode-ai/bin/.opencode 18046 1.9%  /usr/lib/node_modules/opencode-ai/bin/.opencode
+  /usr/bin/java 1196  1.7%  --server.address=127.0.0.1
+  java   2062  1.5%  app.jar
+  /usr/bin/mongod 1223  0.4%  /etc/mongod.conf
+  /usr/lib/xorg/Xorg 2947  0.4%  .xorgxrdp.%s.log
+
+[0;36m==== 4. DOCKER CONTAINER ANALYSIS ====[0m
+  Running containers:
+NAMES                       IMAGE                   STATUS                    PORTS
+kbookiadvcloud-server-1     kbookiadvcloud-server   Up 38 minutes (healthy)   127.0.0.1:8081->8081/tcp
+kbookiadvcloud-postgres-1   postgres:16-alpine      Up 38 minutes (healthy)   5432/tcp
+
+  Container resource usage:
+NAME                        CPU %     MEM USAGE / LIMIT     MEM %     NET I/O
+kbookiadvcloud-server-1     0.15%     528.6MiB / 31.34GiB   1.65%     1.74MB / 320kB
+kbookiadvcloud-postgres-1   0.00%     58.79MiB / 31.34GiB   0.18%     269kB / 1.58MB
+
+  kbookiadvcloud-server-1: health=healthy restarts=0 started=2026-05-08 11:15:42
+  kbookiadvcloud-postgres-1: health=healthy restarts=0 started=2026-05-08 11:15:42
+
+  Docker daemon recent errors:
+    May 08 11:22:04 srv1315142 dockerd[1460]: time="2026-05-08T11:22:04.234370926Z" level=error msg="copy stream failed" error="reading from a closed fifo" stream=stdout
+    May 08 11:22:04 srv1315142 dockerd[1460]: time="2026-05-08T11:22:04.234677589Z" level=error msg="copy stream failed" error="reading from a closed fifo" stream=stderr
+    May 08 11:22:04 srv1315142 dockerd[1460]: time="2026-05-08T11:22:04.236935502Z" level=error msg="Error running exec 308163b5e245d942b17c43572194b97bf560f1b7473853783723f6f06dcbb66c in container: OCI runtime exec failed: exec failed: unable to start container process: exec: \"curl\": executable file not found in $PATH"
+
+  Container logs (last 5 error/warn):
+  --- kbookiadvcloud-server-1 ---
+    {"@timestamp":"2026-05-08T11:34:02.066664786Z","log":{"level":"WARN","logger":"com.khanabook.saas.security.AppVersionFilter"},"process":{"pid":1,"thread":{"name":"http-nio-8081-exec-16"}},"service":{"version":"0.0.1-SNAPSHOT","node":{}},"message":"Deprecated client detected: platform=android version=6 path=/api/v1/sync/master/pull","requestId":"64cde771-169","ecs":{"version":"8.11"}}
+    {"@timestamp":"2026-05-08T11:34:02.533788695Z","log":{"level":"WARN","logger":"com.khanabook.saas.security.AppVersionFilter"},"process":{"pid":1,"thread":{"name":"http-nio-8081-exec-17"}},"service":{"version":"0.0.1-SNAPSHOT","node":{}},"message":"Deprecated client detected: platform=android version=6 path=/api/v1/sync/master/pull","requestId":"fc6ea5fb-cb9","ecs":{"version":"8.11"}}
+    {"@timestamp":"2026-05-08T11:47:25.281343240Z","log":{"level":"WARN","logger":"com.khanabook.saas.security.AppVersionFilter"},"process":{"pid":1,"thread":{"name":"http-nio-8081-exec-19"}},"service":{"version":"0.0.1-SNAPSHOT","node":{}},"message":"Deprecated client detected: platform=android version=6 path=/api/v1/sync/master/pull","requestId":"8b40ed1c-a43","ecs":{"version":"8.11"}}
+
+  Docker networks:
+NAME                     DRIVER    SCOPE
+bridge                   bridge    local
+host                     host      local
+kbookiadvcloud_backend   bridge    local
+kbookiadvcloud_default   bridge    local
+none                     null      local
+
+[0;36m==== 5. PM2 PROCESS ANALYSIS ====[0m
+  PM2 not installed
+
+[0;36m==== 6. SYSTEMD SERVICE ANALYSIS ====[0m
+  Failed units:
+● lightdm.service loaded failed failed Light Display Manager
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+  Critical service status:
+  docker: active (enabled: enabled)
+  apache2: active (enabled: enabled)
+  mongod: active (enabled: enabled)
+  postgresql: active (enabled: enabled)
+
+[0;36m==== 7. TRAFFIC & REQUEST ANALYSIS ====[0m
+  --- Listening ports ---
+  0.0.0.0:* ("postgres" pid=14969 fd=7)
+  0.0.0.0:* ("docker-proxy" pid=2138 fd=8)
+  0.0.0.0:* ("cupsd" pid=1198 fd=7)
+  0.0.0.0:* ("systemd" pid=1 fd=199)
+  0.0.0.0:* ("systemd-resolve" pid=941 fd=17)
+  0.0.0.0:* ("systemd-resolve" pid=941 fd=15)
+  0.0.0.0:* ("mongod" pid=1223 fd=14)
+  [::]:* ("cupsd" pid=1198 fd=6)
+  *:* ("java" pid=1196 fd=19)
+  [::]:* ("xrdp-sesman" pid=1235 fd=11)
+  [::]:* ("postgres" pid=14969 fd=6)
+  *:* ("xrdp" pid=1279 fd=11)
+  *:* ("apache2" pid=1301 fd=6)
+  [::]:* ("systemd" pid=1 fd=200)
+  *:* ("apache2" pid=1301 fd=4)
+
+  --- Port 8080 traffic (Java backend) ---
+  Log file: /var/log/apache2/kbook_access.log
+  Total requests: 89
+  Success (2xx): 84
+  Redirects (3xx): 0
+  Client errors (4xx): 5
+  Server errors (5xx): 0
+  Other: 0
+
+  Requests per path (top 10):
+      9 /api/v1/public/invoice/755754256252292885/582/b0e7f49f-ec1a-4e1c-9bc1-f3ea35c6a04b
+      7 /favicon.ico
+      6 /api/v1/business/dashboard
+      4 /cdn/755754256252292885/logo_v8.webp
+      3 /styles.css
+      3 /polyfills.js
+      3 /main.js
+      3 /business/dashboard
+      3 /api/v1/restaurants/payment-config/easebuzz
+      3 /
+
+  IPs with most requests (top 5):
+     65 49.249.61.240
+     12 72.62.117.86
+      7 110.224.88.198
+      3 49.204.148.207
+      1 66.249.69.102
+
+  Response time outliers (slow requests) --- from Spring logs:
+  [[1;33mWARN[0m] Request took 4558ms
+
+  --- Port 8081 traffic (Docker proxied) ---
+  File: /var/log/apache2/kbook_access.log
+  API requests: 59  (2xx: 57, 5xx: 0)
+  File: /var/log/apache2/bhai_access.log
+  API requests: 0  (2xx: 0, 5xx: 0)
+
+  --- Apache proxy health (CLOSE_WAIT check) ---
+  ESTABLISHED: 24  CLOSE_WAIT: 0  TIME_WAIT: 0
+
+  --- Connection state summary ---
+Total: 683
+TCP:   67 (estab 30, closed 20, orphaned 0, timewait 1)
+
+Transport Total     IP        IPv6
+RAW	  1         0         1        
+
+[0;36m==== 8. ERROR LOG ANALYSIS ====[0m
+  --- Apache error log (last 20 lines with errors) ---
+  /var/log/apache2/kbook_error.log: 2 error/warn lines
+    [Fri May 08 11:37:13.308294 2026] [autoindex:error] [pid 1301:tid 124331827009216] [client 72.62.117.86:43462] AH01276: Cannot serve directory /var/www/cdn.kbook.iadv.cloud/restaurants/: No matching DirectoryIndex (index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm) found, and server-generated directory index forbidden by Options directive
+    [Fri May 08 11:37:42.759276 2026] [autoindex:error] [pid 1301:tid 124331552126656] [client 72.62.117.86:49100] AH01276: Cannot serve directory /var/www/cdn.kbook.iadv.cloud/restaurants/9041088458414798650/: No matching DirectoryIndex (index.html,index.cgi,index.pl,index.php,index.xhtml,index.htm) found, and server-generated directory index forbidden by Options directive
+  /var/log/apache2/error.log: 0 error/warn lines
+
+  --- Auth log anomalies (last 10 failed logins) ---
+
+  --- Spring Boot app errors ---
+    {"@timestamp":"2026-05-08T06:56:24.349314036Z","log":{"level":"INFO","logger":"org.apache.tomcat.util.http.parser.Cookie"},"process":{"pid":1,"thread":{"name":"http-nio-8081-exec-7"}},"service":{"version":"0.0.1-SNAPSHOT","node":{}},"message":"A cookie header was received [g_state={\"i_l\":0,\"i_ll\":1778223342129,\"i_e\":{\"enable_itp_optimization\":0},\"i_et\":1777880499898,\"i_b\":\"1Uutkpbigqa4l98ad8t8HANonoweeQugJXI8OgCKQW8\"}] that contained an invalid cookie. That cookie will be ignored.\n Note: further occurrences of this error will be logged at DEBUG level.","ecs":{"version":"8.11"}}
+    {"@timestamp":"2026-05-08T11:16:01.844688191Z","log":{"level":"INFO","logger":"org.apache.tomcat.util.http.parser.Cookie"},"process":{"pid":1,"thread":{"name":"http-nio-8081-exec-2"}},"service":{"version":"0.0.1-SNAPSHOT","node":{}},"message":"A cookie header was received [g_state={\"i_l\":0,\"i_ll\":1778238956239,\"i_e\":{\"enable_itp_optimization\":22},\"i_et\":1777880784914}] that contained an invalid cookie. That cookie will be ignored.\n Note: further occurrences of this error will be logged at DEBUG level.","ecs":{"version":"8.11"}}
+
+[0;36m==== 9. DATABASE DIAGNOSTICS ====[0m
+  PostgreSQL: CONNECTED
+
+  Database size:
+ size_mb 
+---------
+      12
+(1 row)
+
+
+  Table count:
+ count 
+-------
+    19
+(1 row)
+
+
+  Long-running queries (>1s):
+ pid | duration | state | query 
+-----+----------+-------+-------
+(0 rows)
+
+
+  Connection count per state:
+ state  | count 
+--------+-------
+        |     5
+ active |     1
+ idle   |     5
+(3 rows)
+
+
+  Cache hit ratio:
+ cache_hit_pct 
+---------------
+         98.54
+(1 row)
+
+
+  Transaction stats (since last reset):
+ xact_commit | xact_rollback | deadlocks 
+-------------+---------------+-----------
+         549 |             2 |         0
+(1 row)
+
+
+  Unused/duplicate indexes:
+
+  Table size ranking:
+        table         | rows | total_size 
+----------------------+------+------------
+ bill_items           |    0 | 944 kB
+ bills                |    0 | 664 kB
+ stock_logs           |    0 | 560 kB
+ bill_payments        |    0 | 456 kB
+ menuitems            |    0 | 240 kB
+ users                |    0 | 240 kB
+ itemvariants         |    0 | 192 kB
+ payments             |    0 | 144 kB
+ restaurantprofiles   |    0 | 128 kB
+ payment_webhook_logs |    0 | 112 kB
+(10 rows)
+
+
+  MongoDB: RUNNING
+  DB stats:
+
+[0;36m==== 10. SECURITY AUDIT ====[0m
+  --- SSL certificate expiry ---
+  [[0;32mPASS[0m] kbook.iadv.cloud: 54 days remaining (Jul  2 09:23:09 2026 GMT)
+  [[0;32mPASS[0m] bhai.iadv.cloud: 58 days remaining (Jul  5 16:24:13 2026 GMT)
+  [[0;32mPASS[0m] iadv.cloud: 53 days remaining (Jul  1 05:18:01 2026 GMT)
+  [[0;32mPASS[0m] shop.iadv.cloud: 53 days remaining (Jul  1 05:18:12 2026 GMT)
+
+  --- Open ports (public) ---
+  LISTEN Address:Port ()
+  LISTEN 0.0.0.0:* ("systemd",pid=1,fd=199)
+  LISTEN 0.0.0.0:* ("systemd-resolve",pid=941,fd=17)
+  LISTEN 0.0.0.0:* ("systemd-resolve",pid=941,fd=15)
+  LISTEN [::]:* ("cupsd",pid=1198,fd=6)
+  LISTEN *:* ("java",pid=1196,fd=19)
+  LISTEN [::]:* ("xrdp-sesman",pid=1235,fd=11)
+  LISTEN [::]:* ("postgres",pid=14969,fd=6)
+  LISTEN *:* ("xrdp",pid=1279,fd=11)
+  LISTEN *:* ("apache2",pid=1301,fd=6)
+  LISTEN [::]:* ("systemd",pid=1,fd=200)
+  LISTEN *:* ("apache2",pid=1301,fd=4)
+
+  --- SSH security ---
+  Port: 22 (default)
+  Root login: yes
+  Password auth: yes (default)
+
+  --- Firewall status ---
+  UFW: ACTIVE
+Status: active
+Logging: on (low)
+Default: deny (incoming), allow (outgoing), deny (routed)
+New profiles: skip
+
+To                         Action      From
+--                         ------      ----
+3389                       ALLOW IN    Anywhere                  
+80                         ALLOW IN    Anywhere                  
+443                        ALLOW IN    Anywhere                  
+3389 (v6)                  ALLOW IN    Anywhere (v6)             
+80 (v6)                    ALLOW IN    Anywhere (v6)             
+443 (v6)                   ALLOW IN    Anywhere (v6)             
+
+
+  --- Recent auth failures ---
+  Total failed logins (this log): 0
+
+[0;36m==== 11. RESTART / CRASH ANALYSIS ====[0m
+  --- System reboot history ---
+reboot   system boot  6.8.0-111-generi Fri May  8 11:15   still running
+reboot   system boot  6.8.0-110-generi Mon Apr 27 11:59   still running
+reboot   system boot  6.8.0-110-generi Sun Apr 26 18:58   still running
+reboot   system boot  6.8.0-110-generi Sat Apr 25 17:56   still running
+reboot   system boot  6.8.0-110-generi Fri Apr 17 07:40   still running
+reboot   system boot  6.8.0-107-generi Wed Apr 15 09:57   still running
+reboot   system boot  6.8.0-107-generi Sat Apr 11 19:13   still running
+reboot   system boot  6.8.0-107-generi Sat Apr 11 18:55   still running
+reboot   system boot  6.8.0-107-generi Sat Apr 11 18:45   still running
+reboot   system boot  6.8.0-107-generi Thu Apr  9 06:26   still running
+
+  --- Docker container restarts ---
+
+  --- OOM killer activity ---
+  [[0;32mPASS[0m] No OOM events detected
+
+  --- Service failures in last 24h ---
+    May 08 11:30:28 srv1315142 kernel: libuv-worker[14510]: segfault at 2043c0 ip 00007e42e603ba36 sp 00007e42e7c0b108 error 4 in libc.so.6[7e42e6028000+188000] likely on CPU 1 (core 1, socket 0)
+    May 08 11:30:44 srv1315142 kernel: libuv-worker[14575]: segfault at 2043c0 ip 0000744f42c3ba36 sp 0000744f44e8d108 error 4 in libc.so.6[744f42c28000+188000] likely on CPU 4 (core 4, socket 0)
+    May 08 11:31:00 srv1315142 kernel: libuv-worker[14607]: segfault at 2043c0 ip 000075d3f923ba36 sp 000075d3fae1b108 error 4 in libc.so.6[75d3f9228000+188000] likely on CPU 6 (core 6, socket 0)
+    May 08 11:31:16 srv1315142 kernel: libuv-worker[14656]: segfault at 2043c0 ip 00007d99e863ba36 sp 00007d99ea95e108 error 4 in libc.so.6[7d99e8628000+188000] likely on CPU 0 (core 0, socket 0)
+    May 08 11:31:32 srv1315142 kernel: libuv-worker[14708]: segfault at 2043c0 ip 000074341163ba36 sp 000074341215d108 error 4 in libc.so.6[743411628000+188000] likely on CPU 0 (core 0, socket 0)
+    May 08 11:31:49 srv1315142 kernel: libuv-worker[14737]: segfault at 2043c0 ip 00007bc33523ba36 sp 00007bc337552108 error 4 in libc.so.6[7bc335228000+188000] likely on CPU 2 (core 2, socket 0)
+    May 08 11:32:05 srv1315142 kernel: libuv-worker[14785]: segfault at 2043c0 ip 00007dbe0da3ba36 sp 00007dbe0fc4a108 error 4 in libc.so.6[7dbe0da28000+188000] likely on CPU 1 (core 1, socket 0)
+    May 08 11:32:21 srv1315142 kernel: libuv-worker[14814]: segfault at 2043c0 ip 0000722555e3ba36 sp 000072255807d108 error 4 in libc.so.6[722555e28000+188000] likely on CPU 3 (core 3, socket 0)
+    May 08 11:32:37 srv1315142 kernel: libuv-worker[14914]: segfault at 2043c0 ip 00007e2457e3ba36 sp 00007e245a0ac108 error 4 in libc.so.6[7e2457e28000+188000] likely on CPU 4 (core 4, socket 0)
+    May 08 11:32:44 srv1315142 sudo[14959]:     root : PWD=/var/www/kbook.iadv.cloud ; USER=root ; COMMAND=/usr/bin/systemctl reset-failed postgresql@16-main
+
+[0;36m==== 12. PERFORMANCE BOTTLENECKS ====[0m
+  --- CPU pressure ---
+  [[0;32mPASS[0m] Load avg (1.40) within range (8 CPUs)
+
+  --- Memory pressure ---
+  [[0;32mPASS[0m] 90% memory available
+
+  --- Disk I/O pressure ---
+  [[0;32mPASS[0m] Disk utilization: 0.00%
+
+  --- Apache connection saturation ---
+  Apache workers: 
+
+  --- Network socket pressure ---
+  Orphan sockets: 0
+
+[0;36m==== 13. SSL CERTIFICATE STATUS ====[0m
+  Auto-renewal status:
+  kbook.iadv.cloud:
+    Issuer: issuer=C = US, O = Let's Encrypt, CN = E8
+    SAN:     DNS:kbook.iadv.cloud
+  bhai.iadv.cloud:
+    Issuer: issuer=C = US, O = Let's Encrypt, CN = E8
+    SAN:     DNS:bhai.iadv.cloud
+  iadv.cloud:
+    Issuer: issuer=C = US, O = Let's Encrypt, CN = E8
+    SAN:     DNS:iadv.cloud
+ DNS:www.iadv.cloud
+  shop.iadv.cloud:
+    Issuer: issuer=C = US, O = Let's Encrypt, CN = E7
+    SAN:     DNS:shop.iadv.cloud
+
+[0;36m==== 14. BACKUP VISIBILITY ====[0m
+  --- Checking for backup mechanisms ---
+  Backup directory: /var/backups
+total 5.2M
+-rw-r--r-- 1 root root 140K Apr 30 00:00 alternatives.tar.0
+-rw-r--r-- 1 root root 9.3K Apr 16 00:00 alternatives.tar.1.gz
+-rw-r--r-- 1 root root 9.3K Apr 12 00:00 alternatives.tar.2.gz
+-rw-r--r-- 1 root root 9.3K Mar 19 00:00 alternatives.tar.3.gz
+-rw-r--r-- 1 root root 9.2K Mar 14 00:00 alternatives.tar.4.gz
+-rw-r--r-- 1 root root 9.2K Mar  8 00:00 alternatives.tar.5.gz
+-rw-r--r-- 1 root root 9.3K Mar  7 00:00 alternatives.tar.6.gz
+-rw-r--r-- 1 root root 121K May  7 08:00 apt.extended_states.0
+-rw-r--r-- 1 root root  13K May  6 06:12 apt.extended_states.1.gz
+  Deployment scripts found: /var/www/kbook.iadv.cloud/deploy*.sh
+  pg_dump available inside postgres container
+  Last PG backup: 
+
+[0;36m==== 15. OPTIMIZATION RECOMMENDATIONS ====[0m
+
+  [[1;33mWARN[0m] 1. Enable swap: fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  [[1;33mWARN[0m] 2. Container 'kbookiadvcloud-server-1' has NO memory limit - add mem_limit in docker-compose.yml
+  [[1;33mWARN[0m] 2. Container 'kbookiadvcloud-postgres-1' has NO memory limit - add mem_limit in docker-compose.yml
+  6. JVM: -XX:MaxRAMPercentage=75.0 on 31GB = 23GB heap - verify this is needed vs ~4GB for this workload
+       Current MaxRAMPercentage: 75.0
+75.0
+75.0
+75.0%
+  [[1;33mWARN[0m] 7. No certbot auto-renewal cron. Add: echo '0 */12 * * * root certbot renew --quiet' | sudo tee /etc/cron.d/certbot-renew
+  9. Audit installed packages: dpkg -l | grep ^rc | wc -l (unused configs)
+  10. Consider sysstat package: apt install sysstat -y (for sar/iostat/mpstat)
+
+[0;36m==== 16. PROXY CONNECTION HEALTH (8080 vs 8081) ====[0m
+  --- 8080 (Java standalone) connections ---
+  CLOSE-WAIT: 3
+  ESTAB: 4
+  LISTEN: 1
+
+  --- 8081 (Docker proxy) connections ---
+  CLOSE-WAIT: 2
+  FIN-WAIT-2: 2
+  LISTEN: 1
+
+  --- Apache to backend stuck connections ---
+  (CLOSE_WAIT means Apache is waiting to close - client already disconnected)
+
+  --- HTTP methods used ---
+  "GET: 73
+  "POST: 16
+
+[0;36m==== 17. RECOMMENDED DOCKER-COMPOSE FIX ====[0m
+  Current docker-compose.yml uses host Postgres; production uses container Postgres.
+  Ensure .env has proper POSTGRES_DB/POSTGRES_USER/POSTGRES_PASSWORD.
+
+  To pull & restart:
+    docker compose -f docker-compose.production.yml pull
+    docker compose -f docker-compose.production.yml up -d
+
+[0;36m==== SUMMARY ====[0m
+
+  Scoring each category:
+
+  Resources:    3/4  (CPU=1 RAM=1 Disk=1 Swap=0)
+  Docker:       2/2  (2/2 healthy)
+  Errors:       1/1  (5xx count: 0)
+  SSL:          2/2  (min 53 days to expiry)
+  Security:     1/2  (UFW=1 SSH-Hardened=0)
+  Backups:      1/1
+  Proxy health: 1/1  (CLOSE_WAIT=0)
+
+[0;36m================================================================[0m
+  HEALTH SCORE: [0;32m11/13[0m
+  Critical issues: [0;31m0[0m  Warnings: [1;33m2[0m  Passed: [0;32m11[0m
+[0;36m================================================================[0m
+
+  Report generated: 2026-05-08 11:54:22 UTC
+  Script version: 1.0.0

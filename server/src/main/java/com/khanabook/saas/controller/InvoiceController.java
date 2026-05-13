@@ -17,7 +17,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/public/invoice")
@@ -34,11 +33,11 @@ public class InvoiceController {
     public ResponseEntity<String> getInvoice(
             @PathVariable Long restaurantId,
             @PathVariable Long billId,
-            @PathVariable UUID token) {
+            @PathVariable String token) {
 
         Bill bill = billRepository.findById(billId).orElse(null);
         if (bill == null || !bill.getRestaurantId().equals(restaurantId)
-                || !token.equals(bill.getPublicToken())
+                || !java.util.UUID.fromString(token).equals(bill.getPublicToken())
                 || Boolean.TRUE.equals(bill.getIsDeleted())) {
             return ResponseEntity.notFound().build();
         }
