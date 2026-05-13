@@ -106,7 +106,7 @@ public class InvoiceController {
             if (variant.isEmpty()) {
                 label = esc(name);
             } else {
-                label = esc(name) + "<br><span style=\"color:#64748b;font-size:0.82em\">" + esc(variant) + "</span>";
+                label = esc(name) + " <span style=\"color:#64748b;font-size:0.85em\">(" + esc(variant) + ")</span>";
             }
             int qty = item.getQuantity() != null ? item.getQuantity() : 0;
             String price = df.format(item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO);
