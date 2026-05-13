@@ -4,7 +4,6 @@ import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.User;
-import com.khanabook.saas.billing.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
@@ -39,7 +38,6 @@ public class BusinessReadService {
     private final ItemVariantRepository itemVariantRepository;
     private final CategoryRepository categoryRepository;
     private final BillRepository billRepository;
-    private final EasebuzzSubMerchantRepository easebuzzSubMerchantRepository;
 
     @Transactional(readOnly = true)
     public BusinessDashboardResponse getDashboard(Long restaurantId) {
@@ -105,17 +103,11 @@ public class BusinessReadService {
                 .filter(existing -> !Boolean.TRUE.equals(existing.getIsDeleted()))
                 .orElseThrow(() -> new IllegalArgumentException("Business not found"));
 
-        var subMerchant = easebuzzSubMerchantRepository.findByRestaurantId(restaurantId).orElse(null);
-
         return BusinessMarketplaceSetupResponse.builder()
                 .restaurantId(restaurantId)
                 .shopName(profile.getShopName())
                 .paymentManagedByAdmin(true)
-                .subMerchantStatus(subMerchant != null ? subMerchant.getStatus() : null)
-                .subMerchantId(subMerchant != null ? subMerchant.getSubMerchantId() : null)
-                .kycPortalUrl(subMerchant != null ? subMerchant.getKycPortalUrl() : null)
-                .kycSubmittedAt(subMerchant != null ? subMerchant.getKycSubmittedAt() : null)
-                .kycActivatedAt(subMerchant != null ? subMerchant.getKycActivatedAt() : null)
+                .subMerchantStatus(null)
                 .build();
     }
 
