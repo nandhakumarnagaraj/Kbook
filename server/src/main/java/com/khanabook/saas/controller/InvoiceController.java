@@ -175,7 +175,7 @@ public class InvoiceController {
         +   "align-items:center;border-bottom:1px solid #e2e8f0;position:relative;z-index:1"
         + "}"
         + ".ribbon .item{font-size:.82em;color:#64748b;flex:1}"
-        + ".ribbon .item strong{color:#1e293b;font-weight:600;font-size:1em;margin-left:4px}");
+        + ".ribbon .item .val{color:#1e293b;font-size:1em;margin-left:4px}");
 
         // Customer
         h.append(
@@ -289,9 +289,9 @@ public class InvoiceController {
 
         // === RIBBON ===
         h.append("<div class=\"ribbon\">")
-         .append("<div class=\"item\">Order No<strong>").append(esc(orderCode)).append("</strong></div>")
-         .append("<div class=\"item\" style=\"text-align:center\">Invoice No<strong>INV").append(bill.getLifetimeOrderId()).append("</strong></div>")
-         .append("<div class=\"item\" style=\"text-align:right\">Date<strong>").append(esc(date)).append("</strong></div>")
+         .append("<div class=\"item\"><strong>Order No</strong><span class=\"val\">").append(esc(orderCode)).append("</span></div>")
+         .append("<div class=\"item\" style=\"text-align:center\"><strong>Invoice No</strong><span class=\"val\">INV").append(bill.getLifetimeOrderId()).append("</span></div>")
+         .append("<div class=\"item\" style=\"text-align:right\"><strong>Date</strong><span class=\"val\">").append(esc(date)).append("</span></div>")
          .append("</div>");
 
         // === CUSTOMER ===
