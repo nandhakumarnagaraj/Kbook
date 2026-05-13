@@ -339,7 +339,7 @@ public class InvoiceController {
         // === REVIEW ===
         if (!reviewUrl.isEmpty()) {
             h.append("<div class=\"review-wrap\">")
-             .append("\u2B50 How was your experience? <a href=\"").append(esc(reviewUrl)).append("\" target=\"_blank\">Leave a review \u2192</a>")
+             .append("\u2B50 How was your experience? <a href=\"").append(esc(reviewUrl)).append("\" target=\"_blank\">Leave a review</a>")
              .append("</div>");
         }
 
