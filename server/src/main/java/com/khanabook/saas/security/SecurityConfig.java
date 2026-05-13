@@ -104,7 +104,7 @@ public class SecurityConfig {
 						.referrerPolicy(rp -> rp
 								.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
 						.contentSecurityPolicy(csp -> csp
-								.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cdn.kbook.iadv.cloud; frame-ancestors 'none'")))
+								.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.kbook.iadv.cloud; frame-ancestors 'none'")))
 
 				.exceptionHandling(ex -> ex
 						.authenticationEntryPoint(jsonAuthenticationEntryPoint())
