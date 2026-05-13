@@ -185,10 +185,10 @@ public class InvoiceController {
         h.append(
         ".tot{margin:0 32px;padding:14px 10px 10px;border-top:2px solid #e9edf2}"
         + ".tot table{width:auto;margin-left:auto}"
-        + ".tot td{padding:6px 0 6px 24px;font-size:.86em}"
+        + ".tot td{padding:5px 0 5px 24px;font-size:.8em}"
         + ".tot td.l{text-align:right;color:#64748b}"
         + ".tot td.a{text-align:right;font-weight:500;min-width:110px;color:#1e293b}"
-        + ".tot .gr td{padding-top:12px;font-size:1.1em;font-weight:700;color:#0f172a;border-top:2px solid #0f172a}");
+        + ".tot .gr td{padding-top:10px;font-size:1em;font-weight:700;color:#0f172a;border-top:2px solid #0f172a}");
 
         // Payment
         h.append(
@@ -235,8 +235,8 @@ public class InvoiceController {
         + "thead th{padding:10px 6px;font-size:.65em}"
         + "tbody td{padding:10px 6px;font-size:.84em}"
         + ".tot{margin:0 16px;padding:12px 6px 8px}"
-        + ".tot td{padding:5px 0 5px 12px;font-size:.84em}"
-        + ".pay{margin:0 16px 2px;padding:12px 6px;font-size:.82em}"
+        + ".tot td{padding:4px 0 4px 12px;font-size:.78em}"
+        + ".pay{margin:0 16px 2px;padding:10px 6px;font-size:.8em}"
         + ".rev{margin:0 16px;padding:12px 6px}"
         + ".ft{padding:16px 18px 22px}"
         + "}"
