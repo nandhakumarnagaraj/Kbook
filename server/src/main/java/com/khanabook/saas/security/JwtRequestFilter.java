@@ -98,15 +98,13 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 							String role = user.getRole().name();
 							TenantContext.setCurrentRole(role);
 
-							// Device binding: reject if JWT deviceId doesn't match X-Device-Id header
+							// Device binding: warn if JWT deviceId doesn't match X-Device-Id header, but allow
 							String jwtDeviceId = jwtUtility.extractDeviceId(jwt);
 							String headerDeviceId = request.getHeader("X-Device-Id");
 							if (jwtDeviceId != null && !jwtDeviceId.isBlank()
 									&& headerDeviceId != null && !headerDeviceId.isBlank()
 									&& !jwtDeviceId.equals(headerDeviceId)) {
 								logger.warn("Device binding mismatch — jwtDevice={} headerDevice={} user={}", jwtDeviceId, headerDeviceId, username);
-								response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token device mismatch");
-								return;
 							}
 
 							// Admin IP allowlist — block admin from unauthorized IPs
