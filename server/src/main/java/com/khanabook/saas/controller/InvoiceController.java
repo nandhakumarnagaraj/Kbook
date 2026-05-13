@@ -114,8 +114,8 @@ public class InvoiceController {
             rows.append("<tr").append(bg).append(">")
                 .append("<td style=\"padding:10px 8px\">").append(label).append("</td>")
                 .append("<td style=\"padding:10px 8px;text-align:center;color:#475569\">").append(qty).append("</td>")
-                .append("<td style=\"padding:10px 8px;text-align:right;color:#475569\">").append(currency).append(" ").append(price).append("</td>")
-                .append("<td style=\"padding:10px 8px;text-align:right;font-weight:600;color:#1e293b\">").append(currency).append(" ").append(lineTotal).append("</td>")
+                .append("<td style=\"padding:10px 8px;text-align:right;color:#475569\">").append(price).append("</td>")
+                .append("<td style=\"padding:10px 8px;text-align:right;font-weight:600;color:#1e293b\">").append(lineTotal).append("</td>")
                 .append("</tr>");
             rowIdx++;
         }
