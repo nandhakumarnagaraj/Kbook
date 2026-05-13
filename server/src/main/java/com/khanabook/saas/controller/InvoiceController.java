@@ -135,126 +135,111 @@ public class InvoiceController {
         "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');"
         + "*{margin:0;padding:0;box-sizing:border-box}"
         + "body{"
-        +   "font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;"
-        +   "background:linear-gradient(135deg,#f1f5f9 0%,#e2e8f0 100%);"
-        +   "color:#1e293b;padding:24px;min-height:100vh;display:flex;align-items:center;justify-content:center"
+        +   "font-family:'Inter',-apple-system,system-ui,sans-serif;"
+        +   "background:#f1f5f9;color:#0f172a;padding:24px;min-height:100vh;"
+        +   "display:flex;align-items:center;justify-content:center"
         + "}"
         + ".page{"
-        +   "max-width:800px;width:100%;margin:0 auto;background:#ffffff;"
-        +   "border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.1),0 2px 8px rgba(0,0,0,.06);"
-        +   "overflow:hidden;position:relative"
+        +   "max-width:820px;width:100%;margin:0 auto;background:#fff;"
+        +   "border-radius:20px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 8px 32px rgba(0,0,0,.08);"
+        +   "overflow:hidden"
         + "}");
 
         // Header
         h.append(
-        ".header-wrap{"
-        +   "background:linear-gradient(135deg,#1e293b 0%,#334155 100%);"
-        +   "padding:32px 36px 28px;text-align:center;position:relative;z-index:1"
-        + "}"
-        + ".header-wrap .logo{"
-        +   "width:100px;height:100px;border-radius:12px;object-fit:contain;"
-        +   "border:3px solid rgba(255,255,255,.3);background:#fff;padding:6px;"
-        +   "margin-bottom:12px"
-        + "}"
-        + ".header-wrap h1{color:#fff;font-size:1.35em;font-weight:700;letter-spacing:-.3px}"
-        + ".header-wrap .sub{color:#94a3b8;font-size:.82em;margin-top:4px;line-height:1.5;max-width:500px;margin-left:auto;margin-right:auto}"
-        + ".header-wrap .sub span{color:#cbd5e1}");
+        ".hdr{background:#0f172a;padding:36px 40px 32px;text-align:center}"
+        + ".hdr .logo{width:100px;height:100px;border-radius:14px;object-fit:contain;"
+        +   "border:3px solid rgba(255,255,255,.25);background:#fff;padding:6px;margin-bottom:14px}"
+        + ".hdr h1{color:#fff;font-size:1.4em;font-weight:700;letter-spacing:-.02em}"
+        + ".hdr .sub{color:#94a3b8;font-size:.82em;margin-top:6px;line-height:1.6;max-width:520px;margin-left:auto;margin-right:auto}");
 
-        // Invoice ribbon
+        // Ribbon
         h.append(
-        ".ribbon{"
-        +   "background:#fff;padding:18px 36px;display:flex;justify-content:space-between;"
-        +   "align-items:center;border-bottom:1px solid #e2e8f0;position:relative;z-index:1"
-        + "}"
-        + ".ribbon .item{font-size:.85em;color:#1e293b;flex:1}");
+        ".rib{display:grid;grid-template-columns:1fr 1fr 1fr;"
+        +   "padding:18px 40px;border-bottom:1px solid #e9edf2;background:#fafbfc}"
+        + ".rib .c{font-size:.8em;color:#64748b;line-height:1.5}"
+        + ".rib .c .v{display:block;color:#0f172a;font-size:1.05em;font-weight:600;margin-top:1px}");
 
         // Customer
         h.append(
-        ".customer-wrap{"
-        +   "padding:16px 36px;border-bottom:1px solid #e2e8f0;font-size:.88em;"
-        +   "display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative;z-index:1"
-        + "}"
-        + ".customer-wrap .label{color:#64748b;font-weight:500}"
-        + ".customer-wrap .val{color:#1e293b}");
+        ".cust{display:flex;align-items:center;gap:10px;flex-wrap:wrap;"
+        +   "padding:14px 40px;border-bottom:1px solid #e9edf2;font-size:.88em;color:#64748b}"
+        + ".cust .v{color:#0f172a;font-weight:500}");
 
         // Table
         h.append(
-        ".table-wrap{padding:4px 28px 0;position:relative;z-index:1}"
+        ".tw{padding:6px 32px 0}"
         + "table{width:100%;border-collapse:collapse}"
-        + "thead th{"
-        +   "padding:12px 8px;font-size:.72em;text-transform:uppercase;letter-spacing:.8px;"
-        +   "color:#64748b;font-weight:600;border-bottom:2px solid #e2e8f0;text-align:left"
-        + "}"
-        + "thead th.right{text-align:right}"
-        + "thead th.center{text-align:center}"
-        + "tbody tr{border-bottom:1px solid #f1f5f9}"
+        + "thead th{padding:14px 10px;font-size:.7em;text-transform:uppercase;letter-spacing:.06em;"
+        +   "color:#64748b;font-weight:600;border-bottom:2px solid #e9edf2;text-align:left}"
+        + "thead th.r{text-align:right}thead th.c{text-align:center}"
+        + "tbody tr{border-bottom:1px solid #f1f4f9}"
         + "tbody tr:last-child{border-bottom:none}"
-        + "tbody td{font-size:.9em;color:#334155;vertical-align:top}");
+        + "tbody td{padding:12px 10px;font-size:.88em;color:#1e293b;vertical-align:top}");
 
         // Totals
         h.append(
-        ".totals-wrap{"
-        +   "margin:0 28px 0;padding:16px 8px 8px;border-top:2px solid #e2e8f0;"
-        +   "position:relative;z-index:1"
-        + "}"
-        + ".totals-wrap table{width:auto;margin-left:auto}"
-        + ".totals-wrap td{padding:5px 0 5px 32px;font-size:.88em}"
-        + ".totals-wrap td.label{text-align:right;color:#64748b}"
-        + ".totals-wrap td.amount{text-align:right;font-weight:500;min-width:100px;color:#334155}"
-        + ".totals-wrap .grand td{"
-        +   "padding-top:10px;font-size:1.15em;font-weight:700;color:#1e293b;"
-        +   "border-top:2px solid #1e293b"
-        + "}");
+        ".tot{margin:0 32px;padding:14px 10px 10px;border-top:2px solid #e9edf2}"
+        + ".tot table{width:auto;margin-left:auto}"
+        + ".tot td{padding:6px 0 6px 36px;font-size:.86em}"
+        + ".tot td.l{text-align:right;color:#64748b}"
+        + ".tot td.a{text-align:right;font-weight:500;min-width:110px;color:#1e293b}"
+        + ".tot .gr td{padding-top:12px;font-size:1.1em;font-weight:700;color:#0f172a;border-top:2px solid #0f172a}");
 
         // Payment
         h.append(
-        ".payment-wrap{"
-        +   "margin:8px 28px 0;padding:14px 8px;border-top:1px solid #e2e8f0;"
-        +   "display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;"
-        +   "font-size:.85em;color:#64748b;position:relative;z-index:1"
-        + "}"
-        + ".payment-wrap strong{color:#334155;font-weight:600}");
+        ".pay{margin:0 32px 4px;padding:14px 10px;border-top:1px solid #e9edf2;"
+        +   "display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;"
+        +   "font-size:.85em;color:#64748b}");
 
-        // Review CTA
+        // Review
         h.append(
-        ".review-wrap{"
-        +   "margin:0 28px;padding:16px 8px;text-align:center;"
-        +   "background:linear-gradient(135deg,#fef9c3 0%,#fef3c7 100%);"
-        +   "border-radius:10px;font-size:.85em;color:#92400e;position:relative;z-index:1"
-        + "}"
-        + ".review-wrap a{color:#1d4ed8;font-weight:600;text-decoration:none}"
-        + ".review-wrap a:hover{text-decoration:underline}");
+        ".rev{margin:0 32px 0;padding:14px 10px;text-align:center;"
+        +   "background:#fef9ef;border-radius:12px;font-size:.85em;color:#92400e}"
+        + ".rev a{color:#2563eb;font-weight:600;text-decoration:none}"
+        + ".rev a:hover{text-decoration:underline}");
 
         // Footer
         h.append(
-        ".footer-wrap{"
-        +   "margin-top:20px;padding:20px 36px 24px;text-align:center;font-size:.8em;"
-        +   "color:#94a3b8;border-top:1px solid #e2e8f0;position:relative;z-index:1"
-        + "}"
-        + ".footer-wrap .brand{margin-top:8px;font-size:.78em;color:#94a3b8}"
-        + ".footer-wrap .brand strong{color:#6366f1}");
+        ".ft{margin-top:18px;padding:20px 40px 28px;text-align:center;font-size:.8em;"
+        +   "color:#94a3b8;border-top:1px solid #e9edf2}");
 
         // Print
         h.append(
         "@media print{"
-        +   "body{background:#fff!important;padding:0;display:block;min-height:auto}"
-        +   ".page{box-shadow:none!important;border-radius:0!important;max-width:100%!important}"
-        +   ".header-wrap{background:#1e293b!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
-        +   ".review-wrap,.badge-completed,.badge-cancelled,.badge-draft,.badge-paid,.badge-success,.badge-pending,.badge-failed,.badge-refunded"
-        +   "{-webkit-print-color-adjust:exact;print-color-adjust:exact}"
-        +   "tbody tr:nth-child(even){background:#f8fafc!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
-        + "}"
-        + "@media(max-width:600px){"
-        +   "body{padding:12px}"
-        +   ".header-wrap{padding:20px 16px;flex-direction:column;text-align:center}"
-        +   ".ribbon,.customer-wrap,.table-wrap,.totals-wrap,.payment-wrap,.review-wrap{padding-left:16px;padding-right:16px}"
-        +   ".totals-wrap table{width:100%}"
-        +   ".totals-wrap td{padding-left:12px}"
+        + "body{background:#fff!important;padding:0;display:block;min-height:auto}"
+        + ".page{box-shadow:none!important;border-radius:0!important;max-width:100%!important}"
+        + ".hdr{background:#0f172a!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
+        + ".rev,.badge-completed,.badge-cancelled,.badge-draft,.badge-paid,.badge-success,.badge-pending,.badge-failed,.badge-refunded"
+        + "{-webkit-print-color-adjust:exact;print-color-adjust:exact}"
+        + "tbody tr:nth-child(even){background:#f8fafc!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
+        + "}");
+
+        // Mobile
+        h.append(
+        "@media(max-width:640px){"
+        + "body{padding:10px}"
+        + ".hdr{padding:24px 18px 22px}"
+        + ".hdr .logo{width:80px;height:80px;margin-bottom:10px}"
+        + ".hdr h1{font-size:1.2em}"
+        + ".rib{grid-template-columns:1fr;gap:8px;padding:14px 18px;text-align:left}"
+        + ".rib .c{display:flex;gap:6px;font-size:.82em}"
+        + ".rib .c .v{display:inline;font-size:.95em}"
+        + ".cust{padding:12px 18px}"
+        + ".tw{padding:4px 16px 0;overflow-x:auto}"
+        + "table{min-width:420px}"
+        + "thead th{padding:10px 6px;font-size:.65em}"
+        + "tbody td{padding:10px 6px;font-size:.84em}"
+        + ".tot{margin:0 16px;padding:12px 6px 8px}"
+        + ".tot td{padding:5px 0 5px 16px;font-size:.84em}"
+        + ".pay{margin:0 16px 2px;padding:12px 6px;font-size:.82em}"
+        + ".rev{margin:0 16px;padding:12px 6px;font-size:.82em}"
+        + ".ft{padding:16px 18px 22px}"
         + "}"
         + "</style></head><body><div class=\"page\">");
 
         // === HEADER ===
-        h.append("<div class=\"header-wrap\">");
+        h.append("<div class=\"hdr\">");
         if (!logoUrl.isEmpty()) {
             h.append("<div><img class=\"logo\" src=\"").append(esc(logoUrl))
              .append("\" alt=\"").append(esc(shopName)).append("\" onerror=\"this.style.display='none'\"></div>");
@@ -270,7 +255,7 @@ public class InvoiceController {
             h.append(String.join(" &middot; ", ids)).append("<br>");
         }
         if (!phone.isEmpty() || !email.isEmpty()) {
-            h.append("<span>");
+            h.append("<span style=\"color:#cbd5e1\">");
             if (!phone.isEmpty()) h.append("\u260E ").append(esc(phone));
             if (!phone.isEmpty() && !email.isEmpty()) h.append(" &nbsp;|&nbsp; ");
             if (!email.isEmpty()) h.append("\u2709 ").append(esc(email));
@@ -279,68 +264,68 @@ public class InvoiceController {
         h.append("</div></div>");
 
         // === RIBBON ===
-        h.append("<div class=\"ribbon\">")
-         .append("<div class=\"item\">Order No ").append(esc(orderCode)).append("</div>")
-         .append("<div class=\"item\" style=\"text-align:center\">Invoice No INV").append(bill.getLifetimeOrderId()).append("</div>")
-         .append("<div class=\"item\" style=\"text-align:right\">").append(esc(date)).append("</div>")
+        h.append("<div class=\"rib\">")
+         .append("<div class=\"c\">Order No<span class=\"v\">").append(esc(orderCode)).append("</span></div>")
+         .append("<div class=\"c\" style=\"text-align:center\">Invoice No<span class=\"v\">INV").append(bill.getLifetimeOrderId()).append("</span></div>")
+         .append("<div class=\"c\" style=\"text-align:right\">Date<span class=\"v\">").append(esc(date)).append("</span></div>")
          .append("</div>");
 
         // === CUSTOMER ===
         if (!customerName.isEmpty() || !customerPhone.isEmpty()) {
-            h.append("<div class=\"customer-wrap\">")
-             .append("<span class=\"label\">\uD83D\uDC64 Bill to:</span>");
-            if (!customerName.isEmpty()) h.append("<span class=\"val\">").append(esc(customerName)).append("</span>");
-            if (!customerName.isEmpty() && !customerPhone.isEmpty()) h.append("<span style=\"color:#cbd5e1\">|</span>");
-            if (!customerPhone.isEmpty()) h.append("<span class=\"val\">").append(esc(customerPhone)).append("</span>");
+            h.append("<div class=\"cust\">")
+             .append("\uD83D\uDC64 Bill to:");
+            if (!customerName.isEmpty()) h.append("<span class=\"v\">").append(esc(customerName)).append("</span>");
+            if (!customerName.isEmpty() && !customerPhone.isEmpty()) h.append("<span style=\"color:#d1d5db\">|</span>");
+            if (!customerPhone.isEmpty()) h.append("<span class=\"v\">").append(esc(customerPhone)).append("</span>");
             h.append("</div>");
         }
 
         // === TABLE ===
-        h.append("<div class=\"table-wrap\"><table><thead><tr>")
-         .append("<th style=\"width:44%\">Item</th><th class=\"center\" style=\"width:10%\">Qty</th>")
-         .append("<th class=\"right\" style=\"width:20%\">Price</th><th class=\"right\" style=\"width:26%\">Total</th>")
+        h.append("<div class=\"tw\"><table><thead><tr>")
+         .append("<th style=\"width:44%\">Item</th><th class=\"c\" style=\"width:10%\">Qty</th>")
+         .append("<th class=\"r\" style=\"width:20%\">Price</th><th class=\"r\" style=\"width:26%\">Total</th>")
          .append("</tr></thead><tbody>").append(rows)
          .append("</tbody></table></div>");
 
         // === TOTALS ===
-        h.append("<div class=\"totals-wrap\"><table>")
-         .append("<tr><td class=\"label\">Subtotal</td><td class=\"amount\">").append(currency).append(" ").append(df.format(sub)).append("</td></tr>");
+        h.append("<div class=\"tot\"><table>")
+         .append("<tr><td class=\"l\">Subtotal</td><td class=\"a\">").append(currency).append(" ").append(df.format(sub)).append("</td></tr>");
         if (hasGst) {
             String half = df.format(gstPct.divide(BigDecimal.valueOf(2)));
-            h.append("<tr><td class=\"label\">CGST @").append(half).append("%</td><td class=\"amount\">").append(currency).append(" ").append(df.format(cgst)).append("</td></tr>")
-             .append("<tr><td class=\"label\">SGST @").append(half).append("%</td><td class=\"amount\">").append(currency).append(" ").append(df.format(sgst)).append("</td></tr>");
+            h.append("<tr><td class=\"l\">CGST @").append(half).append("%</td><td class=\"a\">").append(currency).append(" ").append(df.format(cgst)).append("</td></tr>")
+             .append("<tr><td class=\"l\">SGST @").append(half).append("%</td><td class=\"a\">").append(currency).append(" ").append(df.format(sgst)).append("</td></tr>");
         }
         if (hasCustomTax) {
             String label = customTaxName.isEmpty() ? "Custom Tax" : esc(customTaxName);
-            h.append("<tr><td class=\"label\">").append(label).append("</td><td class=\"amount\">").append(currency).append(" ").append(df.format(customTax)).append("</td></tr>");
+            h.append("<tr><td class=\"l\">").append(label).append("</td><td class=\"a\">").append(currency).append(" ").append(df.format(customTax)).append("</td></tr>");
         }
         if (hasPartPayments) {
             BigDecimal p1 = bill.getPartAmount1();
             BigDecimal p2 = bill.getPartAmount2();
             if (p1 != null && p1.compareTo(BigDecimal.ZERO) > 0)
-                h.append("<tr><td class=\"label\">Part Payment 1</td><td class=\"amount\">").append(currency).append(" ").append(df.format(p1)).append("</td></tr>");
+                h.append("<tr><td class=\"l\">Part Payment 1</td><td class=\"a\">").append(currency).append(" ").append(df.format(p1)).append("</td></tr>");
             if (p2 != null && p2.compareTo(BigDecimal.ZERO) > 0)
-                h.append("<tr><td class=\"label\">Part Payment 2</td><td class=\"amount\">").append(currency).append(" ").append(df.format(p2)).append("</td></tr>");
+                h.append("<tr><td class=\"l\">Part Payment 2</td><td class=\"a\">").append(currency).append(" ").append(df.format(p2)).append("</td></tr>");
         }
-        h.append("<tr class=\"grand\"><td class=\"label\">Total Amount</td><td class=\"amount\">").append(currency).append(" ").append(df.format(total)).append("</td></tr>")
+        h.append("<tr class=\"gr\"><td class=\"l\">Total Amount</td><td class=\"a\">").append(currency).append(" ").append(df.format(total)).append("</td></tr>")
          .append("</table></div>");
 
         // === PAYMENT ===
-        h.append("<div class=\"payment-wrap\">")
-         .append("<div><strong>Payment Method:</strong> ").append(paymentIcon(paymentMode)).append(" ").append(esc(paymentMode)).append("</div>")
+        h.append("<div class=\"pay\">")
+         .append("<span>").append(paymentIcon(paymentMode)).append(" <strong>").append(esc(paymentMode)).append("</strong></span>")
          .append("</div>");
 
         // === REVIEW ===
         if (!reviewUrl.isEmpty()) {
-            h.append("<div class=\"review-wrap\">")
+            h.append("<div class=\"rev\">")
              .append("\u2B50 How was your experience? <a href=\"").append(esc(reviewUrl)).append("\" target=\"_blank\">Leave a review</a>")
              .append("</div>");
         }
 
         // === FOOTER ===
-        h.append("<div class=\"footer-wrap\">")
+        h.append("<div class=\"ft\">")
          .append(esc(footer))
-         .append("<div class=\"brand\">Powered by <a href=\"https://play.google.com/store/apps/details?id=com.piquantservices.khanabooklite\" target=\"_blank\" style=\"color:#6366f1;font-weight:700;text-decoration:none\">KhanaBook</a></div>")
+         .append("<div style=\"margin-top:6px\">Powered by <a href=\"https://play.google.com/store/apps/details?id=com.piquantservices.khanabooklite\" target=\"_blank\" style=\"color:#6366f1;font-weight:600;text-decoration:none\">KhanaBook</a></div>")
          .append("</div></div></body></html>");
 
         return h.toString();
