@@ -35,9 +35,16 @@ public class InvoiceController {
             @PathVariable Long billId,
             @PathVariable String token) {
 
+        java.util.UUID uuid;
+        try {
+            uuid = java.util.UUID.fromString(token);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid token");
+        }
+
         Bill bill = billRepository.findById(billId).orElse(null);
         if (bill == null || !bill.getRestaurantId().equals(restaurantId)
-                || !java.util.UUID.fromString(token).equals(bill.getPublicToken())
+                || !uuid.equals(bill.getPublicToken())
                 || Boolean.TRUE.equals(bill.getIsDeleted())) {
             return ResponseEntity.notFound().build();
         }
@@ -53,7 +60,7 @@ public class InvoiceController {
         DecimalFormat df = new DecimalFormat("#,##0.00");
         String currency = (profile != null && profile.getCurrency() != null) ? profile.getCurrency() : "\u20B9";
 
-        String shopName = profile != null ? profile.getShopName() : "Shop";
+        String shopName = profile != null ? blank(profile.getShopName()) : "Shop";
         String address = profile != null ? blank(profile.getShopAddress()) : "";
         String phone = profile != null ? blank(profile.getWhatsappNumber()) : "";
         String email = profile != null ? blank(profile.getEmail()) : "";
@@ -72,10 +79,11 @@ public class InvoiceController {
         String customerName = blank(bill.getCustomerName());
         String customerPhone = blank(bill.getCustomerWhatsapp());
         String paymentMode = formatPayment(bill.getPaymentMode());
-        String paymentStatus = bill.getPaymentStatus() != null
-                ? bill.getPaymentStatus().substring(0, 1).toUpperCase() + bill.getPaymentStatus().substring(1) : "";
-        String orderStatus = bill.getOrderStatus() != null
-                ? bill.getOrderStatus().substring(0, 1).toUpperCase() + bill.getOrderStatus().substring(1) : "";
+
+        String ps = bill.getPaymentStatus() != null ? bill.getPaymentStatus() : "";
+        String os = bill.getOrderStatus() != null ? bill.getOrderStatus() : "";
+        String paymentStatus = ps.isEmpty() ? "" : ps.substring(0, 1).toUpperCase() + ps.substring(1);
+        String orderStatus = os.isEmpty() ? "" : os.substring(0, 1).toUpperCase() + os.substring(1);
 
         BigDecimal sub = bill.getSubtotal() != null ? bill.getSubtotal() : BigDecimal.ZERO;
         BigDecimal cgst = bill.getCgstAmount() != null ? bill.getCgstAmount() : BigDecimal.ZERO;
@@ -92,7 +100,12 @@ public class InvoiceController {
             if (Boolean.TRUE.equals(item.getIsDeleted())) continue;
             String name = blank(item.getItemName());
             String variant = blank(item.getVariantName());
-            String label = variant.isEmpty() ? esc(name) : esc(name) + " <span style=\"color:#666;font-size:0.85em\">(" + esc(variant) + ")</span>";
+            String label;
+            if (variant.isEmpty()) {
+                label = esc(name);
+            } else {
+                label = esc(name) + "<br><span style=\"color:#666;font-size:0.85em\">" + esc(variant) + "</span>";
+            }
             int qty = item.getQuantity() != null ? item.getQuantity() : 0;
             String price = df.format(item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO);
             String lineTotal = df.format(item.getItemTotal() != null ? item.getItemTotal() : BigDecimal.ZERO);
@@ -101,183 +114,129 @@ public class InvoiceController {
                 .append("<td style=\"padding:8px 6px;border-bottom:1px solid #eee;text-align:center\">").append(qty).append("</td>")
                 .append("<td style=\"padding:8px 6px;border-bottom:1px solid #eee;text-align:right\">").append(currency).append(" ").append(price).append("</td>")
                 .append("<td style=\"padding:8px 6px;border-bottom:1px solid #eee;text-align:right\">").append(currency).append(" ").append(lineTotal).append("</td>")
-                .append("</tr>\n");
+                .append("</tr>");
         }
 
-        return """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Invoice - %s</title>
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:#f5f5f5; color:#222; padding:20px; }
-  .page { max-width:740px; margin:0 auto; background:#fff; border-radius:12px; box-shadow:0 2px 16px rgba(0,0,0,.08); overflow:hidden; }
-  .header { display:flex; align-items:center; gap:16px; padding:28px 32px 20px; border-bottom:2px solid #f0f0f0; }
-  .header img { width:64px; height:64px; object-fit:contain; border-radius:8px; }
-  .header h1 { font-size:1.3em; color:#1a1a1a; }
-  .header .sub { font-size:0.85em; color:#666; margin-top:2px; }
-  .meta { display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:18px 32px; background:#fafafa; font-size:0.88em; color:#444; }
-  .meta .col { line-height:1.6; }
-  .meta .col strong { color:#222; }
-  .badge { display:inline-block; padding:2px 10px; border-radius:4px; font-size:0.78em; font-weight:600; text-transform:uppercase; }
-  .badge.paid { background:#e6f7e6; color:#1a7d1a; }
-  .badge.pending { background:#fff3cd; color:#856404; }
-  .badge.draft { background:#e2e3e5; color:#383d41; }
-  .badge.completed { background:#d4edda; color:#155724; }
-  .badge.cancelled { background:#f8d7da; color:#721c24; }
-  .customer { padding:16px 32px; border-bottom:1px solid #f0f0f0; font-size:0.88em; color:#444; }
-  .customer strong { color:#222; }
-  table { width:100%; border-collapse:collapse; }
-  thead th { padding:10px 6px; font-size:0.78em; text-transform:uppercase; letter-spacing:.5px; color:#888; border-bottom:2px solid #e0e0e0; text-align:left; }
-  thead th.right { text-align:right; }
-  thead th.center { text-align:center; }
-  tbody td { vertical-align:top; }
-  .totals { padding:18px 32px; border-top:2px solid #f0f0f0; }
-  .totals table { width:auto; margin-left:auto; }
-  .totals td { padding:4px 0 4px 24px; font-size:0.9em; }
-  .totals td.label { text-align:right; color:#555; }
-  .totals td.amount { text-align:right; font-weight:500; min-width:90px; }
-  .totals .grand td { padding-top:8px; font-size:1.1em; font-weight:700; border-top:2px solid #222; }
-  .payment { padding:16px 32px; border-top:1px solid #f0f0f0; font-size:0.88em; color:#444; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
-  .payment strong { color:#222; }
-  .footer { padding:20px 32px 28px; text-align:center; font-size:0.82em; color:#888; border-top:1px solid #f0f0f0; }
-  .footer a { color:#2563eb; text-decoration:none; }
-  .footer a:hover { text-decoration:underline; }
-  .footer .brand { margin-top:10px; font-size:0.78em; color:#aaa; }
-  .empty { padding:40px 32px; text-align:center; color:#999; }
-  @media print {
-    body { background:#fff; padding:0; }
-    .page { box-shadow:none; border-radius:0; max-width:100%; }
-    .no-print { display:none !important; }
-  }
-</style>
-</head>
-<body>
+        StringBuilder h = new StringBuilder(4096);
+        h.append("<!DOCTYPE html><html lang=\"en\"><head>")
+          .append("<meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">")
+          .append("<title>Invoice - ").append(esc(shopName)).append("</title><style>")
+          .append("*{margin:0;padding:0;box-sizing:border-box}")
+          .append("body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f5f5;color:#222;padding:20px}")
+          .append(".page{max-width:740px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,.08);overflow:hidden}")
+          .append(".header{display:flex;align-items:center;gap:16px;padding:28px 32px 20px;border-bottom:2px solid #f0f0f0}")
+          .append(".header img{width:64px;height:64px;object-fit:contain;border-radius:8px}")
+          .append(".header h1{font-size:1.3em;color:#1a1a1a}")
+          .append(".header .sub{font-size:.85em;color:#666;margin-top:2px}")
+          .append(".meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:18px 32px;background:#fafafa;font-size:.88em;color:#444}")
+          .append(".meta .col{line-height:1.6}.meta .col strong{color:#222}")
+          .append(".badge{display:inline-block;padding:2px 10px;border-radius:4px;font-size:.78em;font-weight:600;text-transform:uppercase}")
+          .append(".badge.paid{background:#e6f7e6;color:#1a7d1a}")
+          .append(".badge.pending{background:#fff3cd;color:#856404}")
+          .append(".badge.draft{background:#e2e3e5;color:#383d41}")
+          .append(".badge.completed{background:#d4edda;color:#155724}")
+          .append(".badge.cancelled{background:#f8d7da;color:#721c24}")
+          .append(".customer{padding:16px 32px;border-bottom:1px solid #f0f0f0;font-size:.88em;color:#444}")
+          .append("table{width:100%;border-collapse:collapse}")
+          .append("thead th{padding:10px 6px;font-size:.78em;text-transform:uppercase;letter-spacing:.5px;color:#888;border-bottom:2px solid #e0e0e0;text-align:left}")
+          .append("thead th.right{text-align:right}thead th.center{text-align:center}")
+          .append("tbody td{vertical-align:top}")
+          .append(".totals{padding:18px 32px;border-top:2px solid #f0f0f0}")
+          .append(".totals table{width:auto;margin-left:auto}")
+          .append(".totals td{padding:4px 0 4px 24px;font-size:.9em}")
+          .append(".totals td.label{text-align:right;color:#555}")
+          .append(".totals td.amount{text-align:right;font-weight:500;min-width:90px}")
+          .append(".totals .grand td{padding-top:8px;font-size:1.1em;font-weight:700;border-top:2px solid #222}")
+          .append(".payment{padding:16px 32px;border-top:1px solid #f0f0f0;font-size:.88em;color:#444;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}")
+          .append(".footer{padding:20px 32px 28px;text-align:center;font-size:.82em;color:#888;border-top:1px solid #f0f0f0}")
+          .append(".footer a{color:#2563eb;text-decoration:none}")
+          .append(".footer .brand{margin-top:10px;font-size:.78em;color:#aaa}")
+          .append("@media print{body{background:#fff;padding:0}.page{box-shadow:none;border-radius:0;max-width:100%}}")
+          .append("</style></head><body><div class=\"page\">");
 
-<div class="page">
+        // Header
+        h.append("<div class=\"header\">");
+        if (!logoUrl.isEmpty()) {
+            h.append("<img src=\"").append(esc(logoUrl)).append("\" alt=\"").append(esc(shopName)).append("\" onerror=\"this.style.display='none'\">");
+        }
+        h.append("<div><h1>").append(esc(shopName)).append("</h1><div class=\"sub\">");
+        if (!gstin.isEmpty()) h.append(" | GST: ").append(esc(gstin));
+        if (!fssai.isEmpty()) h.append(" | FSSAI: ").append(esc(fssai));
+        if (!address.isEmpty()) h.append("<br>").append(esc(address));
+        h.append("</div></div></div>");
 
-  <div class="header">
-    %s
-    <div>
-      <h1>%s</h1>
-      <div class="sub">%s%s%s</div>
-    </div>
-  </div>
+        // Meta
+        h.append("<div class=\"meta\"><div class=\"col\">")
+         .append("<strong>Invoice</strong> #").append(esc(orderCode)).append("<br>")
+         .append("<strong>Date</strong> ").append(esc(date)).append("<br>")
+         .append("<strong>Status</strong> <span class=\"badge ").append(os.toLowerCase()).append("\">").append(esc(orderStatus)).append("</span>");
+        if (!phone.isEmpty() || !email.isEmpty()) {
+            h.append("<br><small>").append(esc(phone));
+            if (!phone.isEmpty() && !email.isEmpty()) h.append(" | ");
+            h.append(esc(email)).append("</small>");
+        }
+        h.append("</div><div class=\"col\" style=\"text-align:right\">")
+         .append("<strong>Payment</strong> ").append(esc(paymentMode)).append("<br>")
+         .append("<strong>Status</strong> <span class=\"badge ").append(ps.toLowerCase()).append("\">").append(esc(paymentStatus)).append("</span>")
+         .append("</div></div>");
 
-  <div class="meta">
-    <div class="col">
-      <strong>Invoice</strong> #%s<br>
-      <strong>Date</strong> %s<br>
-      <strong>Status</strong> <span class="badge %s">%s</span>
-      %s
-    </div>
-    <div class="col" style="text-align:right">
-      <strong>Payment</strong> %s<br>
-      <strong>Status</strong> <span class="badge %s">%s</span>
-    </div>
-  </div>
+        // Customer
+        if (!customerName.isEmpty() || !customerPhone.isEmpty()) {
+            h.append("<div class=\"customer\">");
+            if (!customerName.isEmpty()) h.append("<strong>Customer:</strong> ").append(esc(customerName));
+            if (!customerName.isEmpty() && !customerPhone.isEmpty()) h.append(" \u00B7 ");
+            if (!customerPhone.isEmpty()) h.append(esc(customerPhone));
+            h.append("</div>");
+        }
 
-  %s
+        // Items table
+        h.append("<table><thead><tr><th style=\"width:46%\">Item</th><th class=\"center\" style=\"width:10%\">Qty</th><th class=\"right\" style=\"width:20%\">Price</th><th class=\"right\" style=\"width:24%\">Total</th></tr></thead><tbody>")
+         .append(rows)
+         .append("</tbody></table>");
 
-  <table>
-    <thead>
-      <tr>
-        <th style="width:46%%">Item</th>
-        <th class="center" style="width:10%%">Qty</th>
-        <th class="right" style="width:20%%">Price</th>
-        <th class="right" style="width:24%%">Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      %s
-    </tbody>
-  </table>
-
-  %s
-
-  <div class="payment">
-    <div><strong>Payment Method:</strong> %s</div>
-    <div><strong>Order Status:</strong> %s</div>
-  </div>
-
-  %s
-
-  <div class="footer">
-    %s
-    <div class="brand">Powered by <strong>KhanaBook</strong></div>
-  </div>
-
-</div>
-
-</body>
-</html>""".formatted(
-                esc(shopName),
-                logoBlock(logoUrl, shopName),
-                esc(shopName),
-                gstin.isEmpty() ? "" : " | GST: " + gstin,
-                fssai.isEmpty() ? "" : " | FSSAI: " + fssai,
-                address.isEmpty() ? "" : "<br>" + esc(address),
-                esc(orderCode),
-                date,
-                orderStatus.toLowerCase(), esc(orderStatus),
-                (phone.isEmpty() && email.isEmpty()) ? "" : "<br><small>" + phone + (phone.isEmpty() || email.isEmpty() ? "" : " | ") + email + "</small>",
-                esc(paymentMode),
-                paymentStatus.toLowerCase(), esc(paymentStatus),
-                customerBlock(customerName, customerPhone),
-                rows.toString(),
-                totalsBlock(df, currency, sub, gstPct, cgst, sgst, hasGst, customTaxName, customTax, hasCustomTax, total, hasPartPayments, bill),
-                reviewBlock(reviewUrl),
-                esc(paymentMode),
-                esc(orderStatus),
-                esc(footer)
-        );
-    }
-
-    private String logoBlock(String logoUrl, String shopName) {
-        if (logoUrl.isEmpty()) return "";
-        return "<img src=\"" + esc(logoUrl) + "\" alt=\"" + esc(shopName) + "\" onerror=\"this.style.display='none'\">";
-    }
-
-    private String customerBlock(String name, String phone) {
-        if (name.isEmpty() && phone.isEmpty()) return "";
-        String n = name.isEmpty() ? "" : "<strong>Customer:</strong> " + esc(name);
-        String p = phone.isEmpty() ? "" : (n.isEmpty() ? "" : " &middot; ") + esc(phone);
-        return "<div class=\"customer\">" + n + p + "</div>";
-    }
-
-    private String totalsBlock(DecimalFormat df, String currency, BigDecimal sub, BigDecimal gstPct,
-                                BigDecimal cgst, BigDecimal sgst, boolean hasGst,
-                                String customTaxName, BigDecimal customTax, boolean hasCustomTax,
-                                BigDecimal total, boolean hasPartPayments, Bill bill) {
-        StringBuilder sb = new StringBuilder("<div class=\"totals\"><table>");
-        sb.append("<tr><td class=\"label\">Subtotal</td><td class=\"amount\">").append(currency).append(" ").append(df.format(sub)).append("</td></tr>");
+        // Totals
+        h.append("<div class=\"totals\"><table>")
+         .append("<tr><td class=\"label\">Subtotal</td><td class=\"amount\">").append(currency).append(" ").append(df.format(sub)).append("</td></tr>");
         if (hasGst) {
-            sb.append("<tr><td class=\"label\">CGST @").append(df.format(gstPct.divide(BigDecimal.valueOf(2)))).append("%</td><td class=\"amount\">").append(currency).append(" ").append(df.format(cgst)).append("</td></tr>");
-            sb.append("<tr><td class=\"label\">SGST @").append(df.format(gstPct.divide(BigDecimal.valueOf(2)))).append("%</td><td class=\"amount\">").append(currency).append(" ").append(df.format(sgst)).append("</td></tr>");
+            String half = df.format(gstPct.divide(BigDecimal.valueOf(2)));
+            h.append("<tr><td class=\"label\">CGST @").append(half).append("%</td><td class=\"amount\">").append(currency).append(" ").append(df.format(cgst)).append("</td></tr>")
+             .append("<tr><td class=\"label\">SGST @").append(half).append("%</td><td class=\"amount\">").append(currency).append(" ").append(df.format(sgst)).append("</td></tr>");
         }
         if (hasCustomTax) {
             String label = customTaxName.isEmpty() ? "Custom Tax" : esc(customTaxName);
-            sb.append("<tr><td class=\"label\">").append(label).append("</td><td class=\"amount\">").append(currency).append(" ").append(df.format(customTax)).append("</td></tr>");
+            h.append("<tr><td class=\"label\">").append(label).append("</td><td class=\"amount\">").append(currency).append(" ").append(df.format(customTax)).append("</td></tr>");
         }
         if (hasPartPayments) {
-            if (bill.getPartAmount1() != null && bill.getPartAmount1().compareTo(BigDecimal.ZERO) > 0) {
-                sb.append("<tr><td class=\"label\">Part Payment 1</td><td class=\"amount\">").append(currency).append(" ").append(df.format(bill.getPartAmount1())).append("</td></tr>");
-            }
-            if (bill.getPartAmount2() != null && bill.getPartAmount2().compareTo(BigDecimal.ZERO) > 0) {
-                sb.append("<tr><td class=\"label\">Part Payment 2</td><td class=\"amount\">").append(currency).append(" ").append(df.format(bill.getPartAmount2())).append("</td></tr>");
-            }
+            BigDecimal p1 = bill.getPartAmount1();
+            BigDecimal p2 = bill.getPartAmount2();
+            if (p1 != null && p1.compareTo(BigDecimal.ZERO) > 0)
+                h.append("<tr><td class=\"label\">Part Payment 1</td><td class=\"amount\">").append(currency).append(" ").append(df.format(p1)).append("</td></tr>");
+            if (p2 != null && p2.compareTo(BigDecimal.ZERO) > 0)
+                h.append("<tr><td class=\"label\">Part Payment 2</td><td class=\"amount\">").append(currency).append(" ").append(df.format(p2)).append("</td></tr>");
         }
-        sb.append("<tr class=\"grand\"><td class=\"label\">Total</td><td class=\"amount\">").append(currency).append(" ").append(df.format(total)).append("</td></tr>");
-        sb.append("</table></div>");
-        return sb.toString();
-    }
+        h.append("<tr class=\"grand\"><td class=\"label\">Total</td><td class=\"amount\">").append(currency).append(" ").append(df.format(total)).append("</td></tr>")
+         .append("</table></div>");
 
-    private String reviewBlock(String reviewUrl) {
-        if (reviewUrl.isEmpty()) return "";
-        return "<div class=\"footer\" style=\"padding:12px 32px;border-top:1px solid #eee;font-size:0.85em\">\u2605 Like our service? <a href=\"" + esc(reviewUrl) + "\" target=\"_blank\">Leave a review</a></div>";
+        // Payment
+        h.append("<div class=\"payment\">")
+         .append("<div><strong>Payment Method:</strong> ").append(esc(paymentMode)).append("</div>")
+         .append("<div><strong>Order Status:</strong> ").append(esc(orderStatus)).append("</div>")
+         .append("</div>");
+
+        // Review
+        if (!reviewUrl.isEmpty()) {
+            h.append("<div class=\"footer\" style=\"padding:12px 32px;border-top:1px solid #eee;font-size:.85em\">")
+             .append("\u2605 Like our service? <a href=\"").append(esc(reviewUrl)).append("\" target=\"_blank\">Leave a review</a>")
+             .append("</div>");
+        }
+
+        // Footer
+        h.append("<div class=\"footer\">")
+         .append(esc(footer))
+         .append("<div class=\"brand\">Powered by <strong>KhanaBook</strong></div></div>")
+         .append("</div></body></html>");
+
+        return h.toString();
     }
 
     private String formatPayment(String mode) {
