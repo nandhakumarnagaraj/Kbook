@@ -346,7 +346,7 @@ public class InvoiceController {
         // === FOOTER ===
         h.append("<div class=\"footer-wrap\">")
          .append(esc(footer))
-         .append("<div class=\"brand\">Powered by <strong>KhanaBook</strong></div>")
+         .append("<div class=\"brand\">Powered by <a href=\"https://play.google.com/store/apps/details?id=com.piquantservices.khanabooklite\" target=\"_blank\" style=\"color:#6366f1;font-weight:700;text-decoration:none\">KhanaBook</a></div>")
          .append("</div></div></body></html>");
 
         return h.toString();
