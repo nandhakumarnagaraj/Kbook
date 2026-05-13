@@ -96,6 +96,7 @@ public class InvoiceController {
         boolean hasPartPayments = bill.getPartAmount1() != null || bill.getPartAmount2() != null;
 
         StringBuilder rows = new StringBuilder();
+        int rowIdx = 0;
         for (BillItem item : items) {
             if (Boolean.TRUE.equals(item.getIsDeleted())) continue;
             String name = blank(item.getItemName());
@@ -104,98 +105,223 @@ public class InvoiceController {
             if (variant.isEmpty()) {
                 label = esc(name);
             } else {
-                label = esc(name) + "<br><span style=\"color:#666;font-size:0.85em\">" + esc(variant) + "</span>";
+                label = esc(name) + "<br><span style=\"color:#64748b;font-size:0.82em\">" + esc(variant) + "</span>";
             }
             int qty = item.getQuantity() != null ? item.getQuantity() : 0;
             String price = df.format(item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO);
             String lineTotal = df.format(item.getItemTotal() != null ? item.getItemTotal() : BigDecimal.ZERO);
-            rows.append("<tr>")
-                .append("<td style=\"padding:8px 6px;border-bottom:1px solid #eee\">").append(label).append("</td>")
-                .append("<td style=\"padding:8px 6px;border-bottom:1px solid #eee;text-align:center\">").append(qty).append("</td>")
-                .append("<td style=\"padding:8px 6px;border-bottom:1px solid #eee;text-align:right\">").append(currency).append(" ").append(price).append("</td>")
-                .append("<td style=\"padding:8px 6px;border-bottom:1px solid #eee;text-align:right\">").append(currency).append(" ").append(lineTotal).append("</td>")
+            String bg = rowIdx % 2 == 0 ? "" : " style=\"background:#f8fafc\"";
+            rows.append("<tr").append(bg).append(">")
+                .append("<td style=\"padding:10px 8px\">").append(label).append("</td>")
+                .append("<td style=\"padding:10px 8px;text-align:center;color:#475569\">").append(qty).append("</td>")
+                .append("<td style=\"padding:10px 8px;text-align:right;color:#475569\">").append(currency).append(" ").append(price).append("</td>")
+                .append("<td style=\"padding:10px 8px;text-align:right;font-weight:600;color:#1e293b\">").append(currency).append(" ").append(lineTotal).append("</td>")
                 .append("</tr>");
+            rowIdx++;
         }
 
-        StringBuilder h = new StringBuilder(4096);
-        h.append("<!DOCTYPE html><html lang=\"en\"><head>")
-          .append("<meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">")
-          .append("<title>Invoice - ").append(esc(shopName)).append("</title><style>")
-          .append("*{margin:0;padding:0;box-sizing:border-box}")
-          .append("body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f5f5;color:#222;padding:20px}")
-          .append(".page{max-width:740px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,.08);overflow:hidden}")
-          .append(".header{display:flex;align-items:center;gap:16px;padding:28px 32px 20px;border-bottom:2px solid #f0f0f0}")
-          .append(".header img{width:64px;height:64px;object-fit:contain;border-radius:8px}")
-          .append(".header h1{font-size:1.3em;color:#1a1a1a}")
-          .append(".header .sub{font-size:.85em;color:#666;margin-top:2px}")
-          .append(".meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:18px 32px;background:#fafafa;font-size:.88em;color:#444}")
-          .append(".meta .col{line-height:1.6}.meta .col strong{color:#222}")
-          .append(".badge{display:inline-block;padding:2px 10px;border-radius:4px;font-size:.78em;font-weight:600;text-transform:uppercase}")
-          .append(".badge.paid{background:#e6f7e6;color:#1a7d1a}")
-          .append(".badge.pending{background:#fff3cd;color:#856404}")
-          .append(".badge.draft{background:#e2e3e5;color:#383d41}")
-          .append(".badge.completed{background:#d4edda;color:#155724}")
-          .append(".badge.cancelled{background:#f8d7da;color:#721c24}")
-          .append(".customer{padding:16px 32px;border-bottom:1px solid #f0f0f0;font-size:.88em;color:#444}")
-          .append("table{width:100%;border-collapse:collapse}")
-          .append("thead th{padding:10px 6px;font-size:.78em;text-transform:uppercase;letter-spacing:.5px;color:#888;border-bottom:2px solid #e0e0e0;text-align:left}")
-          .append("thead th.right{text-align:right}thead th.center{text-align:center}")
-          .append("tbody td{vertical-align:top}")
-          .append(".totals{padding:18px 32px;border-top:2px solid #f0f0f0}")
-          .append(".totals table{width:auto;margin-left:auto}")
-          .append(".totals td{padding:4px 0 4px 24px;font-size:.9em}")
-          .append(".totals td.label{text-align:right;color:#555}")
-          .append(".totals td.amount{text-align:right;font-weight:500;min-width:90px}")
-          .append(".totals .grand td{padding-top:8px;font-size:1.1em;font-weight:700;border-top:2px solid #222}")
-          .append(".payment{padding:16px 32px;border-top:1px solid #f0f0f0;font-size:.88em;color:#444;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}")
-          .append(".footer{padding:20px 32px 28px;text-align:center;font-size:.82em;color:#888;border-top:1px solid #f0f0f0}")
-          .append(".footer a{color:#2563eb;text-decoration:none}")
-          .append(".footer .brand{margin-top:10px;font-size:.78em;color:#aaa}")
-          .append("@media print{body{background:#fff;padding:0}.page{box-shadow:none;border-radius:0;max-width:100%}}")
-          .append("</style></head><body><div class=\"page\">");
+        StringBuilder h = new StringBuilder(6144);
+
+        // === HEAD ===
+        h.append("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">")
+         .append("<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">")
+         .append("<title>Invoice - ").append(esc(shopName)).append("</title>")
+         .append("<style>");
+
+        // === CSS ===
+        h.append(
+        "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');"
+        + "*{margin:0;padding:0;box-sizing:border-box}"
+        + "body{"
+        +   "font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;"
+        +   "background:linear-gradient(135deg,#f1f5f9 0%,#e2e8f0 100%);"
+        +   "color:#1e293b;padding:24px;min-height:100vh;display:flex;align-items:center;justify-content:center"
+        + "}"
+        + ".page{"
+        +   "max-width:800px;width:100%;margin:0 auto;background:#ffffff;"
+        +   "border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.06),0 1px 4px rgba(0,0,0,.04);"
+        +   "overflow:hidden;position:relative"
+        + "}");
+
+        // Brand watermark
+        h.append(
+        ".page::before{"
+        +   "content:'';position:absolute;top:-120px;right:-120px;width:300px;height:300px;"
+        +   "background:radial-gradient(circle,rgba(99,102,241,.04) 0%,transparent 70%);"
+        +   "border-radius:50%;pointer-events:none;z-index:0"
+        + "}");
 
         // Header
-        h.append("<div class=\"header\">");
-        if (!logoUrl.isEmpty()) {
-            h.append("<img src=\"").append(esc(logoUrl)).append("\" alt=\"").append(esc(shopName)).append("\" onerror=\"this.style.display='none'\">");
-        }
-        h.append("<div><h1>").append(esc(shopName)).append("</h1><div class=\"sub\">");
-        if (!gstin.isEmpty()) h.append(" | GST: ").append(esc(gstin));
-        if (!fssai.isEmpty()) h.append(" | FSSAI: ").append(esc(fssai));
-        if (!address.isEmpty()) h.append("<br>").append(esc(address));
-        h.append("</div></div></div>");
+        h.append(
+        ".header-wrap{"
+        +   "background:linear-gradient(135deg,#1e293b 0%,#334155 100%);"
+        +   "padding:32px 36px;display:flex;align-items:center;gap:20px;position:relative;z-index:1"
+        + "}"
+        + ".header-wrap .logo{"
+        +   "width:72px;height:72px;border-radius:12px;object-fit:cover;"
+        +   "border:2px solid rgba(255,255,255,.15);background:#fff;flex-shrink:0"
+        + "}"
+        + ".header-wrap .info{flex:1}"
+        + ".header-wrap h1{color:#fff;font-size:1.35em;font-weight:700;letter-spacing:-.3px}"
+        + ".header-wrap .sub{color:#94a3b8;font-size:.82em;margin-top:4px;line-height:1.5}"
+        + ".header-wrap .sub span{color:#cbd5e1}");
 
-        // Meta
-        h.append("<div class=\"meta\"><div class=\"col\">")
-         .append("<strong>Invoice</strong> #").append(esc(orderCode)).append("<br>")
-         .append("<strong>Date</strong> ").append(esc(date)).append("<br>")
-         .append("<strong>Status</strong> <span class=\"badge ").append(os.toLowerCase()).append("\">").append(esc(orderStatus)).append("</span>");
-        if (!phone.isEmpty() || !email.isEmpty()) {
-            h.append("<br><small>").append(esc(phone));
-            if (!phone.isEmpty() && !email.isEmpty()) h.append(" | ");
-            h.append(esc(email)).append("</small>");
-        }
-        h.append("</div><div class=\"col\" style=\"text-align:right\">")
-         .append("<strong>Payment</strong> ").append(esc(paymentMode)).append("<br>")
-         .append("<strong>Status</strong> <span class=\"badge ").append(ps.toLowerCase()).append("\">").append(esc(paymentStatus)).append("</span>")
-         .append("</div></div>");
+        // Invoice ribbon
+        h.append(
+        ".ribbon{"
+        +   "background:#fff;padding:18px 36px;display:flex;justify-content:space-between;"
+        +   "flex-wrap:wrap;gap:12px;border-bottom:1px solid #e2e8f0;position:relative;z-index:1"
+        + "}"
+        + ".ribbon .item{font-size:.82em;color:#64748b}"
+        + ".ribbon .item strong{color:#1e293b;font-weight:600;display:block;font-size:1.05em;margin-top:2px}"
+        + ".ribbon .item .badge{"
+        +   "display:inline-block;padding:3px 12px;border-radius:20px;font-size:.75em;"
+        +   "font-weight:600;letter-spacing:.3px;margin-top:3px"
+        + "}"
+        + ".badge-completed{background:#dcfce7;color:#166534}"
+        + ".badge-cancelled{background:#fef2f2;color:#991b1b}"
+        + ".badge-draft{background:#f1f5f9;color:#475569}"
+        + ".badge-paid,.badge-success{background:#dcfce7;color:#166534}"
+        + ".badge-pending,.badge-failed{background:#fef3c7;color:#92400e}"
+        + ".badge-refunded{background:#fef2f2;color:#991b1b}");
 
         // Customer
+        h.append(
+        ".customer-wrap{"
+        +   "padding:16px 36px;border-bottom:1px solid #e2e8f0;font-size:.88em;"
+        +   "display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative;z-index:1"
+        + "}"
+        + ".customer-wrap .label{color:#64748b;font-weight:500}"
+        + ".customer-wrap .val{color:#1e293b}");
+
+        // Table
+        h.append(
+        ".table-wrap{padding:4px 28px 0;position:relative;z-index:1}"
+        + "table{width:100%;border-collapse:collapse}"
+        + "thead th{"
+        +   "padding:12px 8px;font-size:.72em;text-transform:uppercase;letter-spacing:.8px;"
+        +   "color:#64748b;font-weight:600;border-bottom:2px solid #e2e8f0;text-align:left"
+        + "}"
+        + "thead th.right{text-align:right}"
+        + "thead th.center{text-align:center}"
+        + "tbody tr{border-bottom:1px solid #f1f5f9}"
+        + "tbody tr:last-child{border-bottom:none}"
+        + "tbody td{font-size:.9em;color:#334155;vertical-align:top}");
+
+        // Totals
+        h.append(
+        ".totals-wrap{"
+        +   "margin:0 28px 0;padding:16px 8px 8px;border-top:2px solid #e2e8f0;"
+        +   "position:relative;z-index:1"
+        + "}"
+        + ".totals-wrap table{width:auto;margin-left:auto}"
+        + ".totals-wrap td{padding:5px 0 5px 32px;font-size:.88em}"
+        + ".totals-wrap td.label{text-align:right;color:#64748b}"
+        + ".totals-wrap td.amount{text-align:right;font-weight:500;min-width:100px;color:#334155}"
+        + ".totals-wrap .grand td{"
+        +   "padding-top:10px;font-size:1.15em;font-weight:700;color:#1e293b;"
+        +   "border-top:2px solid #1e293b"
+        + "}");
+
+        // Payment
+        h.append(
+        ".payment-wrap{"
+        +   "margin:8px 28px 0;padding:14px 8px;border-top:1px solid #e2e8f0;"
+        +   "display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;"
+        +   "font-size:.85em;color:#64748b;position:relative;z-index:1"
+        + "}"
+        + ".payment-wrap strong{color:#334155;font-weight:600}");
+
+        // Review CTA
+        h.append(
+        ".review-wrap{"
+        +   "margin:0 28px;padding:16px 8px;text-align:center;"
+        +   "background:linear-gradient(135deg,#fef9c3 0%,#fef3c7 100%);"
+        +   "border-radius:10px;font-size:.85em;color:#92400e;position:relative;z-index:1"
+        + "}"
+        + ".review-wrap a{color:#1d4ed8;font-weight:600;text-decoration:none}"
+        + ".review-wrap a:hover{text-decoration:underline}");
+
+        // Footer
+        h.append(
+        ".footer-wrap{"
+        +   "margin-top:20px;padding:20px 36px 24px;text-align:center;font-size:.8em;"
+        +   "color:#94a3b8;border-top:1px solid #e2e8f0;position:relative;z-index:1"
+        + "}"
+        + ".footer-wrap .brand{margin-top:8px;font-size:.78em;color:#94a3b8}"
+        + ".footer-wrap .brand strong{color:#6366f1}");
+
+        // Print
+        h.append(
+        "@media print{"
+        +   "body{background:#fff!important;padding:0;display:block;min-height:auto}"
+        +   ".page{box-shadow:none!important;border-radius:0!important;max-width:100%!important}"
+        +   ".header-wrap{background:#1e293b!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
+        +   ".review-wrap,.badge-completed,.badge-cancelled,.badge-draft,.badge-paid,.badge-success,.badge-pending,.badge-failed,.badge-refunded"
+        +   "{-webkit-print-color-adjust:exact;print-color-adjust:exact}"
+        +   "tbody tr:nth-child(even){background:#f8fafc!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
+        + "}"
+        + "@media(max-width:600px){"
+        +   "body{padding:12px}"
+        +   ".header-wrap{padding:20px 16px;flex-direction:column;text-align:center}"
+        +   ".ribbon,.customer-wrap,.table-wrap,.totals-wrap,.payment-wrap,.review-wrap{padding-left:16px;padding-right:16px}"
+        +   ".totals-wrap table{width:100%}"
+        +   ".totals-wrap td{padding-left:12px}"
+        + "}"
+        + "</style></head><body><div class=\"page\">");
+
+        // === HEADER ===
+        h.append("<div class=\"header-wrap\">");
+        if (!logoUrl.isEmpty()) {
+            h.append("<img class=\"logo\" src=\"").append(esc(logoUrl))
+             .append("\" alt=\"").append(esc(shopName)).append("\" onerror=\"this.style.display='none'\">");
+        }
+        h.append("<div class=\"info\"><h1>").append(esc(shopName)).append("</h1><div class=\"sub\">");
+        if (!address.isEmpty()) {
+            h.append(esc(address)).append("<br>");
+        }
+        java.util.ArrayList<String> ids = new java.util.ArrayList<>();
+        if (!gstin.isEmpty()) ids.add("GST: " + esc(gstin));
+        if (!fssai.isEmpty()) ids.add("FSSAI: " + esc(fssai));
+        if (!ids.isEmpty()) {
+            h.append(String.join(" &middot; ", ids)).append("<br>");
+        }
+        if (!phone.isEmpty() || !email.isEmpty()) {
+            h.append("<span>");
+            if (!phone.isEmpty()) h.append("\u260E ").append(esc(phone));
+            if (!phone.isEmpty() && !email.isEmpty()) h.append(" &nbsp;|&nbsp; ");
+            if (!email.isEmpty()) h.append("\u2709 ").append(esc(email));
+            h.append("</span>");
+        }
+        h.append("</div></div></div>");
+
+        // === RIBBON ===
+        h.append("<div class=\"ribbon\">")
+         .append("<div class=\"item\">Invoice #<strong>").append(esc(orderCode)).append("</strong></div>")
+         .append("<div class=\"item\">Date<strong>").append(esc(date)).append("</strong></div>")
+         .append("<div class=\"item\" style=\"text-align:right\">")
+         .append("Status<div><span class=\"badge badge-").append(os.toLowerCase()).append("\">").append(esc(orderStatus)).append("</span></div>")
+         .append("</div></div>");
+
+        // === CUSTOMER ===
         if (!customerName.isEmpty() || !customerPhone.isEmpty()) {
-            h.append("<div class=\"customer\">");
-            if (!customerName.isEmpty()) h.append("<strong>Customer:</strong> ").append(esc(customerName));
-            if (!customerName.isEmpty() && !customerPhone.isEmpty()) h.append(" \u00B7 ");
-            if (!customerPhone.isEmpty()) h.append(esc(customerPhone));
+            h.append("<div class=\"customer-wrap\">")
+             .append("<span class=\"label\">\uD83D\uDC64 Bill to:</span>");
+            if (!customerName.isEmpty()) h.append("<span class=\"val\">").append(esc(customerName)).append("</span>");
+            if (!customerName.isEmpty() && !customerPhone.isEmpty()) h.append("<span style=\"color:#cbd5e1\">|</span>");
+            if (!customerPhone.isEmpty()) h.append("<span class=\"val\">").append(esc(customerPhone)).append("</span>");
             h.append("</div>");
         }
 
-        // Items table
-        h.append("<table><thead><tr><th style=\"width:46%\">Item</th><th class=\"center\" style=\"width:10%\">Qty</th><th class=\"right\" style=\"width:20%\">Price</th><th class=\"right\" style=\"width:24%\">Total</th></tr></thead><tbody>")
-         .append(rows)
-         .append("</tbody></table>");
+        // === TABLE ===
+        h.append("<div class=\"table-wrap\"><table><thead><tr>")
+         .append("<th style=\"width:44%\">Item</th><th class=\"center\" style=\"width:10%\">Qty</th>")
+         .append("<th class=\"right\" style=\"width:20%\">Price</th><th class=\"right\" style=\"width:26%\">Total</th>")
+         .append("</tr></thead><tbody>").append(rows)
+         .append("</tbody></table></div>");
 
-        // Totals
-        h.append("<div class=\"totals\"><table>")
+        // === TOTALS ===
+        h.append("<div class=\"totals-wrap\"><table>")
          .append("<tr><td class=\"label\">Subtotal</td><td class=\"amount\">").append(currency).append(" ").append(df.format(sub)).append("</td></tr>");
         if (hasGst) {
             String half = df.format(gstPct.divide(BigDecimal.valueOf(2)));
@@ -214,29 +340,45 @@ public class InvoiceController {
             if (p2 != null && p2.compareTo(BigDecimal.ZERO) > 0)
                 h.append("<tr><td class=\"label\">Part Payment 2</td><td class=\"amount\">").append(currency).append(" ").append(df.format(p2)).append("</td></tr>");
         }
-        h.append("<tr class=\"grand\"><td class=\"label\">Total</td><td class=\"amount\">").append(currency).append(" ").append(df.format(total)).append("</td></tr>")
+        h.append("<tr class=\"grand\"><td class=\"label\">Total Amount</td><td class=\"amount\">").append(currency).append(" ").append(df.format(total)).append("</td></tr>")
          .append("</table></div>");
 
-        // Payment
-        h.append("<div class=\"payment\">")
-         .append("<div><strong>Payment Method:</strong> ").append(esc(paymentMode)).append("</div>")
+        // === PAYMENT ===
+        h.append("<div class=\"payment-wrap\">")
+         .append("<div><strong>Payment Method:</strong> ").append(paymentIcon(paymentMode)).append(" ").append(esc(paymentMode)).append("</div>")
+         .append("<div><strong>Payment Status:</strong> <span class=\"badge badge-").append(ps.toLowerCase()).append("\">").append(esc(paymentStatus)).append("</span></div>")
          .append("<div><strong>Order Status:</strong> ").append(esc(orderStatus)).append("</div>")
          .append("</div>");
 
-        // Review
+        // === REVIEW ===
         if (!reviewUrl.isEmpty()) {
-            h.append("<div class=\"footer\" style=\"padding:12px 32px;border-top:1px solid #eee;font-size:.85em\">")
-             .append("\u2605 Like our service? <a href=\"").append(esc(reviewUrl)).append("\" target=\"_blank\">Leave a review</a>")
+            h.append("<div class=\"review-wrap\">")
+             .append("\u2B50 How was your experience? <a href=\"").append(esc(reviewUrl)).append("\" target=\"_blank\">Leave a review \u2192</a>")
              .append("</div>");
         }
 
-        // Footer
-        h.append("<div class=\"footer\">")
+        // === FOOTER ===
+        h.append("<div class=\"footer-wrap\">")
          .append(esc(footer))
-         .append("<div class=\"brand\">Powered by <strong>KhanaBook</strong></div></div>")
-         .append("</div></body></html>");
+         .append("<div class=\"brand\">Powered by <strong>KhanaBook</strong></div>")
+         .append("</div></div></body></html>");
 
         return h.toString();
+    }
+
+    private String paymentIcon(String mode) {
+        if (mode == null) return "";
+        return switch (mode.toLowerCase()) {
+            case "cash" -> "\uD83D\uDCB5";
+            case "upi" -> "\uD83D\uDCF1";
+            case "card", "credit_card", "debit_card" -> "\uD83D\uDCB3";
+            case "credit" -> "\uD83D\uDCB3";
+            case "online" -> "\uD83C\uDF10";
+            case "zomato" -> "\uD83C\uDF7D\uFE0F";
+            case "swiggy" -> "\uD83D\uDC69\u200D\uD83C\uDF73";
+            case "split" -> "\uD83D\uDCB1";
+            default -> "";
+        };
     }
 
     private String formatPayment(String mode) {
