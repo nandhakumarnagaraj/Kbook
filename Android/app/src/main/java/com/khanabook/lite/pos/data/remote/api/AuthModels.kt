@@ -1,34 +1,36 @@
 package com.khanabook.lite.pos.data.remote.api
 
+import com.google.gson.annotations.SerializedName
+
 data class LoginRequest(
-    val loginId: String,
-    val password: String,
-    val deviceId: String
+    @SerializedName("loginId") val loginId: String,
+    @SerializedName("password") val password: String,
+    @SerializedName("deviceId") val deviceId: String
 )
 
 data class GoogleLoginRequest(
-    val idToken: String,
-    val deviceId: String
+    @SerializedName("idToken") val idToken: String,
+    @SerializedName("deviceId") val deviceId: String
 )
 
 data class SignupRequest(
-    val phoneNumber: String,
-    val name: String,
-    val password: String,
-    val otp: String,
-    val deviceId: String
+    @SerializedName("phoneNumber") val phoneNumber: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("password") val password: String,
+    @SerializedName("otp") val otp: String,
+    @SerializedName("deviceId") val deviceId: String
 )
 
 data class SignupOtpRequest(
-    val phoneNumber: String
+    @SerializedName("phoneNumber") val phoneNumber: String
 )
 
 data class AuthResponse(
-    val token: String,
-    val restaurantId: Long,
-    val userName: String,
-    val loginId: String? = null,
-    val whatsappNumber: String? = null,
-    val userEmail: String? = null,
-    val role: String? = null
+    @SerializedName("token") val token: String,
+    @SerializedName("restaurantId") val restaurantId: Long,
+    @SerializedName("userName") val userName: String,
+    @SerializedName("loginId") val loginId: String? = null,
+    @SerializedName("whatsappNumber") val whatsappNumber: String? = null,
+    @SerializedName("userEmail") val userEmail: String? = null,
+    @SerializedName("role") val role: String? = null
 )

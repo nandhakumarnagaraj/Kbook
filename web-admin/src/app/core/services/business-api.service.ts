@@ -1,6 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BusinessDashboard, BusinessMenuItem, BusinessOrder, BusinessStaffItem, RefundOrderRequest } from '../models/api.models';
+import {
+  BusinessDashboard,
+  BusinessMarketplaceSetup,
+  BusinessMenuItem,
+  BusinessOrder,
+  BusinessStaffItem,
+  MarketplaceConfig,
+  MarketplaceConfigRequest,
+  RefundOrderRequest
+} from '../models/api.models';
 import { environment } from '../../../environments/environment';
 
 const API_BASE_URL = environment.apiBaseUrl;
@@ -11,6 +20,18 @@ export class BusinessApiService {
 
   getDashboard() {
     return this.http.get<BusinessDashboard>(`${API_BASE_URL}/business/dashboard`);
+  }
+
+  getMarketplaceSetup() {
+    return this.http.get<BusinessMarketplaceSetup>(`${API_BASE_URL}/business/marketplace-setup`);
+  }
+
+  getMarketplaceConfig() {
+    return this.http.get<MarketplaceConfig>(`${API_BASE_URL}/marketplace/config`);
+  }
+
+  saveMarketplaceConfig(payload: MarketplaceConfigRequest) {
+    return this.http.post<MarketplaceConfig>(`${API_BASE_URL}/marketplace/config`, payload);
   }
 
   getOrders() {

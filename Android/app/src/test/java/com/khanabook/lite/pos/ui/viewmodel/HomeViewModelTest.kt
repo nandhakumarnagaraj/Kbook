@@ -4,6 +4,8 @@ import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
+import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
+import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
 import com.khanabook.lite.pos.domain.util.ConnectionStatus
 import com.khanabook.lite.pos.domain.util.NetworkMonitor
 import io.mockk.every
@@ -24,6 +26,8 @@ class HomeViewModelTest {
 
     private lateinit var billRepository: BillRepository
     private lateinit var kitchenPrintQueueRepository: KitchenPrintQueueRepository
+    private lateinit var kitchenPrintQueueManager: KitchenPrintQueueManager
+    private lateinit var printerProfileRepository: PrinterProfileRepository
     private lateinit var networkMonitor: NetworkMonitor
     private val testDispatcher = StandardTestDispatcher()
 
@@ -59,7 +63,10 @@ class HomeViewModelTest {
         )
         every { billRepository.getProfileFlow() } returns flowOf(profile)
         
-        val viewModel = HomeViewModel(billRepository, kitchenPrintQueueRepository, networkMonitor)
+        kitchenPrintQueueManager = mockk(relaxed = true)
+        printerProfileRepository = mockk(relaxed = true)
+        
+        val viewModel = HomeViewModel(billRepository, kitchenPrintQueueRepository, kitchenPrintQueueManager, printerProfileRepository, networkMonitor)
         testDispatcher.scheduler.advanceUntilIdle()
     }
 }

@@ -9,6 +9,9 @@ import java.util.List;
 public record BusinessDashboardResponse(
         Long restaurantId,
         String shopName,
+        boolean websiteEnabled,
+        boolean printerEnabled,
+        boolean kitchenPrinterEnabled,
         long totalStaff,
         long totalMenuItems,
         long posOrderCount,

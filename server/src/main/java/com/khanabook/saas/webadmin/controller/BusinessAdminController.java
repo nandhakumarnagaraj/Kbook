@@ -2,6 +2,7 @@ package com.khanabook.saas.webadmin.controller;
 
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.webadmin.dto.BusinessDashboardResponse;
+import com.khanabook.saas.webadmin.dto.BusinessMarketplaceSetupResponse;
 import com.khanabook.saas.webadmin.dto.BusinessMenuListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessOrderListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessStaffListItemResponse;
@@ -22,6 +23,11 @@ public class BusinessAdminController {
     @GetMapping("/dashboard")
     public ResponseEntity<BusinessDashboardResponse> getDashboard() {
         return ResponseEntity.ok(businessReadService.getDashboard(requireTenant()));
+    }
+
+    @GetMapping("/marketplace-setup")
+    public ResponseEntity<BusinessMarketplaceSetupResponse> getMarketplaceSetup() {
+        return ResponseEntity.ok(businessReadService.getMarketplaceSetup(requireTenant()));
     }
 
     @GetMapping("/orders")

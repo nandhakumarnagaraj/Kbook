@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
-import { BusinessApiService } from '../../core/services/business-api.service';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs/operators';
+import { combineLatest, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { BusinessApiService } from '../../core/services/business-api.service';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 
 @Component({
@@ -13,11 +14,11 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     <div class="page-shell" *ngIf="dashboard() as data; else loading">
       <section class="panel page-hero">
         <h2>{{ data.shopName || 'Business Dashboard' }}</h2>
-        <p class="muted">Owner and manager view with aligned KPIs, recent order visibility, and practical next-step suggestions.</p>
+        <p class="muted">Owner and manager view with aligned KPIs, recent order visibility, setup confirmation, and practical next-step suggestions.</p>
         <div class="hero-meta">
           <span class="chip">Daily Revenue</span>
           <span class="chip">Order Health</span>
-          <span class="chip success">Staff and Menu Coverage</span>
+          <span class="chip success">Setup Confirmation</span>
         </div>
       </section>
 
@@ -50,15 +51,36 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <h3>Staff / Menu</h3>
           <strong>{{ data.totalStaff }} / {{ data.totalMenuItems }}</strong>
         </article>
+
+        <section class="panel soft-section" style="grid-column: 1 / -1;">
+          <div class="section-head">
+            <div>
+              <h3>Setup Confirmation</h3>
+              <p class="muted">Confirm the business is ready for website orders, kitchen handling, and marketplace intake.</p>
+            </div>
+          </div>
+          <div class="suggestion-grid">
+            <article class="suggestion-card" *ngFor="let item of data.setupChecks">
+              <div class="setup-head">
+                <h3>{{ item.label }}</h3>
+                <span class="chip" [class.success]="item.ready" [class.warn]="!item.ready">
+                  {{ item.ready ? 'Ready' : 'Pending' }}
+                </span>
+              </div>
+              <p>{{ item.detail }}</p>
+            </article>
+          </div>
+        </section>
+
         <section class="panel soft-section" style="grid-column: 1 / -1;">
           <div class="section-head">
             <div>
               <h3>Suggested Next Steps</h3>
-              <p class="muted">Quick checks based on the metrics on this page.</p>
+              <p class="muted">Quick checks based on the metrics and setup state on this page.</p>
             </div>
           </div>
           <div class="suggestion-grid">
-              <article class="suggestion-card">
+            <article class="suggestion-card">
               <h3>Resume Pending POS Payments</h3>
               <p>Draft POS bills with pending payments should be resumed or cancelled before starting new gateway attempts.</p>
               <span class="chip warn">{{ data.pendingPosPayments }} pending</span>
@@ -117,18 +139,74 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         <div class="panel loading">Loading business dashboard...</div>
       </div>
     </ng-template>
-  `
+  `,
+  styles: [`
+    .setup-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .setup-head h3 {
+      margin: 0;
+    }
+  `]
 })
 export class BusinessDashboardPageComponent {
   private readonly api = inject(BusinessApiService);
 
   readonly dashboard = toSignal(
-    this.api.getDashboard().pipe(
-      map((data) => ({
+    combineLatest([
+      this.api.getDashboard(),
+      this.api.getMarketplaceConfig().pipe(catchError(() => of(null)))
+    ]).pipe(
+      map(([data, marketplace]) => ({
         ...data,
         totalRevenueFormatted: formatCurrency(data.totalRevenue),
         todayRevenueFormatted: formatCurrency(data.todayRevenue),
-        refundedAmountFormatted: formatCurrency(data.refundedAmount)
+        refundedAmountFormatted: formatCurrency(data.refundedAmount),
+        setupChecks: [
+          {
+            label: 'Website Checkout',
+            ready: data.websiteEnabled,
+            detail: data.websiteEnabled
+              ? 'Website ordering is enabled for this business.'
+              : 'Enable own website checkout before expecting direct online orders.'
+          },
+          {
+            label: 'Customer Printer',
+            ready: data.printerEnabled,
+            detail: data.printerEnabled
+              ? 'Customer receipt printing is configured.'
+              : 'Configure the customer printer to avoid manual receipt handling.'
+          },
+          {
+            label: 'Kitchen KDS Printer',
+            ready: data.kitchenPrinterEnabled,
+            detail: data.kitchenPrinterEnabled
+              ? 'Kitchen printing is configured for KDS dispatch.'
+              : 'Configure the kitchen printer so accepted online orders can print instantly.'
+          },
+          {
+            label: 'Marketplace Intake',
+            ready: Boolean(marketplace?.zomatoEnabled || marketplace?.swiggyEnabled),
+            detail: marketplace?.zomatoEnabled || marketplace?.swiggyEnabled
+              ? `Marketplace config active: ${[
+                  marketplace?.zomatoEnabled ? 'Zomato' : '',
+                  marketplace?.swiggyEnabled ? 'Swiggy' : ''
+                ].filter(Boolean).join(' + ')}.`
+              : 'No Zomato or Swiggy marketplace channel is enabled yet.'
+          },
+          {
+            label: 'Operating Baseline',
+            ready: data.totalStaff > 0 && data.totalMenuItems > 0,
+            detail: data.totalStaff > 0 && data.totalMenuItems > 0
+              ? 'The business has staff access and menu data in place.'
+              : 'Add at least one staff account and one menu item to complete setup.'
+          }
+        ]
       }))
     )
   );

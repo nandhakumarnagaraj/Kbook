@@ -4,6 +4,7 @@ import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.User;
+import com.khanabook.saas.billing.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
@@ -11,6 +12,7 @@ import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.webadmin.dto.BusinessDashboardResponse;
+import com.khanabook.saas.webadmin.dto.BusinessMarketplaceSetupResponse;
 import com.khanabook.saas.webadmin.dto.BusinessMenuListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessOrderListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessStaffListItemResponse;
@@ -37,6 +39,7 @@ public class BusinessReadService {
     private final ItemVariantRepository itemVariantRepository;
     private final CategoryRepository categoryRepository;
     private final BillRepository billRepository;
+    private final EasebuzzSubMerchantRepository easebuzzSubMerchantRepository;
 
     @Transactional(readOnly = true)
     public BusinessDashboardResponse getDashboard(Long restaurantId) {
@@ -79,6 +82,9 @@ public class BusinessReadService {
         return BusinessDashboardResponse.builder()
                 .restaurantId(restaurantId)
                 .shopName(profile.getShopName())
+                .websiteEnabled(Boolean.TRUE.equals(profile.getOwnWebsiteEnabled()))
+                .printerEnabled(Boolean.TRUE.equals(profile.getPrinterEnabled()))
+                .kitchenPrinterEnabled(Boolean.TRUE.equals(profile.getKitchenPrinterEnabled()))
                 .totalStaff(staff.size())
                 .totalMenuItems(menuItems.size())
                 .posOrderCount(bills.size())
@@ -90,6 +96,26 @@ public class BusinessReadService {
                 .refundedOrders(refundedOrders)
                 .refundedAmount(refundedAmount)
                 .recentOrders(recentOrders)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public BusinessMarketplaceSetupResponse getMarketplaceSetup(Long restaurantId) {
+        var profile = restaurantProfileRepository.findByRestaurantId(restaurantId)
+                .filter(existing -> !Boolean.TRUE.equals(existing.getIsDeleted()))
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        var subMerchant = easebuzzSubMerchantRepository.findByRestaurantId(restaurantId).orElse(null);
+
+        return BusinessMarketplaceSetupResponse.builder()
+                .restaurantId(restaurantId)
+                .shopName(profile.getShopName())
+                .paymentManagedByAdmin(true)
+                .subMerchantStatus(subMerchant != null ? subMerchant.getStatus() : null)
+                .subMerchantId(subMerchant != null ? subMerchant.getSubMerchantId() : null)
+                .kycPortalUrl(subMerchant != null ? subMerchant.getKycPortalUrl() : null)
+                .kycSubmittedAt(subMerchant != null ? subMerchant.getKycSubmittedAt() : null)
+                .kycActivatedAt(subMerchant != null ? subMerchant.getKycActivatedAt() : null)
                 .build();
     }
 

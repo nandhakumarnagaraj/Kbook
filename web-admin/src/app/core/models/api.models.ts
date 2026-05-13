@@ -62,6 +62,9 @@ export interface RefundOrderRequest {
 export interface BusinessDashboard {
   restaurantId: number;
   shopName: string | null;
+  websiteEnabled: boolean;
+  printerEnabled: boolean;
+  kitchenPrinterEnabled: boolean;
   totalStaff: number;
   totalMenuItems: number;
   posOrderCount: number;
@@ -97,4 +100,34 @@ export interface BusinessStaffItem {
   updatedAt: number | null;
 }
 
+export interface BusinessMarketplaceSetup {
+  restaurantId: number;
+  shopName: string | null;
+  paymentManagedByAdmin: boolean | null;
+  subMerchantStatus: string | null;
+  subMerchantId: string | null;
+  kycPortalUrl: string | null;
+  kycSubmittedAt: number | null;
+  kycActivatedAt: number | null;
+}
+
+export interface MarketplaceConfig {
+  zomatoEnabled: boolean;
+  zomatoApiKeyMasked: string | null;
+  zomatoOutletId: string | null;
+  zomatoWebhookUrl: string | null;
+  swiggyEnabled: boolean;
+  swiggyApiKeyMasked: string | null;
+  swiggyStoreId: string | null;
+  swiggyWebhookUrl: string | null;
+}
+
+export interface MarketplaceConfigRequest {
+  zomatoApiKey?: string;
+  zomatoWebhookSecret?: string;
+  zomatoEnabled?: boolean;
+  swiggyApiKey?: string;
+  swiggyWebhookSecret?: string;
+  swiggyEnabled?: boolean;
+}
 
