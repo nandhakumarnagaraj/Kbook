@@ -58,7 +58,8 @@ public class InvoiceController {
 
     private String buildHtml(RestaurantProfile profile, Bill bill, List<BillItem> items) {
         DecimalFormat df = new DecimalFormat("#,##0.00");
-        String currency = (profile != null && profile.getCurrency() != null) ? profile.getCurrency() : "\u20B9";
+        String raw = (profile != null && profile.getCurrency() != null) ? profile.getCurrency() : "";
+        String currency = raw.equals("INR") || raw.equals("Rupee") || raw.isEmpty() ? "\u20B9" : raw;
 
         String shopName = profile != null ? blank(profile.getShopName()) : "Shop";
         String address = profile != null ? blank(profile.getShopAddress()) : "";
