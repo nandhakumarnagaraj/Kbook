@@ -111,6 +111,9 @@ public class SyncMapper {
                 entity.setId(dto.getId());
                 entity.setLocalId(dto.getLocalId());
                 entity.setServerUpdatedAt(dto.getServerUpdatedAt());
+                if (dto.getIsActive() == null) {
+                    entity.setIsActive(true);
+                }
             } else if (source instanceof MenuItemDTO dto) {
                 MenuItem entity = (MenuItem) target;
                 entity.setId(dto.getId());
@@ -119,6 +122,9 @@ public class SyncMapper {
                 entity.setCategoryId(dto.getCategoryId());
                 entity.setServerCategoryId(dto.getServerCategoryId());
                 entity.setOverwriteExisting(dto.getOverwriteExisting());
+                if (dto.getIsAvailable() == null) {
+                    entity.setIsAvailable(true);
+                }
             } else if (source instanceof ItemVariantDTO dto) {
                 ItemVariant entity = (ItemVariant) target;
                 entity.setId(dto.getId());
@@ -126,6 +132,9 @@ public class SyncMapper {
                 entity.setServerUpdatedAt(dto.getServerUpdatedAt());
                 entity.setMenuItemId(dto.getMenuItemId());
                 entity.setServerMenuItemId(dto.getServerMenuItemId());
+                if (dto.getIsAvailable() == null) {
+                    entity.setIsAvailable(true);
+                }
             } else if (source instanceof BillDTO dto) {
                 Bill entity = (Bill) target;
                 entity.setId(dto.getId());
