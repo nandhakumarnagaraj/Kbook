@@ -141,16 +141,8 @@ public class InvoiceController {
         + "}"
         + ".page{"
         +   "max-width:800px;width:100%;margin:0 auto;background:#ffffff;"
-        +   "border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.06),0 1px 4px rgba(0,0,0,.04);"
+        +   "border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.1),0 2px 8px rgba(0,0,0,.06);"
         +   "overflow:hidden;position:relative"
-        + "}");
-
-        // Brand watermark
-        h.append(
-        ".page::before{"
-        +   "content:'';position:absolute;top:-120px;right:-120px;width:300px;height:300px;"
-        +   "background:radial-gradient(circle,rgba(99,102,241,.04) 0%,transparent 70%);"
-        +   "border-radius:50%;pointer-events:none;z-index:0"
         + "}");
 
         // Header
@@ -161,7 +153,7 @@ public class InvoiceController {
         + "}"
         + ".header-wrap .logo{"
         +   "width:100px;height:100px;border-radius:12px;object-fit:contain;"
-        +   "border:2px solid rgba(255,255,255,.15);background:#fff;padding:6px;"
+        +   "border:2px solid rgba(255,255,255,.3);background:#fff;padding:6px;"
         +   "margin-bottom:12px"
         + "}"
         + ".header-wrap h1{color:#fff;font-size:1.35em;font-weight:700;letter-spacing:-.3px}"
@@ -174,8 +166,7 @@ public class InvoiceController {
         +   "background:#fff;padding:18px 36px;display:flex;justify-content:space-between;"
         +   "align-items:center;border-bottom:1px solid #e2e8f0;position:relative;z-index:1"
         + "}"
-        + ".ribbon .item{font-size:.82em;color:#64748b;flex:1}"
-        + ".ribbon .item .val{color:#1e293b;font-size:1em;margin-left:4px}");
+        + ".ribbon .item{font-size:.85em;color:#1e293b;flex:1}");
 
         // Customer
         h.append(
@@ -289,9 +280,9 @@ public class InvoiceController {
 
         // === RIBBON ===
         h.append("<div class=\"ribbon\">")
-         .append("<div class=\"item\"><strong>Order No</strong><span class=\"val\">").append(esc(orderCode)).append("</span></div>")
-         .append("<div class=\"item\" style=\"text-align:center\"><strong>Invoice No</strong><span class=\"val\">INV").append(bill.getLifetimeOrderId()).append("</span></div>")
-         .append("<div class=\"item\" style=\"text-align:right\"><strong>Date</strong><span class=\"val\">").append(esc(date)).append("</span></div>")
+         .append("<div class=\"item\">Order No ").append(esc(orderCode)).append("</div>")
+         .append("<div class=\"item\" style=\"text-align:center\">Invoice No INV").append(bill.getLifetimeOrderId()).append("</div>")
+         .append("<div class=\"item\" style=\"text-align:right\">").append(esc(date)).append("</div>")
          .append("</div>");
 
         // === CUSTOMER ===
