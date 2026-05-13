@@ -72,8 +72,9 @@ public class InvoiceController {
         String footer = profile != null ? blank(profile.getInvoiceFooter()) : "";
         String customTaxName = profile != null ? blank(profile.getCustomTaxName()) : "";
 
-        String orderCode = (bill.getDailyOrderDisplay() != null && !bill.getDailyOrderDisplay().isBlank())
-                ? bill.getDailyOrderDisplay() : "INV" + bill.getLifetimeOrderId();
+        String dailyOrderDisplay = (bill.getDailyOrderDisplay() != null && !bill.getDailyOrderDisplay().isBlank())
+                ? bill.getDailyOrderDisplay() : "";
+        String orderCode = dailyOrderDisplay.isEmpty() ? "INV" + bill.getLifetimeOrderId() : dailyOrderDisplay;
         String date = bill.getCreatedAt() != null
                 ? Instant.ofEpochMilli(bill.getCreatedAt()).atZone(ZoneId.of("Asia/Kolkata")).format(DT_FMT)
                 : "";
@@ -171,10 +172,10 @@ public class InvoiceController {
         h.append(
         ".ribbon{"
         +   "background:#fff;padding:18px 36px;display:flex;justify-content:space-between;"
-        +   "flex-wrap:wrap;gap:12px;border-bottom:1px solid #e2e8f0;position:relative;z-index:1"
+        +   "align-items:center;border-bottom:1px solid #e2e8f0;position:relative;z-index:1"
         + "}"
-        + ".ribbon .item{font-size:.82em;color:#64748b}"
-        + ".ribbon .item strong{color:#1e293b;font-weight:600;display:block;font-size:1.05em;margin-top:2px}");
+        + ".ribbon .item{font-size:.82em;color:#64748b;flex:1}"
+        + ".ribbon .item strong{color:#1e293b;font-weight:600;font-size:1em;margin-left:4px}");
 
         // Customer
         h.append(
@@ -288,8 +289,9 @@ public class InvoiceController {
 
         // === RIBBON ===
         h.append("<div class=\"ribbon\">")
-         .append("<div class=\"item\">Invoice #<strong>").append(esc(orderCode)).append("</strong></div>")
-         .append("<div class=\"item\">Date<strong>").append(esc(date)).append("</strong></div>")
+         .append("<div class=\"item\">Order No<strong>").append(esc(orderCode)).append("</strong></div>")
+         .append("<div class=\"item\" style=\"text-align:center\">Invoice No<strong>INV").append(bill.getLifetimeOrderId()).append("</strong></div>")
+         .append("<div class=\"item\" style=\"text-align:right\">Date<strong>").append(esc(date)).append("</strong></div>")
          .append("</div>");
 
         // === CUSTOMER ===
