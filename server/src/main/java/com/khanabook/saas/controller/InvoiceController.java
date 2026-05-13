@@ -153,7 +153,7 @@ public class InvoiceController {
         + "}"
         + ".header-wrap .logo{"
         +   "width:100px;height:100px;border-radius:12px;object-fit:contain;"
-        +   "border:2px solid rgba(255,255,255,.3);background:#fff;padding:6px;"
+        +   "border:3px solid rgba(255,255,255,.3);background:#fff;padding:6px;"
         +   "margin-bottom:12px"
         + "}"
         + ".header-wrap h1{color:#fff;font-size:1.35em;font-weight:700;letter-spacing:-.3px}"
