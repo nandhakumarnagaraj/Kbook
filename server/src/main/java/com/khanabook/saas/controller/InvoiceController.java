@@ -112,12 +112,12 @@ public class InvoiceController {
             int qty = item.getQuantity() != null ? item.getQuantity() : 0;
             String price = df.format(item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO);
             String lineTotal = df.format(item.getItemTotal() != null ? item.getItemTotal() : BigDecimal.ZERO);
-            String bg = rowIdx % 2 == 0 ? "" : " style=\"background:#f8fafc\"";
-            rows.append("<tr").append(bg).append(">")
-                .append("<td style=\"padding:10px 8px\">").append(label).append("</td>")
-                .append("<td style=\"padding:10px 8px;text-align:center;color:#475569\">").append(qty).append("</td>")
-                .append("<td style=\"padding:10px 8px;text-align:right;color:#475569\">").append(price).append("</td>")
-                .append("<td style=\"padding:10px 8px;text-align:right;font-weight:600;color:#1e293b\">").append(lineTotal).append("</td>")
+            String cls = rowIdx % 2 == 0 ? "" : " class=\"e\"";
+            rows.append("<tr").append(cls).append(">")
+                .append("<td class=\"n\">").append(label).append("</td>")
+                .append("<td class=\"q\">").append(qty).append("</td>")
+                .append("<td class=\"p\">").append(price).append("</td>")
+                .append("<td class=\"t\">").append(lineTotal).append("</td>")
                 .append("</tr>");
             rowIdx++;
         }
@@ -175,13 +175,17 @@ public class InvoiceController {
         + "thead th.r{text-align:right}thead th.c{text-align:center}"
         + "tbody tr{border-bottom:1px solid #f1f4f9}"
         + "tbody tr:last-child{border-bottom:none}"
-        + "tbody td{padding:12px 10px;font-size:.88em;color:#1e293b;vertical-align:top}");
+        + "tbody tr.e{background:#f8fafc}"
+        + "tbody td{padding:12px 10px;font-size:.88em;color:#1e293b;vertical-align:top}"
+        + "tbody td.q{text-align:center;color:#475569}"
+        + "tbody td.p{text-align:right;color:#475569}"
+        + "tbody td.t{text-align:right;font-weight:600}");
 
         // Totals
         h.append(
         ".tot{margin:0 32px;padding:14px 10px 10px;border-top:2px solid #e9edf2}"
         + ".tot table{width:auto;margin-left:auto}"
-        + ".tot td{padding:6px 0 6px 36px;font-size:.86em}"
+        + ".tot td{padding:6px 0 6px 24px;font-size:.86em}"
         + ".tot td.l{text-align:right;color:#64748b}"
         + ".tot td.a{text-align:right;font-weight:500;min-width:110px;color:#1e293b}"
         + ".tot .gr td{padding-top:12px;font-size:1.1em;font-weight:700;color:#0f172a;border-top:2px solid #0f172a}");
@@ -195,7 +199,7 @@ public class InvoiceController {
         // Review
         h.append(
         ".rev{margin:0 32px 0;padding:14px 10px;text-align:center;"
-        +   "background:#fef9ef;border-radius:12px;font-size:.85em;color:#92400e}"
+        +   "background:#fef9ef;border:1px solid #fde68a;border-radius:12px;font-size:.85em;color:#92400e}"
         + ".rev a{color:#2563eb;font-weight:600;text-decoration:none}"
         + ".rev a:hover{text-decoration:underline}");
 
@@ -212,7 +216,7 @@ public class InvoiceController {
         + ".hdr{background:#0f172a!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
         + ".rev,.badge-completed,.badge-cancelled,.badge-draft,.badge-paid,.badge-success,.badge-pending,.badge-failed,.badge-refunded"
         + "{-webkit-print-color-adjust:exact;print-color-adjust:exact}"
-        + "tbody tr:nth-child(even){background:#f8fafc!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
+        + "tbody tr.e{background:#f8fafc!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
         + "}");
 
         // Mobile
@@ -227,13 +231,13 @@ public class InvoiceController {
         + ".rib .c .v{display:inline;font-size:.95em}"
         + ".cust{padding:12px 18px}"
         + ".tw{padding:4px 16px 0;overflow-x:auto}"
-        + "table{min-width:420px}"
+        + "table{min-width:360px}"
         + "thead th{padding:10px 6px;font-size:.65em}"
         + "tbody td{padding:10px 6px;font-size:.84em}"
         + ".tot{margin:0 16px;padding:12px 6px 8px}"
-        + ".tot td{padding:5px 0 5px 16px;font-size:.84em}"
+        + ".tot td{padding:5px 0 5px 12px;font-size:.84em}"
         + ".pay{margin:0 16px 2px;padding:12px 6px;font-size:.82em}"
-        + ".rev{margin:0 16px;padding:12px 6px;font-size:.82em}"
+        + ".rev{margin:0 16px;padding:12px 6px}"
         + ".ft{padding:16px 18px 22px}"
         + "}"
         + "</style></head><body><div class=\"page\">");
@@ -313,6 +317,7 @@ public class InvoiceController {
         // === PAYMENT ===
         h.append("<div class=\"pay\">")
          .append("<span>").append(paymentIcon(paymentMode)).append(" <strong>").append(esc(paymentMode)).append("</strong></span>")
+         .append("<span><strong style=\"color:#0f172a\">").append(currency).append(" ").append(df.format(total)).append("</strong></span>")
          .append("</div>");
 
         // === REVIEW ===
