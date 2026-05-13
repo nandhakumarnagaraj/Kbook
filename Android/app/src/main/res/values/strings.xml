@@ -1,5 +1,5 @@
-<resources>
-    <string name="app_name">KhanaBookLite</string>
+﻿<resources>
+    <string name="app_name">KhanaBook Lite</string>
     <string name="khanabook">KhanaBook</string>
     <string name="lite">LITE</string>
     <string name="smart_billing_slogan">Smart Billing for Smart Restaurants</string>
@@ -67,3 +67,4 @@
     <string name="toast_turn_on_location">Turn on location to find printers</string>
     <string name="field_numbers_only">Numbers only</string>
 </resources>
+
