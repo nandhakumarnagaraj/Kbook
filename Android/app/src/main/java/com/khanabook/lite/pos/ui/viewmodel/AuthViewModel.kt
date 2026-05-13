@@ -367,10 +367,17 @@ constructor(
                 }
             }.onFailure { e ->
                 Log.e(TAG, "Remote Google login failed: ${e.message}", e)
-                _loginStatus.value = loginError(
-                    UserMessageSanitizer.sanitize(e, "Google sign-in failed. Please try again."),
-                    LoginErrorCode.GOOGLE_SYNC_FAILED
-                )
+                val statusCode = when (e) {
+                    is retrofit2.HttpException -> e.code()
+                    is BackendException -> e.details.statusCode
+                    else -> null
+                }
+                val message = if (statusCode == 429) {
+                    "Too many attempts. Please wait a moment and try again."
+                } else {
+                    UserMessageSanitizer.sanitize(e, "Google sign-in failed. Please try again.")
+                }
+                _loginStatus.value = loginError(message, LoginErrorCode.GOOGLE_SYNC_FAILED)
             }
         }
     }

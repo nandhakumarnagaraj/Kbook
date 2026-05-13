@@ -75,7 +75,13 @@ public class AuthController {
 	}
 
 	@PostMapping("/google")
-	public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
+	public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request,
+			HttpServletRequest httpRequest) {
+		String ip = getClientIp(httpRequest);
+		if (!loginRateLimiter.tryConsume(ip)) {
+			log.warn("Google login rate limit exceeded ip={}", ip);
+			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+		}
 		return ResponseEntity.ok(authService.googleLogin(request));
 	}
 

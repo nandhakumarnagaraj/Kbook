@@ -188,6 +188,7 @@ object UserMessageSanitizer {
             403 -> "Access denied. Please login again."
             404 -> "Resource not found. Please try again."
             409 -> SYNC_CONFLICT_MESSAGE
+            429 -> "Too many attempts. Please wait a moment and try again."
             in 500..599 -> "Server error. Please try again later."
             else -> fallback
         }
