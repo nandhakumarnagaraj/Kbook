@@ -155,15 +155,15 @@ public class InvoiceController {
         h.append(
         ".header-wrap{"
         +   "background:linear-gradient(135deg,#1e293b 0%,#334155 100%);"
-        +   "padding:32px 36px;display:flex;align-items:center;gap:20px;position:relative;z-index:1"
+        +   "padding:32px 36px 28px;text-align:center;position:relative;z-index:1"
         + "}"
         + ".header-wrap .logo{"
-        +   "width:72px;height:72px;border-radius:12px;object-fit:cover;"
-        +   "border:2px solid rgba(255,255,255,.15);background:#fff;flex-shrink:0"
+        +   "width:80px;height:80px;border-radius:50%;object-fit:cover;"
+        +   "border:3px solid rgba(255,255,255,.15);background:#fff;"
+        +   "margin-bottom:12px"
         + "}"
-        + ".header-wrap .info{flex:1}"
         + ".header-wrap h1{color:#fff;font-size:1.35em;font-weight:700;letter-spacing:-.3px}"
-        + ".header-wrap .sub{color:#94a3b8;font-size:.82em;margin-top:4px;line-height:1.5}"
+        + ".header-wrap .sub{color:#94a3b8;font-size:.82em;margin-top:4px;line-height:1.5;max-width:500px;margin-left:auto;margin-right:auto}"
         + ".header-wrap .sub span{color:#cbd5e1}");
 
         // Invoice ribbon
@@ -173,17 +173,7 @@ public class InvoiceController {
         +   "flex-wrap:wrap;gap:12px;border-bottom:1px solid #e2e8f0;position:relative;z-index:1"
         + "}"
         + ".ribbon .item{font-size:.82em;color:#64748b}"
-        + ".ribbon .item strong{color:#1e293b;font-weight:600;display:block;font-size:1.05em;margin-top:2px}"
-        + ".ribbon .item .badge{"
-        +   "display:inline-block;padding:3px 12px;border-radius:20px;font-size:.75em;"
-        +   "font-weight:600;letter-spacing:.3px;margin-top:3px"
-        + "}"
-        + ".badge-completed{background:#dcfce7;color:#166534}"
-        + ".badge-cancelled{background:#fef2f2;color:#991b1b}"
-        + ".badge-draft{background:#f1f5f9;color:#475569}"
-        + ".badge-paid,.badge-success{background:#dcfce7;color:#166534}"
-        + ".badge-pending,.badge-failed{background:#fef3c7;color:#92400e}"
-        + ".badge-refunded{background:#fef2f2;color:#991b1b}");
+        + ".ribbon .item strong{color:#1e293b;font-weight:600;display:block;font-size:1.05em;margin-top:2px}");
 
         // Customer
         h.append(
@@ -273,10 +263,10 @@ public class InvoiceController {
         // === HEADER ===
         h.append("<div class=\"header-wrap\">");
         if (!logoUrl.isEmpty()) {
-            h.append("<img class=\"logo\" src=\"").append(esc(logoUrl))
-             .append("\" alt=\"").append(esc(shopName)).append("\" onerror=\"this.style.display='none'\">");
+            h.append("<div><img class=\"logo\" src=\"").append(esc(logoUrl))
+             .append("\" alt=\"").append(esc(shopName)).append("\" onerror=\"this.style.display='none'\"></div>");
         }
-        h.append("<div class=\"info\"><h1>").append(esc(shopName)).append("</h1><div class=\"sub\">");
+        h.append("<h1>").append(esc(shopName)).append("</h1><div class=\"sub\">");
         if (!address.isEmpty()) {
             h.append(esc(address)).append("<br>");
         }
@@ -293,15 +283,13 @@ public class InvoiceController {
             if (!email.isEmpty()) h.append("\u2709 ").append(esc(email));
             h.append("</span>");
         }
-        h.append("</div></div></div>");
+        h.append("</div></div>");
 
         // === RIBBON ===
         h.append("<div class=\"ribbon\">")
          .append("<div class=\"item\">Invoice #<strong>").append(esc(orderCode)).append("</strong></div>")
          .append("<div class=\"item\">Date<strong>").append(esc(date)).append("</strong></div>")
-         .append("<div class=\"item\" style=\"text-align:right\">")
-         .append("Status<div><span class=\"badge badge-").append(os.toLowerCase()).append("\">").append(esc(orderStatus)).append("</span></div>")
-         .append("</div></div>");
+         .append("</div>");
 
         // === CUSTOMER ===
         if (!customerName.isEmpty() || !customerPhone.isEmpty()) {
@@ -346,8 +334,6 @@ public class InvoiceController {
         // === PAYMENT ===
         h.append("<div class=\"payment-wrap\">")
          .append("<div><strong>Payment Method:</strong> ").append(paymentIcon(paymentMode)).append(" ").append(esc(paymentMode)).append("</div>")
-         .append("<div><strong>Payment Status:</strong> <span class=\"badge badge-").append(ps.toLowerCase()).append("\">").append(esc(paymentStatus)).append("</span></div>")
-         .append("<div><strong>Order Status:</strong> ").append(esc(orderStatus)).append("</div>")
          .append("</div>");
 
         // === REVIEW ===
