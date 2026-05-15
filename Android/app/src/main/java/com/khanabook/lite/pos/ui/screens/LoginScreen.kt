@@ -42,6 +42,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.khanabook.lite.pos.BuildConfig
+import android.util.Log
 import kotlinx.coroutines.launch
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.util.ValidationUtils
@@ -93,6 +94,7 @@ fun LoginScreen(
                 viewModel.setGoogleLoginError("Google Sign-In did not return a valid token. Please try again.")
             }
         } catch (e: ApiException) {
+            Log.e("GOOGLE_SIGN_IN", "statusCode=${e.statusCode}, message=${e.localizedMessage}", e)
             when (e.statusCode) {
                 com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes.SIGN_IN_CANCELLED ->
                     viewModel.setGoogleLoginError("Google Sign-In was cancelled.", AuthViewModel.LoginErrorCode.GOOGLE_CANCELLED)

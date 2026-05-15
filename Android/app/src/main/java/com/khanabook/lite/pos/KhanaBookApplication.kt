@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos
 
 import android.app.Application
+import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.khanabook.lite.pos.di.SessionManagerEntryPoint
@@ -21,17 +22,27 @@ class KhanaBookApplication : Application(), Configuration.Provider {
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
-    override fun onCreate() {
-        // Load SQLCipher native library BEFORE super.onCreate() since Hilt injection
-        // opens the database during super.onCreate() and needs native libs available
-        System.loadLibrary("sqlcipher")
+    companion object {
+        private var sqlCipherLoaded = false
+        init {
+            try {
+                System.loadLibrary("sqlcipher")
+                sqlCipherLoaded = true
+            } catch (e: UnsatisfiedLinkError) {
+                Log.e("KhanaBookApp", "SQLCipher native library failed to load", e)
+            }
+        }
+    }
 
+    override fun onCreate() {
+        if (!sqlCipherLoaded) {
+            Log.w("KhanaBookApp", "SQLCipher not available — app may crash on DB access")
+        }
         super.onCreate()
 
         GlobalCrashHandler.initialize(this)
         AppAssetStore.initialize(this)
 
-        // Eagerly generate and persist the device ID so sync workers always have it
         EntryPointAccessors.fromApplication(this, SessionManagerEntryPoint::class.java)
             .sessionManager()
             .getDeviceId()

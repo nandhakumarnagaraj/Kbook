@@ -3,6 +3,7 @@ package com.khanabook.lite.pos.ui
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Build
 import androidx.fragment.app.FragmentActivity
@@ -24,6 +25,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.navigation.compose.NavHost
@@ -67,7 +69,7 @@ class MainActivity : FragmentActivity() {
      */
     override fun attachBaseContext(newBase: Context) {
         val config = Configuration(newBase.resources.configuration)
-        config.fontScale = 1f
+        config.fontScale = if (Build.VERSION.SDK_INT >= 36) 1f else config.fontScale
         if (BuildConfig.DEBUG) {
             val metrics = newBase.resources.displayMetrics
             Log.d(
@@ -94,7 +96,22 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            KhanaBookLiteTheme {
+            val prefs = remember { applicationContext.getSharedPreferences("session_prefs", Context.MODE_PRIVATE) }
+            var targetScale by remember { mutableStateOf(prefs.getFloat("display_scale", 1.0f)) }
+            DisposableEffect(Unit) {
+                val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                    if (key == "display_scale") {
+                        targetScale = prefs.getFloat("display_scale", 1.0f)
+                    }
+                }
+                prefs.registerOnSharedPreferenceChangeListener(listener)
+                onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+            }
+            val displayScale by animateFloatAsState(
+                targetValue = targetScale,
+                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+            )
+            KhanaBookLiteTheme(displayScale = displayScale) {
                 val navController = rememberNavController()
                 val authViewModel: AuthViewModel = hiltViewModel()
                 val menuViewModel: MenuViewModel = hiltViewModel()

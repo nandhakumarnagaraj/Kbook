@@ -44,6 +44,7 @@ object KhanaBookTheme {
 
 @Composable
 fun KhanaBookLiteTheme(
+    displayScale: Float = 1.0f,
     content: @Composable () -> Unit
 ) {
     val view = LocalView.current
@@ -87,8 +88,10 @@ fun KhanaBookLiteTheme(
         }
     }
 
+    val effectiveFontScale = if (Build.VERSION.SDK_INT >= 36) 1f else density.fontScale
+    val effectiveDensity = density.density * displayScale
     CompositionLocalProvider(
-        LocalDensity provides Density(density = density.density, fontScale = 1f),
+        LocalDensity provides Density(density = effectiveDensity, fontScale = effectiveFontScale),
         LocalSpacing provides Spacing(),
         LocalIconSize provides IconSize(),
         LocalResponsiveLayout provides responsiveLayout

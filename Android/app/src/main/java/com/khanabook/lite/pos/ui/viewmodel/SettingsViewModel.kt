@@ -40,6 +40,16 @@ class SettingsViewModel @Inject constructor(
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
+    val displayScale = sessionManager.getDisplayScale()
+
+    private val _displayScale = MutableStateFlow(displayScale)
+    val displayScaleState: StateFlow<Float> = _displayScale.asStateFlow()
+
+    fun updateDisplayScale(scale: Float) {
+        _displayScale.value = scale
+        sessionManager.setDisplayScale(scale)
+    }
+
     val profile: StateFlow<RestaurantProfileEntity?> = restaurantRepository.getProfileFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 

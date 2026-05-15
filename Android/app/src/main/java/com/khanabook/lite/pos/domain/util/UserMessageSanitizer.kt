@@ -57,7 +57,9 @@ object UserMessageSanitizer {
         Regex("(https?://)?[\\w.-]+\\.[a-z]{2,}(/[\\w./-]*)?", RegexOption.IGNORE_CASE),
         Regex("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}(:\\d+)?"),
         Regex("[a-zA-Z0-9.-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"),
-        Regex("at [\\w.]+\\([^)]+\\)")
+        Regex("at [\\w.]+\\([^)]+\\)"),
+        Regex("[a-zA-Z]:\\\\"),               // Windows drive paths: C:\...
+        Regex("/(?:[\\w.]+/)+[\\w.]+")        // Unix/Android absolute paths: /data/data/...
     )
 
     fun sanitize(error: Throwable?, fallback: String): String {
@@ -158,6 +160,8 @@ object UserMessageSanitizer {
             "already exists"
         )
         if (friendlyFragments.any { fragment -> lowered.contains(fragment) }) {
+            if (trimmedMessage.contains("/") || trimmedMessage.contains("\\")) return fallback
+            if (sensitivePatterns.any { it.containsMatchIn(trimmedMessage) }) return fallback
             return trimmedMessage
         }
 

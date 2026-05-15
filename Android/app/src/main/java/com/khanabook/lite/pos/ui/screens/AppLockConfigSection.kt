@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Visibility
@@ -126,6 +127,19 @@ fun SettingsListView(
                     onClick = { onSelectItem("change_password") }
                 )
             }
+        }
+
+        SettingsGroupLabel("Appearance")
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            SettingsItem(
+                icon = Icons.Filled.TextIncrease,
+                text = "Display",
+                onClick = { onSelectItem("ui_scale") }
+            )
         }
 
         SettingsGroupLabel("About")

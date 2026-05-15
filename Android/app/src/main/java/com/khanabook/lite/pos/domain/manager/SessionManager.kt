@@ -115,6 +115,12 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         _isSessionExpired.value = true
     }
 
+    fun getDisplayScale(): Float = prefs.getFloat("display_scale", 1.0f)
+
+    fun setDisplayScale(scale: Float) {
+        prefs.edit().putFloat("display_scale", scale.coerceIn(0.8f, 1.3f)).apply()
+    }
+
     fun getPersistedLoginId(): String? = securePrefs.getString("persisted_login_id", null)
 
     fun savePersistedLoginId(loginId: String) {

@@ -114,6 +114,7 @@ fun SettingsScreen(
                 "payment" -> "Payment Configuration"
                 "printer" -> "Printer Configuration"
                 "tax" -> "Tax Configuration"
+                "ui_scale" -> "Display"
                 "security" -> "Settings"
                 "app_lock" -> "App Lock"
                 "change_password" -> "Change Password"
@@ -172,6 +173,9 @@ fun SettingsScreen(
                             section = "menu"
                         }, onBack = { section = "menu" })
                     }
+                    "ui_scale" -> {
+                        DisplayScaleView(viewModel = viewModel)
+                    }
                     "security" -> {
                         SettingsListView(onSelectItem = { section = it })
                     }
@@ -190,6 +194,105 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DisplayScaleView(viewModel: SettingsViewModel) {
+    val spacing = KhanaBookTheme.spacing
+    val displayScale by viewModel.displayScaleState.collectAsStateWithLifecycle()
+    val scaleLabels = listOf("Small", "Default", "Large", "X-Large")
+    val scaleValues = listOf(0.85f, 1.0f, 1.15f, 1.3f)
+    val sliderIndex = scaleValues.indexOfFirst { it >= displayScale }.coerceAtLeast(0)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = spacing.medium)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Spacer(modifier = Modifier.height(spacing.medium))
+
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(spacing.large)) {
+                Text("UI Scale", color = TextLight, style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(spacing.extraSmall))
+                Text(
+                    "Adjust the overall size of text and UI elements.",
+                    color = TextGold.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Spacer(modifier = Modifier.height(spacing.large))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    scaleLabels.forEachIndexed { i, label ->
+                        Text(
+                            text = label,
+                            color = if (i == sliderIndex) PrimaryGold else TextGold.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (i == sliderIndex) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+
+                Slider(
+                    value = displayScale,
+                    onValueChange = { viewModel.updateDisplayScale(it) },
+                    valueRange = 0.80f..1.35f,
+                    steps = 0,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = PrimaryGold,
+                        activeTrackColor = PrimaryGold,
+                        inactiveTrackColor = BorderGold.copy(alpha = 0.3f)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(spacing.small))
+
+                Text(
+                    text = "Preview",
+                    color = TextGold,
+                    style = MaterialTheme.typography.labelMedium
+                )
+
+                Spacer(modifier = Modifier.height(spacing.small))
+
+                KhanaBookCard(
+                    colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(modifier = Modifier.padding(spacing.medium)) {
+                        Text(
+                            "Sample Item",
+                            color = TextLight,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(spacing.hairline))
+                        Text(
+                            "₹ 100.00",
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            "This is how text and cards will appear at the selected scale.",
+                            color = TextGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(spacing.extraLarge))
     }
 }
 

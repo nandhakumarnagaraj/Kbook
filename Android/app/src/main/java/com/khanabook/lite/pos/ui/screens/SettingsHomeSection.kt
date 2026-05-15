@@ -95,6 +95,14 @@ fun SettingsHomeSection(
                         }
                     }
                 }
+                Row(horizontalArrangement = Arrangement.spacedBy(spacing.medium)) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        SettingsItem(icon = Icons.Filled.Tune, text = "Settings") {
+                            onSectionSelected("security")
+                        }
+                    }
+                    Box(modifier = Modifier.weight(1f)) { }
+                }
             } else {
                 SettingsItem(icon = Icons.Filled.Store, text = "Restaurant Configuration") {
                     onSectionSelected("shop")
