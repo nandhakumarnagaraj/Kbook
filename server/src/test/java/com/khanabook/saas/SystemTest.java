@@ -73,9 +73,11 @@ class SystemTest extends BaseIntegrationTest {
         SignupRequest req = new SignupRequest(phone, "User A", "pass123", TEST_OTP, "D");
         rest.postForEntity("/auth/signup", req, String.class);
 
+        SignupOtpRequest otpReq = new SignupOtpRequest();
+        otpReq.setPhoneNumber(phone);
         ResponseEntity<String> second = rest.postForEntity(
             "/auth/signup/request",
-            new SignupOtpRequest(phone),
+            otpReq,
             String.class
         );
         assertThat(second.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);

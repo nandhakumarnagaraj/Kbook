@@ -129,15 +129,7 @@ public class AuthController {
 		return ResponseEntity.ok().build();
 	}
 
-	@Data
-	@AllArgsConstructor
-	@NoArgsConstructor
-	public static class PasswordResetOtpRequest {
-		@NotBlank(message = "Phone number is required")
-		@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
-		@Size(min = 10, max = 10)
-		private String phoneNumber;
-	}
+
 
 	@Data
 	@AllArgsConstructor
@@ -145,8 +137,11 @@ public class AuthController {
 	public static class SignupOtpRequest {
 		@NotBlank(message = "Phone number is required")
 		@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
-		@Size(min = 10, max = 10)
 		private String phoneNumber;
+
+		@NotBlank(message = "OTP is required")
+		@Size(min = 6, max = 6)
+		private String otp;
 	}
 
 	@Data
@@ -155,14 +150,15 @@ public class AuthController {
 	public static class ResetPasswordRequest {
 		@NotBlank(message = "Phone number is required")
 		@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
-		@Size(min = 10, max = 10)
 		private String phoneNumber;
-		@NotBlank(message = "OTP is required")
-		@Pattern(regexp = "^\\d{6}$", message = "OTP must be 6 digits")
-		private String otp;
+
 		@NotBlank(message = "New password is required")
-		@Size(min = 6, max = 128)
+		@Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")
 		private String newPassword;
+
+		@NotBlank(message = "OTP is required")
+		@Size(min = 6, max = 6)
+		private String otp;
 	}
 
 	@Data
@@ -193,6 +189,15 @@ public class AuthController {
 		@NotBlank(message = "idToken is required")
 		private String idToken;
 		private String deviceId;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
+	public static class PasswordResetOtpRequest {
+		@NotBlank(message = "Phone number is required")
+		@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
+		private String phoneNumber;
 	}
 
 	@Data

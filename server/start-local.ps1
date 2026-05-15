@@ -1,6 +1,6 @@
 param(
-    [string]$JavaPath = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot\bin\java.exe',
-    [string]$DbUrl = 'jdbc:postgresql://localhost:5432/kbook_saas',
+    [string]$JavaPath = 'C:\Program Files\Common Files\Oracle\Java\javapath\java.exe',
+    [string]$DbUrl = 'jdbc:postgresql://localhost:5432/khanabook_dev',
     [string]$DbUsername = 'postgres',
     [string]$DbPassword = 'postgres'
 )
