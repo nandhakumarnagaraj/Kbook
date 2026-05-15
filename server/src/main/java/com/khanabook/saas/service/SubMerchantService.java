@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,7 +20,6 @@ public class SubMerchantService {
     private static final Logger log = LoggerFactory.getLogger(SubMerchantService.class);
     private final EasebuzzSubMerchantRepository subMerchantRepo;
     private final EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
-    private final EasebuzzApiClient easebuzzApi;
 
     public List<EasebuzzSubMerchant> listAll() {
         return subMerchantRepo.findAll();
@@ -65,58 +63,18 @@ public class SubMerchantService {
         return saved;
     }
 
+    /**
+     * After creating sub-merchant in Easebuzz Dashboard, admin
+     * updates the record with the sub_merchant_id provided by Easebuzz.
+     */
     @Transactional
-    public EasebuzzSubMerchant registerWithEasebuzz(Long id) {
+    public EasebuzzSubMerchant assignSubMerchantId(Long id, String subMerchantId) {
         EasebuzzSubMerchant sm = getById(id);
-        Map<String, String> easebuzzData = new HashMap<>();
-        easebuzzData.put("merchant_key", "");
-        easebuzzData.put("business_name", sm.getBusinessName());
-        easebuzzData.put("business_type", sm.getBusinessType());
-        easebuzzData.put("pan", sm.getPan());
-        easebuzzData.put("gst", sm.getGst() != null ? sm.getGst() : "");
-        easebuzzData.put("bank_account_no", sm.getBankAccountNo());
-        easebuzzData.put("ifsc", sm.getIfsc());
-        easebuzzData.put("beneficiary_name", sm.getBeneficiaryName());
-        easebuzzData.put("business_address", sm.getBusinessAddress());
-        easebuzzData.put("contact_email", sm.getContactEmail());
-        easebuzzData.put("contact_phone", sm.getContactPhone());
-
-        Map result = easebuzzApi.createSubMerchant(easebuzzData);
-        String status = (String) result.getOrDefault("status", "failure");
-        if ("success".equalsIgnoreCase(status)) {
-            sm.setSubMerchantId((String) result.get("sub_merchant_id"));
-            sm.setStatus("PENDING_KYC");
-            sm.setEasebuzzResponse(result.toString());
-        } else {
-            sm.setStatus("FAILED");
-            sm.setEasebuzzResponse(result.toString());
-        }
+        sm.setSubMerchantId(subMerchantId);
+        sm.setStatus("PENDING_KYC");
         sm.setUpdatedAt(System.currentTimeMillis());
         subMerchantRepo.save(sm);
-        log.info("Sub-merchant {} registration status={}", id, sm.getStatus());
-        return sm;
-    }
-
-    @Transactional
-    public EasebuzzSubMerchant generateKyc(Long id) {
-        EasebuzzSubMerchant sm = getById(id);
-        if (sm.getSubMerchantId() == null) {
-            throw new RuntimeException("Sub-merchant not registered with Easebuzz yet");
-        }
-        Map<String, String> data = Map.of(
-            "merchant_key", "",
-            "sub_merchant_id", sm.getSubMerchantId()
-        );
-        Map result = easebuzzApi.generateKycAccessKey(data);
-        String status = (String) result.getOrDefault("status", "failure");
-        if ("success".equalsIgnoreCase(status)) {
-            sm.setKycPortalUrl((String) result.get("kyc_portal_url"));
-            sm.setKycSubmittedAt(System.currentTimeMillis());
-            sm.setStatus("KYC_SUBMITTED");
-        }
-        sm.setEasebuzzResponse(result.toString());
-        sm.setUpdatedAt(System.currentTimeMillis());
-        subMerchantRepo.save(sm);
+        log.info("Sub-merchant {} assigned Easebuzz ID: {}", id, subMerchantId);
         return sm;
     }
 

@@ -52,24 +52,16 @@ public class AdminSubMerchantController {
         return ResponseEntity.ok(sm);
     }
 
-    @PostMapping("/{id}/register")
-    public ResponseEntity<EasebuzzSubMerchant> registerWithEasebuzz(@PathVariable Long id) {
-        return ResponseEntity.ok(subMerchantService.registerWithEasebuzz(id));
-    }
-
-    @PostMapping("/{id}/generate-kyc")
-    public ResponseEntity<EasebuzzSubMerchant> generateKyc(@PathVariable Long id) {
-        return ResponseEntity.ok(subMerchantService.generateKyc(id));
+    /** Assign Easebuzz sub_merchant_id after manual creation in Easebuzz Dashboard */
+    @PostMapping("/{id}/assign-id")
+    public ResponseEntity<EasebuzzSubMerchant> assignSubMerchantId(@PathVariable Long id,
+                                                                    @RequestBody Map<String, String> data) {
+        return ResponseEntity.ok(subMerchantService.assignSubMerchantId(id, data.get("subMerchantId")));
     }
 
     @PutMapping("/{id}/status")
     public ResponseEntity<EasebuzzSubMerchant> updateStatus(@PathVariable Long id,
                                                              @RequestBody Map<String, String> data) {
         return ResponseEntity.ok(subMerchantService.updateStatus(id, data.get("status")));
-    }
-
-    @PostMapping("/{id}/kyc-status")
-    public ResponseEntity<EasebuzzSubMerchant> refreshKycStatus(@PathVariable Long id) {
-        return ResponseEntity.ok(subMerchantService.getById(id));
     }
 }

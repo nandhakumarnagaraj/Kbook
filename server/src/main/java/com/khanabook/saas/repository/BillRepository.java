@@ -12,6 +12,21 @@ import java.util.Optional;
 @Repository
 public interface BillRepository extends SyncRepository<Bill, Long> {
 
+    List<Bill> findBySettledAmountIsNotNull();
+
+    List<Bill> findByRestaurantIdAndSettledAmountIsNotNull(Long restaurantId);
+
+    @Query(value = """
+            SELECT b.restaurant_id, COALESCE(SUM(b.settled_amount), 0) AS total_settled,
+                   COALESCE(SUM(b.commission_amount), 0) AS total_commission,
+                   COUNT(b.id) AS order_count, MAX(b.settled_at) AS last_settled_at
+            FROM bills b
+            WHERE b.settled_amount IS NOT NULL
+            GROUP BY b.restaurant_id
+            ORDER BY b.restaurant_id
+            """, nativeQuery = true)
+    List<Object[]> findSettlementSummary();
+
     // Returns bills updated since lastSync, excluding own-device bills UNLESS they are deleted.
     @Query("SELECT b FROM Bill b WHERE b.restaurantId = :restaurantId " +
            "AND b.serverUpdatedAt > :lastSyncTimestamp " +
@@ -61,4 +76,30 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
 
     Optional<Bill> findByRestaurantIdAndDeviceIdAndLocalIdAndIsDeletedFalse(
             Long restaurantId, String deviceId, Long localId);
+
+    @Query(value = """
+            SELECT b.restaurant_id, COUNT(b.id) AS order_count,
+                   COALESCE(SUM(b.commission_amount), 0) AS total_commission,
+                   COALESCE(SUM(b.total_amount), 0) AS total_revenue
+            FROM bills b
+            WHERE b.commission_amount IS NOT NULL AND b.is_deleted = false
+            GROUP BY b.restaurant_id
+            ORDER BY b.restaurant_id
+            """, nativeQuery = true)
+    List<Object[]> findCommissionSummary();
+
+    @Query("SELECT b.paymentMode, COUNT(b) FROM Bill b WHERE b.isDeleted = false GROUP BY b.paymentMode")
+    List<Object[]> countByPaymentMode();
+
+    @Query("SELECT COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.paymentMode = :mode AND LOWER(b.paymentStatus) IN ('success','paid')")
+    long countSuccessfulByMode(@Param("mode") String mode);
+
+    @Query("SELECT COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.paymentMode = :mode")
+    long countByMode(@Param("mode") String mode);
+
+    @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Bill b WHERE b.isDeleted = false AND b.createdAt >= :since AND LOWER(b.paymentStatus) IN ('success','paid')")
+    BigDecimal sumRevenueSince(@Param("since") long since);
+
+    @Query("SELECT COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.createdAt >= :since")
+    long countSince(@Param("since") long since);
 }

@@ -22,31 +22,6 @@ public class EasebuzzApiClient {
     private final RestTemplate restTemplate = new RestTemplate();
     private final EasebuzzProperties props;
 
-    public Map createSubMerchant(Map<String, String> data) {
-        String hash = generateHash(data.get("merchant_key"), data.get("business_name"));
-        data.put("hash", hash);
-        return post("/sub-merchant/create", data);
-    }
-
-    public Map updateSubMerchant(Map<String, String> data) {
-        String hash = generateHash(props.getMerchantKey(), data.get("sub_merchant_id"));
-        data.put("hash", hash);
-        return post("/sub-merchant/update", data);
-    }
-
-    public Map generateKycAccessKey(Map<String, String> data) {
-        String hash = generateHash(props.getMerchantKey(), data.get("sub_merchant_id"));
-        data.put("hash", hash);
-        return post("/sub-merchant/generate-kyc", data);
-    }
-
-    public Map getSubMerchantStatus(String subMerchantId) {
-        Map<String, String> data = Map.of("merchant_key", props.getMerchantKey(), "sub_merchant_id", subMerchantId);
-        String hash = generateHash(props.getMerchantKey(), subMerchantId);
-        data.put("hash", hash);
-        return post("/sub-merchant/status", data);
-    }
-
     public Map initiatePayment(Map<String, String> data) {
         String txnid = data.get("txnid");
         String amount = data.get("amount");
@@ -66,12 +41,13 @@ public class EasebuzzApiClient {
         return post("/payment/initiate", data);
     }
 
-    public Map getTransactionStatus(String easebuzzId) {
+    public Map getTransactionStatus(String txnid, String amount) {
         Map<String, String> data = Map.of(
             "merchant_key", props.getMerchantKey(),
-            "easebuzz_id", easebuzzId
+            "txnid", txnid,
+            "amount", amount
         );
-        String hash = generateHash(props.getMerchantKey(), easebuzzId);
+        String hash = generateHash(props.getMerchantKey(), txnid, amount, props.getSalt());
         data.put("hash", hash);
         return post("/transaction/status", data);
     }

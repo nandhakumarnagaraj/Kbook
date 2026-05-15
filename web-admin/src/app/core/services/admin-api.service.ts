@@ -38,7 +38,11 @@ export class AdminApiService {
   }
 
   registerSubMerchant(id: number) {
-    return this.http.post<{ message: string }>(`${API_BASE_URL}/admin/sub-merchants/${id}/register`, {});
+    return this.http.post<EasebuzzSubMerchant>(`${API_BASE_URL}/admin/sub-merchants/${id}/register`, {});
+  }
+
+  assignSubMerchantId(id: number, subMerchantId: string) {
+    return this.http.post<EasebuzzSubMerchant>(`${API_BASE_URL}/admin/sub-merchants/${id}/assign-id`, { subMerchantId });
   }
 
   generateKyc(id: number) {
@@ -47,5 +51,32 @@ export class AdminApiService {
 
   updateSubMerchantStatus(id: number, status: string) {
     return this.http.put<EasebuzzSubMerchant>(`${API_BASE_URL}/admin/sub-merchants/${id}/status`, { status });
+  }
+
+  getTransactions(page: number, size: number, status?: string, restaurantId?: number) {
+    let params = `page=${page}&size=${size}`;
+    if (status) params += `&status=${encodeURIComponent(status)}`;
+    if (restaurantId != null) params += `&restaurantId=${restaurantId}`;
+    return this.http.get<any[]>(`${API_BASE_URL}/admin/transactions?${params}`);
+  }
+
+  getSettlements() {
+    return this.http.get<any[]>(`${API_BASE_URL}/admin/settlements`);
+  }
+
+  getCommissions() {
+    return this.http.get<any[]>(`${API_BASE_URL}/admin/commission`);
+  }
+
+  updateCommission(id: number, rate: number) {
+    return this.http.put<any>(`${API_BASE_URL}/admin/commission/${id}`, { commissionRate: rate });
+  }
+
+  getCommissionReport() {
+    return this.http.get<any[]>(`${API_BASE_URL}/admin/reports/commission`);
+  }
+
+  getPaymentDashboard() {
+    return this.http.get<any>(`${API_BASE_URL}/admin/reports/payment-dashboard`);
   }
 }

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -104,6 +104,10 @@ type NavLink = { label: string; path: string };
     }
 
     .logout-btn {
+      margin-top: 0.5rem;
+    }
+
+    .logout-btn {
       margin-top: auto;
     }
 
@@ -133,18 +137,24 @@ export class SidebarLayoutComponent {
     const role = this.session()?.role;
     if (role === 'KBOOK_ADMIN') {
       return [
-        { label: 'Platform Dashboard', path: '/admin/dashboard' },
-        { label: 'Businesses', path: '/admin/businesses' },
-        { label: 'Sub-Merchants', path: '/admin/sub-merchants' }
+        { label: '📊 Platform Dashboard', path: '/admin/dashboard' },
+        { label: '🏪 Businesses', path: '/admin/businesses' },
+        { label: '👥 Sub-Merchants', path: '/admin/sub-merchants' },
+        { label: '💳 Payment Dashboard', path: '/admin/payment-dashboard' },
+        { label: '📈 Commission Report', path: '/admin/commission-report' },
+        { label: '💳 Transactions', path: '/admin/transactions' },
+        { label: '💰 Settlements', path: '/admin/settlements' },
+        { label: '⚙️ Commission', path: '/admin/commission' }
       ];
     }
 
     const links: NavLink[] = [
-      { label: 'Business Dashboard', path: '/business/dashboard' },
-      { label: 'Orders', path: '/business/orders' },
-      { label: 'Menu', path: '/business/menu' },
-      { label: 'Staff', path: '/business/staff' },
-      { label: 'Settings', path: '/business/settings' }
+      { label: '📊 Dashboard', path: '/business/dashboard' },
+      { label: '📋 Orders', path: '/business/orders' },
+      { label: '🔗 Marketplace Setup', path: '/business/marketplace-setup' },
+      { label: '🍽️ Menu', path: '/business/menu' },
+      { label: '👤 Staff', path: '/business/staff' },
+      { label: '⚙️ Settings', path: '/business/settings' }
     ];
     return links;
   });

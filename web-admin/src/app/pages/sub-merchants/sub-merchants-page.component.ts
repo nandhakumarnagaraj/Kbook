@@ -49,12 +49,21 @@ function formatStatus(status: string): string {
         </div>
       </section>
 
+      <div class="dash-mini">
+        <div class="mini-card total"><strong>{{ stats.total }}</strong><span>Total</span></div>
+        <div class="mini-card active"><strong>{{ stats.active }}</strong><span>Active</span></div>
+        <div class="mini-card pending"><strong>{{ stats.pending }}</strong><span>Pending KYC</span></div>
+        <div class="mini-card rejected"><strong>{{ stats.rejected }}</strong><span>Rejected</span></div>
+      </div>
+
       <div class="toolbar">
         <div>
           <h3>Sub-Merchant Directory</h3>
-          <p class="muted">{{ subMerchants().length }} sub-merchants registered</p>
+          <p class="muted">{{ subMerchants().length }} sub-merchants onboarded</p>
         </div>
-        <div style="display: flex; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem; flex-wrap:wrap;">
+          <button class="ghost-btn" (click)="exportCsv()">📄 CSV</button>
+          <a href="https://dashboard.easebuzz.in" target="_blank" rel="noopener noreferrer" class="ghost-btn" style="text-decoration:none;">🔗 Easebuzz</a>
           <button class="ghost-btn" (click)="loadSubMerchants()">Refresh</button>
           <button class="primary-btn" (click)="openCreate()">+ New Sub-Merchant</button>
         </div>
@@ -132,14 +141,18 @@ function formatStatus(status: string): string {
               <td>{{ formatDateValue(sm.createdAt) }}</td>
               <td>
                 <div class="action-cell">
-                  <button class="ghost-btn" (click)="viewDetail(sm)" title="View">View</button>
-                  <button class="ghost-btn" (click)="openEdit(sm)" title="Edit">Edit</button>
-                  <button class="ghost-btn" *ngIf="sm.status === 'DRAFT'" (click)="registerSubMerchant(sm)" title="Register with Easebuzz">
-                    <span class="chip warn" style="padding:0.2rem 0.5rem; font-size:0.7rem;">Register</span>
+                  <button class="ghost-btn" (click)="viewDetail(sm)" title="View">👁️</button>
+                  <button class="ghost-btn" (click)="openEdit(sm)" title="Edit">✏️</button>
+                  <button class="ghost-btn" *ngIf="sm.status === 'DRAFT'" (click)="assignSubMerchantId(sm)" title="Assign Easebuzz ID">
+                    <span class="chip warn" style="padding:0.2rem 0.5rem; font-size:0.7rem;">Assign ID</span>
                   </button>
-                  <button class="ghost-btn" *ngIf="sm.status === 'PENDING_KYC'" (click)="generateKyc(sm)" title="Generate KYC">
-                    <span class="chip info" style="padding:0.2rem 0.5rem; font-size:0.7rem;">KYC</span>
-                  </button>
+                  <select class="status-select" (change)="quickStatusAction(sm, $event)" *ngIf="sm.status !== 'DRAFT'">
+                    <option value="" disabled selected>Status...</option>
+                    <option value="ACTIVE" *ngIf="sm.status === 'PENDING_KYC' || sm.status === 'KYC_SUBMITTED'">✅ Mark Active</option>
+                    <option value="SUSPENDED" *ngIf="sm.status === 'ACTIVE'">⏸️ Suspend</option>
+                    <option value="REJECTED" *ngIf="sm.status === 'PENDING_KYC' || sm.status === 'KYC_SUBMITTED'">❌ Reject</option>
+                    <option value="PENDING_KYC" *ngIf="sm.status === 'ACTIVE' || sm.status === 'SUSPENDED'">🔄 Reset to Pending KYC</option>
+                  </select>
                 </div>
               </td>
             </tr>
@@ -342,6 +355,15 @@ function formatStatus(status: string): string {
     </div>
   `,
   styles: [`
+    .dash-mini { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:.75rem; }
+    .mini-card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.75rem 1rem; text-align:center; box-shadow:var(--shadow-soft); }
+    .mini-card strong { display:block; font-size:1.5rem; font-weight:800; }
+    .mini-card span { font-size:.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    .mini-card.total strong { color:var(--brand); }
+    .mini-card.active strong { color:var(--accent); }
+    .mini-card.pending strong { color:#e67e22; }
+    .mini-card.rejected strong { color:var(--danger); }
+    .status-select { padding:.3rem .5rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); font-size:.78rem; cursor:pointer; min-width:110px; }
     .action-cell {
       display: flex;
       gap: 0.35rem;
@@ -747,15 +769,16 @@ export class SubMerchantsPageComponent implements OnInit {
     this.selectedSubMerchant.set(null);
   }
 
-  registerSubMerchant(merchant: EasebuzzSubMerchant): void {
-    if (!confirm(`Register "${merchant.businessName}" with Easebuzz?`)) return;
-    this.api.registerSubMerchant(merchant.id).subscribe({
+  assignSubMerchantId(merchant: EasebuzzSubMerchant): void {
+    const subMerchantId = prompt(`Enter Easebuzz Sub-Merchant ID for "${merchant.businessName}":\n\n(After creating this merchant manually in Easebuzz Dashboard https://dashboard.easebuzz.in)`, '');
+    if (!subMerchantId || subMerchantId.trim() === '') return;
+    this.api.assignSubMerchantId(merchant.id, subMerchantId.trim()).subscribe({
       next: () => {
+        this.showFeedback('Sub-merchant ID assigned successfully. Status set to PENDING_KYC.');
         this.loadSubMerchants();
-        this.showFeedback('Sub-merchant registered with Easebuzz successfully.');
       },
-      error: () => {
-        this.showFeedback('Registration failed. Please try again.');
+      error: (err) => {
+        this.showFeedback(err?.error?.error ?? 'Failed to assign sub-merchant ID.', true);
       }
     });
   }
@@ -773,7 +796,43 @@ export class SubMerchantsPageComponent implements OnInit {
     });
   }
 
-  private showFeedback(message: string): void {
+  get stats() {
+    const all = this.subMerchants();
+    return {
+      total: all.length,
+      active: all.filter(s => s.status === 'ACTIVE').length,
+      pending: all.filter(s => s.status === 'PENDING_KYC' || s.status === 'KYC_SUBMITTED').length,
+      rejected: all.filter(s => s.status === 'REJECTED' || s.status === 'FAILED').length
+    };
+  }
+
+  quickStatusAction(merchant: EasebuzzSubMerchant, event: Event): void {
+    const newStatus = (event.target as HTMLSelectElement).value;
+    if (!newStatus) return;
+    if (!confirm(`Change "${merchant.businessName}" status to ${newStatus}?`)) return;
+    this.api.updateSubMerchantStatus(merchant.id, newStatus).subscribe({
+      next: () => {
+        this.showFeedback(`Status updated to ${newStatus}`);
+        this.loadSubMerchants();
+      },
+      error: () => this.showFeedback('Status update failed.', true)
+    });
+  }
+
+  exportCsv(): void {
+    const headers = ['ID,Business Name,Status,KYC,Email,Phone,PAN,GST,Commission,Sub-Merchant ID,Created'];
+    const rows = this.subMerchants().map(s =>
+      `${s.id},"${s.businessName}",${s.status},${s.kycStatus || ''},${s.contactEmail || ''},${s.contactPhone || ''},${s.pan || ''},${s.gst || ''},${s.commissionRate ?? ''},${s.subMerchantId || ''},${s.createdAt || ''}`
+    );
+    const csv = [...headers, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'sub-merchants.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private showFeedback(message: string, _isError?: boolean): void {
     this.actionFeedback.set({ message });
     setTimeout(() => this.actionFeedback.set(null), 4000);
   }

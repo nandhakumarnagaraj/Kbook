@@ -26,11 +26,11 @@ public class MarketplaceConfigController {
         config.put("zomatoEnabled", profile.getZomatoEnabled() != null && profile.getZomatoEnabled());
         config.put("zomatoApiKeyMasked", maskKey(profile.getZomatoApiKey()));
         config.put("zomatoOutletId", profile.getZomatoOutletId());
-        config.put("zomatoWebhookUrl", "/api/v1/marketplace/webhook/zomato");
+        config.put("zomatoWebhookUrl", "/api/v2/marketplace/webhook/zomato");
         config.put("swiggyEnabled", profile.getSwiggyEnabled() != null && profile.getSwiggyEnabled());
         config.put("swiggyApiKeyMasked", maskKey(profile.getSwiggyApiKey()));
         config.put("swiggyStoreId", profile.getSwiggyStoreId());
-        config.put("swiggyWebhookUrl", "/api/v1/marketplace/webhook/swiggy");
+        config.put("swiggyWebhookUrl", "/api/v2/marketplace/webhook/swiggy");
         return ResponseEntity.ok(config);
     }
 

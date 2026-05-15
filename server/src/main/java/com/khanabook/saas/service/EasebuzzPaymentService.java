@@ -1,10 +1,8 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.Bill;
-import com.khanabook.saas.entity.BillPayment;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.repository.BillRepository;
-import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +78,7 @@ public class EasebuzzPaymentService {
         if (bill.getGatewayTxnId() == null) {
             return Map.of("status", "failure", "error", "No gateway transaction found");
         }
-        Map result = easebuzzApi.getTransactionStatus(bill.getGatewayTxnId());
+        Map result = easebuzzApi.getTransactionStatus(bill.getGatewayTxnId(), bill.getTotalAmount().toString());
         String easebuzzStatus = (String) result.getOrDefault("status", "failure");
 
         if ("success".equalsIgnoreCase(easebuzzStatus)) {

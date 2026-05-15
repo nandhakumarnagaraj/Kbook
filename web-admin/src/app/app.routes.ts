@@ -4,11 +4,17 @@ import { SidebarLayoutComponent } from './layout/sidebar-layout/sidebar-layout.c
 import { PlatformDashboardPageComponent } from './pages/platform-dashboard/platform-dashboard-page.component';
 import { BusinessesPageComponent } from './pages/businesses/businesses-page.component';
 import { SubMerchantsPageComponent } from './pages/sub-merchants/sub-merchants-page.component';
+import { PaymentDashboardPageComponent } from './pages/payment-dashboard/payment-dashboard-page.component';
+import { CommissionReportPageComponent } from './pages/commission-report/commission-report-page.component';
+import { TransactionMonitorPageComponent } from './pages/transaction-monitor/transaction-monitor-page.component';
+import { SettlementReportsPageComponent } from './pages/settlement-reports/settlement-reports-page.component';
+import { CommissionConfigPageComponent } from './pages/commission-config/commission-config-page.component';
 import { BusinessDashboardPageComponent } from './pages/business-dashboard/business-dashboard-page.component';
 import { OrdersPageComponent } from './pages/orders/orders-page.component';
 import { MenuPageComponent } from './pages/menu/menu-page.component';
 import { StaffPageComponent } from './pages/staff/staff-page.component';
 import { LimitedAccessPageComponent } from './pages/limited-access/limited-access-page.component';
+import { MarketplaceSetupPageComponent } from './pages/marketplace-setup/marketplace-setup-page.component';
 import { RestaurantSettingsPageComponent } from './pages/restaurant-settings/restaurant-settings-page.component';
 import { authGuard, roleGuard } from './core/auth/role.guard';
 
@@ -39,6 +45,36 @@ export const routes: Routes = [
         data: { roles: ['KBOOK_ADMIN'] }
       },
       {
+        path: 'admin/payment-dashboard',
+        component: PaymentDashboardPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] }
+      },
+      {
+        path: 'admin/commission-report',
+        component: CommissionReportPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] }
+      },
+      {
+        path: 'admin/transactions',
+        component: TransactionMonitorPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] }
+      },
+      {
+        path: 'admin/settlements',
+        component: SettlementReportsPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] }
+      },
+      {
+        path: 'admin/commission',
+        component: CommissionConfigPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] }
+      },
+      {
         path: 'business/dashboard',
         component: BusinessDashboardPageComponent,
         canActivate: [roleGuard],
@@ -47,6 +83,12 @@ export const routes: Routes = [
       {
         path: 'business/orders',
         component: OrdersPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'] }
+      },
+      {
+        path: 'business/marketplace-setup',
+        component: MarketplaceSetupPageComponent,
         canActivate: [roleGuard],
         data: { roles: ['OWNER'] }
       },

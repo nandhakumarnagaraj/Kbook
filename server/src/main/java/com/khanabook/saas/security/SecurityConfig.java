@@ -43,7 +43,7 @@ public class SecurityConfig {
 		// Global config for all other endpoints.
 		CorsConfiguration config = new CorsConfiguration();
 		List<String> origins = (allowedOriginsRaw == null || allowedOriginsRaw.isBlank())
-				? List.of()
+				? List.of("http://localhost:4200")
 				: List.of(allowedOriginsRaw.split(","))
 						.stream()
 						.map(String::trim)
@@ -112,16 +112,16 @@ public class SecurityConfig {
 				.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 						// Public auth endpoints (rate-limited separately)
-						.requestMatchers("/auth/login", "/auth/signup", "/auth/signup/request",
+						.requestMatchers("/auth/login", "/auth/signup", "/auth/signup/**",
 								"/auth/google", "/auth/check-user",
 								"/auth/reset-password", "/auth/reset-password/request",
 								"/public/**",
 								"/error")
 						.permitAll()
 
-						// API docs require authenticated admin access
+						// API docs open for dev
 						.requestMatchers("/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
-						.hasRole("KBOOK_ADMIN")
+						.permitAll()
 						// Actuator: health/readiness open, everything else authenticated
 						.requestMatchers("/actuator/health", "/actuator/health/**")
 						.permitAll()
