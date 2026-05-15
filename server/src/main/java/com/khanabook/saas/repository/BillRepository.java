@@ -55,6 +55,8 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     @Query("SELECT b.restaurantId, COUNT(b) FROM Bill b WHERE b.isDeleted = false GROUP BY b.restaurantId")
     List<Object[]> countGroupedByRestaurant();
 
+    Optional<Bill> findByGatewayTxnId(String gatewayTxnId);
+
     Optional<Bill> findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(Long restaurantId, Long lifetimeOrderId);
 
     Optional<Bill> findByRestaurantIdAndDeviceIdAndLocalIdAndIsDeletedFalse(
