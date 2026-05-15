@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Build
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import android.os.Bundle
 import android.util.Log
@@ -87,12 +88,12 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         setTheme(R.style.Theme_KhanaBookLite)
         super.onCreate(savedInstanceState)
         PaymentReturnManager.handleIntent(intent)
         if (BuildConfig.DEBUG) logWindowAndResources("onCreate")
 
-        // Enable edge-to-edge for better gesture navigation support
         enableEdgeToEdge()
 
         setContent {

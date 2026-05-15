@@ -219,6 +219,8 @@ gradle.taskGraph.whenReady {
 dependencies {
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.core.splashscreen)
+    implementation(libs.material)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -281,8 +283,6 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.extensions)
     implementation(libs.pdfbox.android)
-    implementation(libs.accompanist.pager)
-    implementation(libs.accompanist.pager.indicators)
     implementation(libs.lottie.compose)
 
     testImplementation(libs.junit)

@@ -145,9 +145,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
         return try {
-            val database = buildDatabase(context, getOrCreateDbPassphrase(context))
-            database.openHelper.writableDatabase
-            database
+            buildDatabase(context, getOrCreateDbPassphrase(context))
         } catch (e: Exception) {
             if (!shouldRecoverFromDbOpenFailure(e)) {
                 throw e

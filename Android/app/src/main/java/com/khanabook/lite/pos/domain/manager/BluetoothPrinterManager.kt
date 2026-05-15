@@ -55,8 +55,8 @@ class BluetoothPrinterManager(private val context: Context) {
     private fun socketMutex(mac: String): Mutex = socketMutexes.computeIfAbsent(mac) { Mutex() }
 
     // Per-MAC socket and stream maps.
-    private val activeSockets = mutableMapOf<String, BluetoothSocket>()
-    private val outputStreams = mutableMapOf<String, OutputStream>()
+    private val activeSockets = ConcurrentHashMap<String, BluetoothSocket>()
+    private val outputStreams = ConcurrentHashMap<String, OutputStream>()
 
     // MAC of the most recently connected printer — used by printBytes() to target the right socket.
     private var lastConnectedMac: String? = null
@@ -82,50 +82,60 @@ class BluetoothPrinterManager(private val context: Context) {
     private val _connectedDeviceEvents = MutableSharedFlow<String>(extraBufferCapacity = 16, replay = 1)
     val connectedDeviceEvents: SharedFlow<String> = _connectedDeviceEvents
 
-    init {
-        val filter = IntentFilter().apply {
-            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
-            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
-        }
-        val connectionReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
-                } else {
-                    @Suppress("DEPRECATION")
-                    intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                }
+    private var connectionReceiverRegistered = false
 
-                val deviceAddress = device?.address ?: return
-                when (intent?.action) {
-                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
-                        _connectedDeviceMacs.value = _connectedDeviceMacs.value + deviceAddress
-                        if (activeSockets.containsKey(deviceAddress)) {
-                            _isConnected.value = true
-                            _connectedDeviceMac.value = deviceAddress
-                        }
-                        _connectedDeviceEvents.tryEmit(deviceAddress)
+    private val connectionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+            }
+
+            val deviceAddress = device?.address ?: return
+            when (intent?.action) {
+                BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                    _connectedDeviceMacs.value = _connectedDeviceMacs.value + deviceAddress
+                    if (activeSockets.containsKey(deviceAddress)) {
+                        _isConnected.value = true
+                        _connectedDeviceMac.value = deviceAddress
                     }
-                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
-                        _connectedDeviceMacs.value = _connectedDeviceMacs.value - deviceAddress
-                        if (activeSockets.containsKey(deviceAddress)) {
-                            activeSockets.remove(deviceAddress)
-                            outputStreams.remove(deviceAddress)
-                            if (_connectedDeviceMac.value == deviceAddress) {
-                                _connectedDeviceMac.value = activeSockets.keys.firstOrNull()
-                            }
-                            if (lastConnectedMac == deviceAddress) {
-                                lastConnectedMac = activeSockets.keys.firstOrNull()
-                            }
-                            _isConnected.value = activeSockets.isNotEmpty()
+                    _connectedDeviceEvents.tryEmit(deviceAddress)
+                }
+                BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                    _connectedDeviceMacs.value = _connectedDeviceMacs.value - deviceAddress
+                    if (activeSockets.containsKey(deviceAddress)) {
+                        activeSockets.remove(deviceAddress)
+                        outputStreams.remove(deviceAddress)
+                        if (_connectedDeviceMac.value == deviceAddress) {
+                            _connectedDeviceMac.value = activeSockets.keys.firstOrNull()
                         }
+                        if (lastConnectedMac == deviceAddress) {
+                            lastConnectedMac = activeSockets.keys.firstOrNull()
+                        }
+                        _isConnected.value = activeSockets.isNotEmpty()
                     }
                 }
             }
         }
+    }
 
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Context.RECEIVER_EXPORTED else 0
-        ContextCompat.registerReceiver(context, connectionReceiver, filter, flags)
+    private fun ensureConnectionReceiverRegistered() {
+        if (connectionReceiverRegistered) return
+
+        val filter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(connectionReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            context.registerReceiver(connectionReceiver, filter)
+        }
+
+        connectionReceiverRegistered = true
     }
 
     fun isBluetoothSupported(): Boolean = bluetoothAdapter != null
@@ -190,6 +200,7 @@ class BluetoothPrinterManager(private val context: Context) {
     @Suppress("MissingPermission")
     fun startScan() {
         if (!hasRequiredPermissions() || !isBluetoothEnabled()) return
+        ensureConnectionReceiverRegistered()
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && !isLocationEnabled()) {
              android.widget.Toast.makeText(context, context.getString(R.string.toast_turn_on_location), android.widget.Toast.LENGTH_LONG).show()
@@ -211,8 +222,7 @@ class BluetoothPrinterManager(private val context: Context) {
             Log.d(TAG, "Discovery receiver was not registered before scan start")
         }
 
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Context.RECEIVER_EXPORTED else 0
-        ContextCompat.registerReceiver(context, discoveryReceiver, filter, flags)
+        ContextCompat.registerReceiver(context, discoveryReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         bluetoothAdapter?.cancelDiscovery()
         bluetoothAdapter?.startDiscovery()
@@ -238,6 +248,7 @@ class BluetoothPrinterManager(private val context: Context) {
      */
     @Suppress("MissingPermission")
     suspend fun connect(device: BluetoothDevice): Boolean {
+        ensureConnectionReceiverRegistered()
         val mac = device.address
 
         // Phase 1 (fast, global mutex): check if socket is already live.
