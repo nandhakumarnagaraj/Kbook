@@ -12,5 +12,11 @@ public interface MarketplaceOrderRepository extends JpaRepository<MarketplaceOrd
 
     List<MarketplaceOrder> findByRestaurantIdOrderByCreatedAtDesc(Long restaurantId);
 
+    List<MarketplaceOrder> findByRestaurantIdAndOrderStatusOrderByCreatedAtDesc(Long restaurantId, String orderStatus);
+
+    List<MarketplaceOrder> findByRestaurantIdAndOrderStatusInOrderByCreatedAtDesc(Long restaurantId, List<String> statuses);
+
+    long countByRestaurantIdAndOrderStatus(Long restaurantId, String orderStatus);
+
     Optional<MarketplaceOrder> findByPlatformAndPlatformOrderId(String platform, String platformOrderId);
 }

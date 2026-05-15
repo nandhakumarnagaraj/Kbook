@@ -14,7 +14,8 @@ import lombok.Setter;
 @Table(name = "marketplace_orders", indexes = {
     @Index(name = "idx_marketplace_orders_restaurant", columnList = "restaurant_id, created_at"),
     @Index(name = "idx_marketplace_orders_bill", columnList = "bill_id"),
-    @Index(name = "idx_marketplace_orders_platform", columnList = "platform, platform_order_id")
+    @Index(name = "idx_marketplace_orders_platform", columnList = "platform, platform_order_id"),
+    @Index(name = "idx_marketplace_orders_status", columnList = "restaurant_id, order_status")
 })
 @Getter
 @Setter
@@ -39,6 +40,9 @@ public class MarketplaceOrder {
     @Column(name = "platform_status")
     private String platformStatus;
 
+    @Column(name = "order_status", nullable = false)
+    private String orderStatus = "pending";
+
     @Column(name = "customer_name")
     private String customerName;
 
@@ -62,6 +66,21 @@ public class MarketplaceOrder {
 
     @Column(name = "raw_payload", columnDefinition = "TEXT")
     private String rawPayload;
+
+    @Column(name = "accepted_at")
+    private Long acceptedAt;
+
+    @Column(name = "rejected_at")
+    private Long rejectedAt;
+
+    @Column(name = "rejected_reason", columnDefinition = "TEXT")
+    private String rejectedReason;
+
+    @Column(name = "ready_at")
+    private Long readyAt;
+
+    @Column(name = "completed_at")
+    private Long completedAt;
 
     @Column(name = "created_at", nullable = false)
     private Long createdAt;
