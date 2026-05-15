@@ -38,4 +38,16 @@ object ValidationUtils {
         val value = percentage.toDoubleOrNull() ?: return false
         return value in 0.0..100.0
     }
+
+    fun isValidGoogleReviewLink(url: String): Boolean {
+        if (url.isBlank()) return true // optional field
+        return url.startsWith("https://") && (url.contains("google.com") || url.contains("g.co"))
+    }
+
+    fun isValidUpiId(upiId: String): Boolean {
+        if (upiId.isBlank()) return true // optional field
+        return UPI_REGEX.matches(upiId)
+    }
+
+    private val UPI_REGEX = Regex("^[a-zA-Z0-9.\\-_]{2,49}@[a-zA-Z]{3,}$")
 }

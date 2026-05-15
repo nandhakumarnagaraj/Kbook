@@ -795,7 +795,7 @@ fun AboutAppView() {
             verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
         ) {
             Text(
-                "KhanaBook Lite",
+                "KhanaBook",
                 color = PrimaryGold,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold

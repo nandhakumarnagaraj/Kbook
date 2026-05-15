@@ -134,7 +134,8 @@ export class SidebarLayoutComponent {
     if (role === 'KBOOK_ADMIN') {
       return [
         { label: 'Platform Dashboard', path: '/admin/dashboard' },
-        { label: 'Businesses', path: '/admin/businesses' }
+        { label: 'Businesses', path: '/admin/businesses' },
+        { label: 'Sub-Merchants', path: '/admin/sub-merchants' }
       ];
     }
 
@@ -142,7 +143,8 @@ export class SidebarLayoutComponent {
       { label: 'Business Dashboard', path: '/business/dashboard' },
       { label: 'Orders', path: '/business/orders' },
       { label: 'Menu', path: '/business/menu' },
-      { label: 'Staff', path: '/business/staff' }
+      { label: 'Staff', path: '/business/staff' },
+      { label: 'Settings', path: '/business/settings' }
     ];
     return links;
   });

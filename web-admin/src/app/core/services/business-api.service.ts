@@ -8,6 +8,8 @@ import {
   BusinessStaffItem,
   MarketplaceConfig,
   MarketplaceConfigRequest,
+  MarketplaceOrder,
+  MarketplaceOrderCounts,
   RefundOrderRequest
 } from '../models/api.models';
 import { environment } from '../../../environments/environment';
@@ -50,4 +52,35 @@ export class BusinessApiService {
     return this.http.post<BusinessOrder>(`${API_BASE_URL}/business/bills/${billId}/manual-refund`, payload);
   }
 
+  getMarketplaceOrders() {
+    return this.http.get<MarketplaceOrder[]>(`${API_BASE_URL}/business/marketplace-orders`);
+  }
+
+  getPendingMarketplaceOrders() {
+    return this.http.get<MarketplaceOrder[]>(`${API_BASE_URL}/business/marketplace-orders/pending`);
+  }
+
+  getMarketplaceOrderCounts() {
+    return this.http.get<MarketplaceOrderCounts>(`${API_BASE_URL}/business/marketplace-orders/counts`);
+  }
+
+  acceptMarketplaceOrder(orderId: number) {
+    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/accept`, {});
+  }
+
+  rejectMarketplaceOrder(orderId: number, reason?: string) {
+    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/reject`, { reason });
+  }
+
+  markMarketplaceOrderReady(orderId: number) {
+    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/mark-ready`, {});
+  }
+
+  lookupGst(gstin: string) {
+    return this.http.get<any>(`${API_BASE_URL}/business/lookup/gst`, { params: { gstin } });
+  }
+
+  lookupFssai(fssaiNo: string) {
+    return this.http.get<any>(`${API_BASE_URL}/business/lookup/fssai`, { params: { fssaiNo } });
+  }
 }

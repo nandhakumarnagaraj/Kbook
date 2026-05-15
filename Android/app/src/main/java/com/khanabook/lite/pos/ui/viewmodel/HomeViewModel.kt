@@ -21,7 +21,8 @@ class HomeViewModel @Inject constructor(
     private val kitchenPrintQueueRepository: KitchenPrintQueueRepository,
     private val kitchenPrintQueueManager: KitchenPrintQueueManager,
     private val printerProfileRepository: PrinterProfileRepository,
-    private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor
+    private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor,
+    private val marketplaceOrderRepository: com.khanabook.lite.pos.data.repository.MarketplaceOrderRepository
 ) : ViewModel() {
 
     private val profileFlow = billRepository.getProfileFlow()
@@ -96,6 +97,22 @@ class HomeViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = HomeStats()
         )
+
+    private val _marketplacePendingCount = MutableStateFlow(0)
+    val marketplacePendingCount: StateFlow<Int> = _marketplacePendingCount.asStateFlow()
+
+    init { loadMarketplaceCount() }
+
+    fun loadMarketplaceCount() {
+        viewModelScope.launch {
+            try {
+                val counts = marketplaceOrderRepository.getOrderCounts()
+                _marketplacePendingCount.value = (counts["pending"] ?: 0L).toInt()
+            } catch (_: Exception) {
+                _marketplacePendingCount.value = 0
+            }
+        }
+    }
 
     private val _message = MutableSharedFlow<String>()
     val message: SharedFlow<String> = _message.asSharedFlow()

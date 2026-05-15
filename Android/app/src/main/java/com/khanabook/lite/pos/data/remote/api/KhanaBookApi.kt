@@ -110,22 +110,47 @@ interface KhanaBookApi {
         ): MerchantCustomerOrderDetailResponse
 
         // ── Easebuzz Payments ────────────────────────────────────────────────
-        @POST("api/v1/payments/easebuzz/order")
+        @POST("api/v1/payments/easebuzz/create-order")
         suspend fun createEasebuzzOrder(
             @Query("deviceId") deviceId: String,
             @Body request: CreateEasebuzzOrderRequest
         ): CreateEasebuzzOrderResponse
 
-        @GET("api/v1/payments/easebuzz/status")
+        @GET("api/v1/payments/easebuzz/status/{billId}")
         suspend fun getEasebuzzPaymentStatus(
             @Query("deviceId") deviceId: String,
-            @Query("billId") billId: Long,
+            @Path("billId") billId: Long,
             @Query("refresh") refresh: Boolean = false
         ): EasebuzzPaymentStatusResponse
 
-        @POST("api/v1/payments/easebuzz/verify")
+        @POST("api/v1/payments/easebuzz/verify/{billId}")
         suspend fun verifyEasebuzzPayment(
             @Query("deviceId") deviceId: String,
-            @Query("billId") billId: Long
-        ): EasebuzzPaymentStatusResponse
+            @Path("billId") billId: Long
+        ): EasebuzzVerifyResponse
+
+        // ── Easebuzz Sub-Merchant KYC ────────────────────────────────────────
+        @GET("api/v1/restaurants/payment-config/easebuzz/sub-merchant-status")
+        suspend fun getEasebuzzSubMerchantStatus(
+            @Query("deviceId") deviceId: String
+        ): EasebuzzSubMerchantStatusResponse
+
+        // ── Marketplace Orders ──────────────────────────────────────────────
+        @GET("api/v1/business/marketplace-orders")
+        suspend fun getMarketplaceOrders(@Query("deviceId") deviceId: String): List<MarketplaceOrderDto>
+
+        @GET("api/v1/business/marketplace-orders/pending")
+        suspend fun getPendingMarketplaceOrders(@Query("deviceId") deviceId: String): List<MarketplaceOrderDto>
+
+        @GET("api/v1/business/marketplace-orders/counts")
+        suspend fun getMarketplaceOrderCounts(@Query("deviceId") deviceId: String): Map<String, Long>
+
+        @POST("api/v1/business/marketplace-orders/{orderId}/accept")
+        suspend fun acceptMarketplaceOrder(@Path("orderId") orderId: Long, @Query("deviceId") deviceId: String): MarketplaceOrderDto
+
+        @POST("api/v1/business/marketplace-orders/{orderId}/reject")
+        suspend fun rejectMarketplaceOrder(@Path("orderId") orderId: Long, @Query("deviceId") deviceId: String, @Body body: Map<String, String>): MarketplaceOrderDto
+
+        @POST("api/v1/business/marketplace-orders/{orderId}/mark-ready")
+        suspend fun markMarketplaceOrderReady(@Path("orderId") orderId: Long, @Query("deviceId") deviceId: String): MarketplaceOrderDto
 }

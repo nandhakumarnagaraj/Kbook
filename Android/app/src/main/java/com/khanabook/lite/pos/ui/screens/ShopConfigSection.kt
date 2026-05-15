@@ -382,7 +382,14 @@ fun ShopConfigView(
                 enabled = !isGoogleAuth
             )
             Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = reviewUrl, onValueChange = { reviewUrl = it }, label = "Review Link")
+            val isReviewUrlValid = reviewUrl.isBlank() || ValidationUtils.isValidGoogleReviewLink(reviewUrl)
+            ParchmentTextField(
+                value = reviewUrl,
+                onValueChange = { reviewUrl = it },
+                label = "Google Review Link",
+                isError = reviewUrl.isNotBlank() && !isReviewUrlValid,
+                supportingText = if (reviewUrl.isNotBlank() && !isReviewUrlValid) "Must start with https:// and contain google.com or g.co" else null
+            )
             Spacer(modifier = Modifier.height(spacing.medium))
             ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer")
             Spacer(modifier = Modifier.height(spacing.large))

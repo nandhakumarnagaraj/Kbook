@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
+import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
@@ -85,10 +86,13 @@ fun PaymentConfigView(
             PaymentToggle("Offline UPI QR", upiSupported) { upiSupported = it }
             if (upiSupported) {
                 Spacer(modifier = Modifier.height(spacing.medium))
+                val isUpiValid = upiHandle.isBlank() || ValidationUtils.isValidUpiId(upiHandle)
                 ParchmentTextField(
                     value = upiHandle,
                     onValueChange = { upiHandle = it.trim() },
-                    label = "UPI ID *"
+                    label = "UPI ID *",
+                    isError = upiHandle.isNotBlank() && !isUpiValid,
+                    supportingText = if (upiHandle.isNotBlank() && !isUpiValid) "Format: name@provider (e.g., name@paytm)" else null
                 )
                 Spacer(modifier = Modifier.height(spacing.small))
                 ParchmentTextField(

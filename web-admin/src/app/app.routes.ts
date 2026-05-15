@@ -3,11 +3,13 @@ import { LoginPageComponent } from './pages/login/login-page.component';
 import { SidebarLayoutComponent } from './layout/sidebar-layout/sidebar-layout.component';
 import { PlatformDashboardPageComponent } from './pages/platform-dashboard/platform-dashboard-page.component';
 import { BusinessesPageComponent } from './pages/businesses/businesses-page.component';
+import { SubMerchantsPageComponent } from './pages/sub-merchants/sub-merchants-page.component';
 import { BusinessDashboardPageComponent } from './pages/business-dashboard/business-dashboard-page.component';
 import { OrdersPageComponent } from './pages/orders/orders-page.component';
 import { MenuPageComponent } from './pages/menu/menu-page.component';
 import { StaffPageComponent } from './pages/staff/staff-page.component';
 import { LimitedAccessPageComponent } from './pages/limited-access/limited-access-page.component';
+import { RestaurantSettingsPageComponent } from './pages/restaurant-settings/restaurant-settings-page.component';
 import { authGuard, roleGuard } from './core/auth/role.guard';
 
 export const routes: Routes = [
@@ -27,6 +29,12 @@ export const routes: Routes = [
       {
         path: 'admin/businesses',
         component: BusinessesPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] }
+      },
+      {
+        path: 'admin/sub-merchants',
+        component: SubMerchantsPageComponent,
         canActivate: [roleGuard],
         data: { roles: ['KBOOK_ADMIN'] }
       },
@@ -51,6 +59,12 @@ export const routes: Routes = [
       {
         path: 'business/staff',
         component: StaffPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'] }
+      },
+      {
+        path: 'business/settings',
+        component: RestaurantSettingsPageComponent,
         canActivate: [roleGuard],
         data: { roles: ['OWNER'] }
       },

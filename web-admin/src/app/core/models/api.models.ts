@@ -131,3 +131,66 @@ export interface MarketplaceConfigRequest {
   swiggyEnabled?: boolean;
 }
 
+export interface EasebuzzSubMerchant {
+  id: number;
+  restaurantId: number;
+  subMerchantId: string | null;
+  status: string;
+  businessName: string;
+  businessType: string | null;
+  pan: string | null;
+  gst: string | null;
+  bankAccountNo: string | null;
+  ifsc: string | null;
+  beneficiaryName: string | null;
+  businessAddress: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  kycStatus: string | null;
+  kycPortalUrl: string | null;
+  kycSubmittedAt: number | null;
+  kycActivatedAt: number | null;
+  commissionRate: number | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface MarketplaceOrder {
+  id: number;
+  platform: string;
+  platformOrderId: string;
+  orderStatus: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  subtotal: number | null;
+  taxAmount: number | null;
+  totalAmount: number;
+  paymentMode: string | null;
+  createdAt: number;
+  acceptedAt: number | null;
+  readyAt: number | null;
+  rejectedAt: number | null;
+  rejectedReason: string | null;
+}
+
+export interface MarketplaceOrderCounts {
+  pending: number;
+  accepted: number;
+  ready: number;
+  rejected: number;
+}
+
+export interface EasebuzzSubMerchantRequest {
+  businessName: string;
+  businessType: string;
+  pan: string;
+  gst?: string;
+  bankAccountNo: string;
+  ifsc: string;
+  beneficiaryName: string;
+  businessAddress: string;
+  contactEmail: string;
+  contactPhone: string;
+  commissionRate: number;
+}
+

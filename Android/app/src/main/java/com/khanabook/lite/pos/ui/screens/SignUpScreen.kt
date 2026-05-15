@@ -170,7 +170,7 @@ fun SignUpScreen(
             ) {
                 Image(
                         painter = painterResource(id = R.drawable.khanabook_logo),
-                        contentDescription = "KhanaBook Lite logo",
+                        contentDescription = "KhanaBook logo",
                         modifier = Modifier.size(120.dp).padding(bottom = spacing.small),
                         contentScale = ContentScale.Fit
                 )
@@ -183,7 +183,7 @@ fun SignUpScreen(
 
                 Text(
                         text =
-                                "Create your account to start managing\nbilling with KhanaBook Lite.",
+                                "Create your account to start managing\nbilling with KhanaBook.",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextLight.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center,

@@ -294,6 +294,7 @@ class MainActivity : FragmentActivity() {
                             onReprintKds = { navController.navigate("reprint_kds") },
                             onOrderStatus = { navController.navigate("order_status") },
                             onCallCustomer = { navController.navigate("call_customer") },
+                            onMarketplaceOrders = { navController.navigate("marketplace_orders") },
                             menuViewModel = menuViewModel,
                             onScanClick = { categoryName ->
                                 navController.currentBackStackEntry?.savedStateHandle?.set("ocr_category_name", categoryName)
@@ -362,6 +363,20 @@ class MainActivity : FragmentActivity() {
                         ReprintKdsScreen(
                             onBack = { navController.popBackStack() },
                             modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    composable(
+                        route = "easebuzz_payment/{restaurantId}/{billId}/{amount}",
+                        arguments = listOf(
+                            navArgument("restaurantId") { type = NavType.LongType },
+                            navArgument("billId") { type = NavType.LongType },
+                            navArgument("amount") { type = NavType.StringType }
+                        )
+                    ) { _ ->
+                    }
+                    composable("marketplace_orders") {
+                        MarketplaceOrdersScreen(
+                            onBack = { navController.popBackStack() }
                         )
                     }
                 }

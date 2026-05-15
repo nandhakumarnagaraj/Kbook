@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { combineLatest, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { BusinessMarketplaceSetup } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 
 @Component({
@@ -47,10 +48,24 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <h3>Pending POS Pay</h3>
           <strong>{{ data.pendingPosPayments }}</strong>
         </article>
-        <article class="panel stat-card">
-          <h3>Staff / Menu</h3>
-          <strong>{{ data.totalStaff }} / {{ data.totalMenuItems }}</strong>
-        </article>
+          <article class="panel stat-card">
+            <h3>Staff / Menu</h3>
+            <strong>{{ data.totalStaff }} / {{ data.totalMenuItems }}</strong>
+          </article>
+          <article class="panel stat-card" *ngIf="data.subMerchantSetup as setup">
+            <h3>Settlement Status</h3>
+            <strong>
+              <span class="chip"
+                [class.warn]="setup.subMerchantStatus === 'PENDING' || setup.subMerchantStatus === 'KYC_SUBMITTED' || !setup.subMerchantStatus"
+                [class.success]="setup.subMerchantStatus === 'ACTIVE'"
+                [class.danger]="setup.subMerchantStatus === 'REJECTED' || setup.subMerchantStatus === 'SUSPENDED'">
+                {{ setup.subMerchantStatus || 'NOT_STARTED' }}
+              </span>
+            </strong>
+            <p class="muted" style="margin:0.35rem 0 0; font-size:0.85rem;" *ngIf="setup.kycPortalUrl">
+              KYC: <a [href]="setup.kycPortalUrl" target="_blank" rel="noopener noreferrer" style="color:var(--brand);">Portal</a>
+            </p>
+          </article>
 
         <section class="panel soft-section" style="grid-column: 1 / -1;">
           <div class="section-head">
@@ -160,9 +175,10 @@ export class BusinessDashboardPageComponent {
   readonly dashboard = toSignal(
     combineLatest([
       this.api.getDashboard(),
-      this.api.getMarketplaceConfig().pipe(catchError(() => of(null)))
+      this.api.getMarketplaceConfig().pipe(catchError(() => of(null))),
+      this.api.getMarketplaceSetup().pipe(catchError(() => of(null as BusinessMarketplaceSetup | null)))
     ]).pipe(
-      map(([data, marketplace]) => ({
+      map(([data, marketplace, marketplaceSetup]) => ({
         ...data,
         totalRevenueFormatted: formatCurrency(data.totalRevenue),
         todayRevenueFormatted: formatCurrency(data.todayRevenue),
@@ -206,7 +222,8 @@ export class BusinessDashboardPageComponent {
               ? 'The business has staff access and menu data in place.'
               : 'Add at least one staff account and one menu item to complete setup.'
           }
-        ]
+        ],
+        subMerchantSetup: marketplaceSetup
       }))
     )
   );

@@ -82,7 +82,7 @@ fun AppLockScreen(
 
     val promptInfo = remember {
         BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Unlock KhanaBook Lite")
+            .setTitle("Unlock KhanaBook")
             .setSubtitle("Use biometric or device lock")
             .setAllowedAuthenticators(
                 androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or 
@@ -126,7 +126,7 @@ fun AppLockScreen(
             Spacer(modifier = Modifier.height(spacing.medium))
 
             Text(
-                "KhanaBook Lite",
+                "KhanaBook",
                 color = PrimaryGold,
                 style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
             )

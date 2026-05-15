@@ -285,6 +285,9 @@ dependencies {
     implementation(libs.pdfbox.android)
     implementation(libs.lottie.compose)
 
+    // Easebuzz Payment SDK
+    implementation("in.easebuzz:android-v2:1.0.4")
+
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.mockk.agent)

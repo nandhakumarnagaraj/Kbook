@@ -1,5 +1,5 @@
 ﻿<resources>
-    <string name="app_name">KhanaBook Lite</string>
+    <string name="app_name">KhanaBook</string>
     <string name="khanabook">KhanaBook</string>
     <string name="lite">LITE</string>
     <string name="smart_billing_slogan">Smart Billing for Smart Restaurants</string>
@@ -23,7 +23,7 @@
     <string name="log_in">Log In</string>
 
     <!-- Sign Up -->
-    <string name="create_your_account">Create your account to start managing billing with KhanaBook Lite.</string>
+    <string name="create_your_account">Create your account to start managing billing with KhanaBook.</string>
     <string name="hint_shop_name">Shop Name</string>
     <string name="hint_whatsapp_number">WhatsApp Number</string>
     <string name="hint_enter_otp">Enter OTP</string>
@@ -45,7 +45,7 @@
     <string name="powered_by_khanabook">Powered by KhanaBook</string>
     <string name="thank_you_visit_again">Thank you! Visit again.</string>
     <string name="cd_back">Back</string>
-    <string name="cd_logo">KhanaBook Lite logo</string>
+    <string name="cd_logo">KhanaBook logo</string>
     <string name="toast_welcome_back">Welcome back</string>
     <string name="toast_profile_saved">Profile saved</string>
     <string name="toast_otp_sent">OTP sent to WhatsApp</string>
