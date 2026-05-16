@@ -53,4 +53,5 @@ public class User extends BaseSyncEntity {
 	/** Set on password reset to invalidate all tokens issued before this time. */
 	@Column(name = "token_invalidated_at")
 	private Long tokenInvalidatedAt;
+
 }
