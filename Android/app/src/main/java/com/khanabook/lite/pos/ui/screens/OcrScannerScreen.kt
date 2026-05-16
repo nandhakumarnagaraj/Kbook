@@ -186,7 +186,7 @@ fun OcrScannerScreen(
                     IconButton(
                         onClick = {
                             errorMessage = null
-                            galleryLauncher.launch(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            galleryLauncher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                         }
                     ) {
                         Icon(
