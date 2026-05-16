@@ -31,6 +31,7 @@ interface CommissionSummary {
         <div class="hero-meta">
           <span class="chip">Admin Access</span>
           <span class="chip success">Financial Report</span>
+          <span class="chip">Platform Earnings</span>
         </div>
       </section>
 
@@ -108,17 +109,21 @@ interface CommissionSummary {
     .summary-value { font-size:1.5rem; font-weight:800; }
     .summary-value.accent { color:var(--accent); }
     .summary-value.brand { color:var(--brand); }
-    .section-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem; }
+    .section-head { display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; margin-bottom:.75rem; }
     .section-head h3 { margin:0; font-size:1rem; }
     .section-head p { margin:0; }
     .table-wrap { overflow-x:auto; }
     .chip.success { background:rgba(29,123,95,.12); color:var(--accent); }
-    .chip.warn { background:rgba(230,126,34,.12); color:#e67e22; }
+    .chip.warn { background: var(--warn-soft); color: var(--warn); }
     .chip.danger { background:rgba(166,55,47,.12); color:var(--danger); }
     .load-state { text-align:center; padding:3rem; color:var(--muted); }
     .spinner { width:24px; height:24px; border:3px solid var(--line); border-top-color:var(--brand); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto .75rem; }
     @keyframes spin { to { transform:rotate(360deg); } }
     .panel.loading { padding:2rem; text-align:center; color:var(--muted); }
+    @media (max-width: 720px) {
+      .summary-grid { margin-top: 1rem; }
+      .summary-card { align-items: flex-start; }
+    }
   `]
 })
 export class CommissionReportPageComponent {

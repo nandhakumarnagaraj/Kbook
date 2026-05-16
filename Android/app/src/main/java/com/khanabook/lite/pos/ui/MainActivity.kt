@@ -51,6 +51,7 @@ import javax.inject.Inject
 class MainActivity : FragmentActivity() {
 
     @Inject lateinit var sessionManager: SessionManager
+    @Inject lateinit var easebuzzSdkPaymentRepository: com.khanabook.lite.pos.data.repository.EasebuzzSdkPaymentRepository
     private var lastBackPressTime: Long = 0
 
     companion object {
@@ -372,7 +373,19 @@ class MainActivity : FragmentActivity() {
                             navArgument("billId") { type = NavType.LongType },
                             navArgument("amount") { type = NavType.StringType }
                         )
-                    ) { _ ->
+                    ) { backStackEntry ->
+                        val restaurantId = backStackEntry.arguments?.getLong("restaurantId") ?: 0L
+                        val billId = backStackEntry.arguments?.getLong("billId") ?: 0L
+                        val amountStr = backStackEntry.arguments?.getString("amount") ?: "0.00"
+                        EasebuzzPaymentScreen(
+                            restaurantId = restaurantId,
+                            billId = billId,
+                            amount = java.math.BigDecimal(amountStr),
+                            paymentRepository = easebuzzSdkPaymentRepository,
+                            sessionManager = sessionManager,
+                            onBack = { navController.popBackStack() },
+                            onPaymentComplete = { navController.popBackStack() }
+                        )
                     }
                     composable("marketplace_orders") {
                         MarketplaceOrdersScreen(

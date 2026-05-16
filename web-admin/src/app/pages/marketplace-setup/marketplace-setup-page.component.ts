@@ -16,6 +16,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
         <div class="hero-meta">
           <span class="chip">Owner Access</span>
           <span class="chip success">Marketplace Credentials</span>
+          <span class="chip warn">Admin-managed settlements</span>
         </div>
       </section>
 
@@ -72,54 +73,74 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
           <span>Configure Zomato and Swiggy integration for online orders.</span>
         </p>
 
-        <div class="section-header">
-          <h4>Zomato</h4>
-          <label class="toggle-wrap">
-            <span class="toggle-label">{{ mp.zomatoEnabled ? 'Enabled' : 'Disabled' }}</span>
-            <button class="toggle-btn" [class.on]="marketplaceForm.get('zomatoEnabled')?.value"
-              (click)="marketplaceForm.patchValue({ zomatoEnabled: !marketplaceForm.get('zomatoEnabled')?.value })"
-              type="button">
-              <span class="toggle-knob"></span>
-            </button>
-          </label>
-        </div>
+        <div class="integration-stack">
+          <section class="integration-card">
+            <div class="section-header">
+              <div>
+                <h4>Zomato</h4>
+                <p class="muted small">Control API access and webhook verification for Zomato orders.</p>
+              </div>
+              <label class="toggle-wrap">
+                <span class="toggle-label">{{ marketplaceForm.get('zomatoEnabled')?.value ? 'Enabled' : 'Disabled' }}</span>
+                <button class="toggle-btn" [class.on]="marketplaceForm.get('zomatoEnabled')?.value"
+                  (click)="marketplaceForm.patchValue({ zomatoEnabled: !marketplaceForm.get('zomatoEnabled')?.value })"
+                  type="button">
+                  <span class="toggle-knob"></span>
+                </button>
+              </label>
+            </div>
 
-        <div class="form-group" *ngIf="marketplaceForm.get('zomatoEnabled')?.value">
-          <label class="field-label">
-            API Key
-            <input class="field-input" formControlName="zomatoApiKey" placeholder="Enter Zomato API key" [type]="marketplaceSaveState() === 'saved' ? 'password' : 'text'">
-          </label>
-          <label class="field-label">
-            Webhook Secret
-            <input class="field-input" formControlName="zomatoWebhookSecret" placeholder="Enter webhook secret" type="password">
-          </label>
-          <p class="muted small" *ngIf="mp.zomatoWebhookUrl">Webhook URL: <code>{{ mp.zomatoWebhookUrl }}</code></p>
-          <p class="muted small" *ngIf="mp.zomatoApiKeyMasked">Stored API key: <code>{{ mp.zomatoApiKeyMasked }}</code></p>
-        </div>
+            <div class="form-group" *ngIf="marketplaceForm.get('zomatoEnabled')?.value">
+              <div class="cred-grid">
+                <label class="field-label">
+                  API Key
+                  <input class="field-input" formControlName="zomatoApiKey" placeholder="Enter Zomato API key" [type]="marketplaceSaveState() === 'saved' ? 'password' : 'text'">
+                </label>
+                <label class="field-label">
+                  Webhook Secret
+                  <input class="field-input" formControlName="zomatoWebhookSecret" placeholder="Enter webhook secret" type="password">
+                </label>
+              </div>
+              <div class="info-grid">
+                <p class="muted small" *ngIf="mp.zomatoWebhookUrl">Webhook URL: <code>{{ mp.zomatoWebhookUrl }}</code></p>
+                <p class="muted small" *ngIf="mp.zomatoApiKeyMasked">Stored API key: <code>{{ mp.zomatoApiKeyMasked }}</code></p>
+              </div>
+            </div>
+          </section>
 
-        <div class="section-header">
-          <h4>Swiggy</h4>
-          <label class="toggle-wrap">
-            <span class="toggle-label">{{ mp.swiggyEnabled ? 'Enabled' : 'Disabled' }}</span>
-            <button class="toggle-btn" [class.on]="marketplaceForm.get('swiggyEnabled')?.value"
-              (click)="marketplaceForm.patchValue({ swiggyEnabled: !marketplaceForm.get('swiggyEnabled')?.value })"
-              type="button">
-              <span class="toggle-knob"></span>
-            </button>
-          </label>
-        </div>
+          <section class="integration-card">
+            <div class="section-header">
+              <div>
+                <h4>Swiggy</h4>
+                <p class="muted small">Keep Swiggy credentials separate so order routing is easier to audit.</p>
+              </div>
+              <label class="toggle-wrap">
+                <span class="toggle-label">{{ marketplaceForm.get('swiggyEnabled')?.value ? 'Enabled' : 'Disabled' }}</span>
+                <button class="toggle-btn" [class.on]="marketplaceForm.get('swiggyEnabled')?.value"
+                  (click)="marketplaceForm.patchValue({ swiggyEnabled: !marketplaceForm.get('swiggyEnabled')?.value })"
+                  type="button">
+                  <span class="toggle-knob"></span>
+                </button>
+              </label>
+            </div>
 
-        <div class="form-group" *ngIf="marketplaceForm.get('swiggyEnabled')?.value">
-          <label class="field-label">
-            API Key
-            <input class="field-input" formControlName="swiggyApiKey" placeholder="Enter Swiggy API key" [type]="marketplaceSaveState() === 'saved' ? 'password' : 'text'">
-          </label>
-          <label class="field-label">
-            Webhook Secret
-            <input class="field-input" formControlName="swiggyWebhookSecret" placeholder="Enter webhook secret" type="password">
-          </label>
-          <p class="muted small" *ngIf="mp.swiggyWebhookUrl">Webhook URL: <code>{{ mp.swiggyWebhookUrl }}</code></p>
-          <p class="muted small" *ngIf="mp.swiggyApiKeyMasked">Stored API key: <code>{{ mp.swiggyApiKeyMasked }}</code></p>
+            <div class="form-group" *ngIf="marketplaceForm.get('swiggyEnabled')?.value">
+              <div class="cred-grid">
+                <label class="field-label">
+                  API Key
+                  <input class="field-input" formControlName="swiggyApiKey" placeholder="Enter Swiggy API key" [type]="marketplaceSaveState() === 'saved' ? 'password' : 'text'">
+                </label>
+                <label class="field-label">
+                  Webhook Secret
+                  <input class="field-input" formControlName="swiggyWebhookSecret" placeholder="Enter webhook secret" type="password">
+                </label>
+              </div>
+              <div class="info-grid">
+                <p class="muted small" *ngIf="mp.swiggyWebhookUrl">Webhook URL: <code>{{ mp.swiggyWebhookUrl }}</code></p>
+                <p class="muted small" *ngIf="mp.swiggyApiKeyMasked">Stored API key: <code>{{ mp.swiggyApiKeyMasked }}</code></p>
+              </div>
+            </div>
+          </section>
         </div>
 
         <div class="modal-footer">
@@ -147,6 +168,13 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
   `,
   styles: [`
     .config-card { margin-bottom: 1.5rem; }
+    .integration-stack { display: grid; gap: 1rem; margin-top: 1rem; }
+    .integration-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.75), rgba(245,236,225,0.82));
+      padding: 1rem;
+    }
 
     .card-header {
       display: flex;
@@ -171,8 +199,9 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       font-family: "Courier New", monospace;
       font-size: 0.88rem;
       background: rgba(0, 0, 0, 0.05);
-      padding: 1px 6px;
+      padding: 2px 6px;
       border-radius: 4px;
+      word-break: break-all;
     }
 
     .dot { color: #c4b09a; }
@@ -186,6 +215,16 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
     }
 
     .toggle-label { font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 0.85rem;
+      flex-wrap: wrap;
+    }
+    .section-header h4 { margin: 0 0 0.2rem; font-size: 1rem; }
 
     .toggle-btn {
       position: relative;
@@ -208,7 +247,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       width: 22px;
       height: 22px;
       border-radius: 50%;
-      background: #fff;
+      background: var(--panel);
       transition: transform 0.22s;
       display: block;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
@@ -261,12 +300,24 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       font-size: 0.88rem;
     }
 
+    .cred-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.9rem;
+    }
+
+    .info-grid {
+      display: grid;
+      gap: 0.35rem;
+      margin-top: 0.75rem;
+    }
+
     .field-input {
       border: 1px solid var(--line, #ddd);
       border-radius: 10px;
       padding: 0.8rem 1rem;
       font-size: 0.95rem;
-      background: #fff;
+      background: var(--panel);
       color: inherit;
       outline: none;
       width: 100%;
@@ -280,7 +331,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
     }
 
     .save-error {
-      color: #b03030;
+      color: var(--danger);
       background: #fdf0f0;
       border-radius: 8px;
       padding: 0.7rem 1rem;
@@ -321,6 +372,14 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       margin: 0 0 0.5rem;
       font-size: 0.9rem;
       color: var(--muted);
+    }
+
+    @media (max-width: 720px) {
+      .cred-grid { grid-template-columns: 1fr; }
+      .section-header { flex-direction: column; align-items: stretch; }
+      .toggle-wrap { justify-content: space-between; width: 100%; }
+      .modal-footer { justify-content: stretch; }
+      .modal-footer .primary-btn { width: 100%; justify-content: center; }
     }
   `]
 })

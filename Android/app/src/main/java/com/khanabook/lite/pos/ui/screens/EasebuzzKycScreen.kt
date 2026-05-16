@@ -55,6 +55,7 @@ fun EasebuzzKycScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
 
     var isLoading by remember { mutableStateOf(true) }
     var subMerchantStatus by remember { mutableStateOf<EasebuzzSubMerchantStatusResponse?>(null) }
@@ -74,7 +75,7 @@ fun EasebuzzKycScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(spacing.contentPadding)
+            .padding(layout.contentPadding)
     ) {
         Spacer(modifier = Modifier.height(spacing.medium))
 

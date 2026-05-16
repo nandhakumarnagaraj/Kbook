@@ -22,6 +22,7 @@ fun KhanaBookSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     checkedTrackColor: Color = VegGreen,
     uncheckedTrackColor: Color = Color(0xFF5C5668),
     checkedThumbColor: Color = Color.Black,
@@ -45,7 +46,7 @@ fun KhanaBookSwitch(
             .size(width = 44.dp, height = 26.dp)
             .background(trackColor, CircleShape)
             .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-            .clickable { onCheckedChange(!checked) }
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
             .padding(2.dp),
         contentAlignment = Alignment.CenterStart
     ) {

@@ -13,10 +13,11 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     <div class="page-shell">
       <section class="panel page-hero">
         <h2>Businesses</h2>
-        <p class="muted">Platform directory with cleaner drill-down detail panel.</p>
+        <p class="muted">Platform directory with drill-down detail panel.</p>
         <div class="hero-meta">
           <span class="chip">Directory View</span>
           <span class="chip">Business Details</span>
+          <span class="chip" *ngIf="loaded">{{ businesses.length }} registered</span>
         </div>
       </section>
 
@@ -25,21 +26,16 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <h3>Business Directory</h3>
           <p class="muted">Select a row to inspect revenue and business details.</p>
         </div>
-        <button class="ghost-btn" (click)="loadBusinesses()">Refresh</button>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="ghost-btn" (click)="loadBusinesses()">Refresh</button>
+        </div>
       </div>
 
       <section class="panel filter-panel" *ngIf="loaded && businesses.length">
         <div class="filter-grid">
           <div class="filter-group">
             <label for="business-search">Search</label>
-            <input
-              id="business-search"
-              class="field-control"
-              type="text"
-              [(ngModel)]="searchTerm"
-              (ngModelChange)="resetPage()"
-              placeholder="Search by shop, owner, login, email, or id"
-            />
+            <input id="business-search" class="field-control" type="text" [(ngModel)]="searchTerm" (ngModelChange)="resetPage()" placeholder="Search by shop, owner, login, email, or id" />
           </div>
           <div class="filter-group">
             <label for="business-size">Rows</label>
@@ -50,7 +46,6 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             </select>
           </div>
         </div>
-
         <div class="filter-summary">
           <p class="muted">{{ filteredBusinesses.length }} of {{ businesses.length }} businesses</p>
           <button class="ghost-btn" (click)="clearFilters()">Clear filters</button>
@@ -70,7 +65,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let business of pagedBusinesses" (click)="showDetails(business)" style="cursor: pointer;">
+            <tr *ngFor="let business of pagedBusinesses" class="biz-row" (click)="showDetails(business)">
               <td>
                 <div class="stacked-meta">
                   <strong>{{ business.shopName || '-' }}</strong>
@@ -85,7 +80,6 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             </tr>
           </tbody>
         </table>
-
         <div class="pagination-bar" *ngIf="filteredBusinesses.length > pageSize">
           <p class="muted">Page {{ currentPage }} of {{ totalPages }}</p>
           <div class="pagination-controls">
@@ -96,9 +90,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       </div>
 
       <ng-template #loading>
-        <div class="panel loading">
-          {{ loadError ? loadError : (loaded ? 'No businesses match the current filters.' : 'Loading businesses...') }}
-        </div>
+        <div class="panel loading">{{ loadError ? loadError : (loaded ? 'No businesses match the current filters.' : 'Loading businesses...') }}</div>
       </ng-template>
 
       <div class="panel soft-section" *ngIf="selectedDetail() as detail">
@@ -107,11 +99,8 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             <h3>{{ detail.shopName }}</h3>
             <p class="muted">Restaurant ID: {{ detail.restaurantId }}</p>
           </div>
-          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-            <button class="ghost-btn" (click)="clearDetail()">Close</button>
-          </div>
+          <button class="ghost-btn" (click)="clearDetail()">Close</button>
         </div>
-
         <div class="stats-grid">
           <article class="panel stat-card">
             <h3>Total Revenue</h3>
@@ -120,6 +109,10 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <article class="panel stat-card">
             <h3>POS Orders</h3>
             <strong>{{ detail.posOrderCount }}</strong>
+          </article>
+          <article class="panel stat-card">
+            <h3>Orders / Menu</h3>
+            <strong>{{ detail.orderCount }} / {{ detail.menuCount }}</strong>
           </article>
           <article class="panel stat-card">
             <h3>GST</h3>
@@ -136,7 +129,17 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         </div>
       </div>
     </div>
-  `
+  `,
+  styles: [`
+    .biz-row { cursor: pointer; }
+    .biz-row:hover { background: rgba(181, 106, 45, 0.06); }
+    @media (max-width: 720px) {
+      .soft-section .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 520px) {
+      .soft-section .stats-grid { grid-template-columns: 1fr; }
+    }
+  `]
 })
 export class BusinessesPageComponent {
   private readonly api = inject(AdminApiService);
@@ -156,7 +159,6 @@ export class BusinessesPageComponent {
 
   get filteredBusinesses(): AdminBusinessListItem[] {
     const search = this.searchTerm.trim().toLowerCase();
-
     return this.businesses.filter((business) => {
       const matchesSearch = !search || [
         business.shopName ?? '',
@@ -166,7 +168,6 @@ export class BusinessesPageComponent {
         business.whatsappNumber ?? '',
         String(business.restaurantId)
       ].some((value) => value.toLowerCase().includes(search));
-
       return matchesSearch;
     });
   }
@@ -197,9 +198,7 @@ export class BusinessesPageComponent {
     });
   }
 
-  resetPage(): void {
-    this.currentPage = 1;
-  }
+  resetPage(): void { this.currentPage = 1; }
 
   clearFilters(): void {
     this.searchTerm = '';
@@ -218,9 +217,7 @@ export class BusinessesPageComponent {
     });
   }
 
-  clearDetail(): void {
-    this.selectedDetail.set(null);
-  }
+  clearDetail(): void { this.selectedDetail.set(null); }
 
   formatDateValue(value: number | null): string { return formatDate(value); }
   formatCurrencyValue(value: number): string { return formatCurrency(value); }

@@ -11,8 +11,6 @@ import com.khanabook.lite.pos.data.remote.dto.CreateEasebuzzOrderResponse
 import com.khanabook.lite.pos.data.remote.dto.EasebuzzPaymentStatusResponse
 import com.khanabook.lite.pos.data.remote.dto.EasebuzzVerifyResponse
 import com.khanabook.lite.pos.domain.manager.SessionManager
-import in.easebuzz.EasebuzzSDK
-import in.easebuzz.PaymentListener
 import java.math.BigDecimal
 
 class EasebuzzSdkPaymentRepository(
@@ -51,25 +49,29 @@ class EasebuzzSdkPaymentRepository(
             billId = localBillId
         )
 
+    suspend fun refund(
+        localBillId: Long,
+        amount: java.math.BigDecimal,
+        reason: String? = null
+    ): com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundResponse =
+        api.refundEasebuzzPayment(
+            deviceId = sessionManager.getDeviceId(),
+            billId = localBillId,
+            request = com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundRequest(
+                amount = amount.toString(),
+                reason = reason
+            )
+        )
+
     fun launchSdk(
         activity: Activity,
         accessToken: String,
         onSuccess: (String?) -> Unit,
         onFailure: (String?) -> Unit
     ) {
-        EasebuzzSDK.getInstance().open(
-            activity,
-            accessToken,
-            object : PaymentListener {
-                override fun onSuccess(response: String?) {
-                    onSuccess(response)
-                }
-
-                override fun onFailure(errorMessage: String?) {
-                    onFailure(errorMessage)
-                }
-            }
-        )
+        // Easebuzz native SDK V2 (in.easebuzz) is not available in this build.
+        // The payment flow falls back to Custom Tabs via paymentUrl.
+        onFailure("SDK not bundled — use Custom Tabs fallback")
     }
 
     fun launchFallback(context: Context, paymentUrl: String) {

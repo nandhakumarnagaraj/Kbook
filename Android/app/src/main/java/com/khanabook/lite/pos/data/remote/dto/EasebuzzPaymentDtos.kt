@@ -39,3 +39,14 @@ data class EasebuzzSubMerchantStatusResponse(
     @SerializedName("kycSubmissionDate") val kycSubmissionDate: String? = null,
     @SerializedName("activationDate") val activationDate: String? = null
 )
+
+data class EasebuzzRefundRequest(
+    @SerializedName("amount") val amount: String,
+    @SerializedName("reason") val reason: String? = null
+)
+
+data class EasebuzzRefundResponse(
+    @SerializedName("status") val status: String,
+    @SerializedName("easebuzz_refund_id") val easebuzzRefundId: String? = null,
+    @SerializedName("error") val error: String? = null
+)

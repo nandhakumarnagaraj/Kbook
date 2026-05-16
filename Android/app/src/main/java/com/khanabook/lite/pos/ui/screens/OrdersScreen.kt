@@ -226,21 +226,6 @@ fun OrdersScreen(
 
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                 Column {
-                    if (selectedSource == "POS") {
-                        PeriodTabs(
-                            selectedFilter = timeFilter,
-                            onTabSelected = {
-                                if (it == "Custom") {
-                                    showDateRangePicker = true
-                                } else {
-                                    viewModel.setTimeFilter(it)
-                                }
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                    }
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -257,12 +242,33 @@ fun OrdersScreen(
                             label = "Online Orders",
                             isSelected = selectedSource == "ONLINE",
                             onClick = {
-                                android.widget.Toast.makeText(context, "Online orders not available in v1. Coming in v2!", android.widget.Toast.LENGTH_SHORT).show()
+                                val hasOnlineSetup = profile?.let {
+                                    it.easebuzzEnabled || it.zomatoEnabled || it.swiggyEnabled || it.ownWebsiteEnabled
+                                } == true
+                                if (hasOnlineSetup) {
+                                    selectedSource = "ONLINE"
+                                } else {
+                                    scope.launch {
+                                        KhanaToast.show("Complete online setup in Payment Configuration first", ToastKind.Warning)
+                                    }
+                                }
                             },
-                            modifier = Modifier.weight(1f),
-                            enabled = false
+                            modifier = Modifier.weight(1f)
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(spacing.medium))
+
+                    PeriodTabs(
+                        selectedFilter = timeFilter,
+                        onTabSelected = {
+                            if (it == "Custom") {
+                                showDateRangePicker = true
+                            } else {
+                                viewModel.setTimeFilter(it)
+                            }
+                        }
+                    )
 
                     Spacer(modifier = Modifier.height(spacing.medium))
                 }
@@ -860,6 +866,13 @@ private fun formatDateRangeHeadline(startMillis: Long?, endMillis: Long?): Strin
     return "$startText - $endText"
 }
 
+// Online orders table column weights
+private val COL_ONLINE_ORDER_ID   = 1.0f
+private val COL_ONLINE_STATUS     = 1.2f
+private val COL_ONLINE_VIEW     = 0.8f
+private val COL_ONLINE_ACTION     = 1.4f
+private val COL_ONLINE_READY      = 1.2f
+
 @Composable
 private fun OnlineOrdersPane(
     orders: List<MerchantCustomerOrderSummaryResponse>,
@@ -868,7 +881,8 @@ private fun OnlineOrdersPane(
     error: String?,
     updatingOrderIds: Set<Long>,
     onRefresh: () -> Unit,
-    onOrderClick: (Long) -> Unit
+    onOrderClick: (Long) -> Unit,
+    onStatusUpdate: (Long, String) -> Unit = { _, _ -> }
 ) {
     val spacing = KhanaBookTheme.spacing
 
@@ -956,13 +970,19 @@ private fun OnlineOrdersPane(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = spacing.medium),
-                    verticalArrangement = Arrangement.spacedBy(spacing.small)
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
+                    stickyHeader {
+                        OnlineTableHeader()
+                    }
                     items(orders, key = { it.orderId }) { order ->
-                        OnlineOrderCard(
+                        OnlineOrderTableRow(
                             order = order,
                             isUpdating = updatingOrderIds.contains(order.orderId),
-                            onClick = { onOrderClick(order.orderId) }
+                            onViewClick = { onOrderClick(order.orderId) },
+                            onStatusUpdate = { nextStatus ->
+                                onStatusUpdate(order.orderId, nextStatus)
+                            }
                         )
                     }
                 }
@@ -972,73 +992,192 @@ private fun OnlineOrdersPane(
 }
 
 @Composable
-private fun OnlineOrderCard(
+private fun OnlineTableHeader() {
+    val spacing = KhanaBookTheme.spacing
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DarkBrown1.copy(alpha = 0.7f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+            .padding(vertical = spacing.small, horizontal = spacing.extraSmall),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HeaderCell("Order ID", COL_ONLINE_ORDER_ID)
+        HeaderCell("Status", COL_ONLINE_STATUS)
+        HeaderCell("View", COL_ONLINE_VIEW)
+        HeaderCell("Action", COL_ONLINE_ACTION)
+        HeaderCell("Food Ready", COL_ONLINE_READY)
+    }
+}
+
+@Composable
+private fun OnlineOrderTableRow(
     order: MerchantCustomerOrderSummaryResponse,
     isUpdating: Boolean,
-    onClick: () -> Unit
+    onViewClick: () -> Unit,
+    onStatusUpdate: (String) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        color = DarkBrown1.copy(alpha = 0.55f),
-        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.18f))
+    val statusColor = storefrontOrderStatusColor(order.orderStatus)
+    val nextStatuses = remember(order.orderStatus) { storefrontNextStatuses(order.orderStatus) }
+    val canMarkReady = order.orderStatus.equals("ACCEPTED", ignoreCase = true) ||
+                       order.orderStatus.equals("PREPARING", ignoreCase = true)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = spacing.hairline)
+            .background(
+                DarkBrown1.copy(alpha = 0.35f),
+                RoundedCornerShape(4.dp)
+            )
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(spacing.small)
+                .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(order.publicOrderCode, color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
+            // Order ID
+            TableCell(
+                order.publicOrderCode,
+                COL_ONLINE_ORDER_ID,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryGold
+            )
+
+            // Status
+            Box(modifier = Modifier.weight(COL_ONLINE_STATUS), contentAlignment = Alignment.Center) {
+                StatusBadge(
+                    order.orderStatus.replace("_", " "),
+                    statusColor,
+                    Modifier.fillMaxWidth(0.9f)
+                )
+            }
+
+            // View
+            Box(modifier = Modifier.weight(COL_ONLINE_VIEW), contentAlignment = Alignment.Center) {
+                TextButton(
+                    onClick = onViewClick,
+                    modifier = Modifier.padding(0.dp)
+                ) {
                     Text(
-                        order.customerName,
-                        color = TextLight,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                        "View",
+                        color = PrimaryGold,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                     )
-                    order.customerPhone?.takeIf { it.isNotBlank() }?.let {
-                        Text(it, color = TextGold, style = MaterialTheme.typography.bodySmall)
-                    }
                 }
+            }
+
+            // Action
+            Box(modifier = Modifier.weight(COL_ONLINE_ACTION), contentAlignment = Alignment.Center) {
                 if (isUpdating) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
                         color = PrimaryGold
                     )
+                } else if (nextStatuses.isNotEmpty()) {
+                    var actionExpanded by remember { mutableStateOf(false) }
+                    Box {
+                        Surface(
+                            onClick = { actionExpanded = true },
+                            color = DarkBrown2,
+                            shape = RoundedCornerShape(6.dp),
+                            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
+                        ) {
+                            Text(
+                                "Update",
+                                color = TextLight,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = actionExpanded,
+                            onDismissRequest = { actionExpanded = false },
+                            modifier = Modifier.background(DarkBrown2)
+                        ) {
+                            nextStatuses.forEach { status ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            status.replace("_", " "),
+                                            color = if (status.equals("REJECTED", ignoreCase = true) || status.equals("CANCELLED", ignoreCase = true)) DangerRed else TextLight,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    },
+                                    onClick = {
+                                        onStatusUpdate(status)
+                                        actionExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        "—",
+                        color = TextGold.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-            ) {
-                StatusBadge(order.fulfillmentType.replace("_", " "), Brown500, Modifier.weight(1f))
-                StatusBadge(order.orderStatus.replace("_", " "), storefrontOrderStatusColor(order.orderStatus), Modifier.weight(1f))
+            // Food Ready
+            Box(modifier = Modifier.weight(COL_ONLINE_READY), contentAlignment = Alignment.Center) {
+                if (canMarkReady && !isUpdating) {
+                    Surface(
+                        onClick = { onStatusUpdate("READY") },
+                        color = VegGreen.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(6.dp),
+                        border = BorderStroke(1.dp, VegGreen.copy(alpha = 0.5f))
+                    ) {
+                        Text(
+                            "Ready",
+                            color = VegGreen,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                } else if (order.orderStatus.equals("READY", ignoreCase = true)) {
+                    Text(
+                        "Done",
+                        color = SuccessGreen,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    Text(
+                        "—",
+                        color = TextGold.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
+        }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    CurrencyUtils.formatPrice(order.totalAmount),
-                    color = TextLight,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-                Text(
-                    DateUtils.formatDisplay(order.createdAt),
-                    color = TextGold.copy(alpha = 0.75f),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
+        // Customer name + total row below
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                order.customerName,
+                color = TextGold.copy(alpha = 0.8f),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                CurrencyUtils.formatPrice(order.totalAmount),
+                color = TextLight,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+            )
         }
     }
 }

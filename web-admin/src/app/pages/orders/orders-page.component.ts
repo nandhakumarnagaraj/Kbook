@@ -266,7 +266,7 @@ type OrderTab = 'pos' | 'online';
           </table>
         </div>
         <ng-template #onlineLoading>
-          <div class="panel loading">{{ 'Loading marketplace orders...' }}</div>
+          <div class="panel loading">{{ marketplaceOrdersLoaded ? 'No marketplace orders yet.' : 'Loading marketplace orders...' }}</div>
         </ng-template>
       </ng-container>
     </div>
@@ -280,6 +280,9 @@ type OrderTab = 'pos' | 'online';
       border-radius: 18px;
       overflow: hidden;
       box-shadow: var(--shadow-soft);
+      position: sticky;
+      top: 0.75rem;
+      z-index: 5;
     }
 
     .tab-btn {
@@ -309,7 +312,7 @@ type OrderTab = 'pos' | 'online';
 
     .chip.info {
       background: rgba(74, 144, 226, 0.14);
-      color: #2c6fcb;
+      color: var(--info);
     }
 
     .chip.muted-chip {
@@ -327,7 +330,7 @@ type OrderTab = 'pos' | 'online';
       color: #b81b30;
     }
 
-    .danger-btn { color: #b03030; border-color: #b03030; }
+    .danger-btn { color: var(--danger); border-color: var(--danger); }
 
     .accept-btn {
       font-size: 0.8rem;
@@ -341,12 +344,12 @@ type OrderTab = 'pos' | 'online';
       padding: 0.5rem 1rem;
     }
 
-    .refunded-label { color: #b03030; font-weight: 500; }
+    .refunded-label { color: var(--danger); font-weight: 500; }
     .refund-meta { font-size: 0.75rem; color: #7a5c00; }
     .chip.success { background: #e6f4ea; color: #2d7a3a; }
-    .chip.danger { background: #fdecea; color: #b03030; }
-    .chip.warn { background: #fff8e1; color: #7a5c00; }
-    .action-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; }
+    .chip.danger { background: var(--danger-soft); color: var(--danger); }
+    .chip.warn { background: var(--warn-soft); color: #7a5c00; }
+    .action-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; min-width: 140px; }
 
     .modal-backdrop {
       position: fixed;
@@ -359,12 +362,14 @@ type OrderTab = 'pos' | 'online';
     }
 
     .modal-box {
-      background: #fff;
+      background: var(--panel);
+      border: 1px solid var(--line);
       border-radius: 18px;
-      padding: 1.5rem 2rem;
-      min-width: 340px;
-      max-width: 460px;
-      width: 100%;
+      padding: 1.5rem;
+      width: min(100%, 520px);
+      max-width: 520px;
+      max-height: min(88vh, 720px);
+      overflow-y: auto;
       box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
     }
 
@@ -373,17 +378,48 @@ type OrderTab = 'pos' | 'online';
     .field label { font-size: 0.85rem; font-weight: 600; color: #444; }
 
     .field input {
-      padding: 0.5rem 0.75rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      min-height: 44px;
+      padding: 0.75rem 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
       font-size: 0.95rem;
       outline: none;
     }
 
-    .field input:focus { border-color: #4a90e2; }
+    .field input:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(181, 106, 45, 0.14);
+    }
     .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
-    .error-text { color: #b03030; font-size: 0.85rem; margin: 0.5rem 0 0; }
+    .error-text { color: var(--danger); font-size: 0.85rem; margin: 0.5rem 0 0; }
     .hint-text { color: #6b7280; font-size: 0.85rem; margin: 0.35rem 0 0; }
+
+    @media (max-width: 960px) {
+      .tab-bar { top: 0.5rem; }
+    }
+
+    @media (max-width: 720px) {
+      .tab-bar { border-radius: 16px; }
+      .tab-btn {
+        padding: 0.8rem 0.9rem;
+        font-size: 0.88rem;
+      }
+      .action-stack {
+        min-width: 0;
+        width: 100%;
+      }
+      .action-stack .ghost-btn,
+      .action-stack .primary-btn {
+        width: 100%;
+        justify-content: center;
+      }
+      .modal-box {
+        padding: 1rem;
+        width: calc(100vw - 1rem);
+      }
+      .modal-actions { flex-direction: column-reverse; }
+      .modal-actions .ghost-btn { width: 100%; }
+    }
   `]
 })
 export class OrdersPageComponent {
@@ -409,6 +445,7 @@ export class OrdersPageComponent {
 
   // Online orders
   marketplaceOrders: MarketplaceOrder[] = [];
+  marketplaceOrdersLoaded = false;
   onlineCounts: { pending: number; accepted: number; ready: number; rejected: number } | null = null;
 
   rejectTarget: MarketplaceOrder | null = null;
@@ -532,9 +569,16 @@ export class OrdersPageComponent {
   // ---- Marketplace order methods ----
 
   loadMarketplaceOrders(): void {
+    this.marketplaceOrdersLoaded = false;
     this.api.getMarketplaceOrders().subscribe({
-      next: (data) => { this.marketplaceOrders = data; },
-      error: () => { this.marketplaceOrders = []; }
+      next: (data) => {
+        this.marketplaceOrders = data;
+        this.marketplaceOrdersLoaded = true;
+      },
+      error: () => {
+        this.marketplaceOrders = [];
+        this.marketplaceOrdersLoaded = true;
+      }
     });
   }
 

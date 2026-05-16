@@ -66,5 +66,6 @@
     <string name="toast_payment_failed">Payment failed</string>
     <string name="toast_turn_on_location">Turn on location to find printers</string>
     <string name="field_numbers_only">Numbers only</string>
+    <string name="toast_lookup_applied">Fetched details applied</string>
 </resources>
 

@@ -38,6 +38,8 @@ data class BillSyncDto(
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
     @SerializedName("refundAmount") val refundAmount: String = "0.00",
     @SerializedName("publicToken") val publicToken: String? = null,
+    @SerializedName("gatewayTxnId") val gatewayTxnId: String? = null,
+    @SerializedName("gatewayStatus") val gatewayStatus: String? = null,
 )
 
 data class BillItemSyncDto(

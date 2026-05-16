@@ -22,7 +22,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 43,
+        version = 44,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -51,6 +51,26 @@ abstract class AppDatabase : RoomDatabase() {
             val MIGRATION_42_43 = object : Migration(42, 43) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     db.execSQL("ALTER TABLE `bills` ADD COLUMN `public_token` TEXT")
+                }
+            }
+
+            val MIGRATION_43_44 = object : Migration(43, 44) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    try {
+                        db.execSQL("ALTER TABLE `bills` ADD COLUMN `refund_amount` TEXT NOT NULL DEFAULT '0.0'")
+                    } catch (e: android.database.sqlite.SQLiteException) {
+                        android.util.Log.w("AppDatabase", "MIGRATION_43_44: refund_amount may already exist: ${e.message}")
+                    }
+                    try {
+                        db.execSQL("ALTER TABLE `bills` ADD COLUMN `gateway_txn_id` TEXT")
+                    } catch (e: android.database.sqlite.SQLiteException) {
+                        android.util.Log.w("AppDatabase", "MIGRATION_43_44: gateway_txn_id may already exist: ${e.message}")
+                    }
+                    try {
+                        db.execSQL("ALTER TABLE `bills` ADD COLUMN `gateway_status` TEXT")
+                    } catch (e: android.database.sqlite.SQLiteException) {
+                        android.util.Log.w("AppDatabase", "MIGRATION_43_44: gateway_status may already exist: ${e.message}")
+                    }
                 }
             }
 

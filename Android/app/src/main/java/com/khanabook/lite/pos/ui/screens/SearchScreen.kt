@@ -60,9 +60,15 @@ fun SearchScreen(
     val result by viewModel.searchResult.collectAsState()
     val hasSearched by viewModel.hasSearched.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
+    val refundResult by viewModel.refundResult.collectAsState()
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+
+    var showRefundDialog by remember { mutableStateOf(false) }
+    var refundAmount by remember { mutableStateOf("") }
+    var refundReason by remember { mutableStateOf("") }
+    var isEasebuzzRefund by remember { mutableStateOf(false) }
 
     // Standard staggered entry animation
     var headerVisible by remember { mutableStateOf(false) }
@@ -77,8 +83,78 @@ fun SearchScreen(
         kotlinx.coroutines.delay(80)
         bodyVisible = true
     }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(refundResult) {
+        refundResult?.let {
+            snackbarHostState.showSnackbar(
+                message = it.message,
+                duration = SnackbarDuration.Short,
+                actionLabel = if (!it.success) "Dismiss" else null
+            )
+            viewModel.clearRefundResult()
+        }
+    }
+    if (showRefundDialog) {
+        AlertDialog(
+            onDismissRequest = { showRefundDialog = false },
+            title = { Text("Refund Order", color = PrimaryGold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
+                    OutlinedTextField(
+                        value = refundAmount,
+                        onValueChange = { refundAmount = it },
+                        label = { Text("Refund Amount") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = outlinedSearchFieldColors()
+                    )
+                    OutlinedTextField(
+                        value = refundReason,
+                        onValueChange = { refundReason = it },
+                        label = { Text("Reason (optional)") },
+                        singleLine = false,
+                        maxLines = 2,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = outlinedSearchFieldColors()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val amount = refundAmount.trim()
+                        val reason = refundReason.trim()
+                        result?.bill?.id?.let { billId ->
+                            if (isEasebuzzRefund) {
+                                viewModel.refundEasebuzz(billId, amount, reason)
+                            } else {
+                                viewModel.refundBill(billId, amount, reason)
+                            }
+                        }
+                        showRefundDialog = false
+                        refundAmount = ""
+                        refundReason = ""
+                    },
+                    enabled = refundAmount.isNotBlank() && refundAmount.toDoubleOrNull() != null && refundAmount.toDouble() > 0,
+                    colors = ButtonDefaults.buttonColors(containerColor = DangerRed)
+                ) {
+                    Text("Refund", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRefundDialog = false }) {
+                    Text("Cancel", color = TextGold)
+                }
+            },
+            containerColor = CardBG
+        )
+    }
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -445,6 +521,49 @@ fun SearchScreen(
                                         Icon(Icons.Default.Receipt, null, tint = DarkBrown1, modifier = Modifier.size(iconSize.small))
                                         Spacer(modifier = Modifier.width(spacing.extraSmall))
                                         Text("Print Receipt", color = DarkBrown1, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                    }
+
+                                    val canRefund = (currentResult.bill.orderStatus.equals("completed", ignoreCase = true) ||
+                                            currentResult.bill.orderStatus.equals("paid", ignoreCase = true)) &&
+                                            !currentResult.bill.paymentStatus.equals("refunded", ignoreCase = true)
+
+                                    if (canRefund) {
+                                        val isOnline = currentResult.bill.paymentMode.equals("ONLINE", ignoreCase = true)
+                                        val hasGatewayTxn = !currentResult.bill.gatewayTxnId.isNullOrBlank()
+
+                                        if (isOnline && hasGatewayTxn) {
+                                            Button(
+                                                onClick = {
+                                                    refundAmount = currentResult.bill.totalAmount
+                                                    refundReason = ""
+                                                    isEasebuzzRefund = true
+                                                    showRefundDialog = true
+                                                },
+                                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = DangerRed),
+                                                shape = RoundedCornerShape(12.dp)
+                                            ) {
+                                                Icon(Icons.Default.CreditCard, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
+                                                Spacer(modifier = Modifier.width(spacing.extraSmall))
+                                                Text("Easebuzz Refund", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                            }
+                                        }
+
+                                        Button(
+                                            onClick = {
+                                                refundAmount = currentResult.bill.totalAmount
+                                                refundReason = ""
+                                                isEasebuzzRefund = false
+                                                showRefundDialog = true
+                                            },
+                                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = WarningYellow),
+                                            shape = RoundedCornerShape(12.dp)
+                                        ) {
+                                            Icon(Icons.Default.Replay, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
+                                            Spacer(modifier = Modifier.width(spacing.extraSmall))
+                                            Text("Refund", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                        }
                                     }
                                 }
 

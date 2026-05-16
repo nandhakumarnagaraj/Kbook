@@ -3,8 +3,11 @@ package com.khanabook.lite.pos.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
+import com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundRequest
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.domain.manager.SearchManager
+import com.khanabook.lite.pos.domain.manager.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +16,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val billRepository: BillRepository
+    private val billRepository: BillRepository,
+    private val khanaBookApi: KhanaBookApi,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val searchManager = SearchManager(billRepository)
@@ -64,6 +69,52 @@ class SearchViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private val _refundResult = MutableStateFlow<RefundResult?>(null)
+    val refundResult: StateFlow<RefundResult?> = _refundResult
+
+    data class RefundResult(val success: Boolean, val message: String)
+
+    fun refundBill(billId: Long, amount: String, reason: String) {
+        viewModelScope.launch {
+            billRepository.refundBill(billId, amount, reason)
+            _searchResult.value?.let { current ->
+                if (current.bill.id == billId) {
+                    _searchResult.value = billRepository.getBillWithItemsById(billId)
+                }
+            }
+            _refundResult.value = RefundResult(true, "Refund recorded successfully")
+        }
+    }
+
+    fun refundEasebuzz(billId: Long, amount: String, reason: String) {
+        viewModelScope.launch {
+            try {
+                val deviceId = sessionManager.getDeviceId()
+                val request = EasebuzzRefundRequest(amount = amount, reason = reason)
+                val response = khanaBookApi.refundEasebuzzPayment(deviceId, billId, request)
+                if (response.status.equals("success", ignoreCase = true) ||
+                    response.status.equals("1", ignoreCase = true)
+                ) {
+                    billRepository.refundBill(billId, amount, reason)
+                    _searchResult.value?.let { current ->
+                        if (current.bill.id == billId) {
+                            _searchResult.value = billRepository.getBillWithItemsById(billId)
+                        }
+                    }
+                    _refundResult.value = RefundResult(true, "Easebuzz refund initiated: ${response.easebuzzRefundId ?: ""}")
+                } else {
+                    _refundResult.value = RefundResult(false, response.error ?: "Refund failed")
+                }
+            } catch (e: Exception) {
+                _refundResult.value = RefundResult(false, e.localizedMessage ?: "Refund failed")
+            }
+        }
+    }
+
+    fun clearRefundResult() {
+        _refundResult.value = null
     }
 }
 

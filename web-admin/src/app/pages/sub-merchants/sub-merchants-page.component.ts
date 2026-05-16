@@ -61,9 +61,9 @@ function formatStatus(status: string): string {
           <h3>Sub-Merchant Directory</h3>
           <p class="muted">{{ subMerchants().length }} sub-merchants onboarded</p>
         </div>
-        <div style="display: flex; gap: 0.5rem; flex-wrap:wrap;">
+        <div class="toolbar-actions">
           <button class="ghost-btn" (click)="exportCsv()">📄 CSV</button>
-          <a href="https://dashboard.easebuzz.in" target="_blank" rel="noopener noreferrer" class="ghost-btn" style="text-decoration:none;">🔗 Easebuzz</a>
+          <a href="https://dashboard.easebuzz.in" target="_blank" rel="noopener noreferrer" class="ghost-btn easebuzz-link">🔗 Easebuzz</a>
           <button class="ghost-btn" (click)="loadSubMerchants()">Refresh</button>
           <button class="primary-btn" (click)="openCreate()">+ New Sub-Merchant</button>
         </div>
@@ -145,26 +145,26 @@ function formatStatus(status: string): string {
                   <button class="ghost-btn" (click)="openEdit(sm)" title="Edit">✏️</button>
                   <ng-container *ngIf="sm.status === 'DRAFT'">
                     <button class="ghost-btn" (click)="submitToEasebuzz(sm)" title="Submit to Easebuzz API">
-                      <span class="chip info" style="padding:0.2rem 0.5rem; font-size:0.7rem;">🚀 Submit</span>
+                      <span class="chip chip-sm info">🚀 Submit</span>
                     </button>
                     <button class="ghost-btn" (click)="assignSubMerchantId(sm)" title="Manually assign Easebuzz ID">
-                      <span class="chip warn" style="padding:0.2rem 0.5rem; font-size:0.7rem;">Assign ID</span>
+                      <span class="chip chip-sm warn">Assign ID</span>
                     </button>
                   </ng-container>
                   <ng-container *ngIf="sm.status === 'PENDING_KYC' || sm.status === 'KYC_SUBMITTED'">
                     <button class="ghost-btn" (click)="generateKyc(sm)" title="Generate KYC portal URL">
-                      <span class="chip info" style="padding:0.2rem 0.5rem; font-size:0.7rem;">🔑 KYC</span>
+                      <span class="chip chip-sm info">🔑 KYC</span>
                     </button>
                     <button class="ghost-btn" (click)="updateOnEasebuzz(sm)" title="Sync changes to Easebuzz">
-                      <span class="chip" style="padding:0.2rem 0.5rem; font-size:0.7rem;">🔄 Sync</span>
+                      <span class="chip chip-sm">🔄 Sync</span>
                     </button>
                   </ng-container>
                   <ng-container *ngIf="sm.status === 'ACTIVE'">
                     <button class="ghost-btn" (click)="createSplitLabel(sm)" title="Create settlement split label" *ngIf="!sm.splitLabel">
-                      <span class="chip info" style="padding:0.2rem 0.5rem; font-size:0.7rem;">🏷️ Split</span>
+                      <span class="chip chip-sm info">🏷️ Split</span>
                     </button>
                     <button class="ghost-btn" (click)="updateOnEasebuzz(sm)" title="Sync changes to Easebuzz">
-                      <span class="chip" style="padding:0.2rem 0.5rem; font-size:0.7rem;">🔄 Sync</span>
+                      <span class="chip chip-sm">🔄 Sync</span>
                     </button>
                   </ng-container>
                   <select class="status-select" (change)="quickStatusAction(sm, $event)" *ngIf="sm.status !== 'DRAFT'">
@@ -194,7 +194,7 @@ function formatStatus(status: string): string {
             <h3>{{ sm.businessName }}</h3>
             <p class="muted">Sub-Merchant ID: {{ sm.id }} | Restaurant: #{{ sm.restaurantId }}</p>
           </div>
-          <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+          <div class="detail-close-row">
             <button class="ghost-btn" (click)="closeDetail()">Close</button>
           </div>
         </div>
@@ -206,7 +206,7 @@ function formatStatus(status: string): string {
           </article>
           <article class="panel stat-card">
             <h3>Easebuzz ID</h3>
-            <strong style="font-size:1rem;"><code>{{ sm.subMerchantId || '-' }}</code></strong>
+            <strong class="stat-value">{{ sm.subMerchantId || '-' }}</strong>
           </article>
           <article class="panel stat-card">
             <h3>Commission</h3>
@@ -218,25 +218,25 @@ function formatStatus(status: string): string {
           </article>
           <article class="panel stat-card">
             <h3>Contact</h3>
-            <strong style="font-size:1rem;">{{ sm.contactEmail || '-' }}<br *ngIf="sm.contactEmail" /><span class="muted" style="font-size:0.85rem;">{{ sm.contactPhone || '' }}</span></strong>
+            <strong class="stat-value">{{ sm.contactEmail || '-' }}<br *ngIf="sm.contactEmail" /><span class="muted stat-sub">{{ sm.contactPhone || '' }}</span></strong>
           </article>
           <article class="panel stat-card">
             <h3>PAN / GST</h3>
-            <strong style="font-size:0.95rem;">{{ sm.pan || '-' }}<br /><span class="muted" style="font-size:0.85rem;">{{ sm.gst || '' }}</span></strong>
+            <strong class="stat-value-sm">{{ sm.pan || '-' }}<br /><span class="muted stat-sub">{{ sm.gst || '' }}</span></strong>
           </article>
-          <article class="panel stat-card" style="grid-column: span 2;">
+          <article class="panel stat-card span-2">
             <h3>Beneficiary</h3>
-            <strong style="font-size:1rem;">{{ sm.beneficiaryName || '-' }}</strong>
-            <p class="muted" style="margin:0.25rem 0 0;">
+            <strong class="stat-value">{{ sm.beneficiaryName || '-' }}</strong>
+            <p class="muted stat-note">
               {{ sm.bankName ? sm.bankName : '' }}{{ sm.branchName ? ' - ' + sm.branchName : '' }}
             </p>
-            <p class="muted" style="margin:0.25rem 0 0;">
+            <p class="muted stat-note">
               {{ sm.bankAccountNo ? 'A/C: ' + sm.bankAccountNo : '' }} {{ sm.ifsc ? 'IFSC: ' + sm.ifsc : '' }}
             </p>
           </article>
-          <article class="panel stat-card" style="grid-column: span 2;">
+          <article class="panel stat-card span-2">
             <h3>Business Address</h3>
-            <p style="margin:0; white-space:pre-wrap;">{{ sm.businessAddress || '-' }}</p>
+            <p class="address-text">{{ sm.businessAddress || '-' }}</p>
           </article>
         </div>
 
@@ -305,7 +305,7 @@ function formatStatus(status: string): string {
 
         <div class="detail-section">
           <h3>Transaction Summary</h3>
-          <div class="panel loading" style="margin:0;">Transaction history will be available once the sub-merchant is active.</div>
+          <div class="panel loading no-margin">Transaction history will be available once the sub-merchant is active.</div>
         </div>
       </div>
     </div>
@@ -330,7 +330,7 @@ function formatStatus(status: string): string {
             </label>
             <label class="field-label">
               PAN *
-              <input class="field-control" formControlName="pan" placeholder="AAAAA1234A" maxlength="10" style="text-transform:uppercase;" />
+              <input class="field-control uppercase" formControlName="pan" placeholder="AAAAA1234A" maxlength="10" />
               <span class="field-error" *ngIf="subMerchantForm.get('pan')?.invalid && subMerchantForm.get('pan')?.touched">Invalid PAN format (e.g. AAAAA1234A)</span>
             </label>
             <label class="field-label">
@@ -344,7 +344,7 @@ function formatStatus(status: string): string {
             </label>
             <label class="field-label">
               IFSC Code *
-              <input class="field-control" formControlName="ifsc" placeholder="ABCD0123456" maxlength="11" style="text-transform:uppercase;" />
+              <input class="field-control uppercase" formControlName="ifsc" placeholder="ABCD0123456" maxlength="11" />
               <span class="field-error" *ngIf="subMerchantForm.get('ifsc')?.invalid && subMerchantForm.get('ifsc')?.touched">Invalid IFSC format (e.g. ABCD0123456)</span>
             </label>
             <label class="field-label">
@@ -376,7 +376,7 @@ function formatStatus(status: string): string {
               <input class="field-control" formControlName="commissionRate" type="number" step="0.01" min="0" max="100" placeholder="e.g. 2.5" />
               <span class="field-error" *ngIf="subMerchantForm.get('commissionRate')?.invalid && subMerchantForm.get('commissionRate')?.touched">Required (0-100)</span>
             </label>
-            <label class="field-label" style="grid-column: 1 / -1;">
+            <label class="field-label full-width">
               Business Address
               <textarea class="field-control" formControlName="businessAddress" rows="3" placeholder="Enter business address"></textarea>
             </label>
@@ -398,6 +398,34 @@ function formatStatus(status: string): string {
     <div class="toast-success" *ngIf="actionFeedback() as fb">
       {{ fb.message }}
     </div>
+
+    <div class="dialog-overlay" *ngIf="confirmDialog() as dialog" (click)="dismissConfirm()">
+      <div class="dialog-panel" (click)="$event.stopPropagation()">
+        <h3>{{ dialog.title }}</h3>
+        <p>{{ dialog.message }}</p>
+        <div class="dialog-actions">
+          <button class="ghost-btn" (click)="dismissConfirm()">Cancel</button>
+          <button class="primary-btn" (click)="dialog.onConfirm(); dismissConfirm()">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dialog-overlay" *ngIf="promptDialog() as dialog" (click)="dismissPrompt()">
+      <div class="dialog-panel" (click)="$event.stopPropagation()">
+        <h3>{{ dialog.title }}</h3>
+        <p>{{ dialog.message }}</p>
+        <input
+          class="field-control"
+          [(ngModel)]="promptValue"
+          [placeholder]="dialog.placeholder"
+          (keydown.enter)="dialog.onConfirm(promptValue.trim()); dismissPrompt()"
+        />
+        <div class="dialog-actions">
+          <button class="ghost-btn" (click)="dismissPrompt()">Cancel</button>
+          <button class="primary-btn" (click)="dialog.onConfirm(promptValue.trim()); dismissPrompt()" [disabled]="!promptValue.trim()">Submit</button>
+        </div>
+      </div>
+    </div>
   `,
   styles: [`
     .dash-mini { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:.75rem; }
@@ -406,14 +434,14 @@ function formatStatus(status: string): string {
     .mini-card span { font-size:.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
     .mini-card.total strong { color:var(--brand); }
     .mini-card.active strong { color:var(--accent); }
-    .mini-card.pending strong { color:#e67e22; }
+    .mini-card.pending strong { color: var(--warn); }
     .mini-card.rejected strong { color:var(--danger); }
     .status-select { padding:.3rem .5rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); font-size:.78rem; cursor:pointer; min-width:110px; }
     .action-cell {
       display: flex;
       gap: 0.35rem;
       align-items: center;
-      flex-wrap: nowrap;
+      flex-wrap: wrap;
     }
 
     .action-cell .ghost-btn {
@@ -421,9 +449,68 @@ function formatStatus(status: string): string {
       font-size: 0.8rem;
     }
 
+    .toolbar-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .easebuzz-link {
+      text-decoration: none;
+    }
+
+    .chip-sm {
+      padding: 0.2rem 0.5rem;
+      font-size: 0.7rem;
+    }
+
+    .detail-close-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .stat-value {
+      font-size: 1rem;
+    }
+
+    .stat-value-sm {
+      font-size: 0.95rem;
+    }
+
+    .stat-sub {
+      font-size: 0.85rem;
+    }
+
+    .stat-note {
+      margin: 0.25rem 0 0;
+    }
+
+    .span-2 {
+      grid-column: span 2;
+    }
+
+    .address-text {
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    .no-margin {
+      margin: 0;
+    }
+
+    .uppercase {
+      text-transform: uppercase;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
     .chip.info {
       background: rgba(52, 152, 219, 0.14);
-      color: #2980b9;
+      color: var(--info);
     }
 
     .detail-section {
@@ -607,6 +694,52 @@ function formatStatus(status: string): string {
       animation: fadeIn 0.3s ease;
     }
 
+    .dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      z-index: 1050;
+      animation: fadeIn 0.15s ease;
+    }
+
+    .dialog-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow-lg);
+      padding: 1.5rem;
+      max-width: 440px;
+      width: 100%;
+      animation: fadeSlideIn 0.2s ease;
+    }
+
+    .dialog-panel h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.1rem;
+    }
+
+    .dialog-panel p {
+      margin: 0 0 1rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .dialog-panel .field-control {
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: none; }
@@ -616,6 +749,35 @@ function formatStatus(status: string): string {
       opacity: 0.6;
       cursor: not-allowed;
       transform: none;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-meta {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 720px) {
+      .toolbar { flex-direction: column; }
+      .form-grid { grid-template-columns: 1fr; }
+      .modal-dialog { padding: 1rem; max-width: 100%; }
+      .stats-grid { grid-template-columns: 1fr !important; }
+      .stats-grid .stat-card[style*="span 2"] { grid-column: 1 !important; }
+    }
+
+    @media (max-width: 520px) {
+      .action-cell { flex-direction: column; align-items: stretch; }
+      .action-cell .ghost-btn { width: 100%; text-align: center; }
+      .status-select { min-width: unset; width: 100%; }
+      .dash-mini { grid-template-columns: repeat(2, 1fr); }
     }
   `]
 })
@@ -632,6 +794,9 @@ export class SubMerchantsPageComponent implements OnInit {
   readonly formSaving = signal(false);
   readonly formError = signal('');
   readonly actionFeedback = signal<{ message: string } | null>(null);
+  readonly confirmDialog = signal<{ title: string; message: string; onConfirm: () => void } | null>(null);
+  readonly promptDialog = signal<{ title: string; message: string; placeholder: string; onConfirm: (value: string) => void } | null>(null);
+  promptValue = '';
 
   searchTerm = '';
   statusFilter: string = 'ALL';
@@ -823,75 +988,101 @@ export class SubMerchantsPageComponent implements OnInit {
   }
 
   submitToEasebuzz(merchant: EasebuzzSubMerchant): void {
-    if (!confirm(`Submit "${merchant.businessName}" to Easebuzz for onboarding?`)) return;
-    this.api.submitToEasebuzz(merchant.id).subscribe({
-      next: () => {
-        this.loadSubMerchants();
-        this.showFeedback('Sub-merchant submitted to Easebuzz successfully.');
-      },
-      error: (err) => {
-        this.showFeedback(err?.error?.error ?? 'Submission failed.', true);
+    this.showConfirm(
+      'Submit to Easebuzz',
+      `Submit "${merchant.businessName}" to Easebuzz for onboarding?`,
+      () => {
+        this.api.submitToEasebuzz(merchant.id).subscribe({
+          next: () => {
+            this.loadSubMerchants();
+            this.showFeedback('Sub-merchant submitted to Easebuzz successfully.');
+          },
+          error: (err) => {
+            this.showFeedback(err?.error?.error ?? 'Submission failed.', true);
+          }
+        });
       }
-    });
+    );
   }
 
   assignSubMerchantId(merchant: EasebuzzSubMerchant): void {
-    const subMerchantId = prompt(`Enter Easebuzz Sub-Merchant ID for "${merchant.businessName}":\n\n(After creating this merchant manually in Easebuzz Dashboard https://dashboard.easebuzz.in)`, '');
-    if (!subMerchantId || subMerchantId.trim() === '') return;
-    this.api.assignSubMerchantId(merchant.id, subMerchantId.trim()).subscribe({
-      next: () => {
-        this.showFeedback('Sub-merchant ID assigned successfully. Status set to PENDING_KYC.');
-        this.loadSubMerchants();
-      },
-      error: (err) => {
-        this.showFeedback(err?.error?.error ?? 'Failed to assign sub-merchant ID.', true);
+    this.showPrompt(
+      'Assign Sub-Merchant ID',
+      `Enter Easebuzz Sub-Merchant ID for "${merchant.businessName}".\n\n(After creating this merchant manually in Easebuzz Dashboard)`,
+      'Enter Sub-Merchant ID',
+      (subMerchantId) => {
+        if (!subMerchantId) return;
+        this.api.assignSubMerchantId(merchant.id, subMerchantId).subscribe({
+          next: () => {
+            this.showFeedback('Sub-merchant ID assigned successfully. Status set to PENDING_KYC.');
+            this.loadSubMerchants();
+          },
+          error: (err) => {
+            this.showFeedback(err?.error?.error ?? 'Failed to assign sub-merchant ID.', true);
+          }
+        });
       }
-    });
+    );
   }
 
   generateKyc(merchant: EasebuzzSubMerchant): void {
-    if (!confirm(`Generate KYC access for "${merchant.businessName}"?`)) return;
-    this.api.generateKyc(merchant.id).subscribe({
-      next: (res) => {
-        this.loadSubMerchants();
-        const url = res.kyc_url;
-        if (url) {
-          this.showFeedback(`KYC portal URL generated. Opening in new tab...`);
-          setTimeout(() => window.open(url, '_blank'), 500);
-        } else {
-          this.showFeedback('KYC access key generated successfully.');
-        }
-      },
-      error: () => {
-        this.showFeedback('KYC generation failed.', true);
+    this.showConfirm(
+      'Generate KYC Access',
+      `Generate KYC access for "${merchant.businessName}"?`,
+      () => {
+        this.api.generateKyc(merchant.id).subscribe({
+          next: (res) => {
+            this.loadSubMerchants();
+            const url = res.kyc_url;
+            if (url) {
+              this.showFeedback(`KYC portal URL generated. Opening in new tab...`);
+              setTimeout(() => window.open(url, '_blank'), 500);
+            } else {
+              this.showFeedback('KYC access key generated successfully.');
+            }
+          },
+          error: () => {
+            this.showFeedback('KYC generation failed.', true);
+          }
+        });
       }
-    });
+    );
   }
 
   updateOnEasebuzz(merchant: EasebuzzSubMerchant): void {
-    if (!confirm(`Sync "${merchant.businessName}" changes to Easebuzz?`)) return;
-    this.api.updateOnEasebuzz(merchant.id).subscribe({
-      next: () => {
-        this.loadSubMerchants();
-        this.showFeedback('Sub-merchant synced to Easebuzz successfully.');
-      },
-      error: (err) => {
-        this.showFeedback(err?.error?.error ?? 'Sync failed.', true);
+    this.showConfirm(
+      'Sync to Easebuzz',
+      `Sync "${merchant.businessName}" changes to Easebuzz?`,
+      () => {
+        this.api.updateOnEasebuzz(merchant.id).subscribe({
+          next: () => {
+            this.loadSubMerchants();
+            this.showFeedback('Sub-merchant synced to Easebuzz successfully.');
+          },
+          error: (err) => {
+            this.showFeedback(err?.error?.error ?? 'Sync failed.', true);
+          }
+        });
       }
-    });
+    );
   }
 
   createSplitLabel(merchant: EasebuzzSubMerchant): void {
-    if (!confirm(`Create settlement split label for "${merchant.businessName}"?`)) return;
-    this.api.createSplitLabel(merchant.id).subscribe({
-      next: (res) => {
-        this.loadSubMerchants();
-        this.showFeedback(res.msg || 'Split label created successfully.');
-      },
-      error: (err) => {
-        this.showFeedback(err?.error?.error ?? 'Split label creation failed.', true);
+    this.showConfirm(
+      'Create Split Label',
+      `Create settlement split label for "${merchant.businessName}"?`,
+      () => {
+        this.api.createSplitLabel(merchant.id).subscribe({
+          next: (res) => {
+            this.loadSubMerchants();
+            this.showFeedback(res.msg || 'Split label created successfully.');
+          },
+          error: (err) => {
+            this.showFeedback(err?.error?.error ?? 'Split label creation failed.', true);
+          }
+        });
       }
-    });
+    );
   }
 
   get stats() {
@@ -907,14 +1098,20 @@ export class SubMerchantsPageComponent implements OnInit {
   quickStatusAction(merchant: EasebuzzSubMerchant, event: Event): void {
     const newStatus = (event.target as HTMLSelectElement).value;
     if (!newStatus) return;
-    if (!confirm(`Change "${merchant.businessName}" status to ${newStatus}?`)) return;
-    this.api.updateSubMerchantStatus(merchant.id, newStatus).subscribe({
-      next: () => {
-        this.showFeedback(`Status updated to ${newStatus}`);
-        this.loadSubMerchants();
-      },
-      error: () => this.showFeedback('Status update failed.', true)
-    });
+    this.showConfirm(
+      'Change Status',
+      `Change "${merchant.businessName}" status to ${newStatus}?`,
+      () => {
+        this.api.updateSubMerchantStatus(merchant.id, newStatus).subscribe({
+          next: () => {
+            this.showFeedback(`Status updated to ${newStatus}`);
+            this.loadSubMerchants();
+          },
+          error: () => this.showFeedback('Status update failed.', true)
+        });
+      }
+    );
+    (event.target as HTMLSelectElement).value = '';
   }
 
   exportCsv(): void {
@@ -949,5 +1146,22 @@ export class SubMerchantsPageComponent implements OnInit {
 
   formatDateValue(value: number | null): string {
     return formatDate(value);
+  }
+
+  showConfirm(title: string, message: string, onConfirm: () => void): void {
+    this.confirmDialog.set({ title, message, onConfirm });
+  }
+
+  dismissConfirm(): void {
+    this.confirmDialog.set(null);
+  }
+
+  showPrompt(title: string, message: string, placeholder: string, onConfirm: (value: string) => void): void {
+    this.promptValue = '';
+    this.promptDialog.set({ title, message, placeholder, onConfirm });
+  }
+
+  dismissPrompt(): void {
+    this.promptDialog.set(null);
   }
 }

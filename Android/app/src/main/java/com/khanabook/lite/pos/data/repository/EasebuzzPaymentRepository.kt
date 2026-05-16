@@ -49,4 +49,18 @@ class EasebuzzPaymentRepository(
         api.getEasebuzzSubMerchantStatus(
             deviceId = sessionManager.getDeviceId()
         )
+
+    suspend fun refund(
+        localBillId: Long,
+        amount: java.math.BigDecimal,
+        reason: String? = null
+    ): com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundResponse =
+        api.refundEasebuzzPayment(
+            deviceId = sessionManager.getDeviceId(),
+            billId = localBillId,
+            request = com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundRequest(
+                amount = amount.toString(),
+                reason = reason
+            )
+        )
 }

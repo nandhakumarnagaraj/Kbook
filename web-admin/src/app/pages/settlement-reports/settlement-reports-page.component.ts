@@ -138,7 +138,7 @@ interface Settlement {
       display: block;
       margin-bottom: 0.5rem;
     }
-    @media (max-width: 700px) {
+    @media (max-width: 720px) {
       .card-grid {
         grid-template-columns: 1fr;
       }

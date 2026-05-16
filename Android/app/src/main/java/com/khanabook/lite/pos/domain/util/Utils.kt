@@ -176,7 +176,7 @@ fun buildInvoiceShareUrl(billWithItems: BillWithItems): String? {
     val publicToken = billWithItems.bill.publicToken ?: return null
     val restaurantId = billWithItems.bill.restaurantId
     val base = com.khanabook.lite.pos.BuildConfig.BACKEND_URL.trimEnd('/')
-    return "$base/api/v1/public/invoice/$restaurantId/$serverId/$publicToken"
+    return "$base/api/v2/public/invoice/$restaurantId/$serverId/$publicToken"
 }
 
 /**
@@ -189,7 +189,7 @@ fun buildPendingInvoiceShareUrl(billWithItems: BillWithItems): String? {
     val deviceId = billWithItems.bill.deviceId.takeIf { it.isNotBlank() } ?: return null
     val localBillId = billWithItems.bill.id.takeIf { it > 0L } ?: return null
     val base = com.khanabook.lite.pos.BuildConfig.BACKEND_URL.trimEnd('/')
-    return "$base/api/v1/public/invoice/pending/$restaurantId/${android.net.Uri.encode(deviceId)}/$localBillId/$publicToken"
+    return "$base/api/v2/public/invoice/pending/$restaurantId/${android.net.Uri.encode(deviceId)}/$localBillId/$publicToken"
 }
 
 /**

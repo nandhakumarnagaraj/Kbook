@@ -13,6 +13,11 @@ import { BusinessProfile, UpdateBusinessProfileRequest } from '../../core/models
       <section class="panel page-hero">
         <h2>Business Settings</h2>
         <p class="muted">Manage your restaurant profile, payments, and tax configuration.</p>
+        <div class="hero-meta">
+          <span class="chip">Owner Access</span>
+          <span class="chip success">Profile Controls</span>
+          <span class="chip">Payment Preferences</span>
+        </div>
       </section>
 
       <div *ngIf="saving" class="saving-bar">Saving...</div>
@@ -34,7 +39,7 @@ import { BusinessProfile, UpdateBusinessProfileRequest } from '../../core/models
           <textarea id="shopAddress" class="field-control" rows="2" [(ngModel)]="form.shopAddress"></textarea>
         </div>
 
-        <div class="field-row">
+        <div class="field-row two-col">
           <div class="field">
             <label for="whatsappNumber">WhatsApp Number</label>
             <input id="whatsappNumber" class="field-control" type="text" [(ngModel)]="form.whatsappNumber" />
@@ -55,7 +60,7 @@ import { BusinessProfile, UpdateBusinessProfileRequest } from '../../core/models
           <textarea id="invoiceFooter" class="field-control" rows="2" [(ngModel)]="form.invoiceFooter" placeholder="Thank you, visit again!"></textarea>
         </div>
 
-        <div class="field-row">
+        <div class="field-row two-col">
           <label class="toggle-row">
             <span>Show KhanaBook Branding</span>
             <input type="checkbox" [(ngModel)]="form.showBranding" />
@@ -74,7 +79,7 @@ import { BusinessProfile, UpdateBusinessProfileRequest } from '../../core/models
           <p class="muted">Currency, UPI, and accepted payment methods.</p>
         </div>
 
-        <div class="field-row">
+        <div class="field-row two-col">
           <div class="field">
             <label for="currency">Currency</label>
             <select id="currency" class="field-select" [(ngModel)]="form.currency">
@@ -97,7 +102,7 @@ import { BusinessProfile, UpdateBusinessProfileRequest } from '../../core/models
         <div class="section-head" style="margin-top: 1rem;">
           <h3>Accepted Payment Methods</h3>
         </div>
-        <div class="field-row">
+        <div class="field-row two-col">
           <label class="toggle-row">
             <span>Cash</span>
             <input type="checkbox" [(ngModel)]="form.cashEnabled" />
@@ -111,7 +116,7 @@ import { BusinessProfile, UpdateBusinessProfileRequest } from '../../core/models
             <input type="checkbox" [(ngModel)]="form.posEnabled" />
           </label>
         </div>
-        <div class="field-row">
+        <div class="field-row two-col">
           <label class="toggle-row">
             <span>Zomato</span>
             <input type="checkbox" [(ngModel)]="form.zomatoEnabled" />
@@ -203,25 +208,28 @@ import { BusinessProfile, UpdateBusinessProfileRequest } from '../../core/models
   `,
   styles: [`
     .soft-section { padding: 1.5rem; }
-    .field-row { display: flex; gap: 0.85rem; flex-wrap: wrap; }
-    .field-row .field { flex: 1; min-width: 180px; }
+    .field-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.85rem; }
+    .field-row.two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .field-row .field { min-width: 0; }
     .field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.85rem; }
     .field label { font-size: 0.82rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
     .field-control, .field-select {
-      padding: 0.6rem 0.75rem; border-radius: 10px; border: 1px solid var(--line);
-      background: var(--bg); color: var(--ink); font-size: 0.92rem;
+      min-height: 44px;
+      padding: 0.75rem 0.85rem; border-radius: 12px; border: 1px solid var(--line);
+      background: var(--panel); color: var(--ink); font-size: 0.92rem;
     }
+    textarea.field-control { min-height: 88px; resize: vertical; }
     .field-select { cursor: pointer; }
     .toggle-row {
-      display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 1rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.75rem 1rem;
       border-radius: 10px; background: var(--bg); border: 1px solid var(--line);
-      cursor: pointer; font-size: 0.9rem; font-weight: 600; white-space: nowrap;
+      cursor: pointer; font-size: 0.9rem; font-weight: 600;
     }
     .toggle-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--brand); }
     .sticky-save {
       position: sticky; bottom: 1rem; display: flex; align-items: center; gap: 1rem;
       padding: 1rem 1.5rem; background: var(--panel); border: 1px solid var(--line);
-      border-radius: 16px; box-shadow: var(--shadow-soft); margin-top: 1rem;
+      border-radius: 16px; box-shadow: var(--shadow-sm); margin-top: 1rem;
     }
     .primary-btn {
       background: var(--brand); color: #fff; border: none; padding: 0.65rem 1.5rem;
@@ -235,6 +243,15 @@ import { BusinessProfile, UpdateBusinessProfileRequest } from '../../core/models
     .saving-bar {
       text-align: center; padding: 0.5rem; background: rgba(181,106,45,0.1);
       border-radius: 10px; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem;
+    }
+    @media (max-width: 960px) {
+      .field-row,
+      .field-row.two-col { grid-template-columns: 1fr; }
+      .sticky-save {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .sticky-save .primary-btn { width: 100%; }
     }
   `]
 })

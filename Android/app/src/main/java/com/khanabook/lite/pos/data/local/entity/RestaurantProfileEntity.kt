@@ -67,6 +67,8 @@ data class RestaurantProfileEntity(
     val swiggyEnabled: Boolean = false,
     @ColumnInfo(name = "own_website_enabled", defaultValue = "0")
     val ownWebsiteEnabled: Boolean = false,
+    @ColumnInfo(name = "easebuzz_enabled", defaultValue = "0")
+    val easebuzzEnabled: Boolean = false,
 
     
     @ColumnInfo(name = "printer_enabled", defaultValue = "0")

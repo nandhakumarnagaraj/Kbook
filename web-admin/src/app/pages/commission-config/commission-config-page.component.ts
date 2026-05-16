@@ -34,8 +34,16 @@ function getStatusChip(status: string): string {
         <div class="hero-meta">
           <span class="chip">Admin Access</span>
           <span class="chip success">Commission</span>
+          <span class="chip" *ngIf="records().length">{{ records().length }} merchants</span>
         </div>
       </section>
+
+      <div class="toolbar" *ngIf="records().length">
+        <div>
+          <h3>Commission Rates</h3>
+          <p class="muted">Update merchant-level commission without leaving the directory.</p>
+        </div>
+      </div>
 
       <ng-template #loading>
         <div class="panel loading">Loading commission config...</div>
@@ -48,7 +56,7 @@ function getStatusChip(status: string): string {
               <th>Business Name</th>
               <th>Sub-Merchant ID</th>
               <th>Status</th>
-              <th>Current Commission %</th>
+              <th>Current Commission</th>
               <th>Last Updated</th>
               <th>Action</th>
             </tr>
@@ -79,41 +87,41 @@ function getStatusChip(status: string): string {
       </div>
 
       <div class="panel loading" *ngIf="!records().length && loaded()">
-        <span class="empty-icon">📭</span>
+        <span class="empty-icon" style="display:block;font-size:2.5rem;margin-bottom:0.5rem;">📭</span>
         <p>No commission records found.</p>
       </div>
+
+      <div class="toast-success" *ngIf="toast() as t">{{ t }}</div>
     </div>
   `,
   styles: [`
-    code {
-      font-size: 0.82rem;
-      background: rgba(0,0,0,0.04);
-      padding: 0.15rem 0.35rem;
-      border-radius: 4px;
+    code { font-size:0.82rem; background:rgba(0,0,0,0.04); padding:0.15rem 0.35rem; border-radius:4px; }
+    .edit-inline { display:flex; align-items:center; gap:0.4rem; }
+    .edit-inline .field-control { width:80px; min-height:36px; padding:0.4rem 0.6rem; }
+    .edit-inline .primary-btn, .edit-inline .ghost-btn { padding:0.4rem 0.7rem; font-size:0.82rem; }
+    .inline-suffix { font-weight:700; font-size:0.95rem; }
+
+    .toast-success {
+      position:fixed; bottom:1.5rem; right:1.5rem;
+      color:#2d7a3a; background:#eafaf0;
+      border:1px solid #a8dbb8; border-radius:10px;
+      padding:0.85rem 1.25rem; font-size:0.9rem;
+      box-shadow:var(--shadow); z-index:1100;
+      animation:fadeSlideIn 0.25s ease;
     }
-    .edit-inline {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .edit-inline .field-control {
-      width: 80px;
-      min-height: 36px;
-      padding: 0.4rem 0.6rem;
-    }
-    .edit-inline .primary-btn,
-    .edit-inline .ghost-btn {
-      padding: 0.4rem 0.7rem;
-      font-size: 0.82rem;
-    }
-    .inline-suffix {
-      font-weight: 700;
-      font-size: 0.95rem;
-    }
-    .empty-icon {
-      font-size: 2.5rem;
-      display: block;
-      margin-bottom: 0.5rem;
+    .toast-success.error { color:var(--danger); background:var(--danger-soft); border-color:rgba(166,55,47,0.25); }
+    @keyframes fadeSlideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+    @media (max-width: 720px) {
+      .edit-inline {
+        flex-wrap: wrap;
+        align-items: stretch;
+      }
+      .edit-inline .field-control,
+      .edit-inline .primary-btn,
+      .edit-inline .ghost-btn {
+        width: 100%;
+      }
+      .inline-suffix { display: none; }
     }
   `]
 })
@@ -124,23 +132,16 @@ export class CommissionConfigPageComponent implements OnInit {
   readonly loaded = signal(false);
   readonly editingId = signal<number | null>(null);
   readonly saving = signal(false);
+  readonly toast = signal<string | null>(null);
   editRate = 0;
 
-  ngOnInit(): void {
-    this.loadCommissions();
-  }
+  ngOnInit(): void { this.loadCommissions(); }
 
   loadCommissions(): void {
     this.loaded.set(false);
     this.api.getCommissions().subscribe({
-      next: (data) => {
-        this.records.set(data);
-        this.loaded.set(true);
-      },
-      error: () => {
-        this.records.set([]);
-        this.loaded.set(true);
-      }
+      next: (data) => { this.records.set(data); this.loaded.set(true); },
+      error: () => { this.records.set([]); this.loaded.set(true); }
     });
   }
 
@@ -149,10 +150,7 @@ export class CommissionConfigPageComponent implements OnInit {
     this.editRate = rec.commissionRate;
   }
 
-  cancelEdit(): void {
-    this.editingId.set(null);
-    this.editRate = 0;
-  }
+  cancelEdit(): void { this.editingId.set(null); this.editRate = 0; }
 
   saveCommission(id: number): void {
     this.saving.set(true);
@@ -165,30 +163,18 @@ export class CommissionConfigPageComponent implements OnInit {
       },
       error: () => {
         this.saving.set(false);
-        this.showToast('Failed to update commission rate.');
+        this.showToast('Failed to update commission rate.', true);
       }
     });
   }
 
-  private showToast(message: string): void {
-    const toast = document.createElement('div');
-    toast.className = 'toast success';
-    toast.textContent = message;
-    const bar = document.querySelector('.toast-bar') || (() => {
-      const b = document.createElement('div');
-      b.className = 'toast-bar';
-      document.body.appendChild(b);
-      return b;
-    })();
-    bar.appendChild(toast);
-    setTimeout(() => toast.remove(), 3500);
+  private showToast(message: string, isError?: boolean): void {
+    this.toast.set(message);
+    const el = document.querySelector('.toast-success');
+    if (el) { el.classList.toggle('error', !!isError); }
+    setTimeout(() => this.toast.set(null), 3500);
   }
 
-  getChipClass(status: string): string {
-    return getStatusChip(status);
-  }
-
-  formatDateVal(value: number): string {
-    return formatDate(value);
-  }
+  getChipClass(status: string): string { return getStatusChip(status); }
+  formatDateVal(value: number): string { return formatDate(value); }
 }

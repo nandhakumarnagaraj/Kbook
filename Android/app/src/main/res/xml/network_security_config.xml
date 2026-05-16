@@ -8,6 +8,14 @@
         </trust-anchors>
     </base-config>
 
+    <!-- Local development: allow cleartext to local server IP -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.139.49.168</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">kbook.iadv.cloud</domain>
         <trust-anchors>

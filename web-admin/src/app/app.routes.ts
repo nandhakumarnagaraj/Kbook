@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { LoginPageComponent } from './pages/login/login-page.component';
+import { ForgotPasswordPageComponent } from './pages/forgot-password/forgot-password-page.component';
 import { SidebarLayoutComponent } from './layout/sidebar-layout/sidebar-layout.component';
 import { PlatformDashboardPageComponent } from './pages/platform-dashboard/platform-dashboard-page.component';
 import { BusinessesPageComponent } from './pages/businesses/businesses-page.component';
@@ -20,6 +21,7 @@ import { authGuard, roleGuard } from './core/auth/role.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginPageComponent },
+  { path: 'forgot-password', component: ForgotPasswordPageComponent },
   { path: 'limited-access', canActivate: [authGuard], component: LimitedAccessPageComponent },
   {
     path: '',

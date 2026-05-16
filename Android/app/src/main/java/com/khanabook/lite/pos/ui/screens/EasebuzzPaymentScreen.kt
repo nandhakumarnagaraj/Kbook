@@ -71,6 +71,7 @@ fun EasebuzzPaymentScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
 
     var screenState by remember { mutableStateOf(PaymentScreenState.INITIALIZING) }
     var accessToken by remember { mutableStateOf<String?>(null) }
@@ -148,7 +149,7 @@ fun EasebuzzPaymentScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(spacing.contentPadding)
+            .padding(layout.contentPadding)
     ) {
         Spacer(modifier = Modifier.height(spacing.medium))
 

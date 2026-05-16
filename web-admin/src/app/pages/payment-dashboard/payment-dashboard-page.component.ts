@@ -26,6 +26,7 @@ interface PaymentDashboardData {
         <div class="hero-meta">
           <span class="chip">Easebuzz</span>
           <span class="chip success">Live</span>
+          <span class="chip">Gateway Health</span>
         </div>
       </section>
 
@@ -142,18 +143,22 @@ interface PaymentDashboardData {
     .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem; }
     .easebuzz-card { display:flex; flex-direction:column; gap:.75rem; padding:.5rem 0; }
     .easebuzz-icon { font-size:2.5rem; }
-    .easebuzz-info { display:flex; justify-content:space-between; align-items:center; }
+    .easebuzz-info { display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; }
     .section-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem; }
     .section-head h3 { margin:0; font-size:1rem; }
     .table-wrap { overflow-x:auto; }
     .chip.success { background:rgba(29,123,95,.12); color:var(--accent); }
-    .chip.warn { background:rgba(230,126,34,.12); color:#e67e22; }
+    .chip.warn { background: var(--warn-soft); color: var(--warn); }
     .chip.danger { background:rgba(166,55,47,.12); color:var(--danger); }
     .load-state { text-align:center; padding:3rem; color:var(--muted); }
     .spinner { width:24px; height:24px; border:3px solid var(--line); border-top-color:var(--brand); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto .75rem; }
     @keyframes spin { to { transform:rotate(360deg); } }
     .panel.loading { padding:2rem; text-align:center; color:var(--muted); }
-    @media (max-width:768px) { .detail-grid { grid-template-columns:1fr; } }
+    @media (max-width: 720px) {
+      .detail-grid { grid-template-columns:1fr; }
+      .stat-grid { margin-top: 1rem; }
+      .stat-card { align-items: flex-start; }
+    }
   `]
 })
 export class PaymentDashboardPageComponent {
