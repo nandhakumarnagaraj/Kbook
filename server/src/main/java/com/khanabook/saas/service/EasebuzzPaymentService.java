@@ -34,7 +34,6 @@ public class EasebuzzPaymentService {
         String txnid = "KB" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4);
 
         Map<String, String> data = new HashMap<>();
-        data.put("merchant_key", "");
         data.put("txnid", txnid);
         data.put("amount", bill.getTotalAmount().toString());
         data.put("productinfo", "Restaurant Bill #" + bill.getDailyOrderDisplay());
@@ -78,7 +77,7 @@ public class EasebuzzPaymentService {
         if (bill.getGatewayTxnId() == null) {
             return Map.of("status", "failure", "error", "No gateway transaction found");
         }
-        Map result = easebuzzApi.getTransactionStatus(bill.getGatewayTxnId(), bill.getTotalAmount().toString());
+        Map result = easebuzzApi.getTransactionStatus(bill.getGatewayTxnId());
         String easebuzzStatus = (String) result.getOrDefault("status", "failure");
 
         if ("success".equalsIgnoreCase(easebuzzStatus)) {
@@ -101,13 +100,13 @@ public class EasebuzzPaymentService {
         if (bill.getGatewayTxnId() == null) {
             return Map.of("status", "failure", "error", "No gateway transaction found for refund");
         }
-        Map<String, String> data = new HashMap<>();
-        data.put("merchant_key", "");
-        data.put("txnid", bill.getGatewayTxnId());
-        data.put("refund_amount", amount.toString());
-        data.put("refund_reason", reason != null ? reason : "");
-
-        Map result = easebuzzApi.initiateRefund(data);
+        Map result = easebuzzApi.initiateRefund(
+            bill.getGatewayTxnId(),
+            bill.getTotalAmount().toString(),
+            amount.toString(),
+            "",
+            bill.getCustomerWhatsapp() != null ? bill.getCustomerWhatsapp() : ""
+        );
         String status = (String) result.getOrDefault("status", "failure");
         log.info("Refund initiated billId={} amount={} status={}", billId, amount, status);
         return Map.of("status", status, "easebuzz_refund_id", result.getOrDefault("easebuzz_refund_id", ""));

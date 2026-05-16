@@ -16,7 +16,6 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       <div class="dash-header">
         <div>
           <h2>{{ (vm()?.shopName) || 'Dashboard' }}</h2>
-          <p class="muted">Daily operations overview — revenue, orders, and setup status</p>
         </div>
         <div class="header-badges" *ngIf="vm() as data">
           <span class="badge" [class.green]="data.subMerchantStatus === 'ACTIVE'" [class.amber]="data.subMerchantStatus !== 'ACTIVE'">
@@ -141,7 +140,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     </div>
   `,
   styles: [`
-    .dash-header { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; margin-bottom:.5rem; }
+    .dash-header { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; margin-bottom:0; }
     .dash-header h2 { margin:0 0 .25rem; font-size:clamp(1.4rem,2.2vw,1.8rem); }
     .dash-header p { margin:0; }
     .header-badges { display:flex; gap:.5rem; flex-wrap:wrap; }
@@ -149,7 +148,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     .badge.green { background:rgba(29,123,95,.12); color:var(--accent); }
     .badge.amber { background:rgba(230,126,34,.12); color:#b56a2d; }
 
-    .metric-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-top:1rem; }
+    .metric-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-top:0; }
     .metric-card { display:flex; align-items:center; gap:1rem; padding:1.2rem; border-radius:16px; color:#fff; }
     .gradient-gold { background:linear-gradient(135deg,#b56a2d,#7e4417); }
     .gradient-green { background:linear-gradient(135deg,#1d7b5f,#0d4a38); }
@@ -233,8 +232,6 @@ export class BusinessDashboardPageComponent {
           completed: orders.filter(o => o.orderStatus === 'completed').length
         },
         setupChecks: [
-          { label: 'Printer', ready: data.printerEnabled, detail: 'Receipt printing' },
-          { label: 'Kitchen KDS', ready: data.kitchenPrinterEnabled, detail: 'Auto-print for online orders' },
           { label: 'Marketplace', ready: false, detail: 'Configure in Marketplace Setup' },
           { label: 'Easebuzz', ready: setup?.subMerchantStatus === 'ACTIVE', detail: 'Payment gateway' },
           { label: 'Staff & Menu', ready: data.totalStaff > 0 && data.totalMenuItems > 0, detail: `${data.totalStaff} staff, ${data.totalMenuItems} items` }

@@ -37,8 +37,12 @@ export class AdminApiService {
     return this.http.put<EasebuzzSubMerchant>(`${API_BASE_URL}/admin/sub-merchants/${id}`, payload);
   }
 
-  registerSubMerchant(id: number) {
-    return this.http.post<EasebuzzSubMerchant>(`${API_BASE_URL}/admin/sub-merchants/${id}/register`, {});
+  submitToEasebuzz(id: number) {
+    return this.http.post<EasebuzzSubMerchant>(`${API_BASE_URL}/admin/sub-merchants/${id}/submit-to-easebuzz`, {});
+  }
+
+  updateOnEasebuzz(id: number) {
+    return this.http.post<EasebuzzSubMerchant>(`${API_BASE_URL}/admin/sub-merchants/${id}/update-on-easebuzz`, {});
   }
 
   assignSubMerchantId(id: number, subMerchantId: string) {
@@ -46,7 +50,11 @@ export class AdminApiService {
   }
 
   generateKyc(id: number) {
-    return this.http.post<EasebuzzSubMerchant>(`${API_BASE_URL}/admin/sub-merchants/${id}/generate-kyc`, {});
+    return this.http.post<{ status: string; kyc_url: string; sub_merchant_id: string }>(`${API_BASE_URL}/admin/sub-merchants/${id}/kyc-access-key`, {});
+  }
+
+  createSplitLabel(id: number) {
+    return this.http.post<{ status: string; label: string; msg: string }>(`${API_BASE_URL}/admin/sub-merchants/${id}/split-label`, {});
   }
 
   updateSubMerchantStatus(id: number, status: string) {

@@ -64,7 +64,7 @@ public class PaymentController {
     }
 
     @PostMapping("/sub-merchant/webhook")
-    public ResponseEntity<Map<String, Object>> subMerchantWebhook(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<Map<String, Object>> subMerchantWebhook(@RequestBody Map<String, Object> payload) {
         log.debug("Sub-merchant webhook received: {}", payload);
         webhookService.handleSubMerchantWebhook(payload);
         return ResponseEntity.ok(Map.of("status", "received"));

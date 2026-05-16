@@ -286,7 +286,7 @@ dependencies {
     implementation(libs.lottie.compose)
 
     // Easebuzz Payment SDK
-    implementation("in.easebuzz:android-v2:1.0.4")
+    implementation("in.easebuzz:android-v2:1.0.6")
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

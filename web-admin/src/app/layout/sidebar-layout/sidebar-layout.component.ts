@@ -13,8 +13,7 @@ type NavLink = { label: string; path: string };
     <div class="layout-shell">
       <aside class="sidebar panel">
         <div class="brand-block">
-          <span class="eyebrow">KhanaBook</span>
-          <h1>Web Admin</h1>
+          <img src="/khanabook-logo.svg" alt="KhanaBook" class="brand-logo" />
           <p class="muted">{{ session()?.userName || 'Operator' }}</p>
           <span class="chip">{{ session()?.role }}</span>
         </div>
@@ -61,17 +60,10 @@ type NavLink = { label: string; path: string };
         var(--panel);
     }
 
-    .brand-block h1 {
-      margin: 0.35rem 0;
-      font-size: 1.7rem;
-    }
-
-    .eyebrow {
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--brand-deep);
-      font-size: 0.78rem;
-      font-weight: 700;
+    .brand-logo {
+      height: 40px;
+      width: fit-content;
+      margin-bottom: 0.5rem;
     }
 
     .nav-links {

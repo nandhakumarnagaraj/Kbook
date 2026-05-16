@@ -61,7 +61,7 @@ public class EasebuzzWebhookService {
         return Map.of("status", "received");
     }
 
-    public void handleSubMerchantWebhook(Map<String, String> payload) {
+    public void handleSubMerchantWebhook(Map<String, Object> payload) {
         subMerchantService.processWebhook(payload);
     }
 }

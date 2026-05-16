@@ -11,7 +11,8 @@ import org.springframework.stereotype.Component;
 @Setter
 public class EasebuzzProperties {
 
-    private String apiBaseUrl = "https://api.easebuzz.in";
+    private String paymentBaseUrl = "https://pay.easebuzz.in";
+    private String dashboardBaseUrl = "https://dashboard.easebuzz.in";
     private String merchantKey;
     private String salt;
     private String returnUrl;

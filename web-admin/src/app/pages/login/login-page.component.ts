@@ -14,9 +14,8 @@ declare const google: any;
     <section class="login-shell">
       <div class="login-card panel">
         <div class="login-copy">
-          <span class="eyebrow">KhanaBook</span>
-          <h1>Web Admin</h1>
-          <p class="muted">Sign in to manage menu data, team access, and orders from one place.</p>
+          <img src="/khanabook-logo.svg" alt="KhanaBook" class="login-logo" />
+          <p class="muted">Sign in to manage menu data, team access, payment gateway, and orders from one place.</p>
           <div class="hero-meta">
             <span class="chip">Fast Access</span>
             <span class="chip success">Business Control</span>
@@ -71,14 +70,9 @@ declare const google: any;
       gap: 0.75rem;
     }
 
-    h1 { margin: 0.25rem 0 0.5rem; font-size: 2rem; }
-
-    .eyebrow {
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--brand-deep);
-      font-size: 0.78rem;
-      font-weight: 700;
+    .login-logo {
+      height: 48px;
+      width: fit-content;
     }
 
     form { display: grid; gap: 1rem; }

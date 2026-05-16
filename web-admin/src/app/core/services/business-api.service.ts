@@ -5,12 +5,14 @@ import {
   BusinessMarketplaceSetup,
   BusinessMenuItem,
   BusinessOrder,
+  BusinessProfile,
   BusinessStaffItem,
   MarketplaceConfig,
   MarketplaceConfigRequest,
   MarketplaceOrder,
   MarketplaceOrderCounts,
-  RefundOrderRequest
+  RefundOrderRequest,
+  UpdateBusinessProfileRequest
 } from '../models/api.models';
 import { environment } from '../../../environments/environment';
 
@@ -74,6 +76,14 @@ export class BusinessApiService {
 
   markMarketplaceOrderReady(orderId: number) {
     return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/mark-ready`, {});
+  }
+
+  getProfile() {
+    return this.http.get<BusinessProfile>(`${API_BASE_URL}/business/profile`);
+  }
+
+  updateProfile(payload: UpdateBusinessProfileRequest) {
+    return this.http.put<BusinessProfile>(`${API_BASE_URL}/business/profile`, payload);
   }
 
   lookupGst(gstin: string) {

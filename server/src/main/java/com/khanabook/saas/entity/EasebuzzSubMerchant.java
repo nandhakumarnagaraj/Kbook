@@ -77,6 +77,27 @@ public class EasebuzzSubMerchant {
     @Column(name = "commission_rate", columnDefinition = "NUMERIC(5,2)")
     private java.math.BigDecimal commissionRate;
 
+    @Column(name = "upi_deduction_lt_limit", columnDefinition = "NUMERIC(5,2)")
+    private java.math.BigDecimal upiDeductionLtLimit;
+
+    @Column(name = "dc_deduction_gt_two_thousand", columnDefinition = "NUMERIC(5,2)")
+    private java.math.BigDecimal dcDeductionGtTwoThousand;
+
+    @Column(name = "bank_name")
+    private String bankName;
+
+    @Column(name = "branch_name")
+    private String branchName;
+
+    @Column(name = "split_label")
+    private String splitLabel;
+
+    @Column(name = "id_proof_url", columnDefinition = "TEXT")
+    private String idProofUrl;
+
+    @Column(name = "bank_proof_url", columnDefinition = "TEXT")
+    private String bankProofUrl;
+
     @Column(name = "easebuzz_response", columnDefinition = "JSONB")
     private String easebuzzResponse;
 

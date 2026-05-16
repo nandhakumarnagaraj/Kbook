@@ -143,9 +143,30 @@ function formatStatus(status: string): string {
                 <div class="action-cell">
                   <button class="ghost-btn" (click)="viewDetail(sm)" title="View">👁️</button>
                   <button class="ghost-btn" (click)="openEdit(sm)" title="Edit">✏️</button>
-                  <button class="ghost-btn" *ngIf="sm.status === 'DRAFT'" (click)="assignSubMerchantId(sm)" title="Assign Easebuzz ID">
-                    <span class="chip warn" style="padding:0.2rem 0.5rem; font-size:0.7rem;">Assign ID</span>
-                  </button>
+                  <ng-container *ngIf="sm.status === 'DRAFT'">
+                    <button class="ghost-btn" (click)="submitToEasebuzz(sm)" title="Submit to Easebuzz API">
+                      <span class="chip info" style="padding:0.2rem 0.5rem; font-size:0.7rem;">🚀 Submit</span>
+                    </button>
+                    <button class="ghost-btn" (click)="assignSubMerchantId(sm)" title="Manually assign Easebuzz ID">
+                      <span class="chip warn" style="padding:0.2rem 0.5rem; font-size:0.7rem;">Assign ID</span>
+                    </button>
+                  </ng-container>
+                  <ng-container *ngIf="sm.status === 'PENDING_KYC' || sm.status === 'KYC_SUBMITTED'">
+                    <button class="ghost-btn" (click)="generateKyc(sm)" title="Generate KYC portal URL">
+                      <span class="chip info" style="padding:0.2rem 0.5rem; font-size:0.7rem;">🔑 KYC</span>
+                    </button>
+                    <button class="ghost-btn" (click)="updateOnEasebuzz(sm)" title="Sync changes to Easebuzz">
+                      <span class="chip" style="padding:0.2rem 0.5rem; font-size:0.7rem;">🔄 Sync</span>
+                    </button>
+                  </ng-container>
+                  <ng-container *ngIf="sm.status === 'ACTIVE'">
+                    <button class="ghost-btn" (click)="createSplitLabel(sm)" title="Create settlement split label" *ngIf="!sm.splitLabel">
+                      <span class="chip info" style="padding:0.2rem 0.5rem; font-size:0.7rem;">🏷️ Split</span>
+                    </button>
+                    <button class="ghost-btn" (click)="updateOnEasebuzz(sm)" title="Sync changes to Easebuzz">
+                      <span class="chip" style="padding:0.2rem 0.5rem; font-size:0.7rem;">🔄 Sync</span>
+                    </button>
+                  </ng-container>
                   <select class="status-select" (change)="quickStatusAction(sm, $event)" *ngIf="sm.status !== 'DRAFT'">
                     <option value="" disabled selected>Status...</option>
                     <option value="ACTIVE" *ngIf="sm.status === 'PENDING_KYC' || sm.status === 'KYC_SUBMITTED'">✅ Mark Active</option>
@@ -206,7 +227,12 @@ function formatStatus(status: string): string {
           <article class="panel stat-card" style="grid-column: span 2;">
             <h3>Beneficiary</h3>
             <strong style="font-size:1rem;">{{ sm.beneficiaryName || '-' }}</strong>
-            <p class="muted" style="margin:0.25rem 0 0;">{{ sm.bankAccountNo ? 'A/C: ' + sm.bankAccountNo : '' }} {{ sm.ifsc ? 'IFSC: ' + sm.ifsc : '' }}</p>
+            <p class="muted" style="margin:0.25rem 0 0;">
+              {{ sm.bankName ? sm.bankName : '' }}{{ sm.branchName ? ' - ' + sm.branchName : '' }}
+            </p>
+            <p class="muted" style="margin:0.25rem 0 0;">
+              {{ sm.bankAccountNo ? 'A/C: ' + sm.bankAccountNo : '' }} {{ sm.ifsc ? 'IFSC: ' + sm.ifsc : '' }}
+            </p>
           </article>
           <article class="panel stat-card" style="grid-column: span 2;">
             <h3>Business Address</h3>
@@ -263,6 +289,16 @@ function formatStatus(status: string): string {
               <p><strong>Portal URL:</strong> <a [href]="sm.kycPortalUrl" target="_blank" rel="noopener noreferrer">{{ sm.kycPortalUrl }}</a></p>
               <p *ngIf="sm.kycSubmittedAt"><strong>Submitted:</strong> {{ formatDateValue(sm.kycSubmittedAt) }}</p>
               <p *ngIf="sm.kycActivatedAt"><strong>Activated:</strong> {{ formatDateValue(sm.kycActivatedAt) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section" *ngIf="sm.splitLabel">
+          <h3>Split Label</h3>
+          <div class="kyc-section">
+            <div class="kyc-info">
+              <p><strong>Label:</strong> <code>{{ sm.splitLabel }}</code></p>
+              <p class="muted">Settlement split label for routing sub-merchant payouts.</p>
             </div>
           </div>
         </div>
@@ -325,6 +361,15 @@ function formatStatus(status: string): string {
               Contact Phone *
               <input class="field-control" formControlName="contactPhone" placeholder="9876543210" maxlength="10" />
               <span class="field-error" *ngIf="subMerchantForm.get('contactPhone')?.invalid && subMerchantForm.get('contactPhone')?.touched">Invalid phone (10 digits starting with 6-9)</span>
+            </label>
+            <label class="field-label">
+              Bank Name *
+              <input class="field-control" formControlName="bankName" placeholder="e.g. HDFC" />
+              <span class="field-error" *ngIf="subMerchantForm.get('bankName')?.invalid && subMerchantForm.get('bankName')?.touched">Required</span>
+            </label>
+            <label class="field-label">
+              Branch Name
+              <input class="field-control" formControlName="branchName" placeholder="e.g. Dhanori Branch" />
             </label>
             <label class="field-label">
               Commission Rate (%) *
@@ -606,6 +651,8 @@ export class SubMerchantsPageComponent implements OnInit {
     bankAccountNo: ['', Validators.required],
     ifsc: ['', [Validators.required, Validators.pattern(/^[A-Z]{4}0[A-Z0-9]{6}$/)]],
     beneficiaryName: ['', Validators.required],
+    bankName: ['', Validators.required],
+    branchName: [''],
     businessAddress: [''],
     contactEmail: ['', [Validators.required, Validators.email]],
     contactPhone: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]],
@@ -684,6 +731,8 @@ export class SubMerchantsPageComponent implements OnInit {
       bankAccountNo: '',
       ifsc: '',
       beneficiaryName: '',
+      bankName: '',
+      branchName: '',
       businessAddress: '',
       contactEmail: '',
       contactPhone: '',
@@ -703,6 +752,8 @@ export class SubMerchantsPageComponent implements OnInit {
       bankAccountNo: merchant.bankAccountNo ?? '',
       ifsc: merchant.ifsc ?? '',
       beneficiaryName: merchant.beneficiaryName ?? '',
+      bankName: merchant.bankName ?? '',
+      branchName: merchant.branchName ?? '',
       businessAddress: merchant.businessAddress ?? '',
       contactEmail: merchant.contactEmail ?? '',
       contactPhone: merchant.contactPhone ?? '',
@@ -735,6 +786,8 @@ export class SubMerchantsPageComponent implements OnInit {
       bankAccountNo: raw.bankAccountNo,
       ifsc: raw.ifsc,
       beneficiaryName: raw.beneficiaryName,
+      bankName: raw.bankName,
+      branchName: raw.branchName || undefined,
       businessAddress: raw.businessAddress,
       contactEmail: raw.contactEmail,
       contactPhone: raw.contactPhone,
@@ -769,6 +822,19 @@ export class SubMerchantsPageComponent implements OnInit {
     this.selectedSubMerchant.set(null);
   }
 
+  submitToEasebuzz(merchant: EasebuzzSubMerchant): void {
+    if (!confirm(`Submit "${merchant.businessName}" to Easebuzz for onboarding?`)) return;
+    this.api.submitToEasebuzz(merchant.id).subscribe({
+      next: () => {
+        this.loadSubMerchants();
+        this.showFeedback('Sub-merchant submitted to Easebuzz successfully.');
+      },
+      error: (err) => {
+        this.showFeedback(err?.error?.error ?? 'Submission failed.', true);
+      }
+    });
+  }
+
   assignSubMerchantId(merchant: EasebuzzSubMerchant): void {
     const subMerchantId = prompt(`Enter Easebuzz Sub-Merchant ID for "${merchant.businessName}":\n\n(After creating this merchant manually in Easebuzz Dashboard https://dashboard.easebuzz.in)`, '');
     if (!subMerchantId || subMerchantId.trim() === '') return;
@@ -786,12 +852,44 @@ export class SubMerchantsPageComponent implements OnInit {
   generateKyc(merchant: EasebuzzSubMerchant): void {
     if (!confirm(`Generate KYC access for "${merchant.businessName}"?`)) return;
     this.api.generateKyc(merchant.id).subscribe({
-      next: () => {
+      next: (res) => {
         this.loadSubMerchants();
-        this.showFeedback('KYC access key generated successfully.');
+        const url = res.kyc_url;
+        if (url) {
+          this.showFeedback(`KYC portal URL generated. Opening in new tab...`);
+          setTimeout(() => window.open(url, '_blank'), 500);
+        } else {
+          this.showFeedback('KYC access key generated successfully.');
+        }
       },
       error: () => {
-        this.showFeedback('KYC generation failed. Please try again.');
+        this.showFeedback('KYC generation failed.', true);
+      }
+    });
+  }
+
+  updateOnEasebuzz(merchant: EasebuzzSubMerchant): void {
+    if (!confirm(`Sync "${merchant.businessName}" changes to Easebuzz?`)) return;
+    this.api.updateOnEasebuzz(merchant.id).subscribe({
+      next: () => {
+        this.loadSubMerchants();
+        this.showFeedback('Sub-merchant synced to Easebuzz successfully.');
+      },
+      error: (err) => {
+        this.showFeedback(err?.error?.error ?? 'Sync failed.', true);
+      }
+    });
+  }
+
+  createSplitLabel(merchant: EasebuzzSubMerchant): void {
+    if (!confirm(`Create settlement split label for "${merchant.businessName}"?`)) return;
+    this.api.createSplitLabel(merchant.id).subscribe({
+      next: (res) => {
+        this.loadSubMerchants();
+        this.showFeedback(res.msg || 'Split label created successfully.');
+      },
+      error: (err) => {
+        this.showFeedback(err?.error?.error ?? 'Split label creation failed.', true);
       }
     });
   }
