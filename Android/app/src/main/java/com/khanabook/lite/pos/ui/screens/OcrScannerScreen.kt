@@ -128,7 +128,7 @@ fun OcrScannerScreen(
         }
 
     val galleryLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             uri?.let {
                 errorMessage = null
                 capturedBitmap = null
@@ -186,7 +186,7 @@ fun OcrScannerScreen(
                     IconButton(
                         onClick = {
                             errorMessage = null
-                            galleryLauncher.launch("image/*")
+                            galleryLauncher.launch(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         }
                     ) {
                         Icon(
