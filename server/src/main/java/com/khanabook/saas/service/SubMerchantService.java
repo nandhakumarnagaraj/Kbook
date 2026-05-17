@@ -133,7 +133,8 @@ public class SubMerchantService {
                 } else if ("False".equalsIgnoreCase(kycStatus)) {
                     sm.setStatus("REJECTED");
                 } else if ("Pending".equalsIgnoreCase(kycStatus)) {
-                    sm.setStatus("PENDING_KYC");
+                    sm.setStatus("KYC_SUBMITTED");
+                    sm.setKycSubmittedAt(System.currentTimeMillis());
                 }
                 sm.setUpdatedAt(now);
                 subMerchantRepo.save(sm);
@@ -201,9 +202,15 @@ public class SubMerchantService {
             sm.getContactEmail(),
             sm.getContactPhone()
         );
+        String kycUrl = (String) result.getOrDefault("kyc_url", "");
+        if (!kycUrl.isBlank()) {
+            sm.setKycPortalUrl(kycUrl);
+            sm.setUpdatedAt(System.currentTimeMillis());
+            subMerchantRepo.save(sm);
+        }
         return Map.of(
             "status", result.get("status"),
-            "kyc_url", result.getOrDefault("kyc_url", ""),
+            "kyc_url", kycUrl,
             "sub_merchant_id", sm.getSubMerchantId()
         );
     }

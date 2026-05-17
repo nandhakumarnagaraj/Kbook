@@ -51,6 +51,19 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.initiateRefund(billId, amount, reason));
     }
 
+    @GetMapping("/refund-status/{billId}")
+    public ResponseEntity<Map<String, Object>> getRefundStatus(@PathVariable Long billId) {
+        return ResponseEntity.ok(paymentService.getRefundStatus(billId));
+    }
+
+    @GetMapping("/return")
+    public ResponseEntity<Map<String, Object>> handleReturn(
+            @RequestParam Map<String, String> params) {
+        log.debug("Easebuzz return redirect received: {}", params);
+        // Forward to webhook handler for idempotent processing
+        return ResponseEntity.ok(webhookService.handlePaymentWebhook(params));
+    }
+
     @PostMapping("/webhook")
     public ResponseEntity<Map<String, Object>> paymentWebhook(@RequestBody Map<String, String> payload) {
         log.debug("Payment webhook received: {}", payload);

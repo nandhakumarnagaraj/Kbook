@@ -108,6 +108,31 @@ public class EasebuzzPaymentService {
         );
         String status = (String) result.getOrDefault("status", "failure");
         log.info("Refund initiated billId={} amount={} status={}", billId, amount, status);
-        return Map.of("status", status, "easebuzz_refund_id", result.getOrDefault("easebuzz_refund_id", ""));
+        String refundId = (String) result.getOrDefault("refund_id", "");
+        if (!refundId.isBlank()) {
+            bill.setRefundId(refundId);
+            billRepo.save(bill);
+        }
+        return Map.of("status", status, "easebuzz_refund_id", refundId);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getRefundStatus(Long billId) {
+        Bill bill = billRepo.findById(billId)
+                .orElseThrow(() -> new RuntimeException("Bill not found: " + billId));
+        if (bill.getGatewayTxnId() == null) {
+            return Map.of("status", "failure", "error", "No gateway transaction found");
+        }
+        if (bill.getRefundId() == null || bill.getRefundId().isBlank()) {
+            return Map.of("status", "failure", "error", "No refund initiated for this bill");
+        }
+        Map result = easebuzzApi.getRefundStatus(bill.getGatewayTxnId(), bill.getRefundId());
+        String status = (String) result.getOrDefault("status", "failure");
+        return Map.of(
+            "status", status,
+            "refund_id", bill.getRefundId(),
+            "txnid", bill.getGatewayTxnId(),
+            "refund_status", result.getOrDefault("msg", "")
+        );
     }
 }

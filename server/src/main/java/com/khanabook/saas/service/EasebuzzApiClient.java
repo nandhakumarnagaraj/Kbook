@@ -17,12 +17,20 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 public class EasebuzzApiClient {
 
     private static final Logger log = LoggerFactory.getLogger(EasebuzzApiClient.class);
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final EasebuzzProperties props;
+
+    public EasebuzzApiClient(EasebuzzProperties props) {
+        this.props = props;
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory =
+            new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10_000);
+        factory.setReadTimeout(30_000);
+        this.restTemplate = new RestTemplate(factory);
+    }
 
     public Map initiatePayment(Map<String, String> data) {
         String txnid = data.get("txnid");
@@ -71,7 +79,7 @@ public class EasebuzzApiClient {
         params.put("txnid", txnid);
         params.put("hash", generateHash(props.getMerchantKey(), txnid));
 
-        Map raw = post(props.getDashboardBaseUrl() + "/transaction/v2.1/retrieve", params);
+        Map raw = post(props.getPaymentBaseUrl() + "/transaction/v2.1/retrieve", params);
 
         Map result = new HashMap<>();
         Object rawStatus = raw != null ? raw.get("status") : null;

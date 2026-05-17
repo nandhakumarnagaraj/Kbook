@@ -45,7 +45,16 @@ public class EasebuzzSubMerchant {
     private String gst;
 
     @Column(name = "bank_account_no")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String bankAccountNo;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("bankAccountNo")
+    public String getMaskedBankAccountNo() {
+        if (bankAccountNo == null || bankAccountNo.length() < 4) {
+            return bankAccountNo;
+        }
+        return "XXXX" + bankAccountNo.substring(bankAccountNo.length() - 4);
+    }
 
     @Column(name = "ifsc")
     private String ifsc;

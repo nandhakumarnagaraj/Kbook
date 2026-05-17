@@ -1,5 +1,6 @@
 package com.khanabook.saas.service;
 
+import com.khanabook.saas.config.EasebuzzProperties;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.repository.BillRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Map;
 
 @Service
@@ -18,12 +21,20 @@ public class EasebuzzWebhookService {
     private static final Logger log = LoggerFactory.getLogger(EasebuzzWebhookService.class);
     private final BillRepository billRepo;
     private final SubMerchantService subMerchantService;
+    private final EasebuzzProperties props;
 
     @Transactional
     public Map<String, Object> handlePaymentWebhook(Map<String, String> payload) {
         String txnid = payload.get("txnid");
-        String easebuzzId = payload.get("easebuzz_id");
         String status = payload.get("status");
+
+        // Verify webhook hash before processing
+        if (!verifyWebhookHash(payload)) {
+            log.warn("Payment webhook hash mismatch txnid={}", txnid);
+            return Map.of("status", "hash_mismatch");
+        }
+
+        String easebuzzId = payload.get("easebuzz_id");
         String amountStr = payload.get("amount");
         String udf1 = payload.get("udf1");
 
@@ -52,6 +63,13 @@ public class EasebuzzWebhookService {
     @Transactional
     public Map<String, Object> handleRefundWebhook(Map<String, String> payload) {
         String txnid = payload.get("txnid");
+
+        // Verify webhook hash before processing
+        if (!verifyWebhookHash(payload)) {
+            log.warn("Refund webhook hash mismatch txnid={}", txnid);
+            return Map.of("status", "hash_mismatch");
+        }
+
         String status = payload.get("status");
         log.info("Refund webhook received txnid={} status={}", txnid, status);
         billRepo.findByGatewayTxnId(txnid).ifPresent(bill -> {
@@ -63,5 +81,50 @@ public class EasebuzzWebhookService {
 
     public void handleSubMerchantWebhook(Map<String, Object> payload) {
         subMerchantService.processWebhook(payload);
+    }
+
+    private boolean verifyWebhookHash(Map<String, String> payload) {
+        try {
+            String receivedHash = payload.get("hash");
+            if (receivedHash == null || receivedHash.isBlank()) {
+                return false;
+            }
+
+            // Build hash string: key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5|||||||salt
+            StringBuilder sb = new StringBuilder();
+            sb.append(props.getMerchantKey()).append("|");
+            sb.append(nullSafe(payload.get("txnid"))).append("|");
+            sb.append(nullSafe(payload.get("amount"))).append("|");
+            sb.append(nullSafe(payload.get("productinfo"))).append("|");
+            sb.append(nullSafe(payload.get("firstname"))).append("|");
+            sb.append(nullSafe(payload.get("email"))).append("|");
+            sb.append(nullSafe(payload.get("udf1"))).append("|");
+            sb.append(nullSafe(payload.get("udf2"))).append("|");
+            sb.append(nullSafe(payload.get("udf3"))).append("|");
+            sb.append(nullSafe(payload.get("udf4"))).append("|");
+            sb.append(nullSafe(payload.get("udf5"))).append("|");
+            sb.append("|||||"); // empty udf6-udf10
+            sb.append(props.getSalt());
+
+            String computedHash = sha512(sb.toString());
+            return computedHash.equalsIgnoreCase(receivedHash);
+        } catch (Exception e) {
+            log.error("Hash verification failed", e);
+            return false;
+        }
+    }
+
+    private String nullSafe(String value) {
+        return value != null ? value : "";
+    }
+
+    private String sha512(String input) throws Exception {
+        MessageDigest md = MessageDigest.getInstance("SHA-512");
+        byte[] digest = md.digest(input.getBytes(StandardCharsets.UTF_8));
+        StringBuilder hash = new StringBuilder();
+        for (byte b : digest) {
+            hash.append(String.format("%02x", b));
+        }
+        return hash.toString();
     }
 }

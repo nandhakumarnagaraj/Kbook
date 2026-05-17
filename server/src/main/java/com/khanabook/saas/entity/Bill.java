@@ -89,6 +89,9 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "gateway_status")
 	private String gatewayStatus;
 
+	@Column(name = "refund_id")
+	private String refundId;
+
 	@Column(name = "settled_amount", columnDefinition = "NUMERIC(12,2)")
 	private java.math.BigDecimal settledAmount;
 
