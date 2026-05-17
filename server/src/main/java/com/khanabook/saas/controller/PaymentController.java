@@ -22,8 +22,13 @@ public class PaymentController {
 
     @PostMapping("/create-order")
     public ResponseEntity<Map<String, Object>> createOrder(@RequestBody Map<String, Object> request) {
-        Long billId = Long.valueOf(request.get("billId").toString());
-        Long restaurantId = Long.valueOf(request.get("restaurantId").toString());
+        Object billIdObj = request.get("billId");
+        Object restaurantIdObj = request.get("restaurantId");
+        if (billIdObj == null || restaurantIdObj == null) {
+            return ResponseEntity.badRequest().body(Map.of("status", "failure", "error", "billId and restaurantId are required"));
+        }
+        Long billId = Long.valueOf(billIdObj.toString());
+        Long restaurantId = Long.valueOf(restaurantIdObj.toString());
         Map<String, Object> result = paymentService.createOrder(billId, restaurantId);
         if ("failure".equals(result.get("status"))) {
             return ResponseEntity.badRequest().body(result);

@@ -217,6 +217,7 @@ public class EasebuzzApiClient {
 		return postJson(props.getDashboardBaseUrl() + "/settlements/v1/retrieve/", body);
 	}
 
+	@SuppressWarnings("unchecked")
 	public Map<String, Object> createSubMerchant(String subMerchantName, String email, String phone,
 			String accountNumber, String ifsc, String bankName, String nameInBank, String branchName,
 			String businessType, String pan, String gst, String businessAddress) {
@@ -243,20 +244,28 @@ public class EasebuzzApiClient {
 
 		// ERA recommendation: Include business details and MCC code
 		Map<String, Object> businessDetails = new HashMap<>();
-		// Using INDIVIDUAL/FREELANCERS as it's the most compatible sandbox nature
-		businessDetails.put("sub_merchant_business_nature", "INDIVIDUAL/FREELANCERS");
-		businessDetails.put("sub_merchant_business_type", businessType != null ? businessType : "SOLE_PROPRIETORSHIP");
+		// Standardization based on Easebuzz Sandbox error requirements
+		String nature = "INDIVIDUAL/FREELANCERS";
+		if ("SOLE_PROPRIETORSHIP".equalsIgnoreCase(businessType)) nature = "SOLE PROPRIETOR";
+		else if ("PARTNERSHIP".equalsIgnoreCase(businessType)) nature = "PARTNERSHIP FIRM";
+		else if ("PRIVATE_LIMITED".equalsIgnoreCase(businessType) || "PUBLIC_LIMITED".equalsIgnoreCase(businessType)) 
+			nature = "PRIVATE LTD/PUBLIC LTD/OPC";
+
+		businessDetails.put("sub_merchant_business_nature", nature);
+		businessDetails.put("sub_merchant_business_type", businessType != null ? businessType : "SOLE PROPRIETOR");
 		businessDetails.put("sub_merchant_business_name", subMerchantName);
 		businessDetails.put("sub_merchant_business_address", businessAddress != null ? businessAddress : "123 Test Street");
 		businessDetails.put("sub_merchant_state", "Karnataka"); 
 		businessDetails.put("sub_merchant_mcc_code", "5812"); // Restaurants
+
+		if (gst != null && !gst.isBlank()) businessDetails.put("sub_merchant_gstin", gst);
+		if (pan != null && !pan.isBlank()) businessDetails.put("sub_merchant_pan_number", pan);
 
 		Map<String, Object> body = new HashMap<>();
 		body.put("merchant_details", merchantDetails);
 		body.put("submerchant_details", submerchantDetails);
 		body.put("business_details", businessDetails);
 
-		log.debug("Easebuzz Sub-merchant Create Request: {}", body);
 		Map<String, Object> raw = postJson(props.getDashboardBaseUrl() + "/merchant/v1/submerchant/create/", body);
 
 		Map<String, Object> result = new HashMap<>();
@@ -265,7 +274,6 @@ public class EasebuzzApiClient {
 		result.put("status", apiStatus);
 		if (apiStatus && raw != null) {
 			String subMerchantId = (String) raw.get("submerchant_id");
-			@SuppressWarnings("unchecked")
 			Map<String, Object> submerchant = (Map<String, Object>) raw.get("submerchant");
 			if (subMerchantId == null && submerchant != null) {
 				subMerchantId = (String) submerchant.get("submerchant_id");
