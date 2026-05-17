@@ -1,10 +1,7 @@
 package com.khanabook.saas.controller;
 
-import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.MarketplaceOrder;
-import com.khanabook.saas.entity.MarketplaceOrderItem;
 import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.MarketplaceOrderRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -25,7 +21,6 @@ public class MarketplaceWebhookController {
     private static final Logger log = LoggerFactory.getLogger(MarketplaceWebhookController.class);
     private final MarketplaceOrderRepository orderRepo;
     private final RestaurantProfileRepository profileRepo;
-    private final BillRepository billRepo;
 
     @PostMapping("/marketplace/webhook/swiggy")
     @Transactional
@@ -78,7 +73,6 @@ public class MarketplaceWebhookController {
 
     private Long resolveRestaurantId(String platform, String storeId) {
         if (storeId == null || storeId.isBlank()) return null;
-        String field = "SWIGGY".equals(platform) ? "swiggyStoreId" : "zomatoOutletId";
         return profileRepo.findAll().stream()
                 .filter(p -> !Boolean.TRUE.equals(p.getIsDeleted()))
                 .filter(p -> storeId.equals(

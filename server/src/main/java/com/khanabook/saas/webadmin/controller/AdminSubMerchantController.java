@@ -28,32 +28,18 @@ public class AdminSubMerchantController {
 
     @PostMapping
     public ResponseEntity<EasebuzzSubMerchant> create(@RequestBody Map<String, Object> data) {
-        Long restaurantId = Long.valueOf(data.get("restaurantId").toString());
+        Object rid = data.get("restaurantId");
+        if (rid == null) {
+            throw new IllegalArgumentException("restaurantId is required");
+        }
+        Long restaurantId = Long.valueOf(rid.toString());
         return ResponseEntity.ok(subMerchantService.create(data, restaurantId));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<EasebuzzSubMerchant> update(@PathVariable Long id,
                                                         @RequestBody Map<String, String> data) {
-        EasebuzzSubMerchant sm = subMerchantService.getById(id);
-        if (data.containsKey("businessName")) sm.setBusinessName(data.get("businessName"));
-        if (data.containsKey("businessType")) sm.setBusinessType(data.get("businessType"));
-        if (data.containsKey("pan")) sm.setPan(data.get("pan"));
-        if (data.containsKey("gst")) sm.setGst(data.get("gst"));
-        if (data.containsKey("bankAccountNo")) sm.setBankAccountNo(data.get("bankAccountNo"));
-        if (data.containsKey("ifsc")) sm.setIfsc(data.get("ifsc"));
-        if (data.containsKey("bankName")) sm.setBankName(data.get("bankName"));
-        if (data.containsKey("branchName")) sm.setBranchName(data.get("branchName"));
-        if (data.containsKey("beneficiaryName")) sm.setBeneficiaryName(data.get("beneficiaryName"));
-        if (data.containsKey("businessAddress")) sm.setBusinessAddress(data.get("businessAddress"));
-        if (data.containsKey("contactEmail")) sm.setContactEmail(data.get("contactEmail"));
-        if (data.containsKey("contactPhone")) sm.setContactPhone(data.get("contactPhone"));
-        if (data.containsKey("commissionRate")) sm.setCommissionRate(new java.math.BigDecimal(data.get("commissionRate")));
-        if (data.containsKey("upiDeductionLtLimit")) sm.setUpiDeductionLtLimit(new java.math.BigDecimal(data.get("upiDeductionLtLimit")));
-        if (data.containsKey("dcDeductionGtTwoThousand")) sm.setDcDeductionGtTwoThousand(new java.math.BigDecimal(data.get("dcDeductionGtTwoThousand")));
-        sm.setUpdatedAt(System.currentTimeMillis());
-        subMerchantService.updateStatus(id, sm.getStatus());
-        return ResponseEntity.ok(sm);
+        return ResponseEntity.ok(subMerchantService.update(id, data));
     }
 
     /** Assign Easebuzz sub_merchant_id after manual creation in Easebuzz Dashboard */
@@ -91,5 +77,47 @@ public class AdminSubMerchantController {
     @PostMapping("/{id}/split-label")
     public ResponseEntity<Map<String, Object>> createSplitLabel(@PathVariable Long id) {
         return ResponseEntity.ok(subMerchantService.createSplitLabel(id));
+    }
+
+    /** Retrieve post-transaction split status */
+    @PostMapping("/{id}/split-retrieve")
+    public ResponseEntity<Map<String, Object>> retrieveTransactionSplit(@PathVariable Long id,
+                                                                         @RequestBody Map<String, String> data) {
+        return ResponseEntity.ok(subMerchantService.retrieveTransactionSplit(data.get("merchantRequestId")));
+    }
+
+    @PostMapping("/{id}/verify-otp")
+    public ResponseEntity<Map<String, Object>> verifyOtp(@PathVariable Long id, @RequestBody Map<String, String> data) {
+        return ResponseEntity.ok(subMerchantService.verifyOtp(id, data.get("otp")));
+    }
+
+    @PostMapping("/{id}/resend-otp")
+    public ResponseEntity<Map<String, Object>> resendOtp(@PathVariable Long id) {
+        return ResponseEntity.ok(subMerchantService.resendOtp(id));
+    }
+
+    @PostMapping("/settlements/on-demand")
+    public ResponseEntity<Map<String, Object>> onDemandSettlement(@RequestBody Map<String, String> data) {
+        return ResponseEntity.ok(subMerchantService.initiateOnDemandSettlement(data.get("amount")));
+    }
+
+    @SuppressWarnings("unchecked")
+    @PostMapping("/payout")
+    public ResponseEntity<Map<String, Object>> initiatePayout(@RequestBody Map<String, Object> data) {
+        String amount = data.get("amount").toString();
+        Map<String, String> beneficiaryDetails = (Map<String, String>) data.get("beneficiaryDetails");
+        return ResponseEntity.ok(subMerchantService.initiatePayout(amount, beneficiaryDetails));
+    }
+
+    @GetMapping("/settlements/retrieve")
+    public ResponseEntity<Map<String, Object>> retrieveSettlements(@RequestParam String date) {
+        return ResponseEntity.ok(subMerchantService.retrieveSettlements(date));
+    }
+
+    /** DEV ONLY: Delete a sub-merchant to allow fresh retry */
+    @DeleteMapping("/{id}/dev-refresh")
+    public ResponseEntity<Void> devRefresh(@PathVariable Long id) {
+        subMerchantService.deleteSubMerchant(id);
+        return ResponseEntity.ok().build();
     }
 }

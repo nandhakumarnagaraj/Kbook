@@ -146,6 +146,12 @@ public class AuthController {
 		return ResponseEntity.ok().build();
 	}
 
+	@PostMapping("/dev-reset")
+	public ResponseEntity<Void> devReset() {
+		authService.devReset();
+		return ResponseEntity.ok().build();
+	}
+
 
 
 	@Data
@@ -248,6 +254,7 @@ public class AuthController {
 	@NoArgsConstructor
 	public static class AuthResponse {
 		private String token;
+		@com.fasterxml.jackson.databind.annotation.JsonSerialize(using = com.fasterxml.jackson.databind.ser.std.ToStringSerializer.class)
 		private Long restaurantId;
 		private String userName;
 		private String loginId;

@@ -161,7 +161,7 @@
 - **Endpoint**: `POST https://dashboard.easebuzz.in/submerchant/v1/verify_otp`
 - **Content-Type**: `application/json`
 - **Purpose**: Verify the OTP sent to the sub-merchant's registered mobile/email during onboarding or password reset.
-- **Note**: KhanaBook currently does not use this API directly because KYC is handled via the portal link. This API is documented for future use if Easebuzz introduces OTP-based sub-merchant activation flows.
+- **Note**: KhanaBook uses this API via `POST /admin/sub-merchants/{id}/verify-otp` from the web admin UI.
 
 ### Request
 ```json
@@ -189,7 +189,7 @@
 - **Endpoint**: `POST https://dashboard.easebuzz.in/submerchant/v1/resend_otp`
 - **Content-Type**: `application/json`
 - **Purpose**: Resend OTP to the sub-merchant's registered contact.
-- **Note**: Documented for future use alongside Confirm OTP.
+- **Note**: KhanaBook uses this API via `POST /admin/sub-merchants/{id}/resend-otp` from the web admin UI.
 
 ### Request
 ```json
@@ -627,9 +627,16 @@ Customer pays via Android POS
 | `POST` | `/admin/sub-merchants/{id}/submit-to-easebuzz` | Create in Easebuzz | Create Sub-Merchant API |
 | `POST` | `/admin/sub-merchants/{id}/update-on-easebuzz` | Update in Easebuzz | Update Sub-Merchant API |
 | `POST` | `/admin/sub-merchants/{id}/kyc-access-key` | Generate KYC portal URL | Generate KYC Access Key API |
+| `POST` | `/admin/sub-merchants/{id}/verify-otp` | Verify OTP | Confirm OTP / Verify OTP API |
+| `POST` | `/admin/sub-merchants/{id}/resend-otp` | Resend OTP | Resend OTP API |
 | `POST` | `/admin/sub-merchants/{id}/split-label` | Create split label | Create Split Label API |
+| `POST` | `/admin/sub-merchants/{id}/cancel-transaction` | Cancel a pending transaction | Cancel Transaction API |
+| `POST` | `/admin/sub-merchants/{id}/payout` | Initiate payout to sub-merchant | Payout API v2 |
+| `POST` | `/admin/sub-merchants/{id}/split-retrieve` | Retrieve split configuration | Post-Transaction Split — Retrieve |
+| `POST` | `/admin/settlements/on-demand` | Request on-demand settlement | On-Demand Settlement API |
 | `POST` | `/api/v2/payments/easebuzz/create-order` | Initiate payment | Initiate API |
 | `GET` | `/api/v2/payments/easebuzz/status/{billId}` | Check payment status | Status API (v2.1) |
 | `POST` | `/api/v2/payments/easebuzz/refund/{billId}` | Raise refund | Refund API v2 |
+| `GET` | `/api/v2/payments/easebuzz/refund-status/{billId}` | Check refund status | Refund Status API |
 | `POST` | `/api/v2/payments/easebuzz/webhook` | Receive Easebuzz webhooks | All webhook events |
 | `POST` | `/api/v2/payments/easebuzz/submerchant-webhook` | Receive KYC webhooks | Sub-merchant webhook |

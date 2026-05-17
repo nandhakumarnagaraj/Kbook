@@ -14,6 +14,7 @@ public class GstFssaiLookupService {
     private static final Logger log = LoggerFactory.getLogger(GstFssaiLookupService.class);
     private final RestTemplate restTemplate = new RestTemplate();
 
+    @SuppressWarnings("unchecked")
     public Map<String, Object> lookupGst(String gstin) {
         Map<String, Object> result = new HashMap<>();
         if (gstin == null || gstin.length() != 15) {
@@ -23,7 +24,7 @@ public class GstFssaiLookupService {
         }
         try {
             String url = "https://api.mastergst.com/gstinfo/" + gstin;
-            Map response = restTemplate.getForObject(url, Map.class);
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
             if (response != null) {
                 result.put("valid", true);
                 result.put("businessName", response.getOrDefault("tradeNam", ""));
@@ -42,6 +43,7 @@ public class GstFssaiLookupService {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     public Map<String, Object> lookupFssai(String fssaiNo) {
         Map<String, Object> result = new HashMap<>();
         if (fssaiNo == null || fssaiNo.length() != 14) {
@@ -51,7 +53,7 @@ public class GstFssaiLookupService {
         }
         try {
             String url = "https://api.fssai.gov.in/firm/" + fssaiNo;
-            Map response = restTemplate.getForObject(url, Map.class);
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
             if (response != null) {
                 result.put("valid", true);
                 result.put("businessName", response.getOrDefault("businessName", ""));

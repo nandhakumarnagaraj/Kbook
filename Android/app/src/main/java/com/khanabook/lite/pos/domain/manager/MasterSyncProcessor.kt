@@ -308,6 +308,7 @@ class MasterSyncProcessor @Inject constructor(
                         upiMobile = remoteProfile.upiMobile.orFallback(""),
                         cashEnabled = remoteProfile.cashEnabled ?: true,
                         posEnabled = remoteProfile.posEnabled ?: false,
+                        easebuzzEnabled = remoteProfile.easebuzzEnabled ?: false,
                         zomatoEnabled = remoteProfile.zomatoEnabled ?: false,
                         swiggyEnabled = remoteProfile.swiggyEnabled ?: false,
                         ownWebsiteEnabled = remoteProfile.ownWebsiteEnabled ?: false,

@@ -1,8 +1,10 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.Bill;
+import com.khanabook.saas.entity.EasebuzzWebhookEvent;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.EasebuzzWebhookEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +23,7 @@ public class EasebuzzPaymentService {
     private static final Logger log = LoggerFactory.getLogger(EasebuzzPaymentService.class);
     private final EasebuzzApiClient easebuzzApi;
     private final BillRepository billRepo;
+    private final EasebuzzWebhookEventRepository webhookEventRepo;
     private final SubMerchantService subMerchantService;
 
     @Transactional
@@ -38,16 +41,15 @@ public class EasebuzzPaymentService {
         data.put("amount", bill.getTotalAmount().toString());
         data.put("productinfo", "Restaurant Bill #" + bill.getDailyOrderDisplay());
         data.put("firstname", bill.getCustomerName() != null ? bill.getCustomerName() : "Customer");
-        data.put("email", "");
+        data.put("email", sm.getContactEmail() != null ? sm.getContactEmail() : "customer@kbook.com");
         data.put("phone", bill.getCustomerWhatsapp() != null ? bill.getCustomerWhatsapp() : "");
-        data.put("sub_merchant_id", sm.getSubMerchantId());
         data.put("udf1", billId.toString());
         data.put("udf2", restaurantId.toString());
         data.put("udf3", "");
         data.put("udf4", "");
         data.put("udf5", "");
 
-        Map result = easebuzzApi.initiatePayment(data);
+        Map<String, Object> result = easebuzzApi.initiatePayment(data);
         String status = (String) result.getOrDefault("status", "failure");
 
         bill.setGatewayTxnId(txnid);
@@ -77,16 +79,17 @@ public class EasebuzzPaymentService {
         if (bill.getGatewayTxnId() == null) {
             return Map.of("status", "failure", "error", "No gateway transaction found");
         }
-        Map result = easebuzzApi.getTransactionStatus(bill.getGatewayTxnId());
-        String easebuzzStatus = (String) result.getOrDefault("status", "failure");
+        Map<String, Object> result = easebuzzApi.getTransactionStatus(bill.getGatewayTxnId());
+        String easebuzzStatus = str(result.getOrDefault("status", "failure"));
 
         if ("success".equalsIgnoreCase(easebuzzStatus)) {
-            String easebuzzId = (String) result.get("easebuzz_id");
+            String easebuzzId = str(result.get("easebuzz_id"));
             bill.setGatewayStatus("success");
             bill.setPaymentStatus("paid");
             bill.setPaidAt(System.currentTimeMillis());
             billRepo.save(bill);
-            return Map.of("status", "success", "easebuzz_id", easebuzzId, "txnid", bill.getGatewayTxnId());
+            saveGatewayEventIfPresent(bill, easebuzzId, "success");
+            return Map.of("status", "success", "easebuzz_id", nullToEmpty(easebuzzId), "txnid", bill.getGatewayTxnId());
         }
         bill.setGatewayStatus(easebuzzStatus);
         billRepo.save(bill);
@@ -94,29 +97,43 @@ public class EasebuzzPaymentService {
     }
 
     @Transactional
+    @SuppressWarnings("unchecked")
     public Map<String, Object> initiateRefund(Long billId, BigDecimal amount, String reason) {
         Bill bill = billRepo.findById(billId)
                 .orElseThrow(() -> new RuntimeException("Bill not found: " + billId));
         if (bill.getGatewayTxnId() == null) {
             return Map.of("status", "failure", "error", "No gateway transaction found for refund");
         }
-        Map result = easebuzzApi.initiateRefund(
-            bill.getGatewayTxnId(),
-            bill.getTotalAmount().toString(),
-            amount.toString(),
-            reason
-        );
-        String status = (String) result.getOrDefault("status", "failure");
-        log.info("Refund initiated billId={} amount={} status={}", billId, amount, status);
-        String refundId = (String) result.getOrDefault("refund_id", "");
-        if (!refundId.isBlank()) {
-            bill.setRefundId(refundId);
-            billRepo.save(bill);
+        String easebuzzId = resolveEasebuzzId(bill);
+        if (easebuzzId == null || easebuzzId.isBlank()) {
+            return Map.of("status", "failure", "error", "Easebuzz transaction ID not found. Verify payment status first.");
         }
-        return Map.of("status", status, "easebuzz_refund_id", refundId);
+        String merchantRefundId = "KB_REFUND_" + billId + "_" + System.currentTimeMillis();
+
+        Map<String, Object> result = easebuzzApi.initiateRefund(easebuzzId, merchantRefundId, amount.toString());
+        log.info("Refund initiation response for billId={}: {}", billId, result);
+
+        boolean success = toBool(result.get("status"));
+        if (success) {
+            Map<String, Object> msg = (Map<String, Object>) result.get("msg");
+            String ebRefundId = msg != null ? str(msg.get("refund_id")) : "";
+            bill.setRefundId(ebRefundId != null && !ebRefundId.isBlank() ? ebRefundId : merchantRefundId);
+            bill.setRefundAmount(amount);
+            bill.setGatewayStatus("refund_initiated");
+            billRepo.save(bill);
+
+            return Map.of(
+                "status", "success",
+                "easebuzz_refund_id", bill.getRefundId(),
+                "merchant_refund_id", merchantRefundId,
+                "easebuzz_id", easebuzzId
+            );
+        }
+
+        return Map.of("status", "failure", "error", result.getOrDefault("error", "Refund initiation failed"));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Map<String, Object> getRefundStatus(Long billId) {
         Bill bill = billRepo.findById(billId)
                 .orElseThrow(() -> new RuntimeException("Bill not found: " + billId));
@@ -126,13 +143,73 @@ public class EasebuzzPaymentService {
         if (bill.getRefundId() == null || bill.getRefundId().isBlank()) {
             return Map.of("status", "failure", "error", "No refund initiated for this bill");
         }
-        Map result = easebuzzApi.getRefundStatus(bill.getGatewayTxnId(), bill.getRefundId());
-        String status = (String) result.getOrDefault("status", "failure");
+
+        Map<String, Object> result = easebuzzApi.getRefundStatus(bill.getGatewayTxnId(), bill.getRefundId());
+        String status = str(result.getOrDefault("status", "failure"));
+        Object refundMsg = result.get("msg");
+
         return Map.of(
             "status", status,
             "refund_id", bill.getRefundId(),
             "txnid", bill.getGatewayTxnId(),
-            "refund_status", result.getOrDefault("msg", "")
+            "msg", refundMsg != null ? refundMsg : ""
         );
+    }
+
+    private boolean toBool(Object value) {
+        if (value == null) return false;
+        if (value instanceof Boolean) return (Boolean) value;
+        String s = value.toString().trim();
+        return "1".equals(s) || "true".equalsIgnoreCase(s);
+    }
+
+    @Transactional
+    public Map<String, Object> cancelTransaction(Long billId) {
+        Bill bill = billRepo.findById(billId)
+                .orElseThrow(() -> new RuntimeException("Bill not found: " + billId));
+        if (bill.getGatewayTxnId() == null) {
+            return Map.of("status", "failure", "error", "No gateway transaction found");
+        }
+        return easebuzzApi.cancelTransaction(bill.getGatewayTxnId(), bill.getTotalAmount().toString());
+    }
+
+    private String resolveEasebuzzId(Bill bill) {
+        return webhookEventRepo.findByRestaurantIdAndTxnId(bill.getRestaurantId(), bill.getGatewayTxnId())
+                .map(EasebuzzWebhookEvent::getEasebuzzId)
+                .filter(id -> id != null && !id.isBlank())
+                .orElseGet(() -> {
+                    Map<String, Object> result = easebuzzApi.getTransactionStatus(bill.getGatewayTxnId());
+                    if (!"success".equalsIgnoreCase(str(result.getOrDefault("status", "")))) {
+                        return null;
+                    }
+                    String easebuzzId = str(result.get("easebuzz_id"));
+                    saveGatewayEventIfPresent(bill, easebuzzId, "success");
+                    return easebuzzId;
+                });
+    }
+
+    private void saveGatewayEventIfPresent(Bill bill, String easebuzzId, String status) {
+        if (easebuzzId == null || easebuzzId.isBlank() || bill.getGatewayTxnId() == null) {
+            return;
+        }
+        EasebuzzWebhookEvent event = webhookEventRepo
+                .findByRestaurantIdAndTxnId(bill.getRestaurantId(), bill.getGatewayTxnId())
+                .orElseGet(EasebuzzWebhookEvent::new);
+        event.setRestaurantId(bill.getRestaurantId());
+        event.setTxnId(bill.getGatewayTxnId());
+        event.setEasebuzzId(easebuzzId);
+        event.setStatus(status);
+        event.setAmount(bill.getTotalAmount());
+        event.setRawPayload("payment_status_lookup");
+        event.setReceivedAt(System.currentTimeMillis());
+        webhookEventRepo.save(event);
+    }
+
+    private String str(Object value) {
+        return value != null ? value.toString() : "";
+    }
+
+    private String nullToEmpty(Object value) {
+        return value != null ? value.toString() : "";
     }
 }

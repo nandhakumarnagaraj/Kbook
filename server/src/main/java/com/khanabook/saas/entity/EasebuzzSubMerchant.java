@@ -107,7 +107,7 @@ public class EasebuzzSubMerchant {
     @Column(name = "bank_proof_url", columnDefinition = "TEXT")
     private String bankProofUrl;
 
-    @Column(name = "easebuzz_response", columnDefinition = "JSONB")
+    @Column(name = "easebuzz_response", columnDefinition = "TEXT")
     private String easebuzzResponse;
 
     @Column(name = "created_at", nullable = false)

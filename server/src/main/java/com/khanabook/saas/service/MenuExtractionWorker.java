@@ -60,8 +60,8 @@ public class MenuExtractionWorker {
         if (!pdfFile.getName().toLowerCase().endsWith(".pdf")) return false;
 
         boolean foundText = false;
-        try (PDDocument document = PDDocument.load(pdfFile)) {
-            ObjectExtractor oe = new ObjectExtractor(document);
+        try (PDDocument document = PDDocument.load(pdfFile);
+             ObjectExtractor oe = new ObjectExtractor(document)) {
             SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
 
             for (int i = 1; i <= document.getNumberOfPages(); i++) {

@@ -56,6 +56,11 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getRefundStatus(billId));
     }
 
+    @PostMapping("/cancel/{billId}")
+    public ResponseEntity<Map<String, Object>> cancel(@PathVariable Long billId) {
+        return ResponseEntity.ok(paymentService.cancelTransaction(billId));
+    }
+
     @GetMapping("/return")
     public ResponseEntity<Map<String, Object>> handleReturn(
             @RequestParam Map<String, String> params) {
@@ -81,5 +86,11 @@ public class PaymentController {
         log.debug("Sub-merchant webhook received: {}", payload);
         webhookService.handleSubMerchantWebhook(payload);
         return ResponseEntity.ok(Map.of("status", "received"));
+    }
+
+    @PostMapping("/payout/webhook")
+    public ResponseEntity<Map<String, Object>> payoutWebhook(@RequestBody Map<String, String> payload) {
+        log.debug("Payout webhook received: {}", payload);
+        return ResponseEntity.ok(webhookService.handlePayoutWebhook(payload));
     }
 }

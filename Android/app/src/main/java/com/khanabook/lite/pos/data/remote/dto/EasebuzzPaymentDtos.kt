@@ -50,3 +50,11 @@ data class EasebuzzRefundResponse(
     @SerializedName("easebuzz_refund_id") val easebuzzRefundId: String? = null,
     @SerializedName("error") val error: String? = null
 )
+
+data class EasebuzzRefundStatusResponse(
+    @SerializedName("status") val status: String,
+    @SerializedName("refund_id") val refundId: String? = null,
+    @SerializedName("txnid") val txnid: String? = null,
+    @SerializedName("refund_status") val refundStatus: String? = null,
+    @SerializedName("error") val error: String? = null
+)

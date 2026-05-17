@@ -65,6 +65,9 @@ function formatStatus(status: string): string {
           <button class="ghost-btn" (click)="exportCsv()">📄 CSV</button>
           <a href="https://dashboard.easebuzz.in" target="_blank" rel="noopener noreferrer" class="ghost-btn easebuzz-link">🔗 Easebuzz</a>
           <button class="ghost-btn" (click)="loadSubMerchants()">Refresh</button>
+          <button class="ghost-btn" (click)="openSettlementRetrieve()">📅 Settlements</button>
+          <button class="ghost-btn" (click)="openOnDemandSettlement()">⚡ Settle</button>
+          <button class="ghost-btn" (click)="openPayout()">💸 Payout</button>
           <button class="primary-btn" (click)="openCreate()">+ New Sub-Merchant</button>
         </div>
       </div>
@@ -157,6 +160,9 @@ function formatStatus(status: string): string {
                     <button class="ghost-btn" (click)="generateKyc(sm)" title="Generate KYC portal URL">
                       <span class="chip chip-sm info">🔑 KYC</span>
                     </button>
+                    <button class="ghost-btn" (click)="openVerifyOtp(sm)" title="Verify OTP">
+                      <span class="chip chip-sm warn">🔢 OTP</span>
+                    </button>
                     <button class="ghost-btn" (click)="updateOnEasebuzz(sm)" title="Sync changes to Easebuzz">
                       <span class="chip chip-sm">🔄 Sync</span>
                     </button>
@@ -198,6 +204,14 @@ function formatStatus(status: string): string {
           </div>
           <div class="detail-close-row">
             <button class="ghost-btn" (click)="closeDetail()">Close</button>
+          </div>
+        </div>
+
+        <div class="status-banner" *ngIf="sm.status === 'ACTIVE'" style="background: linear-gradient(135deg, rgba(29,123,95,0.1), rgba(29,123,95,0.05)); border: 1px solid rgba(29,123,95,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.5rem;">✅</span>
+          <div>
+            <strong style="color: var(--success);">Fully Active</strong>
+            <p class="muted" style="margin: 0;">This sub-merchant is ready to receive settlements. KYC approved on {{ formatDateValue(sm.kycActivatedAt) }}.</p>
           </div>
         </div>
 
@@ -266,14 +280,14 @@ function formatStatus(status: string): string {
                 <span class="muted">{{ sm.kycPortalUrl ? 'Portal URL available' : 'Pending' }}</span>
               </div>
             </div>
-            <div class="timeline-step" [class.completed]="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED'">
+            <div class="timeline-step" [class.completed]="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">
               <div class="step-dot"></div>
               <div class="step-info">
                 <strong>KYC Submitted</strong>
                 <span class="muted">{{ sm.kycSubmittedAt ? formatDateValue(sm.kycSubmittedAt) : 'Pending' }}</span>
               </div>
             </div>
-            <div class="timeline-step" [class.completed]="sm.kycStatus === 'ACTIVATED'">
+            <div class="timeline-step" [class.completed]="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">
               <div class="step-dot"></div>
               <div class="step-info">
                 <strong>Activated</strong>
@@ -301,13 +315,35 @@ function formatStatus(status: string): string {
             <div class="kyc-info">
               <p><strong>Label:</strong> <code>{{ sm.splitLabel }}</code></p>
               <p class="muted">Settlement split label for routing sub-merchant payouts.</p>
+              <button class="ghost-btn" style="margin-top:0.5rem;" (click)="retrieveSplitStatus(sm)">🔍 Retrieve Split Status</button>
             </div>
           </div>
         </div>
 
         <div class="detail-section">
           <h3>Transaction Summary</h3>
-          <div class="panel loading no-margin">Transaction history will be available once the sub-merchant is active.</div>
+          <div class="panel" *ngIf="sm.status === 'ACTIVE'; else notActiveSummary">
+            <div class="stats-grid" style="margin: 0;">
+              <article class="panel stat-card">
+                <h3>Settlement Status</h3>
+                <strong class="stat-value" style="color: var(--success);">✅ Active</strong>
+                <p class="muted">Ready for split settlements</p>
+              </article>
+              <article class="panel stat-card">
+                <h3>Split Label</h3>
+                <strong class="stat-value">{{ sm.splitLabel || 'Not configured' }}</strong>
+                <p class="muted">For commission routing</p>
+              </article>
+              <article class="panel stat-card">
+                <h3>Commission Rate</h3>
+                <strong class="stat-value">{{ sm.commissionRate }}%</strong>
+                <p class="muted">Per transaction</p>
+              </article>
+            </div>
+          </div>
+          <ng-template #notActiveSummary>
+            <div class="panel loading no-margin">Transaction history will be available once the sub-merchant is active.</div>
+          </ng-template>
         </div>
       </div>
     </div>
@@ -321,6 +357,11 @@ function formatStatus(status: string): string {
               Business Name *
               <input class="field-control" formControlName="businessName" placeholder="Enter business name" />
               <span class="field-error" *ngIf="subMerchantForm.get('businessName')?.invalid && subMerchantForm.get('businessName')?.touched">Required</span>
+            </label>
+            <label class="field-label">
+              Restaurant ID *
+              <input class="field-control" formControlName="restaurantId" type="number" placeholder="e.g. 4853539561918673034" />
+              <span class="field-error" *ngIf="subMerchantForm.get('restaurantId')?.invalid && subMerchantForm.get('restaurantId')?.touched">Required (must be a valid restaurant ID)</span>
             </label>
             <label class="field-label">
               Business Type *
@@ -811,6 +852,7 @@ export class SubMerchantsPageComponent implements OnInit {
   readonly businessTypes = BUSINESS_TYPES;
 
   readonly subMerchantForm = this.fb.nonNullable.group({
+    restaurantId: [0, [Validators.required, Validators.min(1)]],
     businessName: ['', Validators.required],
     businessType: ['', Validators.required],
     pan: ['', [Validators.required, Validators.pattern(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/)]],
@@ -891,6 +933,7 @@ export class SubMerchantsPageComponent implements OnInit {
   openCreate(): void {
     this.editingSubMerchant.set(null);
     this.subMerchantForm.reset({
+      restaurantId: 0,
       businessName: '',
       businessType: '',
       pan: '',
@@ -912,6 +955,7 @@ export class SubMerchantsPageComponent implements OnInit {
   openEdit(merchant: EasebuzzSubMerchant): void {
     this.editingSubMerchant.set(merchant);
     this.subMerchantForm.patchValue({
+      restaurantId: merchant.restaurantId ?? 0,
       businessName: merchant.businessName,
       businessType: merchant.businessType ?? '',
       pan: merchant.pan ?? '',
@@ -946,6 +990,7 @@ export class SubMerchantsPageComponent implements OnInit {
     const raw = this.subMerchantForm.getRawValue();
 
     const payload: EasebuzzSubMerchantRequest = {
+      restaurantId: Number(raw.restaurantId),
       businessName: raw.businessName,
       businessType: raw.businessType,
       pan: raw.pan,
@@ -1069,6 +1114,30 @@ export class SubMerchantsPageComponent implements OnInit {
     );
   }
 
+  retrieveSplitStatus(merchant: EasebuzzSubMerchant): void {
+    this.showPrompt(
+      'Retrieve Split Status',
+      `Enter the merchant request ID to retrieve split configuration for "${merchant.businessName}".`,
+      'Merchant Request ID',
+      (merchantRequestId) => {
+        if (!merchantRequestId) return;
+        this.api.retrieveSplitStatus(merchant.id, merchantRequestId).subscribe({
+          next: (res) => {
+            const config = res.split_configuration;
+            if (config && config.length) {
+              this.showFeedback(`Split: ${JSON.stringify(config)}`);
+            } else {
+              this.showFeedback('No split configuration found.');
+            }
+          },
+          error: (err) => {
+            this.showFeedback(err?.error?.error ?? 'Split retrieve failed.', true);
+          }
+        });
+      }
+    );
+  }
+
   createSplitLabel(merchant: EasebuzzSubMerchant): void {
     this.showConfirm(
       'Create Split Label',
@@ -1081,6 +1150,90 @@ export class SubMerchantsPageComponent implements OnInit {
           },
           error: (err) => {
             this.showFeedback(err?.error?.error ?? 'Split label creation failed.', true);
+          }
+        });
+      }
+    );
+  }
+
+  openVerifyOtp(merchant: EasebuzzSubMerchant): void {
+    this.showPrompt(
+      'Verify OTP',
+      `Enter OTP sent to ${merchant.contactPhone} for "${merchant.businessName}".`,
+      '6-digit OTP',
+      (otp) => {
+        if (!otp) return;
+        this.api.verifyOtp(merchant.id, otp).subscribe({
+          next: () => {
+            this.showFeedback('OTP verified successfully.');
+            this.loadSubMerchants();
+          },
+          error: (err) => {
+            this.showFeedback(err?.error?.error ?? 'OTP verification failed.', true);
+          }
+        });
+      }
+    );
+  }
+
+  openSettlementRetrieve(): void {
+    const today = new Date().toISOString().split('T')[0];
+    this.showPrompt(
+      'Retrieve Settlements',
+      'Enter date (YYYY-MM-DD) to fetch settlements from Easebuzz.',
+      today,
+      (date) => {
+        if (!date) return;
+        this.api.retrieveSettlementsByDate(date).subscribe({
+          next: (res) => {
+            this.showConfirm('Settlement Data', JSON.stringify(res, null, 2), () => {});
+          },
+          error: (err) => {
+            this.showFeedback(err?.error?.error ?? 'Failed to retrieve settlements.', true);
+          }
+        });
+      }
+    );
+  }
+
+  openOnDemandSettlement(): void {
+    this.showPrompt(
+      'On-Demand Settlement',
+      'Enter amount to settle immediately to your bank account.',
+      'Amount (e.g. 1000.00)',
+      (amount) => {
+        if (!amount) return;
+        this.api.onDemandSettlement(amount).subscribe({
+          next: (res) => {
+            this.showFeedback(`Settlement initiated: ${res.msg || 'Success'}`);
+          },
+          error: (err) => {
+            this.showFeedback(err?.error?.error ?? 'Settlement initiation failed.', true);
+          }
+        });
+      }
+    );
+  }
+
+  openPayout(): void {
+    this.showPrompt(
+      'Direct Payout',
+      'Enter amount for manual payout.',
+      'Amount (e.g. 500.00)',
+      (amount) => {
+        if (!amount) return;
+        // Simple payout test with fixed beneficiary for now, or could show another prompt
+        const beneficiary = {
+          beneficiary_name: 'Test Beneficiary',
+          beneficiary_account_number: '1234567890',
+          beneficiary_ifsc: 'HDFC0000123'
+        };
+        this.api.initiatePayout(amount, beneficiary).subscribe({
+          next: (res) => {
+            this.showFeedback(`Payout initiated: ${res.msg || 'Success'}`);
+          },
+          error: (err) => {
+            this.showFeedback(err?.error?.error ?? 'Payout failed.', true);
           }
         });
       }

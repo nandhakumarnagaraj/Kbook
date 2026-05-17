@@ -96,8 +96,8 @@ public class SecurityConfig {
 				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
 				.headers(headers -> headers
-						.frameOptions(fo -> fo.deny())
-						.contentTypeOptions(ct -> ct.and())
+						.frameOptions(org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig::deny)
+						.contentTypeOptions(org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.ContentTypeOptionsConfig::disable)
 						.httpStrictTransportSecurity(hsts -> hsts
 								.includeSubDomains(true)
 								.maxAgeInSeconds(31536000))

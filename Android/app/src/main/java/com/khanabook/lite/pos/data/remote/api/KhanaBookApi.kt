@@ -136,6 +136,12 @@ interface KhanaBookApi {
             @Body request: EasebuzzRefundRequest
         ): EasebuzzRefundResponse
 
+        @GET("api/v2/payments/easebuzz/refund-status/{billId}")
+        suspend fun getEasebuzzRefundStatus(
+            @Query("deviceId") deviceId: String,
+            @Path("billId") billId: Long
+        ): EasebuzzRefundStatusResponse
+
         // ── Easebuzz Sub-Merchant KYC ────────────────────────────────────────
         @GET("api/v2/restaurants/payment-config/easebuzz/sub-merchant-status")
         suspend fun getEasebuzzSubMerchantStatus(

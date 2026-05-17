@@ -35,6 +35,11 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 - **New Easebuzz APIs Added**: `getRefundStatus()` (v2), `cancelTransaction()`, `initiatePayout()` (v2), `initiateOnDemandSettlement()` — all wired in `EasebuzzApiClient.java`
 - **Documentation**: Created `easebuzz-submerchant-business-model.md` (comprehensive business model + POS features + 20 sections). Updated `sub-merchant-apis.md` to 15 APIs with official Easebuzz Stoplight doc URLs for each.
 - Git: committed `04599cd` (14 files, 1845 insertions), pushed to `origin/v2`
+- **OTP APIs Implemented**: `verifyOtp()` + `resendOtp()` in `EasebuzzApiClient.java`, service methods in `SubMerchantService.java`, endpoints in `AdminSubMerchantController.java`, OTP action buttons (📱 OTP / 🔄 OTP) in web admin UI, API methods in `admin-api.service.ts`
+- **Missing Endpoints Wired**: `cancelTransaction`, `initiatePayout`, `initiateOnDemandSettlement`, `retrieveTransactionSplit` — all wired from client → service → controller
+- **Web Admin Split Retrieve**: 🔍 Retrieve Split Status button in detail panel
+- **Android Refund Status**: Added `getEasebuzzRefundStatus()` API + DTO + repo method
+- **Documentation Updated**: `sub-merchant-apis.md` endpoint table now includes all 22 endpoints
 
 ### In Progress
 - None currently
@@ -54,11 +59,12 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 2. ~~Fix remaining responsive UI issues~~ ✅ Done
 3. ~~Compile server~~ ✅ Done
 4. ~~Add sub-merchant KYC aging column~~ ✅ Done
-5. Test all Easebuzz sub-merchant APIs against sandbox (`testdashboard.easebuzz.in`, `testpay.easebuzz.in`)
-6. Verify `getRefundStatus()` and `cancelTransaction()` work correctly in sandbox
-7. Add `getRefundStatus()` endpoint to backend controller for Android polling
-8. Consider implementing `initiatePayout()` for instant commission disbursement
-9. Update `sub-merchant-password-reset` flow when Easebuzz ops enables it
+5. ~~Implement OTP APIs (Verify + Resend)~~ ✅ Done
+6. ~~Wire Cancel/Payout/Settlement/Split-Retrieve endpoints~~ ✅ Done
+7. ~~Add Android Refund Status API~~ ✅ Done
+8. Test all Easebuzz sub-merchant APIs against sandbox (`testdashboard.easebuzz.in`, `testpay.easebuzz.in`)
+9. Verify `getRefundStatus()` and `cancelTransaction()` work correctly in sandbox
+10. Update `sub-merchant-password-reset` flow when Easebuzz ops enables it
 
 ## Critical Context
 - Backend base path: `/api/v2` (dev)
@@ -72,10 +78,10 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 - Angular Emulated ViewEncapsulation adds `_ngcontent-xxx` attribute selectors — global responsive overrides need `!important` when competing with component-level `.class` rules
 
 ## Relevant Files
-- `server/.../service/EasebuzzApiClient.java` — 7 API methods (initiate payment, transaction status V2.1, refund, create/update sub-merchant, split label create, post-split create/retrieve, KYC access key)
-- `server/.../service/SubMerchantService.java` — create, submit/update to Easebuzz, KYC access key, split label
+- `server/.../service/EasebuzzApiClient.java` — 9 API methods (initiate payment, transaction status V2.1, refund, refund status, cancel, payout, settlement, create/update sub-merchant, split label create, post-split create/retrieve, KYC access key, verify OTP, resend OTP)
+- `server/.../service/SubMerchantService.java` — create, submit/update to Easebuzz, KYC access key, split label, verify OTP, resend OTP, cancel transaction, payout, settlement, split retrieve
 - `server/.../entity/EasebuzzSubMerchant.java` — added `branchName`, `splitLabel`
-- `server/.../webadmin/controller/AdminSubMerchantController.java` — 10 endpoints total
+- `server/.../webadmin/controller/AdminSubMerchantController.java` — 16 endpoints total
 - `web-admin/src/styles.css` — global styles (responsive fixes applied)
 - `web-admin/src/app/pages/sub-merchants/sub-merchants-page.component.ts` — full CRUD UI with responsive breakpoints
 - `web-admin/src/app/core/models/api.models.ts` — `EasebuzzSubMerchant` + `EasebuzzSubMerchantRequest`

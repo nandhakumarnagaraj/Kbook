@@ -59,7 +59,6 @@ public class PostSplitService {
         }
 
         String merchantRequestId = "KB_" + System.currentTimeMillis() + "_" + billId;
-        String amount = bill.getTotalAmount().toString();
 
         // Calculate commission
         BigDecimal commissionRate = sm.getCommissionRate() != null ? sm.getCommissionRate() : BigDecimal.ZERO;
@@ -74,20 +73,9 @@ public class PostSplitService {
         }
 
         List<Map<String, String>> configuration = new ArrayList<>();
-        configuration.add(Map.of("label", sm.getSplitLabel(), "amount", restaurantAmount.toString()));
+        configuration.add(Map.of("label", sm.getSplitLabel(), "amount", String.format("%.2f", restaurantAmount)));
         if (commissionAmount.compareTo(BigDecimal.ZERO) > 0) {
-            configuration.add(Map.of("label", "kb_commission", "amount", commissionAmount.toString()));
-        }
-
-        // Verify sum equals total
-        BigDecimal configSum = configuration.stream()
-            .map(c -> new BigDecimal(c.get("amount")))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        if (configSum.compareTo(totalAmount) != 0) {
-            // Adjust restaurant amount to match exactly
-            BigDecimal diff = totalAmount.subtract(configSum);
-            restaurantAmount = restaurantAmount.add(diff);
-            configuration.get(0).put("amount", restaurantAmount.toString());
+            configuration.add(Map.of("label", "kb_commission", "amount", String.format("%.2f", commissionAmount)));
         }
 
         String description = "Split for order #" + bill.getDailyOrderDisplay();
@@ -97,8 +85,8 @@ public class PostSplitService {
             attempts++;
             try {
                 log.info("Post-split attempt {}/{} billId={} merchantRequestId={}", attempts, MAX_SPLIT_ATTEMPTS, billId, merchantRequestId);
-                Map result = easebuzzApi.updateTransactionSplit(
-                    merchantRequestId, easebuzzId, amount, description, configuration
+                Map<String, Object> result = easebuzzApi.updateTransactionSplit(
+                    merchantRequestId, easebuzzId, String.format("%.2f", totalAmount), description, configuration
                 );
 
                 if ("success".equals(result.get("status"))) {
@@ -113,7 +101,7 @@ public class PostSplitService {
                 log.warn("Post-split failed billId={} error={}", billId, error);
 
                 // Check if max attempts reached for this transaction
-                if (error.contains("EBPTSURVE06")) {
+                if (error != null && error.contains("EBPTSURVE06")) {
                     log.error("Post-split max update attempts reached billId={}", billId);
                     break;
                 }

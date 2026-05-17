@@ -23,7 +23,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 	private String cdnBasePath;
 
 	@Override
-	public void addResourceHandlers(ResourceHandlerRegistry registry) {
+	public void addResourceHandlers(@org.springframework.lang.NonNull ResourceHandlerRegistry registry) {
 		String absolutePath = Paths.get(cdnBasePath).toAbsolutePath().normalize().toUri().toString();
 		registry.addResourceHandler("/cdn/**")
 				.addResourceLocations(absolutePath)
@@ -31,7 +31,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 	}
 
 	@Override
-	public void addInterceptors(InterceptorRegistry registry) {
+	public void addInterceptors(@org.springframework.lang.NonNull InterceptorRegistry registry) {
 		if (!Arrays.asList(env.getActiveProfiles()).contains("test")) {
 			registry.addInterceptor(rateLimitingInterceptor)
 					.addPathPatterns("/auth/**", "/sync/**")

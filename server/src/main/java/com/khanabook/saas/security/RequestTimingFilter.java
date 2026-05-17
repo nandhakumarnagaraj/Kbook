@@ -19,8 +19,9 @@ public class RequestTimingFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(RequestTimingFilter.class);
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@org.springframework.lang.NonNull HttpServletRequest request,
+                                    @org.springframework.lang.NonNull HttpServletResponse response,
+                                    @org.springframework.lang.NonNull FilterChain filterChain) throws ServletException, IOException {
         long start = System.currentTimeMillis();
         try {
             filterChain.doFilter(request, response);

@@ -56,11 +56,12 @@ public class SubMerchantService {
         sm.setBusinessAddress(str(data.get("businessAddress")));
         sm.setContactEmail(str(data.get("contactEmail")));
         sm.setContactPhone(str(data.get("contactPhone")));
-        sm.setCommissionRate(data.containsKey("commissionRate")
-                ? new java.math.BigDecimal(data.get("commissionRate").toString()) : java.math.BigDecimal.ZERO);
-        if (data.containsKey("upiDeductionLtLimit"))
+        Object commissionVal = data.get("commissionRate");
+        sm.setCommissionRate(commissionVal != null
+                ? new java.math.BigDecimal(commissionVal.toString()) : java.math.BigDecimal.ZERO);
+        if (data.containsKey("upiDeductionLtLimit") && data.get("upiDeductionLtLimit") != null)
             sm.setUpiDeductionLtLimit(new java.math.BigDecimal(data.get("upiDeductionLtLimit").toString()));
-        if (data.containsKey("dcDeductionGtTwoThousand"))
+        if (data.containsKey("dcDeductionGtTwoThousand") && data.get("dcDeductionGtTwoThousand") != null)
             sm.setDcDeductionGtTwoThousand(new java.math.BigDecimal(data.get("dcDeductionGtTwoThousand").toString()));
         sm.setStatus("DRAFT");
         sm.setCreatedAt(now);
@@ -74,10 +75,6 @@ public class SubMerchantService {
         return o != null ? o.toString() : null;
     }
 
-    /**
-     * After creating sub-merchant in Easebuzz Dashboard, admin
-     * updates the record with the sub_merchant_id provided by Easebuzz.
-     */
     @Transactional
     public EasebuzzSubMerchant assignSubMerchantId(Long id, String subMerchantId) {
         EasebuzzSubMerchant sm = getById(id);
@@ -101,13 +98,36 @@ public class SubMerchantService {
     }
 
     @Transactional
+    public EasebuzzSubMerchant update(Long id, Map<String, String> data) {
+        EasebuzzSubMerchant sm = getById(id);
+        if (data.containsKey("businessName")) sm.setBusinessName(data.get("businessName"));
+        if (data.containsKey("businessType")) sm.setBusinessType(data.get("businessType"));
+        if (data.containsKey("pan")) sm.setPan(data.get("pan"));
+        if (data.containsKey("gst")) sm.setGst(data.get("gst"));
+        if (data.containsKey("bankAccountNo")) sm.setBankAccountNo(data.get("bankAccountNo"));
+        if (data.containsKey("ifsc")) sm.setIfsc(data.get("ifsc"));
+        if (data.containsKey("bankName")) sm.setBankName(data.get("bankName"));
+        if (data.containsKey("branchName")) sm.setBranchName(data.get("branchName"));
+        if (data.containsKey("beneficiaryName")) sm.setBeneficiaryName(data.get("beneficiaryName"));
+        if (data.containsKey("businessAddress")) sm.setBusinessAddress(data.get("businessAddress"));
+        if (data.containsKey("contactEmail")) sm.setContactEmail(data.get("contactEmail"));
+        if (data.containsKey("contactPhone")) sm.setContactPhone(data.get("contactPhone"));
+        if (data.containsKey("commissionRate") && data.get("commissionRate") != null)
+            sm.setCommissionRate(new java.math.BigDecimal(data.get("commissionRate")));
+        if (data.containsKey("upiDeductionLtLimit") && data.get("upiDeductionLtLimit") != null)
+            sm.setUpiDeductionLtLimit(new java.math.BigDecimal(data.get("upiDeductionLtLimit")));
+        if (data.containsKey("dcDeductionGtTwoThousand") && data.get("dcDeductionGtTwoThousand") != null)
+            sm.setDcDeductionGtTwoThousand(new java.math.BigDecimal(data.get("dcDeductionGtTwoThousand")));
+        sm.setUpdatedAt(System.currentTimeMillis());
+        return subMerchantRepo.save(sm);
+    }
+
+    @Transactional
+    @SuppressWarnings("unchecked")
     public void processWebhook(Map<String, Object> payload) {
-        String rawStatus = (String) payload.getOrDefault("status", "0");
         Map<String, Object> data = (Map<String, Object>) payload.get("data");
         String subMerchantId = data != null ? (String) data.get("submerchant_id") : null;
         String kycStatus = data != null ? (String) data.get("status") : null;
-        String name = data != null ? (String) data.get("name") : null;
-        String email = data != null ? (String) data.get("email") : null;
         long now = System.currentTimeMillis();
 
         if (subMerchantId == null) {
@@ -151,7 +171,7 @@ public class SubMerchantService {
         if (sm.getSubMerchantId() == null) {
             throw new RuntimeException("Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.");
         }
-        Map result = easebuzzApi.updateSubMerchant(
+        Map<String, Object> result = easebuzzApi.updateSubMerchant(
             sm.getSubMerchantId(), sm.getBusinessName(), sm.getContactEmail(), sm.getContactPhone(),
             sm.getBankAccountNo(), sm.getIfsc(), sm.getBankName(),
             sm.getBeneficiaryName(), sm.getBranchName()
@@ -175,7 +195,7 @@ public class SubMerchantService {
             throw new RuntimeException("Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.");
         }
         String label = "sm_" + sm.getSubMerchantId();
-        Map result = easebuzzApi.createSplitLabel(
+        Map<String, Object> result = easebuzzApi.createSplitLabel(
             sm.getBeneficiaryName(), sm.getBankName(), sm.getBranchName(),
             sm.getIfsc(), sm.getBankAccountNo(), label, null
         );
@@ -185,9 +205,18 @@ public class SubMerchantService {
             subMerchantRepo.save(sm);
         }
         return Map.of(
-            "status", result.get("status"),
+            "status", result.getOrDefault("status", "failure"),
             "label", label,
             "msg", result.getOrDefault("msg", "")
+        );
+    }
+
+    public Map<String, Object> retrieveTransactionSplit(String merchantRequestId) {
+        Map<String, Object> result = easebuzzApi.retrieveTransactionSplit(merchantRequestId);
+        return Map.of(
+            "status", result.getOrDefault("status", "failure"),
+            "merchant_request_id", result.getOrDefault("merchant_request_id", merchantRequestId),
+            "split_configuration", result.getOrDefault("split_configuration", java.util.Collections.emptyList())
         );
     }
 
@@ -196,44 +225,86 @@ public class SubMerchantService {
         if (sm.getSubMerchantId() == null) {
             throw new RuntimeException("Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.");
         }
-        Map result = easebuzzApi.generateKycAccessKey(
+        Map<String, Object> result = easebuzzApi.generateKycAccessKey(
             sm.getSubMerchantId(),
             sm.getBusinessName(),
             sm.getContactEmail(),
             sm.getContactPhone()
         );
         String kycUrl = (String) result.getOrDefault("kyc_url", "");
-        if (!kycUrl.isBlank()) {
+        if (kycUrl != null && !kycUrl.isBlank()) {
             sm.setKycPortalUrl(kycUrl);
             sm.setUpdatedAt(System.currentTimeMillis());
             subMerchantRepo.save(sm);
         }
         return Map.of(
-            "status", result.get("status"),
-            "kyc_url", kycUrl,
+            "status", result.getOrDefault("status", "failure"),
+            "kyc_url", kycUrl != null ? kycUrl : "",
             "sub_merchant_id", sm.getSubMerchantId()
         );
+    }
+
+    public Map<String, Object> verifyOtp(Long id, String otp) {
+        EasebuzzSubMerchant sm = getById(id);
+        if (sm.getSubMerchantId() == null) {
+            throw new RuntimeException("Sub-merchant has no Easebuzz ID.");
+        }
+        return easebuzzApi.verifyOtp(sm.getSubMerchantId(), otp);
+    }
+
+    public Map<String, Object> resendOtp(Long id) {
+        EasebuzzSubMerchant sm = getById(id);
+        if (sm.getSubMerchantId() == null) {
+            throw new RuntimeException("Sub-merchant has no Easebuzz ID.");
+        }
+        return easebuzzApi.resendOtp(sm.getSubMerchantId());
+    }
+
+    public Map<String, Object> initiateOnDemandSettlement(String amount) {
+        String requestId = "SETTLE_" + System.currentTimeMillis();
+        return easebuzzApi.initiateOnDemandSettlement(requestId, amount);
+    }
+
+    public Map<String, Object> initiatePayout(String amount, Map<String, String> beneficiaryDetails) {
+        String requestId = "PAYOUT_" + System.currentTimeMillis();
+        return easebuzzApi.initiatePayout(requestId, amount, beneficiaryDetails);
+    }
+
+    public Map<String, Object> retrieveSettlements(String date) {
+        return easebuzzApi.retrieveSettlements(date);
+    }
+
+    @Transactional
+    public void deleteSubMerchant(Long id) {
+        subMerchantRepo.deleteById(id);
+        log.info("Sub-merchant {} deleted via dev-refresh.", id);
     }
 
     @Transactional
     public EasebuzzSubMerchant submitToEasebuzz(Long id) {
         EasebuzzSubMerchant sm = getById(id);
-        Map result = easebuzzApi.createSubMerchant(
+        Map<String, Object> result = easebuzzApi.createSubMerchant(
             sm.getBusinessName(), sm.getContactEmail(), sm.getContactPhone(),
             sm.getBankAccountNo(), sm.getIfsc(), sm.getBankName(),
-            sm.getBeneficiaryName(), sm.getBranchName()
+            sm.getBeneficiaryName(), sm.getBranchName(),
+            sm.getBusinessType(), sm.getPan(), sm.getGst(),
+            sm.getBusinessAddress()
         );
-        Boolean apiStatus = (Boolean) result.get("status");
-        if (Boolean.TRUE.equals(apiStatus)) {
-            String subMerchantId = (String) result.get("submerchant_id");
+        Object statusObj = result != null ? result.get("status") : null;
+        boolean apiStatus = statusObj instanceof Boolean ? (Boolean) statusObj : false;
+        if (apiStatus && result != null) {
+            Object subMerchantIdObj = result.get("submerchant_id");
+            String subMerchantId = subMerchantIdObj != null ? subMerchantIdObj.toString() : null;
             sm.setSubMerchantId(subMerchantId);
             sm.setStatus("PENDING_KYC");
             sm.setKycSubmittedAt(System.currentTimeMillis());
             sm.setEasebuzzResponse(result.toString());
         } else {
             sm.setStatus("FAILED");
-            String error = (String) result.get("error");
-            sm.setEasebuzzResponse(error != null ? error : result.toString());
+            Object errorObj = result != null ? result.get("error") : null;
+            String error = errorObj != null ? errorObj.toString() : (result != null ? result.toString() : "Unknown error");
+            log.error("Easebuzz submission failed for smId={}: {}", id, error);
+            sm.setEasebuzzResponse(error);
         }
         sm.setUpdatedAt(System.currentTimeMillis());
         subMerchantRepo.save(sm);

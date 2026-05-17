@@ -24,4 +24,6 @@ public interface AuthService {
 	void resetPassword(String phoneNumber, String otp, String newPassword);
 
 	boolean checkUserExists(String phoneNumber);
+
+	void devReset();
 }

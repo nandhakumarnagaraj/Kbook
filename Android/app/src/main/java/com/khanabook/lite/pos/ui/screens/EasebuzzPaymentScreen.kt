@@ -109,6 +109,7 @@ fun EasebuzzPaymentScreen(
     fun launchSdk() {
         val token = accessToken ?: return
         val activity = context as? Activity ?: return
+        val url = paymentUrl ?: return
         screenState = PaymentScreenState.PROCESSING
         paymentRepository.launchSdk(
             activity = activity,
@@ -132,8 +133,13 @@ fun EasebuzzPaymentScreen(
                 }
             },
             onFailure = { error ->
-                errorMessage = error ?: "Payment failed"
-                screenState = PaymentScreenState.FAILED
+                // Auto-fallback to Custom Tabs for sandbox compatibility
+                if (error?.contains("Custom Tabs fallback") == true) {
+                    paymentRepository.launchFallback(context, url)
+                } else {
+                    errorMessage = error ?: "Payment failed"
+                    screenState = PaymentScreenState.FAILED
+                }
             }
         )
     }

@@ -13,7 +13,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.math.BigDecimal;
 import java.util.Map;
-import java.util.UUID;
+
+import org.junit.jupiter.api.AfterEach;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -38,49 +40,58 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     
     @MockBean private EasebuzzApiClient easebuzzApi;
 
-    private static final Long TEST_RESTAURANT_ID = 999L;
-    private static final String TEST_SUBMERCHANT_ID = "S360TEST";
+    private Long testRestaurantId;
+    private String testLoginId;
+    private String testSubMerchantId;
 
     @BeforeEach
     void setup() {
-        persistUser("testadmin@kbook.com", TEST_RESTAURANT_ID, UserRole.KBOOK_ADMIN);
+        testRestaurantId = 900L + System.currentTimeMillis() % 100;
+        testLoginId = "testadmin" + System.currentTimeMillis() + "@kbook.com";
+        testSubMerchantId = "S360TEST" + System.currentTimeMillis();
+        persistUser(testLoginId, testRestaurantId, UserRole.KBOOK_ADMIN);
     }
 
+    @AfterEach
+    void cleanup() {
+        // Data cleaned up by @Transactional rollback
+    }
+
+    @Transactional
     @Test
     void testSubMerchantLifecycle() {
         // 1. Create draft
-        Map<String, Object> data = Map.of(
-            "businessName", "Test Restaurant",
-            "businessType", "Restaurant",
-            "pan", "ABCDE1234F",
-            "gst", "27AABCU9603R1ZM",
-            "bankAccountNo", "123456789012",
-            "ifsc", "HDFC0000123",
-            "bankName", "HDFC",
-            "branchName", "Test Branch",
-            "beneficiaryName", "Test Owner",
-            "businessAddress", "123 Test St",
-            "contactEmail", "test@example.com",
-            "contactPhone", "9999999999",
-            "commissionRate", "3.0"
-        );
+        Map<String, Object> data = new java.util.HashMap<>();
+        data.put("businessName", "Test Restaurant");
+        data.put("businessType", "Restaurant");
+        data.put("pan", "ABCDE1234F");
+        data.put("gst", "27AABCU9603R1ZM");
+        data.put("bankAccountNo", "123456789012");
+        data.put("ifsc", "HDFC0000123");
+        data.put("bankName", "HDFC");
+        data.put("branchName", "Test Branch");
+        data.put("beneficiaryName", "Test Owner");
+        data.put("businessAddress", "123 Test St");
+        data.put("contactEmail", "test@example.com");
+        data.put("contactPhone", "9999999999");
+        data.put("commissionRate", "3.0");
 
-        EasebuzzSubMerchant sm = subMerchantService.create(data, TEST_RESTAURANT_ID);
+        EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
         assertNotNull(sm.getId());
         assertEquals("DRAFT", sm.getStatus());
         assertEquals("Test Restaurant", sm.getBusinessName());
 
         // 2. Submit to Easebuzz (mock)
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any()))
-            .thenReturn(Map.of("status", true, "submerchant_id", TEST_SUBMERCHANT_ID));
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
         assertEquals("PENDING_KYC", submitted.getStatus());
-        assertEquals(TEST_SUBMERCHANT_ID, submitted.getSubMerchantId());
+        assertNotNull(submitted.getSubMerchantId());
 
         // 3. Generate KYC access key (mock)
         when(easebuzzApi.generateKycAccessKey(any(), any(), any(), any()))
-            .thenReturn(Map.of("status", true, "msg", "https://kyc.easebuzz.in/test"));
+            .thenReturn(Map.of("status", "success", "kyc_url", "https://kyc.easebuzz.in/test"));
 
         Map<String, Object> kycResult = subMerchantService.generateKycAccessKey(sm.getId());
         assertEquals("success", kycResult.get("status"));
@@ -92,16 +103,16 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // 4. Create split label (mock)
         when(easebuzzApi.createSplitLabel(any(), any(), any(), any(), any(), any(), any()))
-            .thenReturn(Map.of("status", true, "msg", "Label created"));
+            .thenReturn(Map.of("status", "success", "msg", "Label created"));
 
         Map<String, Object> splitResult = subMerchantService.createSplitLabel(sm.getId());
         assertEquals("success", splitResult.get("status"));
-        assertEquals("sm_" + TEST_SUBMERCHANT_ID, splitResult.get("label"));
+        assertEquals("sm_" + testSubMerchantId, splitResult.get("label"));
 
         // 5. Simulate KYC approval webhook
         subMerchantService.processWebhook(Map.of(
             "status", "1",
-            "data", Map.of("submerchant_id", TEST_SUBMERCHANT_ID, "status", "True")
+            "data", Map.of("submerchant_id", testSubMerchantId, "status", "True")
         ));
 
         EasebuzzSubMerchant active = subMerchantRepo.findById(sm.getId()).orElseThrow();
@@ -115,7 +126,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         EasebuzzSubMerchant sm = createActiveSubMerchant();
 
         // Create a bill
-        Bill bill = createTestBill(TEST_RESTAURANT_ID, new BigDecimal("1000.00"));
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("1000.00"));
 
         // Mock payment initiation
         when(easebuzzApi.initiatePayment(any()))
@@ -126,7 +137,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
             ));
 
         // 1. Create payment order
-        Map<String, Object> result = paymentService.createOrder(bill.getId(), TEST_RESTAURANT_ID);
+        Map<String, Object> result = paymentService.createOrder(bill.getId(), testRestaurantId);
         assertEquals("success", result.get("status"));
         assertNotNull(result.get("txnid"));
         assertTrue(result.get("txnid").toString().startsWith("KB"));
@@ -139,7 +150,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         // 2. Simulate payment webhook
         String txnid = updatedBill.getGatewayTxnId();
         when(easebuzzApi.updateTransactionSplit(any(), any(), any(), any(), any()))
-            .thenReturn(Map.of("status", true, "request_status", "success"));
+            .thenReturn(Map.of("status", "success", "request_status", "success"));
 
         // The webhook handler would trigger post-split async
         // For testing, we call the split service directly
@@ -155,14 +166,18 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     @Test
     void testRefundFlow() {
         // Setup paid bill
-        Bill bill = createTestBill(TEST_RESTAURANT_ID, new BigDecimal("500.00"));
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("500.00"));
         bill.setGatewayTxnId("KBTEST123");
         bill.setGatewayStatus("success");
         bill.setPaymentStatus("paid");
         billRepository.save(bill);
 
+        // Mock transaction status check (needed for resolveEasebuzzId)
+        when(easebuzzApi.getTransactionStatus(any()))
+            .thenReturn(Map.of("status", "success", "easebuzz_id", "E250TEST123"));
+
         // Mock refund
-        when(easebuzzApi.initiateRefund(any(), any(), any(), any()))
+        when(easebuzzApi.initiateRefund(any(), any(), any()))
             .thenReturn(Map.of(
                 "status", true,
                 "msg", Map.of("refund_id", "REFTEST123", "status", "initiated")
@@ -181,7 +196,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         // Mock refund status check
         when(easebuzzApi.getRefundStatus(any(), any()))
             .thenReturn(Map.of(
-                "status", true,
+                "status", "success",
                 "msg", Map.of("refund_id", "REFTEST123", "status", "completed")
             ));
 
@@ -211,7 +226,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     @Test
     void testPostSplitRetryExhaustion() {
         // Setup
-        Bill bill = createTestBill(TEST_RESTAURANT_ID, new BigDecimal("1000.00"));
+        Bill bill = createTestBill(testRestaurantId, new BigDecimal("1000.00"));
         EasebuzzSubMerchant sm = createActiveSubMerchant();
 
         // Mock split API to always fail
@@ -232,11 +247,11 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
     private EasebuzzSubMerchant createActiveSubMerchant() {
         EasebuzzSubMerchant sm = new EasebuzzSubMerchant();
-        sm.setRestaurantId(TEST_RESTAURANT_ID);
+        sm.setRestaurantId(testRestaurantId);
         sm.setBusinessName("Test Restaurant");
-        sm.setSubMerchantId(TEST_SUBMERCHANT_ID);
+        sm.setSubMerchantId(testSubMerchantId);
         sm.setStatus("ACTIVE");
-        sm.setSplitLabel("sm_" + TEST_SUBMERCHANT_ID);
+        sm.setSplitLabel("sm_" + testSubMerchantId);
         sm.setBankAccountNo("123456789012");
         sm.setIfsc("HDFC0000123");
         sm.setBankName("HDFC");

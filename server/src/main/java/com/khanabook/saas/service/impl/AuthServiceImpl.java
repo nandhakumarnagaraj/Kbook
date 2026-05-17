@@ -325,6 +325,15 @@ public class AuthServiceImpl implements AuthService {
 		return findUserByLoginId(phoneNumber).isPresent();
 	}
 
+	@Override
+	@Transactional
+	public void devReset() {
+		log.warn("DEV RESET TRIGGERED: Wiping all data...");
+		userRepository.deleteAll();
+		restaurantProfileRepository.deleteAll();
+		// Other repos will be cascade-deleted or can be added here
+	}
+
 	private java.util.Optional<User> findUserByLoginId(String phoneNumber) {
 		return userRepository.findByPhoneNumber(phoneNumber)
 				.or(() -> userRepository.findByLoginIdIgnoreCase(normalizeLoginIdentifier(phoneNumber)))

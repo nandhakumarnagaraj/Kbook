@@ -2,9 +2,6 @@ package com.khanabook.saas.sync.dto.payload;
 
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.khanabook.saas.entity.*;
-import java.math.BigDecimal;
 
 @Data
 public class MenuItemDTO {
@@ -21,16 +18,17 @@ public class MenuItemDTO {
     private Long serverUpdatedAt;
     private Long createdAt;
 
-    private Long categoryId;
-    private Long serverCategoryId;
-    private Category category;
     private String name;
+    private Long categoryId;
+    @JsonProperty("categoryLocalId")
+    private Long categoryLocalId;
+    private Long serverCategoryId;
+
     private java.math.BigDecimal basePrice;
-    private String foodType;
-    private String description;
-    private String barcode;
+    private String imageUrl;
+    private Boolean isVeg;
     private Boolean isAvailable;
-    private java.math.BigDecimal currentStock;
-    private java.math.BigDecimal lowStockThreshold;
+    private String description;
+    private Integer sortOrder;
     private Boolean overwriteExisting;
 }

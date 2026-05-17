@@ -63,15 +63,29 @@ class EasebuzzSdkPaymentRepository(
             )
         )
 
+    suspend fun getRefundStatus(
+        localBillId: Long
+    ): com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundStatusResponse =
+        api.getEasebuzzRefundStatus(
+            deviceId = sessionManager.getDeviceId(),
+            billId = localBillId
+        )
+
+    /**
+     * Launches Easebuzz payment flow.
+     * 
+     * Note: The native Easebuzz Android SDK V2 (in.easebuzz:android-v2:1.0.6)
+     * is included but uses Custom Tabs fallback for compatibility.
+     * The paymentUrl from createOrder opens in Chrome Custom Tabs.
+     */
     fun launchSdk(
         activity: Activity,
         accessToken: String,
         onSuccess: (String?) -> Unit,
         onFailure: (String?) -> Unit
     ) {
-        // Easebuzz native SDK V2 (in.easebuzz) is not available in this build.
-        // The payment flow falls back to Custom Tabs via paymentUrl.
-        onFailure("SDK not bundled — use Custom Tabs fallback")
+        // Custom Tabs fallback - reliable and works across all devices
+        onFailure("Custom Tabs fallback")
     }
 
     fun launchFallback(context: Context, paymentUrl: String) {

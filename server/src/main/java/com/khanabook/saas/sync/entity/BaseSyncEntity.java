@@ -31,6 +31,7 @@ public abstract class BaseSyncEntity {
 
 	@Column(name = "restaurant_id", nullable = false)
 	@JsonProperty("restaurantId")
+	@com.fasterxml.jackson.databind.annotation.JsonSerialize(using = com.fasterxml.jackson.databind.ser.std.ToStringSerializer.class)
 	private Long restaurantId;
 
 	@Column(name = "updated_at", nullable = false)

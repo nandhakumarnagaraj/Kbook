@@ -252,6 +252,7 @@ export interface UpdateBusinessProfileRequest {
 }
 
 export interface EasebuzzSubMerchantRequest {
+  restaurantId?: number;
   businessName: string;
   businessType: string;
   pan: string;

@@ -57,8 +57,32 @@ export class AdminApiService {
     return this.http.post<{ status: string; label: string; msg: string }>(`${API_BASE_URL}/admin/sub-merchants/${id}/split-label`, {});
   }
 
+  retrieveSplitStatus(id: number, merchantRequestId: string) {
+    return this.http.post<{ status: string; merchant_request_id: string; split_configuration: any[] }>(`${API_BASE_URL}/admin/sub-merchants/${id}/split-retrieve`, { merchantRequestId });
+  }
+
   updateSubMerchantStatus(id: number, status: string) {
     return this.http.put<EasebuzzSubMerchant>(`${API_BASE_URL}/admin/sub-merchants/${id}/status`, { status });
+  }
+
+  verifyOtp(id: number, otp: string) {
+    return this.http.post<any>(`${API_BASE_URL}/admin/sub-merchants/${id}/verify-otp`, { otp });
+  }
+
+  resendOtp(id: number) {
+    return this.http.post<any>(`${API_BASE_URL}/admin/sub-merchants/${id}/resend-otp`, {});
+  }
+
+  onDemandSettlement(amount: string) {
+    return this.http.post<any>(`${API_BASE_URL}/admin/sub-merchants/settlements/on-demand`, { amount });
+  }
+
+  initiatePayout(amount: string, beneficiaryDetails: any) {
+    return this.http.post<any>(`${API_BASE_URL}/admin/sub-merchants/payout`, { amount, beneficiaryDetails });
+  }
+
+  retrieveSettlementsByDate(date: string) {
+    return this.http.get<any>(`${API_BASE_URL}/admin/sub-merchants/settlements/retrieve?date=${date}`);
   }
 
   getTransactions(page: number, size: number, status?: string, restaurantId?: number) {
