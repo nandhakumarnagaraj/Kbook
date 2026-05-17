@@ -752,6 +752,10 @@ import { formatCurrency } from '../../shared/formatters';
       .next-step-grid {
         grid-template-columns: 1fr;
       }
+      .metric-card {
+        border-color: var(--line-strong);
+        box-shadow: var(--shadow-md);
+      }
       .hero-panel {
         padding: 1rem;
       }

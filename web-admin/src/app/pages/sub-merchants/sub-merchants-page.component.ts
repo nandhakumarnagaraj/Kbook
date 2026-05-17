@@ -3,7 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { EasebuzzSubMerchant, EasebuzzSubMerchantRequest } from '../../core/models/api.models';
-import { formatDate } from '../../shared/formatters';
+import { formatDate, formatAge } from '../../shared/formatters';
 
 const STATUS_OPTIONS = ['ALL', 'DRAFT', 'PENDING_KYC', 'KYC_SUBMITTED', 'ACTIVE', 'SUSPENDED', 'REJECTED', 'FAILED'] as const;
 const KYC_OPTIONS = ['ALL', 'PENDING', 'SUBMITTED', 'ACTIVATED', 'FAILED'] as const;
@@ -114,6 +114,7 @@ function formatStatus(status: string): string {
               <th>Business Name</th>
               <th>Status</th>
               <th>KYC Status</th>
+              <th>KYC Age</th>
               <th>Contact</th>
               <th>Commission</th>
               <th>Created</th>
@@ -131,6 +132,7 @@ function formatStatus(status: string): string {
               </td>
               <td><span [class]="getStatusChip(sm.status)">{{ formatStatusValue(sm.status) }}</span></td>
               <td><span [class]="getKycChip(sm.kycStatus)">{{ sm.kycStatus || '-' }}</span></td>
+              <td>{{ formatKycAge(sm) }}</td>
               <td>
                 <div class="stacked-meta">
                   <span>{{ sm.contactEmail || '-' }}</span>
@@ -1146,6 +1148,14 @@ export class SubMerchantsPageComponent implements OnInit {
 
   formatDateValue(value: number | null): string {
     return formatDate(value);
+  }
+
+  formatKycAge(sm: EasebuzzSubMerchant): string {
+    if (sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'ACTIVE') {
+      return 'Done';
+    }
+    const ts = sm.kycSubmittedAt ?? sm.createdAt;
+    return formatAge(ts);
   }
 
   showConfirm(title: string, message: string, onConfirm: () => void): void {

@@ -226,7 +226,7 @@ fun PrinterConfigView(
                     onAutoPrintChange = {},
                     onPaperSizeChange = { kitchenPaper58 = it },
                     onIncludeLogoChange = {},
-                    helperText = "Used only for first-time billing. Reprint stays customer receipt only.",
+                    helperText = null,
                     onSelectPrinter = {
                         pendingRole = PrinterRole.KITCHEN
                         if (!viewModel.hasBluetoothPermissions(context)) {

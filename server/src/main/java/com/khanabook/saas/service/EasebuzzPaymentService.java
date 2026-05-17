@@ -104,8 +104,7 @@ public class EasebuzzPaymentService {
             bill.getGatewayTxnId(),
             bill.getTotalAmount().toString(),
             amount.toString(),
-            "",
-            bill.getCustomerWhatsapp() != null ? bill.getCustomerWhatsapp() : ""
+            reason
         );
         String status = (String) result.getOrDefault("status", "failure");
         log.info("Refund initiated billId={} amount={} status={}", billId, amount, status);

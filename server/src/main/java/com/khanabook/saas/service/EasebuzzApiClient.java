@@ -35,15 +35,12 @@ public class EasebuzzApiClient {
         String udf3 = data.getOrDefault("udf3", "");
         String udf4 = data.getOrDefault("udf4", "");
         String udf5 = data.getOrDefault("udf5", "");
-        String udf6 = data.getOrDefault("udf6", "");
-        String udf7 = data.getOrDefault("udf7", "");
-        String udf8 = data.getOrDefault("udf8", "");
-        String udf9 = data.getOrDefault("udf9", "");
-        String udf10 = data.getOrDefault("udf10", "");
 
+        // Official hash sequence:
+        // key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5|||||||salt
         String hash = generateHash(
             props.getMerchantKey(), txnid, amount, productinfo, firstname, email,
-            udf1, udf2, udf3, udf4, udf5, udf6, udf7, udf8, udf9, udf10
+            udf1, udf2, udf3, udf4, udf5, "", "", "", "", ""
         );
 
         Map<String, String> params = new HashMap<>(data);
@@ -97,21 +94,81 @@ public class EasebuzzApiClient {
     }
 
     public Map initiateRefund(String txnid, String amount, String refundAmount,
-                               String email, String phone) {
+                                String reason) {
         Map<String, String> params = new HashMap<>();
         params.put("key", props.getMerchantKey());
         params.put("txnid", txnid);
         params.put("amount", amount);
         params.put("refund_amount", refundAmount);
-        params.put("email", email != null ? email : "");
-        params.put("phone", phone != null ? phone : "");
+        if (reason != null) {
+            params.put("reason", reason);
+        }
 
-        String hash = generateHash(
-            props.getMerchantKey(), txnid, amount, refundAmount, params.get("email"), params.get("phone")
-        );
+        // Refund API v2 hash: key|txnid|amount|salt
+        String hash = generateHash(props.getMerchantKey(), txnid, amount);
         params.put("hash", hash);
 
-        return post(props.getDashboardBaseUrl() + "/transaction/v1/refund", params);
+        return post(props.getPaymentBaseUrl() + "/transaction/v2/refund", params);
+    }
+
+    public Map getRefundStatus(String txnid, String refundId) {
+        Map<String, String> params = new HashMap<>();
+        params.put("key", props.getMerchantKey());
+        params.put("txnid", txnid);
+        params.put("refund_id", refundId);
+
+        // Refund Status API hash: key|txnid|refund_id|salt
+        String hash = generateHash(props.getMerchantKey(), txnid, refundId);
+        params.put("hash", hash);
+
+        return post(props.getPaymentBaseUrl() + "/transaction/v2/refund_status", params);
+    }
+
+    public Map cancelTransaction(String txnid, String amount) {
+        Map<String, String> params = new HashMap<>();
+        params.put("key", props.getMerchantKey());
+        params.put("txnid", txnid);
+        params.put("amount", amount);
+
+        // Cancel Transaction API hash: key|txnid|amount|salt
+        String hash = generateHash(props.getMerchantKey(), txnid, amount);
+        params.put("hash", hash);
+
+        return post(props.getPaymentBaseUrl() + "/transaction/v1/cancel", params);
+    }
+
+    public Map initiatePayout(String merchantRequestId, String amount,
+                               String beneficiaryName, String beneficiaryAccount,
+                               String beneficiaryIfsc, String purpose) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("key", props.getMerchantKey());
+        body.put("merchant_request_id", merchantRequestId);
+        body.put("amount", amount);
+        body.put("beneficiary_name", beneficiaryName);
+        body.put("beneficiary_account_number", beneficiaryAccount);
+        body.put("beneficiary_ifsc", beneficiaryIfsc);
+        if (purpose != null) {
+            body.put("purpose", purpose);
+        }
+
+        // Payout API v2 hash: key|merchant_request_id|amount|salt
+        String hash = generateHash(props.getMerchantKey(), merchantRequestId, amount);
+        body.put("hash", hash);
+
+        return postJson(props.getDashboardBaseUrl() + "/payout/v2/transfer", body);
+    }
+
+    public Map initiateOnDemandSettlement(String merchantRequestId, String amount) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("key", props.getMerchantKey());
+        body.put("merchant_request_id", merchantRequestId);
+        body.put("amount", amount);
+
+        // On-Demand Settlement hash: key|merchant_request_id|amount|salt
+        String hash = generateHash(props.getMerchantKey(), merchantRequestId, amount);
+        body.put("hash", hash);
+
+        return postJson(props.getDashboardBaseUrl() + "/settlement/v1/on_demand", body);
     }
 
     public Map createSubMerchant(String subMerchantName, String email, String phone,

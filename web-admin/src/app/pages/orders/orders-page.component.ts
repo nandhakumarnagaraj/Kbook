@@ -416,6 +416,8 @@ type OrderTab = 'pos' | 'online';
       .modal-box {
         padding: 1rem;
         width: calc(100vw - 1rem);
+        max-width: unset;
+        margin: 0 auto;
       }
       .modal-actions { flex-direction: column-reverse; }
       .modal-actions .ghost-btn { width: 100%; }
