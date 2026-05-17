@@ -11,7 +11,7 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 
 ## Progress
 ### Done
-- **Easebuzz Transaction Status → V2.1**: endpoint `/transaction/v2.1/retrieve`, hash `key|txnid|salt` (removed `amount|email|phone`)
+- **Easebuzz Transaction Status → V2.1**: endpoint `/transaction/v2.1/retrieve`, hash `key|txnid|salt`
 - **Easebuzz Update Sub-Merchant**: same endpoint `/merchant/v1/submerchant/create` with `sub_merchant_id` in body, no password fields
 - **Split Label Create API**: `/split/v1/create`, hash `key|name_on_bank|bank_name|branch_name|ifsc_code|account_number|label|salt`
 - **Post-Transaction Split Create**: `/post-split/v1/create/`, hash `key|merchant_request_id|easebuzz_id|salt`, max 3 attempts per transaction
@@ -23,22 +23,24 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 - Web admin `api.models.ts`: added `bankName`, `branchName`, `splitLabel`, `upiDeductionLtLimit`, `dcDeductionGtTwoThousand`, `idProofUrl`, `bankProofUrl`, `easebuzzResponse` to `EasebuzzSubMerchant`; added `bankName`, `branchName`, `upiDeductionLtLimit`, `dcDeductionGtTwoThousand` to `EasebuzzSubMerchantRequest`
 - Web admin `admin-api.service.ts`: fixed `generateKyc` URL → `/kyc-access-key`, removed dead `registerSubMerchant`, added `submitToEasebuzz()`, `updateOnEasebuzz()`, `createSplitLabel()`
 - Web admin sub-merchant page: context-sensitive action buttons (Submit 🚀, KYC 🔑, Sync 🔄, Split 🏷️), form fields for `bankName`/`branchName`, detail panel showing bank info + split label
-- Created `sub-merchant-apis.md` — full API reference document (6 APIs + onboarding flow + backend endpoints)
+- **KYC Aging Column**: added to sub-merchant admin table (`formatAge()` utility in `formatters.ts`)
+- **Responsive UI Fixes**: orders refund modal width (`max-width: unset` on mobile), business dashboard metric card contrast (stronger border/shadow on mobile), global `styles.css` refactored with `@media (prefers-reduced-motion: reduce)` and `100dvh` support
 - Brand logo: created SVG placeholder → replaced with PNG from Android `khanabook_logo.png` → deployed to web admin sidebar + login page + og:image + favicon
 - SEO: meta description, og:title/description/type/image in `index.html`
 - Web admin login page: added logo, updated copy, removed old `h1`/`.eyebrow` CSS
 - Web admin sidebar: added `.brand-logo` image, removed text-only branding
-- Git: committed `817858b` (26 files, 1441 insertions), pushed to `origin/v2`
-- Responsive UI audit completed: catalogued critical/high/medium issues across sidebar-layout, sub-merchants, orders, login, business-dashboard, and global `styles.css`
-- **Responsive UI fix round 1**: global `styles.css` refactored — `th,td white-space: nowrap → normal`, `.nowrap` utility, `!important` removed where unnecessary (kept where needed for Angular Encapsulation), `@media (prefers-reduced-motion: reduce)`, `100dvh` support via `@supports`, responsive action-cell/grid/modal/toast breakpoints. Login: Google button width `hardcoded 400px` removed, CSS `max-width: 100%`. Sidebar: `100dvh` fallback. Sub-merchants: action-cell `flex-wrap: wrap`, toolbar responsive, 720px/520px breakpoints added.
 - **GST/FSSAI Lookup UI wired**: Android `TaxConfigView` now has "Fetch" buttons next to FSSAI and GSTIN fields, plus a "Fetch Both" button. `SettingsViewModel` calls `/api/v2/business/lookup/gst`, `/fssai`, `/both` and shows results in an AlertDialog. Users can apply fetched `businessName`/`address` to `shopName`/`shopAddress` and update `gstin`/`fssaiNumber`. Build compiles successfully.
+- **Server Compilation Fixed**: Added Maven wrapper (`mvnw`) to `server/`. `target/classes` now reflects new `.java` files. `NoResourceFoundException` for `/api/v2/business/profile` resolved.
+- **Easebuzz Hash Corrections** (critical): Initiate Payment hash fixed from `udf6-udf10` to 5 empty pipes (`||||||`). Refund endpoint upgraded from v1 (`/transaction/v1/refund`) to v2 (`/transaction/v2/refund`) with correct hash `key|txnid|amount|salt`.
+- **New Easebuzz APIs Added**: `getRefundStatus()` (v2), `cancelTransaction()`, `initiatePayout()` (v2), `initiateOnDemandSettlement()` — all wired in `EasebuzzApiClient.java`
+- **Documentation**: Created `easebuzz-submerchant-business-model.md` (comprehensive business model + POS features + 20 sections). Updated `sub-merchant-apis.md` to 15 APIs with official Easebuzz Stoplight doc URLs for each.
+- Git: committed `04599cd` (14 files, 1845 insertions), pushed to `origin/v2`
 
 ### In Progress
 - None currently
 
 ### Blocked
-- Server compilation: Maven not on PATH, `mvnw` not present — `target/classes` contains old compiled classes; new `.java` files not reflected at runtime
-- `NoResourceFoundException: No static resource business/profile` on `GET /api/v2/business/profile`
+- None currently
 
 ## Key Decisions
 - Two separate Split APIs: `/split/v1/create` (one-time bank-to-label linkage) and `/post-split/v1/create/` (per-transaction fund distribution)
@@ -49,10 +51,14 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 
 ## Next Steps
 1. ~~Wire GST/FSSAI lookup UI~~ ✅ Done
-2. Fix remaining responsive UI issues: orders page refund modal width, business dashboard metric card contrast on mobile
-3. Compile server: install Maven or restart via IDE to pick up new `.java` files
-4. Test all Easebuzz sub-merchant APIs against sandbox (`testdashboard.easebuzz.in`, `testpay.easebuzz.in`)
-5. Add sub-merchant KYC aging column to admin table view
+2. ~~Fix remaining responsive UI issues~~ ✅ Done
+3. ~~Compile server~~ ✅ Done
+4. ~~Add sub-merchant KYC aging column~~ ✅ Done
+5. Test all Easebuzz sub-merchant APIs against sandbox (`testdashboard.easebuzz.in`, `testpay.easebuzz.in`)
+6. Verify `getRefundStatus()` and `cancelTransaction()` work correctly in sandbox
+7. Add `getRefundStatus()` endpoint to backend controller for Android polling
+8. Consider implementing `initiatePayout()` for instant commission disbursement
+9. Update `sub-merchant-password-reset` flow when Easebuzz ops enables it
 
 ## Critical Context
 - Backend base path: `/api/v2` (dev)
