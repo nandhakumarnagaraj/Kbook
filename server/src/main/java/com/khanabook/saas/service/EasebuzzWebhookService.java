@@ -21,6 +21,7 @@ public class EasebuzzWebhookService {
     private static final Logger log = LoggerFactory.getLogger(EasebuzzWebhookService.class);
     private final BillRepository billRepo;
     private final SubMerchantService subMerchantService;
+    private final PostSplitService postSplitService;
     private final EasebuzzProperties props;
 
     @Transactional
@@ -52,6 +53,9 @@ public class EasebuzzWebhookService {
                     }
                     billRepo.save(bill);
                     log.info("Bill {} marked paid via webhook txnid={}", billId, txnid);
+
+                    // Trigger post-transaction split asynchronously
+                    postSplitService.createPostSplitAsync(billId, easebuzzId, txnid);
                 });
             } catch (NumberFormatException e) {
                 log.warn("Invalid billId in webhook udf1: {}", udf1);
