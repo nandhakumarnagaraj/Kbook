@@ -158,7 +158,7 @@ function formatStatus(status: string): string {
                 <div class="action-cell">
                   <button class="ghost-btn" (click)="viewDetail(sm)" title="View">👁️</button>
                   <button class="ghost-btn" (click)="openEdit(sm)" title="Edit">✏️</button>
-                  <button class="ghost-btn" (click)="wireLookupByMerchant(sm)" title="Lookup on WIRE platform by email" *ngIf="sm.contactEmail">🌐</button>
+                  <button class="ghost-btn" (click)="wireLookupByMerchantPrompt(sm)" [title]="'Lookup WIRE: ' + sm.contactEmail" *ngIf="sm.contactEmail">🌐</button>
                   <ng-container *ngIf="sm.status === 'DRAFT'">
                     <button class="ghost-btn" (click)="submitToEasebuzz(sm)" title="Submit to Easebuzz API">
                       <span class="chip chip-sm info">🚀 Submit</span>
@@ -1389,23 +1389,30 @@ export class SubMerchantsPageComponent implements OnInit {
   // WIRE Platform Action Handlers
   // ============================================================
 
-  /** One-click WIRE lookup by merchant's email from table row */
-  wireLookupByMerchant(merchant: EasebuzzSubMerchant): void {
-    if (!merchant.contactEmail) {
-      this.showFeedback('This merchant has no email to look up.', true);
-      return;
-    }
-    this.api.wireLookupByEmail(merchant.contactEmail).subscribe({
-      next: (res) => {
-        this.wireLookupResult.set({ query: merchant.contactEmail!, type: 'email', data: res });
+  /** Prompt with merchant email pre-filled, then do WIRE lookup */
+  wireLookupByMerchantPrompt(merchant: EasebuzzSubMerchant): void {
+    const email = merchant.contactEmail || '';
+    this.promptValue = email;
+    this.promptDialog.set({
+      title: 'WIRE Lookup by Email',
+      message: `Look up "${merchant.businessName}" on the Easebuzz WIRE platform.`,
+      placeholder: email,
+      onConfirm: (value) => {
+        if (!value) return;
         this.selectedSubMerchant.set(merchant);
-        this.autoMatchFromWireLookup();
-        if (!this.matchedMerchantId()) {
-          this.showFeedback(`WIRE lookup for ${merchant.contactEmail} complete. No match found locally.`);
-        }
-        setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
-      },
-      error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
+        this.api.wireLookupByEmail(value).subscribe({
+          next: (res) => {
+            this.wireLookupResult.set({ query: value, type: 'email', data: res });
+            this.autoMatchFromWireLookup();
+            if (!this.matchedMerchantId()) {
+              this.showFeedback(`WIRE lookup for ${value} complete. No match found locally.`);
+            } else {
+              setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+            }
+          },
+          error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
+        });
+      }
     });
   }
 
