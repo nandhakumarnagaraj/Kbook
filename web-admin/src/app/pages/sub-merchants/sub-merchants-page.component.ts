@@ -135,8 +135,7 @@ function formatStatus(status: string): string {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
-            <tr *ngFor="let sm of pagedSubMerchants">
+          <tbody>              <tr *ngFor="let sm of pagedSubMerchants" [class.wire-matched]="sm.id === matchedMerchantId()">
               <td>{{ sm.id }}</td>
               <td>
                 <div class="stacked-meta">
@@ -885,6 +884,17 @@ function formatStatus(status: string): string {
       .dash-mini { grid-template-columns: repeat(2, 1fr); }
       .wire-menu { min-width:unset; width:100%; }
     }
+
+    .wire-matched {
+      background: rgba(52, 152, 219, 0.08) !important;
+      box-shadow: inset 3px 0 0 var(--info);
+      animation: wirePulse 1.5s ease 3;
+    }
+
+    @keyframes wirePulse {
+      0%, 100% { background-color: rgba(52, 152, 219, 0.08); }
+      50% { background-color: rgba(52, 152, 219, 0.18); }
+    }
   `]
 })
 export class SubMerchantsPageComponent implements OnInit {
@@ -905,6 +915,8 @@ export class SubMerchantsPageComponent implements OnInit {
   promptValue = '';
   readonly showWireMenu = signal(false);
   readonly wireLookupResult = signal<{ query: string; type: string; data: any } | null>(null);
+  /** ID of local sub-merchant auto-matched from latest WIRE lookup */
+  readonly matchedMerchantId = signal<number | null>(null);
 
   searchTerm = '';
   statusFilter: string = 'ALL';
@@ -1108,6 +1120,7 @@ export class SubMerchantsPageComponent implements OnInit {
   closeDetail(): void {
     this.selectedSubMerchant.set(null);
     this.wireLookupResult.set(null);
+    this.matchedMerchantId.set(null);
   }
 
   submitToEasebuzz(merchant: EasebuzzSubMerchant): void {
@@ -1317,6 +1330,30 @@ export class SubMerchantsPageComponent implements OnInit {
   }
 
   // ============================================================
+  // Auto-match: find local sub-merchant from WIRE lookup result
+  // ============================================================
+
+  private autoMatchFromWireLookup(): void {
+    const result = this.wireLookupResult();
+    if (!result?.data?.data?.merchant?.email) {
+      return;
+    }
+    const wireEmail = result.data.data.merchant.email.toLowerCase();
+    const match = this.subMerchants().find(
+      sm => sm.contactEmail?.toLowerCase() === wireEmail
+    );
+    if (match) {
+      this.matchedMerchantId.set(match.id);
+      this.selectedSubMerchant.set(match);
+      this.showFeedback(`🔗 WIRE merchant matched to local #${match.id} — ${match.businessName}`);
+      // Scroll to detail panel
+      setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+    } else {
+      this.matchedMerchantId.set(null);
+    }
+  }
+
+  // ============================================================
   // WIRE Platform Action Handlers
   // ============================================================
 
@@ -1330,7 +1367,10 @@ export class SubMerchantsPageComponent implements OnInit {
         this.api.wireLookupByEmail(email).subscribe({
           next: (res) => {
             this.wireLookupResult.set({ query: email, type: 'email', data: res });
-            this.showFeedback('WIRE lookup complete. Data shown in detail panel.');
+            this.autoMatchFromWireLookup();
+            if (!this.matchedMerchantId()) {
+              this.showFeedback('WIRE lookup complete. No matching local sub-merchant found by email.');
+            }
           },
           error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
         });
@@ -1348,7 +1388,10 @@ export class SubMerchantsPageComponent implements OnInit {
         this.api.wireLookupById(subMerchantId).subscribe({
           next: (res) => {
             this.wireLookupResult.set({ query: subMerchantId, type: 'id', data: res });
-            this.showFeedback('WIRE lookup complete. Data shown in detail panel.');
+            this.autoMatchFromWireLookup();
+            if (!this.matchedMerchantId()) {
+              this.showFeedback('WIRE lookup complete. No matching local sub-merchant found by email.');
+            }
           },
           error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
         });
@@ -1366,7 +1409,10 @@ export class SubMerchantsPageComponent implements OnInit {
         this.api.wireLookupByKey(key).subscribe({
           next: (res) => {
             this.wireLookupResult.set({ query: key, type: 'key', data: res });
-            this.showFeedback('WIRE lookup complete. Data shown in detail panel.');
+            this.autoMatchFromWireLookup();
+            if (!this.matchedMerchantId()) {
+              this.showFeedback('WIRE lookup complete. No matching local sub-merchant found by email.');
+            }
           },
           error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
         });
@@ -1376,6 +1422,7 @@ export class SubMerchantsPageComponent implements OnInit {
 
   wireClearLookupResult(): void {
     this.wireLookupResult.set(null);
+    this.matchedMerchantId.set(null);
   }
 
   wireApplyLookupToForm(): void {
