@@ -336,6 +336,36 @@ function formatStatus(status: string): string {
           </div>
         </div>
 
+        <div class="detail-section" *ngIf="wireLookupResult() as wlr">
+          <h3>WIRE Platform Data <span class="chip chip-sm info">Lookup: {{ wlr.type }}</span></h3>
+          <div class="kyc-section">
+            <div class="kyc-info">
+              <p><strong>Searched by:</strong> <code>{{ wlr.query }}</code></p>
+              <p><strong>Status:</strong> <span [class]="wlr.data?.success ? 'chip chip-sm success' : 'chip chip-sm danger'">{{ wlr.data?.success ? 'Found' : 'Not Found' }}</span></p>
+              <ng-container *ngIf="wlr.data?.data?.merchant as m">
+                <p><strong>Merchant ID:</strong> {{ m.id || '-' }}</p>
+                <p><strong>Email:</strong> {{ m.email || '-' }}</p>
+                <p><strong>KYC Status:</strong> <span [class]="m.kyc_status ? 'chip chip-sm success' : 'chip chip-sm warn'">{{ m.kyc_status ? 'Completed' : 'Pending' }}</span></p>
+                <p *ngIf="m.virtual_account as va">
+                  <strong>Virtual A/C:</strong> {{ va.account_number || '-' }}
+                  <span class="muted" *ngIf="va.bank_name"> ({{ va.bank_name }})</span>
+                </p>
+              </ng-container>
+              <div class="kyc-actions" style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+                <button class="ghost-btn" (click)="wireApplyLookupToForm()" *ngIf="wlr.data?.data?.merchant">
+                  <span class="chip chip-sm info">📧 Apply Email</span>
+                </button>
+                <button class="ghost-btn" (click)="wireClearLookupResult()">
+                  <span class="chip chip-sm">🗑️ Clear</span>
+                </button>
+                <button class="ghost-btn" (click)="showConfirm('WIRE Raw Response', JSON.stringify(wlr.data, null, 2), ()=>{})">
+                  <span class="chip chip-sm">📄 Raw JSON</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="detail-section">
           <h3>Transaction Summary</h3>
           <div class="panel" *ngIf="sm.status === 'ACTIVE'; else notActiveSummary">
@@ -874,6 +904,7 @@ export class SubMerchantsPageComponent implements OnInit {
   readonly promptDialog = signal<{ title: string; message: string; placeholder: string; onConfirm: (value: string) => void } | null>(null);
   promptValue = '';
   readonly showWireMenu = signal(false);
+  readonly wireLookupResult = signal<{ query: string; type: string; data: any } | null>(null);
 
   searchTerm = '';
   statusFilter: string = 'ALL';
@@ -1076,6 +1107,7 @@ export class SubMerchantsPageComponent implements OnInit {
 
   closeDetail(): void {
     this.selectedSubMerchant.set(null);
+    this.wireLookupResult.set(null);
   }
 
   submitToEasebuzz(merchant: EasebuzzSubMerchant): void {
@@ -1296,7 +1328,10 @@ export class SubMerchantsPageComponent implements OnInit {
       (email) => {
         if (!email) return;
         this.api.wireLookupByEmail(email).subscribe({
-          next: (res) => this.showConfirm('WIRE Lookup Result', JSON.stringify(res, null, 2), () => {}),
+          next: (res) => {
+            this.wireLookupResult.set({ query: email, type: 'email', data: res });
+            this.showFeedback('WIRE lookup complete. Data shown in detail panel.');
+          },
           error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
         });
       }
@@ -1311,7 +1346,10 @@ export class SubMerchantsPageComponent implements OnInit {
       (subMerchantId) => {
         if (!subMerchantId) return;
         this.api.wireLookupById(subMerchantId).subscribe({
-          next: (res) => this.showConfirm('WIRE Lookup Result', JSON.stringify(res, null, 2), () => {}),
+          next: (res) => {
+            this.wireLookupResult.set({ query: subMerchantId, type: 'id', data: res });
+            this.showFeedback('WIRE lookup complete. Data shown in detail panel.');
+          },
           error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
         });
       }
@@ -1326,11 +1364,29 @@ export class SubMerchantsPageComponent implements OnInit {
       (key) => {
         if (!key) return;
         this.api.wireLookupByKey(key).subscribe({
-          next: (res) => this.showConfirm('WIRE Lookup Result', JSON.stringify(res, null, 2), () => {}),
+          next: (res) => {
+            this.wireLookupResult.set({ query: key, type: 'key', data: res });
+            this.showFeedback('WIRE lookup complete. Data shown in detail panel.');
+          },
           error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
         });
       }
     );
+  }
+
+  wireClearLookupResult(): void {
+    this.wireLookupResult.set(null);
+  }
+
+  wireApplyLookupToForm(): void {
+    const result = this.wireLookupResult();
+    if (!result?.data?.data?.merchant) return;
+    const m = result.data.data.merchant;
+    this.subMerchantForm.patchValue({
+      contactEmail: m.email || '',
+      // Map other WIRE fields if available
+    });
+    this.showFeedback('WIRE merchant email applied to form.');
   }
 
   wireGetKycProfileUrl(merchant: EasebuzzSubMerchant): void {
