@@ -611,10 +611,37 @@
 }
 ```
 
+### Request Body Parameters
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `key` | string | ✅ | Parent merchant key (from config) |
+| `merchant_key` | string | ✅ (or email) | Sub-merchant identifier (Easebuzz ID like `S360DILA` or sub-merchant key) |
+| `merchant_email` | string | ✅ (or key) | Sub-merchant registered email |
+| `webhook_conf` | array | ✅ | Array of webhook configuration objects |
+
+### Webhook Config Object
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `event_type` | string | ✅ | Event to trigger on (e.g., `ORDER_STATUS_UPDATE`) |
+| `status` | string | ✅ | `"enable"` or `"disable"` |
+| `url` | string | ✅ | HTTPS webhook callback URL |
+| `interval_unit` | string | ✅ | Retry interval unit (`minutes`, `hours`, `days`) |
+| `interval_value` | int | ✅ | Retry interval value |
+| `max_attempts` | int | ✅ | Max webhook delivery attempts |
+
+### Response (Failure)
+```json
+{
+  "success": false,
+  "error": "400 Bad Request: Invalid webhook configuration"
+}
+```
+
 ### Notes
-- Either `merchant_email` or `merchant_key` is mandatory.
+- Either `merchant_email` or `merchant_key` is mandatory. If both are provided, `merchant_key` takes precedence.
+- The `merchant_key` field expects the Easebuzz sub-merchant **ID** (e.g., `S360DILA`) or the sub-merchant key returned from the Create Sub-Merchant API.
 - Webhook URLs must be HTTPS.
-- KhanaBook endpoint: `POST /admin/sub-merchants/wire/insta-collect-webhook`
+- **KhanaBook endpoint**: `POST /admin/sub-merchants/wire/insta-collect-webhook`
 
 ---
 
@@ -650,9 +677,17 @@
 }
 ```
 
+### Response (Failure)
+```json
+{
+  "success": false,
+  "error": "404 Not Found: No merchant found with email test@example.com"
+}
+```
+
 ### Notes
-- Requires `WIRE-API-KEY` header.
-- KhanaBook endpoint: `GET /admin/sub-merchants/wire/lookup-by-email?email={email}`
+- The `email` query parameter is automatically URL-encoded by the client (using `UriComponentsBuilder`). Special characters in email addresses (like `+` or `.`) are handled safely.
+- **KhanaBook endpoint**: `GET /admin/sub-merchants/wire/lookup-by-email?email={email}`
 
 ---
 
@@ -670,10 +705,34 @@
 | `submerchant_id` | Easebuzz sub-merchant ID (e.g., `S360DILA`) |
 
 ### Response (Success)
-Same structure as Get by Email (section 17), identified by `submerchant_id` path.
+```json
+{
+  "success": true,
+  "data": {
+    "merchant": {
+      "id": 4344,
+      "email": "testsubmerchant@test.in",
+      "kyc_status": true,
+      "virtual_account": {
+        "account_number": "000119170604174344",
+        "bank_name": "RBL Bank"
+      }
+    }
+  }
+}
+```
+
+### Response (Failure)
+```json
+{
+  "success": false,
+  "error": "404 Not Found: No merchant found with ID S360DILA"
+}
+```
 
 ### Notes
-- KhanaBook endpoint: `GET /admin/sub-merchants/wire/lookup-by-id/{subMerchantId}`
+- The sub-merchant ID is appended directly to the URL path. Ensure it is URL-safe (alphanumeric, typically like `S360DILA`).
+- **KhanaBook endpoint**: `GET /admin/sub-merchants/wire/lookup-by-id/{subMerchantId}`
 
 ---
 
@@ -716,8 +775,34 @@ Same structure as Get by Email (section 17), identified by `submerchant_id` path
 }
 ```
 
+### Request Body Parameters
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `key` | string | ✅ | Parent merchant key (from config) |
+| `merchant_key` | string | ✅ | Sub-merchant identifier (Easebuzz ID like `S360DILA` or sub-merchant key) |
+| `webhook_conf` | array | ✅ | Array of webhook configuration objects |
+
+### Webhook Config Object
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `event_type` | string | ✅ | Event to trigger on (e.g., `TRANSFER_INITIATED`) |
+| `status` | string | ✅ | `"enable"` or `"disable"` |
+| `url` | string | ✅ | HTTPS webhook callback URL |
+| `interval_unit` | string | ✅ | Retry interval unit (`minutes`, `hours`, `days`) |
+| `interval_value` | int | ✅ | Retry interval value |
+| `max_attempts` | int | ✅ | Max webhook delivery attempts |
+
+### Response (Failure)
+```json
+{
+  "success": false,
+  "error": "400 Bad Request: Invalid event_type"
+}
+```
+
 ### Notes
-- KhanaBook endpoint: `POST /admin/sub-merchants/wire/payout-webhook`
+- Unlike the InstaCollect webhook (section 16), this endpoint does **not** accept a `merchant_email` field — only `merchant_key`.
+- **KhanaBook endpoint**: `POST /admin/sub-merchants/wire/payout-webhook`
 - The existing `POST /admin/sub-merchants/payout` endpoint handles initiating payouts via the dashboard API.
 - This WIRE endpoint configures which payout events trigger webhooks.
 
@@ -746,6 +831,14 @@ Same structure as Get by Email (section 17), identified by `submerchant_id` path
 }
 ```
 
+### Response (Failure)
+```json
+{
+  "success": false,
+  "error": "404 Not Found: No KYC profile found for sub-merchant S360DILA"
+}
+```
+
 ### Notes
 - **Different from** the existing Generate KYC Access Key API (section 3):
   - Generate KYC Access Key: Creates a *new* KYC portal session URL via `dashboard.easebuzz.in`.
@@ -768,19 +861,58 @@ Same structure as Get by Email (section 17), identified by `submerchant_id` path
 | `submerchant_key` | Sub-merchant key from Create Sub-Merchant API |
 
 ### Response (Success)
-Same structure as Get by Email (section 17), identified by `submerchant_key` path.
+```json
+{
+  "success": true,
+  "data": {
+    "merchant": {
+      "id": 4344,
+      "email": "testsubmerchant@test.in",
+      "kyc_status": true,
+      "virtual_account": {
+        "account_number": "000119170604174344",
+        "bank_name": "RBL Bank"
+      }
+    }
+  }
+}
+```
+
+### Response (Failure)
+```json
+{
+  "success": false,
+  "error": "404 Not Found: No merchant found with key SUB_MERCHANT_KEY"
+}
+```
 
 ### Notes
-- KhanaBook endpoint: `GET /admin/sub-merchants/wire/lookup-by-key/{subMerchantKey}`
+- The `submerchant_key` is the key returned from the Create Sub-Merchant API response — this is **different** from the sub-merchant ID (`S360DILA`).
+- **KhanaBook endpoint**: `GET /admin/sub-merchants/wire/lookup-by-key/{subMerchantKey}`
 
 ---
 
 ## WIRE Platform Summary
 
 All 6 WIRE APIs share the same authentication mechanism:
-- **Base URL**: `https://wire.easebuzz.in` (no sandbox distinction — environment determined by API keys)
-- **Auth Header**: `Authorization: SHA-512("{key}|{salt}")`
+- **Base URLs**: `https://wire.easebuzz.in` (production), `https://testwire.easebuzz.in` (sandbox)
+- **Auth Header**: `Authorization: SHA-512("{key}|{salt}")` (produces a **lowercase hex-encoded** SHA-512 digest)
 - **Required Header**: `WIRE-API-KEY` (your WIRE-specific API key from Easebuzz)
+
+### Error Handling Pattern
+All WIRE client methods wrap API calls in try-catch blocks. When an API call fails:
+- The response body from Easebuzz is returned if available (with `success: false` and an `error` string).
+- If a network/connection error occurs, the client returns `{"success": false, "error": "<exception message>"}`.
+- HTTP 4xx/5xx errors from the WIRE server include status codes in the error message (e.g., `"404 Not Found: ..."`).
+
+### ID vs Key vs Email: Lookup Identifier Reference
+| Lookup Type | Field | Example | Source |
+|-------------|-------|---------|--------|
+| By Email | `email` | `submerchant@example.com` | Sub-merchant registration |
+| By ID | `submerchant_id` | `S360DILA` | Create Sub-Merchant API response |
+| By Key | `submerchant_key` | (UUID-like string) | Create Sub-Merchant API response |
+
+The Easebuzz **sub-merchant ID** (short alphanumeric like `S360DILA`) and **sub-merchant key** (longer UUID-like string) are different identifiers returned by the Create Sub-Merchant API. The lookup-by-Key API searches using the key, while lookup-by-ID searches using the ID.
 
 KhanaBook backend exposes these through a dedicated `EasebuzzWireApiClient` class and prefixing all WIRE endpoints with `/wire/` under `/admin/sub-merchants/`.
 
