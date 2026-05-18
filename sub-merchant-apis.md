@@ -22,6 +22,12 @@
 13. [Refund Status API](#13-refund-status-api)
 14. [Payout API v2](#14-payout-api-v2)
 15. [On-Demand Settlement APIs](#15-on-demand-settlement-apis)
+16. [WIRE: InstaCollect QR Webhook Configuration](#16-wire-instacollect-qr-webhook-configuration)
+17. [WIRE: Get Sub-Merchant by Email](#17-wire-get-sub-merchant-by-email)
+18. [WIRE: Get Sub-Merchant by ID](#18-wire-get-sub-merchant-by-id)
+19. [WIRE: Payout Webhook Configuration](#19-wire-payout-webhook-configuration)
+20. [WIRE: Get KYC Profile URL](#20-wire-get-kyc-profile-url)
+21. [WIRE: Get Sub-Merchant by Key](#21-wire-get-sub-merchant-by-key)
 
 ---
 
@@ -565,6 +571,221 @@
 
 ---
 
+## 16. WIRE: InstaCollect QR Webhook Configuration
+
+- **Base URL**: `https://wire.easebuzz.in`
+- **Endpoint**: `PUT /api/v1/insta-collect/merchants/webhooks/`
+- **Content-Type**: `application/json`
+- **Auth**: `Authorization: SHA-512("{key}|{salt}")` + `WIRE-API-KEY` header
+- **Official Doc**: Easebuzz WIRE platform documentation
+
+### Request
+```json
+{
+  "key": "PARENT_MERCHANT_KEY",
+  "merchant_key": "SUB_MERCHANT_KEY",
+  "merchant_email": "submerchant@test.in",
+  "webhook_conf": [
+    {
+      "event_type": "ORDER_STATUS_UPDATE",
+      "status": "enable",
+      "url": "https://your-domain.com/api/v2/payments/easebuzz/webhook",
+      "interval_unit": "hours",
+      "interval_value": 20,
+      "max_attempts": 2
+    }
+  ]
+}
+```
+
+**Supported Event Types**: `ORDER_STATUS_UPDATE`, `TRANSACTION_CREDIT`, `INSTA_COLLECT_VIRTUAL_ACCOUNT_KYC_APPROVAL`, and more (full list in Easebuzz docs).
+
+### Response (Success)
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Webhook configuration updated successfully.",
+    "success": true
+  }
+}
+```
+
+### Notes
+- Either `merchant_email` or `merchant_key` is mandatory.
+- Webhook URLs must be HTTPS.
+- KhanaBook endpoint: `POST /admin/sub-merchants/wire/insta-collect-webhook`
+
+---
+
+## 17. WIRE: Get Sub-Merchant by Email
+
+- **Base URL**: `https://wire.easebuzz.in`
+- **Endpoint**: `GET /api/v1/merchants/retrieve/?key={key}&email={email}`
+- **Content-Type**: `application/json`
+- **Auth**: `Authorization: SHA-512("{key}|{salt}")` + `WIRE-API-KEY` header
+- **Official Doc**: Easebuzz WIRE platform documentation
+
+### Request Parameters
+| Param | Description |
+|-------|-------------|
+| `key` | Parent merchant key |
+| `email` | Sub-merchant registered email |
+
+### Response (Success)
+```json
+{
+  "success": true,
+  "data": {
+    "merchant": {
+      "id": 4344,
+      "email": "testsubmerchant@test.in",
+      "kyc_status": true,
+      "virtual_account": {
+        "account_number": "000119170604174344",
+        "bank_name": "RBL Bank"
+      }
+    }
+  }
+}
+```
+
+### Notes
+- Requires `WIRE-API-KEY` header.
+- KhanaBook endpoint: `GET /admin/sub-merchants/wire/lookup-by-email?email={email}`
+
+---
+
+## 18. WIRE: Get Sub-Merchant by ID
+
+- **Base URL**: `https://wire.easebuzz.in`
+- **Endpoint**: `GET /api/v1/merchants/{submerchant_id}/`
+- **Content-Type**: `application/json`
+- **Auth**: `Authorization: SHA-512("{key}|{salt}")` + `WIRE-API-KEY` header
+- **Official Doc**: Easebuzz WIRE platform documentation
+
+### Path Parameter
+| Param | Description |
+|-------|-------------|
+| `submerchant_id` | Easebuzz sub-merchant ID (e.g., `S360DILA`) |
+
+### Response (Success)
+Same structure as Get by Email (section 17), identified by `submerchant_id` path.
+
+### Notes
+- KhanaBook endpoint: `GET /admin/sub-merchants/wire/lookup-by-id/{subMerchantId}`
+
+---
+
+## 19. WIRE: Payout Webhook Configuration
+
+- **Base URL**: `https://wire.easebuzz.in`
+- **Endpoint**: `PUT /api/v1/merchants/webhooks/`
+- **Content-Type**: `application/json`
+- **Auth**: `Authorization: SHA-512("{key}|{salt}")` + `WIRE-API-KEY` header
+- **Official Doc**: Easebuzz WIRE platform documentation
+
+### Request
+```json
+{
+  "key": "PARENT_MERCHANT_KEY",
+  "merchant_key": "SUB_MERCHANT_KEY",
+  "webhook_conf": [
+    {
+      "event_type": "TRANSFER_INITIATED",
+      "status": "enable",
+      "url": "https://your-domain.com/api/v2/payments/easebuzz/payout/webhook",
+      "interval_unit": "minutes",
+      "interval_value": 1,
+      "max_attempts": 2
+    }
+  ]
+}
+```
+
+**Supported Event Types**: `TRANSFER_INITIATED`, `TRANSFER_STATUS_UPDATE`, `LOW_BALANCE_ALERT`, and more (full list in Easebuzz docs).
+
+### Response (Success)
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Webhook configuration updated successfully.",
+    "success": true
+  }
+}
+```
+
+### Notes
+- KhanaBook endpoint: `POST /admin/sub-merchants/wire/payout-webhook`
+- The existing `POST /admin/sub-merchants/payout` endpoint handles initiating payouts via the dashboard API.
+- This WIRE endpoint configures which payout events trigger webhooks.
+
+---
+
+## 20. WIRE: Get KYC Profile URL
+
+- **Base URL**: `https://wire.easebuzz.in`
+- **Endpoint**: `GET /api/v1/merchants/{submerchant_id}/kyc/url/`
+- **Content-Type**: `application/json`
+- **Auth**: `Authorization: SHA-512("{key}|{salt}")` + `WIRE-API-KEY` header
+- **Official Doc**: Easebuzz WIRE platform documentation
+
+### Path Parameter
+| Param | Description |
+|-------|-------------|
+| `submerchant_id` | Easebuzz sub-merchant ID |
+
+### Response (Success)
+```json
+{
+  "success": true,
+  "data": {
+    "kyc_url": "https://kyc.easebuzz.in/...?access_key=..."
+  }
+}
+```
+
+### Notes
+- **Different from** the existing Generate KYC Access Key API (section 3):
+  - Generate KYC Access Key: Creates a *new* KYC portal session URL via `dashboard.easebuzz.in`.
+  - Get KYC Profile URL (WIRE): Retrieves the *existing* KYC profile URL without creating a new session.
+- KhanaBook endpoint: `POST /admin/sub-merchants/{id}/wire/kyc-profile-url`
+
+---
+
+## 21. WIRE: Get Sub-Merchant by Key
+
+- **Base URL**: `https://wire.easebuzz.in`
+- **Endpoint**: `GET /api/v1/merchants/{submerchant_key}`
+- **Content-Type**: `application/json`
+- **Auth**: `Authorization: SHA-512("{key}|{salt}")` + `WIRE-API-KEY` header
+- **Official Doc**: Easebuzz WIRE platform documentation
+
+### Path Parameter
+| Param | Description |
+|-------|-------------|
+| `submerchant_key` | Sub-merchant key from Create Sub-Merchant API |
+
+### Response (Success)
+Same structure as Get by Email (section 17), identified by `submerchant_key` path.
+
+### Notes
+- KhanaBook endpoint: `GET /admin/sub-merchants/wire/lookup-by-key/{subMerchantKey}`
+
+---
+
+## WIRE Platform Summary
+
+All 6 WIRE APIs share the same authentication mechanism:
+- **Base URL**: `https://wire.easebuzz.in` (no sandbox distinction — environment determined by API keys)
+- **Auth Header**: `Authorization: SHA-512("{key}|{salt}")`
+- **Required Header**: `WIRE-API-KEY` (your WIRE-specific API key from Easebuzz)
+
+KhanaBook backend exposes these through a dedicated `EasebuzzWireApiClient` class and prefixing all WIRE endpoints with `/wire/` under `/admin/sub-merchants/`.
+
+---
+
 ## Sub-Merchant Onboarding Flow
 
 ```
@@ -640,3 +861,9 @@ Customer pays via Android POS
 | `GET` | `/api/v2/payments/easebuzz/refund-status/{billId}` | Check refund status | Refund Status API |
 | `POST` | `/api/v2/payments/easebuzz/webhook` | Receive Easebuzz webhooks | All webhook events |
 | `POST` | `/api/v2/payments/easebuzz/submerchant-webhook` | Receive KYC webhooks | Sub-merchant webhook |
+| `GET` | `/admin/sub-merchants/wire/lookup-by-email` | Lookup SM on WIRE by email | WIRE: Get SM by Email |
+| `GET` | `/admin/sub-merchants/wire/lookup-by-id/{subMerchantId}` | Lookup SM on WIRE by ID | WIRE: Get SM by ID |
+| `GET` | `/admin/sub-merchants/wire/lookup-by-key/{subMerchantKey}` | Lookup SM on WIRE by key | WIRE: Get SM by Key |
+| `POST` | `/admin/sub-merchants/{id}/wire/kyc-profile-url` | Get KYC profile URL from WIRE | WIRE: Get KYC Profile URL |
+| `POST` | `/admin/sub-merchants/wire/insta-collect-webhook` | Configure InstaCollect webhook | WIRE: InstaCollect Webhook Config |
+| `POST` | `/admin/sub-merchants/wire/payout-webhook` | Configure payout webhook | WIRE: Payout Webhook Config |

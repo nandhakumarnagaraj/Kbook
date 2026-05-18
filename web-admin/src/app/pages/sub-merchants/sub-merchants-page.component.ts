@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, HostListener, inject, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { EasebuzzSubMerchant, EasebuzzSubMerchantRequest } from '../../core/models/api.models';
@@ -67,7 +67,18 @@ function formatStatus(status: string): string {
           <button class="ghost-btn" (click)="loadSubMerchants()">Refresh</button>
           <button class="ghost-btn" (click)="openSettlementRetrieve()">📅 Settlements</button>
           <button class="ghost-btn" (click)="openOnDemandSettlement()">⚡ Settle</button>
-          <button class="ghost-btn" (click)="openPayout()">💸 Payout</button>
+          <button class="ghost-btn" (click)="openPayout()">💸 Payout</button>            <div class="wire-dropdown">
+            <button class="ghost-btn" (click)="showWireMenu.set(!showWireMenu())" title="WIRE Platform Actions">
+              🌐 WIRE ▾
+            </button>
+            <div *ngIf="showWireMenu()" class="wire-menu">
+              <button class="ghost-btn wire-menu-btn" (click)="wireLookupByEmail(); showWireMenu.set(false)">📧 Lookup by Email</button>
+              <button class="ghost-btn wire-menu-btn" (click)="wireLookupById(); showWireMenu.set(false)">🔍 Lookup by ID</button>
+              <button class="ghost-btn wire-menu-btn" (click)="wireLookupByKey(); showWireMenu.set(false)">🔑 Lookup by Key</button>
+              <button class="ghost-btn wire-menu-btn" (click)="wireConfigureInstaCollect(); showWireMenu.set(false)">📲 InstaCollect Webhook</button>
+              <button class="ghost-btn wire-menu-btn" (click)="wireConfigurePayout(); showWireMenu.set(false)">💳 Payout Webhook</button>
+            </div>
+          </div>
           <button class="primary-btn" (click)="openCreate()">+ New Sub-Merchant</button>
         </div>
       </div>
@@ -297,14 +308,19 @@ function formatStatus(status: string): string {
           </div>
         </div>
 
-        <div class="detail-section" *ngIf="sm.kycPortalUrl">
+        <div class="detail-section" *ngIf="sm.kycPortalUrl || sm.subMerchantId">
           <h3>KYC Portal</h3>
           <div class="kyc-section">
-            <div class="kyc-info">
+            <div class="kyc-info" *ngIf="sm.kycPortalUrl">
               <p><strong>Status:</strong> <span [class]="getKycChip(sm.kycStatus)">{{ sm.kycStatus || 'PENDING' }}</span></p>
               <p><strong>Portal URL:</strong> <a [href]="sm.kycPortalUrl" target="_blank" rel="noopener noreferrer">{{ sm.kycPortalUrl }}</a></p>
               <p *ngIf="sm.kycSubmittedAt"><strong>Submitted:</strong> {{ formatDateValue(sm.kycSubmittedAt) }}</p>
               <p *ngIf="sm.kycActivatedAt"><strong>Activated:</strong> {{ formatDateValue(sm.kycActivatedAt) }}</p>
+            </div>
+            <div class="kyc-actions" style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <button class="ghost-btn" (click)="wireGetKycProfileUrl(sm)" *ngIf="sm.subMerchantId" title="Retrieve existing KYC profile URL from WIRE">
+                <span class="chip chip-sm info">🆔 KYC Profile URL</span>
+              </button>
             </div>
           </div>
         </div>
@@ -339,6 +355,14 @@ function formatStatus(status: string): string {
                 <strong class="stat-value">{{ sm.commissionRate }}%</strong>
                 <p class="muted">Per transaction</p>
               </article>
+            </div>
+            <div class="wire-detail-actions" style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <button class="ghost-btn" (click)="wireConfigureInstaCollect()" title="Configure InstaCollect QR webhook on WIRE">
+                <span class="chip chip-sm info">📲 InstaCollect Webhook</span>
+              </button>
+              <button class="ghost-btn" (click)="wireConfigurePayout()" title="Configure payout webhook on WIRE">
+                <span class="chip chip-sm info">💳 Payout Webhook</span>
+              </button>
             </div>
           </div>
           <ng-template #notActiveSummary>
@@ -816,11 +840,20 @@ function formatStatus(status: string): string {
       .stats-grid .stat-card[style*="span 2"] { grid-column: 1 !important; }
     }
 
+    .wire-dropdown { position:relative; display:inline-block; }
+    .wire-menu {
+      position:absolute; top:100%; left:0; z-index:100;
+      background:var(--panel); border:1px solid var(--line); border-radius:10px;
+      padding:.5rem; box-shadow:var(--shadow-lg); min-width:220px;
+    }
+    .wire-menu-btn { width:100%; justify-content:flex-start; }
+
     @media (max-width: 520px) {
       .action-cell { flex-direction: column; align-items: stretch; }
       .action-cell .ghost-btn { width: 100%; text-align: center; }
       .status-select { min-width: unset; width: 100%; }
       .dash-mini { grid-template-columns: repeat(2, 1fr); }
+      .wire-menu { min-width:unset; width:100%; }
     }
   `]
 })
@@ -840,6 +873,7 @@ export class SubMerchantsPageComponent implements OnInit {
   readonly confirmDialog = signal<{ title: string; message: string; onConfirm: () => void } | null>(null);
   readonly promptDialog = signal<{ title: string; message: string; placeholder: string; onConfirm: (value: string) => void } | null>(null);
   promptValue = '';
+  readonly showWireMenu = signal(false);
 
   searchTerm = '';
   statusFilter: string = 'ALL';
@@ -870,6 +904,16 @@ export class SubMerchantsPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSubMerchants();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (this.showWireMenu()) {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.wire-dropdown')) {
+        this.showWireMenu.set(false);
+      }
+    }
   }
 
   get filteredSubMerchants(): EasebuzzSubMerchant[] {
@@ -1235,6 +1279,124 @@ export class SubMerchantsPageComponent implements OnInit {
           error: (err) => {
             this.showFeedback(err?.error?.error ?? 'Payout failed.', true);
           }
+        });
+      }
+    );
+  }
+
+  // ============================================================
+  // WIRE Platform Action Handlers
+  // ============================================================
+
+  wireLookupByEmail(): void {
+    this.showPrompt(
+      'WIRE Lookup by Email',
+      'Enter the sub-merchant email to look up on the Easebuzz WIRE platform.',
+      'email@example.com',
+      (email) => {
+        if (!email) return;
+        this.api.wireLookupByEmail(email).subscribe({
+          next: (res) => this.showConfirm('WIRE Lookup Result', JSON.stringify(res, null, 2), () => {}),
+          error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
+        });
+      }
+    );
+  }
+
+  wireLookupById(): void {
+    this.showPrompt(
+      'WIRE Lookup by ID',
+      'Enter the Easebuzz sub-merchant ID (e.g., S360DILA).',
+      'Sub-Merchant ID',
+      (subMerchantId) => {
+        if (!subMerchantId) return;
+        this.api.wireLookupById(subMerchantId).subscribe({
+          next: (res) => this.showConfirm('WIRE Lookup Result', JSON.stringify(res, null, 2), () => {}),
+          error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
+        });
+      }
+    );
+  }
+
+  wireLookupByKey(): void {
+    this.showPrompt(
+      'WIRE Lookup by Key',
+      'Enter the sub-merchant key from Easebuzz.',
+      'Sub-Merchant Key',
+      (key) => {
+        if (!key) return;
+        this.api.wireLookupByKey(key).subscribe({
+          next: (res) => this.showConfirm('WIRE Lookup Result', JSON.stringify(res, null, 2), () => {}),
+          error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
+        });
+      }
+    );
+  }
+
+  wireGetKycProfileUrl(merchant: EasebuzzSubMerchant): void {
+    this.api.wireGetKycProfileUrl(merchant.id).subscribe({
+      next: (res) => {
+        const url = res?.data?.kyc_url;
+        if (url) {
+          this.showFeedback(`KYC profile URL retrieved. Opening...`);
+          setTimeout(() => window.open(url, '_blank'), 500);
+        } else {
+          this.showFeedback('KYC profile URL: ' + JSON.stringify(res), false);
+        }
+      },
+      error: (err) => this.showFeedback(err?.error?.error ?? 'KYC profile URL retrieval failed.', true)
+    });
+  }
+
+  wireConfigureInstaCollect(): void {
+    this.showPrompt(
+      'InstaCollect QR Webhook',
+      'Enter: subMerchantId | webhookUrl | eventType\n\nSupported event types: ORDER_STATUS_UPDATE, TRANSACTION_CREDIT, INSTA_COLLECT_VIRTUAL_ACCOUNT_KYC_APPROVAL\n\nExample: S360DILA | https://api.example.com/webhook | ORDER_STATUS_UPDATE',
+      'subMerchantId | url | eventType',
+      (input) => {
+        if (!input) return;
+        const parts = input.split('|').map(p => p.trim());
+        if (parts.length < 3 || parts.some(p => !p.trim())) {
+          this.showFeedback('Please provide all 3 non-empty values separated by |', true);
+          return;
+        }
+        this.api.wireConfigureInstaCollectWebhook({
+          subMerchantId: parts[0],
+          url: parts[1],
+          eventType: parts[2],
+          intervalUnit: 'hours',
+          intervalValue: 24,
+          maxAttempts: 3
+        }).subscribe({
+          next: (res) => this.showFeedback('InstaCollect webhook configured: ' + JSON.stringify(res)),
+          error: (err) => this.showFeedback(err?.error?.error ?? 'Webhook config failed.', true)
+        });
+      }
+    );
+  }
+
+  wireConfigurePayout(): void {
+    this.showPrompt(
+      'Payout Webhook',
+      'Enter: subMerchantId | webhookUrl | eventType\n\nSupported event types: TRANSFER_INITIATED, TRANSFER_STATUS_UPDATE, LOW_BALANCE_ALERT\n\nExample: S360DILA | https://api.example.com/payout-webhook | TRANSFER_STATUS_UPDATE',
+      'subMerchantId | url | eventType',
+      (input) => {
+        if (!input) return;
+        const parts = input.split('|').map(p => p.trim());
+        if (parts.length < 3 || parts.some(p => !p.trim())) {
+          this.showFeedback('Please provide all 3 non-empty values separated by |', true);
+          return;
+        }
+        this.api.wireConfigurePayoutWebhook({
+          subMerchantId: parts[0],
+          url: parts[1],
+          eventType: parts[2],
+          intervalUnit: 'minutes',
+          intervalValue: 5,
+          maxAttempts: 3
+        }).subscribe({
+          next: (res) => this.showFeedback('Payout webhook configured: ' + JSON.stringify(res)),
+          error: (err) => this.showFeedback(err?.error?.error ?? 'Webhook config failed.', true)
         });
       }
     );

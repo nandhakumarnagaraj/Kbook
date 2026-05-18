@@ -127,6 +127,65 @@ public class AdminSubMerchantController {
         return ResponseEntity.ok(subMerchantService.retrieveSettlements(date));
     }
 
+    // ============================================================
+    // WIRE Platform Endpoints
+    // ============================================================
+
+    /** Lookup sub-merchant on WIRE platform by email */
+    @GetMapping("/wire/lookup-by-email")
+    public ResponseEntity<Map<String, Object>> wireLookupByEmail(@RequestParam String email) {
+        return ResponseEntity.ok(subMerchantService.wireLookupByEmail(email));
+    }
+
+    /** Lookup sub-merchant on WIRE platform by Easebuzz sub-merchant ID */
+    @GetMapping("/wire/lookup-by-id/{subMerchantId}")
+    public ResponseEntity<Map<String, Object>> wireLookupById(@PathVariable String subMerchantId) {
+        return ResponseEntity.ok(subMerchantService.wireLookupById(subMerchantId));
+    }
+
+    /** Lookup sub-merchant on WIRE platform by sub-merchant key */
+    @GetMapping("/wire/lookup-by-key/{subMerchantKey}")
+    public ResponseEntity<Map<String, Object>> wireLookupByKey(@PathVariable String subMerchantKey) {
+        return ResponseEntity.ok(subMerchantService.wireLookupByKey(subMerchantKey));
+    }
+
+    /** Get KYC profile URL from WIRE platform for a sub-merchant */
+    @PostMapping("/{id}/wire/kyc-profile-url")
+    public ResponseEntity<Map<String, Object>> wireGetKycProfileUrl(@PathVariable Long id) {
+        return ResponseEntity.ok(subMerchantService.wireGetKycProfileUrl(id));
+    }
+
+    /** Configure InstaCollect (QR) webhook on WIRE platform */
+    @PostMapping("/wire/insta-collect-webhook")
+    public ResponseEntity<Map<String, Object>> wireConfigureInstaCollectWebhook(
+            @RequestBody Map<String, Object> data) {
+        String subMerchantId = (String) data.get("subMerchantId");
+        String merchantEmail = (String) data.get("merchantEmail");
+        String eventType = (String) data.get("eventType");
+        String url = (String) data.get("url");
+        String intervalUnit = (String) data.get("intervalUnit");
+        int intervalValue = Integer.parseInt(data.getOrDefault("intervalValue", "1").toString());
+        int maxAttempts = Integer.parseInt(data.getOrDefault("maxAttempts", "3").toString());
+        return ResponseEntity.ok(subMerchantService.wireConfigureInstaCollectWebhook(
+                subMerchantId, merchantEmail, eventType, url,
+                intervalUnit, intervalValue, maxAttempts));
+    }
+
+    /** Configure WIRE (Payout) webhook on WIRE platform */
+    @PostMapping("/wire/payout-webhook")
+    public ResponseEntity<Map<String, Object>> wireConfigurePayoutWebhook(
+            @RequestBody Map<String, Object> data) {
+        String subMerchantId = (String) data.get("subMerchantId");
+        String eventType = (String) data.get("eventType");
+        String url = (String) data.get("url");
+        String intervalUnit = (String) data.get("intervalUnit");
+        int intervalValue = Integer.parseInt(data.getOrDefault("intervalValue", "1").toString());
+        int maxAttempts = Integer.parseInt(data.getOrDefault("maxAttempts", "3").toString());
+        return ResponseEntity.ok(subMerchantService.wireConfigurePayoutWebhook(
+                subMerchantId, eventType, url,
+                intervalUnit, intervalValue, maxAttempts));
+    }
+
     /** DEV ONLY: Delete a sub-merchant to allow fresh retry */
     @DeleteMapping("/{id}/dev-refresh")
     public ResponseEntity<Void> devRefresh(@PathVariable Long id) {

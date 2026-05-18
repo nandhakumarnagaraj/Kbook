@@ -18,4 +18,8 @@ public class EasebuzzProperties {
     private String returnUrl;
     private String notifyUrl;
     private String webhookUrl;
+
+    // WIRE Platform (sub-merchant management, KYC, lookups)
+    private String wireBaseUrl = "https://wire.easebuzz.in";
+    private String wireApiKey;
 }

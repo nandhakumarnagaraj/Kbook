@@ -111,4 +111,47 @@ export class AdminApiService {
   getPaymentDashboard() {
     return this.http.get<any>(`${API_BASE_URL}/admin/reports/payment-dashboard`);
   }
+
+  // ============================================================
+  // WIRE Platform API Methods
+  // ============================================================
+
+  wireLookupByEmail(email: string) {
+    return this.http.get<any>(`${API_BASE_URL}/admin/sub-merchants/wire/lookup-by-email?email=${encodeURIComponent(email)}`);
+  }
+
+  wireLookupById(subMerchantId: string) {
+    return this.http.get<any>(`${API_BASE_URL}/admin/sub-merchants/wire/lookup-by-id/${encodeURIComponent(subMerchantId)}`);
+  }
+
+  wireLookupByKey(subMerchantKey: string) {
+    return this.http.get<any>(`${API_BASE_URL}/admin/sub-merchants/wire/lookup-by-key/${encodeURIComponent(subMerchantKey)}`);
+  }
+
+  wireGetKycProfileUrl(id: number) {
+    return this.http.post<any>(`${API_BASE_URL}/admin/sub-merchants/${id}/wire/kyc-profile-url`, {});
+  }
+
+  wireConfigureInstaCollectWebhook(payload: {
+    subMerchantId: string;
+    merchantEmail?: string;
+    eventType: string;
+    url: string;
+    intervalUnit: string;
+    intervalValue: number;
+    maxAttempts: number;
+  }) {
+    return this.http.post<any>(`${API_BASE_URL}/admin/sub-merchants/wire/insta-collect-webhook`, payload);
+  }
+
+  wireConfigurePayoutWebhook(payload: {
+    subMerchantId: string;
+    eventType: string;
+    url: string;
+    intervalUnit: string;
+    intervalValue: number;
+    maxAttempts: number;
+  }) {
+    return this.http.post<any>(`${API_BASE_URL}/admin/sub-merchants/wire/payout-webhook`, payload);
+  }
 }

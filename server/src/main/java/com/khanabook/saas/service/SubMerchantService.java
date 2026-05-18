@@ -21,6 +21,7 @@ public class SubMerchantService {
 
     private static final Logger log = LoggerFactory.getLogger(SubMerchantService.class);
     private final EasebuzzApiClient easebuzzApi;
+    private final EasebuzzWireApiClient wireApi;
     private final EasebuzzSubMerchantRepository subMerchantRepo;
     private final EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
     private final EasebuzzPayoutRepository payoutRepo;
@@ -373,5 +374,72 @@ public class SubMerchantService {
         subMerchantRepo.save(sm);
         log.info("Sub-merchant {} submitted to Easebuzz, status={}", id, sm.getStatus());
         return sm;
+    }
+
+    // ============================================================
+    // WIRE Platform API Methods
+    // ============================================================
+
+    /**
+     * Lookup sub-merchant details on Easebuzz WIRE platform by email address.
+     */
+    public Map<String, Object> wireLookupByEmail(String email) {
+        return wireApi.getSubMerchantByEmail(email);
+    }
+
+    /**
+     * Lookup sub-merchant details on Easebuzz WIRE platform by Easebuzz sub-merchant ID.
+     */
+    public Map<String, Object> wireLookupById(String subMerchantId) {
+        return wireApi.getSubMerchantById(subMerchantId);
+    }
+
+    /**
+     * Lookup sub-merchant details on Easebuzz WIRE platform by sub-merchant key.
+     */
+    public Map<String, Object> wireLookupByKey(String subMerchantKey) {
+        return wireApi.getSubMerchantByKey(subMerchantKey);
+    }
+
+    /**
+     * Get KYC profile URL for a sub-merchant (retrieves existing URL, does not create a new one).
+     */
+    public Map<String, Object> wireGetKycProfileUrl(Long id) {
+        EasebuzzSubMerchant sm = getById(id);
+        if (sm.getSubMerchantId() == null) {
+            throw new RuntimeException("Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.");
+        }
+        return wireApi.getKycProfileUrl(sm.getSubMerchantId());
+    }
+
+    /**
+     * Configure webhooks for InstaCollect (QR) on the WIRE platform.
+     */
+    public Map<String, Object> wireConfigureInstaCollectWebhook(
+            String subMerchantId,
+            String merchantEmail,
+            String eventType,
+            String url,
+            String intervalUnit,
+            int intervalValue,
+            int maxAttempts) {
+        return wireApi.configureInstaCollectWebhook(
+                subMerchantId, merchantEmail, eventType, url,
+                intervalUnit, intervalValue, maxAttempts);
+    }
+
+    /**
+     * Configure webhooks for WIRE (Payouts) on the WIRE platform.
+     */
+    public Map<String, Object> wireConfigurePayoutWebhook(
+            String merchantKey,
+            String eventType,
+            String url,
+            String intervalUnit,
+            int intervalValue,
+            int maxAttempts) {
+        return wireApi.configurePayoutWebhook(
+                merchantKey, eventType, url,
+                intervalUnit, intervalValue, maxAttempts);
     }
 }

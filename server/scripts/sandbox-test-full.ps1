@@ -156,10 +156,71 @@ if ($hasEasebuzzId) {
     }
 } else {
     Write-Host ""
-    Write-Host "[SKIP] KYC/Split/OTP/Update tests (Easebuzz submission failed)" -ForegroundColor Yellow
+    Write-Host "[SKIP] KYC/Split/OTP/Update/WIRE tests (Easebuzz submission failed)" -ForegroundColor Yellow
     Write-Host "  Sub-merchant module may not be enabled on this Easebuzz sandbox account." -ForegroundColor Yellow
     Write-Host "  The Easebuzz sandbox test credentials (ADNX3KYX5) may not support sub-merchant APIs." -ForegroundColor Yellow
     $skipCount += 4
+}
+
+# ============================================
+# WIRE PLATFORM TESTS (require Easebuzz sub-merchant ID)
+# ============================================
+if ($hasEasebuzzId -and $smEasebuzzId) {
+    # WIRE Step A: Lookup by ID
+    Test-Step -Name "WIRE Lookup by ID" -Script {
+        $res = Invoke-RestMethod -Uri "$BaseUrl/admin/sub-merchants/wire/lookup-by-id/$smEasebuzzId" -Method Get -Headers $headers
+        Write-JsonStep $res
+        $res
+    }
+
+    # WIRE Step B: Lookup by Email
+    Test-Step -Name "WIRE Lookup by Email" -Script {
+        $email = [System.Web.HttpUtility]::UrlEncode("sandbox$rand@example.com")
+        $res = Invoke-RestMethod -Uri "$BaseUrl/admin/sub-merchants/wire/lookup-by-email?email=$email" -Method Get -Headers $headers
+        Write-JsonStep $res
+        $res
+    }
+
+    # WIRE Step C: Get KYC Profile URL
+    Test-Step -Name "WIRE Get KYC Profile URL" -Script {
+        $res = Invoke-RestMethod -Uri "$BaseUrl/admin/sub-merchants/$smDbId/wire/kyc-profile-url" -Method Post -Headers $headers
+        Write-JsonStep $res
+        $res
+    }
+
+    # WIRE Step D: InstaCollect Webhook Config (with example URL that will not fire)
+    Test-Step -Name "WIRE Configure InstaCollect Webhook" -Script {
+        $body = @{
+            subMerchantId = $smEasebuzzId
+            eventType = "ORDER_STATUS_UPDATE"
+            url = "https://httpbin.org/post"
+            intervalUnit = "hours"
+            intervalValue = 24
+            maxAttempts = 3
+        } | ConvertTo-Json
+        $res = Invoke-RestMethod -Uri "$BaseUrl/admin/sub-merchants/wire/insta-collect-webhook" -Method Post -Body $body -ContentType "application/json" -Headers $headers
+        Write-JsonStep $res
+        $res
+    }
+
+    # WIRE Step E: Payout Webhook Config
+    Test-Step -Name "WIRE Configure Payout Webhook" -Script {
+        $body = @{
+            subMerchantId = $smEasebuzzId
+            eventType = "TRANSFER_STATUS_UPDATE"
+            url = "https://httpbin.org/post"
+            intervalUnit = "minutes"
+            intervalValue = 5
+            maxAttempts = 3
+        } | ConvertTo-Json
+        $res = Invoke-RestMethod -Uri "$BaseUrl/admin/sub-merchants/wire/payout-webhook" -Method Post -Body $body -ContentType "application/json" -Headers $headers
+        Write-JsonStep $res
+        $res
+    }
+} else {
+    Write-Host ""
+    Write-Host "[SKIP] WIRE Platform tests (no Easebuzz sub-merchant ID available)" -ForegroundColor Yellow
+    $skipCount += 5
 }
 
 # ============================================
