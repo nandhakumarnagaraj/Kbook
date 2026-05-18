@@ -3,7 +3,9 @@ package com.khanabook.saas.service.impl;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.khanabook.saas.controller.AuthController.AuthResponse;
 import com.khanabook.saas.controller.AuthController.LoginRequest;
+import com.khanabook.saas.controller.AuthController.AuthResponse;
 import com.khanabook.saas.controller.AuthController.SignupRequest;
+import java.util.Map;
 import com.khanabook.saas.entity.AuthProvider;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
@@ -116,6 +118,82 @@ public class AuthServiceImpl implements AuthService {
 		String token = jwtUtility.generateToken(getLoginIdentifier(user), newRestaurantId, user.getRole().name(), request.getDeviceId());
 			return new AuthResponse(token, newRestaurantId, user.getName(), getLoginIdentifier(user), user.getEmail(),
 							user.getWhatsappNumber(), user.getRole().name());
+	}
+
+	@Override
+	@Transactional
+	public AuthResponse devSignup(SignupRequest request) {
+		ensurePhoneNumberAvailableForSignup(request.getPhoneNumber());
+		Long newRestaurantId = Math.abs(UUID.randomUUID().getMostSignificantBits());
+		RestaurantProfile profile = new RestaurantProfile();
+		profile.setRestaurantId(newRestaurantId);
+		profile.setDeviceId(request.getDeviceId());
+		profile.setLocalId(1L);
+		profile.setShopName(request.getName() + "'s Restaurant");
+		String today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString();
+		profile.setLastResetDate(today);
+		profile.setLastResetDateProper(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")));
+		profile.setLogoVersion(0);
+		profile.setUpiQrVersion(0);
+		profile.setUpdatedAt(System.currentTimeMillis());
+		profile.setServerUpdatedAt(System.currentTimeMillis());
+		profile.setCreatedAt(System.currentTimeMillis());
+		restaurantProfileRepository.save(profile);
+		String hashedPassword = passwordEncoder.encode(request.getPassword());
+		User user = new User();
+		user.setName(request.getName());
+		user.setEmail(null);
+		user.setPhoneNumber(request.getPhoneNumber());
+		user.setLoginId(request.getPhoneNumber());
+		user.setAuthProvider(AuthProvider.PHONE);
+		user.setWhatsappNumber(request.getPhoneNumber());
+		user.setPasswordHash(hashedPassword);
+		user.setRestaurantId(newRestaurantId);
+		user.setDeviceId(request.getDeviceId());
+		user.setLocalId(1L);
+		user.setRole(UserRole.OWNER);
+		user.setIsActive(true);
+		user.setUpdatedAt(System.currentTimeMillis());
+		user.setServerUpdatedAt(System.currentTimeMillis());
+		user.setCreatedAt(System.currentTimeMillis());
+		userRepository.save(user);
+		log.info("Dev signup: restaurantId={} phone={}", newRestaurantId, request.getPhoneNumber());
+		String token = jwtUtility.generateToken(getLoginIdentifier(user), newRestaurantId, user.getRole().name(), request.getDeviceId());
+		return new AuthResponse(token, newRestaurantId, user.getName(), getLoginIdentifier(user), user.getEmail(),
+				user.getWhatsappNumber(), user.getRole().name());
+	}
+
+	@Override
+	@Transactional
+	public AuthResponse devAdminSignup(Map<String, String> body) {
+		String phone = body.getOrDefault("phoneNumber", "9000000001");
+		String name = body.getOrDefault("name", "KBook Admin");
+		String password = body.getOrDefault("password", "admin123");
+		String deviceId = body.getOrDefault("deviceId", "WEB_ADMIN");
+
+		// KBOOK_ADMIN uses a virtual restaurantId (0 or null means global admin)
+		Long adminRestaurantId = 0L;
+
+		String hashedPassword = passwordEncoder.encode(password);
+		User user = new User();
+		user.setName(name);
+		user.setEmail(phone.contains("@") ? phone : "admin@kbook.app");
+		user.setPhoneNumber(phone.matches("\\d+") ? phone : null);
+		user.setLoginId(phone);
+		user.setAuthProvider(AuthProvider.PHONE);
+		user.setPasswordHash(hashedPassword);
+		user.setRestaurantId(adminRestaurantId);
+		user.setDeviceId(deviceId);
+		user.setLocalId(1L);
+		user.setRole(UserRole.KBOOK_ADMIN);
+		user.setIsActive(true);
+		user.setUpdatedAt(System.currentTimeMillis());
+		user.setServerUpdatedAt(System.currentTimeMillis());
+		user.setCreatedAt(System.currentTimeMillis());
+		userRepository.save(user);
+		log.info("Dev admin signup: loginId={}", phone);
+		String token = jwtUtility.generateToken(phone, adminRestaurantId, UserRole.KBOOK_ADMIN.name(), deviceId);
+		return new AuthResponse(token, adminRestaurantId, name, phone, user.getEmail(), null, UserRole.KBOOK_ADMIN.name());
 	}
 
 	@Override
@@ -245,6 +323,15 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	public boolean checkUserExists(String phoneNumber) {
 		return findUserByLoginId(phoneNumber).isPresent();
+	}
+
+	@Override
+	@Transactional
+	public void devReset() {
+		log.warn("DEV RESET TRIGGERED: Wiping all data...");
+		userRepository.deleteAll();
+		restaurantProfileRepository.deleteAll();
+		// Other repos will be cascade-deleted or can be added here
 	}
 
 	private java.util.Optional<User> findUserByLoginId(String phoneNumber) {

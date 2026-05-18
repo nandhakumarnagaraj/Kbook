@@ -316,7 +316,7 @@ fun AppLockView(
                     errorMessage = state.error
                 )
                 TextButton(onClick = { viewModel.resetSetupState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Text("Cancel", color = TextGold.copy(alpha = 0.6f))
+                    Text("Cancel", color = TextGold.copy(alpha = 0.5f))
                 }
             }
             is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.ConfirmNew -> {
@@ -333,7 +333,7 @@ fun AppLockView(
                     errorMessage = state.error
                 )
                 TextButton(onClick = { viewModel.resetSetupState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Text("Cancel", color = TextGold.copy(alpha = 0.6f))
+                    Text("Cancel", color = TextGold.copy(alpha = 0.5f))
                 }
             }
             is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.EnterCurrent -> {
@@ -350,7 +350,7 @@ fun AppLockView(
                     errorMessage = state.error
                 )
                 TextButton(onClick = { viewModel.resetSetupState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Text("Cancel", color = TextGold.copy(alpha = 0.6f))
+                    Text("Cancel", color = TextGold.copy(alpha = 0.5f))
                 }
             }
             else -> {}
@@ -795,7 +795,7 @@ fun AboutAppView() {
             verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
         ) {
             Text(
-                "KhanaBook Lite",
+                "KhanaBook",
                 color = PrimaryGold,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold

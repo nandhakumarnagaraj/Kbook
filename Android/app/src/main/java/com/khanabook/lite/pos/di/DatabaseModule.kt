@@ -16,8 +16,11 @@ import com.khanabook.lite.pos.data.local.dao.UserDao
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.CategoryRepository
+import com.khanabook.lite.pos.data.repository.EasebuzzPaymentRepository
+import com.khanabook.lite.pos.data.repository.EasebuzzSdkPaymentRepository
 import com.khanabook.lite.pos.data.repository.InventoryRepository
 import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
+import com.khanabook.lite.pos.data.repository.MarketplaceOrderRepository
 import com.khanabook.lite.pos.data.repository.MenuRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
@@ -274,4 +277,25 @@ object DatabaseModule {
     @Singleton
     fun provideBluetoothPrinterManager(@ApplicationContext context: Context) =
         BluetoothPrinterManager(context)
+
+    @Provides
+    @Singleton
+    fun provideEasebuzzPaymentRepository(
+        api: KhanaBookApi,
+        sessionManager: SessionManager
+    ) = EasebuzzPaymentRepository(api, sessionManager)
+
+    @Provides
+    @Singleton
+    fun provideEasebuzzSdkPaymentRepository(
+        api: KhanaBookApi,
+        sessionManager: SessionManager
+    ) = EasebuzzSdkPaymentRepository(api, sessionManager)
+
+    @Provides
+    @Singleton
+    fun provideMarketplaceOrderRepository(
+        api: KhanaBookApi,
+        sessionManager: SessionManager
+    ) = MarketplaceOrderRepository(api, sessionManager)
 }

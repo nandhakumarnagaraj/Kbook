@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServic
 
 @SpringBootApplication(exclude = {UserDetailsServiceAutoConfiguration.class})
 @org.springframework.scheduling.annotation.EnableScheduling
+@org.springframework.scheduling.annotation.EnableAsync
 public class KhanaBookSaaSApplication {
 	public static void main(String[] args) {
 		// Marker to verify debug logger + log path works at runtime.

@@ -10,6 +10,7 @@ import com.khanabook.saas.utility.JwtUtility;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import com.fasterxml.jackson.annotation.JsonAlias;
+import java.util.Map;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -62,6 +63,22 @@ public class AuthController {
 	public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
 		log.debug("Signup attempt phoneLen={}", request.getPhoneNumber() == null ? 0 : request.getPhoneNumber().length());
 		return ResponseEntity.ok(authService.signup(request));
+	}
+
+	@PostMapping("/signup/dev")
+	public ResponseEntity<AuthResponse> devSignup(@RequestBody Map<String, String> body) {
+		SignupRequest req = new SignupRequest();
+		req.setPhoneNumber(body.getOrDefault("phoneNumber", "7000000001"));
+		req.setName(body.getOrDefault("name", "Dev User"));
+		req.setPassword(body.getOrDefault("password", "admin123"));
+		req.setOtp("123456");
+		req.setDeviceId(body.getOrDefault("deviceId", "DEV"));
+		return ResponseEntity.ok(authService.devSignup(req));
+	}
+
+	@PostMapping("/signup/dev-admin")
+	public ResponseEntity<AuthResponse> devAdminSignup(@RequestBody Map<String, String> body) {
+		return ResponseEntity.ok(authService.devAdminSignup(body));
 	}
 
 	@PostMapping("/signup/request")
@@ -126,6 +143,12 @@ public class AuthController {
 			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
 		}
 		authService.requestPasswordResetOtp(request.getPhoneNumber());
+		return ResponseEntity.ok().build();
+	}
+
+	@PostMapping("/dev-reset")
+	public ResponseEntity<Void> devReset() {
+		authService.devReset();
 		return ResponseEntity.ok().build();
 	}
 
@@ -231,6 +254,7 @@ public class AuthController {
 	@NoArgsConstructor
 	public static class AuthResponse {
 		private String token;
+		@com.fasterxml.jackson.databind.annotation.JsonSerialize(using = com.fasterxml.jackson.databind.ser.std.ToStringSerializer.class)
 		private Long restaurantId;
 		private String userName;
 		private String loginId;

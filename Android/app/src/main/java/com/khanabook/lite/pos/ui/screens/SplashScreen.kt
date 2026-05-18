@@ -136,13 +136,6 @@ fun SplashScreen(
                     style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = stringResource(id = R.string.lite),
-                    color = TextGold,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Light,
-                    letterSpacing = 4.sp
-                )
                 Spacer(modifier = Modifier.height(spacing.medium))
                 Text(
                     text = stringResource(id = R.string.smart_billing_slogan),

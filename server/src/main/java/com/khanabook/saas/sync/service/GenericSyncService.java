@@ -214,6 +214,9 @@ public class GenericSyncService {
 						if (bill.getRefundAmount() == null) {
 							bill.setRefundAmount(java.math.BigDecimal.ZERO);
 						}
+						if (bill.getCancelReason() == null) {
+							bill.setCancelReason("");
+						}
 					}
 
 					// For KBOOK_ADMIN, ensure we use the record's restaurantId if tenantId is null

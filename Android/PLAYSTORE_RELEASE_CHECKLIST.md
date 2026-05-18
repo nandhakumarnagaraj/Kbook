@@ -56,6 +56,13 @@ GOOGLE_WEB_CLIENT_ID=836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleus
 - Test customer printer pairing and test print.
 - Test kitchen printer pairing and queue flush.
 - Test reports, orders, and search screens.
+- **Easebuzz Payment (v2)**:
+  - Test Easebuzz online payment initiation from New Bill screen.
+  - Test payment success webhook updates bill status to PAID.
+  - Test payment failure fallback and retry.
+  - Test partial and full refund flow.
+  - Verify refund status polling updates correctly.
+  - Confirm KYC status badge shows correct state in Settings → Payment.
 
 ## Build And Upload
 - Run:

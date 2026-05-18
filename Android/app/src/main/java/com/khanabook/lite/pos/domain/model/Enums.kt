@@ -5,6 +5,7 @@ enum class PaymentMode(val dbValue: String, val displayLabel: String) {
     CASH("cash", "Cash"),
     UPI("upi", "UPI"),
     POS("pos", "POS Machine"),
+    ONLINE("online", "Easebuzz Online"),
     ZOMATO("zomato", "Zomato"),
     SWIGGY("swiggy", "Swiggy"),
     OWN_WEBSITE("own_website", "Own Website"),

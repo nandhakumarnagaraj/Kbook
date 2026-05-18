@@ -30,6 +30,7 @@
     <application
         android:name="com.khanabook.lite.pos.KhanaBookApplication"
         android:allowBackup="false"
+        tools:replace="android:allowBackup"
         android:largeHeap="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -75,7 +76,8 @@
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
             android:exported="false"
-            android:grantUriPermissions="true">
+            android:grantUriPermissions="true"
+            tools:replace="android:authorities">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />

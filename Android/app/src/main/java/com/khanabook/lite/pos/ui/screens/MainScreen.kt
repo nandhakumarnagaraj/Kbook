@@ -41,6 +41,7 @@ fun MainScreen(
     onReprintKds: () -> Unit,
     onOrderStatus: () -> Unit,
     onCallCustomer: () -> Unit,
+    onMarketplaceOrders: () -> Unit = {},
     menuViewModel: MenuViewModel,
     onScanClick: (String?) -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel()
@@ -84,7 +85,7 @@ fun MainScreen(
                 return@AnimatedContent
             }
             when (currentTab.label) {
-                "Home" -> HomeScreen(onNewBill, onSearchBill, onReprintKds, onOrderStatus, onCallCustomer)
+                "Home" -> HomeScreen(onNewBill, onSearchBill, onReprintKds, onOrderStatus, onCallCustomer, onMarketplaceOrders)
                 "Reports" -> ReportsScreen(onBack = backToHome)
                 "Orders" -> OrdersScreen(onBack = backToHome)
                 "Profile" -> SettingsScreen(

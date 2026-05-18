@@ -131,3 +131,142 @@ export interface MarketplaceConfigRequest {
   swiggyEnabled?: boolean;
 }
 
+export interface EasebuzzSubMerchant {
+  id: number;
+  restaurantId: number;
+  subMerchantId: string | null;
+  status: string;
+  businessName: string;
+  businessType: string | null;
+  pan: string | null;
+  gst: string | null;
+  bankName: string | null;
+  branchName: string | null;
+  bankAccountNo: string | null;
+  ifsc: string | null;
+  beneficiaryName: string | null;
+  businessAddress: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  kycStatus: string | null;
+  kycPortalUrl: string | null;
+  kycSubmittedAt: number | null;
+  kycActivatedAt: number | null;
+  commissionRate: number | null;
+  upiDeductionLtLimit: number | null;
+  dcDeductionGtTwoThousand: number | null;
+  idProofUrl: string | null;
+  bankProofUrl: string | null;
+  splitLabel: string | null;
+  easebuzzResponse: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface MarketplaceOrder {
+  id: number;
+  platform: string;
+  platformOrderId: string;
+  orderStatus: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  subtotal: number | null;
+  taxAmount: number | null;
+  totalAmount: number;
+  paymentMode: string | null;
+  createdAt: number;
+  acceptedAt: number | null;
+  readyAt: number | null;
+  rejectedAt: number | null;
+  rejectedReason: string | null;
+}
+
+export interface MarketplaceOrderCounts {
+  pending: number;
+  accepted: number;
+  ready: number;
+  rejected: number;
+}
+
+export interface BusinessProfile {
+  restaurantId: number;
+  shopName: string | null;
+  shopAddress: string | null;
+  whatsappNumber: string | null;
+  email: string | null;
+  logoUrl: string | null;
+  logoVersion: number | null;
+  currency: string | null;
+  upiEnabled: boolean | null;
+  upiHandle: string | null;
+  upiMobile: string | null;
+  cashEnabled: boolean | null;
+  posEnabled: boolean | null;
+  zomatoEnabled: boolean | null;
+  swiggyEnabled: boolean | null;
+  ownWebsiteEnabled: boolean | null;
+  country: string | null;
+  timezone: string | null;
+  gstEnabled: boolean | null;
+  gstin: string | null;
+  isTaxInclusive: boolean | null;
+  gstPercentage: number | null;
+  customTaxName: string | null;
+  customTaxNumber: string | null;
+  customTaxPercentage: number | null;
+  fssaiNumber: string | null;
+  reviewUrl: string | null;
+  invoiceFooter: string | null;
+  showBranding: boolean | null;
+  maskCustomerPhone: boolean | null;
+}
+
+export interface UpdateBusinessProfileRequest {
+  shopName?: string;
+  shopAddress?: string;
+  whatsappNumber?: string;
+  email?: string;
+  currency?: string;
+  upiEnabled?: boolean;
+  upiHandle?: string;
+  upiMobile?: string;
+  cashEnabled?: boolean;
+  posEnabled?: boolean;
+  zomatoEnabled?: boolean;
+  swiggyEnabled?: boolean;
+  ownWebsiteEnabled?: boolean;
+  country?: string;
+  timezone?: string;
+  gstEnabled?: boolean;
+  gstin?: string;
+  isTaxInclusive?: boolean;
+  gstPercentage?: number;
+  customTaxName?: string;
+  customTaxNumber?: string;
+  customTaxPercentage?: number;
+  fssaiNumber?: string;
+  reviewUrl?: string;
+  invoiceFooter?: string;
+  showBranding?: boolean;
+  maskCustomerPhone?: boolean;
+}
+
+export interface EasebuzzSubMerchantRequest {
+  restaurantId?: number;
+  businessName: string;
+  businessType: string;
+  pan: string;
+  gst?: string;
+  bankName?: string;
+  branchName?: string;
+  bankAccountNo: string;
+  ifsc: string;
+  beneficiaryName: string;
+  businessAddress: string;
+  contactEmail: string;
+  contactPhone: string;
+  commissionRate: number;
+  upiDeductionLtLimit?: number;
+  dcDeductionGtTwoThousand?: number;
+}
+

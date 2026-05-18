@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 public class JacksonConfig {
 
     @Bean
-    public Hibernate6Module hibernate6Module() {
+    Hibernate6Module hibernate6Module() {
         Hibernate6Module module = new Hibernate6Module();
         // This ensures that uninitialized lazy-loaded objects are serialized as null 
         // instead of throwing an exception or forcing a database hit.

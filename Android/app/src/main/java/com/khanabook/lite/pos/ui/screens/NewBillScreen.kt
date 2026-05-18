@@ -236,7 +236,8 @@ fun NewBillScreen(
                                     onComplete = { step = 4 },
                                     onFailed = { step = 5 },
                                     onFlowLockChange = { paymentFlowLocked = it },
-                                    resumePendingPayment = shouldResumePendingPayment
+                                    resumePendingPayment = shouldResumePendingPayment,
+                                    navController = navController
                             )
                     4 ->
                             SuccessStep(
@@ -944,12 +945,13 @@ fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
 @Composable
 fun PaymentStep(
     viewModel: BillingViewModel,
-    settingsViewModel: SettingsViewModel,
-    onBackToMenu: () -> Unit,
-    onComplete: () -> Unit,
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
+    onBackToMenu: () -> Unit = {},
+    onComplete: () -> Unit = {},
     onFailed: () -> Unit = {},
     onFlowLockChange: (Boolean) -> Unit = {},
-    resumePendingPayment: Boolean = false
+    resumePendingPayment: Boolean = false,
+    navController: NavController? = null
 ) {
     val summary by viewModel.billSummary.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
@@ -1299,32 +1301,74 @@ fun PaymentStep(
         }
 
         Spacer(modifier = Modifier.height(spacing.extraLarge))
-        Button(
+
+        if (selectedMode == PaymentMode.ONLINE) {
+            val isOnline by viewModel.connectionStatus.collectAsState()
+            if (isOnline != com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) {
+                Text(
+                    "Internet connection required for online payment.",
+                    color = DangerRed,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = spacing.medium)
+                )
+            }
+            Button(
                 onClick = {
-                    if (!isAmountValid) return@Button
                     scope.launch {
                         viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                        if (viewModel.completeOrder(PaymentStatus.SUCCESS)) {
-                            viewModel.clearGatewayResult()
-                            onComplete()
+                        val serverBillId = viewModel.createDraftOnlineBill()
+                        if (serverBillId != null) {
+                            val restaurantId = profile?.restaurantId ?: 0L
+                            val amount = summary.total
+                            navController?.navigate(
+                                "easebuzz_payment/$restaurantId/$serverBillId/$amount"
+                            )
                         }
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                colors =
-                        ButtonDefaults.buttonColors(
-                                containerColor = if (isAmountValid) SuccessGreen else Color.Gray
-                        ),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isOnline == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) PrimaryGold else Color.Gray
+                ),
                 shape = RoundedCornerShape(12.dp),
-                enabled = isAmountValid
-        ) {
-            Text(
-                    "Payment Successful",
+                enabled = isOnline == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available
+            ) {
+                Text(
+                    "Pay Online (Easebuzz)",
                     color = Color.White,
                     style = MaterialTheme.typography.titleMedium
-            )
+                )
+            }
+        } else {
+            Button(
+                    onClick = {
+                        if (!isAmountValid) return@Button
+                        scope.launch {
+                            viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                            if (viewModel.completeOrder(PaymentStatus.SUCCESS)) {
+                                viewModel.clearGatewayResult()
+                                onComplete()
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors =
+                            ButtonDefaults.buttonColors(
+                                    containerColor = if (isAmountValid) SuccessGreen else Color.Gray
+                            ),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = isAmountValid
+            ) {
+                Text(
+                        "Payment Successful",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium
+                )
+            }
         }
         Spacer(modifier = Modifier.height(spacing.smallMedium))
         TextButton(

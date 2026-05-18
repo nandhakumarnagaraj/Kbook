@@ -83,6 +83,27 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "last_reset_date", nullable = false)
 	private String lastResetDate;
 
+	@Column(name = "gateway_txn_id")
+	private String gatewayTxnId;
+
+	@Column(name = "gateway_status")
+	private String gatewayStatus;
+
+	@Column(name = "refund_id")
+	private String refundId;
+
+	@Column(name = "settled_amount", columnDefinition = "NUMERIC(12,2)")
+	private java.math.BigDecimal settledAmount;
+
+	@Column(name = "settled_at")
+	private Long settledAt;
+
+	@Column(name = "commission_amount", columnDefinition = "NUMERIC(12,2)")
+	private java.math.BigDecimal commissionAmount;
+
+	@Column(name = "marketplace_order_id")
+	private Long marketplaceOrderId;
+
 	@Column(name = "cancel_reason", columnDefinition = "TEXT DEFAULT ''")
 	private String cancelReason = "";
 

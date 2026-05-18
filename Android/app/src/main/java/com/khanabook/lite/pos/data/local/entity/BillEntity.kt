@@ -83,8 +83,14 @@ data class BillEntity(
     @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
     @SerializedName("serverId") @ColumnInfo(name = "server_id") val serverId: Long? = null,
     @SerializedName("serverUpdatedAt") @ColumnInfo(name = "server_updated_at", defaultValue = "0") val serverUpdatedAt: Long = 0L,
-    @SerializedName("cancelReason")
-    @ColumnInfo(name = "cancel_reason", defaultValue = "") val cancelReason: String = "",
-    @SerializedName("publicToken")
-    @ColumnInfo(name = "public_token") val publicToken: String? = null
+        @SerializedName("cancelReason")
+        @ColumnInfo(name = "cancel_reason", defaultValue = "") val cancelReason: String = "",
+        @SerializedName("publicToken")
+        @ColumnInfo(name = "public_token") val publicToken: String? = null,
+        @SerializedName("refundAmount")
+        @ColumnInfo(name = "refund_amount", defaultValue = "'0.0'") val refundAmount: String = "0.0",
+        @SerializedName("gatewayTxnId")
+        @ColumnInfo(name = "gateway_txn_id") val gatewayTxnId: String? = null,
+        @SerializedName("gatewayStatus")
+        @ColumnInfo(name = "gateway_status") val gatewayStatus: String? = null
 )

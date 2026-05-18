@@ -45,6 +45,13 @@ Android/app/build/
 Android/app/*.apk
 Android/app/*.aab
 
+# Local Maven distribution (not needed in VCS)
+/maven/
+/maven.zip
+
+# Test files
+test.html
+
 # Python scripts (one-time utilities)
 *.py
 
@@ -74,3 +81,5 @@ Thumbs.db
 /.idea/runConfigurations.xml
 /.idea/vcs.xml
 /.idea/workspace.xml
+nul
+Android/nul

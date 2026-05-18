@@ -217,4 +217,19 @@ class BillRepository(
             billDao.getBillWithItemsById(bill.id)
         }
     }
+
+    suspend fun refundBill(id: Long, amount: String, reason: String) {
+        val current = billDao.getBillById(id) ?: return
+        billDao.updateBill(
+            current.copy(
+                refundAmount = amount,
+                paymentStatus = "refunded",
+                orderStatus = "cancelled",
+                cancelReason = reason.ifBlank { "Refunded" },
+                isSynced = false,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+        triggerBackgroundSync()
+    }
 }

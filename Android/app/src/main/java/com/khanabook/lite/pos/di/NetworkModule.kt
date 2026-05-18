@@ -12,6 +12,7 @@ import dagger.hilt.components.SingletonComponent
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import com.google.gson.GsonBuilder
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -80,9 +81,10 @@ object NetworkModule {
         } else {
             BACKEND_BASE_URL + "/"
         }
+        val gson = GsonBuilder().setLenient().create()
         return Retrofit.Builder()
             .baseUrl(baseUrlWithPrefix)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .client(okHttpClient)
             .build()
     }

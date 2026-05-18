@@ -13,7 +13,7 @@ import java.util.concurrent.Executor;
 public class AsyncConfig {
 
     @Bean(name = "menuExtractionExecutor")
-    public Executor menuExtractionExecutor() {
+    Executor menuExtractionExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(4);
         executor.setMaxPoolSize(10);

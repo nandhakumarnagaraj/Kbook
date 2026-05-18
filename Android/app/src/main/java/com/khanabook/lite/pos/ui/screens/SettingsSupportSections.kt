@@ -66,7 +66,7 @@ internal fun AppInfoSection() {
         TextButton(onClick = {
             val intent = Intent(Intent.ACTION_SENDTO).apply {
                 data = Uri.parse("mailto:kbook@pcts.tech")
-                putExtra(Intent.EXTRA_SUBJECT, "KhanaBook Lite Support")
+                putExtra(Intent.EXTRA_SUBJECT, "KhanaBook Support")
             }
             try {
                 context.startActivity(intent)

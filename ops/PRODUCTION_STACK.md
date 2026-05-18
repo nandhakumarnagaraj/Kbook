@@ -12,7 +12,7 @@ This stack runs Kbook backend and PostgreSQL in one private Docker Compose netwo
   - not exposed on a public host port
   - persistent volume: `pgdata`
 
-Apache should continue proxying `/api/v1/` to `127.0.0.1:8081`.
+Apache should continue proxying `/api/v2/` to `127.0.0.1:8081`.
 
 ## Required `.env` values
 
@@ -27,6 +27,10 @@ Apache should continue proxying `/api/v1/` to `127.0.0.1:8081`.
 - `PAYMENT_CRYPTO_SECRET`
 - `APP_BASE_URL`
 - `CORS_ALLOWED_ORIGINS`
+- `EASEBUZZ_MERCHANT_KEY` — Easebuzz master merchant key (production)
+- `EASEBUZZ_SALT` — Easebuzz hash salt (production)
+- `EASEBUZZ_PAYMENT_BASE_URL` — `https://pay.easebuzz.in` (production) or `https://testpay.easebuzz.in` (sandbox)
+- `EASEBUZZ_DASHBOARD_BASE_URL` — `https://dashboard.easebuzz.in` (production) or `https://testdashboard.easebuzz.in` (sandbox)
 
 ## First deployment
 
@@ -37,7 +41,7 @@ Apache should continue proxying `/api/v1/` to `127.0.0.1:8081`.
    - `./ops/restore_postgres.sh /path/to/backup.sql.gz`
 4. Verify:
    - `docker compose --env-file .env -f docker-compose.production.yml ps`
-   - `curl http://127.0.0.1:8081/api/v1/actuator/health`
+   - `curl http://127.0.0.1:8081/api/v2/actuator/health`
 
 ## Backup
 

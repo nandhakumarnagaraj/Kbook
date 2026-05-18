@@ -20,7 +20,7 @@ public class GoogleAuthConfig {
     private String googleClientId;
 
     @Bean
-    public GoogleIdTokenVerifier googleIdTokenVerifier() {
+    GoogleIdTokenVerifier googleIdTokenVerifier() {
         if (googleClientId == null || googleClientId.isBlank() || googleClientId.contains("${")) {
             log.warn("GOOGLE_CLIENT_ID is not configured. Google login will be unavailable.");
             return null;

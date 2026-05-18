@@ -47,8 +47,10 @@ fun BillEntity.toSyncDto() = BillSyncDto(
     isDeleted       = isDeleted,
     lastResetDate   = lastResetDate,
     serverUpdatedAt = serverUpdatedAt,
-    refundAmount    = "0.00",
+    refundAmount    = refundAmount,
     publicToken     = publicToken,
+    gatewayTxnId    = gatewayTxnId,
+    gatewayStatus   = gatewayStatus,
 )
 
 fun BillItemEntity.toSyncDto() = BillItemSyncDto(

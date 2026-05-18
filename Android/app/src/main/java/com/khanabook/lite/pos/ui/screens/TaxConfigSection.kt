@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -14,8 +15,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -39,20 +42,82 @@ import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.VegGreen
 
+data class LookupUiState(
+    val loading: Boolean = false,
+    val error: String? = null,
+    val result: LookupResult? = null
+)
+
+data class LookupResult(
+    val businessName: String?,
+    val address: String?,
+    val fssaiNo: String?,
+    val gstin: String?
+)
+
 @Composable
-fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileEntity) -> Unit, onBack: () -> Unit) {
+fun TaxConfigView(
+    profile: RestaurantProfileEntity?,
+    onSave: (RestaurantProfileEntity) -> Unit,
+    onBack: () -> Unit,
+    lookupState: LookupUiState = LookupUiState(),
+    onLookupGst: (String) -> Unit = {},
+    onLookupFssai: (String) -> Unit = {},
+    onLookupBoth: (String, String) -> Unit = { _, _ -> },
+    onApplyLookup: (LookupResult) -> Unit = {},
+    onClearLookup: () -> Unit = {}
+) {
     val spacing = KhanaBookTheme.spacing
     val fssaiRegex = remember { Regex("^\\d{14}$") }
-    var country by remember { mutableStateOf(profile?.country ?: "India") }
-    var gstEnabled by remember { mutableStateOf(profile?.gstEnabled ?: false) }
-    var gstNumber by remember { mutableStateOf(profile?.gstin ?: "") }
-    var gstPct by remember { mutableStateOf(profile?.gstPercentage?.toInt()?.toString() ?: "0") }
-    var fssaiNumber by remember { mutableStateOf(profile?.fssaiNumber ?: "") }
+    var country by remember(profile) { mutableStateOf(profile?.country ?: "India") }
+    var gstEnabled by remember(profile) { mutableStateOf(profile?.gstEnabled ?: false) }
+    var gstNumber by remember(profile) { mutableStateOf(profile?.gstin ?: "") }
+    var gstPct by remember(profile) { mutableStateOf(profile?.gstPercentage?.toInt()?.toString() ?: "0") }
+    var fssaiNumber by remember(profile) { mutableStateOf(profile?.fssaiNumber ?: "") }
 
     val isFssaiValid = fssaiRegex.matches(fssaiNumber)
     val isGstValid = !gstEnabled || ValidationUtils.isValidGst(gstNumber)
     val isGstPctValid = !gstEnabled || ValidationUtils.isValidTaxPercentage(gstPct)
     val isSaveEnabled = isFssaiValid && isGstValid && isGstPctValid
+
+    // Dialog for lookup results
+    lookupState.result?.let { result ->
+        AlertDialog(
+            onDismissRequest = onClearLookup,
+            title = { Text("Lookup Result", color = TextGold) },
+            text = {
+                Column {
+                    result.businessName?.let {
+                        Text("Business Name: $it", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                    result.address?.let {
+                        Text("Address: $it", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                    result.gstin?.let {
+                        Text("GSTIN: $it", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                    result.fssaiNo?.let {
+                        Text("FSSAI: $it", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onApplyLookup(result)
+                        onClearLookup()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen)
+                ) { Text("Apply", color = Color.White) }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = onClearLookup) { Text("Dismiss") }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -65,14 +130,34 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
         ConfigCard {
             ParchmentTextField(value = country, onValueChange = {}, label = "Country", enabled = false)
             Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(
-                value = fssaiNumber,
-                onValueChange = { fssaiNumber = it.filter(Char::isDigit).take(14) },
-                label = "FSSAI License *",
-                isError = fssaiNumber.isNotEmpty() && !isFssaiValid,
-                supportingText = if (fssaiNumber.isNotEmpty() && !isFssaiValid) "Enter exactly 14 digits" else null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
+
+            // FSSAI + lookup
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                verticalAlignment = Alignment.Top
+            ) {
+                ParchmentTextField(
+                    value = fssaiNumber,
+                    onValueChange = { fssaiNumber = it.filter(Char::isDigit).take(14) },
+                    label = "FSSAI License *",
+                    isError = fssaiNumber.isNotEmpty() && !isFssaiValid,
+                    supportingText = if (fssaiNumber.isNotEmpty() && !isFssaiValid) "Enter exactly 14 digits" else null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedButton(
+                    onClick = { onLookupFssai(fssaiNumber) },
+                    enabled = isFssaiValid && !lookupState.loading,
+                    modifier = Modifier.height(56.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text("Fetch", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+
             Spacer(modifier = Modifier.height(spacing.medium))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -87,15 +172,33 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                 )
             }
             if (gstEnabled) {
-                ParchmentTextField(
-                    value = gstNumber,
-                    onValueChange = {
-                        gstNumber = it.uppercase().filter { ch -> ch.isLetterOrDigit() }.take(15)
-                    },
-                    label = "GST Identification Number (GSTIN) *",
-                    isError = gstNumber.isNotEmpty() && !isGstValid,
-                    supportingText = if (gstNumber.isNotEmpty() && !isGstValid) "Enter valid 15-character GSTIN format" else null
-                )
+                // GSTIN + lookup
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    ParchmentTextField(
+                        value = gstNumber,
+                        onValueChange = {
+                            gstNumber = it.uppercase().filter { ch -> ch.isLetterOrDigit() }.take(15)
+                        },
+                        label = "GST Identification Number (GSTIN) *",
+                        isError = gstNumber.isNotEmpty() && !isGstValid,
+                        supportingText = if (gstNumber.isNotEmpty() && !isGstValid) "Enter valid 15-character GSTIN format" else null,
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedButton(
+                        onClick = { onLookupGst(gstNumber) },
+                        enabled = isGstValid && !lookupState.loading,
+                        modifier = Modifier.height(56.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                        shape = RoundedCornerShape(28.dp)
+                    ) {
+                        Text("Fetch", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
                 Spacer(modifier = Modifier.height(spacing.small))
                 ParchmentTextField(
                     value = gstPct,
@@ -106,6 +209,40 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
+
+            // Both lookup button
+            if (isFssaiValid && gstEnabled && isGstValid) {
+                Spacer(modifier = Modifier.height(spacing.medium))
+                OutlinedButton(
+                    onClick = { onLookupBoth(gstNumber, fssaiNumber) },
+                    enabled = !lookupState.loading,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Text("Fetch Both (GST + FSSAI)", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+
+            if (lookupState.loading) {
+                Spacer(modifier = Modifier.height(spacing.medium))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(color = PrimaryGold, modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Text("Looking up…", color = TextGold)
+                }
+            }
+
+            lookupState.error?.let {
+                Spacer(modifier = Modifier.height(spacing.small))
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+
             Spacer(modifier = Modifier.height(spacing.extraLarge))
             Row(
                 modifier = Modifier.fillMaxWidth(),

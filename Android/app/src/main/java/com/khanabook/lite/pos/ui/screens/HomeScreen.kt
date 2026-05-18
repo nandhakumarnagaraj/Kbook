@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -46,6 +47,7 @@ fun HomeScreen(
     onReprintKds: () -> Unit,
     onOrderStatus: () -> Unit,
     onCallCustomer: () -> Unit,
+    onMarketplaceOrders: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
 ) {
@@ -54,6 +56,7 @@ fun HomeScreen(
     val unsyncedCount by viewModel.unsyncedCount.collectAsState()
     val shopName by viewModel.shopName.collectAsState()
     val greeting = viewModel.greeting
+    val marketplacePendingCount by viewModel.marketplacePendingCount.collectAsState()
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val isWideScreen = !layout.isCompact
@@ -207,6 +210,70 @@ fun HomeScreen(
                             contentDescription = null,
                             tint = DarkBrown1,
                             modifier = Modifier.size(spacing.huge)
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
+                KhanaBookCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onMarketplaceOrders,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 56.dp)
+                            .padding(horizontal = spacing.medium, vertical = spacing.medium),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingCart,
+                                contentDescription = null,
+                                tint = PrimaryGold,
+                                modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
+                            )
+                            Spacer(modifier = Modifier.width(spacing.small))
+                            Column {
+                                Text(
+                                    "Online Orders",
+                                    color = TextLight,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                if (marketplacePendingCount > 0) {
+                                    Text(
+                                        "$marketplacePendingCount pending",
+                                        color = WarningYellow,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                            }
+                        }
+                        if (marketplacePendingCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(DangerRed, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    marketplacePendingCount.toString(),
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = PrimaryGold,
+                            modifier = Modifier.size(KhanaBookTheme.iconSize.small)
                         )
                     }
                 }

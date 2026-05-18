@@ -167,11 +167,41 @@ fun SettingsScreen(
                         }, onBack = { section = "menu" }, viewModel = viewModel)
                     }
                     "tax" -> {
-                        TaxConfigView(profile, onSave = {
-                            viewModel.saveProfile(it)
-                            toastScope.launch { KhanaToast.show(ctx.getString(R.string.toast_tax_settings_saved), ToastKind.Success) }
-                            section = "menu"
-                        }, onBack = { section = "menu" })
+                        val lookupState by viewModel.lookupLoading.collectAsState()
+                        val lookupError by viewModel.lookupError.collectAsState()
+                        val lookupResult by viewModel.lookupResult.collectAsState()
+                        TaxConfigView(
+                            profile = profile,
+                            onSave = {
+                                viewModel.saveProfile(it)
+                                toastScope.launch { KhanaToast.show(ctx.getString(R.string.toast_tax_settings_saved), ToastKind.Success) }
+                                section = "menu"
+                            },
+                            onBack = { section = "menu" },
+                            lookupState = LookupUiState(
+                                loading = lookupState,
+                                error = lookupError,
+                                result = lookupResult?.let { LookupResult(it.businessName, it.address, it.fssaiNo, it.gstin) }
+                            ),
+                            onLookupGst = { viewModel.lookupGst(it) },
+                            onLookupFssai = { viewModel.lookupFssai(it) },
+                            onLookupBoth = { gst, fssai -> viewModel.lookupBoth(gst, fssai) },
+                            onApplyLookup = { result ->
+                                val current = profile ?: return@TaxConfigView
+                                viewModel.saveProfile(
+                                    current.copy(
+                                        shopName = result.businessName ?: current.shopName,
+                                        shopAddress = result.address ?: current.shopAddress,
+                                        gstin = result.gstin ?: current.gstin,
+                                        fssaiNumber = result.fssaiNo ?: current.fssaiNumber,
+                                        isSynced = false,
+                                        updatedAt = System.currentTimeMillis()
+                                    )
+                                )
+                                toastScope.launch { KhanaToast.show(ctx.getString(R.string.toast_lookup_applied), ToastKind.Success) }
+                            },
+                            onClearLookup = { viewModel.clearLookupResult() }
+                        )
                     }
                     "ui_scale" -> {
                         DisplayScaleView(viewModel = viewModel)

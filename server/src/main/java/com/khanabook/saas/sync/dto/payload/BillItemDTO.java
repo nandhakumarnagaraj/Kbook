@@ -2,9 +2,6 @@ package com.khanabook.saas.sync.dto.payload;
 
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.khanabook.saas.entity.*;
-import java.math.BigDecimal;
 
 @Data
 public class BillItemDTO {
@@ -22,17 +19,17 @@ public class BillItemDTO {
     private Long createdAt;
 
     private Long billId;
+    @JsonProperty("billLocalId")
+    private Long billLocalId;
     private Long serverBillId;
-    private Bill bill;
+
+    private String itemName;
+    private String variantName;
     private Long menuItemId;
     private Long serverMenuItemId;
-    private MenuItem menuItem;
-    private String itemName;
     private Long variantId;
     private Long serverVariantId;
-    private String variantName;
+    private java.math.BigDecimal quantity;
     private java.math.BigDecimal price;
-    private Integer quantity;
-    private java.math.BigDecimal itemTotal;
-    private String specialInstruction;
+    private java.math.BigDecimal total;
 }

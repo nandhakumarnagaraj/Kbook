@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.local.entity.*
+import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.repository.*
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
@@ -37,7 +38,8 @@ class SettingsViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val btManager: BluetoothPrinterManager,
     private val kitchenPrintQueueManager: KitchenPrintQueueManager,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val api: KhanaBookApi
 ) : ViewModel() {
 
     val displayScale = sessionManager.getDisplayScale()
@@ -420,5 +422,94 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun getLastSyncTimestamp(): Long = sessionManager.getLastSyncTimestamp()
+
+    // ── GST/FSSAI lookup ──────────────────────────────────────────────────
+
+    private val _lookupLoading = MutableStateFlow(false)
+    val lookupLoading: StateFlow<Boolean> = _lookupLoading.asStateFlow()
+
+    private val _lookupError = MutableStateFlow<String?>(null)
+    val lookupError: StateFlow<String?> = _lookupError.asStateFlow()
+
+    private val _lookupResult = MutableStateFlow<LookupResult?>(null)
+    val lookupResult: StateFlow<LookupResult?> = _lookupResult.asStateFlow()
+
+    data class LookupResult(
+        val businessName: String?,
+        val address: String?,
+        val fssaiNo: String?,
+        val gstin: String?
+    )
+
+    fun clearLookupResult() {
+        _lookupResult.value = null
+        _lookupError.value = null
+    }
+
+    fun lookupGst(gstin: String) {
+        viewModelScope.launch {
+            _lookupLoading.value = true
+            _lookupError.value = null
+            _lookupResult.value = null
+            try {
+                val body = api.lookupGst(gstin)
+                _lookupResult.value = LookupResult(
+                    businessName = body["businessName"] as? String,
+                    address = body["address"] as? String,
+                    fssaiNo = body["fssaiNo"] as? String,
+                    gstin = body["gstin"] as? String
+                )
+            } catch (e: Exception) {
+                _lookupError.value = "Network error during GST lookup"
+                Log.w("SettingsViewModel", "GST lookup failed", e)
+            } finally {
+                _lookupLoading.value = false
+            }
+        }
+    }
+
+    fun lookupFssai(fssaiNo: String) {
+        viewModelScope.launch {
+            _lookupLoading.value = true
+            _lookupError.value = null
+            _lookupResult.value = null
+            try {
+                val body = api.lookupFssai(fssaiNo)
+                _lookupResult.value = LookupResult(
+                    businessName = body["businessName"] as? String,
+                    address = body["address"] as? String,
+                    fssaiNo = body["fssaiNo"] as? String,
+                    gstin = body["gstin"] as? String
+                )
+            } catch (e: Exception) {
+                _lookupError.value = "Network error during FSSAI lookup"
+                Log.w("SettingsViewModel", "FSSAI lookup failed", e)
+            } finally {
+                _lookupLoading.value = false
+            }
+        }
+    }
+
+    fun lookupBoth(gstin: String, fssaiNo: String) {
+        viewModelScope.launch {
+            _lookupLoading.value = true
+            _lookupError.value = null
+            _lookupResult.value = null
+            try {
+                val body = api.lookupBoth(gstin, fssaiNo)
+                _lookupResult.value = LookupResult(
+                    businessName = body["businessName"] as? String,
+                    address = body["address"] as? String,
+                    fssaiNo = body["fssaiNo"] as? String,
+                    gstin = body["gstin"] as? String
+                )
+            } catch (e: Exception) {
+                _lookupError.value = "Network error during lookup"
+                Log.w("SettingsViewModel", "Both lookup failed", e)
+            } finally {
+                _lookupLoading.value = false
+            }
+        }
+    }
 
 }
