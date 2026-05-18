@@ -158,6 +158,7 @@ function formatStatus(status: string): string {
                 <div class="action-cell">
                   <button class="ghost-btn" (click)="viewDetail(sm)" title="View">👁️</button>
                   <button class="ghost-btn" (click)="openEdit(sm)" title="Edit">✏️</button>
+                  <button class="ghost-btn" (click)="wireLookupByMerchant(sm)" title="Lookup on WIRE platform by email" *ngIf="sm.contactEmail">🌐</button>
                   <ng-container *ngIf="sm.status === 'DRAFT'">
                     <button class="ghost-btn" (click)="submitToEasebuzz(sm)" title="Submit to Easebuzz API">
                       <span class="chip chip-sm info">🚀 Submit</span>
@@ -1335,27 +1336,78 @@ export class SubMerchantsPageComponent implements OnInit {
 
   private autoMatchFromWireLookup(): void {
     const result = this.wireLookupResult();
-    if (!result?.data?.data?.merchant?.email) {
+    if (!result?.data?.data?.merchant) {
+      this.matchedMerchantId.set(null);
       return;
     }
-    const wireEmail = result.data.data.merchant.email.toLowerCase();
-    const match = this.subMerchants().find(
-      sm => sm.contactEmail?.toLowerCase() === wireEmail
-    );
-    if (match) {
-      this.matchedMerchantId.set(match.id);
-      this.selectedSubMerchant.set(match);
-      this.showFeedback(`🔗 WIRE merchant matched to local #${match.id} — ${match.businessName}`);
-      // Scroll to detail panel
-      setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
-    } else {
-      this.matchedMerchantId.set(null);
+    const m = result.data.data.merchant;
+    const all = this.subMerchants();
+
+    // 1. Try matching by email (primary)
+    if (m.email) {
+      const wireEmail = m.email.toLowerCase();
+      const byEmail = all.find(sm => sm.contactEmail?.toLowerCase() === wireEmail);
+      if (byEmail) {
+        this.matchedMerchantId.set(byEmail.id);
+        this.selectedSubMerchant.set(byEmail);
+        this.showFeedback(`🔗 WIRE merchant matched to local #${byEmail.id} — ${byEmail.businessName}`);
+        setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+        return;
+      }
     }
+
+    // 2. If looked up by ID, try matching subMerchantId against the query
+    const lookupType = result.type;
+    const query = result.query;
+    if (lookupType === 'id' && query) {
+      const bySubId = all.find(sm => sm.subMerchantId?.toLowerCase() === query.toLowerCase());
+      if (bySubId) {
+        this.matchedMerchantId.set(bySubId.id);
+        this.selectedSubMerchant.set(bySubId);
+        this.showFeedback(`🔗 WIRE merchant matched to local #${bySubId.id} — ${bySubId.businessName} (by subMerchantId)`);
+        setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+        return;
+      }
+    }
+
+    // 3. If looked up by key, the subMerchantKey might match subMerchantId
+    if (lookupType === 'key' && query) {
+      const byKey = all.find(sm => sm.subMerchantId?.toLowerCase() === query.toLowerCase());
+      if (byKey) {
+        this.matchedMerchantId.set(byKey.id);
+        this.selectedSubMerchant.set(byKey);
+        this.showFeedback(`🔗 WIRE merchant matched to local #${byKey.id} — ${byKey.businessName} (by key)`);
+        setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+        return;
+      }
+    }
+
+    this.matchedMerchantId.set(null);
   }
 
   // ============================================================
   // WIRE Platform Action Handlers
   // ============================================================
+
+  /** One-click WIRE lookup by merchant's email from table row */
+  wireLookupByMerchant(merchant: EasebuzzSubMerchant): void {
+    if (!merchant.contactEmail) {
+      this.showFeedback('This merchant has no email to look up.', true);
+      return;
+    }
+    this.api.wireLookupByEmail(merchant.contactEmail).subscribe({
+      next: (res) => {
+        this.wireLookupResult.set({ query: merchant.contactEmail!, type: 'email', data: res });
+        this.selectedSubMerchant.set(merchant);
+        this.autoMatchFromWireLookup();
+        if (!this.matchedMerchantId()) {
+          this.showFeedback(`WIRE lookup for ${merchant.contactEmail} complete. No match found locally.`);
+        }
+        setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+      },
+      error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
+    });
+  }
 
   wireLookupByEmail(): void {
     this.showPrompt(
