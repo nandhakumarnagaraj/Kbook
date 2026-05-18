@@ -1316,12 +1316,12 @@ fun PaymentStep(
                 onClick = {
                     scope.launch {
                         viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                        val draftId = viewModel.createDraftOnlineBill()
-                        if (draftId != null) {
+                        val serverBillId = viewModel.createDraftOnlineBill()
+                        if (serverBillId != null) {
                             val restaurantId = profile?.restaurantId ?: 0L
                             val amount = summary.total
                             navController?.navigate(
-                                "easebuzz_payment/$restaurantId/$draftId/$amount"
+                                "easebuzz_payment/$restaurantId/$serverBillId/$amount"
                             )
                         }
                     }

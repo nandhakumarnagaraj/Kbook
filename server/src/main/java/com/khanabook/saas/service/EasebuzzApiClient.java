@@ -39,27 +39,69 @@ public class EasebuzzApiClient {
 
 	public Map<String, Object> initiatePayment(Map<String, String> data) {
 		checkCredentials();
+		
+		// 1. Extract and Clean Parameters
 		String txnid = data.get("txnid");
+		if (txnid.length() > 20) txnid = txnid.substring(0, 20);
+		
 		String amount = data.get("amount");
-		String productinfo = data.get("productinfo");
-		String firstname = data.get("firstname");
+		String productinfo = data.get("productinfo").replaceAll("[^a-zA-Z0-9]", ""); 
+		String firstname = data.get("firstname").replaceAll("[^a-zA-Z0-9]", "");
 		String email = data.get("email");
+		String phone = data.get("phone");
+		String subMerchantId = data.get("sub_merchant_id");
+		
+		// 2. Ensure all 10 UDFs are present
 		String udf1 = data.getOrDefault("udf1", "");
 		String udf2 = data.getOrDefault("udf2", "");
 		String udf3 = data.getOrDefault("udf3", "");
 		String udf4 = data.getOrDefault("udf4", "");
 		String udf5 = data.getOrDefault("udf5", "");
+		String udf6 = data.getOrDefault("udf6", "");
+		String udf7 = data.getOrDefault("udf7", "");
+		String udf8 = data.getOrDefault("udf8", "");
+		String udf9 = data.getOrDefault("udf9", "");
+		String udf10 = data.getOrDefault("udf10", "");
 
-		// Official hash sequence:
-		// key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5||||||salt
-		String hash = generateHash(props.getMerchantKey(), txnid, amount, productinfo, firstname, email, udf1, udf2,
-				udf3, udf4, udf5, "", "", "", "", "");
+		// 3. Generate Hash: key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5|udf6|udf7|udf8|udf9|udf10|salt
+		// Per official Easebuzz docs: all 10 UDF fields (5+5) are required in the hash sequence
+		String hash = generateHash(
+				props.getMerchantKey(), txnid, amount, productinfo, firstname, email,
+				udf1, udf2, udf3, udf4, udf5, udf6, udf7, udf8, udf9, udf10
+		);
 
-		Map<String, String> params = new HashMap<>(data);
-		params.put("key", props.getMerchantKey());
-		params.put("hash", hash);
-		params.put("surl", props.getReturnUrl());
-		params.put("furl", props.getReturnUrl());
+		// 4. Prepare Minimal POST Parameters
+		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+		params.set("key", props.getMerchantKey());
+		params.set("txnid", txnid);
+		params.set("amount", amount);
+		params.set("productinfo", productinfo);
+		params.set("firstname", firstname);
+		params.set("email", email);
+		params.set("phone", phone);
+		
+		String surl = data.getOrDefault("surl", props.getReturnUrl());
+		String furl = data.getOrDefault("furl", props.getReturnUrl());
+		params.set("surl", surl);
+		params.set("furl", furl);
+		
+		params.set("hash", hash);
+		
+		if (subMerchantId != null && !subMerchantId.isBlank()) {
+			params.set("sub_merchant_id", subMerchantId);
+		}
+
+		// Optional but recommended fields for Sandbox
+		if (data.containsKey("address1")) params.add("address1", data.get("address1"));
+		if (data.containsKey("city")) params.add("city", data.get("city"));
+		if (data.containsKey("state")) params.add("state", data.get("state"));
+		if (data.containsKey("zipcode")) params.add("zipcode", data.get("zipcode"));
+		if (data.containsKey("country")) params.add("country", data.get("country"));
+
+		if ("true".equalsIgnoreCase(data.get("upi_qr"))) {
+			params.add("payment_mode", "UPI");
+			params.add("upi_qr", "true");
+		}
 
 		Map<String, Object> raw = post(props.getPaymentBaseUrl() + "/payment/initiateLink", params);
 
@@ -72,67 +114,41 @@ public class EasebuzzApiClient {
 			result.put("payment_url", props.getPaymentBaseUrl() + "/pay/" + accessKey);
 		} else {
 			result.put("status", "failure");
-			result.put("error",
-					raw != null ? raw.getOrDefault("data", "Payment initiation failed") : "No response from gateway");
+			result.put("error", raw != null ? raw.getOrDefault("data", raw.get("error")) : "No response");
 		}
 		return result;
 	}
 
 	public Map<String, Object> getTransactionStatus(String txnid) {
 		checkCredentials();
-		Map<String, String> params = new HashMap<>();
-		params.put("key", props.getMerchantKey());
-		params.put("txnid", txnid);
-		params.put("hash", generateHash(props.getMerchantKey(), txnid));
+		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+		params.add("key", props.getMerchantKey());
+		params.add("txnid", txnid);
+		params.add("hash", generateHash(props.getMerchantKey(), txnid));
 
 		Map<String, Object> raw = post(props.getPaymentBaseUrl() + "/transaction/v2.1/retrieve", params);
-
-		Map<String, Object> result = new HashMap<>();
-		Object statusObj = raw != null ? raw.get("status") : null;
-		if (toBool(statusObj) && raw != null) {
-			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> msgList = (List<Map<String, Object>>) raw.get("msg");
-			if (msgList != null && !msgList.isEmpty()) {
-				Map<String, Object> txnData = msgList.get(0);
-				result.put("status", txnData.getOrDefault("status", "failure"));
-				result.put("easebuzz_id", txnData.getOrDefault("easepayid", txnData.get("easebuzz_id")));
-			} else {
-				result.put("status", "failure");
-				result.put("error", "No transaction data found");
-			}
-		} else {
-			result.put("status", "failure");
-			result.put("error",
-					raw != null ? raw.getOrDefault("error", "Transaction status check failed") : "Unknown error");
-		}
-		return result;
+		return raw;
 	}
 
-	public Map<String, Object> initiateRefund(String easebuzzId, String merchantRefundId, String refundAmount) {
+	public Map<String, Object> initiateRefund(String txnid, String amount) {
 		checkCredentials();
-		Map<String, String> params = new HashMap<>();
-		params.put("key", props.getMerchantKey());
-		params.put("merchant_refund_id", merchantRefundId);
-		params.put("easebuzz_id", easebuzzId);
-		params.put("refund_amount", refundAmount);
-
-		// Refund API v2 hash: key|merchant_refund_id|easebuzz_id|refund_amount|salt
-		String hash = generateHash(props.getMerchantKey(), merchantRefundId, easebuzzId, refundAmount);
-		params.put("hash", hash);
+		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+		params.add("key", props.getMerchantKey());
+		params.add("txnid", txnid);
+		params.add("amount", amount);
+		// Refund API v2 hash: key|txnid|amount|salt
+		params.add("hash", generateHash(props.getMerchantKey(), txnid, amount));
 
 		return post(props.getPaymentBaseUrl() + "/transaction/v2/refund", params);
 	}
 
 	public Map<String, Object> getRefundStatus(String txnid, String refundId) {
 		checkCredentials();
-		Map<String, String> params = new HashMap<>();
-		params.put("key", props.getMerchantKey());
-		params.put("txnid", txnid);
-		params.put("refund_id", refundId);
-
-		// Refund Status API v2 hash: key|txnid|refund_id|salt
-		String hash = generateHash(props.getMerchantKey(), txnid, refundId);
-		params.put("hash", hash);
+		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+		params.add("key", props.getMerchantKey());
+		params.add("txnid", txnid);
+		params.add("refund_id", refundId);
+		params.add("hash", generateHash(props.getMerchantKey(), txnid, refundId));
 
 		return post(props.getPaymentBaseUrl() + "/transaction/v2/refund_status", params);
 	}
@@ -145,8 +161,7 @@ public class EasebuzzApiClient {
 		body.put("sub_merchant_id", subMerchantId);
 		body.put("otp", otp);
 		body.put("hash", hash);
-
-		return postJson(props.getDashboardBaseUrl() + "/submerchant/v1/verify_otp/", body);
+		return postJson(props.getDashboardBaseUrl() + "/submerchant/v1/verify_otp", body);
 	}
 
 	public Map<String, Object> resendOtp(String subMerchantId) {
@@ -156,65 +171,50 @@ public class EasebuzzApiClient {
 		body.put("merchant_key", props.getMerchantKey());
 		body.put("sub_merchant_id", subMerchantId);
 		body.put("hash", hash);
-
-		return postJson(props.getDashboardBaseUrl() + "/submerchant/v1/resend_otp/", body);
+		return postJson(props.getDashboardBaseUrl() + "/submerchant/v1/resend_otp", body);
 	}
 
 	public Map<String, Object> cancelTransaction(String txnid, String amount) {
 		checkCredentials();
-		Map<String, String> params = new HashMap<>();
-		params.put("key", props.getMerchantKey());
-		params.put("txnid", txnid);
-		params.put("amount", amount);
-
-		// Cancel API hash: key|txnid|amount|salt
-		String hash = generateHash(props.getMerchantKey(), txnid, amount);
-		params.put("hash", hash);
-
+		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+		params.add("key", props.getMerchantKey());
+		params.add("txnid", txnid);
+		params.add("amount", amount);
+		params.add("hash", generateHash(props.getMerchantKey(), txnid, amount));
 		return post(props.getPaymentBaseUrl() + "/transaction/v1/cancel", params);
 	}
 
-	public Map<String, Object> initiatePayout(String merchantRequestId, String amount,
-			Map<String, String> beneficiaryDetails) {
+	public Map<String, Object> initiatePayout(String merchantRequestId, String amount, Map<String, String> beneficiaryDetails) {
 		checkCredentials();
-		// Payout API v2 hash: key|merchant_request_id|amount|salt
 		String hash = generateHash(props.getMerchantKey(), merchantRequestId, amount);
-
 		Map<String, Object> body = new HashMap<>();
 		body.put("key", props.getMerchantKey());
 		body.put("merchant_request_id", merchantRequestId);
 		body.put("amount", amount);
 		body.put("hash", hash);
 		body.putAll(beneficiaryDetails);
-
-		return postJson(props.getDashboardBaseUrl() + "/payout/v2/transfer/", body);
+		return postJson(props.getDashboardBaseUrl() + "/payout/v2/transfer", body);
 	}
 
 	public Map<String, Object> initiateOnDemandSettlement(String merchantRequestId, String amount) {
 		checkCredentials();
-		// Settlement API hash: key|merchant_request_id|amount|salt
 		String hash = generateHash(props.getMerchantKey(), merchantRequestId, amount);
-
 		Map<String, Object> body = new HashMap<>();
 		body.put("key", props.getMerchantKey());
 		body.put("merchant_request_id", merchantRequestId);
 		body.put("amount", amount);
 		body.put("hash", hash);
-
-		return postJson(props.getDashboardBaseUrl() + "/settlement/v1/on_demand/", body);
+		return postJson(props.getDashboardBaseUrl() + "/settlement/v1/on_demand", body);
 	}
 
 	public Map<String, Object> retrieveSettlements(String date) {
 		checkCredentials();
-		// Settlement Retrieve API hash: key|date|salt
 		String hash = generateHash(props.getMerchantKey(), date);
-
 		Map<String, Object> body = new HashMap<>();
 		body.put("key", props.getMerchantKey());
 		body.put("date", date);
 		body.put("hash", hash);
-
-		return postJson(props.getDashboardBaseUrl() + "/settlements/v1/retrieve/", body);
+		return postJson(props.getDashboardBaseUrl() + "/settlements/v1/retrieve", body);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -223,13 +223,11 @@ public class EasebuzzApiClient {
 			String businessType, String pan, String gst, String businessAddress) {
 		checkCredentials();
 		String hash = generateHash(props.getMerchantKey(), email != null ? email : "", phone != null ? phone : "");
-
 		Map<String, Object> merchantDetails = new HashMap<>();
 		merchantDetails.put("merchant_key", props.getMerchantKey());
 		merchantDetails.put("hash", hash);
 
 		String password = generateRandomPassword();
-
 		Map<String, Object> submerchantDetails = new HashMap<>();
 		submerchantDetails.put("sub_merchant_name", subMerchantName);
 		submerchantDetails.put("sub_merchant_email", email);
@@ -242,9 +240,7 @@ public class EasebuzzApiClient {
 		submerchantDetails.put("sub_merchant_password", password);
 		submerchantDetails.put("sub_merchant_confirm_password", password);
 
-		// ERA recommendation: Include business details and MCC code
 		Map<String, Object> businessDetails = new HashMap<>();
-		// Standardization based on Easebuzz Sandbox error requirements
 		String nature = "INDIVIDUAL/FREELANCERS";
 		if ("SOLE_PROPRIETORSHIP".equalsIgnoreCase(businessType)) nature = "SOLE PROPRIETOR";
 		else if ("PARTNERSHIP".equalsIgnoreCase(businessType)) nature = "PARTNERSHIP FIRM";
@@ -256,7 +252,7 @@ public class EasebuzzApiClient {
 		businessDetails.put("sub_merchant_business_name", subMerchantName);
 		businessDetails.put("sub_merchant_business_address", businessAddress != null ? businessAddress : "123 Test Street");
 		businessDetails.put("sub_merchant_state", "Karnataka"); 
-		businessDetails.put("sub_merchant_mcc_code", "5812"); // Restaurants
+		businessDetails.put("sub_merchant_mcc_code", "5812");
 
 		if (gst != null && !gst.isBlank()) businessDetails.put("sub_merchant_gstin", gst);
 		if (pan != null && !pan.isBlank()) businessDetails.put("sub_merchant_pan_number", pan);
@@ -265,31 +261,13 @@ public class EasebuzzApiClient {
 		body.put("merchant_details", merchantDetails);
 		body.put("submerchant_details", submerchantDetails);
 		body.put("business_details", businessDetails);
-
-		Map<String, Object> raw = postJson(props.getDashboardBaseUrl() + "/merchant/v1/submerchant/create/", body);
-
-		Map<String, Object> result = new HashMap<>();
-		Object statusObj = raw != null ? raw.get("status") : null;
-		boolean apiStatus = toBool(statusObj);
-		result.put("status", apiStatus);
-		if (apiStatus && raw != null) {
-			String subMerchantId = (String) raw.get("submerchant_id");
-			Map<String, Object> submerchant = (Map<String, Object>) raw.get("submerchant");
-			if (subMerchantId == null && submerchant != null) {
-				subMerchantId = (String) submerchant.get("submerchant_id");
-			}
-			result.put("submerchant_id", subMerchantId);
-		} else {
-			result.put("error", raw != null ? raw.getOrDefault("error_desc", raw.get("error")) : "Unknown error");
-		}
-		return result;
+		return postJson(props.getDashboardBaseUrl() + "/merchant/v1/submerchant/create/", body);
 	}
 
 	public Map<String, Object> updateSubMerchant(String subMerchantId, String subMerchantName, String email,
 			String phone, String accountNumber, String ifsc, String bankName, String nameInBank, String branchName) {
 		checkCredentials();
 		String hash = generateHash(props.getMerchantKey(), email != null ? email : "", phone != null ? phone : "");
-
 		Map<String, Object> merchantDetails = new HashMap<>();
 		merchantDetails.put("merchant_key", props.getMerchantKey());
 		merchantDetails.put("hash", hash);
@@ -308,26 +286,13 @@ public class EasebuzzApiClient {
 		Map<String, Object> body = new HashMap<>();
 		body.put("merchant_details", merchantDetails);
 		body.put("submerchant_details", submerchantDetails);
-
-		Map<String, Object> raw = postJson(props.getDashboardBaseUrl() + "/merchant/v1/submerchant/create/", body);
-
-		Map<String, Object> result = new HashMap<>();
-		Object statusObj = raw != null ? raw.get("status") : null;
-		boolean apiStatus = toBool(statusObj);
-		result.put("status", apiStatus);
-		if (apiStatus && raw != null) {
-			result.put("submerchant_id", raw.get("submerchant_id"));
-		} else {
-			result.put("error", raw != null ? raw.getOrDefault("error_desc", raw.get("error")) : "Unknown error");
-		}
-		return result;
+		return postJson(props.getDashboardBaseUrl() + "/merchant/v1/submerchant/create/", body);
 	}
 
 	public Map<String, Object> generateKycAccessKey(String subMerchantId, String name, String email, String phone) {
 		checkCredentials();
 		String hash = generateHash(props.getMerchantKey(), subMerchantId, name, email != null ? email : "",
 				phone != null ? phone : "");
-
 		Map<String, Object> body = new HashMap<>();
 		body.put("merchant_key", props.getMerchantKey());
 		body.put("sub_merchant_id", subMerchantId);
@@ -335,30 +300,13 @@ public class EasebuzzApiClient {
 		body.put("email", email != null ? email : "");
 		body.put("phone", phone != null ? phone : "");
 		body.put("hash", hash);
-
-		Map<String, Object> raw = postJson(props.getDashboardBaseUrl() + "/submerchant/v1/generate_kyc_access_key/",
-				body);
-
-		Map<String, Object> result = new HashMap<>();
-		Object statusObj = raw != null ? raw.get("status") : null;
-		if (toBool(statusObj) && raw != null) {
-			result.put("status", "success");
-			result.put("kyc_url", raw.getOrDefault("kyc_dashboard_url", raw.get("msg")));
-		} else {
-			result.put("status", "failure");
-			result.put("error",
-					raw != null ? raw.getOrDefault("msg", raw.getOrDefault("error", "KYC access key generation failed"))
-							: "Unknown error");
-		}
-		return result;
+		return postJson(props.getDashboardBaseUrl() + "/submerchant/v1/generate_kyc_access_key", body);
 	}
 
 	public Map<String, Object> createSplitLabel(String nameOnBank, String bankName, String branchName, String ifscCode,
 			String accountNumber, String label, String payoutPercentage) {
 		checkCredentials();
-		String hash = generateHash(props.getMerchantKey(), nameOnBank, bankName, branchName, ifscCode, accountNumber,
-				label);
-
+		String hash = generateHash(props.getMerchantKey(), nameOnBank, bankName, branchName, ifscCode, accountNumber, label);
 		Map<String, Object> body = new HashMap<>();
 		body.put("key", props.getMerchantKey());
 		body.put("hash", hash);
@@ -368,32 +316,14 @@ public class EasebuzzApiClient {
 		body.put("ifsc_code", ifscCode);
 		body.put("account_number", accountNumber);
 		body.put("label", label);
-		if (payoutPercentage != null) {
-			body.put("payout_percentage", payoutPercentage);
-		}
-
-		Map<String, Object> raw = postJson(props.getDashboardBaseUrl() + "/split/v1/create/", body);
-
-		Map<String, Object> result = new HashMap<>();
-		Object statusObj = raw != null ? raw.get("status") : null;
-		if (toBool(statusObj) && raw != null) {
-			result.put("status", "success");
-			result.put("msg", raw.get("msg"));
-		} else {
-			result.put("status", "failure");
-			result.put("error",
-					raw != null ? raw.getOrDefault("msg", raw.getOrDefault("error", "Split label creation failed"))
-							: "Unknown error");
-		}
-		return result;
+		if (payoutPercentage != null) body.put("payout_percentage", payoutPercentage);
+		return postJson(props.getDashboardBaseUrl() + "/split/v1/create", body);
 	}
 
 	public Map<String, Object> updateTransactionSplit(String merchantRequestId, String easebuzzId, String amount,
 			String description, List<Map<String, String>> configuration) {
 		checkCredentials();
-		// Hash: key|merchant_request_id|easebuzz_id|salt
 		String hash = generateHash(props.getMerchantKey(), merchantRequestId, easebuzzId);
-
 		Map<String, Object> body = new HashMap<>();
 		body.put("key", props.getMerchantKey());
 		body.put("merchant_request_id", merchantRequestId);
@@ -402,74 +332,54 @@ public class EasebuzzApiClient {
 		body.put("description", description);
 		body.put("configuration", configuration);
 		body.put("hash", hash);
-
-		Map<String, Object> raw = postJson(props.getDashboardBaseUrl() + "/post-split/v1/create/", body);
-
-		Map<String, Object> result = new HashMap<>();
-		Object statusObj = raw != null ? raw.get("status") : null;
-		if (toBool(statusObj) && raw != null) {
-			result.put("status", "success");
-			result.put("request_status", raw.get("request_status"));
-			result.put("meta", raw.get("meta"));
-		} else {
-			result.put("status", "failure");
-			result.put("error", raw != null ? raw.getOrDefault("error", "Split update failed") : "Unknown error");
-		}
-		return result;
+		return postJson(props.getDashboardBaseUrl() + "/post-split/v1/create/", body);
 	}
 
 	public Map<String, Object> retrieveTransactionSplit(String merchantRequestId) {
 		checkCredentials();
 		String hash = generateHash(props.getMerchantKey(), merchantRequestId);
-
 		Map<String, Object> body = new HashMap<>();
 		body.put("key", props.getMerchantKey());
 		body.put("merchant_request_id", merchantRequestId);
 		body.put("hash", hash);
-
-		Map<String, Object> raw = postJson(props.getDashboardBaseUrl() + "/post-split/v1/retrieve/", body);
-
-		Map<String, Object> result = new HashMap<>();
-		Object statusObj = raw != null ? raw.get("status") : null;
-		if (toBool(statusObj) && raw != null) {
-			result.put("status", "success");
-			result.put("merchant_request_id", raw.get("merchant_request_id"));
-			result.put("split_configuration", raw.get("split_configuration"));
-		} else {
-			result.put("status", "failure");
-			result.put("error", raw != null ? raw.getOrDefault("error", "Split retrieve failed") : "Unknown error");
-		}
-		return result;
+		return postJson(props.getDashboardBaseUrl() + "/post-split/v1/retrieve/", body);
 	}
 
 	private String generateRandomPassword() {
 		String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#";
 		StringBuilder sb = new StringBuilder();
 		java.security.SecureRandom random = new java.security.SecureRandom();
-		for (int i = 0; i < 12; i++) {
-			sb.append(chars.charAt(random.nextInt(chars.length())));
-		}
+		for (int i = 0; i < 12; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
 		return sb.toString();
 	}
 
-	private Map<String, Object> post(String url, Map<String, String> data) {
+	private Map<String, Object> post(String url, MultiValueMap<String, String> bodyMap) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-		MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-		data.forEach(body::add);
-		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+		
+		// Manually build the query string to avoid [val] formatting issues
+		StringBuilder sb = new StringBuilder();
+		bodyMap.forEach((key, values) -> {
+			if (!values.isEmpty()) {
+				if (sb.length() > 0) sb.append("&");
+				sb.append(java.net.URLEncoder.encode(key, java.nio.charset.StandardCharsets.UTF_8));
+				sb.append("=");
+				sb.append(java.net.URLEncoder.encode(values.get(0), java.nio.charset.StandardCharsets.UTF_8));
+			}
+		});
+		
+		HttpEntity<String> request = new HttpEntity<>(sb.toString(), headers);
 		try {
 			ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.POST, request,
-					new ParameterizedTypeReference<Map<String, Object>>() {
-					});
-			log.debug("Easebuzz API responded {} status={}", url, response.getStatusCode());
+					new ParameterizedTypeReference<Map<String, Object>>() {});
+			log.debug("Easebuzz API {} success: {}", url, response.getStatusCode());
 			return response.getBody();
+		} catch (org.springframework.web.client.HttpStatusCodeException e) {
+			log.error("Easebuzz API {} error {}: {}", url, e.getStatusCode(), e.getResponseBodyAsString());
+			return Map.of("status", "failure", "error", e.getResponseBodyAsString());
 		} catch (Exception e) {
 			log.error("Easebuzz API {} failed: {}", url, e.getMessage());
-			Map<String, Object> error = new HashMap<>();
-			error.put("status", "0");
-			error.put("error", e.getMessage());
-			return error;
+			return Map.of("status", "failure", "error", e.getMessage());
 		}
 	}
 
@@ -479,26 +389,21 @@ public class EasebuzzApiClient {
 		HttpEntity<Map<String, Object>> request = new HttpEntity<>(data, headers);
 		try {
 			ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.POST, request,
-					new ParameterizedTypeReference<Map<String, Object>>() {
-					});
-			log.debug("Easebuzz JSON API responded {} status={}", url, response.getStatusCode());
+					new ParameterizedTypeReference<Map<String, Object>>() {});
 			return response.getBody();
+		} catch (org.springframework.web.client.HttpStatusCodeException e) {
+			log.error("Easebuzz JSON API {} error {}: {}", url, e.getStatusCode(), e.getResponseBodyAsString());
+			return Map.of("status", false, "error", e.getResponseBodyAsString());
 		} catch (Exception e) {
 			log.error("Easebuzz JSON API {} failed: {}", url, e.getMessage());
-			Map<String, Object> error = new HashMap<>();
-			error.put("status", false);
-			error.put("error", e.getMessage());
-			return error;
+			return Map.of("status", false, "error", e.getMessage());
 		}
 	}
 
 	private static boolean toBool(Object value) {
-		if (value == null)
-			return false;
-		if (value instanceof Boolean)
-			return (Boolean) value;
-		if (value instanceof Number)
-			return ((Number) value).intValue() == 1;
+		if (value == null) return false;
+		if (value instanceof Boolean) return (Boolean) value;
+		if (value instanceof Number) return ((Number) value).intValue() == 1;
 		String s = value.toString().trim();
 		return "1".equals(s) || "true".equalsIgnoreCase(s) || "success".equalsIgnoreCase(s);
 	}
@@ -508,18 +413,18 @@ public class EasebuzzApiClient {
 			StringBuilder sb = new StringBuilder();
 			for (int i = 0; i < parts.length; i++) {
 				sb.append(parts[i] == null ? "" : parts[i]);
-				if (i < parts.length - 1)
-					sb.append("|");
+				if (i < parts.length - 1) sb.append("|");
 			}
 			sb.append("|").append(props.getSalt());
+			String raw = sb.toString();
+			log.debug("Hashing Sequence: {}", raw);
 			MessageDigest md = MessageDigest.getInstance("SHA-512");
-			byte[] digest = md.digest(sb.toString().getBytes(StandardCharsets.UTF_8));
+			byte[] digest = md.digest(raw.getBytes(StandardCharsets.UTF_8));
 			StringBuilder hash = new StringBuilder();
-			for (byte b : digest)
-				hash.append(String.format("%02x", b));
+			for (byte b : digest) hash.append(String.format("%02x", b));
 			return hash.toString();
 		} catch (Exception e) {
-			throw new RuntimeException("Hash generation failed", e);
+			throw new RuntimeException("Hash failed", e);
 		}
 	}
 }

@@ -11,6 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.core.env.Environment;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
@@ -32,7 +33,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
 	@Override
 	public void addInterceptors(@org.springframework.lang.NonNull InterceptorRegistry registry) {
-		if (!Arrays.asList(env.getActiveProfiles()).contains("test")) {
+		List<String> activeProfiles = Arrays.asList(env.getActiveProfiles());
+		if (!activeProfiles.contains("test") && !activeProfiles.contains("sandbox")) {
 			registry.addInterceptor(rateLimitingInterceptor)
 					.addPathPatterns("/auth/**", "/sync/**")
 					.excludePathPatterns("/auth/google");

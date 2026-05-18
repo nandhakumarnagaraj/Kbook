@@ -391,7 +391,15 @@ class BillingViewModel @Inject constructor(
             }
 
             _isLoading.value = false
-            inserted?.bill?.id
+
+            // Re-read bill to get serverId populated by sync callback
+            val syncedBill = billRepository.getBillById(draftBillId)
+            val serverId = syncedBill?.serverId
+            if (serverId == null) {
+                _error.value = "Bill synced but server ID not found. Please try again."
+                return@withLock null
+            }
+            serverId
         } catch (e: Exception) {
             Log.e(TAG, "Failed to create draft bill", e)
             _error.value = UserMessageSanitizer.sanitize(

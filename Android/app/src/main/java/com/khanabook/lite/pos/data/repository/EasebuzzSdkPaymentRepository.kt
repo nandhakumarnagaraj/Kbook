@@ -1,7 +1,7 @@
 package com.khanabook.lite.pos.data.repository
 
-import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
@@ -19,14 +19,14 @@ class EasebuzzSdkPaymentRepository(
 ) {
     suspend fun createOrder(
         restaurantId: Long,
-        localBillId: Long,
+        serverBillId: Long,
         paymentMethod: String = "ONLINE",
         gatewayAmount: BigDecimal? = null
     ): CreateEasebuzzOrderResponse =
         api.createEasebuzzOrder(
             deviceId = sessionManager.getDeviceId(),
             request = CreateEasebuzzOrderRequest(
-                billId = localBillId,
+                billId = serverBillId,
                 paymentMethod = paymentMethod,
                 gatewayAmount = gatewayAmount,
                 restaurantId = restaurantId
@@ -34,29 +34,29 @@ class EasebuzzSdkPaymentRepository(
         )
 
     suspend fun getStatus(
-        localBillId: Long,
+        serverBillId: Long,
         refresh: Boolean = false
     ): EasebuzzPaymentStatusResponse =
         api.getEasebuzzPaymentStatus(
             deviceId = sessionManager.getDeviceId(),
-            billId = localBillId,
+            billId = serverBillId,
             refresh = refresh
         )
 
-    suspend fun verify(localBillId: Long): EasebuzzVerifyResponse =
+    suspend fun verify(serverBillId: Long): EasebuzzVerifyResponse =
         api.verifyEasebuzzPayment(
             deviceId = sessionManager.getDeviceId(),
-            billId = localBillId
+            billId = serverBillId
         )
 
     suspend fun refund(
-        localBillId: Long,
+        serverBillId: Long,
         amount: java.math.BigDecimal,
         reason: String? = null
     ): com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundResponse =
         api.refundEasebuzzPayment(
             deviceId = sessionManager.getDeviceId(),
-            billId = localBillId,
+            billId = serverBillId,
             request = com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundRequest(
                 amount = amount.toString(),
                 reason = reason
@@ -64,28 +64,25 @@ class EasebuzzSdkPaymentRepository(
         )
 
     suspend fun getRefundStatus(
-        localBillId: Long
+        serverBillId: Long
     ): com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundStatusResponse =
         api.getEasebuzzRefundStatus(
             deviceId = sessionManager.getDeviceId(),
-            billId = localBillId
+            billId = serverBillId
         )
 
     /**
-     * Launches Easebuzz payment flow.
-     * 
-     * Note: The native Easebuzz Android SDK V2 (in.easebuzz:android-v2:1.0.6)
-     * is included but uses Custom Tabs fallback for compatibility.
-     * The paymentUrl from createOrder opens in Chrome Custom Tabs.
+     * Creates an Intent to launch the native Easebuzz SDK checkout activity (PWECheckoutActivity).
+     * Uses the host app's package name since the SDK AAR's activity is merged into the host manifest.
+     * The calling composable should use ActivityResultLauncher to start it
+     * and handle the result via payment verification.
      */
-    fun launchSdk(
-        activity: Activity,
-        accessToken: String,
-        onSuccess: (String?) -> Unit,
-        onFailure: (String?) -> Unit
-    ) {
-        // Custom Tabs fallback - reliable and works across all devices
-        onFailure("Custom Tabs fallback")
+    fun createSdkIntent(accessToken: String, context: Context): Intent {
+        return Intent().apply {
+            setClassName(context.packageName, "com.easebuzz.payment.kit.PWECheckoutActivity")
+            putExtra("access_key", accessToken)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
     }
 
     fun launchFallback(context: Context, paymentUrl: String) {

@@ -91,7 +91,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // 3. Generate KYC access key (mock)
         when(easebuzzApi.generateKycAccessKey(any(), any(), any(), any()))
-            .thenReturn(Map.of("status", "success", "kyc_url", "https://kyc.easebuzz.in/test"));
+            .thenReturn(Map.of("status", "success", "kyc_dashboard_url", "https://kyc.easebuzz.in/test"));
 
         Map<String, Object> kycResult = subMerchantService.generateKycAccessKey(sm.getId());
         assertEquals("success", kycResult.get("status"));
@@ -140,7 +140,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         Map<String, Object> result = paymentService.createOrder(bill.getId(), testRestaurantId);
         assertEquals("success", result.get("status"));
         assertNotNull(result.get("txnid"));
-        assertTrue(result.get("txnid").toString().startsWith("KB"));
+        assertTrue(result.get("txnid").toString().startsWith("T"), "txnid should start with 'T' prefix from EasebuzzPaymentService");
 
         // Verify bill updated
         Bill updatedBill = billRepository.findById(bill.getId()).orElseThrow();
@@ -177,7 +177,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
             .thenReturn(Map.of("status", "success", "easebuzz_id", "E250TEST123"));
 
         // Mock refund
-        when(easebuzzApi.initiateRefund(any(), any(), any()))
+        when(easebuzzApi.initiateRefund(any(), any()))
             .thenReturn(Map.of(
                 "status", true,
                 "msg", Map.of("refund_id", "REFTEST123", "status", "initiated")

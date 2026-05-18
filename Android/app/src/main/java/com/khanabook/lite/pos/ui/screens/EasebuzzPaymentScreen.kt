@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.ui.screens
 
-import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -78,6 +79,43 @@ fun EasebuzzPaymentScreen(
     var paymentUrl by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var retryCount by remember { mutableIntStateOf(0) }
+    var sdkAttempted by remember { mutableStateOf(false) }
+
+    // ActivityResultLauncher for native Easebuzz SDK
+    val sdkLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { _ ->
+        // SDK activity returned — verify payment status
+        scope.launch {
+            screenState = PaymentScreenState.PROCESSING
+            try {
+                val verifyResponse = paymentRepository.verify(billId)
+                if (verifyResponse.status == "success") {
+                    screenState = PaymentScreenState.SUCCESS
+                    KhanaToast.show("Payment successful!", ToastKind.Success)
+                    onPaymentComplete()
+                } else {
+                    // SDK did not result in success — fall back to Custom Tabs
+                    val url = paymentUrl
+                    if (url != null) {
+                        paymentRepository.launchFallback(context, url)
+                    } else {
+                        errorMessage = "Payment verification failed"
+                        screenState = PaymentScreenState.FAILED
+                    }
+                }
+            } catch (e: Exception) {
+                // Verification error — fall back to Custom Tabs
+                val url = paymentUrl
+                if (url != null) {
+                    paymentRepository.launchFallback(context, url)
+                } else {
+                    errorMessage = e.message ?: "Verification failed"
+                    screenState = PaymentScreenState.FAILED
+                }
+            }
+        }
+    }
 
     suspend fun createOrderWithRetry() {
         var lastError: Exception? = null
@@ -85,7 +123,7 @@ fun EasebuzzPaymentScreen(
             try {
                 val response = paymentRepository.createOrder(
                     restaurantId = restaurantId,
-                    localBillId = billId,
+                    serverBillId = billId,
                     gatewayAmount = amount
                 )
                 accessToken = response.accessToken
@@ -108,46 +146,23 @@ fun EasebuzzPaymentScreen(
 
     fun launchSdk() {
         val token = accessToken ?: return
-        val activity = context as? Activity ?: return
         val url = paymentUrl ?: return
         screenState = PaymentScreenState.PROCESSING
-        paymentRepository.launchSdk(
-            activity = activity,
-            accessToken = token,
-            onSuccess = { response ->
-                scope.launch {
-                    try {
-                        val verifyResponse = paymentRepository.verify(billId)
-                        if (verifyResponse.status == "success") {
-                            screenState = PaymentScreenState.SUCCESS
-                            KhanaToast.show("Payment successful!", ToastKind.Success)
-                            onPaymentComplete()
-                        } else {
-                            errorMessage = "Payment verification failed"
-                            screenState = PaymentScreenState.FAILED
-                        }
-                    } catch (e: Exception) {
-                        errorMessage = e.message ?: "Verification failed"
-                        screenState = PaymentScreenState.FAILED
-                    }
-                }
-            },
-            onFailure = { error ->
-                // Auto-fallback to Custom Tabs for sandbox compatibility
-                if (error?.contains("Custom Tabs fallback") == true) {
-                    paymentRepository.launchFallback(context, url)
-                } else {
-                    errorMessage = error ?: "Payment failed"
-                    screenState = PaymentScreenState.FAILED
-                }
-            }
-        )
+        sdkAttempted = true
+        try {
+            val intent = paymentRepository.createSdkIntent(token, context)
+            sdkLauncher.launch(intent)
+        } catch (e: Exception) {
+            // Native SDK unavailable — fall back to Custom Tabs
+            paymentRepository.launchFallback(context, url)
+        }
     }
 
     suspend fun retryPayment() {
         screenState = PaymentScreenState.INITIALIZING
         errorMessage = null
         retryCount = 0
+        sdkAttempted = false
         createOrderWithRetry()
     }
 
@@ -300,25 +315,24 @@ fun EasebuzzPaymentScreen(
                         }
 
                         Spacer(modifier = Modifier.height(spacing.small))
+                            Text(
+                                text = if (sdkAttempted) "Native payment failed — try via browser" else "You can also try paying via browser",
+                                color = TextGold.copy(alpha = 0.7f),
+                                style = MaterialTheme.typography.labelSmall
+                            )
 
-                        Text(
-                            text = "You can also try paying via browser",
-                            color = TextGold.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.labelSmall
-                        )
-
-                        if (paymentUrl != null) {
-                            OutlinedButton(
-                                onClick = {
-                                    paymentRepository.launchFallback(context, paymentUrl!!)
-                                },
-                                modifier = Modifier.fillMaxWidth().height(48.dp),
-                                border = BorderStroke(1.dp, PrimaryGold),
-                                shape = RoundedCornerShape(24.dp)
-                            ) {
-                                Text("Open in Browser", color = PrimaryGold)
+                            if (paymentUrl != null) {
+                                OutlinedButton(
+                                    onClick = {
+                                        paymentRepository.launchFallback(context, paymentUrl!!)
+                                    },
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                    border = BorderStroke(1.dp, PrimaryGold),
+                                    shape = RoundedCornerShape(24.dp)
+                                ) {
+                                    Text("Open in Browser", color = PrimaryGold)
+                                }
                             }
-                        }
                     }
                 }
             }

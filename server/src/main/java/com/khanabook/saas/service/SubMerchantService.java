@@ -2,8 +2,10 @@ package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.entity.EasebuzzSubMerchantWebhookEvent;
+import com.khanabook.saas.entity.EasebuzzPayout;
 import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.repository.EasebuzzSubMerchantWebhookEventRepository;
+import com.khanabook.saas.repository.EasebuzzPayoutRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +23,7 @@ public class SubMerchantService {
     private final EasebuzzApiClient easebuzzApi;
     private final EasebuzzSubMerchantRepository subMerchantRepo;
     private final EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
+    private final EasebuzzPayoutRepository payoutRepo;
 
     public List<EasebuzzSubMerchant> listAll() {
         return subMerchantRepo.findAll();
@@ -197,17 +200,20 @@ public class SubMerchantService {
         String label = "sm_" + sm.getSubMerchantId();
         Map<String, Object> result = easebuzzApi.createSplitLabel(
             sm.getBeneficiaryName(), sm.getBankName(), sm.getBranchName(),
-            sm.getIfsc(), sm.getBankAccountNo(), label, null
+            sm.getIfsc(), sm.getBankAccountNo(), label, "100"
         );
-        if ("success".equals(result.get("status"))) {
+        if (toBool(result.get("status"))) {
             sm.setSplitLabel(label);
             sm.setUpdatedAt(System.currentTimeMillis());
             subMerchantRepo.save(sm);
         }
+        Object msg = result.get("msg");
+        if (msg == null) msg = result.get("error_desc");
+        if (msg == null) msg = result.get("error");
         return Map.of(
             "status", result.getOrDefault("status", "failure"),
             "label", label,
-            "msg", result.getOrDefault("msg", "")
+            "msg", msg != null ? msg : ""
         );
     }
 
@@ -231,15 +237,20 @@ public class SubMerchantService {
             sm.getContactEmail(),
             sm.getContactPhone()
         );
-        String kycUrl = (String) result.getOrDefault("kyc_url", "");
-        if (kycUrl != null && !kycUrl.isBlank()) {
+        // Easebuzz response returns kyc_dashboard_url or msg with the KYC portal URL
+        Object kycUrlObj = result.get("kyc_dashboard_url");
+        if (kycUrlObj == null || kycUrlObj.toString().isBlank()) {
+            kycUrlObj = result.get("msg");
+        }
+        String kycUrl = kycUrlObj != null ? kycUrlObj.toString() : "";
+        if (!kycUrl.isBlank()) {
             sm.setKycPortalUrl(kycUrl);
             sm.setUpdatedAt(System.currentTimeMillis());
             subMerchantRepo.save(sm);
         }
         return Map.of(
             "status", result.getOrDefault("status", "failure"),
-            "kyc_url", kycUrl != null ? kycUrl : "",
+            "kyc_url", kycUrl,
             "sub_merchant_id", sm.getSubMerchantId()
         );
     }
@@ -265,9 +276,52 @@ public class SubMerchantService {
         return easebuzzApi.initiateOnDemandSettlement(requestId, amount);
     }
 
+    @Transactional
     public Map<String, Object> initiatePayout(String amount, Map<String, String> beneficiaryDetails) {
         String requestId = "PAYOUT_" + System.currentTimeMillis();
-        return easebuzzApi.initiatePayout(requestId, amount, beneficiaryDetails);
+        
+        // Log initiation in DB
+        EasebuzzPayout payout = new EasebuzzPayout();
+        payout.setMerchantRequestId(requestId);
+        payout.setAmount(new java.math.BigDecimal(amount));
+        payout.setBeneficiaryName(beneficiaryDetails.get("beneficiary_name"));
+        payout.setAccountNumber(beneficiaryDetails.get("beneficiary_account_number"));
+        payout.setIfsc(beneficiaryDetails.get("beneficiary_ifsc"));
+        payout.setStatus("initiated");
+        payout.setCreatedAt(System.currentTimeMillis());
+        payout.setUpdatedAt(System.currentTimeMillis());
+        
+        Long restaurantId = com.khanabook.saas.security.TenantContext.getCurrentTenant();
+        payout.setRestaurantId(restaurantId != null ? restaurantId : 0L);
+        payoutRepo.save(payout);
+
+        Map<String, Object> result = easebuzzApi.initiatePayout(requestId, amount, beneficiaryDetails);
+        
+        if (toBool(result.get("status"))) {
+            Map data = (Map) result.get("data");
+            if (data != null && data.containsKey("payout_id")) {
+                payout.setPayoutId(data.get("payout_id").toString());
+            }
+            payout.setStatus("pending");
+        } else {
+            payout.setStatus("failed");
+            payout.setErrorMessage(str(result.get("error")));
+        }
+        payout.setUpdatedAt(System.currentTimeMillis());
+        payoutRepo.save(payout);
+        
+        return result;
+    }
+
+    private static boolean toBool(Object value) {
+        if (value == null) return false;
+        if (value instanceof Boolean) return (Boolean) value;
+        String s = value.toString().trim();
+        return "1".equals(s) || "true".equalsIgnoreCase(s) || "success".equalsIgnoreCase(s);
+    }
+
+    public Map<String, Object> cancelTransaction(String txnid, String amount) {
+        return easebuzzApi.cancelTransaction(txnid, amount);
     }
 
     public Map<String, Object> retrieveSettlements(String date) {
@@ -276,8 +330,17 @@ public class SubMerchantService {
 
     @Transactional
     public void deleteSubMerchant(Long id) {
-        subMerchantRepo.deleteById(id);
-        log.info("Sub-merchant {} deleted via dev-refresh.", id);
+        subMerchantRepo.findById(id).ifPresentOrElse(sm -> {
+            // Clean up webhook events associated with this sub-merchant's Easebuzz ID
+            if (sm.getSubMerchantId() != null) {
+                var events = webhookEventRepo.findBySubMerchantIdOrderByReceivedAtDesc(sm.getSubMerchantId());
+                if (!events.isEmpty()) {
+                    webhookEventRepo.deleteAll(events);
+                }
+            }
+            subMerchantRepo.delete(sm);
+            log.info("Sub-merchant {} deleted via dev-refresh.", id);
+        }, () -> log.info("Sub-merchant {} already deleted, skipping.", id));
     }
 
     @Transactional

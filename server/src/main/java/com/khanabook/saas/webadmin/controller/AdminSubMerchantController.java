@@ -96,6 +96,19 @@ public class AdminSubMerchantController {
         return ResponseEntity.ok(subMerchantService.resendOtp(id));
     }
 
+    @PostMapping("/{id}/cancel-transaction")
+    public ResponseEntity<Map<String, Object>> cancelTransaction(@PathVariable Long id,
+                                                                  @RequestBody Map<String, String> data) {
+        // Validate sub-merchant exists before proceeding
+        subMerchantService.getById(id);
+        String txnid = data.get("txnid");
+        String amount = data.get("amount");
+        if (txnid == null || amount == null) {
+            return ResponseEntity.badRequest().body(Map.of("status", "failure", "error", "txnid and amount are required"));
+        }
+        return ResponseEntity.ok(subMerchantService.cancelTransaction(txnid, amount));
+    }
+
     @PostMapping("/settlements/on-demand")
     public ResponseEntity<Map<String, Object>> onDemandSettlement(@RequestBody Map<String, String> data) {
         return ResponseEntity.ok(subMerchantService.initiateOnDemandSettlement(data.get("amount")));

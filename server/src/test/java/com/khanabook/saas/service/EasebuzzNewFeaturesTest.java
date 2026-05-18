@@ -1,6 +1,7 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.BaseIntegrationTest;
+import com.khanabook.saas.config.EasebuzzProperties;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.entity.UserRole;
 import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
@@ -11,7 +12,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Map;
+import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -23,6 +27,9 @@ class EasebuzzNewFeaturesTest extends BaseIntegrationTest {
     @Autowired private EasebuzzSubMerchantRepository subMerchantRepo;
     
     @MockBean private EasebuzzApiClient easebuzzApi;
+
+    @Autowired private EasebuzzWebhookService webhookService;
+    @Autowired private EasebuzzProperties easebuzzProps;
 
     private Long testRestaurantId;
     private String testSubMerchantId;
@@ -81,6 +88,67 @@ class EasebuzzNewFeaturesTest extends BaseIntegrationTest {
 
         Map<String, Object> retrieveResult = subMerchantService.retrieveSettlements("2024-05-17");
         assertEquals("success", retrieveResult.get("status"));
+    }
+
+    @Test
+    void testSubMerchantWebhookHashVerification_ValidHash() {
+        // Compute a valid hash: key|submerchant_id|salt
+        String submerchantId = "S360_TEST_001";
+        String hashInput = easebuzzProps.getMerchantKey() + "|" + submerchantId + "|" + easebuzzProps.getSalt();
+        String validHash = sha512Hex(hashInput);
+
+        // Build payload matching ERA's documented format
+        Map<String, Object> data = new HashMap<>();
+        data.put("hash", validHash);
+        data.put("submerchant_id", submerchantId);
+        data.put("status", "True");
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("status", "1");
+        payload.put("data", data);
+
+        Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
+        assertEquals("received", result.get("status"), "Valid hash should be accepted");
+    }
+
+    @Test
+    void testSubMerchantWebhookHashVerification_InvalidHash() {
+        // Build payload with wrong hash
+        Map<String, Object> data = new HashMap<>();
+        data.put("hash", "invalid_hash_value");
+        data.put("submerchant_id", "S360_TEST_002");
+        data.put("status", "True");
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("status", "1");
+        payload.put("data", data);
+
+        Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
+        assertEquals("hash_mismatch", result.get("status"), "Invalid hash should be rejected");
+    }
+
+    @Test
+    void testSubMerchantWebhookHashVerification_MissingData() {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("status", "1");
+        // No 'data' field
+
+        Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
+        assertEquals("hash_mismatch", result.get("status"), "Missing data should be rejected");
+    }
+
+    private String sha512Hex(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-512");
+            byte[] digest = md.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hash = new StringBuilder();
+            for (byte b : digest) {
+                hash.append(String.format("%02x", b));
+            }
+            return hash.toString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private EasebuzzSubMerchant createPendingSubMerchant() {

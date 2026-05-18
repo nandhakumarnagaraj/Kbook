@@ -1,14 +1,18 @@
 package com.khanabook.saas.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khanabook.saas.service.EasebuzzPaymentService;
 import com.khanabook.saas.service.EasebuzzWebhookService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -19,6 +23,7 @@ public class PaymentController {
     private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
     private final EasebuzzPaymentService paymentService;
     private final EasebuzzWebhookService webhookService;
+    private final ObjectMapper objectMapper;
 
     @PostMapping("/create-order")
     public ResponseEntity<Map<String, Object>> createOrder(@RequestBody Map<String, Object> request) {
@@ -86,11 +91,32 @@ public class PaymentController {
         return ResponseEntity.ok(webhookService.handleRefundWebhook(payload));
     }
 
-    @PostMapping("/sub-merchant/webhook")
-    public ResponseEntity<Map<String, Object>> subMerchantWebhook(@RequestBody Map<String, Object> payload) {
-        log.debug("Sub-merchant webhook received: {}", payload);
-        webhookService.handleSubMerchantWebhook(payload);
-        return ResponseEntity.ok(Map.of("status", "received"));
+    @PostMapping(value = "/sub-merchant/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> subMerchantWebhookJson(@RequestBody Map<String, Object> payload) {
+        log.debug("Sub-merchant webhook (JSON) received");
+        return ResponseEntity.ok(webhookService.handleSubMerchantWebhook(payload));
+    }
+
+    @PostMapping(value = "/sub-merchant/webhook", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<Map<String, Object>> subMerchantWebhookForm(@RequestParam Map<String, String> params) {
+        log.debug("Sub-merchant webhook (form-url-encoded) received");
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("status", params.get("status"));
+
+        // The 'data' field is a JSON string in form-url-encoded format
+        String dataJson = params.get("data");
+        if (dataJson != null && !dataJson.isBlank()) {
+            try {
+                Map<String, Object> dataMap = objectMapper.readValue(dataJson,
+                        new TypeReference<Map<String, Object>>() {});
+                payload.put("data", dataMap);
+            } catch (Exception e) {
+                log.warn("Failed to parse 'data' JSON in form-url-encoded sub-merchant webhook", e);
+                return ResponseEntity.badRequest().body(Map.of("status", "error", "error", "Invalid data payload"));
+            }
+        }
+
+        return ResponseEntity.ok(webhookService.handleSubMerchantWebhook(payload));
     }
 
     @PostMapping("/payout/webhook")
