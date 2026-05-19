@@ -85,14 +85,19 @@ fun AppLockScreen(
     }
 
     val promptInfo = remember {
-        BiometricPrompt.PromptInfo.Builder()
+        val builder = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Unlock KhanaBook Lite")
-            .setSubtitle("Use biometric or device lock")
-            .setAllowedAuthenticators(
-                androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or 
-                androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
-            )
-            .build()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            builder.setSubtitle("Use biometric or device lock")
+                .setAllowedAuthenticators(
+                    androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or 
+                    androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                )
+        } else {
+            builder.setSubtitle("Use biometric to unlock")
+                .setNegativeButtonText("Use PIN")
+        }
+        builder.build()
     }
 
     // Auto-show biometric on launch
