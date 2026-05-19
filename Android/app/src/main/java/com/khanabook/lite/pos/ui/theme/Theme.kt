@@ -88,7 +88,7 @@ fun KhanaBookLiteTheme(
         }
     }
 
-    val effectiveFontScale = if (Build.VERSION.SDK_INT >= 36) 1f else density.fontScale
+    val effectiveFontScale = 1f
     val effectiveDensity = density.density * displayScale
     CompositionLocalProvider(
         LocalDensity provides Density(density = effectiveDensity, fontScale = effectiveFontScale),

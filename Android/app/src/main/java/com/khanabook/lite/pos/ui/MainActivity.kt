@@ -7,6 +7,7 @@ import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Build
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
 import android.os.Bundle
 import android.util.Log
@@ -70,7 +71,7 @@ class MainActivity : FragmentActivity() {
      */
     override fun attachBaseContext(newBase: Context) {
         val config = Configuration(newBase.resources.configuration)
-        config.fontScale = if (Build.VERSION.SDK_INT >= 36) 1f else config.fontScale
+        config.fontScale = 1f
         if (BuildConfig.DEBUG) {
             val metrics = newBase.resources.displayMetrics
             Log.d(
@@ -95,6 +96,7 @@ class MainActivity : FragmentActivity() {
         if (BuildConfig.DEBUG) logWindowAndResources("onCreate")
 
         enableEdgeToEdge()
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
             val prefs = remember { applicationContext.getSharedPreferences("session_prefs", Context.MODE_PRIVATE) }

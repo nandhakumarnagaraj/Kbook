@@ -99,10 +99,10 @@ fun HomeScreen(
                 .padding(spacing.medium),
             verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
-            // Equal flex space at the top — pairs with the bottom flex spacer
-            // so the content block stays vertically centred and the top/bottom
-            // breathing room is the same on tall screens.
-            Spacer(modifier = Modifier.weight(1f, fill = true))
+            // Top breathing room — only on phone screens, not tablet
+            if (!isWideScreen) {
+                Spacer(modifier = Modifier.weight(1f, fill = true))
+            }
 
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                 Column {
@@ -214,10 +214,11 @@ fun HomeScreen(
 
             AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
             if (isWideScreen) {
-                // Single row of 3 actions on tablets — no empty filler.
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                    horizontalArrangement = Arrangement.spacedBy(spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(spacing.medium),
+                    maxItemsInEachRow = 2
                 ) {
                     HomeActionCard(
                         text = "Find Bill",
@@ -289,9 +290,10 @@ fun HomeScreen(
             }
             } // end AnimatedVisibility(actionsVisible)
 
-            // Mirror of the top flex spacer — keeps top and bottom whitespace
-            // equal so the content block looks vertically centred.
-            Spacer(modifier = Modifier.weight(1f, fill = true))
+            // Bottom breathing room — only on phone screens, not tablet
+            if (!isWideScreen) {
+                Spacer(modifier = Modifier.weight(1f, fill = true))
+            }
         }
     }
 }
