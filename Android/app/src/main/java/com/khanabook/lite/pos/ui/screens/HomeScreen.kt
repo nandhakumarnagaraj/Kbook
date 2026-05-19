@@ -281,10 +281,11 @@ fun HomeScreen(
 
             AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
             if (isWideScreen) {
-                // Single row of 3 actions on tablets — no empty filler.
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                    horizontalArrangement = Arrangement.spacedBy(spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(spacing.medium),
+                    maxItemsInEachRow = 2
                 ) {
                     HomeActionCard(
                         text = "Find Bill",
