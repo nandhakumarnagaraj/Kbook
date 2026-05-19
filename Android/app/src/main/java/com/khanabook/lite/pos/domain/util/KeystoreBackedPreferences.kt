@@ -37,7 +37,9 @@ class KeystoreBackedPreferences(
     }
 
     fun putString(key: String, value: String) {
-        prefs.edit().putString(key, encrypt(value)).apply()
+        runCatching { encrypt(value) }
+            .onSuccess { encrypted -> prefs.edit().putString(key, encrypted).apply() }
+            .onFailure { android.util.Log.e("KeystorePrefs", "Encryption failed for key: $key", it) }
     }
 
     fun remove(key: String) {
@@ -47,8 +49,10 @@ class KeystoreBackedPreferences(
     fun contains(key: String): Boolean = prefs.contains(key)
 
     private fun encrypt(value: String): String {
+        val secretKey = getOrCreateSecretKey()
+            ?: throw IllegalStateException("Cannot access Android KeyStore")
         val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateSecretKey())
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
         val iv = cipher.iv
         require(iv.size == IV_LENGTH_BYTES) { "Unexpected IV length: ${iv.size}" }
         val ciphertext = cipher.doFinal(value.toByteArray(Charsets.UTF_8))
@@ -75,29 +79,32 @@ class KeystoreBackedPreferences(
 
         val cipher = Cipher.getInstance(TRANSFORMATION)
         val spec = GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv)
-        cipher.init(Cipher.DECRYPT_MODE, getOrCreateSecretKey(), spec)
+        val secretKey = getOrCreateSecretKey()
+            ?: throw IllegalStateException("Cannot access Android KeyStore")
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
         return String(cipher.doFinal(ciphertext), Charsets.UTF_8)
     }
 
-    private fun getOrCreateSecretKey(): SecretKey {
+    private fun getOrCreateSecretKey(): SecretKey? = runCatching {
         val keyStore = KeyStore.getInstance(ANDROID_KEY_STORE).apply { load(null) }
-        val existing = keyStore.getKey(keyAlias, null) as? SecretKey
-        if (existing != null) return existing
+        (keyStore.getKey(keyAlias, null) as? SecretKey) ?: run {
+            val keyGenerator = KeyGenerator.getInstance(KEY_ALGORITHM, ANDROID_KEY_STORE)
+            val builder = KeyGenParameterSpec.Builder(
+                keyAlias,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+            )
+                .setBlockModes(BLOCK_MODE)
+                .setEncryptionPaddings(PADDING)
+                .setRandomizedEncryptionRequired(true)
 
-        val keyGenerator = KeyGenerator.getInstance(KEY_ALGORITHM, ANDROID_KEY_STORE)
-        val builder = KeyGenParameterSpec.Builder(
-            keyAlias,
-            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
-        )
-            .setBlockModes(BLOCK_MODE)
-            .setEncryptionPaddings(PADDING)
-            .setRandomizedEncryptionRequired(true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                builder.setUnlockedDeviceRequired(false)
+            }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            builder.setUnlockedDeviceRequired(false)
+            keyGenerator.init(builder.build())
+            keyGenerator.generateKey()
         }
-
-        keyGenerator.init(builder.build())
-        return keyGenerator.generateKey()
-    }
+    }.onFailure {
+        android.util.Log.e("KeystorePrefs", "Keystore operation failed", it)
+    }.getOrNull()
 }
