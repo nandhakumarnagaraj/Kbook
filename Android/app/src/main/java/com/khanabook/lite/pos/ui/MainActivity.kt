@@ -71,7 +71,7 @@ class MainActivity : FragmentActivity() {
      */
     override fun attachBaseContext(newBase: Context) {
         val config = Configuration(newBase.resources.configuration)
-        config.fontScale = 1f
+        config.fontScale = if (Build.VERSION.SDK_INT >= 36) 1f else config.fontScale
         if (BuildConfig.DEBUG) {
             val metrics = newBase.resources.displayMetrics
             Log.d(
