@@ -128,11 +128,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "836086274000-sl1br95s7tjot2rac9tu5ug4b7222h9g.apps.googleusercontent.com",
+          "client_id": "836086274000-q60kj3nnirl5pnrk12j2jmn76i9mn2ue.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.piquantservices.khanabooklite.debug",
-            "certificate_hash": "2a75d4794db1e0cd3125e75b11d2353fd9f0b3bc"
+            "certificate_hash": "926b1008437b87d31dcf092cd1c236e9dda95200"
           }
         },
         {
