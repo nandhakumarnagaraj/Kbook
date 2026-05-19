@@ -63,38 +63,52 @@ fun AppLockScreen(
     // Biometric prompt setup
     val executor = remember { ContextCompat.getMainExecutor(context) }
     val biometricPrompt = remember(context) {
-        if (context is FragmentActivity) {
-            BiometricPrompt(
-                context,
-                executor,
-                object : BiometricPrompt.AuthenticationCallback() {
-                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        onUnlock()
+        runCatching {
+            if (context is FragmentActivity) {
+                BiometricPrompt(
+                    context,
+                    executor,
+                    object : BiometricPrompt.AuthenticationCallback() {
+                        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                            onUnlock()
+                        }
+                        override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                            android.util.Log.e("AppLockScreen", "Biometric error: $errorCode - $errString")
+                        }
+                        override fun onAuthenticationFailed() {}
                     }
-                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        android.util.Log.e("AppLockScreen", "Biometric error: $errorCode - $errString")
-                    }
-                    override fun onAuthenticationFailed() {}
-                }
-            )
-        } else null
+                )
+            } else null
+        }.onFailure {
+            android.util.Log.e("AppLockScreen", "Failed to create BiometricPrompt", it)
+        }.getOrNull()
     }
 
     val promptInfo = remember {
-        BiometricPrompt.PromptInfo.Builder()
+        val builder = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Unlock KhanaBook")
-            .setSubtitle("Use biometric or device lock")
-            .setAllowedAuthenticators(
-                androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or 
-                androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
-            )
-            .build()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            builder.setSubtitle("Use biometric or device lock")
+                .setAllowedAuthenticators(
+                    androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or 
+                    androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                )
+        } else {
+            builder.setSubtitle("Use biometric to unlock")
+                .setNegativeButtonText("Use PIN")
+        }
+        builder.build()
     }
 
     // Auto-show biometric on launch
-    LaunchedEffect(showBiometric, biometricPrompt) {
-        if (showBiometric && biometricPrompt != null) {
-            biometricPrompt.authenticate(promptInfo)
+    val effectiveShowBiometric = showBiometric && biometricPrompt != null
+    LaunchedEffect(effectiveShowBiometric) {
+        if (effectiveShowBiometric) {
+            runCatching {
+                biometricPrompt!!.authenticate(promptInfo)
+            }.onFailure {
+                android.util.Log.e("AppLockScreen", "Biometric authenticate failed", it)
+            }
         }
     }
 
@@ -182,11 +196,15 @@ fun AppLockScreen(
                 onDigit = { viewModel.appendDigit(it) },
                 onDelete = { viewModel.deleteDigit() },
                 onBiometric = { 
-                    if (showBiometric && biometricPrompt != null) {
-                        biometricPrompt.authenticate(promptInfo)
+                    if (effectiveShowBiometric) {
+                        runCatching {
+                            biometricPrompt!!.authenticate(promptInfo)
+                        }.onFailure {
+                            android.util.Log.e("AppLockScreen", "Biometric authenticate failed", it)
+                        }
                     }
                 },
-                showBiometric = showBiometric && biometricPrompt != null
+                showBiometric = effectiveShowBiometric
             )
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
