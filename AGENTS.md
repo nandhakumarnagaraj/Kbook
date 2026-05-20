@@ -92,10 +92,11 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 7. ~~Add Android Refund Status API~~ ✅ Done
 8. ~~Test all Easebuzz sub-merchant APIs against sandbox~~ ✅ Done (KYC = live-only, sub-merchant 500 needs feature enablement)
 9. ~~Verify `getRefundStatus()` and `cancelTransaction()` work correctly in sandbox~~ ✅ Done (404 — need feature enablement)
-10. Send sandbox support email to Easebuzz — enable sub-merchant/split/refund features
-11. Create live-mode test plan for KYC, sub-merchant CRUD, split APIs
-12. Fix web-admin subscription leaks — add `takeUntilDestroyed()` to 45 `.subscribe()` calls
-13. Update `sub-merchant-password-reset` flow when Easebuzz ops enables it
+10. ~~Send sandbox support email to Easebuzz — enable sub-merchant/split/refund features~~ ✅ Draft exists (`easebuzz-sandbox-support-email.md`)
+11. ~~Create live-mode test plan for KYC, sub-merchant CRUD, split APIs~~ ✅ Done (`easebuzz-live-test-plan.md`)
+12. ~~Fix web-admin subscription leaks — add `takeUntilDestroyed()` to 45 `.subscribe()` calls~~ ✅ Committed
+13. ~~Commit pending code review fixes & tests~~ ✅ Committed (`e2855a9`)
+14. Update `sub-merchant-password-reset` flow when Easebuzz ops enables it (blocked)
 
 ## Critical Context
 - Backend base path: `/api/v2` (dev)
