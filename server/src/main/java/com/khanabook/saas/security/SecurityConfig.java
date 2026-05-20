@@ -118,7 +118,7 @@ public class SecurityConfig {
 								"/public/**",
 								"/cdn/**",
 								"/payments/easebuzz/webhook",
-								"/payments/easebuzz/**/webhook",
+								"/payments/easebuzz/*/webhook",
 								"/payments/easebuzz/return",
 								"/payments/easebuzz/create-order",
 								"/error")
