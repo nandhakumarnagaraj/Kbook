@@ -432,7 +432,14 @@ class BillingViewModel @Inject constructor(
 
             val gTxn = _gatewayTxnId.value
             val gStatus = _gatewayStatus.value
-            val verifiedBy = "manual"
+            fun upiPayment(amount: String) = BillPaymentEntity(
+                billId = localBillId,
+                paymentMode = PaymentMode.UPI.dbValue,
+                amount = amount,
+                gatewayTxnId = gTxn,
+                gatewayStatus = gStatus,
+                verifiedBy = if (gTxn != null) "gateway" else "manual"
+            )
             val payments = when (_paymentMode.value) {
                 PaymentMode.PART_CASH_UPI -> listOf(
                     BillPaymentEntity(
@@ -440,24 +447,10 @@ class BillingViewModel @Inject constructor(
                         paymentMode = PaymentMode.CASH.dbValue,
                         amount = _partAmount1.value
                     ),
-                    BillPaymentEntity(
-                        billId = localBillId,
-                        paymentMode = PaymentMode.UPI.dbValue,
-                        amount = _partAmount2.value,
-                        gatewayTxnId = null,
-                        gatewayStatus = null,
-                        verifiedBy = verifiedBy
-                    )
+                    upiPayment(_partAmount2.value)
                 )
                 PaymentMode.PART_UPI_POS -> listOf(
-                    BillPaymentEntity(
-                        billId = localBillId,
-                        paymentMode = PaymentMode.UPI.dbValue,
-                        amount = _partAmount1.value,
-                        gatewayTxnId = null,
-                        gatewayStatus = null,
-                        verifiedBy = verifiedBy
-                    ),
+                    upiPayment(_partAmount1.value),
                     BillPaymentEntity(
                         billId = localBillId,
                         paymentMode = PaymentMode.POS.dbValue,
@@ -465,23 +458,16 @@ class BillingViewModel @Inject constructor(
                     )
                 )
                 PaymentMode.UPI -> listOf(
-                    BillPaymentEntity(
-                        billId = localBillId,
-                        paymentMode = PaymentMode.UPI.dbValue,
-                        amount = bill.totalAmount,
-                        gatewayTxnId = null,
-                        gatewayStatus = null,
-                        verifiedBy = verifiedBy
-                    )
+                    upiPayment(bill.totalAmount)
                 )
                 else -> listOf(
                     BillPaymentEntity(
                         billId = localBillId,
                         paymentMode = _paymentMode.value.dbValue,
                         amount = bill.totalAmount,
-                        gatewayTxnId = null,
-                        gatewayStatus = null,
-                        verifiedBy = verifiedBy
+                        gatewayTxnId = gTxn,
+                        gatewayStatus = gStatus,
+                        verifiedBy = if (gTxn != null) "gateway" else "manual"
                     )
                 )
             }
@@ -587,14 +573,15 @@ class BillingViewModel @Inject constructor(
             }
 
             // Gateway data is attached only to UPI rows; cash/POS rows stay manual.
-            val verifiedBy = "manual"
+            val gTxn = _gatewayTxnId.value
+            val gStatus = _gatewayStatus.value
             fun upi(amount: String) = BillPaymentEntity(
                 billId = 0,
                 paymentMode = PaymentMode.UPI.dbValue,
                 amount = amount,
-                gatewayTxnId = null,
-                gatewayStatus = null,
-                verifiedBy = verifiedBy
+                gatewayTxnId = gTxn,
+                gatewayStatus = gStatus,
+                verifiedBy = if (gTxn != null) "gateway" else "manual"
             )
             val payments = when (_paymentMode.value) {
                 PaymentMode.PART_CASH_UPI -> listOf(

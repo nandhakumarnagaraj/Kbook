@@ -379,15 +379,20 @@ class MainActivity : FragmentActivity() {
                         val restaurantId = backStackEntry.arguments?.getLong("restaurantId") ?: 0L
                         val billId = backStackEntry.arguments?.getLong("billId") ?: 0L
                         val amountStr = backStackEntry.arguments?.getString("amount") ?: "0.00"
-                        EasebuzzPaymentScreen(
-                            restaurantId = restaurantId,
-                            billId = billId,
-                            amount = java.math.BigDecimal(amountStr),
-                            paymentRepository = easebuzzSdkPaymentRepository,
-                            sessionManager = sessionManager,
-                            onBack = { navController.popBackStack() },
-                            onPaymentComplete = { navController.popBackStack() }
-                        )
+                    EasebuzzPaymentScreen(
+                        restaurantId = restaurantId,
+                        billId = billId,
+                        amount = java.math.BigDecimal(amountStr),
+                        paymentRepository = easebuzzSdkPaymentRepository,
+                        sessionManager = sessionManager,
+                        onBack = { navController.popBackStack() },
+                        onPaymentComplete = { gatewayTxnId ->
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("gatewayTxnId", gatewayTxnId)
+                            navController.popBackStack()
+                        }
+                    )
                     }
                     composable("marketplace_orders") {
                         MarketplaceOrdersScreen(

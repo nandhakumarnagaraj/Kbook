@@ -68,6 +68,8 @@ import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
+import com.khanabook.lite.pos.ui.theme.TextGold
+import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -375,12 +377,27 @@ fun ShopConfigView(
             }
 
             Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(
-                value = email,
-                onValueChange = { if (!isGoogleAuth) email = it },
-                label = if (isGoogleAuth) "Email (Google account)" else "Email",
-                enabled = !isGoogleAuth
-            )
+            if (isGoogleAuth) {
+                Column {
+                    Text(
+                        text = "Email (Google account)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextGold.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = email,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = TextLight
+                    )
+                }
+            } else {
+                ParchmentTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = "Email"
+                )
+            }
             Spacer(modifier = Modifier.height(spacing.medium))
             val isReviewUrlValid = reviewUrl.isBlank() || ValidationUtils.isValidGoogleReviewLink(reviewUrl)
             ParchmentTextField(

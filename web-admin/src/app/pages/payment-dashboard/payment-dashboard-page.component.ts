@@ -2,7 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { formatCurrency } from '../../shared/formatters';
 
 interface PaymentDashboardData {
@@ -152,7 +153,6 @@ interface PaymentDashboardData {
     .chip.danger { background:rgba(166,55,47,.12); color:var(--danger); }
     .load-state { text-align:center; padding:3rem; color:var(--muted); }
     .spinner { width:24px; height:24px; border:3px solid var(--line); border-top-color:var(--brand); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto .75rem; }
-    @keyframes spin { to { transform:rotate(360deg); } }
     .panel.loading { padding:2rem; text-align:center; color:var(--muted); }
     @media (max-width: 720px) {
       .detail-grid { grid-template-columns:1fr; }
@@ -166,14 +166,15 @@ export class PaymentDashboardPageComponent {
 
   readonly data = toSignal(
     this.api.getPaymentDashboard().pipe(
-      map((raw: any) => ({
+      catchError(() => of(null)),
+      map((raw: any) => raw ? {
         totalTransactions: raw.totalTransactions ?? 0,
         successRate: raw.successRate ?? 0,
         todayRevenue: raw.todayRevenue ?? 0,
         todayOrders: raw.todayOrders ?? 0,
         paymentMethods: raw.paymentMethods ?? [],
         easebuzzSuccessRate: raw.easebuzzSuccessRate ?? 0
-      } as PaymentDashboardData))
+      } as PaymentDashboardData : null)
     )
   );
 

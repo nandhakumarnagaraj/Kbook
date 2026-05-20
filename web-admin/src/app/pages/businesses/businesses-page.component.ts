@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { AdminBusinessDetail, AdminBusinessListItem } from '../../core/models/api.models';
@@ -143,6 +144,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 })
 export class BusinessesPageComponent {
   private readonly api = inject(AdminApiService);
+  private readonly destroyRef = inject(DestroyRef);
 
   businesses: AdminBusinessListItem[] = [];
   loaded = false;
@@ -184,7 +186,7 @@ export class BusinessesPageComponent {
   loadBusinesses(): void {
     this.loaded = false;
     this.loadError = '';
-    this.api.getBusinesses().subscribe({
+    this.api.getBusinesses().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.businesses = data;
         this.loaded = true;
@@ -212,7 +214,7 @@ export class BusinessesPageComponent {
 
   showDetails(business: AdminBusinessListItem): void {
     this.selectedDetail.set(null);
-    this.api.getBusinessDetail(business.restaurantId).subscribe({
+    this.api.getBusinessDetail(business.restaurantId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (detail) => { this.selectedDetail.set(detail); }
     });
   }

@@ -3,6 +3,7 @@ package com.khanabook.saas.webadmin.controller;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.service.SubMerchantService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,8 +46,12 @@ public class AdminSubMerchantController {
     /** Assign Easebuzz sub_merchant_id after manual creation in Easebuzz Dashboard */
     @PostMapping("/{id}/assign-id")
     public ResponseEntity<EasebuzzSubMerchant> assignSubMerchantId(@PathVariable Long id,
-                                                                    @RequestBody Map<String, String> data) {
-        return ResponseEntity.ok(subMerchantService.assignSubMerchantId(id, data.get("subMerchantId")));
+                                                                     @RequestBody Map<String, String> data) {
+        String subMerchantId = data.get("subMerchantId");
+        if (subMerchantId == null || subMerchantId.isBlank()) {
+            throw new IllegalArgumentException("subMerchantId is required");
+        }
+        return ResponseEntity.ok(subMerchantService.assignSubMerchantId(id, subMerchantId));
     }
 
     @PutMapping("/{id}/status")
@@ -137,12 +142,6 @@ public class AdminSubMerchantController {
         return ResponseEntity.ok(subMerchantService.wireLookupByEmail(email));
     }
 
-    /** Lookup sub-merchant on WIRE platform by Easebuzz sub-merchant ID */
-    @GetMapping("/wire/lookup-by-id/{subMerchantId}")
-    public ResponseEntity<Map<String, Object>> wireLookupById(@PathVariable String subMerchantId) {
-        return ResponseEntity.ok(subMerchantService.wireLookupById(subMerchantId));
-    }
-
     /** Lookup sub-merchant on WIRE platform by sub-merchant key */
     @GetMapping("/wire/lookup-by-key/{subMerchantKey}")
     public ResponseEntity<Map<String, Object>> wireLookupByKey(@PathVariable String subMerchantKey) {
@@ -187,6 +186,7 @@ public class AdminSubMerchantController {
     }
 
     /** DEV ONLY: Delete a sub-merchant to allow fresh retry */
+    @Profile("dev")
     @DeleteMapping("/{id}/dev-refresh")
     public ResponseEntity<Void> devRefresh(@PathVariable Long id) {
         subMerchantService.deleteSubMerchant(id);

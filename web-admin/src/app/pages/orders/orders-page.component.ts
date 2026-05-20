@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessOrder, MarketplaceOrder } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
@@ -426,6 +427,7 @@ type OrderTab = 'pos' | 'online';
 })
 export class OrdersPageComponent {
   private readonly api = inject(BusinessApiService);
+  private readonly destroyRef = inject(DestroyRef);
 
   activeTab: OrderTab = 'pos';
 
@@ -508,7 +510,7 @@ export class OrdersPageComponent {
 
   loadOrders(): void {
     this.ordersLoaded = false;
-    this.api.getOrders().subscribe({
+    this.api.getOrders().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.orders = data;
         this.ordersLoaded = true;
@@ -554,7 +556,7 @@ export class OrdersPageComponent {
     this.api.manualRefundOrder(this.refundTarget.orderId, {
       refundAmount: this.refundAmountInput,
       reason: this.refundReasonInput.trim() || 'Refund handled manually'
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         const idx = this.orders.findIndex((o) => o.orderId === updated.orderId);
         if (idx !== -1) this.orders[idx] = updated;
@@ -572,7 +574,7 @@ export class OrdersPageComponent {
 
   loadMarketplaceOrders(): void {
     this.marketplaceOrdersLoaded = false;
-    this.api.getMarketplaceOrders().subscribe({
+    this.api.getMarketplaceOrders().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.marketplaceOrders = data;
         this.marketplaceOrdersLoaded = true;
@@ -585,14 +587,14 @@ export class OrdersPageComponent {
   }
 
   loadMarketplaceCounts(): void {
-    this.api.getMarketplaceOrderCounts().subscribe({
+    this.api.getMarketplaceOrderCounts().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => { this.onlineCounts = data; },
       error: () => { this.onlineCounts = null; }
     });
   }
 
   acceptOrder(order: MarketplaceOrder): void {
-    this.api.acceptMarketplaceOrder(order.id).subscribe({
+    this.api.acceptMarketplaceOrder(order.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         const idx = this.marketplaceOrders.findIndex((o) => o.id === updated.id);
         if (idx !== -1) this.marketplaceOrders[idx] = updated;
@@ -617,7 +619,7 @@ export class OrdersPageComponent {
     this.rejecting = true;
     this.rejectError = null;
 
-    this.api.rejectMarketplaceOrder(this.rejectTarget.id, this.rejectReasonInput.trim() || undefined).subscribe({
+    this.api.rejectMarketplaceOrder(this.rejectTarget.id, this.rejectReasonInput.trim() || undefined).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         const idx = this.marketplaceOrders.findIndex((o) => o.id === updated.id);
         if (idx !== -1) this.marketplaceOrders[idx] = updated;
@@ -633,7 +635,7 @@ export class OrdersPageComponent {
   }
 
   markReady(order: MarketplaceOrder): void {
-    this.api.markMarketplaceOrderReady(order.id).subscribe({
+    this.api.markMarketplaceOrderReady(order.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         const idx = this.marketplaceOrders.findIndex((o) => o.id === updated.id);
         if (idx !== -1) this.marketplaceOrders[idx] = updated;

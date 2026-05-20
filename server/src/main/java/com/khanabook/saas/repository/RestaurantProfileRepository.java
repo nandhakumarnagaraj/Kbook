@@ -17,6 +17,10 @@ public interface RestaurantProfileRepository extends SyncRepository<RestaurantPr
 
 	List<RestaurantProfile> findAllByIsDeletedFalseOrderByUpdatedAtDesc();
 
+	Optional<Long> findRestaurantIdBySwiggyStoreIdAndIsDeletedFalse(String swiggyStoreId);
+
+	Optional<Long> findRestaurantIdByZomatoOutletIdAndIsDeletedFalse(String zomatoOutletId);
+
 	// Atomic counter increment: resets daily_order_counter when the date rolls over.
 	@org.springframework.data.jpa.repository.Modifying
 	@Query(value = """

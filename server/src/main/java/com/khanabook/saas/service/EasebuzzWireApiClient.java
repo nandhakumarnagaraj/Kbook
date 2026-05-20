@@ -165,28 +165,9 @@ public class EasebuzzWireApiClient {
     }
 
     // ============================================================
-    // 3. Get Sub-merchant Details by ID
-    // ============================================================
-    // GET /api/v1/merchants/{submerchant_id}/
-
-    public Map<String, Object> getSubMerchantById(String subMerchantId) {
-        HttpHeaders headers = buildWireHeaders();
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-        try {
-            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    baseUrl() + "/api/v1/merchants/" + subMerchantId + "/",
-                    HttpMethod.GET, request,
-                    new ParameterizedTypeReference<Map<String, Object>>() {});
-            log.info("Sub-merchant lookup by ID succeeded for: {}", subMerchantId);
-            return response.getBody();
-        } catch (Exception e) {
-            log.error("Sub-merchant lookup by ID failed for {}: {}", subMerchantId, e.getMessage());
-            return Map.of("success", false, "error", e.getMessage());
-        }
-    }
-
-    // ============================================================
     // 4. Webhook Configuration for WIRE (Payouts)
+    // NOTE: No dedicated lookup-by-ID endpoint exists on WIRE.
+    // Use lookup by email (getSubMerchantByEmail) or by key (getSubMerchantByKey).
     // ============================================================
     // PUT /api/v1/merchants/webhooks/
 
@@ -234,6 +215,8 @@ public class EasebuzzWireApiClient {
 
     // ============================================================
     // 5. Get KYC Profile URL
+    // NOTE: This uses subMerchantId as a path parameter, but for
+    // actual merchant lookup by ID, use email or key-based lookups instead.
     // ============================================================
     // GET /api/v1/merchants/{submerchant_id}/kyc/url/
 

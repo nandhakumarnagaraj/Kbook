@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessProfile, UpdateBusinessProfileRequest } from '../../core/models/api.models';
@@ -257,6 +258,7 @@ import { BusinessProfile, UpdateBusinessProfileRequest } from '../../core/models
 })
 export class RestaurantSettingsPageComponent implements OnInit {
   private readonly api = inject(BusinessApiService);
+  private readonly destroyRef = inject(DestroyRef);
 
   form: UpdateBusinessProfileRequest = {};
   saving = false;
@@ -264,7 +266,7 @@ export class RestaurantSettingsPageComponent implements OnInit {
   saveError: string | null = null;
 
   ngOnInit(): void {
-    this.api.getProfile().subscribe({
+    this.api.getProfile().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (p) => {
         this.form = {
           shopName: p.shopName ?? undefined,
@@ -305,7 +307,7 @@ export class RestaurantSettingsPageComponent implements OnInit {
     this.saveSuccess = false;
     this.saveError = null;
 
-    this.api.updateProfile(this.form).subscribe({
+    this.api.updateProfile(this.form).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving = false;
         this.saveSuccess = true;

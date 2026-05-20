@@ -3,7 +3,8 @@ import { Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { formatCurrency } from '../../shared/formatters';
 
 @Component({
@@ -843,8 +844,6 @@ import { formatCurrency } from '../../shared/formatters';
       margin: 0 auto 0.75rem;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-
     @media (max-width: 1100px) {
       .hero-panel,
       .action-board {
@@ -892,16 +891,18 @@ export class PlatformDashboardPageComponent {
 
   readonly summary = toSignal(
     this.api.getDashboardSummary().pipe(
-      map(s => ({
+      catchError(() => of(null)),
+      map(s => s ? {
         ...s,
         totalRevenueFormatted: formatCurrency(s.totalRevenue),
         refundedAmountFormatted: formatCurrency(s.refundedAmount)
-      }))
+      } : null)
     )
   );
 
   readonly subMerchantCounts = toSignal(
     this.api.getSubMerchants().pipe(
+      catchError(() => of([])),
       map(list => ({
         total: list.length,
         active: list.filter(s => s.status === 'ACTIVE').length,

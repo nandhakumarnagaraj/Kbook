@@ -134,7 +134,9 @@ fun SettingsScreen(
             titleStyleExpanded = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall
         ) {
             Box(modifier = Modifier.weight(1f)) {
-                val lastSyncTs = remember { viewModel.getLastSyncTimestamp() }
+                // Re-read timestamp each time we return to the settings home (section changes back to "menu")
+                // so the user sees an up-to-date timestamp after a sync completes.
+                val lastSyncTs = remember(section) { viewModel.getLastSyncTimestamp() }
                 when (section) {
                     "menu" -> {
                         SettingsHomeSection(

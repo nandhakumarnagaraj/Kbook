@@ -15,4 +15,6 @@ public class MasterSyncResponseDTO {
     private List<BillDTO> bills;
     private List<BillItemDTO> billItems;
     private List<BillPaymentDTO> billPayments;
+    // Pagination: true if any entity type has more records beyond the current limit.
+    private boolean hasMore;
 }

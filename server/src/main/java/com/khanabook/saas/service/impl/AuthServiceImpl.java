@@ -232,10 +232,18 @@ public class AuthServiceImpl implements AuthService {
 							if (user.getLoginId() == null || user.getLoginId().isBlank()) {
 								user.setLoginId(email);
 							}
-							user.setAuthProvider(AuthProvider.GOOGLE);
-							user.setUpdatedAt(System.currentTimeMillis());
-							userRepository.save(user);
-							String token = jwtUtility.generateToken(getLoginIdentifier(user), user.getRestaurantId(),
+						user.setAuthProvider(AuthProvider.GOOGLE);
+						user.setUpdatedAt(System.currentTimeMillis());
+						userRepository.save(user);
+						// Backfill profile email if missing (legacy records or incomplete signups)
+						restaurantProfileRepository.findByRestaurantId(user.getRestaurantId()).ifPresent(profile -> {
+							if (profile.getEmail() == null || profile.getEmail().isBlank()) {
+								profile.setEmail(user.getEmail());
+								profile.setUpdatedAt(System.currentTimeMillis());
+								restaurantProfileRepository.save(profile);
+							}
+						});
+						String token = jwtUtility.generateToken(getLoginIdentifier(user), user.getRestaurantId(),
 									user.getRole().name(), request.getDeviceId());
 								return new AuthResponse(token, user.getRestaurantId(), user.getName(), getLoginIdentifier(user),
 										user.getEmail(), user.getWhatsappNumber(), user.getRole().name());
@@ -243,22 +251,23 @@ public class AuthServiceImpl implements AuthService {
 
 					Long newRestaurantId = Math.abs(UUID.randomUUID().getMostSignificantBits());
 
-					RestaurantProfile profile = new RestaurantProfile();
-					profile.setRestaurantId(newRestaurantId);
-					profile.setDeviceId(request.getDeviceId());
-					profile.setLocalId(1L);
-					profile.setShopName((name != null ? name : "User") + "'s Restaurant");
-					String today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString();
-					profile.setLastResetDate(today);
-					profile.setLastResetDateProper(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")));
-					profile.setLogoVersion(0);
-					profile.setUpiQrVersion(0);
-					profile.setVersion(0L);
-					profile.setIsDeleted(false);
-					profile.setUpdatedAt(System.currentTimeMillis());
-					profile.setServerUpdatedAt(System.currentTimeMillis());
-					profile.setCreatedAt(System.currentTimeMillis());
-					restaurantProfileRepository.save(profile);
+				RestaurantProfile profile = new RestaurantProfile();
+				profile.setRestaurantId(newRestaurantId);
+				profile.setDeviceId(request.getDeviceId());
+				profile.setLocalId(1L);
+				profile.setShopName((name != null ? name : "User") + "'s Restaurant");
+				profile.setEmail(email);
+				String today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString();
+				profile.setLastResetDate(today);
+				profile.setLastResetDateProper(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")));
+				profile.setLogoVersion(0);
+				profile.setUpiQrVersion(0);
+				profile.setVersion(0L);
+				profile.setIsDeleted(false);
+				profile.setUpdatedAt(System.currentTimeMillis());
+				profile.setServerUpdatedAt(System.currentTimeMillis());
+				profile.setCreatedAt(System.currentTimeMillis());
+				restaurantProfileRepository.save(profile);
 
 						User user = new User();
 						user.setName(name != null ? name : "Google User");

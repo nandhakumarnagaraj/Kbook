@@ -731,8 +731,6 @@ import { formatCurrency } from '../../shared/formatters';
       margin: 0 auto 0.75rem;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-
     @media (max-width: 1100px) {
       .dashboard-grid {
         grid-template-columns: 1fr;
@@ -778,11 +776,12 @@ export class BusinessDashboardPageComponent {
 
   readonly vm = toSignal(
     combineLatest([
-      this.api.getDashboard(),
+      this.api.getDashboard().pipe(catchError(() => of(null))),
       this.api.getMarketplaceSetup().pipe(catchError(() => of(null as BusinessMarketplaceSetup | null))),
       this.api.getMarketplaceOrders().pipe(catchError(() => of([] as MarketplaceOrder[])))
     ]).pipe(
       map(([data, setup, orders]) => {
+        if (!data) return null;
         const totalMarketplaceOrders = orders.length;
         const pendingMarketplace = orders.filter(o => o.orderStatus === 'pending').length;
         const readyMarketplace = orders.filter(o => o.orderStatus === 'ready').length;

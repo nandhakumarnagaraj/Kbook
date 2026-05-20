@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { AdminApiService } from '../../core/services/admin-api.service';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs/operators';
 import { formatCurrency } from '../../shared/formatters';
 
@@ -94,10 +94,13 @@ interface CommissionSummary {
       </div>
 
       <ng-template #loading>
-        <div class="load-state">
+        <div class="load-state" *ngIf="!loadError(); else errorState">
           <div class="spinner"></div>
           <p>Loading commission report...</p>
         </div>
+        <ng-template #errorState>
+          <div class="panel loading">{{ loadError() }}</div>
+        </ng-template>
       </ng-template>
     </div>
   `,
@@ -118,7 +121,6 @@ interface CommissionSummary {
     .chip.danger { background:rgba(166,55,47,.12); color:var(--danger); }
     .load-state { text-align:center; padding:3rem; color:var(--muted); }
     .spinner { width:24px; height:24px; border:3px solid var(--line); border-top-color:var(--brand); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto .75rem; }
-    @keyframes spin { to { transform:rotate(360deg); } }
     .panel.loading { padding:2rem; text-align:center; color:var(--muted); }
     @media (max-width: 720px) {
       .summary-grid { margin-top: 1rem; }
@@ -128,21 +130,24 @@ interface CommissionSummary {
 })
 export class CommissionReportPageComponent {
   private readonly api = inject(AdminApiService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly rawData = signal<any[]>([]);
   readonly loaded = signal(false);
+  readonly loadError = signal('');
 
   readonly summary = signal<CommissionSummary>({ totalCommission: 0, totalRevenue: 0, avgRate: 0 });
   readonly rows = signal<CommissionRow[]>([]);
 
   constructor() {
-    this.api.getCommissionReport().subscribe({
+    this.api.getCommissionReport().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any) => {
         this.rawData.set(data);
         this.loaded.set(true);
         this.processData(data);
       },
-      error: () => {
+      error: (err) => {
+        this.loadError.set(err?.error?.error ?? err?.error?.message ?? 'Failed to load commission report.');
         this.loaded.set(true);
       }
     });

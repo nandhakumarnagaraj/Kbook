@@ -50,6 +50,11 @@ public class EasebuzzWebhookService {
             try {
                 Long billId = Long.parseLong(udf1);
                 billRepo.findById(billId).ifPresent(bill -> {
+                    // Idempotency guard: skip if already marked paid
+                    if ("paid".equals(bill.getPaymentStatus())) {
+                        log.info("Bill {} already paid, skipping duplicate webhook txnid={}", billId, txnid);
+                        return;
+                    }
                     bill.setGatewayTxnId(txnid);
                     bill.setGatewayStatus("success");
                     bill.setPaymentStatus("paid");
@@ -155,7 +160,7 @@ public class EasebuzzWebhookService {
             sb.append(props.getMerchantKey());
 
             String computedHash = sha512(sb.toString());
-            return computedHash.equalsIgnoreCase(receivedHash);
+            return MessageDigest.isEqual(computedHash.getBytes(StandardCharsets.UTF_8), receivedHash.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             log.error("Payment hash verification failed", e);
             return false;
@@ -173,7 +178,7 @@ public class EasebuzzWebhookService {
                 sb.append(props.getMerchantKey()).append("|");
                 sb.append(nullSafe(payload.get("payout_id"))).append("|");
                 sb.append(props.getSalt());
-                if (sha512(sb.toString()).equalsIgnoreCase(receivedHash)) return true;
+                if (MessageDigest.isEqual(sha512(sb.toString()).getBytes(StandardCharsets.UTF_8), receivedHash.getBytes(StandardCharsets.UTF_8))) return true;
             }
 
             // Scenario 2: Transfer (Payout V2) Webhook 
@@ -189,7 +194,7 @@ public class EasebuzzWebhookService {
             sb.append(nullSafe(payload.get("status"))).append("|");
             sb.append(props.getSalt());
 
-            return sha512(sb.toString()).equalsIgnoreCase(receivedHash);
+            return MessageDigest.isEqual(sha512(sb.toString()).getBytes(StandardCharsets.UTF_8), receivedHash.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             log.error("Payout hash verification failed", e);
             return false;
@@ -218,7 +223,7 @@ public class EasebuzzWebhookService {
             String hashInput = props.getMerchantKey() + "|" + subMerchantId + "|" + props.getSalt();
             String computedHash = sha512(hashInput);
 
-            boolean match = computedHash.equalsIgnoreCase(receivedHash);
+            boolean match = MessageDigest.isEqual(computedHash.getBytes(StandardCharsets.UTF_8), receivedHash.getBytes(StandardCharsets.UTF_8));
             if (!match) {
                 log.warn("Sub-merchant webhook hash mismatch for submerchant_id={}", subMerchantId);
             }

@@ -19,7 +19,10 @@ class SyncManager @Inject constructor(
     private val api: KhanaBookApi,
     private val masterSyncProcessor: MasterSyncProcessor
 ) {
-    private val syncMutex = Mutex()
+    // Separate mutexes for full sync operations vs bill-only pushes to avoid
+    // contention when a bill is created during an ongoing periodic sync.
+    private val fullSyncMutex = Mutex()
+    private val billPushMutex = Mutex()
     private val tag = "SyncManager"
 
     private fun logWarn(message: String, throwable: Throwable? = null) {
@@ -47,7 +50,7 @@ class SyncManager @Inject constructor(
     }
 
     suspend fun performMasterPull(): Result<Unit> {
-        return syncMutex.withLock {
+        return fullSyncMutex.withLock {
             try {
                 pullAndPersistMasterData(
                     lastSyncTimestamp = sessionManager.getLastSyncTimestamp(),
@@ -62,7 +65,7 @@ class SyncManager @Inject constructor(
     }
 
     suspend fun performFullSync(): Result<Unit> {
-        return syncMutex.withLock {
+        return fullSyncMutex.withLock {
             val deviceId = sessionManager.getDeviceId()
 
             // ── Timestamp Race Fix (#2) ────────────────────────────────────────────
@@ -106,7 +109,7 @@ class SyncManager @Inject constructor(
     }
 
     suspend fun pushBillOnly(billLocalId: Long): Result<Unit> {
-        return syncMutex.withLock {
+        return billPushMutex.withLock {
             try {
                 masterSyncProcessor.pushSingleBill(billLocalId)
                 Result.success(Unit)
@@ -143,17 +146,43 @@ class SyncManager @Inject constructor(
         }
     }
 
+    // Default page size for paginated master sync pulls.
+    // A larger limit reduces round-trips for medium-sized restaurants;
+    // the server enforces this as a cap to prevent unbounded response sizes.
+    private companion object {
+        private const val PAGE_SIZE = 5000
+        private const val MAX_PAGES = 20 // safety limit: 5000 * 20 = 100k records per entity type
+    }
+
     private suspend fun pullMasterSyncPages(
         lastSyncTimestamp: Long,
         deviceId: String
     ): List<MasterSyncResponse> {
-        return listOf(api.pullMasterSync(lastSyncTimestamp, deviceId))
+        val pages = mutableListOf<MasterSyncResponse>()
+        var offset = 0
+        var pageCount = 0
+        do {
+            val page = api.pullMasterSync(
+                lastSyncTimestamp = lastSyncTimestamp,
+                deviceId = deviceId,
+                limit = PAGE_SIZE,
+                offset = offset
+            )
+            pages.add(page)
+            offset += PAGE_SIZE
+            pageCount++
+        } while (page.hasMore && pageCount < MAX_PAGES)
+        if (pageCount >= MAX_PAGES) {
+            logWarn("Master sync pagination reached MAX_PAGES=$MAX_PAGES; data may be truncated")
+        }
+        return pages
     }
 
     private fun mergeMasterSyncPages(pages: List<MasterSyncResponse>): MasterSyncResponse {
         return pages.fold(MasterSyncResponse()) { acc, page ->
             MasterSyncResponse(
                 serverTimestamp = maxOf(acc.serverTimestamp, page.serverTimestamp),
+                hasMore = false, // merged response is complete, no more pages needed
                 profiles = acc.profiles + page.profiles,
                 users = acc.users + page.users,
                 categories = acc.categories + page.categories,

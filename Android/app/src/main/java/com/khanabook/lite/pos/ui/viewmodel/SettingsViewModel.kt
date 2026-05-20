@@ -323,10 +323,19 @@ class SettingsViewModel @Inject constructor(
             _logoUploadError.value = null
             _saveProfileError.value = null
             try {
+                // Save a local copy first so the logo is available offline
+                val localPath = withContext(Dispatchers.IO) {
+                    AppAssetStore.saveUriToAppAsset(
+                        context.applicationContext,
+                        uri,
+                        "logos",
+                        "shop_logo_${System.currentTimeMillis()}.png"
+                    )
+                }
                 val part = withContext(Dispatchers.IO) {
                     MultipartUtils.imageUriToPart(context.applicationContext, uri)
                 }
-                val url = restaurantRepository.uploadLogo(part)
+                val url = restaurantRepository.uploadLogo(part, localPath)
                 onUploaded(url)
             } catch (e: Exception) {
                 _logoUploadError.value = UserMessageSanitizer.sanitize(e, "Logo upload failed. Please try again.")

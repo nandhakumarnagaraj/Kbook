@@ -102,69 +102,45 @@ fun SettingsListView(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+            .padding(horizontal = spacing.medium, vertical = spacing.medium),
     ) {
         SettingsGroupLabel("Security")
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column {
-                SettingsItem(
-                    icon = Icons.Filled.Lock,
-                    text = "App Lock",
-                    onClick = { onSelectItem("app_lock") }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = spacing.medium),
-                    color = BorderGold.copy(alpha = 0.1f)
-                )
-                SettingsItem(
-                    icon = Icons.Filled.Password,
-                    text = "Change Password",
-                    onClick = { onSelectItem("change_password") }
-                )
-            }
-        }
+        Spacer(modifier = Modifier.height(8.dp))
+        SettingsItem(
+            icon = Icons.Filled.Lock,
+            text = "App Lock",
+            onClick = { onSelectItem("app_lock") }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        SettingsItem(
+            icon = Icons.Filled.Password,
+            text = "Change Password",
+            onClick = { onSelectItem("change_password") }
+        )
 
+        Spacer(modifier = Modifier.height(spacing.large))
         SettingsGroupLabel("Appearance")
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            SettingsItem(
-                icon = Icons.Filled.TextIncrease,
-                text = "Display",
-                onClick = { onSelectItem("ui_scale") }
-            )
-        }
+        Spacer(modifier = Modifier.height(8.dp))
+        SettingsItem(
+            icon = Icons.Filled.TextIncrease,
+            text = "Display",
+            onClick = { onSelectItem("ui_scale") }
+        )
 
+        Spacer(modifier = Modifier.height(spacing.large))
         SettingsGroupLabel("About")
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column {
-                SettingsItem(
-                    icon = Icons.AutoMirrored.Filled.HelpOutline,
-                    text = "Help & Support",
-                    onClick = { onSelectItem("help_support") }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = spacing.medium),
-                    color = BorderGold.copy(alpha = 0.1f)
-                )
-                SettingsItem(
-                    icon = Icons.Filled.Info,
-                    text = "About App",
-                    onClick = { onSelectItem("about_app") }
-                )
-            }
-        }
+        Spacer(modifier = Modifier.height(8.dp))
+        SettingsItem(
+            icon = Icons.AutoMirrored.Filled.HelpOutline,
+            text = "Help & Support",
+            onClick = { onSelectItem("help_support") }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        SettingsItem(
+            icon = Icons.Filled.Info,
+            text = "About App",
+            onClick = { onSelectItem("about_app") }
+        )
     }
 }
 

@@ -28,17 +28,17 @@ public class PostSplitService {
     private static final int MAX_SPLIT_ATTEMPTS = 3;
     private static final long RETRY_DELAY_MS = 5000;
 
-    @Async
+    @Async("postSplitExecutor")
     public void createPostSplitAsync(Long billId, String easebuzzId, String txnid) {
         try {
-            createPostSplitWithRetry(billId, easebuzzId, txnid);
+            attemptPostSplit(billId, easebuzzId, txnid);
         } catch (Exception e) {
             log.error("Post-split async failed billId={} error={}", billId, e.getMessage());
         }
     }
 
-    @Transactional
-    public void createPostSplitWithRetry(Long billId, String easebuzzId, String txnid) {
+    private void attemptPostSplit(Long billId, String easebuzzId, String txnid) {
+        // Fetch data outside transaction
         Bill bill = billRepo.findById(billId).orElse(null);
         if (bill == null) {
             log.warn("Post-split: Bill not found billId={}", billId);
@@ -60,13 +60,11 @@ public class PostSplitService {
 
         String merchantRequestId = "KB_" + System.currentTimeMillis() + "_" + billId;
 
-        // Calculate commission
         BigDecimal commissionRate = sm.getCommissionRate() != null ? sm.getCommissionRate() : BigDecimal.ZERO;
         BigDecimal totalAmount = bill.getTotalAmount();
         BigDecimal commissionAmount = totalAmount.multiply(commissionRate).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
         BigDecimal restaurantAmount = totalAmount.subtract(commissionAmount);
 
-        // Ensure amounts sum exactly to total (handle rounding edge cases)
         if (restaurantAmount.compareTo(BigDecimal.ZERO) < 0) {
             restaurantAmount = BigDecimal.ZERO;
             commissionAmount = totalAmount;
@@ -91,16 +89,13 @@ public class PostSplitService {
 
                 if ("success".equals(result.get("status"))) {
                     log.info("Post-split success billId={} merchantRequestId={}", billId, merchantRequestId);
-                    bill.setCommissionAmount(commissionAmount);
-                    bill.setSettledAt(System.currentTimeMillis());
-                    billRepo.save(bill);
+                    updateBillAfterSplit(billId, commissionAmount);
                     return;
                 }
 
                 String error = (String) result.getOrDefault("error", "Unknown error");
                 log.warn("Post-split failed billId={} error={}", billId, error);
 
-                // Check if max attempts reached for this transaction
                 if (error != null && error.contains("EBPTSURVE06")) {
                     log.error("Post-split max update attempts reached billId={}", billId);
                     break;
@@ -121,5 +116,15 @@ public class PostSplitService {
         }
 
         log.error("Post-split exhausted all attempts billId={}", billId);
+    }
+
+    @Transactional
+    public void updateBillAfterSplit(Long billId, BigDecimal commissionAmount) {
+        Bill bill = billRepo.findById(billId).orElse(null);
+        if (bill != null) {
+            bill.setCommissionAmount(commissionAmount);
+            bill.setSettledAt(System.currentTimeMillis());
+            billRepo.save(bill);
+        }
     }
 }

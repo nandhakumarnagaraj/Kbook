@@ -39,4 +39,30 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    @Bean(name = "postSplitExecutor")
+    Executor postSplitExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(500);
+        executor.setThreadNamePrefix("PostSplit-");
+
+        executor.setTaskDecorator(runnable -> {
+            Long tenantId = TenantContext.getCurrentTenant();
+            String role   = TenantContext.getCurrentRole();
+            return () -> {
+                try {
+                    if (tenantId != null) TenantContext.setCurrentTenant(tenantId);
+                    if (role != null)     TenantContext.setCurrentRole(role);
+                    runnable.run();
+                } finally {
+                    TenantContext.clear();
+                }
+            };
+        });
+
+        executor.initialize();
+        return executor;
+    }
 }

@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest } from '../../core/models/api.models';
@@ -266,10 +267,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       animation: fadeIn 0.3s ease;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: none; }
-    }
+
 
     .loading-panel {
       margin-bottom: 1.5rem;
@@ -290,8 +288,6 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       animation: spin 0.8s linear infinite;
       flex-shrink: 0;
     }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     .field-label {
       display: grid;
@@ -386,6 +382,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
 export class MarketplaceSetupPageComponent implements OnInit {
   private readonly api = inject(BusinessApiService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly marketplaceSetup = signal<BusinessMarketplaceSetup | null>(null);
   readonly setupState = signal<'loading' | 'loaded' | 'error'>('loading');
@@ -404,7 +401,7 @@ export class MarketplaceSetupPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.api.getMarketplaceSetup().subscribe({
+    this.api.getMarketplaceSetup().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (setup) => {
         this.marketplaceSetup.set(setup);
         this.setupState.set('loaded');
@@ -417,7 +414,7 @@ export class MarketplaceSetupPageComponent implements OnInit {
 
   private loadMarketplaceConfig(): void {
     this.marketplaceState.set('loading');
-    this.api.getMarketplaceConfig().subscribe({
+    this.api.getMarketplaceConfig().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (cfg) => {
         this.marketplaceConfig.set(cfg);
         this.marketplaceForm.patchValue({
@@ -448,7 +445,7 @@ export class MarketplaceSetupPageComponent implements OnInit {
       swiggyEnabled: rawValue.swiggyEnabled
     };
 
-    this.api.saveMarketplaceConfig(payload).subscribe({
+    this.api.saveMarketplaceConfig(payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (cfg) => {
         this.marketplaceConfig.set(cfg);
         this.marketplaceState.set('loaded');

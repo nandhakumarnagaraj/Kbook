@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, NgZone, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, NgZone, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
@@ -167,11 +168,6 @@ declare const google: any;
     #google-btn > div { max-width: 100%; }
     #google-btn iframe { max-width: 100%; }
 
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
     @media (max-width: 520px) {
       .login-shell { padding: 1rem; }
       .login-header { padding: 1.5rem 1.25rem 1rem; }
@@ -183,6 +179,7 @@ export class LoginPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly ngZone = inject(NgZone);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly form = this.fb.nonNullable.group({
     loginId: ['', Validators.required],
@@ -219,7 +216,7 @@ export class LoginPageComponent implements OnInit {
 
   private handleGoogleCredential(idToken: string): void {
     this.googleError = '';
-    this.authService.googleLogin(idToken).subscribe({
+    this.authService.googleLogin(idToken).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       error: (err) => {
         this.googleError = err?.error?.error ?? err?.error?.message ?? 'Google sign-in failed.';
       }
@@ -230,7 +227,7 @@ export class LoginPageComponent implements OnInit {
     if (this.form.invalid || this.loading) return;
     this.loading = true;
     this.error = '';
-    this.authService.login(this.form.getRawValue()).subscribe({
+    this.authService.login(this.form.getRawValue()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.loading = false; },
       error: (err) => {
         this.loading = false;

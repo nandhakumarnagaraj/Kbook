@@ -286,7 +286,8 @@ class MasterSyncProcessor @Inject constructor(
                         shopAddress = remoteProfile.shopAddress.orFallback(""),
                         whatsappNumber = remoteProfile.whatsappNumber.orFallback(""),
                         email = remoteProfile.email.orFallback(""),
-                        logoPath = if (useRemoteLogo) remoteProfile.logoPath else localProfile?.logoPath,
+                        // Preserve local logoPath as offline fallback; use remote's only if it has one
+                        logoPath = if (useRemoteLogo) (remoteProfile.logoPath ?: localProfile?.logoPath) else localProfile?.logoPath,
                         logoUrl = if (useRemoteLogo) remoteProfile.logoUrl else localProfile?.logoUrl,
                         logoVersion = maxOf(remoteProfile.logoVersion, localProfile?.logoVersion ?: 0),
                         fssaiNumber = remoteProfile.fssaiNumber.orFallback(""),

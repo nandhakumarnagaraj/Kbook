@@ -1300,6 +1300,21 @@ fun PaymentStep(
             if (!viewModel.restorePendingOnlineBill(pendingBillId)) return@LaunchedEffect
         }
 
+        val savedStateHandle = navController?.currentBackStackEntry?.savedStateHandle
+        val gatewayTxnId = savedStateHandle?.get<String>("gatewayTxnId")
+        val localBillId = savedStateHandle?.get<Long>("localBillId")
+        LaunchedEffect(gatewayTxnId) {
+            if (gatewayTxnId != null && localBillId != null) {
+                savedStateHandle?.remove<String>("gatewayTxnId")
+                savedStateHandle?.remove<Long>("localBillId")
+                viewModel.setGatewayResult(gatewayTxnId, "success")
+                if (viewModel.finalizeOnlineBill(localBillId, PaymentStatus.SUCCESS)) {
+                    viewModel.clearGatewayResult()
+                    onComplete()
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(spacing.extraLarge))
 
         if (selectedMode == PaymentMode.ONLINE) {
@@ -1318,6 +1333,9 @@ fun PaymentStep(
                         viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                         val serverBillId = viewModel.createDraftOnlineBill()
                         if (serverBillId != null) {
+                            navController?.currentBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("localBillId", viewModel.lastBill.value?.bill?.id)
                             val restaurantId = profile?.restaurantId ?: 0L
                             val amount = summary.total
                             navController?.navigate(

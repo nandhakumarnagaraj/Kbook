@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessStaffItem } from '../../core/models/api.models';
 import { formatDate } from '../../shared/formatters';
@@ -110,13 +111,14 @@ import { formatDate } from '../../shared/formatters';
       </div>
 
       <ng-template #loading>
-        <div class="panel loading">{{ loaded ? 'No staff match the current filters.' : 'Loading staff...' }}</div>
+        <div class="panel loading">{{ loaded ? (loadError || 'No staff match the current filters.') : (loadError || 'Loading staff...') }}</div>
       </ng-template>
     </div>
   `
 })
 export class StaffPageComponent {
   private readonly api = inject(BusinessApiService);
+  private readonly destroyRef = inject(DestroyRef);
 
   staff: BusinessStaffItem[] = [];
   loaded = false;
@@ -126,6 +128,7 @@ export class StaffPageComponent {
   statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE' = 'ALL';
   pageSize = 10;
   currentPage = 1;
+  loadError = '';
 
   constructor() {
     this.loadStaff();
@@ -168,13 +171,14 @@ export class StaffPageComponent {
 
   loadStaff(): void {
     this.loaded = false;
-    this.api.getStaff().subscribe({
+    this.loadError = '';
+    this.api.getStaff().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.staff = data;
         this.loaded = true;
         this.currentPage = 1;
       },
-      error: () => { this.loaded = true; }
+      error: (err) => { this.loadError = err?.error?.error ?? err?.error?.message ?? 'Failed to load staff.'; this.loaded = true; }
     });
   }
 

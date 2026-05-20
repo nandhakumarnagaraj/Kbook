@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatDate } from '../../shared/formatters';
@@ -110,7 +111,6 @@ function getStatusChip(status: string): string {
       animation:fadeSlideIn 0.25s ease;
     }
     .toast-success.error { color:var(--danger); background:var(--danger-soft); border-color:rgba(166,55,47,0.25); }
-    @keyframes fadeSlideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
     @media (max-width: 720px) {
       .edit-inline {
         flex-wrap: wrap;
@@ -127,6 +127,7 @@ function getStatusChip(status: string): string {
 })
 export class CommissionConfigPageComponent implements OnInit {
   private readonly api = inject(AdminApiService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly records = signal<CommissionRecord[]>([]);
   readonly loaded = signal(false);
@@ -139,7 +140,7 @@ export class CommissionConfigPageComponent implements OnInit {
 
   loadCommissions(): void {
     this.loaded.set(false);
-    this.api.getCommissions().subscribe({
+    this.api.getCommissions().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => { this.records.set(data); this.loaded.set(true); },
       error: () => { this.records.set([]); this.loaded.set(true); }
     });
@@ -154,7 +155,7 @@ export class CommissionConfigPageComponent implements OnInit {
 
   saveCommission(id: number): void {
     this.saving.set(true);
-    this.api.updateCommission(id, this.editRate).subscribe({
+    this.api.updateCommission(id, this.editRate).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving.set(false);
         this.cancelEdit();

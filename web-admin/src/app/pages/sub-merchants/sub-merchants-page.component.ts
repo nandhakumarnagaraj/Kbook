@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, HostListener, inject, signal } from '@angular/core';
+import { Component, OnInit, HostListener, inject, signal, DestroyRef } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { EasebuzzSubMerchant, EasebuzzSubMerchantRequest } from '../../core/models/api.models';
 import { formatDate, formatAge } from '../../shared/formatters';
@@ -67,18 +68,7 @@ function formatStatus(status: string): string {
           <button class="ghost-btn" (click)="loadSubMerchants()">Refresh</button>
           <button class="ghost-btn" (click)="openSettlementRetrieve()">📅 Settlements</button>
           <button class="ghost-btn" (click)="openOnDemandSettlement()">⚡ Settle</button>
-          <button class="ghost-btn" (click)="openPayout()">💸 Payout</button>            <div class="wire-dropdown">
-            <button class="ghost-btn" (click)="showWireMenu.set(!showWireMenu())" title="WIRE Platform Actions">
-              🌐 WIRE ▾
-            </button>
-            <div *ngIf="showWireMenu()" class="wire-menu">
-              <button class="ghost-btn wire-menu-btn" (click)="wireLookupByEmail(); showWireMenu.set(false)">📧 Lookup by Email</button>
-              <button class="ghost-btn wire-menu-btn" (click)="wireLookupById(); showWireMenu.set(false)">🔍 Lookup by ID</button>
-              <button class="ghost-btn wire-menu-btn" (click)="wireLookupByKey(); showWireMenu.set(false)">🔑 Lookup by Key</button>
-              <button class="ghost-btn wire-menu-btn" (click)="wireConfigureInstaCollect(); showWireMenu.set(false)">📲 InstaCollect Webhook</button>
-              <button class="ghost-btn wire-menu-btn" (click)="wireConfigurePayout(); showWireMenu.set(false)">💳 Payout Webhook</button>
-            </div>
-          </div>
+          <button class="ghost-btn" (click)="openPayout()">💸 Payout</button>
           <button class="primary-btn" (click)="openCreate()">+ New Sub-Merchant</button>
         </div>
       </div>
@@ -135,7 +125,7 @@ function formatStatus(status: string): string {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>              <tr *ngFor="let sm of pagedSubMerchants" [class.wire-matched]="sm.id === matchedMerchantId()">
+          <tbody>              <tr *ngFor="let sm of pagedSubMerchants">
               <td>{{ sm.id }}</td>
               <td>
                 <div class="stacked-meta">
@@ -158,7 +148,6 @@ function formatStatus(status: string): string {
                 <div class="action-cell">
                   <button class="ghost-btn" (click)="viewDetail(sm)" title="View">👁️</button>
                   <button class="ghost-btn" (click)="openEdit(sm)" title="Edit">✏️</button>
-                  <button class="ghost-btn" (click)="wireLookupByMerchantPrompt(sm)" [title]="'Lookup WIRE: ' + sm.contactEmail" *ngIf="sm.contactEmail">🌐</button>
                   <ng-container *ngIf="sm.status === 'DRAFT'">
                     <button class="ghost-btn" (click)="submitToEasebuzz(sm)" title="Submit to Easebuzz API">
                       <span class="chip chip-sm info">🚀 Submit</span>
@@ -317,11 +306,6 @@ function formatStatus(status: string): string {
               <p *ngIf="sm.kycSubmittedAt"><strong>Submitted:</strong> {{ formatDateValue(sm.kycSubmittedAt) }}</p>
               <p *ngIf="sm.kycActivatedAt"><strong>Activated:</strong> {{ formatDateValue(sm.kycActivatedAt) }}</p>
             </div>
-            <div class="kyc-actions" style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-              <button class="ghost-btn" (click)="wireGetKycProfileUrl(sm)" *ngIf="sm.subMerchantId" title="Retrieve existing KYC profile URL from WIRE">
-                <span class="chip chip-sm info">🆔 KYC Profile URL</span>
-              </button>
-            </div>
           </div>
         </div>
 
@@ -332,36 +316,6 @@ function formatStatus(status: string): string {
               <p><strong>Label:</strong> <code>{{ sm.splitLabel }}</code></p>
               <p class="muted">Settlement split label for routing sub-merchant payouts.</p>
               <button class="ghost-btn" style="margin-top:0.5rem;" (click)="retrieveSplitStatus(sm)">🔍 Retrieve Split Status</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="detail-section" *ngIf="wireLookupResult() as wlr">
-          <h3>WIRE Platform Data <span class="chip chip-sm info">Lookup: {{ wlr.type }}</span></h3>
-          <div class="kyc-section">
-            <div class="kyc-info">
-              <p><strong>Searched by:</strong> <code>{{ wlr.query }}</code></p>
-              <p><strong>Status:</strong> <span [class]="wlr.data?.success ? 'chip chip-sm success' : 'chip chip-sm danger'">{{ wlr.data?.success ? 'Found' : 'Not Found' }}</span></p>
-              <ng-container *ngIf="wlr.data?.data?.merchant as m">
-                <p><strong>Merchant ID:</strong> {{ m.id || '-' }}</p>
-                <p><strong>Email:</strong> {{ m.email || '-' }}</p>
-                <p><strong>KYC Status:</strong> <span [class]="m.kyc_status ? 'chip chip-sm success' : 'chip chip-sm warn'">{{ m.kyc_status ? 'Completed' : 'Pending' }}</span></p>
-                <p *ngIf="m.virtual_account as va">
-                  <strong>Virtual A/C:</strong> {{ va.account_number || '-' }}
-                  <span class="muted" *ngIf="va.bank_name"> ({{ va.bank_name }})</span>
-                </p>
-              </ng-container>
-              <div class="kyc-actions" style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-                <button class="ghost-btn" (click)="wireApplyLookupToForm()" *ngIf="wlr.data?.data?.merchant">
-                  <span class="chip chip-sm info">📧 Apply Email</span>
-                </button>
-                <button class="ghost-btn" (click)="wireClearLookupResult()">
-                  <span class="chip chip-sm">🗑️ Clear</span>
-                </button>
-                <button class="ghost-btn" (click)="showConfirm('WIRE Raw Response', JSON.stringify(wlr.data, null, 2), ()=>{})">
-                  <span class="chip chip-sm">📄 Raw JSON</span>
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -385,14 +339,6 @@ function formatStatus(status: string): string {
                 <strong class="stat-value">{{ sm.commissionRate }}%</strong>
                 <p class="muted">Per transaction</p>
               </article>
-            </div>
-            <div class="wire-detail-actions" style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-              <button class="ghost-btn" (click)="wireConfigureInstaCollect()" title="Configure InstaCollect QR webhook on WIRE">
-                <span class="chip chip-sm info">📲 InstaCollect Webhook</span>
-              </button>
-              <button class="ghost-btn" (click)="wireConfigurePayout()" title="Configure payout webhook on WIRE">
-                <span class="chip chip-sm info">💳 Payout Webhook</span>
-              </button>
             </div>
           </div>
           <ng-template #notActiveSummary>
@@ -767,10 +713,6 @@ function formatStatus(status: string): string {
       animation: spin 0.7s linear infinite;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
     @keyframes fadeSlideIn {
       from { opacity: 0; transform: translateY(-12px); }
       to { opacity: 1; transform: none; }
@@ -837,10 +779,7 @@ function formatStatus(status: string): string {
       gap: 0.75rem;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: none; }
-    }
+
 
     .primary-btn:disabled {
       opacity: 0.6;
@@ -870,37 +809,18 @@ function formatStatus(status: string): string {
       .stats-grid .stat-card[style*="span 2"] { grid-column: 1 !important; }
     }
 
-    .wire-dropdown { position:relative; display:inline-block; }
-    .wire-menu {
-      position:absolute; top:100%; left:0; z-index:100;
-      background:var(--panel); border:1px solid var(--line); border-radius:10px;
-      padding:.5rem; box-shadow:var(--shadow-lg); min-width:220px;
-    }
-    .wire-menu-btn { width:100%; justify-content:flex-start; }
-
     @media (max-width: 520px) {
       .action-cell { flex-direction: column; align-items: stretch; }
       .action-cell .ghost-btn { width: 100%; text-align: center; }
       .status-select { min-width: unset; width: 100%; }
       .dash-mini { grid-template-columns: repeat(2, 1fr); }
-      .wire-menu { min-width:unset; width:100%; }
-    }
-
-    .wire-matched {
-      background: rgba(52, 152, 219, 0.08) !important;
-      box-shadow: inset 3px 0 0 var(--info);
-      animation: wirePulse 1.5s ease 3;
-    }
-
-    @keyframes wirePulse {
-      0%, 100% { background-color: rgba(52, 152, 219, 0.08); }
-      50% { background-color: rgba(52, 152, 219, 0.18); }
     }
   `]
 })
 export class SubMerchantsPageComponent implements OnInit {
   private readonly api = inject(AdminApiService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly subMerchants = signal<EasebuzzSubMerchant[]>([]);
   readonly loaded = signal(false);
@@ -914,10 +834,7 @@ export class SubMerchantsPageComponent implements OnInit {
   readonly confirmDialog = signal<{ title: string; message: string; onConfirm: () => void } | null>(null);
   readonly promptDialog = signal<{ title: string; message: string; placeholder: string; onConfirm: (value: string) => void } | null>(null);
   promptValue = '';
-  readonly showWireMenu = signal(false);
-  readonly wireLookupResult = signal<{ query: string; type: string; data: any } | null>(null);
-  /** ID of local sub-merchant auto-matched from latest WIRE lookup */
-  readonly matchedMerchantId = signal<number | null>(null);
+
 
   searchTerm = '';
   statusFilter: string = 'ALL';
@@ -950,15 +867,7 @@ export class SubMerchantsPageComponent implements OnInit {
     this.loadSubMerchants();
   }
 
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent): void {
-    if (this.showWireMenu()) {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.wire-dropdown')) {
-        this.showWireMenu.set(false);
-      }
-    }
-  }
+
 
   get filteredSubMerchants(): EasebuzzSubMerchant[] {
     const search = this.searchTerm.trim().toLowerCase();
@@ -988,7 +897,7 @@ export class SubMerchantsPageComponent implements OnInit {
   loadSubMerchants(): void {
     this.loaded.set(false);
     this.loadError.set('');
-    this.api.getSubMerchants().subscribe({
+    this.api.getSubMerchants().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.subMerchants.set(data);
         this.loaded.set(true);
@@ -1099,7 +1008,7 @@ export class SubMerchantsPageComponent implements OnInit {
       ? this.api.updateSubMerchant(edit.id, payload)
       : this.api.createSubMerchant(payload);
 
-    request.subscribe({
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.formSaving.set(false);
         this.closeForm();
@@ -1120,8 +1029,6 @@ export class SubMerchantsPageComponent implements OnInit {
 
   closeDetail(): void {
     this.selectedSubMerchant.set(null);
-    this.wireLookupResult.set(null);
-    this.matchedMerchantId.set(null);
   }
 
   submitToEasebuzz(merchant: EasebuzzSubMerchant): void {
@@ -1129,7 +1036,7 @@ export class SubMerchantsPageComponent implements OnInit {
       'Submit to Easebuzz',
       `Submit "${merchant.businessName}" to Easebuzz for onboarding?`,
       () => {
-        this.api.submitToEasebuzz(merchant.id).subscribe({
+        this.api.submitToEasebuzz(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: () => {
             this.loadSubMerchants();
             this.showFeedback('Sub-merchant submitted to Easebuzz successfully.');
@@ -1149,7 +1056,7 @@ export class SubMerchantsPageComponent implements OnInit {
       'Enter Sub-Merchant ID',
       (subMerchantId) => {
         if (!subMerchantId) return;
-        this.api.assignSubMerchantId(merchant.id, subMerchantId).subscribe({
+        this.api.assignSubMerchantId(merchant.id, subMerchantId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: () => {
             this.showFeedback('Sub-merchant ID assigned successfully. Status set to PENDING_KYC.');
             this.loadSubMerchants();
@@ -1167,7 +1074,7 @@ export class SubMerchantsPageComponent implements OnInit {
       'Generate KYC Access',
       `Generate KYC access for "${merchant.businessName}"?`,
       () => {
-        this.api.generateKyc(merchant.id).subscribe({
+        this.api.generateKyc(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (res) => {
             this.loadSubMerchants();
             const url = res.kyc_url;
@@ -1191,7 +1098,7 @@ export class SubMerchantsPageComponent implements OnInit {
       'Sync to Easebuzz',
       `Sync "${merchant.businessName}" changes to Easebuzz?`,
       () => {
-        this.api.updateOnEasebuzz(merchant.id).subscribe({
+        this.api.updateOnEasebuzz(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: () => {
             this.loadSubMerchants();
             this.showFeedback('Sub-merchant synced to Easebuzz successfully.');
@@ -1211,7 +1118,7 @@ export class SubMerchantsPageComponent implements OnInit {
       'Merchant Request ID',
       (merchantRequestId) => {
         if (!merchantRequestId) return;
-        this.api.retrieveSplitStatus(merchant.id, merchantRequestId).subscribe({
+        this.api.retrieveSplitStatus(merchant.id, merchantRequestId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (res) => {
             const config = res.split_configuration;
             if (config && config.length) {
@@ -1233,7 +1140,7 @@ export class SubMerchantsPageComponent implements OnInit {
       'Create Split Label',
       `Create settlement split label for "${merchant.businessName}"?`,
       () => {
-        this.api.createSplitLabel(merchant.id).subscribe({
+        this.api.createSplitLabel(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (res) => {
             this.loadSubMerchants();
             this.showFeedback(res.msg || 'Split label created successfully.');
@@ -1253,7 +1160,7 @@ export class SubMerchantsPageComponent implements OnInit {
       '6-digit OTP',
       (otp) => {
         if (!otp) return;
-        this.api.verifyOtp(merchant.id, otp).subscribe({
+        this.api.verifyOtp(merchant.id, otp).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: () => {
             this.showFeedback('OTP verified successfully.');
             this.loadSubMerchants();
@@ -1274,7 +1181,7 @@ export class SubMerchantsPageComponent implements OnInit {
       today,
       (date) => {
         if (!date) return;
-        this.api.retrieveSettlementsByDate(date).subscribe({
+        this.api.retrieveSettlementsByDate(date).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (res) => {
             this.showConfirm('Settlement Data', JSON.stringify(res, null, 2), () => {});
           },
@@ -1293,7 +1200,7 @@ export class SubMerchantsPageComponent implements OnInit {
       'Amount (e.g. 1000.00)',
       (amount) => {
         if (!amount) return;
-        this.api.onDemandSettlement(amount).subscribe({
+        this.api.onDemandSettlement(amount).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (res) => {
             this.showFeedback(`Settlement initiated: ${res.msg || 'Success'}`);
           },
@@ -1318,7 +1225,7 @@ export class SubMerchantsPageComponent implements OnInit {
           beneficiary_account_number: '1234567890',
           beneficiary_ifsc: 'HDFC0000123'
         };
-        this.api.initiatePayout(amount, beneficiary).subscribe({
+        this.api.initiatePayout(amount, beneficiary).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: (res) => {
             this.showFeedback(`Payout initiated: ${res.msg || 'Success'}`);
           },
@@ -1330,239 +1237,7 @@ export class SubMerchantsPageComponent implements OnInit {
     );
   }
 
-  // ============================================================
-  // Auto-match: find local sub-merchant from WIRE lookup result
-  // ============================================================
 
-  private autoMatchFromWireLookup(): void {
-    const result = this.wireLookupResult();
-    if (!result?.data?.data?.merchant) {
-      this.matchedMerchantId.set(null);
-      return;
-    }
-    const m = result.data.data.merchant;
-    const all = this.subMerchants();
-
-    // 1. Try matching by email (primary)
-    if (m.email) {
-      const wireEmail = m.email.toLowerCase();
-      const byEmail = all.find(sm => sm.contactEmail?.toLowerCase() === wireEmail);
-      if (byEmail) {
-        this.matchedMerchantId.set(byEmail.id);
-        this.selectedSubMerchant.set(byEmail);
-        this.showFeedback(`🔗 WIRE merchant matched to local #${byEmail.id} — ${byEmail.businessName}`);
-        setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
-        return;
-      }
-    }
-
-    // 2. If looked up by ID, try matching subMerchantId against the query
-    const lookupType = result.type;
-    const query = result.query;
-    if (lookupType === 'id' && query) {
-      const bySubId = all.find(sm => sm.subMerchantId?.toLowerCase() === query.toLowerCase());
-      if (bySubId) {
-        this.matchedMerchantId.set(bySubId.id);
-        this.selectedSubMerchant.set(bySubId);
-        this.showFeedback(`🔗 WIRE merchant matched to local #${bySubId.id} — ${bySubId.businessName} (by subMerchantId)`);
-        setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
-        return;
-      }
-    }
-
-    // 3. If looked up by key, the subMerchantKey might match subMerchantId
-    if (lookupType === 'key' && query) {
-      const byKey = all.find(sm => sm.subMerchantId?.toLowerCase() === query.toLowerCase());
-      if (byKey) {
-        this.matchedMerchantId.set(byKey.id);
-        this.selectedSubMerchant.set(byKey);
-        this.showFeedback(`🔗 WIRE merchant matched to local #${byKey.id} — ${byKey.businessName} (by key)`);
-        setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
-        return;
-      }
-    }
-
-    this.matchedMerchantId.set(null);
-  }
-
-  // ============================================================
-  // WIRE Platform Action Handlers
-  // ============================================================
-
-  /** Prompt with merchant email pre-filled, then do WIRE lookup */
-  wireLookupByMerchantPrompt(merchant: EasebuzzSubMerchant): void {
-    const email = merchant.contactEmail || '';
-    this.promptValue = email;
-    this.promptDialog.set({
-      title: 'WIRE Lookup by Email',
-      message: `Look up "${merchant.businessName}" on the Easebuzz WIRE platform.`,
-      placeholder: email,
-      onConfirm: (value) => {
-        if (!value) return;
-        this.selectedSubMerchant.set(merchant);
-        this.api.wireLookupByEmail(value).subscribe({
-          next: (res) => {
-            this.wireLookupResult.set({ query: value, type: 'email', data: res });
-            this.autoMatchFromWireLookup();
-            if (!this.matchedMerchantId()) {
-              this.showFeedback(`WIRE lookup for ${value} complete. No match found locally.`);
-            } else {
-              setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
-            }
-          },
-          error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
-        });
-      }
-    });
-  }
-
-  wireLookupByEmail(): void {
-    this.showPrompt(
-      'WIRE Lookup by Email',
-      'Enter the sub-merchant email to look up on the Easebuzz WIRE platform.',
-      'email@example.com',
-      (email) => {
-        if (!email) return;
-        this.api.wireLookupByEmail(email).subscribe({
-          next: (res) => {
-            this.wireLookupResult.set({ query: email, type: 'email', data: res });
-            this.autoMatchFromWireLookup();
-            if (!this.matchedMerchantId()) {
-              this.showFeedback('WIRE lookup complete. No matching local sub-merchant found by email.');
-            }
-          },
-          error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
-        });
-      }
-    );
-  }
-
-  wireLookupById(): void {
-    this.showPrompt(
-      'WIRE Lookup by ID',
-      'Enter the Easebuzz sub-merchant ID (e.g., S360DILA).',
-      'Sub-Merchant ID',
-      (subMerchantId) => {
-        if (!subMerchantId) return;
-        this.api.wireLookupById(subMerchantId).subscribe({
-          next: (res) => {
-            this.wireLookupResult.set({ query: subMerchantId, type: 'id', data: res });
-            this.autoMatchFromWireLookup();
-            if (!this.matchedMerchantId()) {
-              this.showFeedback('WIRE lookup complete. No matching local sub-merchant found by email.');
-            }
-          },
-          error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
-        });
-      }
-    );
-  }
-
-  wireLookupByKey(): void {
-    this.showPrompt(
-      'WIRE Lookup by Key',
-      'Enter the sub-merchant key from Easebuzz.',
-      'Sub-Merchant Key',
-      (key) => {
-        if (!key) return;
-        this.api.wireLookupByKey(key).subscribe({
-          next: (res) => {
-            this.wireLookupResult.set({ query: key, type: 'key', data: res });
-            this.autoMatchFromWireLookup();
-            if (!this.matchedMerchantId()) {
-              this.showFeedback('WIRE lookup complete. No matching local sub-merchant found by email.');
-            }
-          },
-          error: (err) => this.showFeedback(err?.error?.error ?? 'Lookup failed.', true)
-        });
-      }
-    );
-  }
-
-  wireClearLookupResult(): void {
-    this.wireLookupResult.set(null);
-    this.matchedMerchantId.set(null);
-  }
-
-  wireApplyLookupToForm(): void {
-    const result = this.wireLookupResult();
-    if (!result?.data?.data?.merchant) return;
-    const m = result.data.data.merchant;
-    this.subMerchantForm.patchValue({
-      contactEmail: m.email || '',
-      // Map other WIRE fields if available
-    });
-    this.showFeedback('WIRE merchant email applied to form.');
-  }
-
-  wireGetKycProfileUrl(merchant: EasebuzzSubMerchant): void {
-    this.api.wireGetKycProfileUrl(merchant.id).subscribe({
-      next: (res) => {
-        const url = res?.data?.kyc_url;
-        if (url) {
-          this.showFeedback(`KYC profile URL retrieved. Opening...`);
-          setTimeout(() => window.open(url, '_blank'), 500);
-        } else {
-          this.showFeedback('KYC profile URL: ' + JSON.stringify(res), false);
-        }
-      },
-      error: (err) => this.showFeedback(err?.error?.error ?? 'KYC profile URL retrieval failed.', true)
-    });
-  }
-
-  wireConfigureInstaCollect(): void {
-    this.showPrompt(
-      'InstaCollect QR Webhook',
-      'Enter: subMerchantId | webhookUrl | eventType\n\nSupported event types: ORDER_STATUS_UPDATE, TRANSACTION_CREDIT, INSTA_COLLECT_VIRTUAL_ACCOUNT_KYC_APPROVAL\n\nExample: S360DILA | https://api.example.com/webhook | ORDER_STATUS_UPDATE',
-      'subMerchantId | url | eventType',
-      (input) => {
-        if (!input) return;
-        const parts = input.split('|').map(p => p.trim());
-        if (parts.length < 3 || parts.some(p => !p.trim())) {
-          this.showFeedback('Please provide all 3 non-empty values separated by |', true);
-          return;
-        }
-        this.api.wireConfigureInstaCollectWebhook({
-          subMerchantId: parts[0],
-          url: parts[1],
-          eventType: parts[2],
-          intervalUnit: 'hours',
-          intervalValue: 24,
-          maxAttempts: 3
-        }).subscribe({
-          next: (res) => this.showFeedback('InstaCollect webhook configured: ' + JSON.stringify(res)),
-          error: (err) => this.showFeedback(err?.error?.error ?? 'Webhook config failed.', true)
-        });
-      }
-    );
-  }
-
-  wireConfigurePayout(): void {
-    this.showPrompt(
-      'Payout Webhook',
-      'Enter: subMerchantId | webhookUrl | eventType\n\nSupported event types: TRANSFER_INITIATED, TRANSFER_STATUS_UPDATE, LOW_BALANCE_ALERT\n\nExample: S360DILA | https://api.example.com/payout-webhook | TRANSFER_STATUS_UPDATE',
-      'subMerchantId | url | eventType',
-      (input) => {
-        if (!input) return;
-        const parts = input.split('|').map(p => p.trim());
-        if (parts.length < 3 || parts.some(p => !p.trim())) {
-          this.showFeedback('Please provide all 3 non-empty values separated by |', true);
-          return;
-        }
-        this.api.wireConfigurePayoutWebhook({
-          subMerchantId: parts[0],
-          url: parts[1],
-          eventType: parts[2],
-          intervalUnit: 'minutes',
-          intervalValue: 5,
-          maxAttempts: 3
-        }).subscribe({
-          next: (res) => this.showFeedback('Payout webhook configured: ' + JSON.stringify(res)),
-          error: (err) => this.showFeedback(err?.error?.error ?? 'Webhook config failed.', true)
-        });
-      }
-    );
-  }
 
   get stats() {
     const all = this.subMerchants();
@@ -1581,7 +1256,7 @@ export class SubMerchantsPageComponent implements OnInit {
       'Change Status',
       `Change "${merchant.businessName}" status to ${newStatus}?`,
       () => {
-        this.api.updateSubMerchantStatus(merchant.id, newStatus).subscribe({
+        this.api.updateSubMerchantStatus(merchant.id, newStatus).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
           next: () => {
             this.showFeedback(`Status updated to ${newStatus}`);
             this.loadSubMerchants();

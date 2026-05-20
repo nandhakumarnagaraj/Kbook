@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatCurrency, formatDate } from '../../shared/formatters';
@@ -143,6 +144,7 @@ function getStatusChip(status: string): string {
 })
 export class TransactionMonitorPageComponent implements OnInit {
   private readonly api = inject(AdminApiService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly transactions = signal<Transaction[]>([]);
   readonly loaded = signal(false);
@@ -158,7 +160,7 @@ export class TransactionMonitorPageComponent implements OnInit {
 
   loadTransactions(): void {
     this.loaded.set(false);
-    this.api.getTransactions(this.currentPage(), this.pageSize(), this.statusFilter || undefined, this.restaurantIdFilter ?? undefined).subscribe({
+    this.api.getTransactions(this.currentPage(), this.pageSize(), this.statusFilter || undefined, this.restaurantIdFilter ?? undefined).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.transactions.set(data);
         this.loaded.set(true);

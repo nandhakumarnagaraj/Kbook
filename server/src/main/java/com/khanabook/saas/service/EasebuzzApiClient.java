@@ -126,7 +126,7 @@ public class EasebuzzApiClient {
 		params.add("txnid", txnid);
 		params.add("hash", generateHash(props.getMerchantKey(), txnid));
 
-		Map<String, Object> raw = post(props.getPaymentBaseUrl() + "/transaction/v2.1/retrieve", params);
+		Map<String, Object> raw = post(props.getDashboardBaseUrl() + "/transaction/v2.1/retrieve", params);
 		return raw;
 	}
 
@@ -417,7 +417,9 @@ public class EasebuzzApiClient {
 			}
 			sb.append("|").append(props.getSalt());
 			String raw = sb.toString();
-			log.debug("Hashing Sequence: {}", raw);
+			if (log.isTraceEnabled()) {
+				log.trace("Hashing Sequence: key|...|...|salt (length={})", raw.length());
+			}
 			MessageDigest md = MessageDigest.getInstance("SHA-512");
 			byte[] digest = md.digest(raw.getBytes(StandardCharsets.UTF_8));
 			StringBuilder hash = new StringBuilder();

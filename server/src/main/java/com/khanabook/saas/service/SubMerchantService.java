@@ -388,13 +388,6 @@ public class SubMerchantService {
     }
 
     /**
-     * Lookup sub-merchant details on Easebuzz WIRE platform by Easebuzz sub-merchant ID.
-     */
-    public Map<String, Object> wireLookupById(String subMerchantId) {
-        return wireApi.getSubMerchantById(subMerchantId);
-    }
-
-    /**
      * Lookup sub-merchant details on Easebuzz WIRE platform by sub-merchant key.
      */
     public Map<String, Object> wireLookupByKey(String subMerchantKey) {

@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 
@@ -34,7 +35,7 @@ interface Settlement {
       </section>
 
       <ng-template #loading>
-        <div class="panel loading">Loading settlements...</div>
+        <div class="panel loading">{{ loadError() || 'Loading settlements...' }}</div>
       </ng-template>
 
       <div *ngIf="settlements().length; else loading">
@@ -87,7 +88,7 @@ interface Settlement {
 
       <div class="panel loading" *ngIf="!settlements().length && loaded()">
         <span class="empty-icon">📭</span>
-        <p>No settlement data available.</p>
+        <p>{{ loadError() || 'No settlement data available.' }}</p>
       </div>
     </div>
   `,
@@ -147,9 +148,11 @@ interface Settlement {
 })
 export class SettlementReportsPageComponent implements OnInit {
   private readonly api = inject(AdminApiService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly settlements = signal<Settlement[]>([]);
   readonly loaded = signal(false);
+  readonly loadError = signal('');
 
   readonly totalSettled = computed(() => this.settlements().reduce((sum, s) => sum + s.totalSettled, 0));
   readonly totalCommission = computed(() => this.settlements().reduce((sum, s) => sum + s.totalCommission, 0));
@@ -161,13 +164,15 @@ export class SettlementReportsPageComponent implements OnInit {
 
   loadSettlements(): void {
     this.loaded.set(false);
-    this.api.getSettlements().subscribe({
+    this.loadError.set('');
+    this.api.getSettlements().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.settlements.set(data);
         this.loaded.set(true);
       },
-      error: () => {
+      error: (err) => {
         this.settlements.set([]);
+        this.loadError.set(err?.error?.error ?? err?.error?.message ?? 'Failed to load settlements.');
         this.loaded.set(true);
       }
     });

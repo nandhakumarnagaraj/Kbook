@@ -1,0 +1,232 @@
+================================================================================
+  KHANABOOK — EASEBUZZ INTEGRATION ARCHITECTURE
+  For Easebuzz Team Review
+================================================================================
+
+Merchant Key : ADNX3KYX5
+Salt         : Z4UFP4939
+Environment  : Sandbox (testpay / testdashboard / testwire)
+
+================================================================================
+1. WHAT WE'RE BUILDING
+================================================================================
+
+KhanaBook is a restaurant POS + ordering platform. We use Easebuzz as our
+payment gateway with a marketplace model:
+
+  - One parent merchant account (ADNX3KYX5)
+  - Each restaurant onboarded as a sub-merchant
+  - Payments route to sub-merchant's bank account via split labels
+  - Admin web UI manages the full sub-merchant lifecycle
+
+================================================================================
+2. ARCHITECTURE LAYERS
+================================================================================
+
+┌─────────────────────────────────────────────────────────┐
+│  WEB ADMIN UI (Angular)                                  │
+│  admin-api.service.ts → 28 HTTP methods                  │
+│  sub-merchants-page.component.ts → Full CRUD + actions   │
+└──────────────────┬──────────────────────────────────────┘
+                   │ REST /api/v2
+┌──────────────────▼──────────────────────────────────────┐
+│  SPRING BOOT SERVER (Java 25, Spring Boot 3.5)           │
+│  Port: 8081, Context: /api/v2                            │
+│                                                          │
+│  Controllers:                                            │
+│    AdminSubMerchantController → 20+ endpoints            │
+│    PaymentController          → create-order, status,    │
+│                                  refund, verify, webhook │
+│                                                          │
+│  Services:                                               │
+│    SubMerchantService    → Sub-merchant lifecycle mgmt   │
+│    EasebuzzApiClient     → 16 Easebuzz API calls         │
+│    EasebuzzWireApiClient → 6 WIRE platform API calls     │
+│    EasebuzzPaymentService → Payment flow orchestration   │
+│    EasebuzzWebhookService → Inbound webhook processing   │
+│                                                          │
+│  DB: PostgreSQL 18 (kbook_saas)                          │
+│    easebuzz_sub_merchants → Sub-merchant state           │
+│    bills                  → Orders awaiting payment      │
+│    easebuzz_webhook_events → Webhook audit log           │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────────────────┐
+│  ANDROID POS APP (Kotlin)                                │
+│  EasebuzzSDK v2 (in.easebuzz:android-v2:1.0.6)          │
+│  PaymentListener → handles payment result callbacks      │
+└─────────────────────────────────────────────────────────┘
+
+================================================================================
+3. API ENDPOINTS WE CALL ON EASEBUZZ
+================================================================================
+
+3A. SUB-MERCHANT MANAGEMENT (testdashboard.easebuzz.in)
+
+  #  Endpoint                                     Method  Status
+  ─────────────────────────────────────────────────────────────────
+  1  /merchant/v1/submerchant/create/             POST    ✅ Working
+     Creates a sub-merchant on Easebuzz with bank + business details.
+     Hash: SHA512(key|email|phone|salt)
+
+  2  /merchant/v1/submerchant/create/             POST    ✅ Working
+     Updates sub-merchant (same URL, adds sub_merchant_id in body)
+     Hash: SHA512(key|email|phone|salt)
+
+  3  /submerchant/v1/generate_kyc_access_key      POST    ⚠ LIVE-ONLY (per Easebuzz)
+     Generates KYC portal URL for document upload.
+     Hash: SHA512(key|sub_merchant_id|name|email|phone|salt)
+     NOTE: Easebuzz confirmed KYC APIs not supported in sandbox.
+
+  4  /submerchant/v1/verify_otp                   POST    ⚠ LIVE-ONLY (per Easebuzz)
+     Verifies OTP during sub-merchant onboarding.
+     Hash: SHA512(key|sub_merchant_id|otp|salt)
+
+  5  /submerchant/v1/resend_otp                   POST    ⚠ LIVE-ONLY (per Easebuzz)
+     Resends OTP to sub-merchant.
+     Hash: SHA512(key|sub_merchant_id|salt)
+
+3B. SPLIT MANAGEMENT (testdashboard.easebuzz.in)
+
+  6  /split/v1/create                             POST    ❌ "key validation failed"
+     Creates a split label (bank-to-label linkage for settlement).
+     Hash: SHA512(key|name_on_bank|bank_name|branch_name|ifsc_code|
+                  account_number|label|salt)
+
+  7  /post-split/v1/create/                       POST    ⚠ Untested (no real txn)
+     Updates split config for a completed transaction.
+     Hash: SHA512(key|merchant_request_id|easebuzz_id|salt)
+
+  8  /post-split/v1/retrieve/                     POST    ⚠ Untested (no real txn)
+     Retrieves current split configuration for a transaction.
+     Hash: SHA512(key|merchant_request_id|salt)
+
+3C. PAYMENTS (testpay.easebuzz.in)
+
+  9  /payment/initiateLink                        POST    ❌ "Invalid sub merchant id"
+     Initiates payment via Easebuzz hosted checkout.
+     Hash: SHA512(key|txnid|amount|productinfo|firstname|email|
+                  udf1..udf10|salt)
+     Blocked because all 3 sub-merchants are PENDING_KYC.
+
+  10 /transaction/v2.1/retrieve                   POST    ⚠ No real transactions
+     Checks payment status.
+     Hash: SHA512(key|txnid|salt)
+
+  11 /transaction/v1/cancel                       POST    ⚠ No real transactions
+     Cancels a pending transaction.
+     Hash: SHA512(key|txnid|amount|salt)
+
+  12 /transaction/v2/refund                       POST    ⚠ No real transactions
+     Initiates refund for a completed transaction.
+     Hash: SHA512(key|txnid|amount|salt)
+
+  13 /transaction/v2/refund_status                POST    ⚠ No real transactions
+     Checks refund status.
+     Hash: SHA512(key|txnid|refund_id|salt)
+
+3D. SETTLEMENT & PAYOUT (testdashboard.easebuzz.in)
+
+  14 /payout/v2/transfer                          POST    ❌ 405 (nginx)
+     Initiates payout to beneficiary bank.
+     Hash: SHA512(key|merchant_request_id|amount|salt)
+
+  15 /settlement/v1/on_demand                     POST    ❌ 405 (nginx)
+     Triggers on-demand settlement.
+     Hash: SHA512(key|merchant_request_id|amount|salt)
+
+  16 /settlements/v1/retrieve                     POST    ❌ "hash validation failed"
+     Retrieves settlement records by date.
+     Hash: SHA512(key|date|salt)
+
+3E. WIRE PLATFORM (testwire.easebuzz.in)
+
+  17-22  6 WIRE APIs (lookup by email/id/key, KYC URL, webhook config)
+         ALL FAIL with I/O error (DNS unreachable) + no WIRE-API-KEY
+
+================================================================================
+4. SUB-MERCHANT LIFECYCLE (OUR FLOW)
+================================================================================
+
+  1. Admin creates sub-merchant DRAFT in KhanaBook DB
+       ↓
+  2. Admin clicks "Submit to Easebuzz"
+       ↓ POST /merchant/v1/submerchant/create/
+       ↓ Easebuzz returns submerchant_id (e.g. S280498SF77)
+       ↓ Status set to PENDING_KYC
+       ↓
+  3. Admin clicks "Generate KYC Link"
+       ↓ POST /submerchant/v1/generate_kyc_access_key
+       ↓ Easebuzz returns KYC portal URL
+       ↓ Restaurant owner uploads documents via KYC portal
+       ↓
+  4. Easebuzz webhook POSTs KYC status to our server
+       ↓ POST /api/v2/payments/easebuzz/sub-merchant/webhook
+       ↓ We update sub-merchant status to ACTIVE
+       ↓
+  5. Admin clicks "Create Split Label"
+       ↓ POST /split/v1/create
+       ↓ Label sm_{submerchant_id} created
+       ↓
+  6. Payments now route through this sub-merchant
+       ↓ POST /payment/initiateLink (with sub_merchant_id)
+       ↓ After payment, post-split creates distribution
+
+================================================================================
+5. WHAT WE NEED FROM EASEBUZZ
+================================================================================
+
+A. Account Configuration:
+   1. Enable Split API (/split/v1/create) for merchant ADNX3KYX5
+   2. Enable Payout v2 (/payout/v2/transfer) for sandbox
+   3. Enable On-Demand Settlement (/settlement/v1/on_demand) for sandbox
+   4. Provide WIRE-API-KEY for merchant ADNX3KYX5
+   5. Confirm testwire.easebuzz.in is accessible
+
+B. KYC (LIVE-ONLY — per Easebuzz support):
+   6. KYC APIs (generate_kyc_access_key, verify_otp, resend_otp) are NOT
+      available in sandbox. We'll test these in production/live mode.
+   7. Need a KYC-approved sub-merchant in sandbox for payment testing.
+      Current sandbox sub-merchants: S280498SF77, S280498T0XX, S280498TOGR
+      All are PENDING_KYC — payments blocked with "Invalid sub merchant id"
+
+C. Architecture Review:
+   8. Is our endpoint/hash mapping correct? (see Section 3 above)
+   9. Are we using the correct base URLs for sandbox?
+      - Payment:   https://testpay.easebuzz.in
+      - Dashboard: https://testdashboard.easebuzz.in
+      - WIRE:      https://testwire.easebuzz.in
+   10. Is the marketplace model (parent + sub-merchants) the right approach?
+   11. Are there any API version changes we should know about?
+
+================================================================================
+6. WEBHOOKS WE RECEIVE
+================================================================================
+
+  Inbound URL: https://paripinnate-unfreighted-tynisha.ngrok-free.dev
+               /api/v2/payments/easebuzz/webhook
+
+  1. Payment Transaction Webhook
+     - Easebuzz POSTs transaction status updates
+     - We update bill gateway_status and mark orders paid
+
+  2. Sub-Merchant KYC Webhook
+     - Easebuzz POSTs KYC approval/rejection
+     - We update sub-merchant status (ACTIVE / REJECTED)
+
+  3. Payout Webhook
+     - Easebuzz POSTs payout status updates
+     - We update payout records
+
+  All webhooks are hash-verified (reverse SHA-512 check) before processing.
+
+================================================================================
+7. CONTACT
+================================================================================
+
+  Developer: NandhaKumar N
+  Email:     [your email]
+  GitHub:    v2 branch on KhanaBook repository
+
+  We're ready to go live as soon as sandbox configuration is enabled
+  and KYC is approved for our test sub-merchants.

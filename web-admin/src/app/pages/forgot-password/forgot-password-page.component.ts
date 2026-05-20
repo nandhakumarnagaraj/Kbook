@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -161,11 +162,6 @@ const API_BASE_URL = environment.apiBaseUrl;
     .back-link a { color: var(--brand); text-decoration: none; font-weight: 600; }
     .back-link a:hover { text-decoration: underline; }
 
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
     @media (max-width: 520px) {
       .login-shell { padding: 1rem; }
       .login-header { padding: 1.5rem 1.25rem 1rem; }
@@ -177,6 +173,7 @@ export class ForgotPasswordPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly step = signal<'request' | 'reset'>('request');
   readonly loading = signal(false);
@@ -200,7 +197,7 @@ export class ForgotPasswordPageComponent {
     this.success.set('');
 
     const phone = this.requestForm.getRawValue().phoneNumber;
-    this.http.post(`${API_BASE_URL}/auth/reset-password/request`, { phoneNumber: phone }).subscribe({
+    this.http.post(`${API_BASE_URL}/auth/reset-password/request`, { phoneNumber: phone }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading.set(false);
         this.success.set('OTP sent to your WhatsApp. Please check and enter it below.');
@@ -231,7 +228,7 @@ export class ForgotPasswordPageComponent {
       phoneNumber: phone,
       otp,
       newPassword
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loading.set(false);
         this.success.set('Password reset successful! Redirecting to login...');

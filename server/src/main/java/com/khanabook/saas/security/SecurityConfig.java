@@ -116,6 +116,11 @@ public class SecurityConfig {
 								"/auth/google", "/auth/check-user",
 								"/auth/reset-password", "/auth/reset-password/request",
 								"/public/**",
+								"/cdn/**",
+								"/payments/easebuzz/webhook",
+								"/payments/easebuzz/**/webhook",
+								"/payments/easebuzz/return",
+								"/payments/easebuzz/create-order",
 								"/error")
 						.permitAll()
 

@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessMenuItem } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
@@ -134,16 +135,18 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       </div>
 
       <ng-template #loading>
-        <div class="panel loading">{{ loaded ? 'No menu items match the current filters.' : 'Loading menu...' }}</div>
+        <div class="panel loading">{{ loaded ? (loadError || 'No menu items match the current filters.') : (loadError || 'Loading menu...') }}</div>
       </ng-template>
     </div>
   `
 })
 export class MenuPageComponent {
   private readonly api = inject(BusinessApiService);
+  private readonly destroyRef = inject(DestroyRef);
 
   items: BusinessMenuItem[] = [];
   loaded = false;
+  loadError = '';
 
   searchTerm = '';
   stockFilter: 'ALL' | 'IN_STOCK' | 'RUNNING_LOW' | 'OUT_OF_STOCK' = 'ALL';
@@ -187,13 +190,14 @@ export class MenuPageComponent {
 
   loadMenu(): void {
     this.loaded = false;
-    this.api.getMenu().subscribe({
+    this.loadError = '';
+    this.api.getMenu().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.items = data;
         this.loaded = true;
         this.currentPage = 1;
       },
-      error: () => { this.loaded = true; }
+      error: (err) => { this.loadError = err?.error?.error ?? err?.error?.message ?? 'Failed to load menu.'; this.loaded = true; }
     });
   }
 

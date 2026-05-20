@@ -216,67 +216,14 @@ fun HomeScreen(
             }
 
             AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
-                KhanaBookCard(
+                HomeActionCard(
+                    text = "Online Orders",
+                    icon = Icons.Default.ShoppingCart,
+                    backgroundColor = CardBG,
                     modifier = Modifier.fillMaxWidth(),
                     onClick = onMarketplaceOrders,
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 56.dp)
-                            .padding(horizontal = spacing.medium, vertical = spacing.medium),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ShoppingCart,
-                                contentDescription = null,
-                                tint = PrimaryGold,
-                                modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
-                            )
-                            Spacer(modifier = Modifier.width(spacing.small))
-                            Column {
-                                Text(
-                                    "Online Orders",
-                                    color = TextLight,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                if (marketplacePendingCount > 0) {
-                                    Text(
-                                        "$marketplacePendingCount pending",
-                                        color = WarningYellow,
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
-                            }
-                        }
-                        if (marketplacePendingCount > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .background(DangerRed, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    marketplacePendingCount.toString(),
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-                        }
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = PrimaryGold,
-                            modifier = Modifier.size(KhanaBookTheme.iconSize.small)
-                        )
-                    }
-                }
+                    badgeCount = marketplacePendingCount
+                )
             }
 
             AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
@@ -500,7 +447,8 @@ fun HomeActionCard(
     icon: ImageVector,
     backgroundColor: Color,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    badgeCount: Int = 0
 ) {
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
@@ -529,20 +477,46 @@ fun HomeActionCard(
                     modifier = Modifier.size(iconSize.medium)
                 )
                 Spacer(modifier = Modifier.width(spacing.small))
-                Text(
-                    text = text,
-                    color = TextLight,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                Column {
+                    Text(
+                        text = text,
+                        color = TextLight,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (badgeCount > 0) {
+                        Text(
+                            text = "$badgeCount pending",
+                            color = WarningYellow,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (badgeCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .padding(end = spacing.small)
+                            .size(28.dp)
+                            .background(DangerRed, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = badgeCount.toString(),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = PrimaryGold,
+                    modifier = Modifier.size(iconSize.small)
                 )
             }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = PrimaryGold,
-                modifier = Modifier.size(iconSize.small)
-            )
         }
     }
 }

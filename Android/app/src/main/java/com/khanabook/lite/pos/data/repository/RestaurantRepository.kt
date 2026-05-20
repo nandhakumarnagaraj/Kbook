@@ -71,7 +71,7 @@ class RestaurantRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun uploadLogo(file: MultipartBody.Part): String {
+    suspend fun uploadLogo(file: MultipartBody.Part, localLogoPath: String? = null): String {
         val current = restaurantDao.getProfile()
         val response = api.uploadLogo(file)
         val version = response.logoVersion.takeIf { it > 0 }
@@ -79,6 +79,7 @@ class RestaurantRepository(
         restaurantDao.updateLogoUrl(
             response.logoUrl,
             version,
+            localLogoPath ?: current?.logoPath,
             current?.isSynced ?: true,
             System.currentTimeMillis()
         )

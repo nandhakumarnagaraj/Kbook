@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.context.annotation.Profile;
 
 @RestController
 @Validated
@@ -65,6 +66,7 @@ public class AuthController {
 		return ResponseEntity.ok(authService.signup(request));
 	}
 
+	@Profile("dev")
 	@PostMapping("/signup/dev")
 	public ResponseEntity<AuthResponse> devSignup(@RequestBody Map<String, String> body) {
 		SignupRequest req = new SignupRequest();
@@ -76,6 +78,7 @@ public class AuthController {
 		return ResponseEntity.ok(authService.devSignup(req));
 	}
 
+	@Profile("dev")
 	@PostMapping("/signup/dev-admin")
 	public ResponseEntity<AuthResponse> devAdminSignup(@RequestBody Map<String, String> body) {
 		return ResponseEntity.ok(authService.devAdminSignup(body));
@@ -146,6 +149,7 @@ public class AuthController {
 		return ResponseEntity.ok().build();
 	}
 
+	@Profile("dev")
 	@PostMapping("/dev-reset")
 	public ResponseEntity<Void> devReset() {
 		authService.devReset();

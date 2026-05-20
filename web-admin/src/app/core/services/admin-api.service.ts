@@ -120,10 +120,6 @@ export class AdminApiService {
     return this.http.get<any>(`${API_BASE_URL}/admin/sub-merchants/wire/lookup-by-email?email=${encodeURIComponent(email)}`);
   }
 
-  wireLookupById(subMerchantId: string) {
-    return this.http.get<any>(`${API_BASE_URL}/admin/sub-merchants/wire/lookup-by-id/${encodeURIComponent(subMerchantId)}`);
-  }
-
   wireLookupByKey(subMerchantKey: string) {
     return this.http.get<any>(`${API_BASE_URL}/admin/sub-merchants/wire/lookup-by-key/${encodeURIComponent(subMerchantKey)}`);
   }

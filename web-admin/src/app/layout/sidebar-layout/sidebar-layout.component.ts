@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
@@ -392,6 +393,7 @@ type NavLink = { icon: string; label: string; path: string };
 export class SidebarLayoutComponent {
   private readonly authService = inject(AuthService);
   private readonly businessApi = inject(BusinessApiService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly drawerOpen = signal(false);
   readonly session = this.authService.session;
@@ -401,6 +403,7 @@ export class SidebarLayoutComponent {
   constructor() {
     if (this.session()?.role === 'OWNER') {
       this.businessApi.getProfile().pipe(
+        takeUntilDestroyed(this.destroyRef),
         catchError(() => of(null))
       ).subscribe(profile => {
         if (profile) this.shopProfile.set(profile);

@@ -137,19 +137,12 @@ fun MarketplaceOrdersScreen(
     val actionLoading by viewModel.actionLoading.collectAsState()
     val spacing = KhanaBookTheme.spacing
 
-    var headerVisible by remember { mutableStateOf(false) }
-    var bodyVisible by remember { mutableStateOf(false) }
+    var bodyVisible by remember { mutableStateOf(true) }
     val enterSpec = fadeIn(tween(350)) + slideInVertically(
         initialOffsetY = { it / 6 },
         animationSpec = tween(350, easing = FastOutSlowInEasing)
     )
     val exitSpec = fadeOut(tween(200))
-
-    LaunchedEffect(Unit) {
-        headerVisible = true
-        kotlinx.coroutines.delay(80)
-        bodyVisible = true
-    }
 
     LaunchedEffect(Unit) {
         viewModel.message.collect { msg ->
@@ -162,31 +155,23 @@ fun MarketplaceOrdersScreen(
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(spacing.medium),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
-                    }
-                    Text(
-                        text = "Online Orders",
-                        modifier = Modifier.align(Alignment.Center),
-                        color = PrimaryGold,
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-                }
-            }
-
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { Text("Online Orders", color = PrimaryGold, style = MaterialTheme.typography.titleLarge) },
+                    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold) } },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
+                )
+            },
+            containerColor = Color.Transparent
+        ) { innerPadding ->
             AnimatedVisibility(
                 visible = bodyVisible,
                 enter = enterSpec,
                 exit = exitSpec,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
             ) {
                 when (val s = state) {
                     is MarketplaceOrdersState.Loading -> {

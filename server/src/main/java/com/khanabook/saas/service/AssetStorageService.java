@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -64,19 +66,26 @@ public class AssetStorageService {
 					.orElseThrow(() -> new IllegalStateException("Restaurant profile not found: " + restaurantId));
 
 			int newVersion = nextVersion(profile, kind);
-			String filename = kind + "_v" + newVersion + ".webp";
+			boolean hasCwebp = cwebpBin != null && !cwebpBin.isBlank();
+			String ext = hasCwebp ? ".webp" : guessExtension(file.getContentType());
+			String filename = kind + "_v" + newVersion + ext;
 			Path target = Paths.get(basePath, String.valueOf(restaurantId), filename);
 			Files.createDirectories(target.getParent());
 
-			runCwebp(tmp, target, lossless, quality);
+			if (hasCwebp) {
+				runCwebp(tmp, target, lossless, quality);
+			} else {
+				log.warn("cwebp not configured; copying {} -> {}", tmp, target);
+				Files.copy(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+			}
 
 			if (!Files.exists(target) || Files.size(target) == 0) {
-				throw new IllegalStateException("WebP conversion produced no output");
+				throw new IllegalStateException("Upload produced no output");
 			}
 
 			deleteOldVersions(restaurantId, kind, newVersion);
 
-			String url = normalizedUrlPrefix() + restaurantId + "/" + filename;
+			String url = resolveCdnUrl(restaurantId, filename);
 			applyToProfile(profile, kind, url, newVersion);
 			restaurantProfileRepository.save(profile);
 
@@ -145,6 +154,24 @@ public class AssetStorageService {
 			case "image/webp" -> ".webp";
 			default -> ".img";
 		};
+	}
+
+	private String resolveCdnUrl(Long restaurantId, String filename) {
+		try {
+			ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+			if (attrs != null) {
+				jakarta.servlet.http.HttpServletRequest req = attrs.getRequest();
+				String scheme = req.getScheme();
+				String host = req.getServerName();
+				int port = req.getServerPort();
+				String contextPath = req.getContextPath();
+				String portStr = (scheme.equals("http") && port == 80) || (scheme.equals("https") && port == 443) ? "" : ":" + port;
+				return scheme + "://" + host + portStr + contextPath + "/cdn/" + restaurantId + "/" + filename;
+			}
+		} catch (Exception e) {
+			log.debug("Could not resolve CDN URL from request context, falling back to configured prefix");
+		}
+		return normalizedUrlPrefix() + restaurantId + "/" + filename;
 	}
 
 	private String normalizedUrlPrefix() {

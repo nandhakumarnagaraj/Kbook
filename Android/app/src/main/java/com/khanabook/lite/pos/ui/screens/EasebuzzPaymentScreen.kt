@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,7 +68,7 @@ fun EasebuzzPaymentScreen(
     paymentRepository: EasebuzzSdkPaymentRepository,
     sessionManager: SessionManager,
     onBack: () -> Unit,
-    onPaymentComplete: () -> Unit
+    onPaymentComplete: (gatewayTxnId: String?) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -93,7 +94,7 @@ fun EasebuzzPaymentScreen(
                 if (verifyResponse.status == "success") {
                     screenState = PaymentScreenState.SUCCESS
                     KhanaToast.show("Payment successful!", ToastKind.Success)
-                    onPaymentComplete()
+                    onPaymentComplete(verifyResponse.txnid)
                 } else {
                     // SDK did not result in success — fall back to Custom Tabs
                     val url = paymentUrl
@@ -118,6 +119,11 @@ fun EasebuzzPaymentScreen(
     }
 
     suspend fun createOrderWithRetry() {
+        // Idempotency guard: if already have an access token, skip
+        if (accessToken != null) {
+            screenState = PaymentScreenState.READY
+            return
+        }
         var lastError: Exception? = null
         for (attempt in 0..MAX_RETRIES) {
             try {
@@ -163,6 +169,10 @@ fun EasebuzzPaymentScreen(
         errorMessage = null
         retryCount = 0
         sdkAttempted = false
+        createOrderWithRetry()
+    }
+
+    LaunchedEffect(Unit) {
         createOrderWithRetry()
     }
 

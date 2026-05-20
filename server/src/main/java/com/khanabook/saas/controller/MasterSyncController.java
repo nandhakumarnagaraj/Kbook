@@ -9,7 +9,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
 
+import com.khanabook.saas.entity.Bill;
+import com.khanabook.saas.entity.BillItem;
+import com.khanabook.saas.entity.BillPayment;
+import com.khanabook.saas.entity.Category;
+import com.khanabook.saas.entity.ItemVariant;
+import com.khanabook.saas.entity.MenuItem;
+import com.khanabook.saas.entity.RestaurantProfile;
+import com.khanabook.saas.entity.StockLog;
+import com.khanabook.saas.entity.User;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.*;
 
@@ -37,6 +47,8 @@ public class MasterSyncController {
 	public ResponseEntity<MasterSyncResponseDTO> pullMasterSync(@RequestParam Long lastSyncTimestamp,
 			@RequestParam String deviceId, @RequestParam(required = false) Long restaurantId,
 			@RequestParam(defaultValue = "false") boolean ignoreDeviceId,
+			@RequestParam(defaultValue = "10000") int limit,
+			@RequestParam(defaultValue = "0") int offset,
 			HttpServletRequest request) {
 
 		Long tenantId = TenantContext.getCurrentTenant();
@@ -52,26 +64,90 @@ public class MasterSyncController {
 
 		long currentServerTime = System.currentTimeMillis();
 		boolean firstSync = lastSyncTimestamp == null || lastSyncTimestamp == 0;
-		// First sync should bootstrap shared restaurant configuration and catalog data,
-		// but transactional data must stay device-scoped unless the caller explicitly
-		// requests a cross-device recovery pull.
 		boolean sharedDataCrossDevice = ignoreDeviceId || firstSync;
-		// On first sync (re-login after logout), also include own-device bills so they
-		// are restored. Without this, bills created before logout are invisible after login
-		// because the deviceId filter excludes them.
 		boolean transactionalCrossDevice = ignoreDeviceId || firstSync;
 
 		MasterSyncResponseDTO response = new MasterSyncResponseDTO();
 		response.setServerTimestamp(currentServerTime);
-		response.setProfiles(SyncMapper.mapList(restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), RestaurantProfileDTO.class));
-		response.setUsers(SyncMapper.mapList(userService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), UserDTO.class));
-		response.setCategories(SyncMapper.mapList(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), CategoryDTO.class));
-		response.setMenuItems(SyncMapper.mapList(menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), MenuItemDTO.class));
-		response.setItemVariants(SyncMapper.mapList(itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), ItemVariantDTO.class));
-		response.setStockLogs(SyncMapper.mapList(stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), StockLogDTO.class));
-		response.setBills(SyncMapper.mapList(billService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), BillDTO.class));
-		response.setBillItems(SyncMapper.mapList(billItemService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), BillItemDTO.class));
-		response.setBillPayments(SyncMapper.mapList(billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), BillPaymentDTO.class));
+
+		boolean hasMore = false;
+
+		// ── Helper: truncate to limit, returns a mutable list ─────────────────
+		// Type-safe wrapper avoids generic inference issues with wildcard lambdas.
+
+		List<RestaurantProfileDTO> profiles = truncate(
+				SyncMapper.<RestaurantProfile, RestaurantProfileDTO>mapList(
+						restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice),
+						RestaurantProfileDTO.class),
+				limit);
+		hasMore = hasMore || profiles.size() > limit;
+		response.setProfiles(profiles);
+
+		List<UserDTO> users = truncate(
+				SyncMapper.<User, UserDTO>mapList(
+						userService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice),
+						UserDTO.class),
+				limit);
+		hasMore = hasMore || users.size() > limit;
+		response.setUsers(users);
+
+		List<CategoryDTO> categories = truncate(
+				SyncMapper.<Category, CategoryDTO>mapList(
+						categoryService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice),
+						CategoryDTO.class),
+				limit);
+		hasMore = hasMore || categories.size() > limit;
+		response.setCategories(categories);
+
+		List<MenuItemDTO> menuItems = truncate(
+				SyncMapper.<MenuItem, MenuItemDTO>mapList(
+						menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice),
+						MenuItemDTO.class),
+				limit);
+		hasMore = hasMore || menuItems.size() > limit;
+		response.setMenuItems(menuItems);
+
+		List<ItemVariantDTO> itemVariants = truncate(
+				SyncMapper.<ItemVariant, ItemVariantDTO>mapList(
+						itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice),
+						ItemVariantDTO.class),
+				limit);
+		hasMore = hasMore || itemVariants.size() > limit;
+		response.setItemVariants(itemVariants);
+
+		List<StockLogDTO> stockLogs = truncate(
+				SyncMapper.<StockLog, StockLogDTO>mapList(
+						stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice),
+						StockLogDTO.class),
+				limit);
+		hasMore = hasMore || stockLogs.size() > limit;
+		response.setStockLogs(stockLogs);
+
+		List<BillDTO> bills = truncate(
+				SyncMapper.<Bill, BillDTO>mapList(
+						billService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice),
+						BillDTO.class),
+				limit);
+		hasMore = hasMore || bills.size() > limit;
+		response.setBills(bills);
+
+		List<BillItemDTO> billItems = truncate(
+				SyncMapper.<BillItem, BillItemDTO>mapList(
+						billItemService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice),
+						BillItemDTO.class),
+				limit);
+		hasMore = hasMore || billItems.size() > limit;
+		response.setBillItems(billItems);
+
+		List<BillPaymentDTO> billPayments = truncate(
+				SyncMapper.<BillPayment, BillPaymentDTO>mapList(
+						billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice),
+						BillPaymentDTO.class),
+				limit);
+		hasMore = hasMore || billPayments.size() > limit;
+		response.setBillPayments(billPayments);
+
+		response.setHasMore(hasMore);
 
 		int profilesCount = response.getProfiles() == null ? 0 : response.getProfiles().size();
 		int usersCount = response.getUsers() == null ? 0 : response.getUsers().size();
@@ -83,12 +159,23 @@ public class MasterSyncController {
 		int billItemsCount = response.getBillItems() == null ? 0 : response.getBillItems().size();
 		int billPaymentsCount = response.getBillPayments() == null ? 0 : response.getBillPayments().size();
 
-		log.info("Master sync pull tenantId={} deviceId={} firstSync={} explicitIgnoreDeviceId={} sharedDataCrossDevice={} transactionalCrossDevice={} profiles={} users={} categories={} " +
-				"menuItems={} variants={} stockLogs={} bills={} billItems={} billPayments={}",
+		log.info("Master sync pull tenantId={} deviceId={} firstSync={} explicitIgnoreDeviceId={} sharedDataCrossDevice={} transactionalCrossDevice={} " +
+				"profiles={} users={} categories={} menuItems={} variants={} stockLogs={} bills={} billItems={} billPayments={} " +
+				"limit={} offset={} hasMore={}",
 				tenantId, deviceId, firstSync, ignoreDeviceId, sharedDataCrossDevice, transactionalCrossDevice,
 				profilesCount, usersCount, categoriesCount,
-				menuItemsCount, itemVariantsCount, stockLogsCount, billsCount, billItemsCount, billPaymentsCount);
+				menuItemsCount, itemVariantsCount, stockLogsCount, billsCount, billItemsCount, billPaymentsCount,
+				limit, offset, hasMore);
 
 		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * Returns a new mutable list containing at most {@code limit} elements from the source.
+	 * Prevents unbounded response sizes for tenants with large datasets.
+	 */
+	private static <T> List<T> truncate(List<T> source, int limit) {
+		if (source == null || source.isEmpty()) return new java.util.ArrayList<>();
+		return new java.util.ArrayList<>(source.size() <= limit ? source : source.subList(0, limit));
 	}
 }

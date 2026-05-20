@@ -3,6 +3,7 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.config.EasebuzzProperties;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.EasebuzzPayoutRepository;
 import com.khanabook.saas.repository.EasebuzzWebhookEventRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,8 @@ class EasebuzzWebhookTest {
     @Mock private EasebuzzWebhookEventRepository webhookEventRepo;
     @Mock private EasebuzzProperties props;
     @Mock private PostSplitService postSplitService;
+    @Mock private SubMerchantService subMerchantService;
+    @Mock private EasebuzzPayoutRepository payoutRepo;
 
     @InjectMocks
     private EasebuzzWebhookService webhookService;
@@ -63,7 +66,6 @@ class EasebuzzWebhookTest {
         mockBill.setId(500L);
         mockBill.setRestaurantId(1L);
         when(billRepo.findById(500L)).thenReturn(Optional.of(mockBill));
-        when(webhookEventRepo.findByRestaurantIdAndTxnId(anyLong(), anyString())).thenReturn(Optional.empty());
 
         // 3. Execute
         Map<String, Object> response = webhookService.handlePaymentWebhook(payload);

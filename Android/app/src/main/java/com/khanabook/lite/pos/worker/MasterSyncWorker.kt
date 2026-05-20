@@ -87,7 +87,7 @@ constructor(
       WorkManager.getInstance(context)
               .enqueueUniquePeriodicWork(
                       SYNC_WORK_NAME,
-                      ExistingPeriodicWorkPolicy.KEEP,
+                      ExistingPeriodicWorkPolicy.REPLACE,
                       syncRequest
               )
     }

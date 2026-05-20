@@ -75,9 +75,9 @@ interface RestaurantDao {
     suspend fun updateLogoPath(path: String?, updatedAt: Long)
 
     @Query(
-        "UPDATE restaurant_profile SET logo_url = :url, logo_version = :version, logo_path = NULL, is_synced = :isSynced, updated_at = :updatedAt WHERE id = 1"
+        "UPDATE restaurant_profile SET logo_url = :url, logo_version = :version, logo_path = :logoPath, is_synced = :isSynced, updated_at = :updatedAt, server_updated_at = :updatedAt WHERE id = 1"
     )
-    suspend fun updateLogoUrl(url: String?, version: Int, isSynced: Boolean, updatedAt: Long)
+    suspend fun updateLogoUrl(url: String?, version: Int, logoPath: String?, isSynced: Boolean, updatedAt: Long)
 
     @Query("SELECT * FROM restaurant_profile WHERE is_synced = 0")
     suspend fun getUnsyncedRestaurantProfiles(): List<RestaurantProfileEntity>

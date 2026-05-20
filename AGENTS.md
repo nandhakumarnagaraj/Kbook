@@ -44,8 +44,36 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 ### In Progress
 - None currently
 
+### 2026-05-19 Session — Sandbox Testing & Marketplace Webhooks
+- **All 36 tests passing**: MarketplaceWebhookControllerTest (9), MarketplaceOrderServiceTest (13), EasebuzzIntegrationTest (5), EasebuzzNewFeaturesTest (5), EasebuzzWebhookTest (4)
+- **MarketplaceWebhookController.processOrder()** rewritten to parse nested UrbanPiper payload format (`customer.name`, `order.details`, `order.store.merchant_ref_id`, `order.payment[0].option`) instead of flat payload
+- **Bug fix**: `EasebuzzApiClient.getTransactionStatus()` now uses `getDashboardBaseUrl()` (was `getPaymentBaseUrl()` — sandbox confirmed `testpay.easebuzz.in/transaction/v2.1/retrieve` returns 404)
+- **Sandbox verification**: Hash generation is correct (tested with key `ADNX3KYX5` + salt `Z4UFP4939` against `testdashboard.easebuzz.in`); transaction status API responds with correct JSON
+- **KYC API is live-only** (confirmed by Easebuzz support) — cannot be tested on sandbox; all sub-merchant management features may require live mode
+- **Server started** on port 8081 with `--spring.profiles.active=sandbox,dev`
+
+### Fixed (Code Review — 2026-05-19)
+- **Dev endpoints guarded**: `/auth/signup/dev`, `/auth/signup/dev-admin`, `/auth/dev-reset`, `dev-refresh` all gated behind `@Profile("dev")`
+- **Salt removed from debug logs**: `EasebuzzApiClient.generateHash()` logs only hash length, not raw input
+- **Post-split retry outside @Transactional**: `PostSplitService.attemptPostSplit()` no longer holds DB connection across `Thread.sleep()`; bill update extracted to `@Transactional` helper
+- **Post-split async executor**: Added `postSplitExecutor` bean with `TenantContext` propagation
+- **Webhook idempotency**: `EasebuzzWebhookService.handlePaymentWebhook()` skips if bill is already `"paid"`
+- **Constant-time hash comparison**: All webhook verifiers use `MessageDigest.isEqual()` instead of `equalsIgnoreCase()`
+- **Rate limiter eviction**: `LoginRateLimiter` and `OtpRateLimiter` evict stale bucket entries after 30 min
+- **MarketplaceWebhookController**: Replaced `findAll().stream()` with indexed JPA queries by `swiggyStoreId`/`zomatoOutletId`
+- **AdminSubMerchantController**: Validates `subMerchantId` is non-blank on assign; `dev-refresh` gated behind `@Profile("dev")`
+- **Sandbox config**: Removed hardcoded Easebuzz credentials and stale ngrok URLs; all use env vars now
+- **WIRE sandbox URL**: Fixed from `https://testwire.easebuzz.in` to `https://testdashboard.easebuzz.in` (confirmed via ERA)
+- **Removed non-existent WIRE endpoint**: `GET /api/v1/merchants/{submerchant_id}/` for lookup-by-ID does not exist per ERA; removed `wireLookupById()` from client, service, controller, and web admin UI
+- **`.env.example`**: Added `EASEBUZZ_MERCHANT_KEY`, `EASEBUZZ_SALT`, `EASEBUZZ_PAYMENT_BASE_URL`, `EASEBUZZ_DASHBOARD_BASE_URL`, return/notify URL vars
+- **`environment.prod.ts`**: Fixed API base URL from `/api/v1` to `/api/v2`
+- **Android EasebuzzPaymentScreen**: Added `LaunchedEffect(Unit)` to call `createOrderWithRetry()` on first composition (was stuck on INITIALIZING)
+- **Android payment idempotency**: Skip `createOrder()` if `accessToken` already set
+- **Android gateway txns recorded**: `BillingViewModel.finalizeOnlineBill()` and `completeOrder()` now write `gatewayTxnId`/`gatewayStatus` from `_gatewayTxnId`/`_gatewayStatus` StateFlows into `BillPaymentEntity`
+
 ### Blocked
-- None currently
+- KYC API (`/submerchant/v1/generate_kyc_access_key`) is** live-only** — sandbox returns error, confirmed by Easebuzz support
+- Sub-merchant management (`/merchant/v1/submerchant/create/`), split, and refund APIs may also require live mode or manual sandbox feature enablement by Easebuzz Ops
 
 ## Key Decisions
 - Two separate Split APIs: `/split/v1/create` (one-time bank-to-label linkage) and `/post-split/v1/create/` (per-transaction fund distribution)
@@ -62,9 +90,12 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 5. ~~Implement OTP APIs (Verify + Resend)~~ ✅ Done
 6. ~~Wire Cancel/Payout/Settlement/Split-Retrieve endpoints~~ ✅ Done
 7. ~~Add Android Refund Status API~~ ✅ Done
-8. Test all Easebuzz sub-merchant APIs against sandbox (`testdashboard.easebuzz.in`, `testpay.easebuzz.in`)
-9. Verify `getRefundStatus()` and `cancelTransaction()` work correctly in sandbox
-10. Update `sub-merchant-password-reset` flow when Easebuzz ops enables it
+8. ~~Test all Easebuzz sub-merchant APIs against sandbox~~ ✅ Done (KYC = live-only, sub-merchant 500 needs feature enablement)
+9. ~~Verify `getRefundStatus()` and `cancelTransaction()` work correctly in sandbox~~ ✅ Done (404 — need feature enablement)
+10. Send sandbox support email to Easebuzz — enable sub-merchant/split/refund features
+11. Create live-mode test plan for KYC, sub-merchant CRUD, split APIs
+12. Fix web-admin subscription leaks — add `takeUntilDestroyed()` to 45 `.subscribe()` calls
+13. Update `sub-merchant-password-reset` flow when Easebuzz ops enables it
 
 ## Critical Context
 - Backend base path: `/api/v2` (dev)
@@ -76,6 +107,10 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 - Android SDK V2: `in.easebuzz:android-v2:1.0.6`, uses `EasebuzzSDK.getInstance().open()` with `PaymentListener`
 - `v2` branch remote tracking set to `origin/v2`
 - Angular Emulated ViewEncapsulation adds `_ngcontent-xxx` attribute selectors — global responsive overrides need `!important` when competing with component-level `.class` rules
+- KYC API is live-only — sandbox returns error, confirmed by Easebuzz support
+- Sub-merchant management APIs return 500/400 on sandbox — likely need manual feature enablement by Easebuzz Ops
+- All 36 tests passing: 9 marketplace controller + 13 marketplace service + 14 Easebuzz unit tests
+- Web-admin has 45 raw `.subscribe()` calls with no cleanup — Angular 18 has `takeUntilDestroyed()` available
 
 ## Relevant Files
 - `server/.../service/EasebuzzApiClient.java` — 9 API methods (initiate payment, transaction status V2.1, refund, refund status, cancel, payout, settlement, create/update sub-merchant, split label create, post-split create/retrieve, KYC access key, verify OTP, resend OTP)
@@ -95,3 +130,11 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 - `Android/app/.../ui/viewmodel/SettingsViewModel.kt` — added lookup methods + `LookupResult` state
 - `Android/app/.../ui/screens/TaxConfigSection.kt` — Fetch buttons + lookup result dialog + apply logic
 - `Android/app/.../ui/screens/SettingsScreen.kt` — wired lookup callbacks and state collection
+- `server/.../controller/MarketplaceWebhookController.java` — Swiggy/Zomato webhooks (UrbanPiper payload)
+- `server/.../test/.../controller/MarketplaceWebhookControllerTest.java` — 9 tests
+- `server/.../test/.../service/MarketplaceOrderServiceTest.java` — 13 tests
+- `server/.../test/.../service/EasebuzzIntegrationTest.java` — 5 tests
+- `server/.../test/.../service/EasebuzzNewFeaturesTest.java` — 5 tests
+- `server/.../test/.../service/EasebuzzWebhookTest.java` — 4 tests
+- `easebuzz-sandbox-support-email.md` — draft support email for feature enablement
+- `easebuzz-live-test-plan.md` — live-mode test plan for KYC/sub-merchant/split APIs
