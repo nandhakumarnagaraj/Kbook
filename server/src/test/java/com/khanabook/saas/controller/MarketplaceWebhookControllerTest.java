@@ -1,5 +1,6 @@
 package com.khanabook.saas.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khanabook.saas.entity.MarketplaceOrder;
 import com.khanabook.saas.repository.MarketplaceOrderRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
@@ -8,10 +9,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +29,7 @@ class MarketplaceWebhookControllerTest {
 
     @Mock private MarketplaceOrderRepository orderRepo;
     @Mock private RestaurantProfileRepository profileRepo;
+    @Spy  private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private MarketplaceWebhookController controller;
@@ -40,6 +44,8 @@ class MarketplaceWebhookControllerTest {
             .thenReturn(Optional.of(testRestaurantId));
         lenient().when(profileRepo.findRestaurantIdByZomatoOutletIdAndIsDeletedFalse(zomatoOutletId))
             .thenReturn(Optional.of(testRestaurantId));
+        // No webhook secrets configured → signature=null is accepted (onboarding mode)
+        lenient().when(profileRepo.findAll()).thenReturn(Collections.emptyList());
     }
 
     @SuppressWarnings("unchecked")
@@ -85,14 +91,30 @@ class MarketplaceWebhookControllerTest {
         return payload;
     }
 
+    /** Helper: serialize payload to JSON string and call swiggyWebhook(rawBody, null) */
+    private ResponseEntity<Map<String, Object>> callSwiggy(Map<String, Object> payload) {
+        try {
+            return controller.swiggyWebhook(objectMapper.writeValueAsString(payload), null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /** Helper: serialize payload to JSON string and call zomatoWebhook(rawBody, null) */
+    private ResponseEntity<Map<String, Object>> callZomato(Map<String, Object> payload) {
+        try {
+            return controller.zomatoWebhook(objectMapper.writeValueAsString(payload), null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Test
     void swiggyWebhook_shouldAcceptOrder() {
         when(orderRepo.findByPlatformAndPlatformOrderId("SWIGGY", "3444567")).thenReturn(Optional.empty());
         when(orderRepo.save(any())).thenAnswer(inv -> { ((MarketplaceOrder) inv.getArgument(0)).setId(1L); return inv.getArgument(0); });
 
-        Map<String, Object> payload = urbanPiperPayload("swiggy", null);
-
-        ResponseEntity<Map<String, Object>> response = controller.swiggyWebhook(payload);
+        ResponseEntity<Map<String, Object>> response = callSwiggy(urbanPiperPayload("swiggy", null));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("received", response.getBody().get("status"));
@@ -104,9 +126,7 @@ class MarketplaceWebhookControllerTest {
         when(orderRepo.findByPlatformAndPlatformOrderId("ZOMATO", "3444567")).thenReturn(Optional.empty());
         when(orderRepo.save(any())).thenAnswer(inv -> { ((MarketplaceOrder) inv.getArgument(0)).setId(2L); return inv.getArgument(0); });
 
-        Map<String, Object> payload = urbanPiperPayload("zomato", null);
-
-        ResponseEntity<Map<String, Object>> response = controller.zomatoWebhook(payload);
+        ResponseEntity<Map<String, Object>> response = callZomato(urbanPiperPayload("zomato", null));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("received", response.getBody().get("status"));
@@ -119,7 +139,7 @@ class MarketplaceWebhookControllerTest {
         existing.setPlatformOrderId("3444567");
         when(orderRepo.findByPlatformAndPlatformOrderId("SWIGGY", "3444567")).thenReturn(Optional.of(existing));
 
-        ResponseEntity<Map<String, Object>> response = controller.swiggyWebhook(urbanPiperPayload("swiggy", null));
+        ResponseEntity<Map<String, Object>> response = callSwiggy(urbanPiperPayload("swiggy", null));
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("duplicate", response.getBody().get("status"));
@@ -131,7 +151,7 @@ class MarketplaceWebhookControllerTest {
         Map<String, Object> payload = urbanPiperPayload("swiggy", null);
         ((Map<String, Object>) ((Map<String, Object>) payload.get("order")).get("store")).put("merchant_ref_id", "UNKNOWN_STORE");
 
-        ResponseEntity<Map<String, Object>> response = controller.swiggyWebhook(payload);
+        ResponseEntity<Map<String, Object>> response = callSwiggy(payload);
 
         assertEquals(400, response.getStatusCode().value());
         assertEquals("error", response.getBody().get("status"));
@@ -143,7 +163,7 @@ class MarketplaceWebhookControllerTest {
         Map<String, Object> payload = urbanPiperPayload("swiggy", null);
         payload.remove("customer");
 
-        ResponseEntity<Map<String, Object>> response = controller.swiggyWebhook(payload);
+        ResponseEntity<Map<String, Object>> response = callSwiggy(payload);
 
         assertEquals(400, response.getStatusCode().value());
         assertEquals("error", response.getBody().get("status"));
@@ -154,7 +174,7 @@ class MarketplaceWebhookControllerTest {
         Map<String, Object> payload = urbanPiperPayload("swiggy", null);
         payload.remove("order");
 
-        ResponseEntity<Map<String, Object>> response = controller.swiggyWebhook(payload);
+        ResponseEntity<Map<String, Object>> response = callSwiggy(payload);
 
         assertEquals(400, response.getStatusCode().value());
         assertEquals("error", response.getBody().get("status"));
@@ -169,7 +189,7 @@ class MarketplaceWebhookControllerTest {
         ((Map<String, Object>) ((Map<String, Object>) payload.get("order")).get("details")).remove("order_total");
         ((Map<String, Object>) ((Map<String, Object>) payload.get("order")).get("details")).remove("order_subtotal");
 
-        ResponseEntity<Map<String, Object>> response = controller.swiggyWebhook(payload);
+        ResponseEntity<Map<String, Object>> response = callSwiggy(payload);
 
         assertEquals(200, response.getStatusCode().value());
         verify(orderRepo, times(1)).save(argThat(order ->
@@ -184,9 +204,7 @@ class MarketplaceWebhookControllerTest {
         when(orderRepo.findByPlatformAndPlatformOrderId("SWIGGY", "3444567")).thenReturn(Optional.empty());
         when(orderRepo.save(any())).thenAnswer(inv -> { ((MarketplaceOrder) inv.getArgument(0)).setId(6L); return inv.getArgument(0); });
 
-        Map<String, Object> payload = urbanPiperPayload("swiggy", null);
-
-        controller.swiggyWebhook(payload);
+        callSwiggy(urbanPiperPayload("swiggy", null));
 
         verify(orderRepo).save(argThat(order ->
             "SWIGGY".equals(order.getPlatform())
@@ -218,8 +236,20 @@ class MarketplaceWebhookControllerTest {
         );
         ((Map<String, Object>) payload.get("order")).put("payment", payments);
 
-        controller.swiggyWebhook(payload);
+        callSwiggy(payload);
 
         verify(orderRepo).save(argThat(order -> "cash".equals(order.getPaymentMode())));
+    }
+
+    @Test
+    void webhook_withValidSignature_shouldAccept() {
+        // No secrets configured → any signature=null is accepted
+        when(orderRepo.findByPlatformAndPlatformOrderId("SWIGGY", "3444567")).thenReturn(Optional.empty());
+        when(orderRepo.save(any())).thenAnswer(inv -> { ((MarketplaceOrder) inv.getArgument(0)).setId(8L); return inv.getArgument(0); });
+
+        ResponseEntity<Map<String, Object>> response = callSwiggy(urbanPiperPayload("swiggy", null));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("received", response.getBody().get("status"));
     }
 }

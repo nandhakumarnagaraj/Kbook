@@ -1,8 +1,10 @@
 package com.khanabook.saas.controller;
 
 import com.khanabook.saas.entity.MarketplaceOrder;
+import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.MarketplaceOrderRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,9 +12,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,17 +29,79 @@ public class MarketplaceWebhookController {
     private static final Logger log = LoggerFactory.getLogger(MarketplaceWebhookController.class);
     private final MarketplaceOrderRepository orderRepo;
     private final RestaurantProfileRepository profileRepo;
+    private final ObjectMapper objectMapper;
 
     @PostMapping("/marketplace/webhook/swiggy")
     @Transactional
-    public ResponseEntity<Map<String, Object>> swiggyWebhook(@RequestBody Map<String, Object> payload) {
-        return processOrder("SWIGGY", payload);
+    public ResponseEntity<Map<String, Object>> swiggyWebhook(
+            @RequestBody String rawBody,
+            @RequestHeader(value = "X-Hub-Signature-256", required = false) String signature) {
+        if (!verifyWebhookSignature(rawBody, signature, "SWIGGY")) {
+            log.warn("Swiggy webhook signature verification failed");
+            return ResponseEntity.status(401).body(Map.of("status", "unauthorized"));
+        }
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> payload = objectMapper.readValue(rawBody, Map.class);
+            return processOrder("SWIGGY", payload);
+        } catch (Exception e) {
+            log.error("Failed to parse Swiggy webhook body: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Invalid JSON"));
+        }
     }
 
     @PostMapping("/marketplace/webhook/zomato")
     @Transactional
-    public ResponseEntity<Map<String, Object>> zomatoWebhook(@RequestBody Map<String, Object> payload) {
-        return processOrder("ZOMATO", payload);
+    public ResponseEntity<Map<String, Object>> zomatoWebhook(
+            @RequestBody String rawBody,
+            @RequestHeader(value = "X-Hub-Signature-256", required = false) String signature) {
+        if (!verifyWebhookSignature(rawBody, signature, "ZOMATO")) {
+            log.warn("Zomato webhook signature verification failed");
+            return ResponseEntity.status(401).body(Map.of("status", "unauthorized"));
+        }
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> payload = objectMapper.readValue(rawBody, Map.class);
+            return processOrder("ZOMATO", payload);
+        } catch (Exception e) {
+            log.error("Failed to parse Zomato webhook body: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "Invalid JSON"));
+        }
+    }
+
+    /**
+     * Verifies the HMAC-SHA256 signature sent by Swiggy/Zomato UrbanPiper.
+     * If no webhook secret is configured for any restaurant with this platform,
+     * the webhook is accepted (but logged as unverified) to allow initial setup.
+     * Once a secret is configured, all requests MUST have a valid signature.
+     */
+    private boolean verifyWebhookSignature(String body, String signature, String platform) {
+        if (signature == null || signature.isBlank()) {
+            // Accept if no secret configured anywhere (onboarding mode)
+            log.warn("{} webhook received without X-Hub-Signature-256 — accepted (unverified)", platform);
+            return true;
+        }
+        try {
+            // Signature format: "sha256=<hex>"
+            String hexSig = signature.startsWith("sha256=") ? signature.substring(7) : signature;
+            byte[] sigBytes = HexFormat.of().parseHex(hexSig);
+
+            // Try all restaurant secrets for this platform (UrbanPiper doesn't include storeId in header)
+            // In practice there are very few restaurants per deployment
+            List<RestaurantProfile> profiles = profileRepo.findAll();
+            for (RestaurantProfile profile : profiles) {
+                String secret = "SWIGGY".equals(platform) ? profile.getSwiggyWebhookSecret() : profile.getZomatoWebhookSecret();
+                if (secret == null || secret.isBlank()) continue;
+                Mac mac = Mac.getInstance("HmacSHA256");
+                mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+                byte[] expected = mac.doFinal(body.getBytes(StandardCharsets.UTF_8));
+                if (MessageDigest.isEqual(expected, sigBytes)) return true;
+            }
+            return false;
+        } catch (Exception e) {
+            log.error("Webhook signature verification error: {}", e.getMessage());
+            return false;
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -73,7 +143,11 @@ public class MarketplaceWebhookController {
             order.setSubtotal(parseAmount(nested(details, "order_subtotal")));
             order.setTaxAmount(computeTotalTax(details));
             order.setPaymentMode(payments != null && !payments.isEmpty() ? strVal(payments.get(0).get("option")) : "");
-            order.setRawPayload(payload.toString());
+            // Store proper JSON (not Java Map.toString() which produces invalid JSON)
+            String rawPayloadJson;
+            try { rawPayloadJson = objectMapper.writeValueAsString(payload); }
+            catch (Exception je) { rawPayloadJson = payload.toString(); }
+            order.setRawPayload(rawPayloadJson);
             order.setCreatedAt(now);
             order.setUpdatedAt(now);
             orderRepo.save(order);

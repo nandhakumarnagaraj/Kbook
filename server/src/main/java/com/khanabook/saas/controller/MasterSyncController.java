@@ -75,76 +75,59 @@ public class MasterSyncController {
 		// ── Helper: truncate to limit, returns a mutable list ─────────────────
 		// Type-safe wrapper avoids generic inference issues with wildcard lambdas.
 
+		List<RestaurantProfile> rawProfiles = restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice);
+		hasMore = hasMore || rawProfiles.size() > limit;
 		List<RestaurantProfileDTO> profiles = truncate(
-				SyncMapper.<RestaurantProfile, RestaurantProfileDTO>mapList(
-						restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice),
-						RestaurantProfileDTO.class),
+				SyncMapper.<RestaurantProfile, RestaurantProfileDTO>mapList(rawProfiles, RestaurantProfileDTO.class),
 				limit);
-		hasMore = hasMore || profiles.size() > limit;
 		response.setProfiles(profiles);
 
+		List<User> rawUsers = userService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice);
+		hasMore = hasMore || rawUsers.size() > limit;
 		List<UserDTO> users = truncate(
-				SyncMapper.<User, UserDTO>mapList(
-						userService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice),
-						UserDTO.class),
-				limit);
-		hasMore = hasMore || users.size() > limit;
+				SyncMapper.<User, UserDTO>mapList(rawUsers, UserDTO.class), limit);
 		response.setUsers(users);
 
+		List<Category> rawCategories = categoryService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice);
+		hasMore = hasMore || rawCategories.size() > limit;
 		List<CategoryDTO> categories = truncate(
-				SyncMapper.<Category, CategoryDTO>mapList(
-						categoryService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice),
-						CategoryDTO.class),
-				limit);
-		hasMore = hasMore || categories.size() > limit;
+				SyncMapper.<Category, CategoryDTO>mapList(rawCategories, CategoryDTO.class), limit);
 		response.setCategories(categories);
 
+		List<MenuItem> rawMenuItems = menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice);
+		hasMore = hasMore || rawMenuItems.size() > limit;
 		List<MenuItemDTO> menuItems = truncate(
-				SyncMapper.<MenuItem, MenuItemDTO>mapList(
-						menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice),
-						MenuItemDTO.class),
-				limit);
-		hasMore = hasMore || menuItems.size() > limit;
+				SyncMapper.<MenuItem, MenuItemDTO>mapList(rawMenuItems, MenuItemDTO.class), limit);
 		response.setMenuItems(menuItems);
 
+		List<ItemVariant> rawItemVariants = itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice);
+		hasMore = hasMore || rawItemVariants.size() > limit;
 		List<ItemVariantDTO> itemVariants = truncate(
-				SyncMapper.<ItemVariant, ItemVariantDTO>mapList(
-						itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice),
-						ItemVariantDTO.class),
-				limit);
-		hasMore = hasMore || itemVariants.size() > limit;
+				SyncMapper.<ItemVariant, ItemVariantDTO>mapList(rawItemVariants, ItemVariantDTO.class), limit);
 		response.setItemVariants(itemVariants);
 
+		List<StockLog> rawStockLogs = stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice);
+		hasMore = hasMore || rawStockLogs.size() > limit;
 		List<StockLogDTO> stockLogs = truncate(
-				SyncMapper.<StockLog, StockLogDTO>mapList(
-						stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice),
-						StockLogDTO.class),
-				limit);
-		hasMore = hasMore || stockLogs.size() > limit;
+				SyncMapper.<StockLog, StockLogDTO>mapList(rawStockLogs, StockLogDTO.class), limit);
 		response.setStockLogs(stockLogs);
 
+		List<Bill> rawBills = billService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice);
+		hasMore = hasMore || rawBills.size() > limit;
 		List<BillDTO> bills = truncate(
-				SyncMapper.<Bill, BillDTO>mapList(
-						billService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice),
-						BillDTO.class),
-				limit);
-		hasMore = hasMore || bills.size() > limit;
+				SyncMapper.<Bill, BillDTO>mapList(rawBills, BillDTO.class), limit);
 		response.setBills(bills);
 
+		List<BillItem> rawBillItems = billItemService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice);
+		hasMore = hasMore || rawBillItems.size() > limit;
 		List<BillItemDTO> billItems = truncate(
-				SyncMapper.<BillItem, BillItemDTO>mapList(
-						billItemService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice),
-						BillItemDTO.class),
-				limit);
-		hasMore = hasMore || billItems.size() > limit;
+				SyncMapper.<BillItem, BillItemDTO>mapList(rawBillItems, BillItemDTO.class), limit);
 		response.setBillItems(billItems);
 
+		List<BillPayment> rawBillPayments = billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice);
+		hasMore = hasMore || rawBillPayments.size() > limit;
 		List<BillPaymentDTO> billPayments = truncate(
-				SyncMapper.<BillPayment, BillPaymentDTO>mapList(
-						billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice),
-						BillPaymentDTO.class),
-				limit);
-		hasMore = hasMore || billPayments.size() > limit;
+				SyncMapper.<BillPayment, BillPaymentDTO>mapList(rawBillPayments, BillPaymentDTO.class), limit);
 		response.setBillPayments(billPayments);
 
 		response.setHasMore(hasMore);

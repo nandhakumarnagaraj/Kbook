@@ -98,6 +98,37 @@ public class GlobalExceptionHandler {
 		));
 	}
 
+	@ExceptionHandler(EntityNotFoundException.class)
+	public ResponseEntity<Map<String, Object>> handleEntityNotFound(
+			EntityNotFoundException e, HttpServletRequest request) {
+		log.warn("Entity not found [{}]: {}", request.getRequestURI(), e.getMessage());
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+				"error", e.getMessage(),
+				"path", request.getRequestURI()
+		));
+	}
+
+	@ExceptionHandler(EasebuzzApiException.class)
+	public ResponseEntity<Map<String, Object>> handleEasebuzzApiException(
+			EasebuzzApiException e, HttpServletRequest request) {
+		log.error("Easebuzz API error [{}] endpoint={}: {}",
+				request.getRequestURI(), e.getApiEndpoint(), e.getMessage());
+		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of(
+				"error", "Payment gateway error: " + e.getMessage(),
+				"path", request.getRequestURI()
+		));
+	}
+
+	@ExceptionHandler(BusinessRuleException.class)
+	public ResponseEntity<Map<String, Object>> handleBusinessRule(
+			BusinessRuleException e, HttpServletRequest request) {
+		log.warn("Business rule violation [{}]: {}", request.getRequestURI(), e.getMessage());
+		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(Map.of(
+				"error", e.getMessage(),
+				"path", request.getRequestURI()
+		));
+	}
+
 	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
 	public ResponseEntity<Map<String, Object>> handleMethodNotSupported(
 			HttpRequestMethodNotSupportedException e, HttpServletRequest request) {

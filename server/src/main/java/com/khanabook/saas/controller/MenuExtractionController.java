@@ -134,8 +134,23 @@ public class MenuExtractionController {
     })
     @GetMapping("/jobs/{jobId}")
     public ResponseEntity<?> getJobStatus(@Parameter(description = "Menu extraction job ID") @PathVariable Long jobId) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        if (restaurantId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
         return jobRepository.findById(jobId)
+                .filter(job -> restaurantId.equals(job.getRestaurantId()))   // Tenant isolation
                 .map(job -> ResponseEntity.ok((Object) job))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "List menu extraction jobs", description = "Returns all extraction jobs for the current restaurant, newest first.")
+    @GetMapping("/jobs")
+    public ResponseEntity<?> listJobs() {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        if (restaurantId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+        return ResponseEntity.ok(jobRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurantId));
     }
 }

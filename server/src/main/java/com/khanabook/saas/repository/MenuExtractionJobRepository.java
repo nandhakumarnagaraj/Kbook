@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface MenuExtractionJobRepository extends JpaRepository<MenuExtractionJob, Long> {
     List<MenuExtractionJob> findByRestaurantId(Long restaurantId);
+    List<MenuExtractionJob> findByRestaurantIdOrderByCreatedAtDesc(Long restaurantId);
+
 }

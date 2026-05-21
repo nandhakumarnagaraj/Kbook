@@ -58,7 +58,17 @@ public class PostSplitService {
             return;
         }
 
-        String merchantRequestId = "KB_" + System.currentTimeMillis() + "_" + billId;
+        // Guard: skip if split already succeeded for this bill (idempotency)
+        if (bill.getSettledAt() != null && bill.getCommissionAmount() != null) {
+            log.info("Post-split: Bill {} already settled, skipping duplicate attempt", billId);
+            return;
+        }
+
+        // Generate merchantRequestId ONCE — reused across all retry attempts.
+        // Easebuzz deduplicates on their side when same merchantRequestId is replayed.
+        // Using billId + easebuzzId prefix ensures uniqueness per transaction.
+        String idSuffix = easebuzzId.length() >= 8 ? easebuzzId.substring(0, 8) : easebuzzId;
+        String merchantRequestId = "KB" + billId + "_" + idSuffix;
 
         BigDecimal commissionRate = sm.getCommissionRate() != null ? sm.getCommissionRate() : BigDecimal.ZERO;
         BigDecimal totalAmount = bill.getTotalAmount();

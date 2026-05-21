@@ -140,7 +140,11 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         Map<String, Object> result = paymentService.createOrder(bill.getId(), testRestaurantId);
         assertEquals("success", result.get("status"));
         assertNotNull(result.get("txnid"));
-        assertTrue(result.get("txnid").toString().startsWith("T"), "txnid should start with 'T' prefix from EasebuzzPaymentService");
+        String txnid = result.get("txnid").toString();
+        assertNotNull(txnid, "txnid must not be null");
+        assertTrue(txnid.startsWith("KB"), "txnid should start with 'KB' prefix, got: " + txnid);
+        assertEquals(20, txnid.length(), "txnid must be exactly 20 chars (Easebuzz limit), got: " + txnid);
+
 
         // Verify bill updated
         Bill updatedBill = billRepository.findById(bill.getId()).orElseThrow();

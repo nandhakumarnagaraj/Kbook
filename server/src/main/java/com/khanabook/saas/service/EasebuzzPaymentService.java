@@ -3,6 +3,7 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.EasebuzzWebhookEvent;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
+import com.khanabook.saas.exception.EntityNotFoundException;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.EasebuzzWebhookEventRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,7 @@ public class EasebuzzPaymentService {
     @Transactional
     public Map<String, Object> createOrder(Long billId, Long restaurantId) {
         Bill bill = billRepo.findById(billId)
-                .orElseThrow(() -> new RuntimeException("Bill not found: " + billId));
+                .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
 
         // Build payment data from real bill
         String amount = String.format("%.2f", bill.getTotalAmount());
@@ -43,7 +44,13 @@ public class EasebuzzPaymentService {
         // firstname will be further sanitized by EasebuzzApiClient (removes spaces)
         String phone = bill.getCustomerWhatsapp() != null ? bill.getCustomerWhatsapp() : "";
 
-        String txnid = "T" + (System.currentTimeMillis() % 10000000);
+        // Unique txnid: always exactly 20 chars (Easebuzz max limit = 20).
+        // Format: KB{5-digit billId tail}{5-digit restaurantId tail}{8-hex UUID}
+        // Guaranteed globally unique per bill due to UUID suffix.
+        String txnSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        String billTail = String.format("%05d", billId % 100000);
+        String restTail = String.format("%05d", restaurantId % 100000);
+        String txnid = "KB" + billTail + restTail + txnSuffix;
 
         Map<String, String> data = new HashMap<>();
         data.put("txnid", txnid);
@@ -111,7 +118,7 @@ public class EasebuzzPaymentService {
     @Transactional
     public Map<String, Object> verifyPayment(Long billId) {
         Bill bill = billRepo.findById(billId)
-                .orElseThrow(() -> new RuntimeException("Bill not found: " + billId));
+                .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
         if (bill.getGatewayTxnId() == null) {
             return Map.of("status", "failure", "error", "No gateway transaction found");
         }
@@ -163,7 +170,7 @@ public class EasebuzzPaymentService {
     @SuppressWarnings("unchecked")
     public Map<String, Object> initiateRefund(Long billId, BigDecimal amount, String reason) {
         Bill bill = billRepo.findById(billId)
-                .orElseThrow(() -> new RuntimeException("Bill not found: " + billId));
+                .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
         if (bill.getGatewayTxnId() == null) {
             return Map.of("status", "failure", "error", "No gateway transaction found for refund");
         }
@@ -195,7 +202,7 @@ public class EasebuzzPaymentService {
     @Transactional
     public Map<String, Object> getRefundStatus(Long billId) {
         Bill bill = billRepo.findById(billId)
-                .orElseThrow(() -> new RuntimeException("Bill not found: " + billId));
+                .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
         if (bill.getGatewayTxnId() == null) {
             return Map.of("status", "failure", "error", "No gateway transaction found");
         }
@@ -225,7 +232,7 @@ public class EasebuzzPaymentService {
     @Transactional
     public Map<String, Object> cancelTransaction(Long billId) {
         Bill bill = billRepo.findById(billId)
-                .orElseThrow(() -> new RuntimeException("Bill not found: " + billId));
+                .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
         if (bill.getGatewayTxnId() == null) {
             return Map.of("status", "failure", "error", "No gateway transaction found");
         }

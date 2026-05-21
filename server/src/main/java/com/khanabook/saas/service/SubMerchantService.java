@@ -3,6 +3,8 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.entity.EasebuzzSubMerchantWebhookEvent;
 import com.khanabook.saas.entity.EasebuzzPayout;
+import com.khanabook.saas.exception.BusinessRuleException;
+import com.khanabook.saas.exception.EntityNotFoundException;
 import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.repository.EasebuzzSubMerchantWebhookEventRepository;
 import com.khanabook.saas.repository.EasebuzzPayoutRepository;
@@ -32,18 +34,21 @@ public class SubMerchantService {
 
     public EasebuzzSubMerchant getById(Long id) {
         return subMerchantRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sub-merchant not found: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("EasebuzzSubMerchant", id));
     }
 
     public EasebuzzSubMerchant getByRestaurantId(Long restaurantId) {
         return subMerchantRepo.findByRestaurantId(restaurantId)
-                .orElseThrow(() -> new RuntimeException("Sub-merchant not found for restaurant: " + restaurantId));
+                .orElseThrow(() -> new EntityNotFoundException("EasebuzzSubMerchant", "restaurantId=" + restaurantId));
     }
 
     @Transactional
     public EasebuzzSubMerchant create(Map<String, Object> data, Long restaurantId) {
         if (subMerchantRepo.existsByRestaurantId(restaurantId)) {
-            throw new RuntimeException("Sub-merchant already exists for restaurant: " + restaurantId);
+            throw new BusinessRuleException(
+                "Sub-merchant already exists for restaurant: " + restaurantId,
+                "DUPLICATE_SUB_MERCHANT"
+            );
         }
         long now = System.currentTimeMillis();
         EasebuzzSubMerchant sm = new EasebuzzSubMerchant();
@@ -173,7 +178,10 @@ public class SubMerchantService {
     public EasebuzzSubMerchant updateOnEasebuzz(Long id) {
         EasebuzzSubMerchant sm = getById(id);
         if (sm.getSubMerchantId() == null) {
-            throw new RuntimeException("Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.");
+            throw new BusinessRuleException(
+                "Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.",
+                "MISSING_EASEBUZZ_ID"
+            );
         }
         Map<String, Object> result = easebuzzApi.updateSubMerchant(
             sm.getSubMerchantId(), sm.getBusinessName(), sm.getContactEmail(), sm.getContactPhone(),
@@ -196,7 +204,10 @@ public class SubMerchantService {
     public Map<String, Object> createSplitLabel(Long id) {
         EasebuzzSubMerchant sm = getById(id);
         if (sm.getSubMerchantId() == null) {
-            throw new RuntimeException("Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.");
+            throw new BusinessRuleException(
+                "Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.",
+                "MISSING_EASEBUZZ_ID"
+            );
         }
         String label = "sm_" + sm.getSubMerchantId();
         Map<String, Object> result = easebuzzApi.createSplitLabel(
@@ -230,7 +241,10 @@ public class SubMerchantService {
     public Map<String, Object> generateKycAccessKey(Long id) {
         EasebuzzSubMerchant sm = getById(id);
         if (sm.getSubMerchantId() == null) {
-            throw new RuntimeException("Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.");
+            throw new BusinessRuleException(
+                "Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.",
+                "MISSING_EASEBUZZ_ID"
+            );
         }
         Map<String, Object> result = easebuzzApi.generateKycAccessKey(
             sm.getSubMerchantId(),
