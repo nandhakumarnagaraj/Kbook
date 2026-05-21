@@ -1,7 +1,24 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, HostListener, inject, signal, DestroyRef } from '@angular/core';
+import { Component, OnInit, inject, signal, DestroyRef, ViewChild, AfterViewInit, computed } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatChipsModule } from '@angular/material/chips';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { EasebuzzSubMerchant, EasebuzzSubMerchantRequest } from '../../core/models/api.models';
 import { formatDate, formatAge } from '../../shared/formatters';
@@ -10,837 +27,805 @@ const STATUS_OPTIONS = ['ALL', 'DRAFT', 'PENDING_KYC', 'KYC_SUBMITTED', 'ACTIVE'
 const KYC_OPTIONS = ['ALL', 'PENDING', 'SUBMITTED', 'ACTIVATED', 'FAILED'] as const;
 const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED', 'PUBLIC_LIMITED', 'OTHERS'] as const;
 
-function getSubMerchantStatusChip(status: string): string {
-  switch (status) {
-    case 'ACTIVE': return 'chip success';
-    case 'PENDING_KYC': return 'chip warn';
-    case 'KYC_SUBMITTED': return 'chip info';
-    case 'SUSPENDED': case 'REJECTED': case 'FAILED': return 'chip danger';
-    default: return 'chip';
-  }
-}
-
-function getKycChipClass(kycStatus: string | null): string {
-  if (!kycStatus) return 'chip';
-  switch (kycStatus) {
-    case 'ACTIVATED': return 'chip success';
-    case 'SUBMITTED': return 'chip info';
-    case 'FAILED': return 'chip danger';
-    default: return 'chip warn';
-  }
-}
-
-function formatStatus(status: string): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 @Component({
   selector: 'app-sub-merchants-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    ReactiveFormsModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatDividerModule,
+    MatDialogModule,
+    MatSnackBarModule,
+    MatTooltipModule,
+    MatProgressSpinnerModule,
+    MatMenuModule,
+    MatProgressBarModule,
+    MatChipsModule
+  ],
   template: `
-    <div class="page-shell">
-      <section class="panel page-hero">
-        <h2>Sub-Merchants</h2>
-        <p class="muted">Manage Easebuzz settlement sub-merchant onboarding, KYC, and lifecycle.</p>
-        <div class="hero-meta">
-          <span class="chip">Admin Access</span>
-          <span class="chip success">Easebuzz Settlement</span>
-          <span class="chip warn">KYC Workflow</span>
+    <div class="page-container">
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">Sub-Merchants</h1>
+          <p class="page-subtitle">Manage Easebuzz settlement sub-merchant onboarding and KYC lifecycle.</p>
         </div>
-      </section>
+        <div class="header-actions">
+          <button mat-button [matMenuTriggerFor]="moreMenu">
+            <mat-icon>more_vert</mat-icon>
+            Advanced Actions
+          </button>
+          <mat-menu #moreMenu="matMenu">
+            <button mat-menu-item (click)="openSettlementRetrieve()">
+              <mat-icon>calendar_today</mat-icon>
+              <span>Retrieve Settlements</span>
+            </button>
+            <button mat-menu-item (click)="openOnDemandSettlement()">
+              <mat-icon>bolt</mat-icon>
+              <span>On-Demand Settle</span>
+            </button>
+            <button mat-menu-item (click)="openPayout()">
+              <mat-icon>payments</mat-icon>
+              <span>Initiate Payout</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="exportCsv()">
+              <mat-icon>download</mat-icon>
+              <span>Export CSV</span>
+            </button>
+          </mat-menu>
 
-      <div class="dash-mini">
-        <div class="mini-card total"><strong>{{ stats.total }}</strong><span>Total</span></div>
-        <div class="mini-card active"><strong>{{ stats.active }}</strong><span>Active</span></div>
-        <div class="mini-card pending"><strong>{{ stats.pending }}</strong><span>Pending KYC</span></div>
-        <div class="mini-card rejected"><strong>{{ stats.rejected }}</strong><span>Rejected</span></div>
+          <a mat-button href="https://dashboard.easebuzz.in" target="_blank" rel="noopener noreferrer">
+            <mat-icon>open_in_new</mat-icon>
+            Easebuzz
+          </a>
+          <button mat-flat-button color="primary" (click)="openCreate()">
+            <mat-icon>add</mat-icon>
+            New Sub-Merchant
+          </button>
+        </div>
       </div>
 
-      <div class="toolbar">
-        <div>
-          <h3>Sub-Merchant Directory</h3>
-          <p class="muted">{{ subMerchants().length }} sub-merchants onboarded</p>
-        </div>
-        <div class="toolbar-actions">
-          <button class="ghost-btn" (click)="exportCsv()">📄 CSV</button>
-          <a href="https://dashboard.easebuzz.in" target="_blank" rel="noopener noreferrer" class="ghost-btn easebuzz-link">🔗 Easebuzz</a>
-          <button class="ghost-btn" (click)="loadSubMerchants()">Refresh</button>
-          <button class="ghost-btn" (click)="openSettlementRetrieve()">📅 Settlements</button>
-          <button class="ghost-btn" (click)="openOnDemandSettlement()">⚡ Settle</button>
-          <button class="ghost-btn" (click)="openPayout()">💸 Payout</button>
-          <button class="primary-btn" (click)="openCreate()">+ New Sub-Merchant</button>
-        </div>
+      <div class="stats-grid">
+        <mat-card class="stat-card total">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="stat-icon">people</mat-icon>
+            <mat-card-title>{{ stats().total }}</mat-card-title>
+            <mat-card-subtitle>Total Sub-Merchants</mat-card-subtitle>
+          </mat-card-header>
+        </mat-card>
+
+        <mat-card class="stat-card active">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="stat-icon">check_circle</mat-icon>
+            <mat-card-title>{{ stats().active }}</mat-card-title>
+            <mat-card-subtitle>Active</mat-card-subtitle>
+          </mat-card-header>
+        </mat-card>
+
+        <mat-card class="stat-card pending">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="stat-icon">pending_actions</mat-icon>
+            <mat-card-title>{{ stats().pending }}</mat-card-title>
+            <mat-card-subtitle>Pending KYC</mat-card-subtitle>
+          </mat-card-header>
+        </mat-card>
+
+        <mat-card class="stat-card rejected">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="stat-icon">error</mat-icon>
+            <mat-card-title>{{ stats().rejected }}</mat-card-title>
+            <mat-card-subtitle>Rejected / Failed</mat-card-subtitle>
+          </mat-card-header>
+        </mat-card>
       </div>
 
-      <section class="panel filter-panel" *ngIf="loaded() && subMerchants().length">
-        <div class="filter-grid">
-          <div class="filter-group">
-            <label for="search">Search</label>
-            <input id="search" class="field-control" type="text" [(ngModel)]="searchTerm" (ngModelChange)="resetPage()" placeholder="Search by business name, email, or contact" />
-          </div>
-          <div class="filter-group">
-            <label for="status-filter">Status</label>
-            <select id="status-filter" class="field-select" [(ngModel)]="statusFilter" (ngModelChange)="resetPage()">
-              <option *ngFor="let s of statusOptions" [value]="s">{{ s === 'ALL' ? 'All statuses' : formatStatusValue(s) }}</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="kyc-filter">KYC</label>
-            <select id="kyc-filter" class="field-select" [(ngModel)]="kycFilter" (ngModelChange)="resetPage()">
-              <option *ngFor="let k of kycOptions" [value]="k">{{ k === 'ALL' ? 'All KYC' : k }}</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="page-size">Rows</label>
-            <select id="page-size" class="field-select" [(ngModel)]="pageSize" (ngModelChange)="resetPage()">
-              <option [ngValue]="5">5</option>
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="20">20</option>
-            </select>
-          </div>
-        </div>
-        <div class="filter-summary">
-          <p class="muted">{{ filteredSubMerchants.length }} of {{ subMerchants().length }} sub-merchants</p>
-          <button class="ghost-btn" (click)="clearFilters()">Clear filters</button>
-        </div>
-      </section>
+      <mat-card class="filter-card">
+        <mat-card-content class="filter-row">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search Sub-Merchants</mat-label>
+            <mat-icon matPrefix>search</mat-icon>
+            <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, email, phone..." #input>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Status</mat-label>
+            <mat-select [(ngModel)]="statusFilter" (selectionChange)="applyFilters()">
+              <mat-option *ngFor="let s of statusOptions" [value]="s">
+                {{ s === 'ALL' ? 'All Statuses' : formatStatusValue(s) }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
 
-      <ng-template #loading>
-        <div class="panel loading">{{ loaded() ? 'No sub-merchants match the current filters.' : (loadError() || 'Loading sub-merchants...') }}</div>
-      </ng-template>
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>KYC</mat-label>
+            <mat-select [(ngModel)]="kycFilter" (selectionChange)="applyFilters()">
+              <mat-option *ngFor="let k of kycOptions" [value]="k">
+                {{ k === 'ALL' ? 'All KYC' : k }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
 
-      <div class="panel table-wrap" *ngIf="loaded() && pagedSubMerchants.length; else loading">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Business Name</th>
-              <th>Status</th>
-              <th>KYC Status</th>
-              <th>KYC Age</th>
-              <th>Contact</th>
-              <th>Commission</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>              <tr *ngFor="let sm of pagedSubMerchants">
-              <td>{{ sm.id }}</td>
-              <td>
+          <div class="spacer"></div>
+          
+          <button mat-icon-button (click)="loadSubMerchants()" matTooltip="Refresh Data">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </mat-card-content>
+      </mat-card>
+
+      <div class="content-layout">
+        <div class="table-container mat-elevation-z2">
+          <div class="loading-shade" *ngIf="!loaded()">
+            <mat-spinner diameter="40" *ngIf="!loadError()"></mat-spinner>
+            <div class="error-msg" *ngIf="loadError()">{{ loadError() }}</div>
+          </div>
+
+          <table mat-table [dataSource]="dataSource" matSort>
+            <ng-container matColumnDef="business">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Business </th>
+              <td mat-cell *matCellDef="let sm"> 
                 <div class="stacked-meta">
-                  <strong>{{ sm.businessName }}</strong>
-                  <span class="muted">#{{ sm.restaurantId }}</span>
+                  <span class="main-text">{{ sm.businessName }}</span>
+                  <span class="sub-text">#{{ sm.restaurantId }}</span>
                 </div>
               </td>
-              <td><span [class]="getStatusChip(sm.status)">{{ formatStatusValue(sm.status) }}</span></td>
-              <td><span [class]="getKycChip(sm.kycStatus)">{{ sm.kycStatus || '-' }}</span></td>
-              <td>{{ formatKycAge(sm) }}</td>
-              <td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Status </th>
+              <td mat-cell *matCellDef="let sm">
+                <span class="status-chip" [class]="getStatusChipClass(sm.status)">
+                  {{ formatStatusValue(sm.status) }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="kyc">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> KYC </th>
+              <td mat-cell *matCellDef="let sm">
+                <span class="status-chip" [class]="getKycChipClass(sm.kycStatus)">
+                  {{ sm.kycStatus || 'PENDING' }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="kycAge">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> KYC Age </th>
+              <td mat-cell *matCellDef="let sm"> {{ formatKycAge(sm) }} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="contact">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Contact </th>
+              <td mat-cell *matCellDef="let sm">
                 <div class="stacked-meta">
                   <span>{{ sm.contactEmail || '-' }}</span>
-                  <span class="muted">{{ sm.contactPhone || '' }}</span>
+                  <span class="sub-text">{{ sm.contactPhone || '' }}</span>
                 </div>
               </td>
-              <td>{{ sm.commissionRate != null ? sm.commissionRate + '%' : '-' }}</td>
-              <td>{{ formatDateValue(sm.createdAt) }}</td>
-              <td>
-                <div class="action-cell">
-                  <button class="ghost-btn" (click)="viewDetail(sm)" title="View">👁️</button>
-                  <button class="ghost-btn" (click)="openEdit(sm)" title="Edit">✏️</button>
+            </ng-container>
+
+            <ng-container matColumnDef="commission">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Com. </th>
+              <td mat-cell *matCellDef="let sm"> {{ sm.commissionRate != null ? sm.commissionRate + '%' : '-' }} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef> Actions </th>
+              <td mat-cell *matCellDef="let sm">
+                <button mat-icon-button [matMenuTriggerFor]="actionMenu" (click)="$event.stopPropagation()">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #actionMenu="matMenu">
+                  <button mat-menu-item (click)="viewDetail(sm)">
+                    <mat-icon>visibility</mat-icon>
+                    <span>View Details</span>
+                  </button>
+                  <button mat-menu-item (click)="openEdit(sm)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Edit</span>
+                  </button>
+                  <mat-divider></mat-divider>
+                  
                   <ng-container *ngIf="sm.status === 'DRAFT'">
-                    <button class="ghost-btn" (click)="submitToEasebuzz(sm)" title="Submit to Easebuzz API">
-                      <span class="chip chip-sm info">🚀 Submit</span>
+                    <button mat-menu-item (click)="submitToEasebuzz(sm)">
+                      <mat-icon color="primary">rocket_launch</mat-icon>
+                      <span>Submit to Easebuzz</span>
                     </button>
-                    <button class="ghost-btn" (click)="assignSubMerchantId(sm)" title="Manually assign Easebuzz ID">
-                      <span class="chip chip-sm warn">Assign ID</span>
+                    <button mat-menu-item (click)="assignSubMerchantId(sm)">
+                      <mat-icon>fingerprint</mat-icon>
+                      <span>Assign Easebuzz ID</span>
                     </button>
                   </ng-container>
+
                   <ng-container *ngIf="sm.status === 'PENDING_KYC' || sm.status === 'KYC_SUBMITTED'">
-                    <button class="ghost-btn" (click)="generateKyc(sm)" title="Generate KYC portal URL">
-                      <span class="chip chip-sm info">🔑 KYC</span>
+                    <button mat-menu-item (click)="generateKyc(sm)">
+                      <mat-icon color="primary">vpn_key</mat-icon>
+                      <span>Generate KYC URL</span>
                     </button>
-                    <button class="ghost-btn" (click)="openVerifyOtp(sm)" title="Verify OTP">
-                      <span class="chip chip-sm warn">🔢 OTP</span>
+                    <button mat-menu-item (click)="openVerifyOtp(sm)">
+                      <mat-icon>sms</mat-icon>
+                      <span>Verify OTP</span>
                     </button>
-                    <button class="ghost-btn" (click)="updateOnEasebuzz(sm)" title="Sync changes to Easebuzz">
-                      <span class="chip chip-sm">🔄 Sync</span>
+                    <button mat-menu-item (click)="updateOnEasebuzz(sm)">
+                      <mat-icon>sync</mat-icon>
+                      <span>Sync to Easebuzz</span>
                     </button>
                   </ng-container>
+
                   <ng-container *ngIf="sm.status === 'ACTIVE'">
-                    <button class="ghost-btn" (click)="createSplitLabel(sm)" title="Create settlement split label" *ngIf="!sm.splitLabel">
-                      <span class="chip chip-sm info">🏷️ Split</span>
+                     <button mat-menu-item (click)="createSplitLabel(sm)" *ngIf="!sm.splitLabel">
+                      <mat-icon>label</mat-icon>
+                      <span>Create Split Label</span>
                     </button>
-                    <button class="ghost-btn" (click)="updateOnEasebuzz(sm)" title="Sync changes to Easebuzz">
-                      <span class="chip chip-sm">🔄 Sync</span>
+                    <button mat-menu-item (click)="updateOnEasebuzz(sm)">
+                      <mat-icon>sync</mat-icon>
+                      <span>Sync to Easebuzz</span>
                     </button>
                   </ng-container>
-                  <select class="status-select" (change)="quickStatusAction(sm, $event)" *ngIf="sm.status !== 'DRAFT'">
-                    <option value="" disabled selected>Status...</option>
-                    <option value="ACTIVE" *ngIf="sm.status === 'PENDING_KYC' || sm.status === 'KYC_SUBMITTED'">✅ Mark Active</option>
-                    <option value="SUSPENDED" *ngIf="sm.status === 'ACTIVE'">⏸️ Suspend</option>
-                    <option value="REJECTED" *ngIf="sm.status === 'PENDING_KYC' || sm.status === 'KYC_SUBMITTED'">❌ Reject</option>
-                    <option value="PENDING_KYC" *ngIf="sm.status === 'ACTIVE' || sm.status === 'SUSPENDED'">🔄 Reset to Pending KYC</option>
-                  </select>
-                </div>
+
+                  <mat-divider *ngIf="sm.status !== 'DRAFT'"></mat-divider>
+                  <button mat-menu-item *ngIf="sm.status === 'PENDING_KYC' || sm.status === 'KYC_SUBMITTED'" (click)="quickStatusAction(sm, 'ACTIVE')">
+                     <mat-icon color="primary">check_circle</mat-icon>
+                     <span>Mark Active</span>
+                  </button>
+                  <button mat-menu-item *ngIf="sm.status === 'ACTIVE'" (click)="quickStatusAction(sm, 'SUSPENDED')">
+                     <mat-icon color="warn">pause_circle</mat-icon>
+                     <span>Suspend</span>
+                  </button>
+                  <button mat-menu-item *ngIf="sm.status === 'PENDING_KYC' || sm.status === 'KYC_SUBMITTED'" (click)="quickStatusAction(sm, 'REJECTED')">
+                     <mat-icon color="warn">cancel</mat-icon>
+                     <span>Reject</span>
+                  </button>
+                </mat-menu>
               </td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="pagination-bar" *ngIf="filteredSubMerchants.length > pageSize">
-          <p class="muted">Page {{ currentPage }} of {{ totalPages }}</p>
-          <div class="pagination-controls">
-            <button class="ghost-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
-            <button class="ghost-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
-          </div>
-        </div>
-      </div>
+            </ng-container>
 
-      <div class="panel soft-section" *ngIf="selectedSubMerchant() as sm">
-        <div class="section-head">
-          <div>
-            <h3>{{ sm.businessName }}</h3>
-            <p class="muted">Sub-Merchant ID: {{ sm.id }} | Restaurant: #{{ sm.restaurantId }}</p>
-          </div>
-          <div class="detail-close-row">
-            <button class="ghost-btn" (click)="closeDetail()">Close</button>
-          </div>
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+                class="clickable-row"
+                [class.selected-row]="selectedSubMerchant()?.id === row.id"
+                (click)="viewDetail(row)"></tr>
+          </table>
+
+          <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" aria-label="Select page of sub-merchants"></mat-paginator>
         </div>
 
-        <div class="status-banner" *ngIf="sm.status === 'ACTIVE'" style="background: linear-gradient(135deg, rgba(29,123,95,0.1), rgba(29,123,95,0.05)); border: 1px solid rgba(29,123,95,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
-          <span style="font-size: 1.5rem;">✅</span>
-          <div>
-            <strong style="color: var(--success);">Fully Active</strong>
-            <p class="muted" style="margin: 0;">This sub-merchant is ready to receive settlements. KYC approved on {{ formatDateValue(sm.kycActivatedAt) }}.</p>
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <article class="panel stat-card">
-            <h3>Status</h3>
-            <strong><span [class]="getStatusChip(sm.status)">{{ formatStatusValue(sm.status) }}</span></strong>
-          </article>
-          <article class="panel stat-card">
-            <h3>Easebuzz ID</h3>
-            <strong class="stat-value">{{ sm.subMerchantId || '-' }}</strong>
-          </article>
-          <article class="panel stat-card">
-            <h3>Commission</h3>
-            <strong>{{ sm.commissionRate != null ? sm.commissionRate + '%' : '-' }}</strong>
-          </article>
-          <article class="panel stat-card">
-            <h3>Business Type</h3>
-            <strong>{{ sm.businessType || '-' }}</strong>
-          </article>
-          <article class="panel stat-card">
-            <h3>Contact</h3>
-            <strong class="stat-value">{{ sm.contactEmail || '-' }}<br *ngIf="sm.contactEmail" /><span class="muted stat-sub">{{ sm.contactPhone || '' }}</span></strong>
-          </article>
-          <article class="panel stat-card">
-            <h3>PAN / GST</h3>
-            <strong class="stat-value-sm">{{ sm.pan || '-' }}<br /><span class="muted stat-sub">{{ sm.gst || '' }}</span></strong>
-          </article>
-          <article class="panel stat-card span-2">
-            <h3>Beneficiary</h3>
-            <strong class="stat-value">{{ sm.beneficiaryName || '-' }}</strong>
-            <p class="muted stat-note">
-              {{ sm.bankName ? sm.bankName : '' }}{{ sm.branchName ? ' - ' + sm.branchName : '' }}
-            </p>
-            <p class="muted stat-note">
-              {{ sm.bankAccountNo ? 'A/C: ' + sm.bankAccountNo : '' }} {{ sm.ifsc ? 'IFSC: ' + sm.ifsc : '' }}
-            </p>
-          </article>
-          <article class="panel stat-card span-2">
-            <h3>Business Address</h3>
-            <p class="address-text">{{ sm.businessAddress || '-' }}</p>
-          </article>
-        </div>
-
-        <div class="detail-section">
-          <h3>Status Timeline</h3>
-          <div class="timeline">
-            <div class="timeline-step" [class.completed]="true">
-              <div class="step-dot"></div>
-              <div class="step-info">
-                <strong>Draft Created</strong>
-                <span class="muted">{{ formatDateValue(sm.createdAt) }}</span>
+        <!-- Detail Panel -->
+        <div class="detail-panel" *ngIf="selectedSubMerchant() as sm">
+          <mat-card class="detail-card">
+            <mat-card-header>
+              <mat-icon mat-card-avatar color="primary">person</mat-icon>
+              <mat-card-title>{{ sm.businessName }}</mat-card-title>
+              <mat-card-subtitle>Sub-Merchant ID: {{ sm.id }} | Restaurant: #{{ sm.restaurantId }}</mat-card-subtitle>
+              <span class="spacer"></span>
+              <button mat-icon-button (click)="closeDetail()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-card-header>
+            
+            <mat-divider></mat-divider>
+            
+            <mat-card-content>
+              <div class="status-banner" *ngIf="sm.status === 'ACTIVE'">
+                <mat-icon>check_circle</mat-icon>
+                <div class="banner-text">
+                  <strong>Fully Active</strong>
+                  <span>Ready for settlements. KYC approved on {{ formatDateValue(sm.kycActivatedAt) }}.</span>
+                </div>
               </div>
-            </div>
-            <div class="timeline-step" [class.completed]="sm.status !== 'DRAFT'">
-              <div class="step-dot"></div>
-              <div class="step-info">
-                <strong>Registered with Easebuzz</strong>
-                <span class="muted">{{ sm.subMerchantId ? 'Sub-Merchant ID: ' + sm.subMerchantId : 'Pending' }}</span>
-              </div>
-            </div>
-            <div class="timeline-step" [class.completed]="!!sm.kycPortalUrl">
-              <div class="step-dot"></div>
-              <div class="step-info">
-                <strong>KYC Generated</strong>
-                <span class="muted">{{ sm.kycPortalUrl ? 'Portal URL available' : 'Pending' }}</span>
-              </div>
-            </div>
-            <div class="timeline-step" [class.completed]="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">
-              <div class="step-dot"></div>
-              <div class="step-info">
-                <strong>KYC Submitted</strong>
-                <span class="muted">{{ sm.kycSubmittedAt ? formatDateValue(sm.kycSubmittedAt) : 'Pending' }}</span>
-              </div>
-            </div>
-            <div class="timeline-step" [class.completed]="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">
-              <div class="step-dot"></div>
-              <div class="step-info">
-                <strong>Activated</strong>
-                <span class="muted">{{ sm.kycActivatedAt ? formatDateValue(sm.kycActivatedAt) : 'Pending' }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div class="detail-section" *ngIf="sm.kycPortalUrl || sm.subMerchantId">
-          <h3>KYC Portal</h3>
-          <div class="kyc-section">
-            <div class="kyc-info" *ngIf="sm.kycPortalUrl">
-              <p><strong>Status:</strong> <span [class]="getKycChip(sm.kycStatus)">{{ sm.kycStatus || 'PENDING' }}</span></p>
-              <p><strong>Portal URL:</strong> <a [href]="sm.kycPortalUrl" target="_blank" rel="noopener noreferrer">{{ sm.kycPortalUrl }}</a></p>
-              <p *ngIf="sm.kycSubmittedAt"><strong>Submitted:</strong> {{ formatDateValue(sm.kycSubmittedAt) }}</p>
-              <p *ngIf="sm.kycActivatedAt"><strong>Activated:</strong> {{ formatDateValue(sm.kycActivatedAt) }}</p>
-            </div>
-          </div>
-        </div>
+              <div class="detail-grid">
+                 <div class="detail-item">
+                    <span class="label">Status</span>
+                    <span class="status-chip" [class]="getStatusChipClass(sm.status)">{{ formatStatusValue(sm.status) }}</span>
+                 </div>
+                 <div class="detail-item">
+                    <span class="label">Easebuzz ID</span>
+                    <span class="value">{{ sm.subMerchantId || '-' }}</span>
+                 </div>
+                 <div class="detail-item">
+                    <span class="label">Commission</span>
+                    <span class="value">{{ sm.commissionRate != null ? sm.commissionRate + '%' : '-' }}</span>
+                 </div>
+                 <div class="detail-item">
+                    <span class="label">Business Type</span>
+                    <span class="value">{{ sm.businessType || '-' }}</span>
+                 </div>
+                 <div class="detail-item">
+                    <span class="label">Contact Email</span>
+                    <span class="value">{{ sm.contactEmail || '-' }}</span>
+                 </div>
+                 <div class="detail-item">
+                    <span class="label">Contact Phone</span>
+                    <span class="value">{{ sm.contactPhone || '-' }}</span>
+                 </div>
+                 <div class="detail-item">
+                    <span class="label">PAN</span>
+                    <span class="value">{{ sm.pan || '-' }}</span>
+                 </div>
+                 <div class="detail-item">
+                    <span class="label">GST</span>
+                    <span class="value">{{ sm.gst || '-' }}</span>
+                 </div>
+                 <div class="detail-item span-2">
+                    <span class="label">Beneficiary</span>
+                    <span class="value">{{ sm.beneficiaryName || '-' }}</span>
+                    <div class="sub-text">
+                      {{ sm.bankName }}{{ sm.branchName ? ' - ' + sm.branchName : '' }}<br/>
+                      {{ sm.bankAccountNo ? 'A/C: ' + sm.bankAccountNo : '' }} {{ sm.ifsc ? ' | IFSC: ' + sm.ifsc : '' }}
+                    </div>
+                 </div>
+                 <div class="detail-item span-2">
+                    <span class="label">Address</span>
+                    <span class="value address">{{ sm.businessAddress || '-' }}</span>
+                 </div>
+              </div>
 
-        <div class="detail-section" *ngIf="sm.splitLabel">
-          <h3>Split Label</h3>
-          <div class="kyc-section">
-            <div class="kyc-info">
-              <p><strong>Label:</strong> <code>{{ sm.splitLabel }}</code></p>
-              <p class="muted">Settlement split label for routing sub-merchant payouts.</p>
-              <button class="ghost-btn" style="margin-top:0.5rem;" (click)="retrieveSplitStatus(sm)">🔍 Retrieve Split Status</button>
-            </div>
-          </div>
-        </div>
+              <mat-divider></mat-divider>
 
-        <div class="detail-section">
-          <h3>Transaction Summary</h3>
-          <div class="panel" *ngIf="sm.status === 'ACTIVE'; else notActiveSummary">
-            <div class="stats-grid" style="margin: 0;">
-              <article class="panel stat-card">
-                <h3>Settlement Status</h3>
-                <strong class="stat-value" style="color: var(--success);">✅ Active</strong>
-                <p class="muted">Ready for split settlements</p>
-              </article>
-              <article class="panel stat-card">
-                <h3>Split Label</h3>
-                <strong class="stat-value">{{ sm.splitLabel || 'Not configured' }}</strong>
-                <p class="muted">For commission routing</p>
-              </article>
-              <article class="panel stat-card">
-                <h3>Commission Rate</h3>
-                <strong class="stat-value">{{ sm.commissionRate }}%</strong>
-                <p class="muted">Per transaction</p>
-              </article>
-            </div>
-          </div>
-          <ng-template #notActiveSummary>
-            <div class="panel loading no-margin">Transaction history will be available once the sub-merchant is active.</div>
-          </ng-template>
+              <div class="section-title">KYC & Settlement</div>
+              <div class="kyc-row">
+                 <div class="kyc-step" [class.done]="sm.status !== 'DRAFT'">
+                    <mat-icon>{{ sm.status !== 'DRAFT' ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                    <span>Registered</span>
+                 </div>
+                 <div class="kyc-step" [class.done]="!!sm.kycPortalUrl">
+                    <mat-icon>{{ sm.kycPortalUrl ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                    <span>KYC Link</span>
+                 </div>
+                 <div class="kyc-step" [class.done]="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">
+                    <mat-icon>{{ (sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True') ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                    <span>Submitted</span>
+                 </div>
+                 <div class="kyc-step" [class.done]="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">
+                    <mat-icon>{{ (sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True') ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                    <span>Activated</span>
+                 </div>
+              </div>
+
+              <div class="info-box" *ngIf="sm.kycPortalUrl">
+                 <strong>KYC Portal URL:</strong>
+                 <a [href]="sm.kycPortalUrl" target="_blank" class="link">{{ sm.kycPortalUrl }}</a>
+              </div>
+
+               <div class="info-box" *ngIf="sm.splitLabel">
+                 <strong>Split Label:</strong> <code>{{ sm.splitLabel }}</code>
+                 <button mat-button color="primary" (click)="retrieveSplitStatus(sm)">Check Split Status</button>
+              </div>
+            </mat-card-content>
+            
+            <mat-card-actions align="end">
+              <button mat-button (click)="closeDetail()">Dismiss</button>
+              <button mat-raised-button color="primary" (click)="openEdit(sm)">Edit Sub-Merchant</button>
+            </mat-card-actions>
+          </mat-card>
         </div>
       </div>
     </div>
 
-    <div class="modal-overlay" *ngIf="showFormModal()" (click)="closeForm()">
-      <div class="modal-dialog" (click)="$event.stopPropagation()">
-        <h3>{{ editingSubMerchant() ? 'Edit' : 'Create' }} Sub-Merchant</h3>
-        <form [formGroup]="subMerchantForm" (ngSubmit)="submitForm()">
+    <!-- Create/Edit Dialog Template -->
+    <ng-template #formDialog>
+      <h2 mat-dialog-title>{{ editingSubMerchant() ? 'Edit' : 'Create' }} Sub-Merchant</h2>
+      <mat-dialog-content>
+        <form [formGroup]="subMerchantForm" class="dialog-form">
           <div class="form-grid">
-            <label class="field-label">
-              Business Name *
-              <input class="field-control" formControlName="businessName" placeholder="Enter business name" />
-              <span class="field-error" *ngIf="subMerchantForm.get('businessName')?.invalid && subMerchantForm.get('businessName')?.touched">Required</span>
-            </label>
-            <label class="field-label">
-              Restaurant ID *
-              <input class="field-control" formControlName="restaurantId" type="number" placeholder="e.g. 4853539561918673034" />
-              <span class="field-error" *ngIf="subMerchantForm.get('restaurantId')?.invalid && subMerchantForm.get('restaurantId')?.touched">Required (must be a valid restaurant ID)</span>
-            </label>
-            <label class="field-label">
-              Business Type *
-              <select class="field-select" formControlName="businessType">
-                <option value="" disabled>Select type</option>
-                <option *ngFor="let bt of businessTypes" [value]="bt">{{ bt }}</option>
-              </select>
-              <span class="field-error" *ngIf="subMerchantForm.get('businessType')?.invalid && subMerchantForm.get('businessType')?.touched">Required</span>
-            </label>
-            <label class="field-label">
-              PAN *
-              <input class="field-control uppercase" formControlName="pan" placeholder="AAAAA1234A" maxlength="10" />
-              <span class="field-error" *ngIf="subMerchantForm.get('pan')?.invalid && subMerchantForm.get('pan')?.touched">Invalid PAN format (e.g. AAAAA1234A)</span>
-            </label>
-            <label class="field-label">
-              GST
-              <input class="field-control" formControlName="gst" placeholder="Optional" maxlength="15" />
-            </label>
-            <label class="field-label">
-              Bank Account No *
-              <input class="field-control" formControlName="bankAccountNo" placeholder="Enter account number" />
-              <span class="field-error" *ngIf="subMerchantForm.get('bankAccountNo')?.invalid && subMerchantForm.get('bankAccountNo')?.touched">Required</span>
-            </label>
-            <label class="field-label">
-              IFSC Code *
-              <input class="field-control uppercase" formControlName="ifsc" placeholder="ABCD0123456" maxlength="11" />
-              <span class="field-error" *ngIf="subMerchantForm.get('ifsc')?.invalid && subMerchantForm.get('ifsc')?.touched">Invalid IFSC format (e.g. ABCD0123456)</span>
-            </label>
-            <label class="field-label">
-              Beneficiary Name *
-              <input class="field-control" formControlName="beneficiaryName" placeholder="Enter beneficiary name" />
-              <span class="field-error" *ngIf="subMerchantForm.get('beneficiaryName')?.invalid && subMerchantForm.get('beneficiaryName')?.touched">Required</span>
-            </label>
-            <label class="field-label">
-              Contact Email *
-              <input class="field-control" formControlName="contactEmail" type="email" placeholder="email@example.com" />
-              <span class="field-error" *ngIf="subMerchantForm.get('contactEmail')?.invalid && subMerchantForm.get('contactEmail')?.touched">Invalid email</span>
-            </label>
-            <label class="field-label">
-              Contact Phone *
-              <input class="field-control" formControlName="contactPhone" placeholder="9876543210" maxlength="10" />
-              <span class="field-error" *ngIf="subMerchantForm.get('contactPhone')?.invalid && subMerchantForm.get('contactPhone')?.touched">Invalid phone (10 digits starting with 6-9)</span>
-            </label>
-            <label class="field-label">
-              Bank Name *
-              <input class="field-control" formControlName="bankName" placeholder="e.g. HDFC" />
-              <span class="field-error" *ngIf="subMerchantForm.get('bankName')?.invalid && subMerchantForm.get('bankName')?.touched">Required</span>
-            </label>
-            <label class="field-label">
-              Branch Name
-              <input class="field-control" formControlName="branchName" placeholder="e.g. Dhanori Branch" />
-            </label>
-            <label class="field-label">
-              Commission Rate (%) *
-              <input class="field-control" formControlName="commissionRate" type="number" step="0.01" min="0" max="100" placeholder="e.g. 2.5" />
-              <span class="field-error" *ngIf="subMerchantForm.get('commissionRate')?.invalid && subMerchantForm.get('commissionRate')?.touched">Required (0-100)</span>
-            </label>
-            <label class="field-label full-width">
-              Business Address
-              <textarea class="field-control" formControlName="businessAddress" rows="3" placeholder="Enter business address"></textarea>
-            </label>
-          </div>
+            <mat-form-field appearance="outline">
+              <mat-label>Restaurant ID</mat-label>
+              <input matInput formControlName="restaurantId" type="number">
+              <mat-error>Required</mat-error>
+            </mat-form-field>
 
-          <div class="save-error" *ngIf="formError()">{{ formError() }}</div>
+            <mat-form-field appearance="outline">
+              <mat-label>Business Name</mat-label>
+              <input matInput formControlName="businessName">
+              <mat-error>Required</mat-error>
+            </mat-form-field>
 
-          <div class="modal-footer">
-            <button type="button" class="ghost-btn" (click)="closeForm()">Cancel</button>
-            <button type="submit" class="primary-btn" [disabled]="formSaving()">
-              <span *ngIf="formSaving()" class="btn-spinner"></span>
-              {{ editingSubMerchant() ? 'Update' : 'Create' }}
-            </button>
+            <mat-form-field appearance="outline">
+              <mat-label>Business Type</mat-label>
+              <mat-select formControlName="businessType">
+                <mat-option *ngFor="let bt of businessTypes" [value]="bt">{{ bt }}</mat-option>
+              </mat-select>
+              <mat-error>Required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>PAN</mat-label>
+              <input matInput formControlName="pan" placeholder="AAAAA1234A" class="uppercase">
+              <mat-error>Invalid PAN format</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>GST (Optional)</mat-label>
+              <input matInput formControlName="gst">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Commission Rate (%)</mat-label>
+              <input matInput formControlName="commissionRate" type="number" step="0.01">
+              <mat-error>0-100 required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Bank Name</mat-label>
+              <input matInput formControlName="bankName">
+              <mat-error>Required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Branch Name</mat-label>
+              <input matInput formControlName="branchName">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Bank Account No</mat-label>
+              <input matInput formControlName="bankAccountNo">
+              <mat-error>Required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>IFSC Code</mat-label>
+              <input matInput formControlName="ifsc" placeholder="ABCD0123456" class="uppercase">
+              <mat-error>Invalid IFSC format</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Beneficiary Name</mat-label>
+              <input matInput formControlName="beneficiaryName">
+              <mat-error>Required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Contact Email</mat-label>
+              <input matInput formControlName="contactEmail" type="email">
+              <mat-error>Valid email required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Contact Phone</mat-label>
+              <input matInput formControlName="contactPhone" placeholder="9876543210">
+              <mat-error>10 digits starting with 6-9</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="span-2">
+              <mat-label>Business Address</mat-label>
+              <textarea matInput formControlName="businessAddress" rows="3"></textarea>
+            </mat-form-field>
           </div>
         </form>
-      </div>
-    </div>
-
-    <div class="toast-success" *ngIf="actionFeedback() as fb">
-      {{ fb.message }}
-    </div>
-
-    <div class="dialog-overlay" *ngIf="confirmDialog() as dialog" (click)="dismissConfirm()">
-      <div class="dialog-panel" (click)="$event.stopPropagation()">
-        <h3>{{ dialog.title }}</h3>
-        <p>{{ dialog.message }}</p>
-        <div class="dialog-actions">
-          <button class="ghost-btn" (click)="dismissConfirm()">Cancel</button>
-          <button class="primary-btn" (click)="dialog.onConfirm(); dismissConfirm()">Confirm</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="dialog-overlay" *ngIf="promptDialog() as dialog" (click)="dismissPrompt()">
-      <div class="dialog-panel" (click)="$event.stopPropagation()">
-        <h3>{{ dialog.title }}</h3>
-        <p>{{ dialog.message }}</p>
-        <input
-          class="field-control"
-          [(ngModel)]="promptValue"
-          [placeholder]="dialog.placeholder"
-          (keydown.enter)="dialog.onConfirm(promptValue.trim()); dismissPrompt()"
-        />
-        <div class="dialog-actions">
-          <button class="ghost-btn" (click)="dismissPrompt()">Cancel</button>
-          <button class="primary-btn" (click)="dialog.onConfirm(promptValue.trim()); dismissPrompt()" [disabled]="!promptValue.trim()">Submit</button>
-        </div>
-      </div>
-    </div>
+      </mat-dialog-content>
+      <mat-dialog-actions align="end">
+        <button mat-button mat-dialog-close>Cancel</button>
+        <button mat-flat-button color="primary" (click)="submitForm()" [disabled]="formSaving()">
+          {{ formSaving() ? 'Saving...' : (editingSubMerchant() ? 'Update' : 'Create') }}
+        </button>
+      </mat-dialog-actions>
+    </ng-template>
   `,
   styles: [`
-    .dash-mini { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:.75rem; }
-    .mini-card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.75rem 1rem; text-align:center; box-shadow:var(--shadow-soft); }
-    .mini-card strong { display:block; font-size:1.5rem; font-weight:800; }
-    .mini-card span { font-size:.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
-    .mini-card.total strong { color:var(--brand); }
-    .mini-card.active strong { color:var(--accent); }
-    .mini-card.pending strong { color: var(--warn); }
-    .mini-card.rejected strong { color:var(--danger); }
-    .status-select { padding:.3rem .5rem; border-radius:8px; border:1px solid var(--line); background:var(--bg); font-size:.78rem; cursor:pointer; min-width:110px; }
-    .action-cell {
-      display: flex;
-      gap: 0.35rem;
-      align-items: center;
-      flex-wrap: wrap;
-    }
+    .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+    .page-title { margin: 0; font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -0.5px; }
+    .page-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+    .header-actions { display: flex; gap: 12px; align-items: center; }
 
-    .action-cell .ghost-btn {
-      padding: 0.4rem 0.5rem;
-      font-size: 0.8rem;
-    }
-
-    .toolbar-actions {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-
-    .easebuzz-link {
-      text-decoration: none;
-    }
-
-    .chip-sm {
-      padding: 0.2rem 0.5rem;
-      font-size: 0.7rem;
-    }
-
-    .detail-close-row {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .stat-value {
-      font-size: 1rem;
-    }
-
-    .stat-value-sm {
-      font-size: 0.95rem;
-    }
-
-    .stat-sub {
-      font-size: 0.85rem;
-    }
-
-    .stat-note {
-      margin: 0.25rem 0 0;
-    }
-
-    .span-2 {
-      grid-column: span 2;
-    }
-
-    .address-text {
-      margin: 0;
-      white-space: pre-wrap;
-    }
-
-    .no-margin {
-      margin: 0;
-    }
-
-    .uppercase {
-      text-transform: uppercase;
-    }
-
-    .full-width {
-      grid-column: 1 / -1;
-    }
-
-    .chip.info {
-      background: rgba(52, 152, 219, 0.14);
-      color: var(--info);
-    }
-
-    .detail-section {
-      margin-top: 1.5rem;
-    }
-
-    .detail-section h3 {
-      margin-bottom: 0.75rem;
-      font-size: 1.05rem;
-    }
-
-    .timeline {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      padding: 0.5rem 0;
-    }
-
-    .timeline-step {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.85rem;
-      padding: 0.75rem 0;
+    /* Premium Stats Grid & Cards */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 32px; }
+    .stat-card { 
       position: relative;
-      opacity: 0.5;
+      border: 1px solid var(--line) !important; 
+      border-radius: var(--radius-xl) !important;
+      background: var(--panel) !important;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-sm) !important; 
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+      overflow: hidden;
     }
-
-    .timeline-step.completed {
-      opacity: 1;
+    .stat-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 28px -8px var(--glow-color) !important;
+      border-color: var(--border-hover) !important;
     }
+    .stat-card mat-card-header { padding: 16px; }
+    .stat-icon { 
+      width: 48px; 
+      height: 48px; 
+      line-height: 48px; 
+      text-align: center; 
+      border-radius: var(--radius-lg); 
+      font-size: 24px; 
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .stat-card:hover .stat-icon { transform: scale(1.1) rotate(8deg); }
+    .stat-card mat-card-title { font-size: 1.8rem !important; font-weight: 800 !important; color: var(--ink) !important; margin: 0 !important; }
+    .stat-card mat-card-subtitle { font-size: 0.85rem !important; font-weight: 600 !important; color: var(--muted) !important; margin-top: 4px !important; }
 
-    .timeline-step:not(:last-child)::before {
+    .stat-card.total { 
+      --glow-color: rgba(2, 132, 199, 0.15); 
+      --border-hover: rgba(2, 132, 199, 0.3);
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.03) 0%, var(--panel) 100%) !important;
+    }
+    .stat-card.total .stat-icon { background: rgba(2, 132, 199, 0.1); color: #0284c7; }
+    
+    .stat-card.active { 
+      --glow-color: rgba(22, 163, 74, 0.15); 
+      --border-hover: rgba(22, 163, 74, 0.3);
+      background: linear-gradient(135deg, rgba(22, 163, 74, 0.03) 0%, var(--panel) 100%) !important;
+    }
+    .stat-card.active .stat-icon { background: rgba(22, 163, 74, 0.1); color: #16a34a; }
+
+    .stat-card.pending { 
+      --glow-color: rgba(217, 119, 6, 0.15); 
+      --border-hover: rgba(217, 119, 6, 0.3);
+      background: linear-gradient(135deg, rgba(217, 119, 6, 0.03) 0%, var(--panel) 100%) !important;
+    }
+    .stat-card.pending .stat-icon { background: rgba(217, 119, 6, 0.1); color: #d97706; }
+
+    .stat-card.rejected { 
+      --glow-color: rgba(239, 68, 68, 0.15); 
+      --border-hover: rgba(239, 68, 68, 0.3);
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, var(--panel) 100%) !important;
+    }
+    .stat-card.rejected .stat-icon { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+
+    /* Filters Layout */
+    .filter-card { 
+      margin-bottom: 32px; 
+      border: 1px solid var(--line) !important; 
+      border-radius: var(--radius-xl) !important;
+      background: var(--panel) !important;
+      box-shadow: var(--shadow-sm) !important;
+      overflow: hidden;
+    }
+    .filter-row { display: flex; align-items: center; gap: 16px; padding: 16px 20px !important; }
+    .search-field { flex: 1.5; max-width: 450px; }
+    .filter-field { width: 180px; }
+    .spacer { flex: 1; }
+    ::ng-deep .filter-card .mat-mdc-form-field-subscript-wrapper { display: none !important; }
+    ::ng-deep .filter-card .mat-mdc-text-field-wrapper { 
+      height: 44px !important; 
+      padding: 0 16px !important; 
+      border-radius: var(--radius-lg) !important; 
+      background: var(--bg) !important;
+    }
+    ::ng-deep .filter-card .mat-mdc-form-field-flex { align-items: center !important; }
+    ::ng-deep .filter-card .mat-mdc-form-field-infix { padding-top: 10px !important; padding-bottom: 10px !important; }
+
+    /* Split Content Layout */
+    .content-layout { display: flex; gap: 28px; align-items: flex-start; margin-top: 8px; }
+    
+    .table-container { 
+      flex: 1; 
+      min-width: 0;
+      position: relative; 
+      background: var(--panel) !important; 
+      border-radius: var(--radius-xl) !important; 
+      border: 1px solid var(--line) !important; 
+      box-shadow: var(--shadow-md) !important;
+      overflow: hidden; 
+    }
+    .loading-shade { 
+      position: absolute; 
+      top: 0; 
+      left: 0; 
+      bottom: 56px; 
+      right: 0; 
+      background: rgba(255, 255, 255, 0.7); 
+      z-index: 1; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+    }
+    .dark-theme .loading-shade { background: rgba(15, 23, 42, 0.7); }
+    table { width: 100%; background: transparent !important; }
+    
+    th.mat-mdc-header-cell {
+      background: var(--bg) !important;
+      color: var(--ink-secondary) !important;
+      font-size: 0.75rem !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 1px !important;
+      padding: 16px !important;
+      border-bottom: 1px solid var(--line) !important;
+    }
+    td.mat-mdc-cell {
+      padding: 16px !important;
+      border-bottom: 1px solid var(--line) !important;
+      font-size: 0.9rem !important;
+      color: var(--ink) !important;
+    }
+    .clickable-row { cursor: pointer; transition: all 0.2s ease; }
+    .clickable-row:hover { background: var(--panel-hover) !important; }
+    .selected-row { background: var(--brand-soft) !important; border-left: 4px solid var(--brand) !important; }
+    .selected-row td { font-weight: 500 !important; }
+
+    .stacked-meta { display: flex; flex-direction: column; gap: 3px; }
+    .main-text { font-weight: 700; color: var(--ink); }
+    .sub-text { font-size: 0.75rem; color: var(--muted); }
+
+    /* Chips */
+    .status-chip { 
+      display: inline-block;
+      padding: 5px 12px; 
+      border-radius: 999px; 
+      font-size: 0.7rem; 
+      font-weight: 800; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .status-chip.success { background: rgba(22, 163, 74, 0.08); color: #16a34a; border: 1px solid rgba(22, 163, 74, 0.2); }
+    .status-chip.warn { background: rgba(217, 119, 6, 0.08); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.2); }
+    .status-chip.info { background: rgba(2, 132, 199, 0.08); color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.2); }
+    .status-chip.danger { background: rgba(239, 68, 68, 0.08); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
+
+    /* Detail Drawer Panel */
+    .detail-panel { width: 460px; flex-shrink: 0; animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes slideIn {
+      from { transform: translateX(30px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .detail-card {
+      border: 1px solid var(--line) !important;
+      border-radius: var(--radius-xl) !important;
+      background: var(--panel) !important;
+      box-shadow: var(--shadow-lg) !important;
+      overflow: hidden;
+    }
+    .detail-card mat-card-header { padding: 20px 24px !important; align-items: center; }
+    .detail-card mat-card-title { font-size: 1.2rem !important; font-weight: 800 !important; color: var(--ink) !important; margin: 0 !important; }
+    .detail-card mat-card-subtitle { font-size: 0.8rem !important; color: var(--muted) !important; margin-top: 4px !important; }
+    .detail-card mat-card-content { padding: 0 24px 24px !important; }
+    .detail-card mat-card-actions { padding: 16px 24px 20px !important; border-top: 1px solid var(--line); }
+
+    .status-banner { 
+      display: flex; 
+      align-items: center; 
+      gap: 16px; 
+      padding: 16px; 
+      background: rgba(34, 197, 94, 0.06); 
+      border: 1px solid rgba(34, 197, 94, 0.2); 
+      border-radius: var(--radius-lg); 
+      margin: 16px 0; 
+    }
+    .status-banner mat-icon { color: #16a34a; font-size: 32px; width: 32px; height: 32px; }
+    .banner-text { display: flex; flex-direction: column; gap: 2px; }
+    .banner-text strong { font-weight: 700; color: #16a34a; font-size: 0.95rem; }
+    .banner-text span { font-size: 0.8rem; color: var(--ink-secondary); }
+
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 0; }
+    .detail-item { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 4px; 
+      padding: 12px 14px; 
+      border-radius: var(--radius-md); 
+      background: var(--bg); 
+      border: 1px solid var(--line); 
+      transition: all 0.2s ease;
+    }
+    .detail-item:hover { border-color: var(--brand-soft); background: var(--panel-hover); }
+    .detail-item .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 700; }
+    .detail-item .value { font-size: 0.9rem; font-weight: 700; color: var(--ink); word-break: break-all; }
+    .detail-item .sub-text { font-size: 0.75rem; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+    .span-2 { grid-column: span 2; }
+
+    /* KYC Visual Pipeline */
+    .section-title { font-weight: 800; margin: 28px 0 16px; font-size: 0.8rem; text-transform: uppercase; color: var(--ink-secondary); letter-spacing: 1.2px; }
+    .kyc-row { display: flex; justify-content: space-between; padding: 16px 0; position: relative; }
+    .kyc-row::before {
       content: '';
       position: absolute;
-      left: 8px;
-      top: 32px;
-      bottom: -4px;
-      width: 2px;
+      top: 28px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
       background: var(--line);
+      z-index: 1;
     }
-
-    .timeline-step.completed:not(:last-child)::before {
-      background: var(--accent);
-    }
-
-    .step-dot {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--line);
-      border: 3px solid var(--panel);
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .timeline-step.completed .step-dot {
-      background: var(--accent);
-    }
-
-    .step-info {
-      display: grid;
-      gap: 0.15rem;
-    }
-
-    .kyc-section {
-      padding: 1rem;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: rgba(255,255,255,0.6);
-    }
-
-    .kyc-info {
-      display: grid;
-      gap: 0.5rem;
-    }
-
-    .kyc-info p {
-      margin: 0;
-    }
-
-    .kyc-info a {
-      color: var(--brand);
-      word-break: break-all;
-    }
-
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.35);
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 2rem;
-      z-index: 1000;
-      overflow-y: auto;
-    }
-
-    .modal-dialog {
+    .kyc-step { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 8px; 
+      color: var(--muted); 
+      font-size: 0.7rem; 
+      font-weight: 700; 
+      position: relative;
+      z-index: 2;
       background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      padding: 1.5rem;
-      max-width: 720px;
-      width: 100%;
-      margin-top: 2rem;
-      animation: fadeSlideIn 0.2s ease;
+      padding: 0 12px;
     }
-
-    .modal-dialog h3 {
-      margin: 0 0 1.25rem;
-      font-size: 1.2rem;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-
-    .field-label {
-      display: grid;
-      gap: 0.35rem;
-      font-weight: 600;
-      font-size: 0.88rem;
-    }
-
-    .field-error {
-      color: var(--danger);
-      font-size: 0.78rem;
-      font-weight: 400;
-    }
-
-    .save-error {
-      color: var(--danger);
-      background: var(--danger-soft);
-      border-radius: 8px;
-      padding: 0.7rem 1rem;
-      font-size: 0.88rem;
-      margin-top: 1rem;
-    }
-
-    .modal-footer {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.75rem;
-      padding: 1.25rem 0 0;
-    }
-
-    .btn-spinner {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 2px solid rgba(255,255,255,0.4);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-
-    @keyframes fadeSlideIn {
-      from { opacity: 0; transform: translateY(-12px); }
-      to { opacity: 1; transform: none; }
-    }
-
-    .toast-success {
-      position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
-      color: #2d7a3a;
-      background: #eafaf0;
-      border: 1px solid #a8dbb8;
-      border-radius: 10px;
-      padding: 0.85rem 1.25rem;
-      font-size: 0.9rem;
-      box-shadow: var(--shadow);
-      z-index: 1100;
-      animation: fadeIn 0.3s ease;
-    }
-
-    .dialog-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.35);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-      z-index: 1050;
-      animation: fadeIn 0.15s ease;
-    }
-
-    .dialog-panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      box-shadow: var(--shadow-lg);
-      padding: 1.5rem;
-      max-width: 440px;
-      width: 100%;
-      animation: fadeSlideIn 0.2s ease;
-    }
-
-    .dialog-panel h3 {
-      margin: 0 0 0.5rem;
-      font-size: 1.1rem;
-    }
-
-    .dialog-panel p {
-      margin: 0 0 1rem;
+    .kyc-step mat-icon { 
+      font-size: 24px; 
+      width: 24px;
+      height: 24px;
       color: var(--muted);
-      font-size: 0.9rem;
-      line-height: 1.5;
+      background: var(--panel);
+      border-radius: 50%;
     }
+    .kyc-step.done { color: #16a34a; }
+    .kyc-step.done mat-icon { color: #16a34a; }
 
-    .dialog-panel .field-control {
-      width: 100%;
-      margin-bottom: 1rem;
-    }
-
-    .dialog-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.75rem;
-    }
-
-
-
-    .primary-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .toolbar {
-      display: flex;
+    .info-box { 
+      background: var(--bg); 
+      border: 1px solid var(--line);
+      padding: 14px 16px; 
+      border-radius: var(--radius-lg); 
+      margin-top: 16px; 
+      display: flex; 
+      align-items: center; 
       justify-content: space-between;
-      align-items: flex-start;
-      gap: 0.75rem;
-      flex-wrap: wrap;
+      gap: 12px; 
+      font-size: 0.85rem; 
     }
-
-    .hero-meta {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
+    .info-box strong { color: var(--ink); font-weight: 700; }
+    .info-box code {
+      background: var(--panel);
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      font-family: monospace;
+      font-size: 0.8rem;
     }
+    .link { color: var(--brand); text-decoration: none; font-weight: 600; word-break: break-all; }
+    .link:hover { text-decoration: underline; }
 
-    @media (max-width: 720px) {
-      .toolbar { flex-direction: column; }
+    /* Dialog styling */
+    .dialog-form { padding-top: 16px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .uppercase { text-transform: uppercase; }
+    ::ng-deep .dialog-form .mat-mdc-text-field-wrapper { border-radius: var(--radius-md) !important; }
+
+    @media (max-width: 1100px) {
+      .content-layout { flex-direction: column; }
+      .detail-panel { width: 100%; }
+    }
+    @media (max-width: 768px) {
+      .filter-row { flex-direction: column; align-items: stretch; }
+      .search-field { max-width: none; }
       .form-grid { grid-template-columns: 1fr; }
-      .modal-dialog { padding: 1rem; max-width: 100%; }
-      .stats-grid { grid-template-columns: 1fr !important; }
-      .stats-grid .stat-card[style*="span 2"] { grid-column: 1 !important; }
-    }
-
-    @media (max-width: 520px) {
-      .action-cell { flex-direction: column; align-items: stretch; }
-      .action-cell .ghost-btn { width: 100%; text-align: center; }
-      .status-select { min-width: unset; width: 100%; }
-      .dash-mini { grid-template-columns: repeat(2, 1fr); }
     }
   `]
 })
-export class SubMerchantsPageComponent implements OnInit {
+export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
   private readonly api = inject(AdminApiService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
 
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild('formDialog') formDialogTemplate!: any;
+
+  readonly dataSource = new MatTableDataSource<EasebuzzSubMerchant>([]);
+  readonly displayedColumns = ['business', 'status', 'kyc', 'kycAge', 'contact', 'commission', 'actions'];
+  
   readonly subMerchants = signal<EasebuzzSubMerchant[]>([]);
   readonly loaded = signal(false);
   readonly loadError = signal('');
   readonly selectedSubMerchant = signal<EasebuzzSubMerchant | null>(null);
-  readonly showFormModal = signal(false);
   readonly editingSubMerchant = signal<EasebuzzSubMerchant | null>(null);
   readonly formSaving = signal(false);
-  readonly formError = signal('');
-  readonly actionFeedback = signal<{ message: string } | null>(null);
-  readonly confirmDialog = signal<{ title: string; message: string; onConfirm: () => void } | null>(null);
-  readonly promptDialog = signal<{ title: string; message: string; placeholder: string; onConfirm: (value: string) => void } | null>(null);
-  promptValue = '';
 
-
-  searchTerm = '';
-  statusFilter: string = 'ALL';
-  kycFilter: string = 'ALL';
-  pageSize = 10;
-  currentPage = 1;
+  statusFilter = 'ALL';
+  kycFilter = 'ALL';
 
   readonly statusOptions = STATUS_OPTIONS;
   readonly kycOptions = KYC_OPTIONS;
@@ -863,35 +848,49 @@ export class SubMerchantsPageComponent implements OnInit {
     commissionRate: [0, [Validators.required, Validators.min(0), Validators.max(100)]]
   });
 
+  stats = computed(() => {
+    const data = this.subMerchants();
+    return {
+      total: data.length,
+      active: data.filter(s => s.status === 'ACTIVE').length,
+      pending: data.filter(s => s.status === 'PENDING_KYC' || s.status === 'KYC_SUBMITTED').length,
+      rejected: data.filter(s => s.status === 'REJECTED' || s.status === 'FAILED').length
+    };
+  });
+
   ngOnInit(): void {
     this.loadSubMerchants();
   }
 
-
-
-  get filteredSubMerchants(): EasebuzzSubMerchant[] {
-    const search = this.searchTerm.trim().toLowerCase();
-    return this.subMerchants().filter((sm) => {
-      const matchesSearch = !search || [
-        sm.businessName,
-        sm.contactEmail ?? '',
-        sm.contactPhone ?? '',
-        String(sm.id),
-        String(sm.restaurantId)
-      ].some((v) => v.toLowerCase().includes(search));
-      const matchesStatus = this.statusFilter === 'ALL' || sm.status === this.statusFilter;
-      const matchesKyc = this.kycFilter === 'ALL' || (sm.kycStatus ?? 'PENDING') === this.kycFilter;
+  ngAfterViewInit() {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+    this.dataSource.filterPredicate = (data, filter) => {
+      const searchStr = filter.toLowerCase();
+      const matchesSearch = !searchStr || [
+        data.businessName,
+        data.contactEmail ?? '',
+        data.contactPhone ?? '',
+        String(data.id),
+        String(data.restaurantId)
+      ].some(v => v.toLowerCase().includes(searchStr));
+      
+      const matchesStatus = this.statusFilter === 'ALL' || data.status === this.statusFilter;
+      const matchesKyc = this.kycFilter === 'ALL' || (data.kycStatus ?? 'PENDING') === this.kycFilter;
+      
       return matchesSearch && matchesStatus && matchesKyc;
-    });
+    };
   }
 
-  get pagedSubMerchants(): EasebuzzSubMerchant[] {
-    const start = (this.currentPage - 1) * this.pageSize;
-    return this.filteredSubMerchants.slice(start, start + this.pageSize);
+  applyFilter(event: Event) {
+    const filterValue = (event.target as HTMLInputElement).value;
+    this.dataSource.filter = filterValue.trim().toLowerCase();
   }
 
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredSubMerchants.length / this.pageSize));
+  applyFilters() {
+    const currentFilter = this.dataSource.filter;
+    this.dataSource.filter = '';
+    this.dataSource.filter = currentFilter;
   }
 
   loadSubMerchants(): void {
@@ -900,53 +899,26 @@ export class SubMerchantsPageComponent implements OnInit {
     this.api.getSubMerchants().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.subMerchants.set(data);
+        this.dataSource.data = data;
         this.loaded.set(true);
-        this.currentPage = 1;
       },
       error: () => {
         this.subMerchants.set([]);
+        this.dataSource.data = [];
         this.loadError.set('Unable to load sub-merchants.');
         this.loaded.set(true);
       }
     });
   }
 
-  resetPage(): void {
-    this.currentPage = 1;
-  }
-
-  clearFilters(): void {
-    this.searchTerm = '';
-    this.statusFilter = 'ALL';
-    this.kycFilter = 'ALL';
-    this.pageSize = 10;
-    this.currentPage = 1;
-  }
-
-  goToPage(page: number): void {
-    this.currentPage = Math.min(Math.max(1, page), this.totalPages);
-  }
-
   openCreate(): void {
     this.editingSubMerchant.set(null);
     this.subMerchantForm.reset({
-      restaurantId: 0,
-      businessName: '',
-      businessType: '',
-      pan: '',
-      gst: '',
-      bankAccountNo: '',
-      ifsc: '',
-      beneficiaryName: '',
-      bankName: '',
-      branchName: '',
-      businessAddress: '',
-      contactEmail: '',
-      contactPhone: '',
-      commissionRate: 0
+      restaurantId: 0, businessName: '', businessType: '', pan: '', gst: '',
+      bankAccountNo: '', ifsc: '', beneficiaryName: '', bankName: '', branchName: '',
+      businessAddress: '', contactEmail: '', contactPhone: '', commissionRate: 0
     });
-    this.formError.set('');
-    this.showFormModal.set(true);
+    this.dialog.open(this.formDialogTemplate, { width: '800px' });
   }
 
   openEdit(merchant: EasebuzzSubMerchant): void {
@@ -967,13 +939,7 @@ export class SubMerchantsPageComponent implements OnInit {
       contactPhone: merchant.contactPhone ?? '',
       commissionRate: merchant.commissionRate ?? 0
     });
-    this.formError.set('');
-    this.showFormModal.set(true);
-  }
-
-  closeForm(): void {
-    this.showFormModal.set(false);
-    this.editingSubMerchant.set(null);
+    this.dialog.open(this.formDialogTemplate, { width: '800px' });
   }
 
   submitForm(): void {
@@ -983,25 +949,8 @@ export class SubMerchantsPageComponent implements OnInit {
     }
 
     this.formSaving.set(true);
-    this.formError.set('');
     const raw = this.subMerchantForm.getRawValue();
-
-    const payload: EasebuzzSubMerchantRequest = {
-      restaurantId: Number(raw.restaurantId),
-      businessName: raw.businessName,
-      businessType: raw.businessType,
-      pan: raw.pan,
-      gst: raw.gst || undefined,
-      bankAccountNo: raw.bankAccountNo,
-      ifsc: raw.ifsc,
-      beneficiaryName: raw.beneficiaryName,
-      bankName: raw.bankName,
-      branchName: raw.branchName || undefined,
-      businessAddress: raw.businessAddress,
-      contactEmail: raw.contactEmail,
-      contactPhone: raw.contactPhone,
-      commissionRate: raw.commissionRate
-    };
+    const payload: EasebuzzSubMerchantRequest = { ...raw, restaurantId: Number(raw.restaurantId) };
 
     const edit = this.editingSubMerchant();
     const request = edit
@@ -1011,20 +960,19 @@ export class SubMerchantsPageComponent implements OnInit {
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.formSaving.set(false);
-        this.closeForm();
+        this.dialog.closeAll();
         this.loadSubMerchants();
-        this.showFeedback(edit ? 'Sub-merchant updated successfully.' : 'Sub-merchant created successfully.');
+        this.snackBar.open(edit ? 'Updated successfully' : 'Created successfully', 'Close', { duration: 3000 });
       },
       error: (err) => {
         this.formSaving.set(false);
-        this.formError.set(err?.error?.error ?? err?.error?.message ?? 'Operation failed. Please try again.');
+        this.snackBar.open(err?.error?.error || 'Operation failed', 'Close', { duration: 5000 });
       }
     });
   }
 
   viewDetail(merchant: EasebuzzSubMerchant): void {
     this.selectedSubMerchant.set(merchant);
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   }
 
   closeDetail(): void {
@@ -1032,240 +980,104 @@ export class SubMerchantsPageComponent implements OnInit {
   }
 
   submitToEasebuzz(merchant: EasebuzzSubMerchant): void {
-    this.showConfirm(
-      'Submit to Easebuzz',
-      `Submit "${merchant.businessName}" to Easebuzz for onboarding?`,
-      () => {
-        this.api.submitToEasebuzz(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: () => {
-            this.loadSubMerchants();
-            this.showFeedback('Sub-merchant submitted to Easebuzz successfully.');
-          },
-          error: (err) => {
-            this.showFeedback(err?.error?.error ?? 'Submission failed.', true);
-          }
-        });
-      }
-    );
+    if(!confirm(`Submit ${merchant.businessName} to Easebuzz?`)) return;
+    this.api.submitToEasebuzz(merchant.id).subscribe({
+      next: () => { this.loadSubMerchants(); this.snackBar.open('Submitted to Easebuzz', 'OK', { duration: 3000 }); },
+      error: (err) => this.snackBar.open(err?.error?.error || 'Submission failed', 'OK')
+    });
   }
 
   assignSubMerchantId(merchant: EasebuzzSubMerchant): void {
-    this.showPrompt(
-      'Assign Sub-Merchant ID',
-      `Enter Easebuzz Sub-Merchant ID for "${merchant.businessName}".\n\n(After creating this merchant manually in Easebuzz Dashboard)`,
-      'Enter Sub-Merchant ID',
-      (subMerchantId) => {
-        if (!subMerchantId) return;
-        this.api.assignSubMerchantId(merchant.id, subMerchantId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: () => {
-            this.showFeedback('Sub-merchant ID assigned successfully. Status set to PENDING_KYC.');
-            this.loadSubMerchants();
-          },
-          error: (err) => {
-            this.showFeedback(err?.error?.error ?? 'Failed to assign sub-merchant ID.', true);
-          }
-        });
-      }
-    );
+    const id = prompt('Enter Easebuzz Sub-Merchant ID:');
+    if (!id) return;
+    this.api.assignSubMerchantId(merchant.id, id).subscribe({
+      next: () => { this.loadSubMerchants(); this.snackBar.open('ID Assigned', 'OK', { duration: 3000 }); },
+      error: (err) => this.snackBar.open(err?.error?.error || 'Assignment failed', 'OK')
+    });
   }
 
   generateKyc(merchant: EasebuzzSubMerchant): void {
-    this.showConfirm(
-      'Generate KYC Access',
-      `Generate KYC access for "${merchant.businessName}"?`,
-      () => {
-        this.api.generateKyc(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: (res) => {
-            this.loadSubMerchants();
-            const url = res.kyc_url;
-            if (url) {
-              this.showFeedback(`KYC portal URL generated. Opening in new tab...`);
-              setTimeout(() => window.open(url, '_blank'), 500);
-            } else {
-              this.showFeedback('KYC access key generated successfully.');
-            }
-          },
-          error: () => {
-            this.showFeedback('KYC generation failed.', true);
-          }
-        });
-      }
-    );
+    this.api.generateKyc(merchant.id).subscribe({
+      next: (res) => {
+        this.loadSubMerchants();
+        if (res.kyc_url) window.open(res.kyc_url, '_blank');
+        this.snackBar.open('KYC Access Generated', 'OK', { duration: 3000 });
+      },
+      error: () => this.snackBar.open('KYC Generation failed', 'OK')
+    });
   }
 
   updateOnEasebuzz(merchant: EasebuzzSubMerchant): void {
-    this.showConfirm(
-      'Sync to Easebuzz',
-      `Sync "${merchant.businessName}" changes to Easebuzz?`,
-      () => {
-        this.api.updateOnEasebuzz(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: () => {
-            this.loadSubMerchants();
-            this.showFeedback('Sub-merchant synced to Easebuzz successfully.');
-          },
-          error: (err) => {
-            this.showFeedback(err?.error?.error ?? 'Sync failed.', true);
-          }
-        });
-      }
-    );
+    this.api.updateOnEasebuzz(merchant.id).subscribe({
+      next: () => { this.loadSubMerchants(); this.snackBar.open('Synced to Easebuzz', 'OK', { duration: 3000 }); },
+      error: (err) => this.snackBar.open(err?.error?.error || 'Sync failed', 'OK')
+    });
   }
 
   retrieveSplitStatus(merchant: EasebuzzSubMerchant): void {
-    this.showPrompt(
-      'Retrieve Split Status',
-      `Enter the merchant request ID to retrieve split configuration for "${merchant.businessName}".`,
-      'Merchant Request ID',
-      (merchantRequestId) => {
-        if (!merchantRequestId) return;
-        this.api.retrieveSplitStatus(merchant.id, merchantRequestId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: (res) => {
-            const config = res.split_configuration;
-            if (config && config.length) {
-              this.showFeedback(`Split: ${JSON.stringify(config)}`);
-            } else {
-              this.showFeedback('No split configuration found.');
-            }
-          },
-          error: (err) => {
-            this.showFeedback(err?.error?.error ?? 'Split retrieve failed.', true);
-          }
-        });
-      }
-    );
+    const reqId = prompt('Enter Merchant Request ID:');
+    if (!reqId) return;
+    this.api.retrieveSplitStatus(merchant.id, reqId).subscribe({
+      next: (res) => alert(`Split Status: ${JSON.stringify(res.split_configuration)}`),
+      error: (err) => this.snackBar.open(err?.error?.error || 'Retrieve failed', 'OK')
+    });
   }
 
   createSplitLabel(merchant: EasebuzzSubMerchant): void {
-    this.showConfirm(
-      'Create Split Label',
-      `Create settlement split label for "${merchant.businessName}"?`,
-      () => {
-        this.api.createSplitLabel(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: (res) => {
-            this.loadSubMerchants();
-            this.showFeedback(res.msg || 'Split label created successfully.');
-          },
-          error: (err) => {
-            this.showFeedback(err?.error?.error ?? 'Split label creation failed.', true);
-          }
-        });
-      }
-    );
+    this.api.createSplitLabel(merchant.id).subscribe({
+      next: () => { this.loadSubMerchants(); this.snackBar.open('Split Label Created', 'OK', { duration: 3000 }); },
+      error: (err) => this.snackBar.open(err?.error?.error || 'Creation failed', 'OK')
+    });
   }
 
   openVerifyOtp(merchant: EasebuzzSubMerchant): void {
-    this.showPrompt(
-      'Verify OTP',
-      `Enter OTP sent to ${merchant.contactPhone} for "${merchant.businessName}".`,
-      '6-digit OTP',
-      (otp) => {
-        if (!otp) return;
-        this.api.verifyOtp(merchant.id, otp).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: () => {
-            this.showFeedback('OTP verified successfully.');
-            this.loadSubMerchants();
-          },
-          error: (err) => {
-            this.showFeedback(err?.error?.error ?? 'OTP verification failed.', true);
-          }
-        });
-      }
-    );
+    const otp = prompt('Enter 6-digit OTP:');
+    if (!otp) return;
+    this.api.verifyOtp(merchant.id, otp).subscribe({
+      next: () => { this.loadSubMerchants(); this.snackBar.open('OTP Verified', 'OK', { duration: 3000 }); },
+      error: (err) => this.snackBar.open(err?.error?.error || 'Verification failed', 'OK')
+    });
   }
 
   openSettlementRetrieve(): void {
     const today = new Date().toISOString().split('T')[0];
-    this.showPrompt(
-      'Retrieve Settlements',
-      'Enter date (YYYY-MM-DD) to fetch settlements from Easebuzz.',
-      today,
-      (date) => {
-        if (!date) return;
-        this.api.retrieveSettlementsByDate(date).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: (res) => {
-            this.showConfirm('Settlement Data', JSON.stringify(res, null, 2), () => {});
-          },
-          error: (err) => {
-            this.showFeedback(err?.error?.error ?? 'Failed to retrieve settlements.', true);
-          }
-        });
-      }
-    );
+    const date = prompt('Enter date (YYYY-MM-DD):', today);
+    if (!date) return;
+    this.api.retrieveSettlementsByDate(date).subscribe({
+      next: (res) => alert(`Settlements: ${JSON.stringify(res, null, 2)}`),
+      error: (err) => this.snackBar.open(err?.error?.error || 'Failed to retrieve', 'OK')
+    });
   }
 
   openOnDemandSettlement(): void {
-    this.showPrompt(
-      'On-Demand Settlement',
-      'Enter amount to settle immediately to your bank account.',
-      'Amount (e.g. 1000.00)',
-      (amount) => {
-        if (!amount) return;
-        this.api.onDemandSettlement(amount).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: (res) => {
-            this.showFeedback(`Settlement initiated: ${res.msg || 'Success'}`);
-          },
-          error: (err) => {
-            this.showFeedback(err?.error?.error ?? 'Settlement initiation failed.', true);
-          }
-        });
-      }
-    );
+    const amount = prompt('Enter amount to settle:');
+    if (!amount) return;
+    this.api.onDemandSettlement(amount).subscribe({
+      next: (res) => this.snackBar.open(`Initiated: ${res.msg}`, 'OK'),
+      error: (err) => this.snackBar.open(err?.error?.error || 'Failed', 'OK')
+    });
   }
 
   openPayout(): void {
-    this.showPrompt(
-      'Direct Payout',
-      'Enter amount for manual payout.',
-      'Amount (e.g. 500.00)',
-      (amount) => {
-        if (!amount) return;
-        // Simple payout test with fixed beneficiary for now, or could show another prompt
-        const beneficiary = {
-          beneficiary_name: 'Test Beneficiary',
-          beneficiary_account_number: '1234567890',
-          beneficiary_ifsc: 'HDFC0000123'
-        };
-        this.api.initiatePayout(amount, beneficiary).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: (res) => {
-            this.showFeedback(`Payout initiated: ${res.msg || 'Success'}`);
-          },
-          error: (err) => {
-            this.showFeedback(err?.error?.error ?? 'Payout failed.', true);
-          }
-        });
-      }
-    );
-  }
-
-
-
-  get stats() {
-    const all = this.subMerchants();
-    return {
-      total: all.length,
-      active: all.filter(s => s.status === 'ACTIVE').length,
-      pending: all.filter(s => s.status === 'PENDING_KYC' || s.status === 'KYC_SUBMITTED').length,
-      rejected: all.filter(s => s.status === 'REJECTED' || s.status === 'FAILED').length
+    const amount = prompt('Enter amount for payout:');
+    if (!amount) return;
+    const beneficiary = {
+      beneficiary_name: 'Manual Payout',
+      beneficiary_account_number: '1234567890',
+      beneficiary_ifsc: 'HDFC0000123'
     };
+    this.api.initiatePayout(amount, beneficiary).subscribe({
+      next: (res) => this.snackBar.open(`Initiated: ${res.msg}`, 'OK'),
+      error: (err) => this.snackBar.open(err?.error?.error || 'Failed', 'OK')
+    });
   }
 
-  quickStatusAction(merchant: EasebuzzSubMerchant, event: Event): void {
-    const newStatus = (event.target as HTMLSelectElement).value;
-    if (!newStatus) return;
-    this.showConfirm(
-      'Change Status',
-      `Change "${merchant.businessName}" status to ${newStatus}?`,
-      () => {
-        this.api.updateSubMerchantStatus(merchant.id, newStatus).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-          next: () => {
-            this.showFeedback(`Status updated to ${newStatus}`);
-            this.loadSubMerchants();
-          },
-          error: () => this.showFeedback('Status update failed.', true)
-        });
-      }
-    );
-    (event.target as HTMLSelectElement).value = '';
+  quickStatusAction(merchant: EasebuzzSubMerchant, newStatus: string): void {
+    if(!confirm(`Change status to ${newStatus}?`)) return;
+    this.api.updateSubMerchantStatus(merchant.id, newStatus).subscribe({
+      next: () => { this.loadSubMerchants(); this.snackBar.open(`Status updated to ${newStatus}`, 'OK', { duration: 3000 }); },
+      error: () => this.snackBar.open('Status update failed', 'OK')
+    });
   }
 
   exportCsv(): void {
@@ -1281,49 +1093,33 @@ export class SubMerchantsPageComponent implements OnInit {
     URL.revokeObjectURL(url);
   }
 
-  private showFeedback(message: string, _isError?: boolean): void {
-    this.actionFeedback.set({ message });
-    setTimeout(() => this.actionFeedback.set(null), 4000);
+  getStatusChipClass(status: string): string {
+    switch (status) {
+      case 'ACTIVE': return 'success';
+      case 'PENDING_KYC': return 'warn';
+      case 'KYC_SUBMITTED': return 'info';
+      case 'SUSPENDED': case 'REJECTED': case 'FAILED': return 'danger';
+      default: return '';
+    }
   }
 
-  getStatusChip(status: string): string {
-    return getSubMerchantStatusChip(status);
-  }
-
-  getKycChip(kycStatus: string | null): string {
-    return getKycChipClass(kycStatus);
+  getKycChipClass(kycStatus: string | null): string {
+    if (!kycStatus) return 'warn';
+    switch (kycStatus) {
+      case 'ACTIVATED': case 'True': return 'success';
+      case 'SUBMITTED': return 'info';
+      case 'FAILED': return 'danger';
+      default: return 'warn';
+    }
   }
 
   formatStatusValue(status: string): string {
-    return formatStatus(status);
+    return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
-  formatDateValue(value: number | null): string {
-    return formatDate(value);
-  }
-
+  formatDateValue(value: number | null): string { return formatDate(value); }
   formatKycAge(sm: EasebuzzSubMerchant): string {
-    if (sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'ACTIVE') {
-      return 'Done';
-    }
-    const ts = sm.kycSubmittedAt ?? sm.createdAt;
-    return formatAge(ts);
-  }
-
-  showConfirm(title: string, message: string, onConfirm: () => void): void {
-    this.confirmDialog.set({ title, message, onConfirm });
-  }
-
-  dismissConfirm(): void {
-    this.confirmDialog.set(null);
-  }
-
-  showPrompt(title: string, message: string, placeholder: string, onConfirm: (value: string) => void): void {
-    this.promptValue = '';
-    this.promptDialog.set({ title, message, placeholder, onConfirm });
-  }
-
-  dismissPrompt(): void {
-    this.promptDialog.set(null);
+    if (sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'ACTIVE' || sm.kycStatus === 'True') return 'Done';
+    return formatAge(sm.kycSubmittedAt ?? sm.createdAt);
   }
 }

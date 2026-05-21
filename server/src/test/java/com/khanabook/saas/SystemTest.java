@@ -146,6 +146,60 @@ class SystemTest extends BaseIntegrationTest {
     }
 
     @Test
+    void resetPassword_sameAsOldPassword_returns400() {
+        // Sign up with a known password
+        String phone = uniquePhone();
+        requestSignupOtp(phone);
+        String originalPassword = "pass123";
+        rest.postForEntity("/auth/signup",
+            new SignupRequest(phone, "Test User", originalPassword, TEST_OTP, "DEVICE_RESET"), String.class);
+
+        // Seed password reset OTP
+        seedPasswordResetOtp(phone);
+
+        // Try resetting to the exact same password
+        ResetPasswordRequest resetReq = new ResetPasswordRequest();
+        resetReq.setPhoneNumber(phone);
+        resetReq.setNewPassword(originalPassword);
+        resetReq.setOtp(TEST_OTP);
+
+        ResponseEntity<String> resp = rest.postForEntity(
+            "/auth/reset-password",
+            resetReq,
+            String.class
+        );
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(resp.getBody()).containsIgnoringCase("same as the old password");
+    }
+
+    @Test
+    void resetPassword_differentFromOldPassword_succeeds() {
+        // Sign up with one password
+        String phone = uniquePhone();
+        requestSignupOtp(phone);
+        rest.postForEntity("/auth/signup",
+            new SignupRequest(phone, "Test User", "original123", TEST_OTP, "DEVICE_RESET2"), String.class);
+
+        // Seed password reset OTP
+        seedPasswordResetOtp(phone);
+
+        // Reset to a completely different password
+        ResetPasswordRequest resetReq = new ResetPasswordRequest();
+        resetReq.setPhoneNumber(phone);
+        resetReq.setNewPassword("brandNewPassword456");
+        resetReq.setOtp(TEST_OTP);
+
+        ResponseEntity<String> resp = rest.postForEntity(
+            "/auth/reset-password",
+            resetReq,
+            String.class
+        );
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
     void masterSync_noToken_returns403() {
         ResponseEntity<String> resp =
             rest.getForEntity("/sync/master/pull?lastSyncTimestamp=0&deviceId=X", String.class);

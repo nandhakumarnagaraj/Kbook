@@ -1,269 +1,286 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { BusinessApiService } from '../../core/services/business-api.service';
-import { BusinessProfile, UpdateBusinessProfileRequest } from '../../core/models/api.models';
+import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
 
 @Component({
   selector: 'app-restaurant-settings-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule, 
+    FormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatIconModule,
+    MatDividerModule,
+    MatSlideToggleModule,
+    MatCheckboxModule,
+    MatSnackBarModule,
+    MatProgressSpinnerModule,
+    MatTooltipModule
+  ],
   template: `
-    <div class="page-shell">
-      <section class="panel page-hero">
-        <h2>Business Settings</h2>
-        <p class="muted">Manage your restaurant profile, payments, and tax configuration.</p>
-        <div class="hero-meta">
-          <span class="chip">Owner Access</span>
-          <span class="chip success">Profile Controls</span>
-          <span class="chip">Payment Preferences</span>
+    <div class="page-container">
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">Restaurant Settings</h1>
+          <p class="page-subtitle">Configure your business profile, payment preferences, and tax compliance.</p>
         </div>
-      </section>
+      </div>
 
-      <div *ngIf="saving" class="saving-bar">Saving...</div>
+      <div class="settings-grid">
+        <!-- PROFILE SECTION -->
+        <mat-card class="settings-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar color="primary">storefront</mat-icon>
+            <mat-card-title>Business Profile</mat-card-title>
+            <mat-card-subtitle>Core identity and contact information.</mat-card-subtitle>
+          </mat-card-header>
+          
+          <mat-card-content>
+            <div class="form-grid">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Shop Name</mat-label>
+                <input matInput [(ngModel)]="form.shopName" placeholder="e.g. Khana Khazana">
+              </mat-form-field>
 
-      <!-- PROFILE SECTION -->
-      <section class="panel soft-section">
-        <div class="section-head">
-          <h3>Profile</h3>
-          <p class="muted">Shop name, address, and contact details.</p>
-        </div>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Business Address</mat-label>
+                <textarea matInput [(ngModel)]="form.shopAddress" rows="3" placeholder="Full street address..."></textarea>
+              </mat-form-field>
 
-        <div class="field">
-          <label for="shopName">Shop Name</label>
-          <input id="shopName" class="field-control" type="text" [(ngModel)]="form.shopName" />
-        </div>
+              <div class="two-col">
+                <mat-form-field appearance="outline">
+                  <mat-label>WhatsApp Number</mat-label>
+                  <input matInput [(ngModel)]="form.whatsappNumber" placeholder="+91...">
+                  <mat-icon matSuffix>chat</mat-icon>
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Email Address</mat-label>
+                  <input matInput [(ngModel)]="form.email" type="email" placeholder="owner@example.com">
+                  <mat-icon matSuffix>email</mat-icon>
+                </mat-form-field>
+              </div>
 
-        <div class="field">
-          <label for="shopAddress">Address</label>
-          <textarea id="shopAddress" class="field-control" rows="2" [(ngModel)]="form.shopAddress"></textarea>
-        </div>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Review / Google URL</mat-label>
+                <input matInput [(ngModel)]="form.reviewUrl" placeholder="https://g.page/...">
+                <mat-icon matSuffix>star</mat-icon>
+              </mat-form-field>
 
-        <div class="field-row two-col">
-          <div class="field">
-            <label for="whatsappNumber">WhatsApp Number</label>
-            <input id="whatsappNumber" class="field-control" type="text" [(ngModel)]="form.whatsappNumber" />
-          </div>
-          <div class="field">
-            <label for="email">Email</label>
-            <input id="email" class="field-control" type="email" [(ngModel)]="form.email" />
-          </div>
-        </div>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Invoice Footer</mat-label>
+                <textarea matInput [(ngModel)]="form.invoiceFooter" rows="2" placeholder="Thank you message..."></textarea>
+              </mat-form-field>
 
-        <div class="field">
-          <label for="reviewUrl">Review / Google URL</label>
-          <input id="reviewUrl" class="field-control" type="text" [(ngModel)]="form.reviewUrl" placeholder="https://..." />
-        </div>
+              <div class="toggle-group">
+                <mat-slide-toggle [(ngModel)]="form.showBranding" color="primary">
+                  Show KhanaBook Branding
+                </mat-slide-toggle>
+                <mat-slide-toggle [(ngModel)]="form.maskCustomerPhone" color="primary">
+                  Mask Phone on Receipts
+                </mat-slide-toggle>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
 
-        <div class="field">
-          <label for="invoiceFooter">Invoice Footer</label>
-          <textarea id="invoiceFooter" class="field-control" rows="2" [(ngModel)]="form.invoiceFooter" placeholder="Thank you, visit again!"></textarea>
-        </div>
+        <!-- PAYMENTS SECTION -->
+        <mat-card class="settings-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar color="primary">payments</mat-icon>
+            <mat-card-title>Payment Configuration</mat-card-title>
+            <mat-card-subtitle>Manage currency and accepted payment methods.</mat-card-subtitle>
+          </mat-card-header>
+          
+          <mat-card-content>
+            <div class="form-grid">
+              <div class="two-col">
+                <mat-form-field appearance="outline">
+                  <mat-label>Default Currency</mat-label>
+                  <mat-select [(ngModel)]="form.currency">
+                    <mat-option value="INR">INR (₹) - Indian Rupee</mat-option>
+                    <mat-option value="USD">USD ($) - US Dollar</mat-option>
+                    <mat-option value="AED">AED (د.إ) - UAE Dirham</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>UPI Handle</mat-label>
+                  <input matInput [(ngModel)]="form.upiHandle" placeholder="business@upi">
+                  <mat-icon matSuffix>qr_code</mat-icon>
+                </mat-form-field>
+              </div>
 
-        <div class="field-row two-col">
-          <label class="toggle-row">
-            <span>Show KhanaBook Branding</span>
-            <input type="checkbox" [(ngModel)]="form.showBranding" />
-          </label>
-          <label class="toggle-row">
-            <span>Mask Customer Phone on Receipt</span>
-            <input type="checkbox" [(ngModel)]="form.maskCustomerPhone" />
-          </label>
-        </div>
-      </section>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>UPI Linked Mobile</mat-label>
+                <input matInput [(ngModel)]="form.upiMobile" placeholder="Used for QR generation">
+              </mat-form-field>
 
-      <!-- PAYMENT SECTION -->
-      <section class="panel soft-section">
-        <div class="section-head">
-          <h3>Payments</h3>
-          <p class="muted">Currency, UPI, and accepted payment methods.</p>
-        </div>
+              <h3 class="section-divider">Accepted Payment Methods</h3>
+              <div class="checkbox-grid">
+                <mat-checkbox [(ngModel)]="form.cashEnabled" color="primary">Cash</mat-checkbox>
+                <mat-checkbox [(ngModel)]="form.upiEnabled" color="primary">Direct UPI</mat-checkbox>
+                <mat-checkbox [(ngModel)]="form.posEnabled" color="primary">POS / Card</mat-checkbox>
+                <mat-checkbox [(ngModel)]="form.zomatoEnabled" color="primary">Zomato Orders</mat-checkbox>
+                <mat-checkbox [(ngModel)]="form.swiggyEnabled" color="primary">Swiggy Orders</mat-checkbox>
+                <mat-checkbox [(ngModel)]="form.ownWebsiteEnabled" color="primary">Online Store</mat-checkbox>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
 
-        <div class="field-row two-col">
-          <div class="field">
-            <label for="currency">Currency</label>
-            <select id="currency" class="field-select" [(ngModel)]="form.currency">
-              <option value="INR">INR (₹)</option>
-              <option value="USD">USD ($)</option>
-              <option value="AED">AED (د.إ)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="upiHandle">UPI Handle / ID</label>
-            <input id="upiHandle" class="field-control" type="text" [(ngModel)]="form.upiHandle" placeholder="example@upi" />
-          </div>
-        </div>
+        <!-- TAX & COMPLIANCE -->
+        <mat-card class="settings-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar color="primary">verified</mat-icon>
+            <mat-card-title>Tax & Compliance</mat-card-title>
+            <mat-card-subtitle>GST, FSSAI, and regional compliance settings.</mat-card-subtitle>
+          </mat-card-header>
+          
+          <mat-card-content>
+            <div class="form-grid">
+              <div class="two-col">
+                <mat-form-field appearance="outline">
+                  <mat-label>Country</mat-label>
+                  <input matInput [(ngModel)]="form.country">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Timezone</mat-label>
+                  <mat-select [(ngModel)]="form.timezone">
+                    <mat-option value="Asia/Kolkata">Asia/Kolkata (IST)</mat-option>
+                    <mat-option value="Asia/Dubai">Asia/Dubai (GST)</mat-option>
+                    <mat-option value="UTC">UTC (Universal)</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
 
-        <div class="field">
-          <label for="upiMobile">UPI Mobile Number</label>
-          <input id="upiMobile" class="field-control" type="text" [(ngModel)]="form.upiMobile" />
-        </div>
+              <div class="toggle-group row">
+                <mat-slide-toggle [(ngModel)]="form.gstEnabled" color="primary">Enable GST</mat-slide-toggle>
+                <mat-slide-toggle [(ngModel)]="form.isTaxInclusive" color="primary">Inclusive Pricing</mat-slide-toggle>
+              </div>
 
-        <div class="section-head" style="margin-top: 1rem;">
-          <h3>Accepted Payment Methods</h3>
-        </div>
-        <div class="field-row two-col">
-          <label class="toggle-row">
-            <span>Cash</span>
-            <input type="checkbox" [(ngModel)]="form.cashEnabled" />
-          </label>
-          <label class="toggle-row">
-            <span>UPI</span>
-            <input type="checkbox" [(ngModel)]="form.upiEnabled" />
-          </label>
-          <label class="toggle-row">
-            <span>POS / Card</span>
-            <input type="checkbox" [(ngModel)]="form.posEnabled" />
-          </label>
-        </div>
-        <div class="field-row two-col">
-          <label class="toggle-row">
-            <span>Zomato</span>
-            <input type="checkbox" [(ngModel)]="form.zomatoEnabled" />
-          </label>
-          <label class="toggle-row">
-            <span>Swiggy</span>
-            <input type="checkbox" [(ngModel)]="form.swiggyEnabled" />
-          </label>
-          <label class="toggle-row">
-            <span>Own Website</span>
-            <input type="checkbox" [(ngModel)]="form.ownWebsiteEnabled" />
-          </label>
-        </div>
-      </section>
+              <div class="two-col" *ngIf="form.gstEnabled">
+                <mat-form-field appearance="outline">
+                  <mat-label>GSTIN</mat-label>
+                  <input matInput [(ngModel)]="form.gstin" placeholder="15-char GSTIN">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>GST Percentage</mat-label>
+                  <input matInput type="number" step="0.1" [(ngModel)]="form.gstPercentage">
+                  <span matSuffix>%</span>
+                </mat-form-field>
+              </div>
 
-      <!-- TAX SECTION -->
-      <section class="panel soft-section">
-        <div class="section-head">
-          <h3>Tax & Compliance</h3>
-          <p class="muted">GST, custom tax, FSSAI, and regional settings.</p>
-        </div>
+              <h3 class="section-divider">Custom Taxes</h3>
+              <div class="three-col">
+                <mat-form-field appearance="outline">
+                  <mat-label>Tax Name</mat-label>
+                  <input matInput [(ngModel)]="form.customTaxName" placeholder="e.g. Service Charge">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Tax %</mat-label>
+                  <input matInput type="number" step="0.1" [(ngModel)]="form.customTaxPercentage">
+                  <span matSuffix>%</span>
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Tax ID (Optional)</mat-label>
+                  <input matInput [(ngModel)]="form.customTaxNumber">
+                </mat-form-field>
+              </div>
 
-        <div class="field-row">
-          <div class="field">
-            <label for="country">Country</label>
-            <input id="country" class="field-control" type="text" [(ngModel)]="form.country" />
-          </div>
-          <div class="field">
-            <label for="timezone">Timezone</label>
-            <select id="timezone" class="field-select" [(ngModel)]="form.timezone">
-              <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
-              <option value="Asia/Dubai">Asia/Dubai</option>
-              <option value="UTC">UTC</option>
-            </select>
-          </div>
-        </div>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>FSSAI License Number</mat-label>
+                <input matInput [(ngModel)]="form.fssaiNumber">
+                <mat-icon matSuffix>assignment</mat-icon>
+              </mat-form-field>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
 
-        <div class="field-row">
-          <label class="toggle-row">
-            <span>Enable GST</span>
-            <input type="checkbox" [(ngModel)]="form.gstEnabled" />
-          </label>
-          <label class="toggle-row">
-            <span>Tax Inclusive Pricing</span>
-            <input type="checkbox" [(ngModel)]="form.isTaxInclusive" />
-          </label>
+      <div class="action-footer mat-elevation-z4">
+        <div class="footer-container">
+           <span class="status-text" *ngIf="loading()">Loading configuration...</span>
+           <span class="spacer"></span>
+           <button mat-flat-button color="primary" class="save-btn" (click)="save()" [disabled]="saving()">
+              <mat-icon *ngIf="!saving()">save</mat-icon>
+              <mat-spinner diameter="18" *ngIf="saving()"></mat-spinner>
+              Save Changes
+           </button>
         </div>
-
-        <div class="field-row">
-          <div class="field">
-            <label for="gstin">GSTIN</label>
-            <input id="gstin" class="field-control" type="text" [(ngModel)]="form.gstin" placeholder="15-character GSTIN" />
-          </div>
-          <div class="field">
-            <label for="gstPercentage">GST %</label>
-            <input id="gstPercentage" class="field-control" type="number" step="0.01" [(ngModel)]="form.gstPercentage" />
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field">
-            <label for="customTaxName">Custom Tax Name</label>
-            <input id="customTaxName" class="field-control" type="text" [(ngModel)]="form.customTaxName" />
-          </div>
-          <div class="field">
-            <label for="customTaxNumber">Custom Tax Number</label>
-            <input id="customTaxNumber" class="field-control" type="text" [(ngModel)]="form.customTaxNumber" />
-          </div>
-          <div class="field">
-            <label for="customTaxPercentage">Custom Tax %</label>
-            <input id="customTaxPercentage" class="field-control" type="number" step="0.01" [(ngModel)]="form.customTaxPercentage" />
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="fssaiNumber">FSSAI License Number</label>
-          <input id="fssaiNumber" class="field-control" type="text" [(ngModel)]="form.fssaiNumber" />
-        </div>
-      </section>
-
-      <div class="sticky-save">
-        <button class="primary-btn" (click)="save()" [disabled]="saving">
-          {{ saving ? 'Saving...' : 'Save Settings' }}
-        </button>
-        <span class="save-msg" *ngIf="saveSuccess">Saved successfully!</span>
-        <span class="save-msg error" *ngIf="saveError">{{ saveError }}</span>
       </div>
     </div>
   `,
   styles: [`
-    .soft-section { padding: 1.5rem; }
-    .field-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.85rem; }
-    .field-row.two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .field-row .field { min-width: 0; }
-    .field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.85rem; }
-    .field label { font-size: 0.82rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-    .field-control, .field-select {
-      min-height: 44px;
-      padding: 0.75rem 0.85rem; border-radius: 12px; border: 1px solid var(--line);
-      background: var(--panel); color: var(--ink); font-size: 0.92rem;
+    .page-container { padding: 24px; max-width: 1000px; margin: 0 auto; padding-bottom: 120px; }
+    .header-row { margin-bottom: 32px; }
+    .page-title { margin: 0; font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -0.5px; }
+    .page-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+
+    .settings-grid { display: flex; flex-direction: column; gap: 32px; }
+    .settings-card { 
+      border: 1px solid var(--line); 
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-md);
+      border-radius: var(--radius-xl); 
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
-    textarea.field-control { min-height: 88px; resize: vertical; }
-    .field-select { cursor: pointer; }
-    .toggle-row {
-      display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.75rem 1rem;
-      border-radius: 10px; background: var(--bg); border: 1px solid var(--line);
-      cursor: pointer; font-size: 0.9rem; font-weight: 600;
+    .settings-card:hover {
+      box-shadow: var(--shadow-lg);
     }
-    .toggle-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--brand); }
-    .sticky-save {
-      position: sticky; bottom: 1rem; display: flex; align-items: center; gap: 1rem;
-      padding: 1rem 1.5rem; background: var(--panel); border: 1px solid var(--line);
-      border-radius: 16px; box-shadow: var(--shadow-sm); margin-top: 1rem;
-    }
-    .primary-btn {
-      background: var(--brand); color: #fff; border: none; padding: 0.65rem 1.5rem;
-      border-radius: 999px; font-weight: 700; font-size: 0.92rem; cursor: pointer;
-      transition: background 0.15s;
-    }
-    .primary-btn:hover { background: var(--brand-deep); }
-    .primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .save-msg { font-size: 0.85rem; color: var(--accent); font-weight: 600; }
-    .save-msg.error { color: var(--danger); }
-    .saving-bar {
-      text-align: center; padding: 0.5rem; background: rgba(181,106,45,0.1);
-      border-radius: 10px; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem;
-    }
-    @media (max-width: 960px) {
-      .field-row,
-      .field-row.two-col { grid-template-columns: 1fr; }
-      .sticky-save {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .sticky-save .primary-btn { width: 100%; }
+    
+    .form-grid { padding-top: 16px; }
+    .full-width { width: 100%; margin-bottom: 8px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .three-col { display: grid; grid-template-columns: 1.5fr 1fr 1.5fr; gap: 16px; }
+
+    .section-divider { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; color: var(--muted); letter-spacing: 1.5px; margin: 28px 0 16px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+
+    .toggle-group { display: flex; flex-direction: column; gap: 16px; padding: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; margin: 8px 0; }
+    .toggle-group.row { flex-direction: row; gap: 32px; }
+
+    .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; padding: 8px; }
+
+    .action-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--panel); padding: 16px 24px; z-index: 100; border-top: 1px solid var(--line); backdrop-filter: blur(12px); box-shadow: var(--shadow-lg); }
+    .footer-container { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; }
+    .save-btn { min-width: 180px; height: 48px; font-weight: 700; font-size: 1rem; border-radius: var(--radius-lg); }
+    
+    .status-text { color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+    .spacer { flex: 1; }
+
+    @media (max-width: 768px) {
+      .two-col, .three-col { grid-template-columns: 1fr; }
+      .footer-container { flex-direction: column; gap: 12px; }
+      .save-btn { width: 100%; }
     }
   `]
 })
 export class RestaurantSettingsPageComponent implements OnInit {
   private readonly api = inject(BusinessApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly snackBar = inject(MatSnackBar);
 
   form: UpdateBusinessProfileRequest = {};
-  saving = false;
-  saveSuccess = false;
-  saveError: string | null = null;
+  saving = signal(false);
+  loading = signal(true);
 
   ngOnInit(): void {
     this.api.getProfile().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -297,25 +314,25 @@ export class RestaurantSettingsPageComponent implements OnInit {
           showBranding: p.showBranding ?? undefined,
           maskCustomerPhone: p.maskCustomerPhone ?? undefined,
         };
+        this.loading.set(false);
       },
-      error: () => { this.saveError = 'Failed to load profile.'; }
+      error: () => { 
+        this.loading.set(false);
+        this.snackBar.open('Failed to load profile.', 'Close', { duration: 5000 });
+      }
     });
   }
 
   save(): void {
-    this.saving = true;
-    this.saveSuccess = false;
-    this.saveError = null;
-
+    this.saving.set(true);
     this.api.updateProfile(this.form).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
-        this.saving = false;
-        this.saveSuccess = true;
-        setTimeout(() => { this.saveSuccess = false; }, 3000);
+        this.saving.set(false);
+        this.snackBar.open('Settings updated successfully.', 'Close', { duration: 3000 });
       },
       error: (err) => {
-        this.saving = false;
-        this.saveError = err?.error?.error || 'Failed to save. Please try again.';
+        this.saving.set(false);
+        this.snackBar.open(err?.error?.error || 'Failed to save. Please try again.', 'Close', { duration: 5000 });
       }
     });
   }

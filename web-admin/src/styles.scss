@@ -1,0 +1,151 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+// Define palettes
+$khanabook-primary: mat.m2-define-palette(mat.$m2-orange-palette, 800);
+$khanabook-accent: mat.m2-define-palette(mat.$m2-blue-grey-palette, A200, A100, A400);
+$khanabook-warn: mat.m2-define-palette(mat.$m2-red-palette);
+
+// Define themes
+$light-theme: mat.m2-define-light-theme((
+  color: (
+    primary: $khanabook-primary,
+    accent: $khanabook-accent,
+    warn: $khanabook-warn,
+  ),
+  typography: mat.m2-define-typography-config(),
+  density: 0,
+));
+
+$dark-theme: mat.m2-define-dark-theme((
+  color: (
+    primary: $khanabook-primary,
+    accent: $khanabook-accent,
+    warn: $khanabook-warn,
+  ),
+  typography: mat.m2-define-typography-config(),
+  density: 0,
+));
+
+// Apply themes
+@include mat.all-component-themes($light-theme);
+
+.dark-theme {
+  @include mat.all-component-colors($dark-theme);
+  
+  --bg: #0b0e13;
+  --bg-elevated: #11161d;
+  --panel: #151a22;
+  --panel-hover: #1a202a;
+  --surface: #202833;
+  --surface-hover: #26313f;
+  --ink: #f7f2ea;
+  --ink-secondary: #c1b6a7;
+  --muted: #8f8172;
+  --line: rgba(255, 242, 224, 0.08);
+  --line-strong: rgba(255, 242, 224, 0.16);
+}
+
+:root {
+  --bg: #f8fafc;
+  --bg-elevated: #ffffff;
+  --panel: #ffffff;
+  --panel-hover: #f1f5f9;
+  --surface: #e2e8f0;
+  --surface-hover: #cbd5e1;
+  
+  --ink: #0f172a;
+  --ink-secondary: #475569;
+  --muted: #64748b;
+  
+  --line: rgba(0, 0, 0, 0.08);
+  --line-strong: rgba(0, 0, 0, 0.16);
+  
+  --brand: #c7732f;
+  --brand-light: #f0a24c;
+  --brand-dark: #92501f;
+  --brand-soft: rgba(199, 115, 47, 0.12);
+  --brand-glow: rgba(199, 115, 47, 0.22);
+  
+  --accent: #10b981;
+  --accent-light: #34d399;
+  --accent-soft: rgba(16, 185, 129, 0.08);
+  
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.08);
+  --warn: #f59e0b;
+  --warn-soft: rgba(245, 158, 11, 0.08);
+  --info: #3b82f6;
+  --info-soft: rgba(59, 130, 246, 0.08);
+  --purple: #7c5cdb;
+  --purple-soft: rgba(124, 92, 219, 0.1);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  height: 100%;
+}
+
+/* Hide scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; }
+
+h1, h2, h3, h4, p { margin-top: 0; }
+
+/* ── Legacy Support Classes (to be migrated) ── */
+.page-shell {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.page-hero {
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+  color: white;
+  border-radius: var(--radius-lg);
+  margin-bottom: 1rem;
+}
+.page-hero p { color: rgba(255, 255, 255, 0.8); }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+/* More legacy styles here... but we'll focus on Material migration */

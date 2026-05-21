@@ -1,914 +1,694 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnDestroy, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { of, interval, Subject } from 'rxjs';
+import { catchError, map, startWith, switchMap } from 'rxjs/operators';
 import { formatCurrency } from '../../shared/formatters';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatListModule } from '@angular/material/list';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @Component({
   selector: 'app-platform-dashboard-page',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    RouterModule,
+    MatCardModule,
+    MatIconModule,
+    MatButtonModule,
+    MatSelectModule,
+    MatProgressBarModule,
+    MatTooltipModule,
+    MatBadgeModule,
+    MatDividerModule,
+    MatFormFieldModule,
+    MatListModule,
+    MatProgressSpinnerModule
+  ],
   template: `
-    <div class="dash-shell">
+    <div class="page-container">
       <ng-container *ngIf="summary() as data; else loading">
-        <section class="hero-panel">
-          <div class="hero-copy">
-            <div class="hero-badge">
-              <span class="hero-dot"></span>
-              Platform overview
+        
+        <div class="header-row">
+          <div class="header-left">
+            <div class="live-status">
+              <span class="live-dot"></span>
+              <span class="live-text">Live Platform Data</span>
             </div>
-            <h1>Platform Control Room</h1>
-            <p class="hero-text">Monitor business growth, payment health, and KYC pipeline pressure from one place.</p>
-            <div class="hero-facts">
-              <span>{{ data.totalBusinesses }} businesses</span>
-              <span>{{ data.totalOrders }} orders</span>
-              <span>{{ data.liveBusinesses }} currently live</span>
+            <h1 class="page-title">Platform Overview</h1>
+            <p class="page-subtitle">{{ liveDate() }}</p>
+          </div>
+          <div class="header-right">
+            <mat-form-field appearance="outline" class="poll-field">
+              <mat-label>Auto Refresh</mat-label>
+              <mat-select [value]="pollIntervalMs()" (selectionChange)="setPollInterval($event.value)">
+                <mat-option [value]="0">Off</mat-option>
+                <mat-option [value]="15000">15s</mat-option>
+                <mat-option [value]="30000">30s</mat-option>
+                <mat-option [value]="60000">60s</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <button mat-icon-button (click)="refresh()" [disabled]="refreshing" matTooltip="Refresh Now">
+              <mat-icon [class.spinning]="refreshing">refresh</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <mat-card class="stat-card businesses clickable" routerLink="/admin/businesses">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="stat-icon">business</mat-icon>
+              <mat-card-title>{{ data.totalBusinesses }}</mat-card-title>
+              <mat-card-subtitle>Total Businesses</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-footer">
+                <span class="trend up"><mat-icon>trending_up</mat-icon> 12%</span>
+                <span class="subtext">{{ data.liveBusinesses }} currently active</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card revenue clickable" routerLink="/admin/payment-dashboard">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="stat-icon">payments</mat-icon>
+              <mat-card-title>{{ data.totalRevenueFormatted }}</mat-card-title>
+              <mat-card-subtitle>Gross Revenue</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-footer">
+                <span class="trend up"><mat-icon>trending_up</mat-icon> 8.2%</span>
+                <span class="subtext">Across all time</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card orders clickable" routerLink="/admin/transactions">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="stat-icon">shopping_bag</mat-icon>
+              <mat-card-title>{{ data.totalOrders }}</mat-card-title>
+              <mat-card-subtitle>Total Orders</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-footer">
+                <span class="trend down"><mat-icon>trending_down</mat-icon> 3.1%</span>
+                <span class="subtext">{{ data.refundedOrders }} refunded</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card staff clickable" routerLink="/admin/businesses">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="stat-icon">people</mat-icon>
+              <mat-card-title>{{ data.totalStaff }}</mat-card-title>
+              <mat-card-subtitle>Platform Staff</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-footer">
+                <span class="trend up"><mat-icon>trending_up</mat-icon> 5%</span>
+                <span class="subtext">All active members</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <div class="main-grid">
+          <div class="left-col">
+            <mat-card class="chart-card">
+              <mat-card-header>
+                <mat-card-title>Sub-merchant Onboarding</mat-card-title>
+                <mat-card-subtitle>KYC Pipeline Status</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="pipeline-visual">
+                  <div class="pipeline-labels">
+                    <span>Active ({{ subMerchantCounts().active }})</span>
+                    <span>Pending ({{ subMerchantCounts().pending }})</span>
+                    <span>Rejected ({{ subMerchantCounts().rejected }})</span>
+                  </div>
+                  <div class="pipeline-bars">
+                    <div class="bar active" [style.width.%]="subMerchantPct.active"></div>
+                    <div class="bar pending" [style.width.%]="subMerchantPct.pending"></div>
+                    <div class="bar rejected" [style.width.%]="subMerchantPct.rejected"></div>
+                  </div>
+                </div>
+
+                <mat-list>
+                  <mat-list-item routerLink="/admin/sub-merchants" class="clickable-item">
+                    <mat-icon matListItemIcon color="primary">pending_actions</mat-icon>
+                    <span matListItemTitle>{{ subMerchantCounts().pending }} KYC reviews pending</span>
+                    <span matListItemLine>Action required for activation</span>
+                    <mat-icon matListIconSuffix>chevron_right</mat-icon>
+                  </mat-list-item>
+                </mat-list>
+              </mat-card-content>
+            </mat-card>
+
+            <div class="action-grid">
+               <mat-card class="action-item clickable" routerLink="/admin/businesses">
+                 <mat-icon>business</mat-icon>
+                 <div class="action-label">Businesses</div>
+               </mat-card>
+               <mat-card class="action-item clickable" routerLink="/admin/payment-dashboard">
+                 <mat-icon>receipt</mat-icon>
+                 <div class="action-label">Payments</div>
+               </mat-card>
+               <mat-card class="action-item clickable" routerLink="/admin/transactions">
+                 <mat-icon>history</mat-icon>
+                 <div class="action-label">Transactions</div>
+               </mat-card>
+               <mat-card class="action-item clickable" routerLink="/admin/settlements">
+                 <mat-icon>account_balance</mat-icon>
+                 <div class="action-label">Settlements</div>
+               </mat-card>
             </div>
           </div>
 
-          <div class="hero-aside">
-            <div class="hero-kpi">
-              <span class="hero-kpi-label">Net Platform Revenue</span>
-              <strong>{{ netRevenueFormatted(data) }}</strong>
-              <p>{{ data.refundedAmountFormatted }} refunded across all merchants</p>
-            </div>
-            <div class="hero-kpi slim">
-              <span class="hero-kpi-label">KYC Queue</span>
-              <strong>{{ pendingCount() }}</strong>
-              <p>{{ pendingCount() > 0 ? 'Requires admin attention now' : 'No immediate actions waiting' }}</p>
-            </div>
+          <div class="right-col">
+            <mat-card class="revenue-card">
+              <mat-card-header>
+                <mat-card-title>Revenue Breakdown</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="revenue-summary">
+                  <div class="rev-row">
+                    <span class="label">Gross</span>
+                    <span class="value">{{ data.totalRevenueFormatted }}</span>
+                  </div>
+                  <mat-progress-bar mode="determinate" [value]="100" class="gross-bar"></mat-progress-bar>
+                  
+                  <div class="rev-row">
+                    <span class="label">Refunded</span>
+                    <span class="value text-danger">{{ data.refundedAmountFormatted }}</span>
+                  </div>
+                  <mat-progress-bar mode="determinate" [value]="refundPct" color="warn"></mat-progress-bar>
+
+                  <mat-divider></mat-divider>
+
+                  <div class="rev-row highlight">
+                    <span class="label">Net Platform Revenue</span>
+                    <span class="value">{{ netRevenueFormatted(data) }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="health-card">
+              <mat-card-header>
+                <mat-card-title>Business Health</mat-card-title>
+                <span class="health-badge" [class.good]="businessLivePct(data) > 70">
+                   {{ businessLivePct(data) }}% Live
+                </span>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="health-metrics">
+                   <div class="metric">
+                      <span class="m-val">{{ data.liveBusinesses }}</span>
+                      <span class="m-label">Active Shops</span>
+                   </div>
+                   <div class="metric">
+                      <span class="m-val">{{ avgOrdersPerBusiness(data) }}</span>
+                      <span class="m-label">Orders / Shop</span>
+                   </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
           </div>
-        </section>
+        </div>
 
-        <section class="metric-band">
-          <article class="metric-card gold">
-            <span class="metric-kicker">Businesses</span>
-            <strong>{{ data.totalBusinesses }}</strong>
-            <p>{{ data.liveBusinesses }} active on platform</p>
-          </article>
-          <article class="metric-card green">
-            <span class="metric-kicker">Gross Revenue</span>
-            <strong>{{ data.totalRevenueFormatted }}</strong>
-            <p>All-time business revenue</p>
-          </article>
-          <article class="metric-card blue">
-            <span class="metric-kicker">Orders</span>
-            <strong>{{ data.totalOrders }}</strong>
-            <p>{{ data.refundedOrders }} refunded orders</p>
-          </article>
-          <article class="metric-card purple">
-            <span class="metric-kicker">Staff</span>
-            <strong>{{ data.totalStaff }}</strong>
-            <p>Team members across restaurants</p>
-          </article>
-        </section>
-
-        <section class="ops-grid">
-          <article class="ops-card emphasis">
-            <div class="ops-head">
-              <h3>Sub-merchant pipeline</h3>
-              <span class="ops-count">{{ subMerchantCounts().total }}</span>
-            </div>
-            <div class="stack-bars">
-              <div class="stack-bar active" [style.width.%]="subMerchantPct.active"></div>
-              <div class="stack-bar pending" [style.width.%]="subMerchantPct.pending"></div>
-              <div class="stack-bar rejected" [style.width.%]="subMerchantPct.rejected"></div>
-            </div>
-            <div class="legend-grid">
-              <div class="legend-item">
-                <span class="legend-dot active"></span>
-                <div><strong>{{ subMerchantCounts().active }}</strong><span>Active</span></div>
-              </div>
-              <div class="legend-item">
-                <span class="legend-dot pending"></span>
-                <div><strong>{{ subMerchantCounts().pending }}</strong><span>Pending KYC</span></div>
-              </div>
-              <div class="legend-item">
-                <span class="legend-dot rejected"></span>
-                <div><strong>{{ subMerchantCounts().rejected }}</strong><span>Rejected</span></div>
-              </div>
-            </div>
-          </article>
-
-          <article class="ops-card">
-            <div class="ops-head">
-              <h3>Revenue quality</h3>
-              <span class="ops-count">Net</span>
-            </div>
-            <div class="revenue-stage">
-              <div class="revenue-column">
-                <span class="column-label">Revenue</span>
-                <div class="column-fill revenue" style="height: 100%"></div>
-              </div>
-              <div class="revenue-column">
-                <span class="column-label">Refunds</span>
-                <div class="column-fill refunds" [style.height.%]="refundPct"></div>
-              </div>
-            </div>
-            <div class="detail-list">
-              <div><span>Gross revenue</span><strong>{{ data.totalRevenueFormatted }}</strong></div>
-              <div><span>Refunded</span><strong>{{ data.refundedAmountFormatted }}</strong></div>
-              <div class="highlight"><span>Net revenue</span><strong>{{ netRevenueFormatted(data) }}</strong></div>
-            </div>
-          </article>
-
-          <article class="ops-card">
-            <div class="ops-head">
-              <h3>Business health</h3>
-              <span class="ops-count">{{ businessLivePct(data) }}%</span>
-            </div>
-            <div class="health-ring" [style.--pct]="businessLivePct(data)">
-              <div class="health-ring-core">
-                <strong>{{ data.liveBusinesses }}</strong>
-                <span>live now</span>
-              </div>
-            </div>
-            <div class="detail-list">
-              <div><span>Total businesses</span><strong>{{ data.totalBusinesses }}</strong></div>
-              <div><span>Avg orders per business</span><strong>{{ avgOrdersPerBusiness(data) }}</strong></div>
-              <div><span>Total staff</span><strong>{{ data.totalStaff }}</strong></div>
-            </div>
-          </article>
-        </section>
-
-        <section class="action-board">
-          <article class="action-panel">
-            <div class="panel-head">
-              <div>
-                <h3>Priority Actions</h3>
-                <p>What needs attention from operations right now.</p>
-              </div>
-              <span class="badge">{{ pendingCount() }}</span>
-            </div>
-
-            <div class="action-feed" *ngIf="hasPendingActions(); else noActions">
-              <a class="feed-item" routerLink="/admin/sub-merchants" *ngIf="subMerchantCounts().pending > 0">
-                <span class="feed-icon amber">⏳</span>
-                <div>
-                  <strong>{{ subMerchantCounts().pending }} KYC review pending</strong>
-                  <p>Businesses are waiting for sub-merchant activation.</p>
-                </div>
-                <span class="feed-arrow">&rarr;</span>
-              </a>
-              <a class="feed-item" routerLink="/admin/sub-merchants" *ngIf="subMerchantCounts().rejected > 0">
-                <span class="feed-icon red">⚠️</span>
-                <div>
-                  <strong>{{ subMerchantCounts().rejected }} KYC rejection{{ subMerchantCounts().rejected > 1 ? 's' : '' }}</strong>
-                  <p>Rejected merchants need follow-up or resubmission help.</p>
-                </div>
-                <span class="feed-arrow">&rarr;</span>
-              </a>
-            </div>
-
-            <ng-template #noActions>
-              <div class="empty-stage compact">
-                <div class="empty-stage-icon">✅</div>
-                <strong>No urgent admin actions</strong>
-                <p>The KYC and settlement queue is currently clear.</p>
-              </div>
-            </ng-template>
-          </article>
-
-          <article class="action-panel">
-            <div class="panel-head">
-              <div>
-                <h3>Jump To</h3>
-                <p>Fast paths into the operational pages that matter most.</p>
-              </div>
-            </div>
-
-            <div class="jump-grid">
-              <a class="jump-card primary" routerLink="/admin/businesses">
-                <span class="jump-icon">🏪</span>
-                <div>
-                  <strong>Businesses</strong>
-                  <span>{{ data.totalBusinesses }} registered</span>
-                </div>
-              </a>
-              <a class="jump-card" routerLink="/admin/sub-merchants">
-                <span class="jump-icon">👥</span>
-                <div>
-                  <strong>Sub-Merchants</strong>
-                  <span>{{ subMerchantCounts().active }} active, {{ subMerchantCounts().pending }} pending</span>
-                </div>
-              </a>
-              <a class="jump-card" routerLink="/admin/payment-dashboard">
-                <span class="jump-icon">💳</span>
-                <div>
-                  <strong>Payments</strong>
-                  <span>Gateway performance and payment mix</span>
-                </div>
-              </a>
-              <a class="jump-card" routerLink="/admin/settlements">
-                <span class="jump-icon">💸</span>
-                <div>
-                  <strong>Settlements</strong>
-                  <span>Track payout and commission summaries</span>
-                </div>
-              </a>
-            </div>
-          </article>
-        </section>
-
-        <section class="guidance-panel">
-          <div class="panel-head">
-            <div>
-              <h3>Recommended Admin Flow</h3>
-              <p>A simpler sequence for handling daily platform operations.</p>
-            </div>
-          </div>
-
-          <div class="guidance-grid">
-            <div class="guidance-step">
-              <span class="step-num">1</span>
-              <div>
-                <strong>Check KYC queue</strong>
-                <p>Review pending and rejected sub-merchants first so payments do not stall.</p>
-              </div>
-            </div>
-            <div class="guidance-step">
-              <span class="step-num">2</span>
-              <div>
-                <strong>Monitor payment health</strong>
-                <p>Use the payment dashboard to spot drops in success rate or unusual failure patterns.</p>
-              </div>
-            </div>
-            <div class="guidance-step">
-              <span class="step-num">3</span>
-              <div>
-                <strong>Review business growth</strong>
-                <p>Inspect businesses with low activity, missing setup, or slow onboarding progress.</p>
-              </div>
-            </div>
-          </div>
-        </section>
       </ng-container>
 
       <ng-template #loading>
-        <div class="load-state">
-          <div class="load-spinner"></div>
-          <p>Loading dashboard...</p>
+        <div class="skeleton-container">
+          <div class="header-row">
+            <div class="skeleton-title"></div>
+          </div>
+          <div class="stats-grid">
+            <div class="skeleton-card" *ngFor="let i of [1,2,3,4]"></div>
+          </div>
+          <div class="main-grid">
+            <div class="skeleton-card large"></div>
+            <div class="skeleton-card medium"></div>
+          </div>
         </div>
       </ng-template>
     </div>
   `,
   styles: [`
-    .dash-shell {
-      display: grid;
-      gap: 1.1rem;
-      max-width: 1480px;
+    .page-container {
+      padding: 24px;
+      max-width: 1400px;
       margin: 0 auto;
-      padding: 1.5rem;
     }
 
-    .hero-panel {
-      display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
-      gap: 1rem;
-      padding: 1.35rem;
-      border-radius: 26px;
-      border: 1px solid var(--line);
-      background:
-        radial-gradient(circle at top left, rgba(181, 106, 45, 0.18), transparent 30%),
-        radial-gradient(circle at right, rgba(74, 144, 217, 0.08), transparent 24%),
-        linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,239,228,0.98));
-      box-shadow: var(--shadow-md);
-    }
-
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      margin-bottom: 0.7rem;
-      padding: 0.4rem 0.75rem;
-      border-radius: 999px;
-      background: rgba(29,123,95,0.1);
-      color: var(--accent);
-      font-size: 0.78rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .hero-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--success);
-      box-shadow: 0 0 0 4px rgba(34,197,94,0.18);
-    }
-
-    .hero-copy h1 {
-      margin: 0;
-      font-size: clamp(1.9rem, 3vw, 2.8rem);
-      line-height: 1.04;
-    }
-
-    .hero-text {
-      max-width: 44rem;
-      margin: 0.7rem 0 0;
-      font-size: 1rem;
-      color: var(--muted);
-      line-height: 1.55;
-    }
-
-    .hero-facts {
+    .header-row {
       display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-      margin-top: 1rem;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 32px;
     }
 
-    .hero-facts span {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.45rem 0.7rem;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.72);
-      border: 1px solid rgba(181, 106, 45, 0.14);
-      font-size: 0.84rem;
-      font-weight: 600;
-    }
-
-    .hero-aside {
-      display: grid;
-      gap: 0.85rem;
-      align-content: start;
-    }
-
-    .hero-kpi {
-      padding: 1rem 1.1rem;
-      border-radius: 20px;
-      background: rgba(255,255,255,0.84);
-      border: 1px solid var(--line);
-    }
-
-    .hero-kpi.slim {
-      background: linear-gradient(180deg, rgba(246,241,255,0.88), rgba(255,255,255,0.9));
-    }
-
-    .hero-kpi-label {
-      display: block;
-      margin-bottom: 0.4rem;
-      font-size: 0.74rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted);
-      font-weight: 800;
-    }
-
-    .hero-kpi strong {
-      display: block;
-      font-size: 1.45rem;
-      margin-bottom: 0.3rem;
-    }
-
-    .hero-kpi p {
+    .page-title {
       margin: 0;
-      color: var(--muted);
-      font-size: 0.84rem;
-      line-height: 1.45;
-    }
-
-    .metric-band {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 0.9rem;
-    }
-
-    .metric-card {
-      padding: 1.15rem 1.1rem;
-      border-radius: 22px;
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow-sm);
-      background: var(--panel);
-    }
-
-    .metric-card.gold { background: linear-gradient(180deg, rgba(255, 246, 235, 0.96), rgba(255,255,255,0.98)); }
-    .metric-card.green { background: linear-gradient(180deg, rgba(238,249,244,0.96), rgba(255,255,255,0.98)); }
-    .metric-card.blue { background: linear-gradient(180deg, rgba(240,247,255,0.96), rgba(255,255,255,0.98)); }
-    .metric-card.purple { background: linear-gradient(180deg, rgba(246,241,255,0.96), rgba(255,255,255,0.98)); }
-
-    .metric-kicker {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-size: 0.74rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted);
-      font-weight: 800;
-    }
-
-    .metric-card strong {
-      display: block;
       font-size: 2rem;
-      line-height: 1;
-      margin-bottom: 0.35rem;
-    }
-
-    .metric-card p {
-      margin: 0;
-      font-size: 0.84rem;
-      color: var(--muted);
-    }
-
-    .ops-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.95rem;
-    }
-
-    .ops-card {
-      padding: 1.15rem;
-      border-radius: 22px;
-      border: 1px solid var(--line);
-      background: var(--panel);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .ops-card.emphasis {
-      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(247,239,228,0.92));
-    }
-
-    .ops-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 0.85rem;
-    }
-
-    .ops-head h3 {
-      margin: 0;
-      font-size: 1rem;
-    }
-
-    .ops-count {
-      font-size: 1rem;
       font-weight: 800;
-      color: var(--brand);
+      color: var(--ink);
+      letter-spacing: -0.5px;
     }
 
-    .stack-bars {
-      display: flex;
-      height: 12px;
-      border-radius: 999px;
-      overflow: hidden;
-      background: rgba(181, 106, 45, 0.08);
-      margin-bottom: 0.95rem;
-    }
-
-    .stack-bar.active { background: var(--accent); }
-    .stack-bar.pending { background: var(--warn); }
-    .stack-bar.rejected { background: var(--danger); }
-
-    .legend-grid {
-      display: grid;
-      gap: 0.65rem;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-    }
-
-    .legend-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .legend-dot.active { background: var(--accent); }
-    .legend-dot.pending { background: var(--warn); }
-    .legend-dot.rejected { background: var(--danger); }
-
-    .legend-item strong {
-      display: block;
-      font-size: 0.96rem;
-      line-height: 1.1;
-    }
-
-    .legend-item span:last-child {
+    .page-subtitle {
+      margin: 4px 0 0;
       color: var(--muted);
-      font-size: 0.8rem;
-    }
-
-    .revenue-stage {
-      display: flex;
-      justify-content: center;
-      align-items: end;
-      gap: 1.25rem;
-      min-height: 150px;
-      padding: 0.5rem 0 1rem;
-    }
-
-    .revenue-column {
-      display: flex;
-      flex-direction: column-reverse;
-      align-items: center;
-      gap: 0.6rem;
-    }
-
-    .column-fill {
-      width: 56px;
-      min-height: 8px;
-      border-radius: 16px 16px 6px 6px;
-    }
-
-    .column-fill.revenue {
-      background: linear-gradient(180deg, var(--brand), var(--brand-deep));
-    }
-
-    .column-fill.refunds {
-      background: linear-gradient(180deg, var(--danger), var(--danger-dark));
-    }
-
-    .column-label {
-      font-size: 0.78rem;
-      color: var(--muted);
-      font-weight: 700;
-    }
-
-    .detail-list {
-      display: grid;
-      gap: 0.55rem;
-    }
-
-    .detail-list div {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 0.84rem;
-    }
-
-    .detail-list span { color: var(--muted); }
-
-    .detail-list strong {
       font-size: 0.95rem;
     }
 
-    .detail-list .highlight {
-      padding-top: 0.45rem;
-      border-top: 1px solid var(--line);
+    .live-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
     }
 
-    .detail-list .highlight span,
-    .detail-list .highlight strong {
-      color: var(--ink);
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .live-text {
+      font-size: 0.75rem;
       font-weight: 800;
-    }
-
-    .health-ring {
-      --pct: 0;
-      width: 144px;
-      height: 144px;
-      margin: 0 auto 1rem;
-      border-radius: 50%;
-      background: conic-gradient(var(--accent) calc(var(--pct) * 1%), rgba(29,123,95,0.12) calc(var(--pct) * 1%));
-      display: grid;
-      place-items: center;
-    }
-
-    .health-ring-core {
-      width: 114px;
-      height: 114px;
-      border-radius: 50%;
-      background: rgba(255,252,247,0.96);
-      border: 1px solid rgba(29,123,95,0.12);
-      display: grid;
-      place-items: center;
-      text-align: center;
-    }
-
-    .health-ring-core strong {
-      display: block;
-      font-size: 1.5rem;
-      line-height: 1;
-    }
-
-    .health-ring-core span {
-      font-size: 0.72rem;
-      color: var(--muted);
+      color: #10b981;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 1px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .poll-field {
+      width: 150px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      overflow: hidden;
+      position: relative;
+      background: var(--panel);
+    }
+
+    .stat-card.clickable {
+      cursor: pointer;
+    }
+
+    .stat-card.clickable:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-xl);
+    }
+
+    .stat-card.clickable::after {
+      content: 'arrow_forward';
+      font-family: 'Material Icons';
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 18px;
+      color: var(--muted);
+      opacity: 0;
+      transition: all 0.3s ease;
+      transform: translateX(-10px);
+    }
+
+    .stat-card.clickable:hover::after {
+      opacity: 1;
+      transform: translateX(0);
+      color: var(--brand);
+    }
+
+    .stat-icon {
+      background: var(--brand-soft);
+      color: var(--brand);
+      width: 52px;
+      height: 52px;
+      line-height: 52px;
+      text-align: center;
+      border-radius: var(--radius-lg);
+      font-size: 26px;
+      transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover .stat-icon {
+      transform: scale(1.1) rotate(6deg);
+    }
+
+    /* Premium colors & backgrounds for platform stats cards */
+    .businesses { 
+      border-color: rgba(2, 132, 199, 0.12) !important;
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.04) 0%, var(--panel) 100%);
+    }
+    .businesses .stat-icon { background: rgba(14, 165, 233, 0.12); color: #0284c7; }
+    .businesses:hover { border-color: rgba(14, 165, 233, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(14, 165, 233, 0.2) !important; }
+
+    .revenue { 
+      border-color: rgba(217, 119, 6, 0.12) !important;
+      background: linear-gradient(135deg, rgba(217, 119, 6, 0.04) 0%, var(--panel) 100%);
+    }
+    .revenue .stat-icon { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+    .revenue:hover { border-color: rgba(245, 158, 11, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(245, 158, 11, 0.2) !important; }
+
+    .orders { 
+      border-color: rgba(22, 163, 74, 0.12) !important;
+      background: linear-gradient(135deg, rgba(22, 163, 74, 0.04) 0%, var(--panel) 100%);
+    }
+    .orders .stat-icon { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
+    .orders:hover { border-color: rgba(34, 197, 94, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(34, 197, 94, 0.2) !important; }
+
+    .staff { 
+      border-color: rgba(147, 51, 234, 0.12) !important;
+      background: linear-gradient(135deg, rgba(147, 51, 234, 0.04) 0%, var(--panel) 100%);
+    }
+    .staff .stat-icon { background: rgba(168, 85, 247, 0.12); color: #9333ea; }
+    .staff:hover { border-color: rgba(168, 85, 247, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(168, 85, 247, 0.2) !important; }
+
+    .stat-footer {
+      display: flex;
+      flex-direction: column;
+      margin-top: 16px;
+    }
+
+    .trend {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.85rem;
       font-weight: 700;
     }
 
-    .action-board {
+    .trend mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    .trend.up { color: #16a34a; }
+    .trend.down { color: #dc2626; }
+
+    .subtext {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .main-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 1rem;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 32px;
     }
 
-    .action-panel {
-      padding: 1.2rem;
-      border-radius: 22px;
-      border: 1px solid var(--line);
-      background: var(--panel);
-      box-shadow: var(--shadow-sm);
+    .left-col, .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
     }
 
-    .panel-head {
+    .pipeline-visual {
+      margin: 24px 0;
+    }
+
+    .pipeline-labels {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      gap: 0.85rem;
-      margin-bottom: 0.9rem;
-    }
-
-    .panel-head h3 {
-      margin: 0 0 0.24rem;
-      font-size: 1.08rem;
-    }
-
-    .panel-head p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.84rem;
-    }
-
-    .badge {
-      min-width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      background: var(--danger);
-      color: #fff;
-      display: inline-grid;
-      place-items: center;
-      font-size: 0.78rem;
-      font-weight: 800;
-    }
-
-    .action-feed {
-      display: grid;
-      gap: 0.7rem;
-    }
-
-    .feed-item {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: 0.75rem;
-      align-items: center;
-      padding: 0.9rem 0.95rem;
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.84), rgba(247,239,228,0.86));
-      text-decoration: none;
-      color: inherit;
-    }
-
-    .feed-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      font-size: 1rem;
-      background: rgba(181, 106, 45, 0.1);
-    }
-
-    .feed-icon.amber { background: rgba(230,126,34,0.14); }
-    .feed-icon.red { background: rgba(166,55,47,0.14); }
-
-    .feed-item strong {
-      display: block;
-      margin-bottom: 0.16rem;
-      font-size: 0.92rem;
-    }
-
-    .feed-item p {
-      margin: 0;
-      color: var(--muted);
       font-size: 0.8rem;
-      line-height: 1.4;
+      font-weight: 700;
+      color: var(--ink-secondary);
+      margin-bottom: 10px;
     }
 
-    .feed-arrow {
+    .pipeline-bars {
+      display: flex;
+      height: 14px;
+      border-radius: 7px;
+      overflow: hidden;
+      background: var(--bg);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+    
+    .bar {
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .bar.active { background: linear-gradient(90deg, #10b981, #059669); }
+    .bar.pending { background: linear-gradient(90deg, #fbbf24, #d97706); }
+    .bar.rejected { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .action-item {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      border-radius: var(--radius-xl) !important;
+      border: 1px solid var(--line) !important;
+      background: var(--panel) !important;
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+      color: var(--ink);
+    }
+
+    .action-item:hover {
+      transform: translateY(-6px) scale(1.03) !important;
+      background: var(--panel-hover) !important;
+      border-color: var(--brand-light) !important;
+      box-shadow: 0 12px 24px rgba(199, 115, 47, 0.15) !important;
+    }
+
+    .action-item mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
       color: var(--brand);
-      font-weight: 800;
-      font-size: 1.1rem;
+      transition: all 0.3s ease;
+    }
+    .action-item:hover mat-icon {
+      transform: scale(1.15);
     }
 
-    .jump-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.75rem;
+    .action-label {
+      font-weight: 700;
+      font-size: 0.95rem;
     }
 
-    .jump-card {
+    .revenue-summary {
       display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px 0;
+    }
+
+    .rev-row {
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 0.8rem;
-      padding: 0.95rem 1rem;
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(246,240,230,0.84));
-      text-decoration: none;
-      color: inherit;
-      transition: transform 0.18s ease, box-shadow 0.18s ease;
     }
 
-    .jump-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-sm);
+    .rev-row .label { color: var(--ink-secondary); font-size: 0.9rem; }
+    .rev-row .value { font-weight: 700; font-size: 1.05rem; color: var(--ink); }
+    
+    ::ng-deep .revenue-card .mat-mdc-progress-bar {
+      height: 6px !important;
+      border-radius: 3px !important;
+    }
+    ::ng-deep .gross-bar .mdc-linear-progress__bar-inner {
+      background-color: var(--brand) !important;
     }
 
-    .jump-card.primary {
-      background: linear-gradient(135deg, rgba(181,106,45,0.12), rgba(255,255,255,0.95));
+    .rev-row.highlight { 
+      margin-top: 16px; 
+      padding: 12px 16px; 
+      border-radius: var(--radius-md); 
+      background: var(--brand-soft); 
+      border: 1px solid rgba(199, 115, 47, 0.15); 
+    }
+    .rev-row.highlight .label { font-weight: 700; color: var(--brand-dark); }
+    .rev-row.highlight .value { font-size: 1.35rem; color: var(--brand); font-weight: 800; }
+    
+    /* Dark theme adjustments for highlighted row */
+    :host-context(.dark-theme) .rev-row.highlight .label {
+      color: var(--brand-light);
     }
 
-    .jump-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
-      background: rgba(181,106,45,0.1);
-      font-size: 1.15rem;
-      flex-shrink: 0;
+    .health-badge {
+      font-size: 0.75rem;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      background: rgba(239, 68, 68, 0.12);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
     }
 
-    .jump-card strong {
-      display: block;
-      margin-bottom: 0.14rem;
-      font-size: 0.92rem;
+    .health-badge.good {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.2);
     }
 
-    .jump-card span:last-child {
-      color: var(--muted);
-      font-size: 0.8rem;
-      line-height: 1.35;
-    }
-
-    .empty-stage {
-      min-height: 220px;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      padding: 1.75rem 1rem;
-      border-radius: 20px;
-      border: 1px dashed rgba(181,106,45,0.22);
-      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(246,240,230,0.82));
-    }
-
-    .empty-stage.compact {
-      min-height: 180px;
-    }
-
-    .empty-stage-icon {
-      font-size: 2.3rem;
-      margin-bottom: 0.6rem;
-    }
-
-    .empty-stage strong {
-      display: block;
-      margin-bottom: 0.28rem;
-      font-size: 1.08rem;
-    }
-
-    .empty-stage p {
-      margin: 0;
-      color: var(--muted);
-      max-width: 22rem;
-      line-height: 1.45;
-    }
-
-    .guidance-panel {
-      padding: 1.2rem;
-      border-radius: 22px;
-      border: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(246,240,230,0.88));
-      box-shadow: var(--shadow-sm);
-    }
-
-    .guidance-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.8rem;
-    }
-
-    .guidance-step {
+    .health-metrics {
       display: flex;
-      align-items: flex-start;
-      gap: 0.75rem;
-      padding: 0.95rem 1rem;
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.82);
-    }
-
-    .step-num {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      background: rgba(181,106,45,0.12);
-      color: var(--brand-deep);
-      font-weight: 800;
-      flex-shrink: 0;
-    }
-
-    .guidance-step strong {
-      display: block;
-      margin-bottom: 0.16rem;
-      font-size: 0.9rem;
-    }
-
-    .guidance-step p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.8rem;
-      line-height: 1.42;
-    }
-
-    .load-state {
+      justify-content: space-around;
+      padding: 24px 0;
       text-align: center;
-      padding: 4rem 1rem;
+    }
+
+    .metric { display: flex; flex-direction: column; gap: 6px; }
+    .m-val { font-size: 1.75rem; font-weight: 800; color: var(--ink); }
+    .m-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; }
+
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
       color: var(--muted);
     }
 
-    .load-spinner {
-      width: 28px;
-      height: 28px;
-      border: 3px solid var(--line);
-      border-top-color: var(--brand);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      margin: 0 auto 0.75rem;
+    /* Skeleton Loading Effects */
+    .skeleton-container { width: 100%; }
+    .skeleton-title { width: 300px; height: 32px; background: #e2e8f0; border-radius: 8px; margin-bottom: 24px; }
+    .skeleton-card { height: 160px; background: #e2e8f0; border-radius: 20px; position: relative; overflow: hidden; }
+    .skeleton-card.large { height: 400px; }
+    .skeleton-card.medium { height: 300px; }
+
+    .skeleton-card::after, .skeleton-title::after {
+      content: "";
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      transform: translateX(-100%);
+      background-image: linear-gradient(90deg, rgba(255,255,255,0) 0, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+      animation: shimmer 1.5s infinite;
     }
 
-    @media (max-width: 1100px) {
-      .hero-panel,
-      .action-board {
-        grid-template-columns: 1fr;
-      }
-      .metric-band,
-      .ops-grid,
-      .guidance-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
+    @keyframes shimmer { 100% { transform: translateX(100%); } }
 
-    @media (max-width: 720px) {
-      .metric-band,
-      .ops-grid,
-      .jump-grid,
-      .guidance-grid {
-        grid-template-columns: 1fr;
-      }
-      .hero-panel {
-        padding: 1rem;
-      }
-      .hero-copy h1 {
-        font-size: 1.75rem;
-      }
-      .feed-item {
-        grid-template-columns: 1fr;
-      }
-      .feed-arrow {
-        display: none;
-      }
-      .health-ring {
-        width: 132px;
-        height: 132px;
-      }
-      .health-ring-core {
-        width: 102px;
-        height: 102px;
-      }
+    .spinning { animation: rotate 1s linear infinite; }
+    @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    @media (max-width: 960px) {
+      .main-grid { grid-template-columns: 1fr; }
     }
   `]
 })
-export class PlatformDashboardPageComponent {
+export class PlatformDashboardPageComponent implements OnDestroy {
   private readonly api = inject(AdminApiService);
 
+  readonly Math = Math;
+  readonly liveDate = signal(new Date().toLocaleDateString('en-IN', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  }));
+  private dateInterval: ReturnType<typeof setInterval> | null = setInterval(() => {
+    this.liveDate.set(new Date().toLocaleDateString('en-IN', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    }));
+  }, 60000);
+
+  ngOnDestroy(): void {
+    if (this.dateInterval) clearInterval(this.dateInterval);
+  }
+
+  private readonly refresh$ = new Subject<void>();
+  refreshing = false;
+
+  readonly pollIntervalMs = signal<number>(
+    (() => {
+      const stored = localStorage.getItem('kbook-admin-poll');
+      const parsed = stored ? parseInt(stored, 10) : 30000;
+      return [0, 15000, 30000, 60000].includes(parsed) ? parsed : 30000;
+    })()
+  );
+
   readonly summary = toSignal(
-    this.api.getDashboardSummary().pipe(
-      catchError(() => of(null)),
-      map(s => s ? {
-        ...s,
-        totalRevenueFormatted: formatCurrency(s.totalRevenue),
-        refundedAmountFormatted: formatCurrency(s.refundedAmount)
-      } : null)
+    this.refresh$.pipe(
+      startWith(undefined),
+      switchMap(() => {
+        const timer$ = this.pollIntervalMs() > 0 ? interval(this.pollIntervalMs()) : of(0);
+        return timer$.pipe(
+          startWith(0),
+          switchMap(() =>
+            this.api.getDashboardSummary().pipe(
+              catchError(() => of(null)),
+              map(s => s ? {
+                ...s,
+                totalRevenueFormatted: formatCurrency(s.totalRevenue),
+                refundedAmountFormatted: formatCurrency(s.refundedAmount)
+              } : null)
+            )
+          )
+        );
+      })
     )
   );
 
   readonly subMerchantCounts = toSignal(
-    this.api.getSubMerchants().pipe(
-      catchError(() => of([])),
-      map(list => ({
-        total: list.length,
-        active: list.filter(s => s.status === 'ACTIVE').length,
-        pending: list.filter(s => s.status === 'PENDING_KYC' || s.status === 'KYC_SUBMITTED').length,
-        rejected: list.filter(s => s.status === 'REJECTED' || s.status === 'FAILED').length
-      }))
+    this.refresh$.pipe(
+      startWith(undefined),
+      switchMap(() => {
+        const timer$ = this.pollIntervalMs() > 0 ? interval(this.pollIntervalMs()) : of(0);
+        return timer$.pipe(
+          startWith(0),
+          switchMap(() =>
+            this.api.getSubMerchants().pipe(
+              catchError(() => of([])),
+              map(list => ({
+                total: list.length,
+                active: list.filter(s => s.status === 'ACTIVE').length,
+                pending: list.filter(s => s.status === 'PENDING_KYC' || s.status === 'KYC_SUBMITTED').length,
+                rejected: list.filter(s => s.status === 'REJECTED' || s.status === 'FAILED').length
+              }))
+            )
+          )
+        );
+      })
     ),
     { initialValue: { total: 0, active: 0, pending: 0, rejected: 0 } }
   );
@@ -929,14 +709,16 @@ export class PlatformDashboardPageComponent {
     return Math.min(100, (s.refundedAmount / s.totalRevenue) * 100);
   }
 
-  hasPendingActions(): boolean {
-    const c = this.subMerchantCounts();
-    return c.pending > 0 || c.rejected > 0;
+  refresh(): void {
+    this.refreshing = true;
+    this.refresh$.next();
+    setTimeout(() => (this.refreshing = false), 800);
   }
 
-  pendingCount(): number {
-    const c = this.subMerchantCounts();
-    return c.pending + c.rejected;
+  setPollInterval(val: number): void {
+    this.pollIntervalMs.set(val);
+    localStorage.setItem('kbook-admin-poll', String(val));
+    this.refresh$.next();
   }
 
   netRevenueFormatted(data: any): string {

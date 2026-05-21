@@ -5,6 +5,14 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { formatCurrency } from '../../shared/formatters';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatButtonModule } from '@angular/material/button';
 
 interface PaymentDashboardData {
   totalTransactions: number;
@@ -18,147 +26,233 @@ interface PaymentDashboardData {
 @Component({
   selector: 'app-payment-dashboard-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    CommonModule,
+    MatCardModule,
+    MatIconModule,
+    MatDividerModule,
+    MatProgressBarModule,
+    MatTableModule,
+    MatTooltipModule,
+    MatProgressSpinnerModule,
+    MatButtonModule
+  ],
   template: `
-    <div class="page-shell">
-      <section class="panel page-hero">
-        <h2>💳 Payment Dashboard</h2>
-        <p class="muted">Real-time payment gateway analytics and transaction insights</p>
-        <div class="hero-meta">
-          <span class="chip">Easebuzz</span>
-          <span class="chip success">Live</span>
-          <span class="chip">Gateway Health</span>
+    <div class="page-container">
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">Payment Dashboard</h1>
+          <p class="page-subtitle">Real-time payment gateway analytics and transaction insights.</p>
         </div>
-      </section>
+        <div class="header-right">
+          <div class="status-indicator">
+            <span class="dot pulse success"></span>
+            <span class="status-label">Easebuzz Gateway: Operational</span>
+          </div>
+        </div>
+      </div>
 
       <div *ngIf="data() as d; else loading">
-        <div class="stat-grid">
-          <article class="panel stat-card">
-            <div class="stat-icon">📊</div>
-            <div class="stat-body">
-              <span class="stat-label">Total Transactions</span>
-              <span class="stat-value">{{ d.totalTransactions }}</span>
-            </div>
-          </article>
-          <article class="panel stat-card">
-            <div class="stat-icon">✅</div>
-            <div class="stat-body">
-              <span class="stat-label">Success Rate</span>
-              <span class="stat-value">{{ d.successRate }}%</span>
-              <div class="progress-track">
-                <div class="progress-fill" [style.width.%]="d.successRate"></div>
+        <div class="stats-grid">
+          <mat-card class="stat-card transactions">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="stat-icon">query_stats</mat-icon>
+              <mat-card-title>{{ d.totalTransactions }}</mat-card-title>
+              <mat-card-subtitle>Total Transactions</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-footer">
+                <span class="subtext">Processed all-time</span>
               </div>
-            </div>
-          </article>
-          <article class="panel stat-card">
-            <div class="stat-icon">💰</div>
-            <div class="stat-body">
-              <span class="stat-label">Today's Revenue</span>
-              <span class="stat-value">{{ formatCurrencyValue(d.todayRevenue) }}</span>
-            </div>
-          </article>
-          <article class="panel stat-card">
-            <div class="stat-icon">📦</div>
-            <div class="stat-body">
-              <span class="stat-label">Today's Orders</span>
-              <span class="stat-value">{{ d.todayOrders }}</span>
-            </div>
-          </article>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card success-rate">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="stat-icon">check_circle</mat-icon>
+              <mat-card-title>{{ d.successRate }}%</mat-card-title>
+              <mat-card-subtitle>Success Rate</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-footer">
+                <mat-progress-bar mode="determinate" [value]="d.successRate" class="rate-bar"></mat-progress-bar>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card revenue">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="stat-icon">payments</mat-icon>
+              <mat-card-title>{{ formatCurrencyValue(d.todayRevenue) }}</mat-card-title>
+              <mat-card-subtitle>Today's Revenue</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-footer">
+                <span class="subtext">Daily collection</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card orders">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="stat-icon">shopping_bag</mat-icon>
+              <mat-card-title>{{ d.todayOrders }}</mat-card-title>
+              <mat-card-subtitle>Today's Orders</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="stat-footer">
+                <span class="subtext">Payment orders</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
         </div>
 
-        <div class="detail-grid">
-          <section class="panel">
-            <div class="section-head">
-              <h3>Payment Method Breakdown</h3>
-            </div>
-            <div class="table-wrap" *ngIf="d.paymentMethods.length; else noMethods">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Method</th>
-                    <th>Count</th>
-                    <th>Success Rate</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let pm of d.paymentMethods">
-                    <td>{{ pm.method }}</td>
-                    <td>{{ pm.count }}</td>
-                    <td>
-                      <span class="chip" [class.success]="pm.successRate >= 90" [class.warn]="pm.successRate < 90 && pm.successRate >= 70" [class.danger]="pm.successRate < 70">
+        <div class="main-grid">
+          <mat-card class="breakdown-card">
+            <mat-card-header>
+              <mat-card-title>Payment Method Breakdown</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="table-container" *ngIf="d.paymentMethods.length; else noMethods">
+                <table mat-table [dataSource]="d.paymentMethods">
+                  <ng-container matColumnDef="method">
+                    <th mat-header-cell *matHeaderCellDef> Method </th>
+                    <td mat-cell *matCellDef="let pm"> {{ pm.method }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="count">
+                    <th mat-header-cell *matHeaderCellDef> Count </th>
+                    <td mat-cell *matCellDef="let pm"> {{ pm.count }} </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="rate">
+                    <th mat-header-cell *matHeaderCellDef> Success Rate </th>
+                    <td mat-cell *matCellDef="let pm">
+                      <span class="rate-chip" [class.good]="pm.successRate >= 90" [class.warn]="pm.successRate < 90 && pm.successRate >= 70" [class.danger]="pm.successRate < 70">
                         {{ pm.successRate }}%
                       </span>
                     </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <ng-template #noMethods>
-              <div class="panel loading">No payment method data available.</div>
-            </ng-template>
-          </section>
+                  </ng-container>
 
-          <section class="panel">
-            <div class="section-head">
-              <h3>Easebuzz Gateway Health</h3>
-            </div>
-            <div class="easebuzz-card">
-              <div class="easebuzz-icon">🔌</div>
-              <div class="easebuzz-info">
-                <span class="stat-label">Gateway Success Rate</span>
-                <span class="stat-value easebuzz-pct">{{ d.easebuzzSuccessRate }}%</span>
+                  <tr mat-header-row *matHeaderRowDef="['method', 'count', 'rate']"></tr>
+                  <tr mat-row *matRowDef="let row; columns: ['method', 'count', 'rate'];"></tr>
+                </table>
               </div>
-              <div class="progress-track large">
-                <div class="progress-fill easebuzz-fill" [style.width.%]="d.easebuzzSuccessRate"></div>
-              </div>
-              <p class="muted" style="margin: 0.5rem 0 0;">
-                <span *ngIf="d.easebuzzSuccessRate >= 95">✅ Gateway is healthy</span>
-                <span *ngIf="d.easebuzzSuccessRate < 95 && d.easebuzzSuccessRate >= 80">⚠️ Gateway needs attention</span>
-                <span *ngIf="d.easebuzzSuccessRate < 80">🚨 Gateway critical — investigate immediately</span>
-              </p>
-            </div>
-          </section>
+              <ng-template #noMethods>
+                <div class="no-data">No payment method data available.</div>
+              </ng-template>
+            </mat-card-content>
+          </mat-card>
+
+          <div class="health-col">
+            <mat-card class="health-card">
+              <mat-card-header>
+                <mat-card-title>Gateway Health</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="gateway-health">
+                  <div class="health-circle">
+                    <mat-progress-spinner mode="determinate" [value]="d.easebuzzSuccessRate" [diameter]="100" [strokeWidth]="8"></mat-progress-spinner>
+                    <div class="health-value">
+                      <strong>{{ d.easebuzzSuccessRate }}%</strong>
+                      <span>Uptime</span>
+                    </div>
+                  </div>
+                  <div class="health-info">
+                    <div class="health-status" [class.good]="d.easebuzzSuccessRate >= 95" [class.warn]="d.easebuzzSuccessRate < 95 && d.easebuzzSuccessRate >= 80" [class.danger]="d.easebuzzSuccessRate < 80">
+                      {{ d.easebuzzSuccessRate >= 95 ? 'Gateway is healthy' : (d.easebuzzSuccessRate >= 80 ? 'Gateway needs attention' : 'Gateway critical') }}
+                    </div>
+                    <p class="subtext">Easebuzz gateway success rate for current period.</p>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card class="action-card">
+              <mat-card-header>
+                <mat-card-title>Quick Actions</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="action-list">
+                  <button mat-stroked-button color="primary" class="full-width">
+                    <mat-icon>history</mat-icon>
+                    View Transaction Log
+                  </button>
+                  <button mat-stroked-button color="primary" class="full-width">
+                    <mat-icon>account_balance</mat-icon>
+                    Settlement Reports
+                  </button>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
         </div>
       </div>
 
       <ng-template #loading>
-        <div class="load-state">
-          <div class="spinner"></div>
-          <p>Loading payment dashboard...</p>
+        <div class="loading-container">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Loading payment analytics...</p>
         </div>
       </ng-template>
     </div>
   `,
   styles: [`
-    .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; margin-top:1.5rem; }
-    .stat-card { display:flex; align-items:center; gap:1rem; padding:1.25rem; border-radius:16px; }
-    .stat-icon { font-size:2rem; line-height:1; }
-    .stat-body { display:flex; flex-direction:column; flex:1; }
-    .stat-label { font-size:.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
-    .stat-value { font-size:1.6rem; font-weight:800; line-height:1.2; }
-    .progress-track { height:6px; border-radius:999px; background:var(--line); margin-top:.5rem; overflow:hidden; }
-    .progress-fill { height:100%; border-radius:999px; background:var(--accent); transition:width .5s ease; }
-    .progress-track.large { height:10px; }
-    .easebuzz-fill { background:linear-gradient(90deg,var(--brand),var(--accent)); }
-    .easebuzz-pct { color:var(--brand); }
-    .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem; }
-    .easebuzz-card { display:flex; flex-direction:column; gap:.75rem; padding:.5rem 0; }
-    .easebuzz-icon { font-size:2.5rem; }
-    .easebuzz-info { display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; }
-    .section-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem; }
-    .section-head h3 { margin:0; font-size:1rem; }
-    .table-wrap { overflow-x:auto; }
-    .chip.success { background:rgba(29,123,95,.12); color:var(--accent); }
-    .chip.warn { background: var(--warn-soft); color: var(--warn); }
-    .chip.danger { background:rgba(166,55,47,.12); color:var(--danger); }
-    .load-state { text-align:center; padding:3rem; color:var(--muted); }
-    .spinner { width:24px; height:24px; border:3px solid var(--line); border-top-color:var(--brand); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto .75rem; }
-    .panel.loading { padding:2rem; text-align:center; color:var(--muted); }
-    @media (max-width: 720px) {
-      .detail-grid { grid-template-columns:1fr; }
-      .stat-grid { margin-top: 1rem; }
-      .stat-card { align-items: flex-start; }
-    }
+    .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+    .page-title { margin: 0; font-size: 1.75rem; font-weight: 700; color: var(--ink); }
+    .page-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.9rem; }
+
+    .status-indicator { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--bg-elevated); border-radius: 999px; border: 1px solid var(--line); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot.success { background: #16a34a; box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1); }
+    .dot.pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(22, 163, 74, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); } 100% { box-shadow: 0 0 0 0px rgba(22, 163, 74, 0); } }
+    .status-label { font-size: 0.85rem; font-weight: 600; color: var(--ink); }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-bottom: 32px; }
+    .stat-card { border-radius: 16px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    .stat-icon { background: var(--brand-soft); color: var(--brand); width: 48px; height: 48px; line-height: 48px; text-align: center; border-radius: 12px; font-size: 24px; }
+    .transactions .stat-icon { background: #f3e8ff; color: #9333ea; }
+    .success-rate .stat-icon { background: #dcfce7; color: #16a34a; }
+    .revenue .stat-icon { background: #fef3c7; color: #d97706; }
+    .orders .stat-icon { background: #e0f2fe; color: #0284c7; }
+
+    .stat-footer { margin-top: 16px; }
+    .subtext { font-size: 0.75rem; color: var(--muted); }
+    .rate-bar { height: 6px; border-radius: 3px; }
+
+    .main-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 32px; }
+    .breakdown-card { border-radius: 16px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    .table-container { margin-top: 16px; }
+    table { width: 100%; }
+
+    .rate-chip { padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+    .rate-chip.good { background: #dcfce7; color: #16a34a; }
+    .rate-chip.warn { background: #fef3c7; color: #d97706; }
+    .rate-chip.danger { background: #fee2e2; color: #dc2626; }
+
+    .health-col { display: flex; flex-direction: column; gap: 24px; }
+    .health-card { border-radius: 16px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    .gateway-health { display: flex; align-items: center; gap: 24px; padding: 16px 0; }
+    .health-circle { position: relative; display: flex; align-items: center; justify-content: center; }
+    .health-value { position: absolute; display: flex; flex-direction: column; align-items: center; }
+    .health-value strong { font-size: 1.25rem; color: var(--ink); }
+    .health-value span { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; }
+    .health-info { flex: 1; }
+    .health-status { font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; }
+    .health-status.good { color: #16a34a; }
+    .health-status.warn { color: #d97706; }
+    .health-status.danger { color: #dc2626; }
+
+    .action-card { border-radius: 16px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    .action-list { display: flex; flex-direction: column; gap: 12px; padding: 16px 0; }
+    .full-width { width: 100%; justify-content: flex-start; gap: 12px; }
+
+    .loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; color: var(--muted); }
+    .no-data { padding: 32px; text-align: center; color: var(--muted); }
+
+    @media (max-width: 960px) { .main-grid { grid-template-columns: 1fr; } }
   `]
 })
 export class PaymentDashboardPageComponent {

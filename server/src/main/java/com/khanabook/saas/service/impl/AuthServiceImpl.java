@@ -176,8 +176,7 @@ public class AuthServiceImpl implements AuthService {
 
 		String hashedPassword = passwordEncoder.encode(password);
 		User user = new User();
-		user.setName(name);
-		user.setEmail(phone.contains("@") ? phone : "admin@kbook.app");
+		user.setName(name);        user.setEmail(phone.contains("@") ? phone : "admin_" + phone + "@kbook.app");
 		user.setPhoneNumber(phone.matches("\\d+") ? phone : null);
 		user.setLoginId(phone);
 		user.setAuthProvider(AuthProvider.PHONE);
@@ -320,6 +319,10 @@ public class AuthServiceImpl implements AuthService {
 
 		User user = findUserByLoginId(phoneNumber)
 				.orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+		if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+			throw new IllegalArgumentException("New password cannot be the same as the old password.");
+		}
 
 		user.setPasswordHash(passwordEncoder.encode(newPassword));
 		user.setTokenInvalidatedAt(System.currentTimeMillis());

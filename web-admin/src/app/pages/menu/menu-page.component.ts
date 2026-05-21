@@ -1,7 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject } from '@angular/core';
+import { Component, DestroyRef, inject, signal, ViewChild, AfterViewInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatMenuModule } from '@angular/material/menu';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessMenuItem } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
@@ -9,183 +23,369 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 @Component({
   selector: 'app-menu-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule, 
+    FormsModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatTooltipModule,
+    MatDividerModule,
+    MatMenuModule
+  ],
   template: `
-    <div class="page-shell">
-      <section class="panel page-hero">
-        <h2>Menu</h2>
-        <p class="muted">Current business menu with cleaner alignment for descriptions, pricing, and availability status.</p>
-        <div class="hero-meta">
-          <span class="chip">Catalog Review</span>
-          <span class="chip success">Stock Visibility</span>
+    <div class="page-container">
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">Menu Catalog</h1>
+          <p class="page-subtitle">Manage your restaurant menu items, categories, and real-time availability.</p>
         </div>
-      </section>
-
-      <div class="toolbar">
-        <div>
-          <h3>Menu Snapshot</h3>
-          <p class="muted">Use this list to spot missing descriptions, low stock, and stale updates.</p>
+        <div class="header-actions">
+          <button mat-flat-button color="primary" (click)="loadMenu()">
+            <mat-icon>refresh</mat-icon>
+            Sync Menu
+          </button>
         </div>
-        <button class="ghost-btn" (click)="loadMenu()">Refresh</button>
       </div>
 
-      <section class="panel filter-panel" *ngIf="loaded && items.length">
-        <div class="filter-grid">
-          <div class="filter-group">
-            <label for="menu-search">Search</label>
-            <input
-              id="menu-search"
-              class="field-control"
-              type="text"
-              [(ngModel)]="searchTerm"
-              (ngModelChange)="resetPage()"
-              placeholder="Search by item, category, or description"
-            />
-          </div>
-          <div class="filter-group">
-            <label for="menu-stock">Stock</label>
-            <select
-              id="menu-stock"
-              class="field-select"
-              [(ngModel)]="stockFilter"
-              (ngModelChange)="resetPage()"
-            >
-              <option value="ALL">All stock states</option>
-              <option value="IN_STOCK">In stock</option>
-              <option value="RUNNING_LOW">Running low</option>
-              <option value="OUT_OF_STOCK">Out of stock</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="menu-availability">Availability</label>
-            <select
-              id="menu-availability"
-              class="field-select"
-              [(ngModel)]="availabilityFilter"
-              (ngModelChange)="resetPage()"
-            >
-              <option value="ALL">All items</option>
-              <option value="AVAILABLE">Available</option>
-              <option value="UNAVAILABLE">Unavailable</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="menu-size">Rows</label>
-            <select
-              id="menu-size"
-              class="field-select"
-              [(ngModel)]="pageSize"
-              (ngModelChange)="resetPage()"
-            >
-              <option [ngValue]="5">5</option>
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="20">20</option>
-            </select>
-          </div>
+      <div class="stats-grid" *ngIf="loaded">
+        <mat-card class="stat-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="stat-icon total">restaurant_menu</mat-icon>
+            <mat-card-title>{{ items.length }}</mat-card-title>
+            <mat-card-subtitle>Total Items</mat-card-subtitle>
+          </mat-card-header>
+        </mat-card>
+        <mat-card class="stat-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="stat-icon available">check_circle</mat-icon>
+            <mat-card-title>{{ availableCount() }}</mat-card-title>
+            <mat-card-subtitle>Live on App</mat-card-subtitle>
+          </mat-card-header>
+        </mat-card>
+        <mat-card class="stat-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="stat-icon low">warning</mat-icon>
+            <mat-card-title>{{ lowStockCount() }}</mat-card-title>
+            <mat-card-subtitle>Low Inventory</mat-card-subtitle>
+          </mat-card-header>
+        </mat-card>
+      </div>
+
+      <mat-card class="filter-card mat-elevation-z1">
+        <mat-card-content class="filter-row">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Find item...</mat-label>
+            <mat-icon matPrefix>search</mat-icon>
+            <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, category..." #input>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Stock Level</mat-label>
+            <mat-select [(ngModel)]="stockFilter" (selectionChange)="applyFilters()">
+              <mat-option value="ALL">All Levels</mat-option>
+              <mat-option value="IN_STOCK">In Stock</mat-option>
+              <mat-option value="RUNNING_LOW">Running Low</mat-option>
+              <mat-option value="OUT_OF_STOCK">Out of Stock</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Status</mat-label>
+            <mat-select [(ngModel)]="availabilityFilter" (selectionChange)="applyFilters()">
+              <mat-option value="ALL">All Status</mat-option>
+              <mat-option value="AVAILABLE">Available</mat-option>
+              <mat-option value="UNAVAILABLE">Unavailable</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="spacer"></div>
+          
+          <button mat-button (click)="clearFilters()">Reset</button>
+        </mat-card-content>
+      </mat-card>
+
+      <div class="table-container mat-elevation-z2">
+        <div class="loading-overlay" *ngIf="!loaded">
+          <mat-spinner diameter="40"></mat-spinner>
         </div>
 
-        <div class="filter-summary">
-          <p class="muted">{{ filteredItems.length }} of {{ items.length }} menu items</p>
-          <button class="ghost-btn" (click)="clearFilters()">Clear filters</button>
-        </div>
-      </section>
-
-      <div class="panel table-wrap" *ngIf="loaded && pagedItems.length; else loading">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Category</th>
-              <th>Type</th>
-              <th>Price</th>
-              <th>Variants</th>
-              <th>Availability</th>
-              <th>Updated</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of pagedItems">
-              <td>
-                <div class="stacked-meta">
-                  <strong>{{ item.name }}</strong>
-                  <span class="muted">{{ item.description || 'No description added yet.' }}</span>
+        <table mat-table [dataSource]="dataSource" matSort>
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Item Details </th>
+            <td mat-cell *matCellDef="let item"> 
+              <div class="item-cell">
+                <div class="item-avatar" [class.veg]="item.foodType === 'VEG'">
+                  <mat-icon>{{ item.foodType === 'VEG' ? 'eco' : 'restaurant' }}</mat-icon>
                 </div>
-              </td>
-              <td>{{ item.categoryName || '-' }}</td>
-              <td>{{ item.foodType || '-' }}</td>
-              <td>{{ formatCurrencyValue(item.basePrice) }}</td>
-              <td>{{ item.variantCount }}</td>
-              <td>
-                <span class="chip" [class.success]="item.available" [class.warn]="item.stockStatus === 'RUNNING_LOW'" [class.danger]="item.stockStatus === 'OUT_OF_STOCK'">
-                  {{ item.stockStatus }}
-                </span>
-              </td>
-              <td>{{ formatDateValue(item.updatedAt) }}</td>
-            </tr>
-          </tbody>
+                <div class="item-meta">
+                  <span class="item-name">{{ item.name }}</span>
+                  <span class="item-desc" [matTooltip]="item.description || ''">{{ item.description || 'No description' }}</span>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="categoryName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Category </th>
+            <td mat-cell *matCellDef="let item"> 
+              <span class="category-tag">{{ item.categoryName || 'General' }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="basePrice">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Base Price </th>
+            <td mat-cell *matCellDef="let item" class="price-cell"> 
+              <strong>{{ formatCurrencyValue(item.basePrice) }}</strong> 
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="availability">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Inventory </th>
+            <td mat-cell *matCellDef="let item">
+              <span class="stock-status-chip" [class]="getAvailabilityClass(item)">
+                {{ item.stockStatus }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef> App Status </th>
+            <td mat-cell *matCellDef="let item">
+               <div class="status-toggle-wrap">
+                 <span class="status-label" [class.on]="item.available">
+                   {{ item.available ? 'Live' : 'Hidden' }}
+                 </span>
+                 <button mat-icon-button (click)="$event.stopPropagation()" [color]="item.available ? 'primary' : ''">
+                   <mat-icon>{{ item.available ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                 </button>
+               </div>
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let item" class="actions-cell">
+               <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+                 <mat-icon>more_vert</mat-icon>
+               </button>
+               <mat-menu #menu="matMenu" xPosition="before">
+                 <button mat-menu-item>
+                   <mat-icon>edit</mat-icon>
+                   <span>Edit Item</span>
+                 </button>
+                 <button mat-menu-item>
+                   <mat-icon>inventory_2</mat-icon>
+                   <span>Update Stock</span>
+                 </button>
+                 <mat-divider></mat-divider>
+                 <button mat-menu-item color="warn">
+                   <mat-icon>delete</mat-icon>
+                   <span>Remove Item</span>
+                 </button>
+               </mat-menu>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="item-row"></tr>
+
+
         </table>
 
-        <div class="pagination-bar" *ngIf="filteredItems.length > pageSize">
-          <p class="muted">Page {{ currentPage }} of {{ totalPages }}</p>
-          <div class="pagination-controls">
-            <button class="ghost-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
-            <button class="ghost-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
-          </div>
+        <div class="empty-view" *ngIf="loaded && !dataSource.data.length">
+          <mat-icon>search_off</mat-icon>
+          <h3>No items found</h3>
+          <p>{{ loadError || 'Try adjusting your search or filters to see more results.' }}</p>
         </div>
-      </div>
 
-      <ng-template #loading>
-        <div class="panel loading">{{ loaded ? (loadError || 'No menu items match the current filters.') : (loadError || 'Loading menu...') }}</div>
-      </ng-template>
+        <mat-paginator [pageSizeOptions]="[10, 25, 50]" aria-label="Select page of menu items"></mat-paginator>
+      </div>
     </div>
-  `
+  `,
+  styles: [`
+    .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+    .page-title { margin: 0; font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -0.5px; }
+    .page-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-bottom: 32px; }
+    .stat-card { 
+      position: relative;
+      border-radius: var(--radius-xl); 
+      border: 1px solid var(--line); 
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-md); 
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      overflow: hidden;
+    }
+    .stat-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-xl);
+    }
+    .stat-icon { 
+      width: 52px; 
+      height: 52px; 
+      line-height: 52px; 
+      text-align: center; 
+      border-radius: var(--radius-lg); 
+      font-size: 26px; 
+      transition: all 0.3s ease;
+    }
+    .stat-card:hover .stat-icon {
+      transform: scale(1.1) rotate(6deg);
+    }
+    
+    .stat-icon.total { background: rgba(2, 132, 199, 0.12); color: #0284c7; }
+    .stat-icon.available { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
+    .stat-icon.low { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+
+    .filter-card { 
+      margin-bottom: 24px; 
+      border-radius: var(--radius-xl); 
+      border: 1px solid var(--line); 
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-md); 
+    }
+    .filter-row { display: flex; align-items: center; gap: 16px; padding: 16px 20px !important; }
+    .search-field { flex: 1; max-width: 400px; }
+    .filter-field { width: 160px; }
+    ::ng-deep .filter-row .mat-mdc-form-field-subscript-wrapper { display: none; }
+    .spacer { flex: 1; }
+
+    .table-container { 
+      position: relative; 
+      background: var(--panel); 
+      border-radius: var(--radius-xl); 
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-md); 
+      overflow: hidden; 
+    }
+    .loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.7); z-index: 10; display: flex; align-items: center; justify-content: center; }
+    table { width: 100%; background: transparent; }
+
+    ::ng-deep table th.mat-mdc-header-cell {
+      background: var(--panel) !important;
+      font-weight: 700 !important;
+      color: var(--ink) !important;
+      text-transform: uppercase !important;
+      font-size: 0.75rem !important;
+      letter-spacing: 0.5px !important;
+      border-bottom: 2px solid var(--line) !important;
+      padding: 16px !important;
+    }
+    ::ng-deep table td.mat-mdc-cell {
+      padding: 16px !important;
+      border-bottom: 1px solid var(--line) !important;
+      color: var(--ink-secondary) !important;
+      font-size: 0.9rem !important;
+    }
+
+    .item-row { transition: all 0.2s ease; background: transparent; }
+    .item-row:hover { background: var(--panel-hover) !important; }
+
+    .item-cell { display: flex; align-items: center; gap: 12px; }
+    .item-avatar { width: 42px; height: 42px; border-radius: var(--radius-lg); background: rgba(239, 68, 68, 0.1); color: #be123c; display: flex; align-items: center; justify-content: center; }
+    .item-avatar.veg { background: rgba(34, 197, 94, 0.1); color: #15803d; }
+    .item-avatar mat-icon { font-size: 22px; width: 22px; height: 22px; }
+    
+    .item-meta { display: flex; flex-direction: column; }
+    .item-name { font-weight: 700; color: var(--ink); }
+    .item-desc { font-size: 0.75rem; color: var(--muted); max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .category-tag { background: var(--brand-soft); color: var(--brand); padding: 4px 12px; border-radius: var(--radius-md); font-size: 0.8rem; font-weight: 700; }
+
+    .price-cell { font-weight: 700; color: var(--ink); }
+
+    .stock-status-chip { padding: 4px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stock-status-chip.success { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
+    .stock-status-chip.warn { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+    .stock-status-chip.danger { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+
+    .status-toggle-wrap { display: flex; align-items: center; gap: 8px; }
+    .status-label { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+    .status-label.on { color: var(--brand); }
+    .status-toggle-wrap button { width: 32px; height: 32px; line-height: 32px; }
+    .status-toggle-wrap mat-icon { font-size: 24px; }
+
+    .actions-cell { text-align: right; }
+
+    .skeleton-row td { padding: 16px !important; }
+    .skeleton-shimmer { height: 24px; width: 100%; background: #f1f5f9; border-radius: 6px; position: relative; overflow: hidden; }
+    .skeleton-shimmer::after {
+      content: "";
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      transform: translateX(-100%);
+      background-image: linear-gradient(90deg, rgba(255,255,255,0) 0, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+      animation: shimmer 1.5s infinite;
+    }
+
+    @keyframes shimmer { 100% { transform: translateX(100%); } }
+
+    .empty-view { padding: 80px 24px; text-align: center; color: var(--muted); }
+    .empty-view mat-icon { font-size: 64px; width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.2; }
+    .empty-view h3 { margin: 0 0 8px; font-weight: 700; }
+
+    @media (max-width: 768px) {
+      .header-row { flex-direction: column; gap: 16px; }
+      .filter-row { flex-direction: column; align-items: stretch; }
+      .search-field { max-width: none; }
+    }
+  `]
 })
-export class MenuPageComponent {
+export class MenuPageComponent implements AfterViewInit {
   private readonly api = inject(BusinessApiService);
   private readonly destroyRef = inject(DestroyRef);
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
 
   items: BusinessMenuItem[] = [];
   loaded = false;
   loadError = '';
+  dataSource = new MatTableDataSource<BusinessMenuItem>([]);
+  displayedColumns = ['name', 'categoryName', 'basePrice', 'availability', 'status', 'actions'];
 
   searchTerm = '';
-  stockFilter: 'ALL' | 'IN_STOCK' | 'RUNNING_LOW' | 'OUT_OF_STOCK' = 'ALL';
-  availabilityFilter: 'ALL' | 'AVAILABLE' | 'UNAVAILABLE' = 'ALL';
-  pageSize = 10;
-  currentPage = 1;
+  stockFilter: string = 'ALL';
+  availabilityFilter: string = 'ALL';
 
   constructor() {
     this.loadMenu();
   }
 
-  get filteredItems(): BusinessMenuItem[] {
-    const search = this.searchTerm.trim().toLowerCase();
-
-    return this.items.filter((item) => {
+  ngAfterViewInit() {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+    this.dataSource.filterPredicate = (data, filter) => {
+      const search = filter.toLowerCase();
       const matchesSearch = !search || [
-        item.name,
-        item.categoryName ?? '',
-        item.description ?? '',
-        item.foodType ?? ''
-      ].some((value) => value.toLowerCase().includes(search));
+        data.name,
+        data.categoryName ?? '',
+        data.description ?? '',
+        data.foodType ?? ''
+      ].some(v => v.toLowerCase().includes(search));
 
-      const matchesStock = this.stockFilter === 'ALL' || item.stockStatus === this.stockFilter;
+      const matchesStock = this.stockFilter === 'ALL' || data.stockStatus === this.stockFilter;
       const matchesAvailability =
         this.availabilityFilter === 'ALL' ||
-        (this.availabilityFilter === 'AVAILABLE' && item.available) ||
-        (this.availabilityFilter === 'UNAVAILABLE' && !item.available);
+        (this.availabilityFilter === 'AVAILABLE' && data.available) ||
+        (this.availabilityFilter === 'UNAVAILABLE' && !data.available);
 
       return matchesSearch && matchesStock && matchesAvailability;
-    });
-  }
-
-  get pagedItems(): BusinessMenuItem[] {
-    const start = (this.currentPage - 1) * this.pageSize;
-    return this.filteredItems.slice(start, start + this.pageSize);
-  }
-
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredItems.length / this.pageSize));
+    };
   }
 
   loadMenu(): void {
@@ -194,27 +394,44 @@ export class MenuPageComponent {
     this.api.getMenu().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.items = data;
+        this.dataSource.data = data;
         this.loaded = true;
-        this.currentPage = 1;
       },
-      error: (err) => { this.loadError = err?.error?.error ?? err?.error?.message ?? 'Failed to load menu.'; this.loaded = true; }
+      error: (err) => { 
+        this.loadError = err?.error?.error ?? err?.error?.message ?? 'Failed to load menu.'; 
+        this.loaded = true;
+        this.items = [];
+        this.dataSource.data = [];
+      }
     });
   }
 
-  resetPage(): void {
-    this.currentPage = 1;
+  applyFilter(event: Event) {
+    const filterValue = (event.target as HTMLInputElement).value;
+    this.dataSource.filter = filterValue.trim().toLowerCase();
+  }
+
+  applyFilters() {
+    const current = this.dataSource.filter;
+    this.dataSource.filter = '';
+    this.dataSource.filter = current;
   }
 
   clearFilters(): void {
     this.searchTerm = '';
     this.stockFilter = 'ALL';
     this.availabilityFilter = 'ALL';
-    this.pageSize = 10;
-    this.currentPage = 1;
+    this.dataSource.filter = '';
+    this.applyFilters();
   }
 
-  goToPage(page: number): void {
-    this.currentPage = Math.min(Math.max(1, page), this.totalPages);
+  availableCount = () => this.items.filter(i => i.available).length;
+  lowStockCount = () => this.items.filter(i => i.stockStatus === 'RUNNING_LOW').length;
+
+  getAvailabilityClass(item: BusinessMenuItem) {
+    if (!item.available || item.stockStatus === 'OUT_OF_STOCK') return 'danger';
+    if (item.stockStatus === 'RUNNING_LOW') return 'warn';
+    return 'success';
   }
 
   formatCurrencyValue(value: number): string {

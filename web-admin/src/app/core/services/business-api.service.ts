@@ -93,4 +93,16 @@ export class BusinessApiService {
   lookupFssai(fssaiNo: string) {
     return this.http.get<any>(`${API_BASE_URL}/business/lookup/fssai`, { params: { fssaiNo } });
   }
+
+  marketplaceHealthCheck(platform: 'SWIGGY' | 'ZOMATO') {
+    return this.http.get<{
+      platform: string;
+      enabled: boolean;
+      apiKeyConfigured: boolean;
+      storeIdConfigured?: boolean;
+      outletIdConfigured?: boolean;
+      webhookUrl: string;
+      healthy: boolean;
+    }>(`${API_BASE_URL}/marketplace/health`, { params: { platform } });
+  }
 }

@@ -1,9 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal, ViewChild, AfterViewInit } from '@angular/core';
 import { AdminApiService } from '../../core/services/admin-api.service';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { formatCurrency } from '../../shared/formatters';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 interface CommissionRow {
   restaurantName: string;
@@ -22,129 +28,175 @@ interface CommissionSummary {
 @Component({
   selector: 'app-commission-report-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    CommonModule,
+    MatCardModule,
+    MatIconModule,
+    MatTableModule,
+    MatDividerModule,
+    MatProgressSpinnerModule,
+    MatSortModule,
+    MatTooltipModule
+  ],
   template: `
-    <div class="page-shell">
-      <section class="panel page-hero">
-        <h2>📈 Commission Report</h2>
-        <p class="muted">Platform commission earnings across all restaurants</p>
-        <div class="hero-meta">
-          <span class="chip">Admin Access</span>
-          <span class="chip success">Financial Report</span>
-          <span class="chip">Platform Earnings</span>
+    <div class="page-container">
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">Commission Report</h1>
+          <p class="page-subtitle">Platform commission earnings across all registered restaurants.</p>
         </div>
-      </section>
+        <button mat-flat-button color="primary" (click)="loadReport()">
+          <mat-icon>refresh</mat-icon>
+          Refresh Data
+        </button>
+      </div>
 
       <div *ngIf="loaded(); else loading">
-        <div class="summary-grid">
-          <article class="panel summary-card">
-            <span class="summary-icon">💰</span>
-            <div>
-              <span class="summary-label">Total Commission</span>
-              <span class="summary-value accent">{{ formatCurrencyValue(summary().totalCommission) }}</span>
-            </div>
-          </article>
-          <article class="panel summary-card">
-            <span class="summary-icon">🏪</span>
-            <div>
-              <span class="summary-label">Total Revenue</span>
-              <span class="summary-value">{{ formatCurrencyValue(summary().totalRevenue) }}</span>
-            </div>
-          </article>
-          <article class="panel summary-card">
-            <span class="summary-icon">📊</span>
-            <div>
-              <span class="summary-label">Avg Effective Rate</span>
-              <span class="summary-value brand">{{ summary().avgRate }}%</span>
-            </div>
-          </article>
+        <div class="stats-grid">
+          <mat-card class="stat-card commission">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="stat-icon">payments</mat-icon>
+              <mat-card-title>{{ formatCurrencyValue(summary().totalCommission) }}</mat-card-title>
+              <mat-card-subtitle>Total Commission</mat-card-subtitle>
+            </mat-card-header>
+          </mat-card>
+
+          <mat-card class="stat-card revenue">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="stat-icon">store</mat-icon>
+              <mat-card-title>{{ formatCurrencyValue(summary().totalRevenue) }}</mat-card-title>
+              <mat-card-subtitle>Total Gross Revenue</mat-card-subtitle>
+            </mat-card-header>
+          </mat-card>
+
+          <mat-card class="stat-card rate">
+            <mat-card-header>
+              <mat-icon mat-card-avatar class="stat-icon">percent</mat-icon>
+              <mat-card-title>{{ summary().avgRate }}%</mat-card-title>
+              <mat-card-subtitle>Avg. Effective Rate</mat-card-subtitle>
+            </mat-card-header>
+          </mat-card>
         </div>
 
-        <section class="panel">
-          <div class="section-head">
-            <h3>Commission by Restaurant</h3>
-            <p class="muted">{{ rows().length }} restaurants</p>
-          </div>
-          <div class="table-wrap" *ngIf="rows().length; else noData">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Restaurant Name</th>
-                  <th>Total Revenue</th>
-                  <th>Commission Earned</th>
-                  <th>Effective Rate</th>
-                  <th>Order Count</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let r of rows()">
-                  <td><strong>{{ r.restaurantName }}</strong></td>
-                  <td>{{ formatCurrencyValue(r.totalRevenue) }}</td>
-                  <td>{{ formatCurrencyValue(r.commissionEarned) }}</td>
-                  <td><span class="chip" [class.success]="r.effectiveRate >= 5" [class.warn]="r.effectiveRate < 5 && r.effectiveRate >= 2" [class.danger]="r.effectiveRate < 2">{{ r.effectiveRate }}%</span></td>
-                  <td>{{ r.orderCount }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <ng-template #noData>
-            <div class="panel loading">No commission data available yet.</div>
-          </ng-template>
-        </section>
+        <mat-card class="table-card mat-elevation-z2">
+          <mat-card-header>
+            <mat-card-title>Earnings by Restaurant</mat-card-title>
+            <mat-card-subtitle>{{ dataSource.data.length }} restaurants processed</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="table-container" *ngIf="dataSource.data.length; else noData">
+              <table mat-table [dataSource]="dataSource" matSort>
+                <ng-container matColumnDef="restaurantName">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header> Restaurant </th>
+                  <td mat-cell *matCellDef="let r"> <strong>{{ r.restaurantName }}</strong> </td>
+                </ng-container>
+
+                <ng-container matColumnDef="totalRevenue">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header> Revenue </th>
+                  <td mat-cell *matCellDef="let r"> {{ formatCurrencyValue(r.totalRevenue) }} </td>
+                </ng-container>
+
+                <ng-container matColumnDef="commissionEarned">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header> Commission </th>
+                  <td mat-cell *matCellDef="let r"> {{ formatCurrencyValue(r.commissionEarned) }} </td>
+                </ng-container>
+
+                <ng-container matColumnDef="effectiveRate">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header> Rate </th>
+                  <td mat-cell *matCellDef="let r">
+                    <span class="rate-chip" [class.good]="r.effectiveRate >= 5" [class.warn]="r.effectiveRate < 5 && r.effectiveRate >= 2" [class.danger]="r.effectiveRate < 2">
+                      {{ r.effectiveRate }}%
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="orderCount">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header> Orders </th>
+                  <td mat-cell *matCellDef="let r"> {{ r.orderCount }} </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+              </table>
+            </div>
+            <ng-template #noData>
+              <div class="no-data">No commission data available yet.</div>
+            </ng-template>
+          </mat-card-content>
+        </mat-card>
       </div>
 
       <ng-template #loading>
-        <div class="load-state" *ngIf="!loadError(); else errorState">
-          <div class="spinner"></div>
-          <p>Loading commission report...</p>
+        <div class="loading-container" *ngIf="!loadError(); else errorState">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Analyzing commission data...</p>
         </div>
         <ng-template #errorState>
-          <div class="panel loading">{{ loadError() }}</div>
+          <div class="error-container">
+            <mat-icon color="warn">error</mat-icon>
+            <p>{{ loadError() }}</p>
+            <button mat-button color="primary" (click)="loadReport()">Try Again</button>
+          </div>
         </ng-template>
       </ng-template>
     </div>
   `,
   styles: [`
-    .summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-top:1.5rem; }
-    .summary-card { display:flex; align-items:center; gap:1rem; padding:1.25rem; border-radius:16px; }
-    .summary-icon { font-size:2rem; line-height:1; }
-    .summary-label { display:block; font-size:.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:.15rem; }
-    .summary-value { font-size:1.5rem; font-weight:800; }
-    .summary-value.accent { color:var(--accent); }
-    .summary-value.brand { color:var(--brand); }
-    .section-head { display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; margin-bottom:.75rem; }
-    .section-head h3 { margin:0; font-size:1rem; }
-    .section-head p { margin:0; }
-    .table-wrap { overflow-x:auto; }
-    .chip.success { background:rgba(29,123,95,.12); color:var(--accent); }
-    .chip.warn { background: var(--warn-soft); color: var(--warn); }
-    .chip.danger { background:rgba(166,55,47,.12); color:var(--danger); }
-    .load-state { text-align:center; padding:3rem; color:var(--muted); }
-    .spinner { width:24px; height:24px; border:3px solid var(--line); border-top-color:var(--brand); border-radius:50%; animation:spin .7s linear infinite; margin:0 auto .75rem; }
-    .panel.loading { padding:2rem; text-align:center; color:var(--muted); }
-    @media (max-width: 720px) {
-      .summary-grid { margin-top: 1rem; }
-      .summary-card { align-items: flex-start; }
-    }
+    .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+    .page-title { margin: 0; font-size: 1.75rem; font-weight: 700; color: var(--ink); }
+    .page-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.9rem; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 32px; }
+    .stat-card { border-radius: 16px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    .stat-icon { background: var(--brand-soft); color: var(--brand); width: 48px; height: 48px; line-height: 48px; text-align: center; border-radius: 12px; font-size: 24px; }
+    .commission .stat-icon { background: #dcfce7; color: #16a34a; }
+    .revenue .stat-icon { background: #e0f2fe; color: #0284c7; }
+    .rate .stat-icon { background: #f3e8ff; color: #9333ea; }
+
+    .table-card { border-radius: 16px; border: none; }
+    .table-container { margin-top: 16px; }
+    table { width: 100%; }
+
+    .rate-chip { padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+    .rate-chip.good { background: #dcfce7; color: #16a34a; }
+    .rate-chip.warn { background: #fef3c7; color: #d97706; }
+    .rate-chip.danger { background: #fee2e2; color: #dc2626; }
+
+    .loading-container, .error-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; color: var(--muted); gap: 16px; }
+    .no-data { padding: 48px; text-align: center; color: var(--muted); }
+
+    @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; } }
   `]
 })
-export class CommissionReportPageComponent {
+export class CommissionReportPageComponent implements AfterViewInit {
   private readonly api = inject(AdminApiService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly rawData = signal<any[]>([]);
   readonly loaded = signal(false);
   readonly loadError = signal('');
-
   readonly summary = signal<CommissionSummary>({ totalCommission: 0, totalRevenue: 0, avgRate: 0 });
-  readonly rows = signal<CommissionRow[]>([]);
+  
+  dataSource = new MatTableDataSource<CommissionRow>([]);
+  displayedColumns = ['restaurantName', 'totalRevenue', 'commissionEarned', 'effectiveRate', 'orderCount'];
+
+  @ViewChild(MatSort) sort!: MatSort;
 
   constructor() {
+    this.loadReport();
+  }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+  }
+
+  loadReport(): void {
+    this.loaded.set(false);
+    this.loadError.set('');
     this.api.getCommissionReport().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data: any) => {
-        this.rawData.set(data);
-        this.loaded.set(true);
         this.processData(data);
+        this.loaded.set(true);
       },
       error: (err) => {
         this.loadError.set(err?.error?.error ?? err?.error?.message ?? 'Failed to load commission report.');
@@ -166,7 +218,7 @@ export class CommissionReportPageComponent {
     const totalRevenue = rows.reduce((s, r) => s + r.totalRevenue, 0);
     const avgRate = totalRevenue > 0 ? parseFloat(((totalCommission / totalRevenue) * 100).toFixed(2)) : 0;
 
-    this.rows.set(rows);
+    this.dataSource.data = rows;
     this.summary.set({ totalCommission, totalRevenue, avgRate });
   }
 

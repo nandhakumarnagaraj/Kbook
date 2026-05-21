@@ -1,7 +1,20 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject } from '@angular/core';
+import { Component, DestroyRef, inject, signal, ViewChild, AfterViewInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessStaffItem } from '../../core/models/api.models';
 import { formatDate } from '../../shared/formatters';
@@ -9,164 +22,318 @@ import { formatDate } from '../../shared/formatters';
 @Component({
   selector: 'app-staff-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule, 
+    FormsModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatProgressSpinnerModule,
+    MatChipsModule,
+    MatTooltipModule,
+    MatDividerModule
+  ],
   template: `
-    <div class="page-shell">
-      <section class="panel page-hero">
-        <h2>Staff</h2>
-        <p class="muted">Team directory with better spacing for roles, status, and contact details.</p>
-        <div class="hero-meta">
-          <span class="chip">Access Review</span>
-          <span class="chip success">Team Health</span>
+    <div class="page-container">
+      <div class="header-row">
+        <div class="header-left">
+          <h1 class="page-title">Team Management</h1>
+          <p class="page-subtitle">Manage staff accounts, roles, and platform access levels.</p>
         </div>
-      </section>
-
-      <div class="toolbar">
-        <div>
-          <h3>Staff Directory</h3>
-          <p class="muted">Check role coverage and inactive accounts without scanning cramped rows.</p>
+        <div class="header-actions">
+          <button mat-flat-button color="primary" (click)="loadStaff()">
+            <mat-icon>refresh</mat-icon>
+            Refresh Directory
+          </button>
         </div>
-        <button class="ghost-btn" (click)="loadStaff()">Refresh</button>
       </div>
 
-      <section class="panel filter-panel" *ngIf="loaded && staff.length">
-        <div class="filter-grid">
-          <div class="filter-group">
-            <label for="staff-search">Search</label>
-            <input
-              id="staff-search"
-              class="field-control"
-              type="text"
-              [(ngModel)]="searchTerm"
-              (ngModelChange)="resetPage()"
-              placeholder="Search by name, login, email, or phone"
-            />
-          </div>
-          <div class="filter-group">
-            <label for="staff-role">Role</label>
-            <select id="staff-role" class="field-select" [(ngModel)]="roleFilter" (ngModelChange)="resetPage()">
-              <option value="ALL">All roles</option>
-              <option *ngFor="let role of roleOptions" [value]="role">{{ role }}</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="staff-status">Status</label>
-            <select id="staff-status" class="field-select" [(ngModel)]="statusFilter" (ngModelChange)="resetPage()">
-              <option value="ALL">All statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label for="staff-size">Rows</label>
-            <select id="staff-size" class="field-select" [(ngModel)]="pageSize" (ngModelChange)="resetPage()">
-              <option [ngValue]="5">5</option>
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="20">20</option>
-            </select>
-          </div>
+      <div class="stats-grid" *ngIf="loaded">
+        <mat-card class="stat-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="stat-icon total">people</mat-icon>
+            <mat-card-title>{{ staff.length }}</mat-card-title>
+            <mat-card-subtitle>Total Members</mat-card-subtitle>
+          </mat-card-header>
+        </mat-card>
+        <mat-card class="stat-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="stat-icon active">verified_user</mat-icon>
+            <mat-card-title>{{ activeCount() }}</mat-card-title>
+            <mat-card-subtitle>Active Sessions</mat-card-subtitle>
+          </mat-card-header>
+        </mat-card>
+        <mat-card class="stat-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar class="stat-icon admin">admin_panel_settings</mat-icon>
+            <mat-card-title>{{ adminCount() }}</mat-card-title>
+            <mat-card-subtitle>Admin Accounts</mat-card-subtitle>
+          </mat-card-header>
+        </mat-card>
+      </div>
+
+      <mat-card class="filter-card mat-elevation-z1">
+        <mat-card-content class="filter-row">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Quick Search</mat-label>
+            <mat-icon matPrefix>search</mat-icon>
+            <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, ID, contact..." #input>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Role Filter</mat-label>
+            <mat-select [(ngModel)]="roleFilter" (selectionChange)="applyFilters()">
+              <mat-option value="ALL">All Roles</mat-option>
+              <mat-option *ngFor="let role of roleOptions" [value]="role">{{ role }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Status</mat-label>
+            <mat-select [(ngModel)]="statusFilter" (selectionChange)="applyFilters()">
+              <mat-option value="ALL">All Status</mat-option>
+              <mat-option value="ACTIVE">Active</mat-option>
+              <mat-option value="INACTIVE">Inactive</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="spacer"></div>
+          
+          <button mat-button (click)="clearFilters()">Reset Filters</button>
+        </mat-card-content>
+      </mat-card>
+
+      <div class="table-container mat-elevation-z2">
+        <div class="loading-overlay" *ngIf="!loaded">
+          <mat-spinner diameter="40"></mat-spinner>
         </div>
 
-        <div class="filter-summary">
-          <p class="muted">{{ filteredStaff.length }} of {{ staff.length }} staff members</p>
-          <button class="ghost-btn" (click)="clearFilters()">Clear filters</button>
-        </div>
-      </section>
+        <table mat-table [dataSource]="dataSource" matSort>
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Staff Member </th>
+            <td mat-cell *matCellDef="let item"> 
+               <div class="user-cell">
+                  <span class="user-name">{{ item.name }}</span>
+                  <span class="user-id">ID: {{ item.loginId }}</span>
+               </div>
+            </td>
+          </ng-container>
 
-      <div class="panel table-wrap" *ngIf="loaded && pagedStaff.length; else loading">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Login ID</th>
-              <th>Role</th>
-              <th>Contact</th>
-              <th>Status</th>
-              <th>Updated</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of pagedStaff">
-              <td>{{ item.name }}</td>
-              <td>{{ item.loginId }}</td>
-              <td><span class="chip">{{ item.role }}</span></td>
-              <td>{{ item.whatsappNumber || item.email || '-' }}</td>
-              <td>
-                <span class="chip" [class.success]="item.active" [class.danger]="!item.active">
-                  {{ item.active ? 'Active' : 'Inactive' }}
-                </span>
-              </td>
-              <td>{{ formatDateValue(item.updatedAt) }}</td>
-            </tr>
-          </tbody>
+          <ng-container matColumnDef="loginId">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Username </th>
+            <td mat-cell *matCellDef="let item"> <code>{{ item.loginId }}</code> </td>
+          </ng-container>
+
+          <ng-container matColumnDef="role">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Access Role </th>
+            <td mat-cell *matCellDef="let item">
+              <span class="role-badge">{{ item.role }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="contact">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Contact Info </th>
+            <td mat-cell *matCellDef="let item">
+              <div class="contact-cell">
+                <span class="phone">{{ item.whatsappNumber || '-' }}</span>
+                <span class="email" [matTooltip]="item.email || ''">{{ item.email || '-' }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Status </th>
+            <td mat-cell *matCellDef="let item">
+              <span class="status-chip" [class.active]="item.active" [class.inactive]="!item.active">
+                <mat-icon>{{ item.active ? 'fiber_manual_record' : 'block' }}</mat-icon>
+                {{ item.active ? 'Active' : 'Deactivated' }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="updatedAt">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Last Active </th>
+            <td mat-cell *matCellDef="let item"> {{ formatDateValue(item.updatedAt) }} </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="staff-row"></tr>
         </table>
 
-        <div class="pagination-bar" *ngIf="filteredStaff.length > pageSize">
-          <p class="muted">Page {{ currentPage }} of {{ totalPages }}</p>
-          <div class="pagination-controls">
-            <button class="ghost-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
-            <button class="ghost-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
-          </div>
+        <div class="empty-view" *ngIf="loaded && !dataSource.data.length">
+          <mat-icon>person_search</mat-icon>
+          <h3>No team members found</h3>
+          <p>{{ loadError || 'Your search filters did not match any staff records.' }}</p>
         </div>
-      </div>
 
-      <ng-template #loading>
-        <div class="panel loading">{{ loaded ? (loadError || 'No staff match the current filters.') : (loadError || 'Loading staff...') }}</div>
-      </ng-template>
+        <mat-paginator [pageSizeOptions]="[10, 25, 50]"></mat-paginator>
+      </div>
     </div>
-  `
+  `,
+  styles: [`
+    .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+    .page-title { margin: 0; font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -0.5px; }
+    .page-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-bottom: 32px; }
+    .stat-card { 
+      position: relative;
+      border-radius: var(--radius-xl); 
+      border: 1px solid var(--line); 
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-md); 
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      overflow: hidden;
+    }
+    .stat-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-xl);
+    }
+    .stat-icon { 
+      width: 52px; 
+      height: 52px; 
+      line-height: 52px; 
+      text-align: center; 
+      border-radius: var(--radius-lg); 
+      font-size: 26px; 
+      transition: all 0.3s ease;
+    }
+    .stat-card:hover .stat-icon {
+      transform: scale(1.1) rotate(6deg);
+    }
+    
+    .stat-icon.total { background: rgba(2, 132, 199, 0.12); color: #0284c7; }
+    .stat-icon.active { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
+    .stat-icon.admin { background: rgba(147, 51, 234, 0.12); color: #9333ea; }
+
+    .filter-card { 
+      margin-bottom: 24px; 
+      border-radius: var(--radius-xl); 
+      border: 1px solid var(--line); 
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-md); 
+    }
+    .filter-row { display: flex; align-items: center; gap: 16px; padding: 16px 20px !important; }
+    .search-field { flex: 1; max-width: 400px; }
+    .filter-field { width: 160px; }
+    ::ng-deep .filter-row .mat-mdc-form-field-subscript-wrapper { display: none; }
+    .spacer { flex: 1; }
+
+    .table-container { 
+      position: relative; 
+      background: var(--panel); 
+      border-radius: var(--radius-xl); 
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-md); 
+      overflow: hidden; 
+    }
+    .loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.7); z-index: 10; display: flex; align-items: center; justify-content: center; }
+    table { width: 100%; background: transparent; }
+
+    ::ng-deep table th.mat-mdc-header-cell {
+      background: var(--panel) !important;
+      font-weight: 700 !important;
+      color: var(--ink) !important;
+      text-transform: uppercase !important;
+      font-size: 0.75rem !important;
+      letter-spacing: 0.5px !important;
+      border-bottom: 2px solid var(--line) !important;
+      padding: 16px !important;
+    }
+    ::ng-deep table td.mat-mdc-cell {
+      padding: 16px !important;
+      border-bottom: 1px solid var(--line) !important;
+      color: var(--ink-secondary) !important;
+      font-size: 0.9rem !important;
+    }
+
+    .staff-row { transition: all 0.2s ease; background: transparent; }
+    .staff-row:hover { background: var(--panel-hover) !important; }
+
+    .user-cell { display: flex; flex-direction: column; }
+    .user-name { font-weight: 700; color: var(--ink); }
+    .user-id { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    code { font-family: 'JetBrains Mono', monospace; background: var(--bg); border: 1px solid var(--line); padding: 4px 8px; border-radius: 6px; color: var(--ink); font-size: 0.85rem; }
+
+    .contact-cell { display: flex; flex-direction: column; }
+    .contact-cell .phone { font-weight: 600; color: var(--ink); }
+    .contact-cell .email { font-size: 0.75rem; color: var(--muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+
+    .role-badge { padding: 4px 12px; border-radius: 6px; background: var(--brand-soft); color: var(--brand); font-weight: 700; font-size: 0.75rem; border: 1px solid var(--line); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .status-chip mat-icon { font-size: 8px; width: 8px; height: 8px; }
+    .status-chip.active { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
+    .status-chip.inactive { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+    .status-chip.inactive mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+    .empty-view { padding: 80px 24px; text-align: center; color: var(--muted); }
+    .empty-view mat-icon { font-size: 64px; width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.2; }
+    .empty-view h3 { margin: 0 0 8px; font-weight: 700; }
+
+    @media (max-width: 768px) {
+      .header-row { flex-direction: column; gap: 16px; }
+      .filter-row { flex-direction: column; align-items: stretch; }
+      .search-field { max-width: none; }
+    }
+  `]
 })
-export class StaffPageComponent {
+export class StaffPageComponent implements AfterViewInit {
   private readonly api = inject(BusinessApiService);
   private readonly destroyRef = inject(DestroyRef);
 
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+
   staff: BusinessStaffItem[] = [];
   loaded = false;
+  loadError = '';
+  dataSource = new MatTableDataSource<BusinessStaffItem>([]);
+  displayedColumns = ['name', 'loginId', 'role', 'contact', 'status', 'updatedAt'];
 
   searchTerm = '';
   roleFilter = 'ALL';
-  statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE' = 'ALL';
-  pageSize = 10;
-  currentPage = 1;
-  loadError = '';
+  statusFilter = 'ALL';
 
   constructor() {
     this.loadStaff();
   }
 
-  get roleOptions(): string[] {
-    return [...new Set(this.staff.map((item) => item.role))].sort();
-  }
-
-  get filteredStaff(): BusinessStaffItem[] {
-    const search = this.searchTerm.trim().toLowerCase();
-
-    return this.staff.filter((item) => {
+  ngAfterViewInit() {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+    this.dataSource.filterPredicate = (data, filter) => {
+      const search = filter.toLowerCase();
       const matchesSearch = !search || [
-        item.name,
-        item.loginId,
-        item.email ?? '',
-        item.whatsappNumber ?? '',
-        item.role
-      ].some((value) => value.toLowerCase().includes(search));
+        data.name,
+        data.loginId,
+        data.email ?? '',
+        data.whatsappNumber ?? '',
+        data.role
+      ].some(v => v.toLowerCase().includes(search));
 
-      const matchesRole = this.roleFilter === 'ALL' || item.role === this.roleFilter;
+      const matchesRole = this.roleFilter === 'ALL' || data.role === this.roleFilter;
       const matchesStatus =
         this.statusFilter === 'ALL' ||
-        (this.statusFilter === 'ACTIVE' && item.active) ||
-        (this.statusFilter === 'INACTIVE' && !item.active);
+        (this.statusFilter === 'ACTIVE' && data.active) ||
+        (this.statusFilter === 'INACTIVE' && !data.active);
 
       return matchesSearch && matchesRole && matchesStatus;
-    });
+    };
   }
 
-  get pagedStaff(): BusinessStaffItem[] {
-    const start = (this.currentPage - 1) * this.pageSize;
-    return this.filteredStaff.slice(start, start + this.pageSize);
-  }
-
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredStaff.length / this.pageSize));
+  get roleOptions(): string[] {
+    return [...new Set(this.staff.map((item) => item.role))].sort();
   }
 
   loadStaff(): void {
@@ -175,28 +342,39 @@ export class StaffPageComponent {
     this.api.getStaff().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.staff = data;
+        this.dataSource.data = data;
         this.loaded = true;
-        this.currentPage = 1;
       },
-      error: (err) => { this.loadError = err?.error?.error ?? err?.error?.message ?? 'Failed to load staff.'; this.loaded = true; }
+      error: (err) => { 
+        this.loadError = err?.error?.error ?? err?.error?.message ?? 'Failed to load staff.'; 
+        this.loaded = true;
+        this.staff = [];
+        this.dataSource.data = [];
+      }
     });
   }
 
-  resetPage(): void {
-    this.currentPage = 1;
+  applyFilter(event: Event) {
+    const filterValue = (event.target as HTMLInputElement).value;
+    this.dataSource.filter = filterValue.trim().toLowerCase();
+  }
+
+  applyFilters() {
+    const current = this.dataSource.filter;
+    this.dataSource.filter = '';
+    this.dataSource.filter = current;
   }
 
   clearFilters(): void {
     this.searchTerm = '';
     this.roleFilter = 'ALL';
     this.statusFilter = 'ALL';
-    this.pageSize = 10;
-    this.currentPage = 1;
+    this.dataSource.filter = '';
+    this.applyFilters();
   }
 
-  goToPage(page: number): void {
-    this.currentPage = Math.min(Math.max(1, page), this.totalPages);
-  }
+  activeCount = () => this.staff.filter(s => s.active).length;
+  adminCount = () => this.staff.filter(s => s.role.toLowerCase().includes('admin')).length;
 
   formatDateValue(value: number | null): string {
     return formatDate(value);

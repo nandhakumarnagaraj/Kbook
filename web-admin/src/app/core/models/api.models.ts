@@ -125,9 +125,11 @@ export interface MarketplaceConfig {
 export interface MarketplaceConfigRequest {
   zomatoApiKey?: string;
   zomatoWebhookSecret?: string;
+  zomatoOutletId?: string;
   zomatoEnabled?: boolean;
   swiggyApiKey?: string;
   swiggyWebhookSecret?: string;
+  swiggyStoreId?: string;
   swiggyEnabled?: boolean;
 }
 
