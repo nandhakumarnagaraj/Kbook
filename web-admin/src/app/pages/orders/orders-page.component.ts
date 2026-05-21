@@ -815,7 +815,7 @@ export class OrdersPageComponent implements AfterViewInit {
     this.api.manualRefundOrder(this.refundTarget.orderId, {
       refundAmount: this.refundAmountInput,
       reason: this.refundReasonInput || 'Refund handled manually'
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.refunding = false;
         this.dialog.closeAll();
@@ -838,7 +838,7 @@ export class OrdersPageComponent implements AfterViewInit {
       this.api.manualRefundOrder(o.orderId, {
         refundAmount: o.totalAmount,
         reason: this.refundReasonInput || 'Bulk refund'
-      }).subscribe({
+      }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
           count++;
           if (count === selected.length) this.finalizeBulkRefund(count);
@@ -893,7 +893,7 @@ export class OrdersPageComponent implements AfterViewInit {
   }
 
   acceptOrder(order: MarketplaceOrder): void {
-    this.api.acceptMarketplaceOrder(order.id).subscribe({
+    this.api.acceptMarketplaceOrder(order.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.loadMarketplaceOrders(); this.loadMarketplaceCounts(); }
     });
   }
@@ -907,7 +907,7 @@ export class OrdersPageComponent implements AfterViewInit {
   confirmReject(): void {
     if (!this.rejectTarget) return;
     this.rejecting = true;
-    this.api.rejectMarketplaceOrder(this.rejectTarget.id, this.rejectReasonInput).subscribe({
+    this.api.rejectMarketplaceOrder(this.rejectTarget.id, this.rejectReasonInput).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.rejecting = false;
         this.dialog.closeAll();
@@ -919,7 +919,7 @@ export class OrdersPageComponent implements AfterViewInit {
   }
 
   markReady(order: MarketplaceOrder): void {
-    this.api.markMarketplaceOrderReady(order.id).subscribe({
+    this.api.markMarketplaceOrderReady(order.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.loadMarketplaceOrders(); this.loadMarketplaceCounts(); }
     });
   }

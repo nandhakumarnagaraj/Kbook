@@ -981,7 +981,7 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
 
   submitToEasebuzz(merchant: EasebuzzSubMerchant): void {
     if(!confirm(`Submit ${merchant.businessName} to Easebuzz?`)) return;
-    this.api.submitToEasebuzz(merchant.id).subscribe({
+    this.api.submitToEasebuzz(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.loadSubMerchants(); this.snackBar.open('Submitted to Easebuzz', 'OK', { duration: 3000 }); },
       error: (err) => this.snackBar.open(err?.error?.error || 'Submission failed', 'OK')
     });
@@ -990,14 +990,14 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
   assignSubMerchantId(merchant: EasebuzzSubMerchant): void {
     const id = prompt('Enter Easebuzz Sub-Merchant ID:');
     if (!id) return;
-    this.api.assignSubMerchantId(merchant.id, id).subscribe({
+    this.api.assignSubMerchantId(merchant.id, id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.loadSubMerchants(); this.snackBar.open('ID Assigned', 'OK', { duration: 3000 }); },
       error: (err) => this.snackBar.open(err?.error?.error || 'Assignment failed', 'OK')
     });
   }
 
   generateKyc(merchant: EasebuzzSubMerchant): void {
-    this.api.generateKyc(merchant.id).subscribe({
+    this.api.generateKyc(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         this.loadSubMerchants();
         if (res.kyc_url) window.open(res.kyc_url, '_blank');
@@ -1008,7 +1008,7 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
   }
 
   updateOnEasebuzz(merchant: EasebuzzSubMerchant): void {
-    this.api.updateOnEasebuzz(merchant.id).subscribe({
+    this.api.updateOnEasebuzz(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.loadSubMerchants(); this.snackBar.open('Synced to Easebuzz', 'OK', { duration: 3000 }); },
       error: (err) => this.snackBar.open(err?.error?.error || 'Sync failed', 'OK')
     });
@@ -1017,14 +1017,14 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
   retrieveSplitStatus(merchant: EasebuzzSubMerchant): void {
     const reqId = prompt('Enter Merchant Request ID:');
     if (!reqId) return;
-    this.api.retrieveSplitStatus(merchant.id, reqId).subscribe({
+    this.api.retrieveSplitStatus(merchant.id, reqId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => alert(`Split Status: ${JSON.stringify(res.split_configuration)}`),
       error: (err) => this.snackBar.open(err?.error?.error || 'Retrieve failed', 'OK')
     });
   }
 
   createSplitLabel(merchant: EasebuzzSubMerchant): void {
-    this.api.createSplitLabel(merchant.id).subscribe({
+    this.api.createSplitLabel(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.loadSubMerchants(); this.snackBar.open('Split Label Created', 'OK', { duration: 3000 }); },
       error: (err) => this.snackBar.open(err?.error?.error || 'Creation failed', 'OK')
     });
@@ -1033,7 +1033,7 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
   openVerifyOtp(merchant: EasebuzzSubMerchant): void {
     const otp = prompt('Enter 6-digit OTP:');
     if (!otp) return;
-    this.api.verifyOtp(merchant.id, otp).subscribe({
+    this.api.verifyOtp(merchant.id, otp).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.loadSubMerchants(); this.snackBar.open('OTP Verified', 'OK', { duration: 3000 }); },
       error: (err) => this.snackBar.open(err?.error?.error || 'Verification failed', 'OK')
     });
@@ -1043,7 +1043,7 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
     const today = new Date().toISOString().split('T')[0];
     const date = prompt('Enter date (YYYY-MM-DD):', today);
     if (!date) return;
-    this.api.retrieveSettlementsByDate(date).subscribe({
+    this.api.retrieveSettlementsByDate(date).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => alert(`Settlements: ${JSON.stringify(res, null, 2)}`),
       error: (err) => this.snackBar.open(err?.error?.error || 'Failed to retrieve', 'OK')
     });
@@ -1052,7 +1052,7 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
   openOnDemandSettlement(): void {
     const amount = prompt('Enter amount to settle:');
     if (!amount) return;
-    this.api.onDemandSettlement(amount).subscribe({
+    this.api.onDemandSettlement(amount).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => this.snackBar.open(`Initiated: ${res.msg}`, 'OK'),
       error: (err) => this.snackBar.open(err?.error?.error || 'Failed', 'OK')
     });
@@ -1066,7 +1066,7 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
       beneficiary_account_number: '1234567890',
       beneficiary_ifsc: 'HDFC0000123'
     };
-    this.api.initiatePayout(amount, beneficiary).subscribe({
+    this.api.initiatePayout(amount, beneficiary).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => this.snackBar.open(`Initiated: ${res.msg}`, 'OK'),
       error: (err) => this.snackBar.open(err?.error?.error || 'Failed', 'OK')
     });
@@ -1074,7 +1074,7 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
 
   quickStatusAction(merchant: EasebuzzSubMerchant, newStatus: string): void {
     if(!confirm(`Change status to ${newStatus}?`)) return;
-    this.api.updateSubMerchantStatus(merchant.id, newStatus).subscribe({
+    this.api.updateSubMerchantStatus(merchant.id, newStatus).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.loadSubMerchants(); this.snackBar.open(`Status updated to ${newStatus}`, 'OK', { duration: 3000 }); },
       error: () => this.snackBar.open('Status update failed', 'OK')
     });
