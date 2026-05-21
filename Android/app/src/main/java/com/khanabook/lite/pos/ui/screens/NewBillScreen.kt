@@ -132,7 +132,7 @@ fun NewBillScreen(
 
     LaunchedEffect(Unit) {
         billingViewModel.resetForNewBill()
-        billingViewModel.cancelPendingOnlineDrafts()
+        billingViewModel.cancelStaleOnlineDrafts()
         PaymentReturnManager.clearLatestEvent()
         step = 1
     }
@@ -1327,6 +1327,7 @@ fun PaymentStep(
                     modifier = Modifier.padding(bottom = spacing.medium)
                 )
             }
+
             Button(
                 onClick = {
                     scope.launch {
@@ -1393,7 +1394,12 @@ fun PaymentStep(
                 onClick = {
                     scope.launch {
                         viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                        viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
+                        if (selectedMode == PaymentMode.ONLINE) {
+                            // ONLINE: cancel ALL pending drafts (including synced ones)
+                            viewModel.cancelAllPendingOnlineDrafts()
+                        } else {
+                            viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
+                        }
                         viewModel.clearGatewayResult()
                         PaymentReturnManager.clearLatestEvent()
                         onFailed()

@@ -25,6 +25,9 @@ export interface AdminBusinessListItem {
 export interface AdminBusinessDetail extends AdminBusinessListItem {
   ownerWhatsappNumber: string | null;
   shopAddress: string | null;
+  gstin: string | null;
+  fssaiNumber: string | null;
+  whatsappNumber: string | null;
   currency: string | null;
   timezone: string | null;
   gstEnabled: boolean;

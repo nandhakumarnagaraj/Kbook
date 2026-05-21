@@ -132,6 +132,16 @@ class BillRepository(
         return cancelled
     }
 
+    /** Cancel ALL pending online drafts (including synced ones) — for explicit user-initiated cancel. */
+    suspend fun cancelAllPendingOnlineDrafts(): Int {
+        val cancelled = billDao.cancelAllPendingOnlineDrafts(
+            reason = "Cancelled by user",
+            updatedAt = System.currentTimeMillis()
+        )
+        if (cancelled > 0) triggerBackgroundSync()
+        return cancelled
+    }
+
     suspend fun updatePaymentMode(id: Long, mode: String, partAmount1: String = "0.0", partAmount2: String = "0.0") {
         val current = billDao.getBillById(id) ?: return
         if (current.orderStatus.equals("cancelled", ignoreCase = true)) return

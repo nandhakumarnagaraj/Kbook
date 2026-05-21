@@ -43,6 +43,13 @@ public class AdminSubMerchantController {
         return ResponseEntity.ok(subMerchantService.update(id, data));
     }
 
+    /** Delete a sub-merchant from local DB (only DRAFT or FAILED allowed) */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        subMerchantService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
     /** Assign Easebuzz sub_merchant_id after manual creation in Easebuzz Dashboard */
     @PostMapping("/{id}/assign-id")
     public ResponseEntity<EasebuzzSubMerchant> assignSubMerchantId(@PathVariable Long id,
@@ -104,7 +111,6 @@ public class AdminSubMerchantController {
     @PostMapping("/{id}/cancel-transaction")
     public ResponseEntity<Map<String, Object>> cancelTransaction(@PathVariable Long id,
                                                                   @RequestBody Map<String, String> data) {
-        // Validate sub-merchant exists before proceeding
         subMerchantService.getById(id);
         String txnid = data.get("txnid");
         String amount = data.get("amount");
@@ -185,7 +191,7 @@ public class AdminSubMerchantController {
                 intervalUnit, intervalValue, maxAttempts));
     }
 
-    /** DEV ONLY: Delete a sub-merchant to allow fresh retry */
+    /** DEV ONLY: Hard delete a sub-merchant to allow fresh retry */
     @Profile("dev")
     @DeleteMapping("/{id}/dev-refresh")
     public ResponseEntity<Void> devRefresh(@PathVariable Long id) {

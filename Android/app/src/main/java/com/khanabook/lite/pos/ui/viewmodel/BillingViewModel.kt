@@ -273,8 +273,24 @@ class BillingViewModel @Inject constructor(
         return billRepository.getLatestPendingOnlineBill()?.id
     }
 
-    suspend fun cancelPendingOnlineDrafts(): Int {
+    /** Cancel only unsynced stale drafts (safe — used for auto-cleanup before creating a new draft). */
+    suspend fun cancelStaleOnlineDrafts(): Int {
         return billRepository.cancelStalePendingOnlineDrafts()
+    }
+
+    /** Cancel ALL pending online drafts (including synced ones) — for explicit user-initiated cancel. */
+    suspend fun cancelAllPendingOnlineDrafts(): Int {
+        val cancelled = billRepository.cancelAllPendingOnlineDrafts()
+        if (cancelled > 0) {
+            // Clear in-memory state so FailedStep doesn't show stale draft info
+            _lastBill.value = null
+            // Push cancellations immediately so server gets updated
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { syncManager.pushUnsyncedDataImmediately() }
+                    .onFailure { Log.w(TAG, "Push after explicit cancel failed; will retry on next cycle", it) }
+            }
+        }
+        return cancelled
     }
 
     suspend fun restorePendingOnlineBill(localBillId: Long): Boolean {

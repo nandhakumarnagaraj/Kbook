@@ -35,7 +35,11 @@ data class EasebuzzVerifyResponse(
 
 data class EasebuzzSubMerchantStatusResponse(
     @SerializedName("status") val status: String,
+    @SerializedName("subMerchantId") val subMerchantId: String? = null,
+    @SerializedName("hasSubMerchant") val hasSubMerchant: Boolean = false,
+    @SerializedName("isActive") val isActive: Boolean = false,
     @SerializedName("kycUrl") val kycUrl: String? = null,
+    @SerializedName("kycStatus") val kycStatus: String? = null,
     @SerializedName("kycSubmissionDate") val kycSubmissionDate: String? = null,
     @SerializedName("activationDate") val activationDate: String? = null
 )

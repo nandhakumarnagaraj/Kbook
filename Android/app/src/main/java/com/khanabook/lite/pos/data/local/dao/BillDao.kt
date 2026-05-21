@@ -79,11 +79,23 @@ interface BillDao {
         UPDATE bills SET order_status = 'cancelled', payment_status = 'failed',
         cancel_reason = :reason, is_synced = 0, updated_at = :updatedAt
         WHERE order_status = 'draft' AND payment_status = 'pending'
+        AND is_synced = 0
         AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos'
         )
     """)
     suspend fun cancelStalePendingOnlineDrafts(reason: String, updatedAt: Long): Int
+
+    /** Cancel ALL pending online drafts (including synced ones) for explicit user-initiated cancel. */
+    @Query("""
+        UPDATE bills SET order_status = 'cancelled', payment_status = 'failed',
+        cancel_reason = :reason, is_synced = 0, updated_at = :updatedAt
+        WHERE order_status = 'draft' AND payment_status = 'pending'
+        AND payment_mode IN (
+            'upi', 'part_cash_upi', 'part_upi_pos'
+        )
+    """)
+    suspend fun cancelAllPendingOnlineDrafts(reason: String, updatedAt: Long): Int
 
     @Query(
             "SELECT * FROM bills WHERE created_at BETWEEN :startMillis AND :endMillis AND is_deleted = 0 ORDER BY created_at DESC"

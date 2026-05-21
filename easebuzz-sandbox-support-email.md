@@ -1,41 +1,61 @@
-To: tech@easebuzz.in
+To: pgsupport@easebuzz.in
 Cc: gopal@indiaadvocacy.com
-Subject: Request to Enable Features on Sandbox Account (Key: ADNX3KYX5)
+Subject: BLOCKED: Sandbox payment initiation failing with "Invalid sub merchant id" — need enablement for testing (Key: ADNX3KYX5)
 
 Dear Easebuzz Team,
 
-We have received our sandbox credentials (Key: ADNX3KYX5, Salt: Z4UFP4939) and successfully logged into the dashboard. We are developing a POS platform that requires sub-merchant management with split payments.
+We are developing a POS platform that integrates Easebuzz for payment processing with sub-merchant management and split payouts. We have sandbox credentials (Key: ADNX3KYX5, Salt: Z4UFP4939) and can access the dashboard, but we are **completely blocked** from testing the basic payment flow.
 
-**Current Status:**
-We can access the dashboard, but the following features are shown as "Inactive" on our sandbox account:
+## The Blocking Issue
 
+The payment initiation API (`POST https://testpay.easebuzz.in/payment/initiateLink`) returns:
+
+```json
+{"status": 0, "error_desc": "Invalid sub merchant id.", "data": "Parameter validation failed"}
+```
+
+This happens on **every** payment attempt, even without sending a `sub_merchant_id` parameter. We have verified:
+- ✅ SHA-512 hash computation is correct (confirmed via hash matching)
+- ✅ API endpoint `transaction/v2.1/retrieve` works fine with the same credentials
+- ✅ The credentials (key/salt) are valid
+
+We cannot complete even a dummy/ test transaction through the sandbox because of this.
+
+## Additional Features Blocked
+
+The following features show as "Inactive" on our sandbox dashboard:
 - Transactions
 - Refund Requests
 - Settlements
 - Webhook History
 - Easy Collect / Smart Pay
-- Product Settings
+- Product Settings/API Access
 
-**What We Need Enabled:**
-To complete our integration testing, we request access to the following APIs:
+We also need these enabled for testing:
 
-1. **Split Label Create** (`/split/v1/create`)
-2. **Post-Transaction Split** (`/post-split/v1/create/`)
-3. **Refund & Refund Status** (`/transaction/v2/refund`, `/transaction/v2/refund_status`)
-4. **Cancel Transaction** (`/transaction/v1/cancel`)
-5. **Resend OTP** (`/submerchant/v1/resend_otp`)
-6. **Sub-Merchant Management** (`/merchant/v1/submerchant/create/`)
+1. **Sub-Merchant Management** (`/merchant/v1/submerchant/create/`) — create & update sub-merchants
+2. **Split Label Create** (`/split/v1/create`) — bank-to-label linkage
+3. **Post-Transaction Split** (`/post-split/v1/create/`, `/post-split/v1/retrieve/`) — per-transaction fund distribution
+4. **Refund API v2** (`/transaction/v2/refund`, `/transaction/v2/refund_status`) — initiate & check refunds
+5. **Cancel Transaction** (`/transaction/v1/cancel`) — cancel pending transactions
+6. **OTP APIs** (`/submerchant/v1/verify_otp`, `/submerchant/v1/resend_otp`) — sub-merchant OTP verification
 
-**Note on KYC:**
-We understand that **KYC Access Key** (`/submerchant/v1/generate_kyc_access_key`) is a live-only feature and we will test it in production. Our merchant KYC has been submitted and is under review.
+## What We Need
 
-**Our Callback URLs (Sandbox):**
+Could you please enable the sub-merchant/payment module on our sandbox account so we can:
+1. Complete at least one test transaction end-to-end (initiate → pay → webhook → verify)
+2. Test sub-merchant creation and KYC flow
+3. Test split payouts
+
+**Note on KYC:** We understand KYC Access Key (`/submerchant/v1/generate_kyc_access_key`) may be live-only — we will test that in production.
+
+**Our Sandbox Callback URLs:**
 - Return URL: `https://paripinnate-unfreighted-tynisha.ngrok-free.dev/api/v2/payments/easebuzz/return`
 - Webhook URL: `https://paripinnate-unfreighted-tynisha.ngrok-free.dev/api/v2/payments/easebuzz/webhook`
 
-Please let us know if any additional information or configuration is needed from our side. We appreciate your support.
+Please let us know if any additional configuration or information is needed from our side. We're ready to proceed as soon as the sandbox is enabled.
 
-Regards,
+Thank you,
 Gopal Krishna
 India Advocacy
 gopal@indiaadvocacy.com

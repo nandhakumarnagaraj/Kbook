@@ -32,6 +32,15 @@ public class RestaurantPaymentConfigController {
             // no sub-merchant configured yet
         }
         Map<String, Object> config = new HashMap<>();
+        // Auto-enable if a sub-merchant ID is assigned, otherwise use the stored flag
+        boolean hasSubMerchantId = sm != null && sm.getSubMerchantId() != null && !sm.getSubMerchantId().isBlank();
+        if (hasSubMerchantId && (profile.getEasebuzzEnabled() == null || !profile.getEasebuzzEnabled())) {
+            profile.setEasebuzzEnabled(true);
+            long now = System.currentTimeMillis();
+            profile.setUpdatedAt(now);
+            profile.setServerUpdatedAt(now);
+            profileRepo.save(profile);
+        }
         config.put("easebuzzEnabled", profile.getEasebuzzEnabled() != null && profile.getEasebuzzEnabled());
         config.put("subMerchantStatus", sm != null ? sm.getStatus() : "NOT_STARTED");
         config.put("subMerchantId", sm != null ? sm.getSubMerchantId() : null);
@@ -59,13 +68,26 @@ public class RestaurantPaymentConfigController {
         Long restaurantId = TenantContext.getCurrentTenant();
         try {
             EasebuzzSubMerchant sm = subMerchantService.getByRestaurantId(restaurantId);
+            boolean isActive = "ACTIVE".equals(sm.getStatus());
+            boolean hasId    = sm.getSubMerchantId() != null && !sm.getSubMerchantId().isBlank();
             Map<String, Object> result = new HashMap<>();
-            result.put("status", sm.getStatus());
-            result.put("kycStatus", sm.getKycStatus());
-            result.put("kycPortalUrl", sm.getKycPortalUrl() != null ? sm.getKycPortalUrl() : "");
+            result.put("status",             sm.getStatus() != null ? sm.getStatus() : "NOT_REGISTERED");
+            result.put("subMerchantId",      sm.getSubMerchantId() != null ? sm.getSubMerchantId() : "");
+            result.put("hasSubMerchant",     hasId);
+            result.put("isActive",           isActive);
+            result.put("kycStatus",          sm.getKycStatus() != null ? sm.getKycStatus() : "");
+            result.put("kycSubmissionDate",  sm.getKycSubmittedAt() != null ? sm.getKycSubmittedAt().toString() : null);
+            result.put("kycUrl",            sm.getKycPortalUrl() != null ? sm.getKycPortalUrl() : "");
+            result.put("activationDate",     sm.getKycActivatedAt() != null ? sm.getKycActivatedAt().toString() : null);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of("status", "NOT_STARTED"));
+            return ResponseEntity.ok(Map.of(
+                "status",         "NOT_REGISTERED",
+                "subMerchantId",  "",
+                "hasSubMerchant", false,
+                "isActive",       false,
+                "kycStatus",      ""
+            ));
         }
     }
 }

@@ -30,3 +30,4 @@ public class RestaurantAssetController {
 		return ResponseEntity.noContent().build();
 	}
 }
+

@@ -87,6 +87,19 @@ public class EasebuzzApiClient {
 		
 		params.set("hash", hash);
 		
+		// Send UDF fields so Easebuzz can validate the hash correctly
+		// (all 10 UDFs are used in the hash sequence, so they must be sent as params)
+		params.set("udf1", udf1);
+		params.set("udf2", udf2);
+		params.set("udf3", udf3);
+		params.set("udf4", udf4);
+		params.set("udf5", udf5);
+		params.set("udf6", udf6);
+		params.set("udf7", udf7);
+		params.set("udf8", udf8);
+		params.set("udf9", udf9);
+		params.set("udf10", udf10);
+		
 		if (subMerchantId != null && !subMerchantId.isBlank()) {
 			params.set("sub_merchant_id", subMerchantId);
 		}

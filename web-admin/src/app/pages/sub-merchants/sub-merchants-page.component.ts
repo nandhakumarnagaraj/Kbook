@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal, DestroyRef, ViewChild, AfterViewInit, computed } from '@angular/core';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormControl, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
@@ -20,7 +21,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { AdminApiService } from '../../core/services/admin-api.service';
-import { EasebuzzSubMerchant, EasebuzzSubMerchantRequest } from '../../core/models/api.models';
+import { AdminBusinessListItem, EasebuzzSubMerchant, EasebuzzSubMerchantRequest } from '../../core/models/api.models';
 import { formatDate, formatAge } from '../../shared/formatters';
 
 const STATUS_OPTIONS = ['ALL', 'DRAFT', 'PENDING_KYC', 'KYC_SUBMITTED', 'ACTIVE', 'SUSPENDED', 'REJECTED', 'FAILED'] as const;
@@ -43,6 +44,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatDividerModule,
     MatDialogModule,
     MatSnackBarModule,
@@ -419,11 +421,36 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
       <mat-dialog-content>
         <form [formGroup]="subMerchantForm" class="dialog-form">
           <div class="form-grid">
-            <mat-form-field appearance="outline">
-              <mat-label>Restaurant ID</mat-label>
-              <input matInput formControlName="restaurantId" type="number">
-              <mat-error>Required</mat-error>
-            </mat-form-field>
+            <div class="fetch-row">
+              <mat-form-field appearance="outline" class="flex-grow">
+                <mat-label>Select Restaurant / Shop</mat-label>
+                <input matInput
+                  [formControl]="businessSearchCtrl"
+                  [matAutocomplete]="bizAuto"
+                  placeholder="Type to search by name or ID…">
+                <mat-autocomplete #bizAuto="matAutocomplete"
+                  [displayWith]="displayBusiness"
+                  (optionSelected)="onBusinessSelected($event)">
+                  <mat-option *ngFor="let b of filteredBusinesses()" [value]="b">
+                    <span style="font-weight:700">{{ b.shopName || 'Unnamed' }}</span>
+                    <span style="color:var(--muted);font-size:0.8rem;margin-left:8px">#{{ b.restaurantId }}</span>
+                  </mat-option>
+                </mat-autocomplete>
+                <mat-hint>Start typing shop name or paste the restaurant ID</mat-hint>
+              </mat-form-field>
+              <button mat-stroked-button color="primary" type="button"
+                (click)="fetchShopData()"
+                [disabled]="fetchingShop()"
+                class="fetch-btn">
+                <mat-icon *ngIf="!fetchingShop()">cloud_download</mat-icon>
+                <mat-spinner *ngIf="fetchingShop()" diameter="18"></mat-spinner>
+                {{ fetchingShop() ? 'Fetching...' : 'Fetch' }}
+              </button>
+            </div>
+            <div class="fetch-hint" [class]="fetchNotice()!.type" *ngIf="fetchNotice()">
+              <mat-icon>{{ fetchNotice()!.type === 'success' ? 'check_circle' : 'error' }}</mat-icon>
+              {{ fetchNotice()!.msg }}
+            </div>
 
             <mat-form-field appearance="outline">
               <mat-label>Business Name</mat-label>
@@ -792,6 +819,24 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
     .uppercase { text-transform: uppercase; }
     ::ng-deep .dialog-form .mat-mdc-text-field-wrapper { border-radius: var(--radius-md) !important; }
 
+    .fetch-row { display: flex; align-items: flex-start; gap: 12px; grid-column: span 2; }
+    .fetch-row .flex-grow { flex: 1; }
+    .fetch-btn { height: 56px; white-space: nowrap; display: flex; align-items: center; gap: 6px; padding: 0 20px; border-radius: var(--radius-md) !important; }
+    .fetch-hint {
+      grid-column: span 2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-top: -8px;
+    }
+    .fetch-hint mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    .fetch-hint.success { background: rgba(22,163,74,0.08); color: #16a34a; border: 1px solid rgba(22,163,74,0.2); }
+    .fetch-hint.error   { background: rgba(239,68,68,0.08);  color: #dc2626; border: 1px solid rgba(239,68,68,0.2); }
+
     @media (max-width: 1100px) {
       .content-layout { flex-direction: column; }
       .detail-panel { width: 100%; }
@@ -800,6 +845,8 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
       .filter-row { flex-direction: column; align-items: stretch; }
       .search-field { max-width: none; }
       .form-grid { grid-template-columns: 1fr; }
+      .fetch-row { flex-direction: column; }
+      .fetch-btn { width: 100%; justify-content: center; }
     }
   `]
 })
@@ -823,6 +870,59 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
   readonly selectedSubMerchant = signal<EasebuzzSubMerchant | null>(null);
   readonly editingSubMerchant = signal<EasebuzzSubMerchant | null>(null);
   readonly formSaving = signal(false);
+  readonly fetchingShop = signal(false);
+  readonly fetchNotice = signal<{ type: 'success' | 'error'; msg: string } | null>(null);
+
+  // Business autocomplete
+  readonly businesses = signal<AdminBusinessListItem[]>([]);
+  readonly businessSearchCtrl = new FormControl('');
+  readonly businessSearchQuery = signal('');
+  readonly filteredBusinesses = computed(() => {
+    const raw = this.businessSearchQuery();
+    const q = (typeof raw === 'string' ? raw : '').toLowerCase().trim();
+    const all = this.businesses();
+    if (!q) return all.slice(0, 50);
+    return all.filter(b =>
+      (b.shopName ?? '').toLowerCase().includes(q) ||
+      String(b.restaurantId).includes(q)
+    ).slice(0, 50);
+  });
+
+  displayBusiness = (b: AdminBusinessListItem | null): string =>
+    b ? `${b.shopName ?? 'Unnamed'} (#${b.restaurantId})` : '';
+
+  onBusinessSelected(event: any): void {
+    const b: AdminBusinessListItem = event.option.value;
+    // Patch basic fields immediately from the list data (no extra API call needed)
+    const phone = (b.whatsappNumber ?? '').replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
+    this.subMerchantForm.patchValue({
+      restaurantId: b.restaurantId,
+      businessName: b.shopName ?? '',
+      contactEmail:  b.email ?? '',
+      contactPhone:  phone,
+    });
+    this.fetchNotice.set({ type: 'success', msg: `✓ Loaded: ${b.shopName ?? b.restaurantId} — fill in bank/PAN details below.` });
+    // Also try detail fetch for address + gstin (best-effort, ignore failure)
+    this.fetchingShop.set(true);
+    this.api.getBusinessDetail(b.restaurantId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (biz) => {
+        const phone2 = (biz.whatsappNumber || biz.ownerWhatsappNumber || phone)
+          .replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
+        this.subMerchantForm.patchValue({
+          gst:             biz.gstin            || '',
+          businessAddress: biz.shopAddress      || '',
+          contactPhone:    phone2               || phone,
+          contactEmail:    biz.email            || b.email || '',
+        });
+        this.fetchingShop.set(false);
+        this.fetchNotice.set({ type: 'success', msg: `✓ Loaded: ${biz.shopName || b.shopName}` });
+      },
+      error: () => {
+        // Detail fetch failed — basic data from list is already filled, that's fine
+        this.fetchingShop.set(false);
+      }
+    });
+  }
 
   statusFilter = 'ALL';
   kycFilter = 'ALL';
@@ -860,6 +960,13 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.loadSubMerchants();
+    this.api.getBusinesses().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (list) => this.businesses.set(list),
+      error: () => {}
+    });
+    this.businessSearchCtrl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(v => this.businessSearchQuery.set(typeof v === 'string' ? v : ''));
   }
 
   ngAfterViewInit() {
@@ -911,14 +1018,48 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
     });
   }
 
-  openCreate(): void {
+  openCreate(prefilledRestaurantId?: number): void {
     this.editingSubMerchant.set(null);
+    this.fetchNotice.set(null);
+    this.businessSearchCtrl.setValue('');
+    this.businessSearchQuery.set('');
     this.subMerchantForm.reset({
-      restaurantId: 0, businessName: '', businessType: '', pan: '', gst: '',
+      restaurantId: prefilledRestaurantId ?? 0,
+      businessName: '', businessType: '', pan: '', gst: '',
       bankAccountNo: '', ifsc: '', beneficiaryName: '', bankName: '', branchName: '',
       businessAddress: '', contactEmail: '', contactPhone: '', commissionRate: 0
     });
-    this.dialog.open(this.formDialogTemplate, { width: '800px' });
+    this.dialog.open(this.formDialogTemplate, { width: '840px', maxHeight: '90vh' });
+  }
+
+  fetchShopData(): void {
+    const rid = Number(this.subMerchantForm.get('restaurantId')?.value);
+    if (!rid || rid <= 0) {
+      this.fetchNotice.set({ type: 'error', msg: 'Enter a valid Restaurant ID first.' });
+      return;
+    }
+    this.fetchingShop.set(true);
+    this.fetchNotice.set(null);
+    this.api.getBusinessDetail(rid).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (biz) => {
+        const phone = (biz.whatsappNumber || biz.ownerWhatsappNumber || biz.whatsappNumber || '')
+          .replace(/^\+91/, '').replace(/\D/g, '').slice(-10);
+        this.subMerchantForm.patchValue({
+          businessName:    biz.shopName         || '',
+          contactEmail:    biz.email            || '',
+          contactPhone:    phone,
+          gst:             biz.gstin            || '',
+          businessAddress: biz.shopAddress      || '',
+        });
+        this.fetchingShop.set(false);
+        this.fetchNotice.set({ type: 'success', msg: `✓ Loaded: ${biz.shopName || rid}` });
+      },
+      error: (err) => {
+        this.fetchingShop.set(false);
+        const msg = err?.error?.error || err?.error?.message || 'Not found or server error.';
+        this.fetchNotice.set({ type: 'error', msg: `Restaurant #${rid}: ${msg}` });
+      }
+    });
   }
 
   openEdit(merchant: EasebuzzSubMerchant): void {

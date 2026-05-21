@@ -8,6 +8,7 @@ import com.khanabook.saas.exception.EntityNotFoundException;
 import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.repository.EasebuzzSubMerchantWebhookEventRepository;
 import com.khanabook.saas.repository.EasebuzzPayoutRepository;
+import com.khanabook.saas.repository.RestaurantProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ public class SubMerchantService {
     private final EasebuzzSubMerchantRepository subMerchantRepo;
     private final EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
     private final EasebuzzPayoutRepository payoutRepo;
+    private final RestaurantProfileRepository restaurantProfileRepo;
 
     public List<EasebuzzSubMerchant> listAll() {
         return subMerchantRepo.findAll();
@@ -91,7 +93,15 @@ public class SubMerchantService {
         sm.setStatus("PENDING_KYC");
         sm.setUpdatedAt(System.currentTimeMillis());
         subMerchantRepo.save(sm);
-        log.info("Sub-merchant {} assigned Easebuzz ID: {}", id, subMerchantId);
+        // Auto-enable Easebuzz Payments for the restaurant so the Android toggle appears
+        restaurantProfileRepo.findByRestaurantId(sm.getRestaurantId()).ifPresent(profile -> {
+            profile.setEasebuzzEnabled(true);
+            long now = System.currentTimeMillis();
+            profile.setUpdatedAt(now);
+            profile.setServerUpdatedAt(now);
+            restaurantProfileRepo.save(profile);
+        });
+        log.info("Sub-merchant {} assigned Easebuzz ID: {}, easebuzzEnabled set to true for restaurant {}", id, subMerchantId, sm.getRestaurantId());
         return sm;
     }
 
@@ -358,6 +368,24 @@ public class SubMerchantService {
         }, () -> log.info("Sub-merchant {} already deleted, skipping.", id));
     }
 
+    /**
+     * Public delete — only allows removing DRAFT or FAILED records.
+     * PENDING_KYC / ACTIVE sub-merchants are live on Easebuzz and cannot be deleted locally.
+     */
+    @Transactional
+    public void delete(Long id) {
+        EasebuzzSubMerchant sm = getById(id);
+        String status = sm.getStatus();
+        if (!"DRAFT".equals(status) && !"FAILED".equals(status)) {
+            throw new BusinessRuleException(
+                "Cannot delete sub-merchant with status " + status + ". Only DRAFT or FAILED records can be deleted.",
+                "DELETE_NOT_ALLOWED"
+            );
+        }
+        deleteSubMerchant(id);
+        log.info("Sub-merchant {} deleted (status was {}).", id, status);
+    }
+
     @Transactional
     public EasebuzzSubMerchant submitToEasebuzz(Long id) {
         EasebuzzSubMerchant sm = getById(id);
@@ -377,6 +405,14 @@ public class SubMerchantService {
             sm.setStatus("PENDING_KYC");
             sm.setKycSubmittedAt(System.currentTimeMillis());
             sm.setEasebuzzResponse(result.toString());
+            // Auto-enable Easebuzz Payments for the restaurant so the Android toggle appears
+            restaurantProfileRepo.findByRestaurantId(sm.getRestaurantId()).ifPresent(profile -> {
+                profile.setEasebuzzEnabled(true);
+                long now = System.currentTimeMillis();
+                profile.setUpdatedAt(now);
+                profile.setServerUpdatedAt(now);
+                restaurantProfileRepo.save(profile);
+            });
         } else {
             sm.setStatus("FAILED");
             Object errorObj = result != null ? result.get("error") : null;

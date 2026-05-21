@@ -103,7 +103,7 @@ public class AdminReadService {
     public AdminBusinessDetailResponse getBusinessDetail(Long restaurantId) {
         RestaurantProfile profile = restaurantProfileRepository.findByRestaurantId(restaurantId)
                 .filter(p -> !Boolean.TRUE.equals(p.getIsDeleted()))
-                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Business not found with ID: " + restaurantId));
 
         List<User> users = userRepository.findByRestaurantIdAndIsDeletedFalse(restaurantId);
         User owner = users.stream()
@@ -123,6 +123,9 @@ public class AdminReadService {
                 .ownerWhatsappNumber(owner != null ? owner.getWhatsappNumber() : null)
                 .email(profile.getEmail())
                 .shopAddress(profile.getShopAddress())
+                .gstin(profile.getGstin())
+                .fssaiNumber(profile.getFssaiNumber())
+                .whatsappNumber(profile.getWhatsappNumber())
                 .currency(profile.getCurrency())
                 .timezone(profile.getTimezone())
                 .websiteEnabled(Boolean.TRUE.equals(profile.getOwnWebsiteEnabled()))
