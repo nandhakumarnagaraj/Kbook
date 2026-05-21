@@ -1,11 +1,13 @@
 package com.khanabook.saas.config;
 
 import com.khanabook.saas.security.TenantContext;
+import org.slf4j.MDC;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import java.util.Map;
 import java.util.concurrent.Executor;
 
 @Configuration
@@ -20,18 +22,21 @@ public class AsyncConfig {
         executor.setQueueCapacity(1000);
         executor.setThreadNamePrefix("MenuParser-");
 
-        // Propagate TenantContext into async threads so tenant isolation
-        // is preserved when @Async methods read TenantContext.getCurrentTenant().
+        // Propagate TenantContext and MDC log context into async threads
+        // so tenant isolation and tracing are preserved in @Async methods.
         executor.setTaskDecorator(runnable -> {
             Long tenantId = TenantContext.getCurrentTenant();
             String role   = TenantContext.getCurrentRole();
+            Map<String, String> mdcContext = MDC.getCopyOfContextMap();
             return () -> {
                 try {
                     if (tenantId != null) TenantContext.setCurrentTenant(tenantId);
                     if (role != null)     TenantContext.setCurrentRole(role);
+                    if (mdcContext != null) MDC.setContextMap(mdcContext);
                     runnable.run();
                 } finally {
                     TenantContext.clear();
+                    MDC.clear();
                 }
             };
         });
@@ -51,13 +56,16 @@ public class AsyncConfig {
         executor.setTaskDecorator(runnable -> {
             Long tenantId = TenantContext.getCurrentTenant();
             String role   = TenantContext.getCurrentRole();
+            Map<String, String> mdcContext = MDC.getCopyOfContextMap();
             return () -> {
                 try {
                     if (tenantId != null) TenantContext.setCurrentTenant(tenantId);
                     if (role != null)     TenantContext.setCurrentRole(role);
+                    if (mdcContext != null) MDC.setContextMap(mdcContext);
                     runnable.run();
                 } finally {
                     TenantContext.clear();
+                    MDC.clear();
                 }
             };
         });
