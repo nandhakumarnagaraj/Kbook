@@ -41,6 +41,17 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 - **Android Refund Status**: Added `getEasebuzzRefundStatus()` API + DTO + repo method
 - **Documentation Updated**: `sub-merchant-apis.md` endpoint table now includes all 22 endpoints
 
+### 2026-05-21 Session — Typed Exceptions, Webhook HMAC Auth, Bug Fixes
+- **Typed exception hierarchy**: `BusinessRuleException` (→ 422), `EasebuzzApiException` (→ 502), `EntityNotFoundException` (→ 404) — all registered in `GlobalExceptionHandler`
+- **Replaced all raw `RuntimeException` throws** in `EasebuzzPaymentService`, `SubMerchantService` with typed exceptions for correct HTTP status codes
+- **txnid format fixed**: `KB{billTail5}{restTail5}{uuid8}` = exactly 20 chars (Easebuzz max limit); was `T{timestamp}` which could exceed 20 chars
+- **PostSplitService idempotency**: skip if bill already settled (`settledAt != null`); stable `merchantRequestId` using `KB{billId}_{easebuzzIdPrefix}` — Easebuzz deduplicates replays
+- **MarketplaceWebhookController**: HMAC-SHA256 `X-Hub-Signature-256` verification added; onboarding mode accepts null signature when no secrets configured; `rawPayload` now serialized as valid JSON via `ObjectMapper` (was `Map.toString()`)
+- **MasterSyncController `hasMore` bug fixed**: raw list size now checked BEFORE truncation (was checking truncated size — never triggered)
+- **MenuExtractionController**: tenant isolation enforced on `GET /jobs/{id}`; new `GET /jobs` list endpoint added
+- **MenuExtractionJobRepository**: added `findByRestaurantIdOrderByCreatedAtDesc`
+- **All 133 tests passing** after changes; committed `05683fc`, pushed to `origin/v2`
+
 ### In Progress
 - None currently
 
@@ -96,7 +107,8 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 11. ~~Create live-mode test plan for KYC, sub-merchant CRUD, split APIs~~ ✅ Done (`easebuzz-live-test-plan.md`)
 12. ~~Fix web-admin subscription leaks — add `takeUntilDestroyed()` to 45 `.subscribe()` calls~~ ✅ Committed
 13. ~~Commit pending code review fixes & tests~~ ✅ Committed (`e2855a9`)
-14. Update `sub-merchant-password-reset` flow when Easebuzz ops enables it (blocked)
+14. ~~Typed exceptions + webhook HMAC auth + txnid fix + sync hasMore fix~~ ✅ Committed (`05683fc`)
+15. Update `sub-merchant-password-reset` flow when Easebuzz ops enables it (blocked)
 
 ## Critical Context
 - Backend base path: `/api/v2` (dev)
