@@ -239,39 +239,48 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
                   <mat-divider></mat-divider>
                   
                   <ng-container *ngIf="sm.status === 'DRAFT' || sm.status === 'FAILED'">
-                    <button mat-menu-item (click)="submitToEasebuzz(sm)">
+                    <button mat-menu-item (click)="submitToEasebuzz(sm)" [disabled]="actionLoadingId() === sm.id">
                       <mat-icon color="primary">rocket_launch</mat-icon>
-                      <span>Submit to Easebuzz</span>
+                      <span *ngIf="actionLoadingId() !== sm.id">Submit to Easebuzz</span>
+                      <span *ngIf="actionLoadingId() === sm.id">Submitting...</span>
                     </button>
-                    <button mat-menu-item (click)="assignSubMerchantId(sm)">
+                    <button mat-menu-item (click)="assignSubMerchantId(sm)" [disabled]="actionLoadingId() === sm.id">
                       <mat-icon>fingerprint</mat-icon>
                       <span>Assign Easebuzz ID</span>
                     </button>
                   </ng-container>
 
                   <ng-container *ngIf="sm.status === 'PENDING_KYC' || sm.status === 'KYC_SUBMITTED'">
-                    <button mat-menu-item (click)="generateKyc(sm)">
+                    <button mat-menu-item (click)="generateKyc(sm)" [disabled]="actionLoadingId() === sm.id">
                       <mat-icon color="primary">vpn_key</mat-icon>
-                      <span>Generate KYC URL</span>
+                      <span *ngIf="actionLoadingId() !== sm.id">Generate KYC URL</span>
+                      <span *ngIf="actionLoadingId() === sm.id">Generating...</span>
                     </button>
-                    <button mat-menu-item (click)="openVerifyOtp(sm)">
+                    <button mat-menu-item (click)="openVerifyOtp(sm)" [disabled]="actionLoadingId() === sm.id">
                       <mat-icon>sms</mat-icon>
                       <span>Verify OTP</span>
                     </button>
-                    <button mat-menu-item (click)="updateOnEasebuzz(sm)">
+                    <button mat-menu-item (click)="resendOtp(sm)" [disabled]="actionLoadingId() === sm.id">
+                      <mat-icon>refresh</mat-icon>
+                      <span>Resend OTP</span>
+                    </button>
+                    <button mat-menu-item (click)="updateOnEasebuzz(sm)" [disabled]="actionLoadingId() === sm.id">
                       <mat-icon>sync</mat-icon>
-                      <span>Sync to Easebuzz</span>
+                      <span *ngIf="actionLoadingId() !== sm.id">Sync to Easebuzz</span>
+                      <span *ngIf="actionLoadingId() === sm.id">Syncing...</span>
                     </button>
                   </ng-container>
 
                   <ng-container *ngIf="sm.status === 'ACTIVE'">
-                     <button mat-menu-item (click)="createSplitLabel(sm)" *ngIf="!sm.splitLabel">
+                     <button mat-menu-item (click)="createSplitLabel(sm)" *ngIf="!sm.splitLabel" [disabled]="actionLoadingId() === sm.id">
                       <mat-icon>label</mat-icon>
-                      <span>Create Split Label</span>
+                      <span *ngIf="actionLoadingId() !== sm.id">Create Split Label</span>
+                      <span *ngIf="actionLoadingId() === sm.id">Creating...</span>
                     </button>
-                    <button mat-menu-item (click)="updateOnEasebuzz(sm)">
+                    <button mat-menu-item (click)="updateOnEasebuzz(sm)" [disabled]="actionLoadingId() === sm.id">
                       <mat-icon>sync</mat-icon>
-                      <span>Sync to Easebuzz</span>
+                      <span *ngIf="actionLoadingId() !== sm.id">Sync to Easebuzz</span>
+                      <span *ngIf="actionLoadingId() === sm.id">Syncing...</span>
                     </button>
                   </ng-container>
 
@@ -468,7 +477,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
 
             <mat-form-field appearance="outline">
               <mat-label>PAN</mat-label>
-              <input matInput formControlName="pan" placeholder="AAAAA1234A" class="uppercase">
+              <input matInput formControlName="pan" placeholder="AAAAA1234A" class="uppercase" (input)="$any($event.target).value = $any($event.target).value.toUpperCase()">
               <mat-error>Invalid PAN format</mat-error>
             </mat-form-field>
 
@@ -502,7 +511,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
 
             <mat-form-field appearance="outline">
               <mat-label>IFSC Code</mat-label>
-              <input matInput formControlName="ifsc" placeholder="ABCD0123456" class="uppercase">
+              <input matInput formControlName="ifsc" placeholder="ABCD0123456" class="uppercase" (input)="$any($event.target).value = $any($event.target).value.toUpperCase()">
               <mat-error>Invalid IFSC format</mat-error>
             </mat-form-field>
 
@@ -870,6 +879,7 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
   readonly selectedSubMerchant = signal<EasebuzzSubMerchant | null>(null);
   readonly editingSubMerchant = signal<EasebuzzSubMerchant | null>(null);
   readonly formSaving = signal(false);
+  readonly actionLoadingId = signal<number | null>(null);
   readonly fetchingShop = signal(false);
   readonly fetchNotice = signal<{ type: 'success' | 'error'; msg: string } | null>(null);
 
@@ -1120,55 +1130,59 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
     this.selectedSubMerchant.set(null);
   }
 
+  private runAction(id: number, action: () => Observable<any>, msg: string, onNext?: (res: any) => void): void {
+    if (this.actionLoadingId() !== null) return;
+    this.actionLoadingId.set(id);
+    action().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res) => {
+        this.actionLoadingId.set(null);
+        this.loadSubMerchants();
+        // Refresh detail panel with fresh data
+        const sel = this.selectedSubMerchant();
+        if (sel && sel.id === id) this.api.getSubMerchant(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          next: (updated) => this.selectedSubMerchant.set(updated)
+        });
+        if (onNext) onNext(res);
+        this.snackBar.open(msg, 'OK', { duration: 3000 });
+      },
+      error: (err) => {
+        this.actionLoadingId.set(null);
+        this.snackBar.open(err?.error?.error || msg + ' failed', 'OK');
+      }
+    });
+  }
+
   submitToEasebuzz(merchant: EasebuzzSubMerchant): void {
     if(!confirm(`Submit ${merchant.businessName} to Easebuzz?`)) return;
-    this.api.submitToEasebuzz(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => { this.loadSubMerchants(); this.snackBar.open('Submitted to Easebuzz', 'OK', { duration: 3000 }); },
-      error: (err) => this.snackBar.open(err?.error?.error || 'Submission failed', 'OK')
-    });
+    this.runAction(merchant.id, () => this.api.submitToEasebuzz(merchant.id), 'Submitted to Easebuzz');
   }
 
   assignSubMerchantId(merchant: EasebuzzSubMerchant): void {
     const id = prompt('Enter Easebuzz Sub-Merchant ID:');
     if (!id) return;
-    this.api.assignSubMerchantId(merchant.id, id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => { this.loadSubMerchants(); this.snackBar.open('ID Assigned', 'OK', { duration: 3000 }); },
-      error: (err) => this.snackBar.open(err?.error?.error || 'Assignment failed', 'OK')
-    });
+    this.runAction(merchant.id, () => this.api.assignSubMerchantId(merchant.id, id), 'ID Assigned');
   }
 
   generateKyc(merchant: EasebuzzSubMerchant): void {
-    this.api.generateKyc(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (res) => {
-        this.loadSubMerchants();
-        if (res.kyc_url) window.open(res.kyc_url, '_blank');
-        this.snackBar.open('KYC Access Generated', 'OK', { duration: 3000 });
-      },
-      error: () => this.snackBar.open('KYC Generation failed', 'OK')
+    this.runAction(merchant.id, () => this.api.generateKyc(merchant.id), 'KYC Access Generated', (res) => {
+      if (res.kyc_url) window.open(res.kyc_url, '_blank');
     });
   }
 
   updateOnEasebuzz(merchant: EasebuzzSubMerchant): void {
-    this.api.updateOnEasebuzz(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => { this.loadSubMerchants(); this.snackBar.open('Synced to Easebuzz', 'OK', { duration: 3000 }); },
-      error: (err) => this.snackBar.open(err?.error?.error || 'Sync failed', 'OK')
-    });
+    this.runAction(merchant.id, () => this.api.updateOnEasebuzz(merchant.id), 'Synced to Easebuzz');
   }
 
   retrieveSplitStatus(merchant: EasebuzzSubMerchant): void {
     const reqId = prompt('Enter Merchant Request ID:');
     if (!reqId) return;
-    this.api.retrieveSplitStatus(merchant.id, reqId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (res) => alert(`Split Status: ${JSON.stringify(res.split_configuration)}`),
-      error: (err) => this.snackBar.open(err?.error?.error || 'Retrieve failed', 'OK')
+    this.runAction(merchant.id, () => this.api.retrieveSplitStatus(merchant.id, reqId), 'Split Status Retrieved', (res) => {
+      alert(`Split Status: ${JSON.stringify(res.split_configuration)}`);
     });
   }
 
   createSplitLabel(merchant: EasebuzzSubMerchant): void {
-    this.api.createSplitLabel(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => { this.loadSubMerchants(); this.snackBar.open('Split Label Created', 'OK', { duration: 3000 }); },
-      error: (err) => this.snackBar.open(err?.error?.error || 'Creation failed', 'OK')
-    });
+    this.runAction(merchant.id, () => this.api.createSplitLabel(merchant.id), 'Split Label Created');
   }
 
   openVerifyOtp(merchant: EasebuzzSubMerchant): void {
@@ -1177,6 +1191,14 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
     this.api.verifyOtp(merchant.id, otp).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.loadSubMerchants(); this.snackBar.open('OTP Verified', 'OK', { duration: 3000 }); },
       error: (err) => this.snackBar.open(err?.error?.error || 'Verification failed', 'OK')
+    });
+  }
+
+  resendOtp(merchant: EasebuzzSubMerchant): void {
+    if (!confirm(`Resend OTP for ${merchant.businessName}?`)) return;
+    this.api.resendOtp(merchant.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => this.snackBar.open('OTP resent successfully', 'OK', { duration: 3000 }),
+      error: (err) => this.snackBar.open(err?.error?.error || 'Failed to resend OTP', 'OK')
     });
   }
 
