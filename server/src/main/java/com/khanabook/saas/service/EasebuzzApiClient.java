@@ -242,9 +242,10 @@ public class EasebuzzApiClient {
 		merchantDetails.put("merchant_key", props.getMerchantKey());
 		merchantDetails.put("hash", hash);
 
+		String sanitizedName = sanitizeName(subMerchantName);
 		String password = generateRandomPassword();
 		Map<String, Object> submerchantDetails = new HashMap<>();
-		submerchantDetails.put("sub_merchant_name", subMerchantName);
+		submerchantDetails.put("sub_merchant_name", sanitizedName);
 		submerchantDetails.put("sub_merchant_email", email);
 		submerchantDetails.put("sub_merchant_phone", phone);
 		submerchantDetails.put("sub_merchant_name_in_bank", nameInBank);
@@ -264,7 +265,7 @@ public class EasebuzzApiClient {
 
 		businessDetails.put("sub_merchant_business_nature", nature);
 		businessDetails.put("sub_merchant_business_type", businessType != null ? businessType : "SOLE PROPRIETOR");
-		businessDetails.put("sub_merchant_business_name", subMerchantName);
+		businessDetails.put("sub_merchant_business_name", sanitizedName);
 		businessDetails.put("sub_merchant_business_address", businessAddress != null ? businessAddress : "123 Test Street");
 		businessDetails.put("sub_merchant_state", "Karnataka"); 
 		businessDetails.put("sub_merchant_mcc_code", "5812");
@@ -413,6 +414,11 @@ public class EasebuzzApiClient {
 			log.error("Easebuzz JSON API {} failed: {}", url, e.getMessage());
 			return Map.of("status", false, "error", e.getMessage());
 		}
+	}
+
+	public static String sanitizeName(String name) {
+		if (name == null) return null;
+		return name.replace("'", "").replace("\"", "").replace("\\", "");
 	}
 
 	public static boolean toBool(Object value) {

@@ -238,7 +238,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
                   </button>
                   <mat-divider></mat-divider>
                   
-                  <ng-container *ngIf="sm.status === 'DRAFT'">
+                  <ng-container *ngIf="sm.status === 'DRAFT' || sm.status === 'FAILED'">
                     <button mat-menu-item (click)="submitToEasebuzz(sm)">
                       <mat-icon color="primary">rocket_launch</mat-icon>
                       <span>Submit to Easebuzz</span>
