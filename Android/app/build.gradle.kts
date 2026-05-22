@@ -36,7 +36,7 @@ fun isPlaceholder(value: String): Boolean {
 // WhatsApp/Meta tokens removed — OTP delivery is now handled entirely server-side.
 // The server's PasswordResetOtpService holds and uses these credentials.
 val backendUrl = configValue("BACKEND_URL", "https://kbook.iadv.cloud/")
-val webAdminUrl = configValue("WEB_ADMIN_URL", backendUrl)
+val webAdminUrl = configValue("WEB_ADMIN_URL", "${backendUrl.trimEnd('/')}/v2/")
 val googleWebClientId = configValue("GOOGLE_WEB_CLIENT_ID")
 val signingStoreFile = configValue("SIGNING_STORE_FILE")
 val signingStorePassword = configValue("SIGNING_STORE_PASSWORD")
