@@ -354,6 +354,7 @@ public class SubMerchantService {
                 long now = System.currentTimeMillis();
                 profile.setUpdatedAt(now);
                 profile.setServerUpdatedAt(now);
+                profile.setDeviceId("server");
                 restaurantProfileRepo.save(profile);
             }
         });
