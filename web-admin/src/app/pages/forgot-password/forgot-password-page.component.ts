@@ -284,7 +284,7 @@ export class ForgotPasswordPageComponent {
       next: () => {
         this.loading.set(false);
         this.snackBar.open('Password reset successful!', 'Sign In', { duration: 5000 })
-          .onAction().subscribe(() => this.router.navigate(['/login']));
+          .onAction().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.router.navigate(['/login']));
         setTimeout(() => this.router.navigate(['/login']), 2000);
       },
       error: (err) => {

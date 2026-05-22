@@ -14,6 +14,7 @@ import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.domain.util.AppAssetStore
 import com.khanabook.lite.pos.domain.util.MultipartUtils
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel

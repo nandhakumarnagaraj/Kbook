@@ -93,14 +93,7 @@ public class SubMerchantService {
         sm.setStatus("PENDING_KYC");
         sm.setUpdatedAt(System.currentTimeMillis());
         subMerchantRepo.save(sm);
-        // Auto-enable Easebuzz Payments for the restaurant so the Android toggle appears
-        restaurantProfileRepo.findByRestaurantId(sm.getRestaurantId()).ifPresent(profile -> {
-            profile.setEasebuzzEnabled(true);
-            long now = System.currentTimeMillis();
-            profile.setUpdatedAt(now);
-            profile.setServerUpdatedAt(now);
-            restaurantProfileRepo.save(profile);
-        });
+        ensureEasebuzzEnabled(sm.getRestaurantId());
         log.info("Sub-merchant {} assigned Easebuzz ID: {}, easebuzzEnabled set to true for restaurant {}", id, subMerchantId, sm.getRestaurantId());
         return sm;
     }
@@ -283,7 +276,7 @@ public class SubMerchantService {
     public Map<String, Object> verifyOtp(Long id, String otp) {
         EasebuzzSubMerchant sm = getById(id);
         if (sm.getSubMerchantId() == null) {
-            throw new RuntimeException("Sub-merchant has no Easebuzz ID.");
+            throw new BusinessRuleException("Sub-merchant has no Easebuzz ID.", "NO_EASEBUZZ_ID");
         }
         return easebuzzApi.verifyOtp(sm.getSubMerchantId(), otp);
     }
@@ -291,7 +284,7 @@ public class SubMerchantService {
     public Map<String, Object> resendOtp(Long id) {
         EasebuzzSubMerchant sm = getById(id);
         if (sm.getSubMerchantId() == null) {
-            throw new RuntimeException("Sub-merchant has no Easebuzz ID.");
+            throw new BusinessRuleException("Sub-merchant has no Easebuzz ID.", "NO_EASEBUZZ_ID");
         }
         return easebuzzApi.resendOtp(sm.getSubMerchantId());
     }
@@ -354,7 +347,20 @@ public class SubMerchantService {
     }
 
     @Transactional
-    public void deleteSubMerchant(Long id) {
+    public void ensureEasebuzzEnabled(Long restaurantId) {
+        restaurantProfileRepo.findByRestaurantId(restaurantId).ifPresent(profile -> {
+            if (profile.getEasebuzzEnabled() == null || !profile.getEasebuzzEnabled()) {
+                profile.setEasebuzzEnabled(true);
+                long now = System.currentTimeMillis();
+                profile.setUpdatedAt(now);
+                profile.setServerUpdatedAt(now);
+                restaurantProfileRepo.save(profile);
+            }
+        });
+    }
+
+    @Transactional
+    public void hardDeleteSubMerchant(Long id) {
         subMerchantRepo.findById(id).ifPresentOrElse(sm -> {
             // Clean up webhook events associated with this sub-merchant's Easebuzz ID
             if (sm.getSubMerchantId() != null) {
@@ -364,7 +370,7 @@ public class SubMerchantService {
                 }
             }
             subMerchantRepo.delete(sm);
-            log.info("Sub-merchant {} deleted via dev-refresh.", id);
+            log.info("Sub-merchant {} hard deleted.", id);
         }, () -> log.info("Sub-merchant {} already deleted, skipping.", id));
     }
 
@@ -382,7 +388,7 @@ public class SubMerchantService {
                 "DELETE_NOT_ALLOWED"
             );
         }
-        deleteSubMerchant(id);
+        hardDeleteSubMerchant(id);
         log.info("Sub-merchant {} deleted (status was {}).", id, status);
     }
 
@@ -405,14 +411,7 @@ public class SubMerchantService {
             sm.setStatus("PENDING_KYC");
             sm.setKycSubmittedAt(System.currentTimeMillis());
             sm.setEasebuzzResponse(result.toString());
-            // Auto-enable Easebuzz Payments for the restaurant so the Android toggle appears
-            restaurantProfileRepo.findByRestaurantId(sm.getRestaurantId()).ifPresent(profile -> {
-                profile.setEasebuzzEnabled(true);
-                long now = System.currentTimeMillis();
-                profile.setUpdatedAt(now);
-                profile.setServerUpdatedAt(now);
-                restaurantProfileRepo.save(profile);
-            });
+            ensureEasebuzzEnabled(sm.getRestaurantId());
         } else {
             sm.setStatus("FAILED");
             Object errorObj = result != null ? result.get("error") : null;
@@ -450,7 +449,7 @@ public class SubMerchantService {
     public Map<String, Object> wireGetKycProfileUrl(Long id) {
         EasebuzzSubMerchant sm = getById(id);
         if (sm.getSubMerchantId() == null) {
-            throw new RuntimeException("Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.");
+            throw new BusinessRuleException("Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.", "NO_EASEBUZZ_ID");
         }
         return wireApi.getKycProfileUrl(sm.getSubMerchantId());
     }

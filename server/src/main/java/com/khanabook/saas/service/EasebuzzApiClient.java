@@ -1,6 +1,7 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.config.EasebuzzProperties;
+import com.khanabook.saas.exception.EasebuzzApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -84,6 +85,7 @@ public class EasebuzzApiClient {
 		String furl = data.getOrDefault("furl", props.getReturnUrl());
 		params.set("surl", surl);
 		params.set("furl", furl);
+		params.set("notify_url", props.getNotifyUrl());
 		
 		params.set("hash", hash);
 		
@@ -439,7 +441,7 @@ public class EasebuzzApiClient {
 			for (byte b : digest) hash.append(String.format("%02x", b));
 			return hash.toString();
 		} catch (Exception e) {
-			throw new RuntimeException("Hash failed", e);
+			throw new EasebuzzApiException("Hash generation failed", e);
 		}
 	}
 }

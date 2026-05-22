@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
+import com.easebuzz.payment.kit.PWECheckoutActivity
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.dto.CreateEasebuzzOrderRequest
 import com.khanabook.lite.pos.data.remote.dto.CreateEasebuzzOrderResponse
@@ -72,16 +73,17 @@ class EasebuzzSdkPaymentRepository(
         )
 
     /**
-     * Creates an Intent to launch the native Easebuzz SDK checkout activity (PWECheckoutActivity).
-     * Uses the host app's package name since the SDK AAR's activity is merged into the host manifest.
+     * Creates an Intent to launch the native Easebuzz SDK checkout activity.
+     * Per Easebuzz v2 docs: must use FLAG_ACTIVITY_REORDER_TO_FRONT (mandatory)
+     * and pass both access_key and pay_mode ("test" or "production") extras.
      * The calling composable should use ActivityResultLauncher to start it
-     * and handle the result via payment verification.
+     * and handle the result via onActivityResult.
      */
-    fun createSdkIntent(accessToken: String, context: Context): Intent {
-        return Intent().apply {
-            setClassName(context.packageName, "com.easebuzz.payment.kit.PWECheckoutActivity")
+    fun createSdkIntent(accessToken: String, payMode: String, context: Context): Intent {
+        return Intent(context, PWECheckoutActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             putExtra("access_key", accessToken)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            putExtra("pay_mode", payMode)
         }
     }
 

@@ -22,7 +22,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 44,
+        version = 45,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -70,6 +70,16 @@ abstract class AppDatabase : RoomDatabase() {
                         db.execSQL("ALTER TABLE `bills` ADD COLUMN `gateway_status` TEXT")
                     } catch (e: android.database.sqlite.SQLiteException) {
                         android.util.Log.w("AppDatabase", "MIGRATION_43_44: gateway_status may already exist: ${e.message}")
+                    }
+                }
+            }
+
+            val MIGRATION_44_45 = object : Migration(44, 45) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    try {
+                        db.execSQL("ALTER TABLE `stock_logs` ADD COLUMN `permanent_failure` INTEGER NOT NULL DEFAULT 0")
+                    } catch (e: android.database.sqlite.SQLiteException) {
+                        android.util.Log.w("AppDatabase", "MIGRATION_44_45: permanent_failure may already exist: ${e.message}")
                     }
                 }
             }

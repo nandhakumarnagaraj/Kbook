@@ -34,12 +34,8 @@ public class RestaurantPaymentConfigController {
         Map<String, Object> config = new HashMap<>();
         // Auto-enable if a sub-merchant ID is assigned, otherwise use the stored flag
         boolean hasSubMerchantId = sm != null && sm.getSubMerchantId() != null && !sm.getSubMerchantId().isBlank();
-        if (hasSubMerchantId && (profile.getEasebuzzEnabled() == null || !profile.getEasebuzzEnabled())) {
-            profile.setEasebuzzEnabled(true);
-            long now = System.currentTimeMillis();
-            profile.setUpdatedAt(now);
-            profile.setServerUpdatedAt(now);
-            profileRepo.save(profile);
+        if (hasSubMerchantId) {
+            subMerchantService.ensureEasebuzzEnabled(restaurantId);
         }
         config.put("easebuzzEnabled", profile.getEasebuzzEnabled() != null && profile.getEasebuzzEnabled());
         config.put("subMerchantStatus", sm != null ? sm.getStatus() : "NOT_STARTED");
@@ -82,11 +78,14 @@ public class RestaurantPaymentConfigController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.ok(Map.of(
-                "status",         "NOT_REGISTERED",
-                "subMerchantId",  "",
-                "hasSubMerchant", false,
-                "isActive",       false,
-                "kycStatus",      ""
+                "status",             "NOT_REGISTERED",
+                "subMerchantId",      "",
+                "hasSubMerchant",     false,
+                "isActive",           false,
+                "kycStatus",          "",
+                "kycSubmissionDate",  null,
+                "kycUrl",            "",
+                "activationDate",    null
             ));
         }
     }

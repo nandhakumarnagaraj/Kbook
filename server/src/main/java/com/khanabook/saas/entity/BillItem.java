@@ -29,7 +29,7 @@ public class BillItem extends BaseSyncEntity {
 	@jakarta.persistence.JoinColumn(name = "server_bill_id", insertable = false, updatable = false)
 	private Bill bill;
 
-	@Column(name = "menu_item_id", nullable = false)
+	@Column(name = "menu_item_id")
 	private Long menuItemId;
 
 	@Column(name = "server_menu_item_id")

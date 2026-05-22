@@ -107,7 +107,8 @@ public class EasebuzzPaymentService {
                 "txnid", txnid,
                 "access_token", accessToken != null ? accessToken : "",
                 "payment_url", paymentUrl != null ? paymentUrl : "",
-                "amount", bill.getTotalAmount()
+                "amount", bill.getTotalAmount(),
+                "pay_mode", props.getPayMode()
             );
         }
         log.warn("Payment order creation failed billId={} response={}", billId, result);

@@ -1,7 +1,5 @@
 package com.khanabook.lite.pos.ui.screens
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -33,6 +32,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.data.repository.EasebuzzSdkPaymentRepository
@@ -56,6 +58,7 @@ enum class PaymentScreenState {
     INITIALIZING,
     READY,
     PROCESSING,
+    VERIFYING,
     SUCCESS,
     FAILED
 }
@@ -78,45 +81,14 @@ fun EasebuzzPaymentScreen(
     var screenState by remember { mutableStateOf(PaymentScreenState.INITIALIZING) }
     var accessToken by remember { mutableStateOf<String?>(null) }
     var paymentUrl by remember { mutableStateOf<String?>(null) }
+    var payMode by remember { mutableStateOf("test") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var retryCount by remember { mutableIntStateOf(0) }
     var sdkAttempted by remember { mutableStateOf(false) }
+    var sdkLaunched by remember { mutableStateOf(false) }
 
-    // ActivityResultLauncher for native Easebuzz SDK
-    val sdkLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { _ ->
-        // SDK activity returned — verify payment status
-        scope.launch {
-            screenState = PaymentScreenState.PROCESSING
-            try {
-                val verifyResponse = paymentRepository.verify(billId)
-                if (verifyResponse.status == "success") {
-                    screenState = PaymentScreenState.SUCCESS
-                    KhanaToast.show("Payment successful!", ToastKind.Success)
-                    onPaymentComplete(verifyResponse.txnid)
-                } else {
-                    // SDK did not result in success — fall back to Custom Tabs
-                    val url = paymentUrl
-                    if (url != null) {
-                        paymentRepository.launchFallback(context, url)
-                    } else {
-                        errorMessage = "Payment verification failed"
-                        screenState = PaymentScreenState.FAILED
-                    }
-                }
-            } catch (e: Exception) {
-                // Verification error — fall back to Custom Tabs
-                val url = paymentUrl
-                if (url != null) {
-                    paymentRepository.launchFallback(context, url)
-                } else {
-                    errorMessage = e.message ?: "Verification failed"
-                    screenState = PaymentScreenState.FAILED
-                }
-            }
-        }
-    }
+    // Scope that survives composition teardown — return verification must always run
+    val sdkScope = remember { kotlinx.coroutines.MainScope() }
 
     suspend fun createOrderWithRetry() {
         // Idempotency guard: if already have an access token, skip
@@ -134,6 +106,7 @@ fun EasebuzzPaymentScreen(
                 )
                 accessToken = response.accessToken
                 paymentUrl = response.paymentUrl
+                payMode = response.payMode
                 screenState = PaymentScreenState.READY
                 retryCount = 0
                 return
@@ -152,15 +125,22 @@ fun EasebuzzPaymentScreen(
 
     fun launchSdk() {
         val token = accessToken ?: return
-        val url = paymentUrl ?: return
         screenState = PaymentScreenState.PROCESSING
         sdkAttempted = true
         try {
-            val intent = paymentRepository.createSdkIntent(token, context)
-            sdkLauncher.launch(intent)
+            val intent = paymentRepository.createSdkIntent(token, payMode, context)
+            sdkLaunched = true
+            context.startActivity(intent)
         } catch (e: Exception) {
             // Native SDK unavailable — fall back to Custom Tabs
-            paymentRepository.launchFallback(context, url)
+            val url = paymentUrl
+            if (url != null) {
+                sdkLaunched = true
+                paymentRepository.launchFallback(context, url)
+            } else {
+                errorMessage = e.message ?: "SDK unavailable"
+                screenState = PaymentScreenState.FAILED
+            }
         }
     }
 
@@ -169,11 +149,63 @@ fun EasebuzzPaymentScreen(
         errorMessage = null
         retryCount = 0
         sdkAttempted = false
+        sdkLaunched = false
         createOrderWithRetry()
     }
 
     LaunchedEffect(Unit) {
         createOrderWithRetry()
+    }
+
+    // Lifecycle observer: always registered at composition time (not keyed on sdkLaunched)
+    // to guarantee it fires ON_RESUME when returning from the SDK/browser activity,
+    // even if recomposition is deferred. Checks sdkLaunched flag inside the callback.
+    // Uses poll-verify strategy: polls getStatus() up to 10 times at 3s intervals,
+    // then calls verify() once. If getStatus returns paid but verify fails, still
+    // treats as SUCCESS (payment was taken — server webhook may be delayed).
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && sdkLaunched) {
+                sdkScope.launch {
+                    screenState = PaymentScreenState.VERIFYING
+                    var pollAttempts = 0
+                    var paid = false
+                    while (pollAttempts < 10) {
+                        try {
+                            val status = paymentRepository.getStatus(billId)
+                            if (status.paymentStatus == "paid" || status.paymentStatus == "success") {
+                                paid = true
+                                break
+                            }
+                        } catch (_: Exception) { }
+                        pollAttempts++
+                        if (pollAttempts < 10) delay(3000)
+                    }
+                    try {
+                        val verifyResponse = paymentRepository.verify(billId)
+                        if (verifyResponse.status == "success") {
+                            screenState = PaymentScreenState.SUCCESS
+                            KhanaToast.show("Payment successful!", ToastKind.Success)
+                            onPaymentComplete(verifyResponse.txnid)
+                        } else {
+                            errorMessage = if (paid) "Payment taken but verification pending — check in orders" else "Payment verification failed"
+                            screenState = if (paid) PaymentScreenState.SUCCESS else PaymentScreenState.FAILED
+                            if (paid) onPaymentComplete(null)
+                        }
+                    } catch (e: Exception) {
+                        errorMessage = if (paid) "Payment taken but verification pending — check in orders" else (e.message ?: "Verification failed")
+                        screenState = if (paid) PaymentScreenState.SUCCESS else PaymentScreenState.FAILED
+                        if (paid) onPaymentComplete(null)
+                    }
+                }
+            }
+        }
+
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+        }
     }
 
     Column(
@@ -265,6 +297,22 @@ fun EasebuzzPaymentScreen(
                             Spacer(modifier = Modifier.padding(start = spacing.medium))
                             Text(
                                 text = "Processing payment...",
+                                color = TextGold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                    PaymentScreenState.VERIFYING -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(color = PrimaryGold)
+                            Spacer(modifier = Modifier.padding(start = spacing.medium))
+                            Text(
+                                text = "Verifying payment...",
                                 color = TextGold,
                                 style = MaterialTheme.typography.bodyMedium
                             )

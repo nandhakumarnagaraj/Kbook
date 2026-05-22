@@ -115,7 +115,7 @@ interface BillDao {
             bill: BillEntity,
             items: List<BillItemEntity>,
             payments: List<BillPaymentEntity>
-    ) {
+    ): Long {
         val billId = insertBill(bill)
         val itemsWithId = items.map { 
             it.copy(
@@ -127,6 +127,7 @@ interface BillDao {
         val paymentsWithId = payments.map { it.copy(billId = billId, restaurantId = bill.restaurantId, deviceId = bill.deviceId) }
         insertBillItems(itemsWithId)
         insertBillPayments(paymentsWithId)
+        return billId
     }
 
     
@@ -158,6 +159,9 @@ interface BillDao {
 
     @Query("UPDATE bill_items SET is_synced = 1 WHERE id IN (:ids)")
     suspend fun markBillItemsAsSynced(ids: List<Long>)
+
+    @Query("UPDATE bill_items SET server_bill_id = :serverBillId WHERE bill_id = :localBillId AND server_bill_id IS NULL")
+    suspend fun updateBillItemsServerBillId(localBillId: Long, serverBillId: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedBillItems(items: List<BillItemEntity>)

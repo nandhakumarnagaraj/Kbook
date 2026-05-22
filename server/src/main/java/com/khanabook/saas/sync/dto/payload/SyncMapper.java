@@ -223,6 +223,9 @@ public class SyncMapper {
                 entity.setVariantId(dto.getVariantId());
                 entity.setServerMenuItemId(dto.getServerMenuItemId());
                 entity.setServerVariantId(dto.getServerVariantId());
+                if (dto.getChangeAmount() != null) {
+                    entity.setDelta(dto.getChangeAmount());
+                }
             } else if (source instanceof RestaurantProfileDTO dto) {
                 RestaurantProfile entity = (RestaurantProfile) target;
                 entity.setId(dto.getId());

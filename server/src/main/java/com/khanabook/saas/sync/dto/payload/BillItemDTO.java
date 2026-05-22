@@ -29,7 +29,8 @@ public class BillItemDTO {
     private Long serverMenuItemId;
     private Long variantId;
     private Long serverVariantId;
-    private java.math.BigDecimal quantity;
+    private Integer quantity;
     private java.math.BigDecimal price;
-    private java.math.BigDecimal total;
+    @JsonProperty("itemTotal")
+    private java.math.BigDecimal itemTotal;
 }

@@ -57,7 +57,8 @@ class MasterSyncProcessor @Inject constructor(
         transform: (T) -> R,
         push: suspend (List<R>) -> PushSyncResponse,
         markSynced: suspend (List<Long>) -> Unit,
-        onServerIds: (suspend (Map<Long, Long>) -> Unit)? = null
+        onServerIds: (suspend (Map<Long, Long>) -> Unit)? = null,
+        onBatchFailed: (suspend (List<T>) -> Unit)? = null
     ) {
         if (records.isEmpty()) return
 
@@ -86,11 +87,19 @@ class MasterSyncProcessor @Inject constructor(
                     )
                     throw SyncConflictException(e)
                 }
-                logError(
-                    "Failed pushing $label batch ${index + 1}/${batches.size}",
-                    e
-                )
-                throw e
+                if (e is HttpException && e.code() == 500 && onBatchFailed != null) {
+                    logError(
+                        "Server rejected $label batch ${index + 1}/${batches.size} — marking records as permanently failed",
+                        e
+                    )
+                    onBatchFailed(batch)
+                } else {
+                    logError(
+                        "Failed pushing $label batch ${index + 1}/${batches.size}",
+                        e
+                    )
+                    throw e
+                }
             }
         }
     }
@@ -166,7 +175,10 @@ class MasterSyncProcessor @Inject constructor(
             transform = BillEntity::toSyncDto,
             push = api::pushBills,
             markSynced = billDao::markBillsAsSynced,
-            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId) } }
+            onServerIds = { map -> map.forEach { (localId, serverId) ->
+                billDao.updateServerIdByLocalId(localId, serverId)
+                billDao.updateBillItemsServerBillId(localId, serverId)
+            } }
         )
 
         pushBatches(
@@ -235,7 +247,11 @@ class MasterSyncProcessor @Inject constructor(
             records = inventoryDao.getUnsyncedStockLogs(),
             transform = StockLogEntity::toSyncDto,
             push = api::pushStockLogs,
-            markSynced = inventoryDao::markStockLogsAsSynced
+            markSynced = inventoryDao::markStockLogsAsSynced,
+            onBatchFailed = { batch ->
+                val ids = batch.map { it.id }
+                inventoryDao.markStockLogsAsPermanentlyFailed(ids)
+            }
         )
 
         val unsyncedBills = billDao.getUnsyncedBills()
@@ -250,7 +266,10 @@ class MasterSyncProcessor @Inject constructor(
             transform = BillEntity::toSyncDto,
             push = api::pushBills,
             markSynced = billDao::markBillsAsSynced,
-            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId) } }
+            onServerIds = { map -> map.forEach { (localId, serverId) ->
+                billDao.updateServerIdByLocalId(localId, serverId)
+                billDao.updateBillItemsServerBillId(localId, serverId)
+            } }
         )
 
         pushBatches(

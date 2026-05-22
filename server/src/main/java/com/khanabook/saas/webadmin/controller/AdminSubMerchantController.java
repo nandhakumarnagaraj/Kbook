@@ -195,7 +195,7 @@ public class AdminSubMerchantController {
     @Profile("dev")
     @DeleteMapping("/{id}/dev-refresh")
     public ResponseEntity<Void> devRefresh(@PathVariable Long id) {
-        subMerchantService.deleteSubMerchant(id);
+        subMerchantService.hardDeleteSubMerchant(id);
         return ResponseEntity.ok().build();
     }
 }

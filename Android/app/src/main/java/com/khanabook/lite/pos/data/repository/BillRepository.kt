@@ -27,12 +27,12 @@ class BillRepository(
             items: List<BillItemEntity>,
             payments: List<BillPaymentEntity>
     ) {
-        billDao.insertFullBill(bill, items, payments)
+        val newBillId = billDao.insertFullBill(bill, items, payments)
         
         if (bill.orderStatus.equals("completed", ignoreCase = true) ||
             bill.orderStatus.equals("paid", ignoreCase = true)
         ) {
-            inventoryConsumptionManager?.consumeMaterialsForBill(items)
+            inventoryConsumptionManager?.consumeMaterialsForBill(items, newBillId)
         }
         
         triggerBackgroundSync()

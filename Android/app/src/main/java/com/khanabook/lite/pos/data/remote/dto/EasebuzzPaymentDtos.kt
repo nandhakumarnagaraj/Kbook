@@ -15,7 +15,8 @@ data class CreateEasebuzzOrderResponse(
     @SerializedName("txnid") val txnid: String,
     @SerializedName("access_token") val accessToken: String,
     @SerializedName("payment_url") val paymentUrl: String,
-    @SerializedName("amount") val amount: BigDecimal
+    @SerializedName("amount") val amount: BigDecimal,
+    @SerializedName("pay_mode") val payMode: String = "test"
 )
 
 data class EasebuzzPaymentStatusResponse(

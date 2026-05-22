@@ -19,6 +19,10 @@ public class EasebuzzProperties {
     private String notifyUrl;
     private String webhookUrl;
 
+    public String getPayMode() {
+        return paymentBaseUrl != null && paymentBaseUrl.contains("test") ? "test" : "production";
+    }
+
     // WIRE Platform (sub-merchant management, KYC, lookups)
     private String wireBaseUrl = "https://wire.easebuzz.in";
     private String wireApiKey;

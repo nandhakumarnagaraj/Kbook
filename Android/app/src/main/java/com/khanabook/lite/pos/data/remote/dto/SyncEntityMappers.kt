@@ -163,8 +163,8 @@ fun StockLogEntity.toSyncDto() = StockLogSyncDto(
     serverMenuItemId = serverMenuItemId,
     variantId        = variantId,
     serverVariantId  = serverVariantId,
-    // delta is String in entity; DTO expects Int. Parse safely, default 0.
-    delta            = delta.toIntOrNull() ?: 0,
+    // delta is String in entity; DTO expects BigDecimal. Parse safely, default 0.
+    delta            = delta.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
     reason           = reason,
     createdAt        = createdAt,
     updatedAt        = updatedAt,

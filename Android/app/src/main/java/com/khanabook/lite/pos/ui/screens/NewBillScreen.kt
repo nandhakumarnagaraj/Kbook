@@ -1304,13 +1304,16 @@ fun PaymentStep(
         val gatewayTxnId = savedStateHandle?.get<String>("gatewayTxnId")
         val localBillId = savedStateHandle?.get<Long>("localBillId")
         LaunchedEffect(gatewayTxnId) {
-            if (gatewayTxnId != null && localBillId != null) {
-                savedStateHandle?.remove<String>("gatewayTxnId")
-                savedStateHandle?.remove<Long>("localBillId")
-                viewModel.setGatewayResult(gatewayTxnId, "success")
-                if (viewModel.finalizeOnlineBill(localBillId, PaymentStatus.SUCCESS)) {
-                    viewModel.clearGatewayResult()
-                    onComplete()
+            if (gatewayTxnId != null) {
+                val billId = localBillId ?: viewModel.lastBill.value?.bill?.id
+                if (billId != null) {
+                    savedStateHandle?.remove<String>("gatewayTxnId")
+                    savedStateHandle?.remove<Long>("localBillId")
+                    viewModel.setGatewayResult(gatewayTxnId, "success")
+                    if (viewModel.finalizeOnlineBill(billId, PaymentStatus.SUCCESS)) {
+                        viewModel.clearGatewayResult()
+                        onComplete()
+                    }
                 }
             }
         }

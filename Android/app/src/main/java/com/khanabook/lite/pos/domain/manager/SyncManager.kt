@@ -19,10 +19,10 @@ class SyncManager @Inject constructor(
     private val api: KhanaBookApi,
     private val masterSyncProcessor: MasterSyncProcessor
 ) {
-    // Separate mutexes for full sync operations vs bill-only pushes to avoid
-    // contention when a bill is created during an ongoing periodic sync.
-    private val fullSyncMutex = Mutex()
-    private val billPushMutex = Mutex()
+    // Single mutex for ALL sync operations — full sync AND bill-only pushes.
+    // Using separate mutexes caused pushBillOnly() and performFullSync() to race,
+    // pushing the same bill items concurrently and triggering HTTP 409 on the server.
+    private val syncMutex = Mutex()
     private val tag = "SyncManager"
 
     private fun logWarn(message: String, throwable: Throwable? = null) {
@@ -50,7 +50,7 @@ class SyncManager @Inject constructor(
     }
 
     suspend fun performMasterPull(): Result<Unit> {
-        return fullSyncMutex.withLock {
+        return syncMutex.withLock {
             try {
                 pullAndPersistMasterData(
                     lastSyncTimestamp = sessionManager.getLastSyncTimestamp(),
@@ -65,7 +65,7 @@ class SyncManager @Inject constructor(
     }
 
     suspend fun performFullSync(): Result<Unit> {
-        return fullSyncMutex.withLock {
+        return syncMutex.withLock {
             val deviceId = sessionManager.getDeviceId()
 
             // ── Timestamp Race Fix (#2) ────────────────────────────────────────────
@@ -109,7 +109,7 @@ class SyncManager @Inject constructor(
     }
 
     suspend fun pushBillOnly(billLocalId: Long): Result<Unit> {
-        return billPushMutex.withLock {
+        return syncMutex.withLock {
             try {
                 masterSyncProcessor.pushSingleBill(billLocalId)
                 Result.success(Unit)

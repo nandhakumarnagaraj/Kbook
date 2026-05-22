@@ -8,10 +8,12 @@ import com.khanabook.saas.entity.User;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import com.khanabook.saas.sync.repository.SyncRepository;
+import com.khanabook.saas.exception.BusinessRuleException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
@@ -314,19 +316,19 @@ public class GenericSyncService {
 										if (existingUser.getLoginId() != null && user.getLoginId() != null
 												&& !existingUser.getLoginId().equalsIgnoreCase(user.getLoginId())) {
 											if (userRepo.existsByLoginId(user.getLoginId())) {
-												throw new RuntimeException("Sync rejected: Login identity already exists for another user");
+												throw new BusinessRuleException("Sync rejected: Login identity already exists for another user", "SYNC_LOGIN_CONFLICT");
 											}
 										}
 										
 										if (existingUser.getEmail() != null && user.getEmail() != null && !existingUser.getEmail().equalsIgnoreCase(user.getEmail())) {
 											if (userRepo.existsByEmail(user.getEmail())) {
-											throw new RuntimeException("Sync rejected: Email/Phone already exists for another user");
+											throw new BusinessRuleException("Sync rejected: Email/Phone already exists for another user", "SYNC_EMAIL_CONFLICT");
 										}
 									}
 									
 									if (existingUser.getWhatsappNumber() != null && user.getWhatsappNumber() != null && !existingUser.getWhatsappNumber().equalsIgnoreCase(user.getWhatsappNumber())) {
 										if (userRepo.existsByWhatsappNumber(user.getWhatsappNumber())) {
-											throw new RuntimeException("Sync rejected: Whatsapp number already exists for another user");
+											throw new BusinessRuleException("Sync rejected: Whatsapp number already exists for another user", "SYNC_WHATSAPP_CONFLICT");
 										}
 									}
 								}
@@ -395,10 +397,50 @@ public class GenericSyncService {
 
 		Map<Long, Long> localToServerIdMap = new HashMap<>();
 		if (!allRecordsToSave.isEmpty()) {
-			List<T> saved = repository.saveAll(allRecordsToSave);
-			for (T entity : saved) {
-				if (entity.getLocalId() != null && entity.getId() != null) {
-					localToServerIdMap.put(entity.getLocalId(), entity.getId());
+			try {
+				List<T> saved = repository.saveAll(allRecordsToSave);
+				for (T entity : saved) {
+					if (entity.getLocalId() != null && entity.getId() != null) {
+						localToServerIdMap.put(entity.getLocalId(), entity.getId());
+					}
+				}
+			} catch (DataIntegrityViolationException e) {
+				log.warn("Batch saveAll failed due to conflict — falling back to per-record saveAndFlush", e);
+				for (T entity : allRecordsToSave) {
+					try {
+						T saved = repository.saveAndFlush(entity);
+						if (saved != null && saved.getLocalId() != null && saved.getId() != null) {
+							localToServerIdMap.put(saved.getLocalId(), saved.getId());
+						}
+					} catch (DataIntegrityViolationException e2) {
+						log.warn("Conflict saving record type={} localId={} deviceId={} restaurantId={} — attempting merge",
+								entity.getClass().getSimpleName(), entity.getLocalId(), entity.getDeviceId(), entity.getRestaurantId(), e2);
+						if (entity.getLocalId() != null && entity.getDeviceId() != null && entity.getRestaurantId() != null) {
+							try {
+								Optional<T> existing = repository.findByRestaurantIdAndDeviceIdAndLocalId(
+										entity.getRestaurantId(), entity.getDeviceId(), entity.getLocalId());
+								if (existing.isPresent()) {
+									T existingEntity = existing.get();
+									entity.setId(existingEntity.getId());
+									entity.setVersion(existingEntity.getVersion());
+									T saved = repository.saveAndFlush(entity);
+									if (saved != null && saved.getLocalId() != null && saved.getId() != null) {
+										localToServerIdMap.put(saved.getLocalId(), saved.getId());
+									}
+									log.info("Merged conflicted record localId={} as serverId={}", entity.getLocalId(), saved != null ? saved.getId() : null);
+								} else {
+									log.warn("Conflict but no existing record found for localId={} — re-queuing", entity.getLocalId());
+									failedLocalIds.add(entity.getLocalId());
+								}
+							} catch (Exception ex2) {
+								log.error("Merge failed for record localId={}", entity.getLocalId(), ex2);
+								failedLocalIds.add(entity.getLocalId());
+							}
+						} else {
+							log.error("Cannot resolve conflict — missing localId/deviceId/restaurantId on record");
+							failedLocalIds.add(entity.getLocalId());
+						}
+					}
 				}
 			}
 		}

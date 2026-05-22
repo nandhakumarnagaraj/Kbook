@@ -17,11 +17,17 @@ interface InventoryDao {
     fun getAllLogs(): Flow<List<StockLogEntity>>
 
 
-    @Query("SELECT * FROM stock_logs WHERE is_synced = 0")
+    @Query("SELECT * FROM stock_logs WHERE is_synced = 0 AND permanent_failure = 0")
     suspend fun getUnsyncedStockLogs(): List<com.khanabook.lite.pos.data.local.entity.StockLogEntity>
+
+    @Query("SELECT * FROM stock_logs WHERE is_synced = 0")
+    suspend fun getUnsyncedStockLogsIncludingPermanentFailures(): List<com.khanabook.lite.pos.data.local.entity.StockLogEntity>
 
     @Query("UPDATE stock_logs SET is_synced = 1 WHERE id IN (:ids)")
     suspend fun markStockLogsAsSynced(ids: List<Long>)
+
+    @Query("UPDATE stock_logs SET permanent_failure = 1 WHERE id IN (:ids)")
+    suspend fun markStockLogsAsPermanentlyFailed(ids: List<Long>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedStockLogs(items: List<com.khanabook.lite.pos.data.local.entity.StockLogEntity>)

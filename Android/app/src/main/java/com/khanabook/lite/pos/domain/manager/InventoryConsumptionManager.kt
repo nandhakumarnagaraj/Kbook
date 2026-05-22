@@ -13,11 +13,12 @@ class InventoryConsumptionManager @Inject constructor(
     private val inventoryRepository: InventoryRepository
 ) {
     
-    suspend fun consumeMaterialsForBill(items: List<BillItemEntity>) {
+    suspend fun consumeMaterialsForBill(items: List<BillItemEntity>, actualBillId: Long = 0) {
         for (item in items) {
             val delta = "-${item.quantity}"
             val variantId: Long? = item.variantId
             val menuItemId: Long? = item.menuItemId
+            val displayBillId = if (actualBillId > 0) actualBillId else item.billId
 
             if (variantId != null) {
                 
@@ -29,7 +30,7 @@ class InventoryConsumptionManager @Inject constructor(
                         menuItemId = menuItemId ?: 0,
                         variantId = variantId,
                         delta = delta,
-                        reason = "Sale (Bill #${item.billId})",
+                        reason = "Sale (Bill #$displayBillId)",
                         createdAt = System.currentTimeMillis()
                     )
                 )
@@ -42,7 +43,7 @@ class InventoryConsumptionManager @Inject constructor(
                     StockLogEntity(
                         menuItemId = menuItemId,
                         delta = delta,
-                        reason = "Sale (Bill #${item.billId})",
+                        reason = "Sale (Bill #$displayBillId)",
                         createdAt = System.currentTimeMillis()
                     )
                 )
