@@ -93,7 +93,7 @@ class SearchViewModel @Inject constructor(
             try {
                 val deviceId = sessionManager.getDeviceId()
                 val request = EasebuzzRefundRequest(amount = amount, reason = reason)
-                val response = khanaBookApi.refundEasebuzzPayment(deviceId, billId, request)
+                val response = khanaBookApi.refundEasebuzzPayment(billId, deviceId, request)
                 if (response.status.equals("success", ignoreCase = true) ||
                     response.status.equals("1", ignoreCase = true)
                 ) {
