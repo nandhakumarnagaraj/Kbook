@@ -73,32 +73,19 @@ public class PaymentController {
     }
 
     @GetMapping("/return")
-    public ResponseEntity<String> handleReturn(
+    public ResponseEntity<Void> handleReturn(
             @RequestParam Map<String, String> params) {
         log.debug("Easebuzz return redirect received: {}", params);
-        // surl/furl is a browser redirect — just show a close page.
-        // Actual processing happens via notify_url webhook or Android verify().
-        String html = """
-            <!DOCTYPE html>
-            <html lang="en">
-            <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-            <title>Processing - KhanaBook</title>
-            <style>
-            body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;justify-content:center;
-            align-items:center;min-height:100vh;margin:0;background:#f8f9fa}
-            .card{background:#fff;border-radius:16px;padding:40px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.1);max-width:400px}
-            .spinner{width:48px;height:48px;border:4px solid #e9ecef;border-top-color:#d4a853;border-radius:50%%;animation:spin .8s linear infinite;margin:0 auto 16px}
-            @keyframes spin{to{transform:rotate(360deg)}}
-            .title{font-size:20px;font-weight:700;color:#333;margin-bottom:8px}
-            .msg{font-size:14px;color:#666}
-            </style></head>
-            <body><div class="card">
-            <div class="spinner"></div>
-            <div class="title">Processing Payment</div>
-            <div class="msg">Please wait while we confirm your payment. You can close this window and check the bill in the app.</div>
-            </div></body></html>
-            """;
-        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html);
+        String txnid = params.get("txnid");
+        String status = params.get("status");
+        if ("success".equalsIgnoreCase(status) && txnid != null && !txnid.isBlank()) {
+            return ResponseEntity.status(302)
+                    .header("Location", "khanabook://payment/success?txnid=" + txnid)
+                    .build();
+        }
+        return ResponseEntity.status(302)
+                .header("Location", "khanabook://payment/failure")
+                .build();
     }
 
     @PostMapping("/webhook")
