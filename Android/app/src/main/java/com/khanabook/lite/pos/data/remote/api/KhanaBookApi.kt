@@ -127,21 +127,21 @@ interface KhanaBookApi {
 
         @POST("api/v2/payments/easebuzz/verify/{billId}")
         suspend fun verifyEasebuzzPayment(
-            @Query("deviceId") deviceId: String,
-            @Path("billId") billId: Long
+            @Path("billId") billId: Long,
+            @Query("deviceId") deviceId: String
         ): EasebuzzVerifyResponse
 
         @POST("api/v2/payments/easebuzz/refund/{billId}")
         suspend fun refundEasebuzzPayment(
-            @Query("deviceId") deviceId: String,
             @Path("billId") billId: Long,
+            @Query("deviceId") deviceId: String,
             @Body request: EasebuzzRefundRequest
         ): EasebuzzRefundResponse
 
         @GET("api/v2/payments/easebuzz/refund-status/{billId}")
         suspend fun getEasebuzzRefundStatus(
-            @Query("deviceId") deviceId: String,
-            @Path("billId") billId: Long
+            @Path("billId") billId: Long,
+            @Query("deviceId") deviceId: String
         ): EasebuzzRefundStatusResponse
 
         // ── Easebuzz Sub-Merchant KYC ────────────────────────────────────────

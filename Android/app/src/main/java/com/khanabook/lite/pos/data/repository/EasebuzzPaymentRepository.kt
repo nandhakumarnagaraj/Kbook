@@ -41,8 +41,8 @@ class EasebuzzPaymentRepository(
 
     suspend fun verify(localBillId: Long): EasebuzzVerifyResponse =
         api.verifyEasebuzzPayment(
-            deviceId = sessionManager.getDeviceId(),
-            billId = localBillId
+            billId = localBillId,
+            deviceId = sessionManager.getDeviceId()
         )
 
     suspend fun getSubMerchantStatus(): EasebuzzSubMerchantStatusResponse =
@@ -56,8 +56,8 @@ class EasebuzzPaymentRepository(
         reason: String? = null
     ): com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundResponse =
         api.refundEasebuzzPayment(
-            deviceId = sessionManager.getDeviceId(),
             billId = localBillId,
+            deviceId = sessionManager.getDeviceId(),
             request = com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundRequest(
                 amount = amount.toString(),
                 reason = reason
