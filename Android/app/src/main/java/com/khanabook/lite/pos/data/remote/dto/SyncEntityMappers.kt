@@ -164,8 +164,8 @@ fun StockLogEntity.toSyncDto() = StockLogSyncDto(
     variantId        = variantId,
     serverVariantId  = serverVariantId,
     // delta is String in entity; DTO expects BigDecimal. Parse safely, default 0.
-    delta            = delta.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
-    reason           = reason,
+    delta            = delta?.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO,
+    reason           = reason ?: "adjustment",
     createdAt        = createdAt,
     updatedAt        = updatedAt,
     isDeleted        = isDeleted,

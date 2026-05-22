@@ -62,6 +62,13 @@ public class SyncMapper {
                 dto.setVariantId(entity.getVariantId());
                 dto.setServerMenuItemId(entity.getServerMenuItemId());
                 dto.setServerVariantId(entity.getServerVariantId());
+                dto.setDeviceId(entity.getDeviceId());
+                dto.setRestaurantId(entity.getRestaurantId());
+                dto.setUpdatedAt(entity.getUpdatedAt());
+                dto.setIsDeleted(entity.getIsDeleted());
+                dto.setCreatedAt(entity.getCreatedAt());
+                dto.setChangeAmount(entity.getDelta());
+                dto.setReason(entity.getReason());
             } else if (source instanceof RestaurantProfile entity && target instanceof RestaurantProfileDTO dto) {
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
@@ -225,6 +232,9 @@ public class SyncMapper {
                 entity.setServerVariantId(dto.getServerVariantId());
                 if (dto.getChangeAmount() != null) {
                     entity.setDelta(dto.getChangeAmount());
+                }
+                if (dto.getReason() != null) {
+                    entity.setReason(dto.getReason());
                 }
             } else if (source instanceof RestaurantProfileDTO dto) {
                 RestaurantProfile entity = (RestaurantProfile) target;

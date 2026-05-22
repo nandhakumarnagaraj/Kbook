@@ -578,7 +578,7 @@ class MasterSyncProcessor @Inject constructor(
                         id = 0, // Auto-generate
                         menuItemId = localMenuItemId,
                         variantId = localVariantId,
-                        delta = remoteStockLog.delta,
+                        delta = remoteStockLog.delta.orFallback("0"),
                         reason = remoteStockLog.reason.orFallback("adjustment"),
                         createdAt = remoteStockLog.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteStockLog.restaurantId ?: 0L,

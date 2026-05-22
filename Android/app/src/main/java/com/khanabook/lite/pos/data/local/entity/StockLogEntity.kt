@@ -22,8 +22,8 @@ data class StockLogEntity(
     val menuItemId: Long,
     @ColumnInfo(name = "variant_id")
     val variantId: Long? = null,
-    val delta: String,
-    val reason: String, 
+    @SerializedName("changeAmount") val delta: String?,
+    val reason: String?, 
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
 
