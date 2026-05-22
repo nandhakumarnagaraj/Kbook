@@ -403,7 +403,7 @@ public class SubMerchantService {
             sm.getBusinessAddress()
         );
         Object statusObj = result != null ? result.get("status") : null;
-        boolean apiStatus = statusObj instanceof Boolean ? (Boolean) statusObj : false;
+        boolean apiStatus = EasebuzzApiClient.toBool(statusObj);
         if (apiStatus && result != null) {
             Object subMerchantIdObj = result.get("submerchant_id");
             String subMerchantId = subMerchantIdObj != null ? subMerchantIdObj.toString() : null;
