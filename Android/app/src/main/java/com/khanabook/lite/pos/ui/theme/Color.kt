@@ -10,22 +10,20 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // ═══════════════════════════════════════════════════════════════
-// KHANBOOK DLS — TEAL BRAND PALETTE (from #0891B2)
-// 11-shade scale, hue 192° cyan-teal
+// KHANBOOK DLS — SAFFRON & AMBER BRAND PALETTE
+// 11-shade scale, warm orange-gold culinary tone
 // ═══════════════════════════════════════════════════════════════
-
-// Teal brand scale
-val KbTeal50  = Color(0xFFECF9FB)
-val KbTeal100 = Color(0xFFD2F1F6)
-val KbTeal200 = Color(0xFFA5E4ED)
-val KbTeal300 = Color(0xFF67D5E5)
-val KbTeal400 = Color(0xFF22C3D9)
-val KbTeal500 = Color(0xFF0AA5BE)
-val KbTeal600 = Color(0xFF0891B2)  // BRAND
-val KbTeal700 = Color(0xFF067A95)
-val KbTeal800 = Color(0xFF056074)
-val KbTeal900 = Color(0xFF044A5A)
-val KbTeal950 = Color(0xFF023241)
+val KbSaffron50  = Color(0xFFFFFDF5)  // very soft warm cream tint
+val KbSaffron100 = Color(0xFFFFFBEB)  // soft amber tint
+val KbSaffron200 = Color(0xFFFEF3C7)
+val KbSaffron300 = Color(0xFFFDE68A)
+val KbSaffron400 = Color(0xFFFBBF24)  // bright gold/saffron for dark theme
+val KbSaffron500 = Color(0xFFF59E0B)  // amber
+val KbSaffron600 = Color(0xFFD97706)  // BRAND SAFFRON
+val KbSaffron700 = Color(0xFFB45309)
+val KbSaffron800 = Color(0xFF92400E)
+val KbSaffron900 = Color(0xFF78350F)
+val KbSaffron950 = Color(0xFF451A03)
 
 // Pure neutral gray scale
 val KbGray50  = Color(0xFFF8F9FA)
@@ -120,37 +118,37 @@ val MaterialTheme.kbBgGradient: Brush
 // ═══════════════════════════════════════════════════════════════
 
 val DarkBrown1: Color
-    get() = if (ThemeState.isDark) KbGray900 else KbGray50     // neutral dark surface
+    get() = if (ThemeState.isDark) Color(0xFF1F1B18) else Color(0xFFFAF6F0)     // warm dark/light surface
 val DarkBrown2: Color
-    get() = if (ThemeState.isDark) KbGray800 else KbGray100     // neutral darker surface
+    get() = if (ThemeState.isDark) Color(0xFF2B2521) else Color(0xFFF3EDE2)     // warm darker/lighter surface
 val PrimaryGold: Color
-    get() = if (ThemeState.isDark) KbTeal400 else KbTeal600     // brand primary (was saffron)
+    get() = if (ThemeState.isDark) KbSaffron400 else KbSaffron600     // brand primary saffron
 val LightGold: Color
-    get() = if (ThemeState.isDark) KbTeal300 else KbTeal500     // brand lighter variant
+    get() = if (ThemeState.isDark) KbSaffron300 else KbSaffron500     // brand lighter variant
 val TextGold: Color
-    get() = if (ThemeState.isDark) KbTeal300 else KbTeal600     // brand text colour
+    get() = if (ThemeState.isDark) KbSaffron300 else KbSaffron700     // brand text colour
 val TextLight: Color
-    get() = if (ThemeState.isDark) Color(0xFFF0F0F0) else KbGray950   // near-white for text on dark
+    get() = if (ThemeState.isDark) Color(0xFFFBF9F6) else Color(0xFF1F1B18)   // near-white / near-black text
 val TextMuted: Color
-    get() = if (ThemeState.isDark) Color(0xFFB0B0B0) else KbGray500   // muted for placeholders on dark
+    get() = if (ThemeState.isDark) Color(0xFFD6C8C0) else Color(0xFF8C7D75)   // warm muted text
 val CardBG: Color
-    get() = if (ThemeState.isDark) KbGray900 else Color.White     // card background (dark)
+    get() = if (ThemeState.isDark) Color(0xFF1F1B18) else Color.White     // card background
 val BorderGold: Color
-    get() = if (ThemeState.isDark) KbTeal400.copy(alpha = 0.15f) else KbTeal600.copy(alpha = 0.15f)
+    get() = if (ThemeState.isDark) KbSaffron400.copy(alpha = 0.15f) else KbSaffron600.copy(alpha = 0.15f)
 val ParchmentBG: Color
-    get() = if (ThemeState.isDark) KbTeal950 else KbTeal50      // tinted bg → teal tint
+    get() = if (ThemeState.isDark) KbSaffron950 else KbSaffron100      // tinted bg
 val BrownSelected: Color
-    get() = if (ThemeState.isDark) KbTeal950 else KbTeal50      // selection tint → teal tint
+    get() = if (ThemeState.isDark) KbSaffron900 else KbSaffron200     // selection tint
 val BrandPurple: Color
-    get() = if (ThemeState.isDark) KbTeal400 else KbTeal600     // alias
+    get() = if (ThemeState.isDark) KbSaffron400 else KbSaffron600     // alias
 val BrandPurpleDim: Color
-    get() = if (ThemeState.isDark) KbTeal300 else KbTeal400
+    get() = if (ThemeState.isDark) KbSaffron300 else KbSaffron400
 val Brown500: Color
-    get() = if (ThemeState.isDark) KbGray800 else KbGray100
+    get() = if (ThemeState.isDark) Color(0xFF2B2521) else Color(0xFFF3EDE2)
 val DarkBrownSheet: Color
-    get() = if (ThemeState.isDark) KbGray950 else KbGray50
+    get() = if (ThemeState.isDark) Color(0xFF141210) else Color(0xFFFAF6F0)
 val RichEspresso: Color
-    get() = if (ThemeState.isDark) KbGray950 else Color.White     // neutral page bg
+    get() = if (ThemeState.isDark) Color(0xFF141210) else Color(0xFFFFFDF9)     // neutral page bg
 
 // Semantic status
 val VegGreen      = KbGreen

@@ -19,42 +19,42 @@ import androidx.compose.ui.unit.Density
 import androidx.core.view.WindowCompat
 import com.khanabook.lite.pos.BuildConfig
 
-// Dark scheme — near-black bg + off-white text + bright teal primary
+// Dark scheme — warm dark charcoal bg + warm white text + amber/saffron primary
 private val DarkColorScheme = darkColorScheme(
-    primary            = KbTeal400,      // #22C3D9 — bright teal for dark bg
-    primaryContainer   = KbTeal900,      // #044A5A dark teal
-    secondary          = KbGray800,      // #303030
-    tertiary           = KbTeal400,      // #22C3D9
-    background         = KbGray950,      // #0D0D0D page bg
-    surface            = KbGray900,      // #212121 card surface
-    surfaceVariant     = KbGray800,      // #303030 elevated
-    onPrimary          = Color.White,
-    onPrimaryContainer = KbTeal50,       // #ECF9FB teal-tinted white
+    primary            = KbSaffron400,   // #FBBF24 — bright amber for dark bg
+    primaryContainer   = KbSaffron900,   // #78350F dark amber
+    secondary          = Color(0xFF2B2521),
+    tertiary           = KbSaffron400,
+    background         = Color(0xFF141210),   // warm black
+    surface            = Color(0xFF1F1B18),   // warm dark brown card
+    surfaceVariant     = Color(0xFF2B2521),   // elevated
+    onPrimary          = Color(0xFF1F1B18),
+    onPrimaryContainer = KbSaffron50,
     onSecondary        = Color.White,
     onTertiary         = Color.White,
-    onBackground       = Color(0xFFF0F0F0),   // off-white body text
-    onSurface          = Color(0xFFE0E0E0),   // card text
-    onSurfaceVariant   = Color(0xFFB0B0B0),   // muted text
+    onBackground       = Color(0xFFFBF9F6),   // warm off-white body text
+    onSurface          = Color(0xFFF3EDE2),   // card text
+    onSurfaceVariant   = Color(0xFFD6C8C0),   // muted text
     outline            = Color(0x1AFFFFFF.toInt()),
     outlineVariant     = Color(0x0DFFFFFF.toInt()),
 )
 
-// Light scheme — white bg + near-black text + teal primary
+// Light scheme — warm milk-white bg + near-black text + saffron primary
 private val LightColorScheme = lightColorScheme(
-    primary            = KbTeal600,      // #0891B2 BRAND
-    primaryContainer   = KbTeal50,       // #ECF9FB teal tint
-    secondary          = KbGray100,      // #F0F0F0
-    tertiary           = KbTeal600,      // #0891B2
-    background         = Color.White,    // pure white bg
-    surface            = KbGray50,       // #F8F9FA card surface
-    surfaceVariant     = KbGray100,      // #F0F0F0 elevated
+    primary            = KbSaffron600,   // #D97706 BRAND
+    primaryContainer   = KbSaffron50,    // #FFFDF5 soft cream tint
+    secondary          = Color(0xFFF3EDE2),
+    tertiary           = KbSaffron600,
+    background         = Color(0xFFFFFDF9),   // warm milk white bg
+    surface            = Color(0xFFFAF6F0),   // warm light cream card surface
+    surfaceVariant     = Color(0xFFF3EDE2),   // elevated
     onPrimary          = Color.White,
-    onPrimaryContainer = KbTeal900,      // #044A5A dark teal
+    onPrimaryContainer = KbSaffron900,   // #78350F dark saffron
     onSecondary        = Color.Black,
     onTertiary         = Color.White,
-    onBackground       = Color(0xFF0D0D0D),   // near-black body text
-    onSurface          = Color(0xFF0D0D0D),   // card text
-    onSurfaceVariant   = Color(0xFF555555),   // muted text
+    onBackground       = Color(0xFF1F1B18),   // dark brown-black body text
+    onSurface          = Color(0xFF1F1B18),
+    onSurfaceVariant   = Color(0xFF8C7D75),   // warm muted text
     outline            = Color(0x1A000000.toInt()),
     outlineVariant     = Color(0x0D000000.toInt()),
 )
