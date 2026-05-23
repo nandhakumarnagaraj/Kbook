@@ -19,38 +19,38 @@ import androidx.compose.ui.unit.Density
 import androidx.core.view.WindowCompat
 import com.khanabook.lite.pos.BuildConfig
 
-// Dark scheme — warm espresso bg + ember saffron primary
+// Dark scheme — dark bg + white text
 private val DarkColorScheme = darkColorScheme(
     primary            = KbSaffron400,    // #E8832A warm ember
     primaryContainer   = KbSaffron500,
-    secondary          = KbEspresso900,
+    secondary          = Color(0xFF2C2C2C),
     tertiary           = KbSaffron400,
-    background         = KbEspresso950,   // #17130F dark espresso
-    surface            = KbEspresso900,   // #211A14 warm charcoal
-    surfaceVariant     = Color(0xFF2C2218),
+    background         = Color(0xFF121212), // dark bg
+    surface            = Color(0xFF1E1E1E), // card surface
+    surfaceVariant     = Color(0xFF2A2A2A),
     onPrimary          = Color.White,
     onPrimaryContainer = Color.White,
     onSecondary        = Color.White,
     onTertiary         = Color.White,
-    onBackground       = Color(0xE6FFFFFF.toInt()), // white-alpha-90
-    onSurface          = Color(0xE6FFFFFF.toInt()),
+    onBackground       = Color.White,       // white text
+    onSurface          = Color.White,
     onSurfaceVariant   = Color(0xB3FFFFFF.toInt()), // white-alpha-70
     outline            = Color(0x1AFFFFFF.toInt()), // white-alpha-10
     outlineVariant     = Color(0x0DFFFFFF.toInt()), // white-alpha-05
 )
 
-// Light scheme — warm cream bg + deep saffron primary
+// Light scheme — white bg + black text
 private val LightColorScheme = lightColorScheme(
     primary            = KbSaffron500,    // #C85A00 deep saffron
     primaryContainer   = KbSaffron50,
-    secondary          = KbEspresso100,
+    secondary          = Color(0xFFF5F5F5),
     tertiary           = KbSaffron500,
-    background         = KbEspresso50,    // #F5EDE4 warm linen
-    surface            = KbEspresso100,   // #E8D9CA tan parchment
-    surfaceVariant     = KbEspresso200,   // #D4C0AB mid-tone
+    background         = Color.White,     // white bg
+    surface            = Color(0xFFF8F8F8), // light gray surface
+    surfaceVariant     = Color(0xFFEEEEEE),
     onPrimary          = Color.White,
     onPrimaryContainer = KbSaffron500,
-    onSecondary        = Color(0xFF17130F),
+    onSecondary        = Color.Black,
     onTertiary         = Color.White,
     onBackground       = Color(0xE6000000.toInt()), // black-alpha-90
     onSurface          = Color(0xE6000000.toInt()),
