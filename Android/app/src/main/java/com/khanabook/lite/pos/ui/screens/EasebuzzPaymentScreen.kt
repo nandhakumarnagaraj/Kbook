@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.ui.screens
 
 import android.widget.Toast
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -94,6 +95,7 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 
 private const val MAX_RETRIES = 5
+private const val TAG = "EasebuzzPaymentScreen"
 
 enum class PaymentScreenState {
     INITIALIZING,
@@ -122,6 +124,7 @@ fun EasebuzzPaymentScreen(
     var screenState by remember { mutableStateOf(PaymentScreenState.INITIALIZING) }
     var accessToken by remember { mutableStateOf<String?>(null) }
     var paymentUrl by remember { mutableStateOf<String?>(null) }
+    var currentTxnid by remember { mutableStateOf<String?>(null) }
     var payMode by remember { mutableStateOf("test") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var retryCount by remember { mutableIntStateOf(0) }
@@ -132,14 +135,23 @@ fun EasebuzzPaymentScreen(
     // Scope that survives composition teardown — return verification must always run
     val sdkScope = remember { kotlinx.coroutines.MainScope() }
 
-    suspend fun createOrderWithRetry() {
+    suspend fun createOrderWithRetry(forceNewAttempt: Boolean = false) {
+        if (forceNewAttempt) {
+            Log.i(TAG, "Starting fresh Easebuzz payment attempt billId=$billId restaurantId=$restaurantId")
+            paymentRepository.clearPaymentSession()
+            accessToken = null
+            paymentUrl = null
+            currentTxnid = null
+        }
         if (accessToken != null) {
+            Log.i(TAG, "Existing access key present for billId=$billId txnid=$currentTxnid; not creating duplicate order")
             screenState = PaymentScreenState.READY
             return
         }
         var lastError: Exception? = null
         for (attempt in 0..MAX_RETRIES) {
             try {
+                Log.i(TAG, "Creating Easebuzz order billId=$billId restaurantId=$restaurantId attempt=${attempt + 1}")
                 val response = paymentRepository.createOrder(
                     restaurantId = restaurantId,
                     serverBillId = billId,
@@ -147,13 +159,19 @@ fun EasebuzzPaymentScreen(
                 )
                 accessToken = response.accessToken
                 paymentUrl = response.paymentUrl
+                currentTxnid = response.txnid
                 payMode = response.payMode
+                Log.i(
+                    TAG,
+                    "Created Easebuzz access key billId=$billId txnid=${response.txnid} payMode=${response.payMode} accessKeyLength=${response.accessToken.length}"
+                )
                 screenState = PaymentScreenState.READY
                 retryCount = 0
                 return
             } catch (e: Exception) {
                 lastError = e
                 retryCount = attempt + 1
+                Log.w(TAG, "Create Easebuzz order failed billId=$billId attempt=${attempt + 1}: ${e.message}")
                 if (attempt < MAX_RETRIES) {
                     val backoffMs = (1000L shl attempt).coerceAtMost(16000L)
                     delay(backoffMs)
@@ -166,21 +184,26 @@ fun EasebuzzPaymentScreen(
 
     suspend fun verifyAndComplete(txnidFromSdk: String? = null) {
         screenState = PaymentScreenState.VERIFYING
+        Log.i(TAG, "Verifying Easebuzz payment billId=$billId currentTxnid=$currentTxnid sdkTxnid=$txnidFromSdk")
         var pollAttempts = 0
         var paid = false
         while (pollAttempts < 10) {
             try {
-                val status = paymentRepository.getStatus(billId)
+                val status = paymentRepository.getStatus(billId, refresh = true)
+                Log.i(TAG, "Payment status poll billId=$billId attempt=${pollAttempts + 1} status=${status.paymentStatus} gatewayTxnId=${status.gatewayTxnId}")
                 if (status.paymentStatus == "paid" || status.paymentStatus == "success") {
                     paid = true
                     break
                 }
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                Log.w(TAG, "Payment status poll failed billId=$billId attempt=${pollAttempts + 1}: ${e.message}")
+            }
             pollAttempts++
             if (pollAttempts < 10) delay(3000)
         }
         try {
             val verifyResponse = paymentRepository.verify(billId)
+            Log.i(TAG, "Payment verification result billId=$billId status=${verifyResponse.status} txnid=${verifyResponse.txnid} easebuzzId=${verifyResponse.easebuzzId}")
             if (verifyResponse.status == "success") {
                 screenState = PaymentScreenState.SUCCESS
                 KhanaToast.show("Payment successful!", ToastKind.Success)
@@ -191,6 +214,7 @@ fun EasebuzzPaymentScreen(
                 if (paid) onPaymentComplete(txnidFromSdk)
             }
         } catch (e: Exception) {
+            Log.w(TAG, "Payment verification failed billId=$billId currentTxnid=$currentTxnid: ${e.message}")
             errorMessage = if (paid) "Payment taken but verification pending — check in orders" else (e.message ?: "Verification failed")
             screenState = if (paid) PaymentScreenState.SUCCESS else PaymentScreenState.FAILED
             if (paid) onPaymentComplete(txnidFromSdk)
@@ -204,6 +228,7 @@ fun EasebuzzPaymentScreen(
         if (data != null) {
             val paymentResult = data.getStringExtra("result")
             val paymentResponse = data.getStringExtra("payment_response")
+            Log.i(TAG, "Easebuzz SDK callback billId=$billId txnid=$currentTxnid result=$paymentResult response=$paymentResponse")
             if (paymentResult == "payment_successfull") {
                 if (!verificationStarted) {
                     verificationStarted = true
@@ -212,18 +237,40 @@ fun EasebuzzPaymentScreen(
                     }
                 }
             } else if (paymentResult == "user_cancelled" || paymentResult == "back_pressed") {
-                verificationStarted = true
-                errorMessage = "Payment cancelled by user"
-                screenState = PaymentScreenState.FAILED
+                if (!verificationStarted) {
+                    verificationStarted = true
+                    sdkScope.launch {
+                        verifyAndComplete(paymentResponse ?: currentTxnid)
+                        if (screenState != PaymentScreenState.SUCCESS) {
+                            errorMessage = "Payment cancelled by user"
+                            screenState = PaymentScreenState.FAILED
+                        }
+                    }
+                }
             } else {
-                verificationStarted = true
-                errorMessage = paymentResult ?: "Payment failed or was cancelled"
-                screenState = PaymentScreenState.FAILED
+                if (!verificationStarted) {
+                    verificationStarted = true
+                    sdkScope.launch {
+                        verifyAndComplete(paymentResponse ?: currentTxnid)
+                        if (screenState != PaymentScreenState.SUCCESS) {
+                            errorMessage = paymentResult ?: "Payment failed or was cancelled"
+                            screenState = PaymentScreenState.FAILED
+                        }
+                    }
+                }
             }
         } else {
-            verificationStarted = true
-            errorMessage = "No payment response received from SDK"
-            screenState = PaymentScreenState.FAILED
+            Log.w(TAG, "Easebuzz SDK callback missing data billId=$billId txnid=$currentTxnid")
+            if (!verificationStarted) {
+                verificationStarted = true
+                sdkScope.launch {
+                    verifyAndComplete(currentTxnid)
+                    if (screenState != PaymentScreenState.SUCCESS) {
+                        errorMessage = "No payment response received from SDK"
+                        screenState = PaymentScreenState.FAILED
+                    }
+                }
+            }
         }
     }
 
@@ -232,12 +279,14 @@ fun EasebuzzPaymentScreen(
         screenState = PaymentScreenState.PROCESSING
         sdkAttempted = true
         try {
+            Log.i(TAG, "Launching Easebuzz SDK billId=$billId txnid=$currentTxnid payMode=$payMode accessKeyLength=${token.length}")
             val intent = paymentRepository.createSdkIntent(token, payMode, context)
             sdkLaunched = true
             launcher.launch(intent)
         } catch (e: Exception) {
             val url = paymentUrl
             if (url != null) {
+                Log.w(TAG, "Easebuzz SDK unavailable; launching fallback billId=$billId txnid=$currentTxnid: ${e.message}")
                 sdkLaunched = true
                 paymentRepository.launchFallback(context, url)
             } else {
@@ -254,7 +303,25 @@ fun EasebuzzPaymentScreen(
         sdkAttempted = false
         sdkLaunched = false
         verificationStarted = false
-        createOrderWithRetry()
+        createOrderWithRetry(forceNewAttempt = true)
+    }
+
+    suspend fun openFreshBrowserFlow() {
+        screenState = PaymentScreenState.INITIALIZING
+        errorMessage = null
+        sdkAttempted = true
+        sdkLaunched = false
+        verificationStarted = false
+        createOrderWithRetry(forceNewAttempt = true)
+        val freshUrl = paymentUrl
+        if (freshUrl != null) {
+            Log.i(TAG, "Launching fresh browser payment billId=$billId txnid=$currentTxnid")
+            sdkLaunched = true
+            paymentRepository.launchFallback(context, freshUrl)
+        } else {
+            errorMessage = "Unable to create fresh browser payment session"
+            screenState = PaymentScreenState.FAILED
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -375,6 +442,7 @@ fun EasebuzzPaymentScreen(
                             spacing = spacing,
                             launchSdk = { launchSdk() },
                             retryPayment = { scope.launch { retryPayment() } },
+                            openFreshBrowserFlow = { scope.launch { openFreshBrowserFlow() } },
                             onBack = onBack,
                             context = context,
                             paymentRepository = paymentRepository
@@ -427,6 +495,7 @@ fun EasebuzzPaymentScreen(
                         spacing = spacing,
                         launchSdk = { launchSdk() },
                         retryPayment = { scope.launch { retryPayment() } },
+                        openFreshBrowserFlow = { scope.launch { openFreshBrowserFlow() } },
                         onBack = onBack,
                         context = context,
                         paymentRepository = paymentRepository
@@ -512,6 +581,7 @@ private fun ActionButtonsArea(
     spacing: com.khanabook.lite.pos.ui.theme.Spacing,
     launchSdk: () -> Unit,
     retryPayment: () -> Unit,
+    openFreshBrowserFlow: () -> Unit,
     onBack: () -> Unit,
     context: android.content.Context,
     paymentRepository: EasebuzzSdkPaymentRepository
@@ -760,7 +830,7 @@ private fun ActionButtonsArea(
                     )
                     OutlinedButton(
                         onClick = {
-                            paymentRepository.launchFallback(context, paymentUrl)
+                            openFreshBrowserFlow()
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         border = BorderStroke(1.dp, PrimaryGold),

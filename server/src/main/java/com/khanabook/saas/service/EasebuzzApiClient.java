@@ -124,6 +124,8 @@ public class EasebuzzApiClient {
 		Object statusObj = raw != null ? raw.get("status") : null;
 		if (toBool(statusObj) && raw != null) {
 			String accessKey = (String) raw.get("data");
+			log.info("Easebuzz access key generated txnid={} accessKeyLength={} payMode={}",
+					txnid, accessKey != null ? accessKey.length() : 0, props.getPayMode());
 			result.put("status", "success");
 			result.put("access_token", accessKey);
 			result.put("payment_url", props.getPaymentBaseUrl() + "/pay/" + accessKey);

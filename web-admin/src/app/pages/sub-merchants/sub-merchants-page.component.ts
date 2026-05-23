@@ -168,12 +168,31 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
 
       <div class="content-layout">
         <div class="table-container mat-elevation-z2">
-          <div class="loading-shade" *ngIf="!loaded()">
-            <mat-spinner diameter="40" *ngIf="!loadError()"></mat-spinner>
-            <div class="error-msg" *ngIf="loadError()">{{ loadError() }}</div>
+          <div class="loading-shade" *ngIf="!loaded() && loadError()">
+            <div class="error-msg">{{ loadError() }}</div>
           </div>
 
-          <table mat-table [dataSource]="dataSource" matSort>
+          <!-- Skeleton Loader -->
+          <div class="skeleton-table" *ngIf="!loaded() && !loadError()">
+            <div class="skeleton-header">
+              <div class="skeleton-cell shimmer-bg" style="width: 25%"></div>
+              <div class="skeleton-cell shimmer-bg" style="width: 15%"></div>
+              <div class="skeleton-cell shimmer-bg" style="width: 15%"></div>
+              <div class="skeleton-cell shimmer-bg" style="width: 15%"></div>
+              <div class="skeleton-cell shimmer-bg" style="width: 20%"></div>
+              <div class="skeleton-cell shimmer-bg" style="width: 10%"></div>
+            </div>
+            <div class="skeleton-row" *ngFor="let i of [1,2,3,4,5,6,7,8]">
+              <div class="skeleton-cell shimmer-bg" style="width: 25%"></div>
+              <div class="skeleton-cell shimmer-bg" style="width: 15%"></div>
+              <div class="skeleton-cell shimmer-bg" style="width: 15%"></div>
+              <div class="skeleton-cell shimmer-bg" style="width: 15%"></div>
+              <div class="skeleton-cell shimmer-bg" style="width: 20%"></div>
+              <div class="skeleton-cell shimmer-bg" style="width: 10%"></div>
+            </div>
+          </div>
+
+          <table mat-table [dataSource]="dataSource" matSort [style.display]="loaded() ? 'table' : 'none'">
             <ng-container matColumnDef="business">
               <th mat-header-cell *matHeaderCellDef mat-sort-header> Business </th>
               <td mat-cell *matCellDef="let sm"> 
@@ -385,24 +404,66 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
 
               <mat-divider></mat-divider>
 
-              <div class="section-title">KYC & Settlement</div>
-              <div class="kyc-row">
-                 <div class="kyc-step" [class.done]="sm.status !== 'DRAFT'">
+              <div class="section-title">KYC & Onboarding Timeline</div>
+              <div class="kyc-timeline">
+                <!-- Step 1: Registered -->
+                <div class="timeline-item" [class.active]="sm.status !== 'DRAFT'">
+                  <div class="timeline-badge" [class.success]="sm.status !== 'DRAFT'">
                     <mat-icon>{{ sm.status !== 'DRAFT' ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                    <span>Registered</span>
-                 </div>
-                 <div class="kyc-step" [class.done]="!!sm.kycPortalUrl">
-                    <mat-icon>{{ sm.kycPortalUrl ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                    <span>KYC Link</span>
-                 </div>
-                 <div class="kyc-step" [class.done]="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">
-                    <mat-icon>{{ (sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True') ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                    <span>Submitted</span>
-                 </div>
-                 <div class="kyc-step" [class.done]="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">
-                    <mat-icon>{{ (sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True') ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                    <span>Activated</span>
-                 </div>
+                  </div>
+                  <div class="timeline-content">
+                    <h4 class="step-title">1. Merchant Registered</h4>
+                    <p class="step-desc">Sub-merchant profile initialized in local DB.</p>
+                    <span class="step-time" *ngIf="sm.createdAt">{{ formatDateValue(sm.createdAt) }}</span>
+                  </div>
+                </div>
+
+                <!-- Step 2: KYC Link -->
+                <div class="timeline-item" [class.active]="!!sm.kycPortalUrl" [class.pending]="sm.status !== 'DRAFT' && !sm.kycPortalUrl">
+                  <div class="timeline-badge" [class.success]="!!sm.kycPortalUrl" [class.warning]="sm.status !== 'DRAFT' && !sm.kycPortalUrl">
+                    <mat-icon>{{ sm.kycPortalUrl ? 'check_circle' : (sm.status !== 'DRAFT' ? 'pending' : 'radio_button_unchecked') }}</mat-icon>
+                  </div>
+                  <div class="timeline-content">
+                    <h4 class="step-title">2. KYC Portal Link</h4>
+                    <p class="step-desc" *ngIf="sm.kycPortalUrl">Portal access generated successfully.</p>
+                    <p class="step-desc" *ngIf="!sm.kycPortalUrl">Pending URL generation. Go to actions menu to generate.</p>
+                  </div>
+                </div>
+
+                <!-- Step 3: Submitted -->
+                <div class="timeline-item" 
+                     [class.active]="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'"
+                     [class.pending]="!!sm.kycPortalUrl && !(sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True')">
+                  <div class="timeline-badge" 
+                       [class.success]="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'"
+                       [class.warning]="!!sm.kycPortalUrl && !(sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True')">
+                    <mat-icon>{{ (sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True') ? 'check_circle' : (!!sm.kycPortalUrl ? 'pending' : 'radio_button_unchecked') }}</mat-icon>
+                  </div>
+                  <div class="timeline-content">
+                    <h4 class="step-title">3. KYC Documents Submitted</h4>
+                    <p class="step-desc" *ngIf="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">Documents submitted to Easebuzz.</p>
+                    <p class="step-desc" *ngIf="!(sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True')">Waiting for merchant to upload details.</p>
+                    <span class="step-time" *ngIf="sm.kycSubmittedAt">{{ formatDateValue(sm.kycSubmittedAt) }}</span>
+                  </div>
+                </div>
+
+                <!-- Step 4: Activated -->
+                <div class="timeline-item" 
+                     [class.active]="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'"
+                     [class.pending]="(sm.kycStatus === 'SUBMITTED')">
+                  <div class="timeline-badge" 
+                       [class.success]="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'"
+                       [class.warning]="sm.kycStatus === 'SUBMITTED'">
+                    <mat-icon>{{ (sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True') ? 'check_circle' : (sm.kycStatus === 'SUBMITTED' ? 'pending' : 'radio_button_unchecked') }}</mat-icon>
+                  </div>
+                  <div class="timeline-content">
+                    <h4 class="step-title">4. Account Activated</h4>
+                    <p class="step-desc" *ngIf="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">Easebuzz KYC approved. Ready to accept splits.</p>
+                    <p class="step-desc" *ngIf="sm.kycStatus === 'SUBMITTED'">Easebuzz verifying documents (KYC aging: {{ formatKycAge(sm) }}).</p>
+                    <p class="step-desc" *ngIf="sm.kycStatus !== 'SUBMITTED' && sm.kycStatus !== 'ACTIVATED' && sm.kycStatus !== 'True'">Onboarding verification pending.</p>
+                    <span class="step-time" *ngIf="sm.kycActivatedAt">{{ formatDateValue(sm.kycActivatedAt) }}</span>
+                  </div>
+                </div>
               </div>
 
               <div class="info-box" *ngIf="sm.kycPortalUrl">
@@ -857,6 +918,131 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
       .form-grid { grid-template-columns: 1fr; }
       .fetch-row { flex-direction: column; }
       .fetch-btn { width: 100%; justify-content: center; }
+    }
+
+    /* Skeleton Loader Styling */
+    .skeleton-table {
+      display: flex;
+      flex-direction: column;
+      background: var(--panel);
+      width: 100%;
+    }
+    .skeleton-header {
+      display: flex;
+      padding: 16px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+      gap: 16px;
+    }
+    .skeleton-row {
+      display: flex;
+      padding: 20px 16px;
+      border-bottom: 1px solid var(--line);
+      gap: 16px;
+    }
+    .skeleton-cell {
+      height: 18px;
+      border-radius: 4px;
+    }
+
+    /* KYC Visual Vertical Timeline */
+    .kyc-timeline {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-left: 8px;
+      margin: 16px 0;
+    }
+    .kyc-timeline::before {
+      content: '';
+      position: absolute;
+      left: 20px;
+      top: 10px;
+      bottom: 24px;
+      width: 2px;
+      background: var(--line);
+    }
+    .timeline-item {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    .timeline-item:last-child {
+      margin-bottom: 0;
+    }
+    .timeline-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 2px solid var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      transition: all 0.3s ease;
+      color: var(--muted);
+    }
+    .timeline-badge mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      line-height: 16px;
+    }
+    .timeline-badge.success {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+      box-shadow: 0 0 8px rgba(22, 163, 74, 0.2);
+    }
+    .timeline-badge.warning {
+      border-color: var(--warn);
+      background: var(--warn-soft);
+      color: var(--warn);
+      animation: pulse-border 2s infinite;
+    }
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4); }
+      70% { box-shadow: 0 0 0 6px rgba(217, 119, 6, 0); }
+    }
+    .timeline-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      padding: 12px 16px;
+      border-radius: var(--radius-lg);
+      transition: all 0.2s ease;
+    }
+    .timeline-item.active .timeline-content {
+      border-color: var(--line-strong);
+      background: var(--bg-elevated);
+      box-shadow: var(--shadow-sm);
+    }
+    .timeline-item.pending .timeline-content {
+      border-color: var(--warn-soft);
+      background: linear-gradient(135deg, rgba(217, 119, 6, 0.02) 0%, var(--bg) 100%);
+    }
+    .step-title {
+      margin: 0;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .step-desc {
+      margin: 0;
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .step-time {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--brand);
+      margin-top: 4px;
     }
   `]
 })

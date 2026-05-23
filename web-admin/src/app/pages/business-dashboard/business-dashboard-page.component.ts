@@ -257,9 +257,28 @@ Chart.register(...registerables);
       </ng-container>
 
       <ng-template #loading>
-        <div class="loading-state">
-          <mat-spinner diameter="50"></mat-spinner>
-          <p>Syncing your business data...</p>
+        <div class="skeleton-container animate-fade-in-up">
+          <div class="header-row" style="margin-bottom: 28px;">
+            <div class="header-left">
+              <div class="skeleton-cell shimmer-bg" style="width: 250px; height: 32px; margin-bottom: 8px;"></div>
+              <div class="skeleton-cell shimmer-bg" style="width: 150px; height: 16px;"></div>
+            </div>
+          </div>
+          
+          <div class="stats-grid">
+            <div class="skeleton-card shimmer-bg" style="height: 110px;" *ngFor="let i of [1,2,3,4]"></div>
+          </div>
+
+          <div class="main-grid">
+            <div class="grid-left">
+              <div class="skeleton-card shimmer-bg" style="height: 380px;"></div>
+              <div class="skeleton-card shimmer-bg" style="height: 250px;"></div>
+            </div>
+            <div class="grid-right">
+              <div class="skeleton-card shimmer-bg" style="height: 300px;"></div>
+              <div class="skeleton-card shimmer-bg" style="height: 330px;"></div>
+            </div>
+          </div>
         </div>
       </ng-template>
 
@@ -301,13 +320,18 @@ Chart.register(...registerables);
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-bottom: 32px; }
     .stat-card { 
       position: relative;
-      border-radius: var(--radius-xl); 
-      border: 1px solid var(--line); 
-      background: var(--panel);
-      backdrop-filter: blur(12px);
-      box-shadow: var(--shadow-md); 
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      border-radius: var(--radius-xl) !important; 
+      border: 1px solid var(--line) !important; 
+      background: rgba(255, 255, 255, 0.7) !important;
+      backdrop-filter: blur(16px) saturate(120%) !important;
+      -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
+      box-shadow: var(--shadow-md) !important; 
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
       overflow: hidden;
+    }
+    :host-context(.dark-theme) .stat-card {
+      background: rgba(33, 26, 20, 0.65) !important;
+      border: 1px solid rgba(247, 243, 238, 0.05) !important;
     }
     .stat-card:hover {
       transform: translateY(-6px);
@@ -466,10 +490,16 @@ Chart.register(...registerables);
       cursor: pointer; 
       border-radius: var(--radius-xl) !important;
       border: 1px solid var(--line) !important; 
-      box-shadow: var(--shadow-md); 
+      background: rgba(255, 255, 255, 0.7) !important;
+      backdrop-filter: blur(16px) saturate(120%) !important;
+      -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
+      box-shadow: var(--shadow-md) !important; 
       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important; 
-      background: var(--panel) !important; 
       color: var(--ink);
+    }
+    :host-context(.dark-theme) .action-card {
+      background: rgba(33, 26, 20, 0.65) !important;
+      border: 1px solid rgba(247, 243, 238, 0.05) !important;
     }
     .action-card:hover { 
       transform: translateY(-8px) scale(1.04) !important; 
@@ -486,19 +516,8 @@ Chart.register(...registerables);
     
     /* Skeleton Loading Effects */
     .skeleton-container { width: 100%; }
-    .skeleton-title { width: 300px; height: 32px; background: #e2e8f0; border-radius: 8px; margin-bottom: 24px; }
-    .skeleton-card { height: 160px; background: #e2e8f0; border-radius: 20px; position: relative; overflow: hidden; }
-    .skeleton-card.large { height: 400px; }
-    .skeleton-card.medium { height: 300px; }
-
-    .skeleton-card::after, .skeleton-title::after {
-      content: "";
-      position: absolute;
-      top: 0; right: 0; bottom: 0; left: 0;
-      transform: translateX(-100%);
-      background-image: linear-gradient(90deg, rgba(255,255,255,0) 0, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
-      animation: shimmer 1.5s infinite;
-    }
+    .skeleton-card { background: var(--line) !important; border-radius: var(--radius-xl) !important; position: relative; overflow: hidden; border: 1px solid var(--line); }
+    .skeleton-cell { background: var(--line-strong) !important; border-radius: 4px; }
 
     @keyframes shimmer { 100% { transform: translateX(100%); } }
 

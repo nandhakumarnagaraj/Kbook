@@ -43,8 +43,10 @@ public class PaymentController {
     }
 
     @GetMapping("/status/{billId}")
-    public ResponseEntity<Map<String, Object>> getStatus(@PathVariable Long billId) {
-        return ResponseEntity.ok(paymentService.verifyPayment(billId));
+    public ResponseEntity<Map<String, Object>> getStatus(
+            @PathVariable Long billId,
+            @RequestParam(name = "refresh", defaultValue = "false") boolean refresh) {
+        return ResponseEntity.ok(paymentService.getPaymentStatus(billId, refresh));
     }
 
     @PostMapping("/verify/{billId}")

@@ -3,6 +3,8 @@ package com.khanabook.lite.pos.data.repository
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.webkit.CookieManager
+import android.webkit.WebStorage
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import com.easebuzz.payment.kit.PWECheckoutActivity
@@ -80,6 +82,7 @@ class EasebuzzSdkPaymentRepository(
      * and handle the result via onActivityResult.
      */
     fun createSdkIntent(accessToken: String, payMode: String, context: Context): Intent {
+        clearPaymentSession()
         return Intent(context, PWECheckoutActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             putExtra("access_key", accessToken)
@@ -87,11 +90,21 @@ class EasebuzzSdkPaymentRepository(
         }
     }
 
+    fun clearPaymentSession() {
+        runCatching {
+            CookieManager.getInstance().removeAllCookies(null)
+            CookieManager.getInstance().flush()
+            WebStorage.getInstance().deleteAllData()
+        }
+    }
+
     fun launchFallback(context: Context, paymentUrl: String) {
+        clearPaymentSession()
         val intent = CustomTabsIntent.Builder()
             .setShowTitle(true)
             .setToolbarColor(ContextCompat.getColor(context, android.R.color.white))
             .build()
+        intent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         intent.launchUrl(context, Uri.parse(paymentUrl))
     }
 }

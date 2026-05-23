@@ -33,6 +33,16 @@ public class EasebuzzPaymentService {
     public Map<String, Object> createOrder(Long billId, Long restaurantId) {
         Bill bill = billRepo.findById(billId)
                 .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
+        if ("paid".equalsIgnoreCase(bill.getPaymentStatus()) || "success".equalsIgnoreCase(bill.getPaymentStatus())) {
+            log.warn("Blocked Easebuzz order creation for already paid billId={} restaurantId={} existingTxnid={}",
+                    billId, restaurantId, bill.getGatewayTxnId());
+            return Map.of(
+                    "status", "failure",
+                    "code", "ALREADY_PAID",
+                    "error", "Bill is already paid. Payment retry is not allowed.",
+                    "txnid", bill.getGatewayTxnId() != null ? bill.getGatewayTxnId() : ""
+            );
+        }
 
         // Build payment data from real bill
         String amount = String.format("%.2f", bill.getTotalAmount());
@@ -51,6 +61,8 @@ public class EasebuzzPaymentService {
         String billTail = String.format("%05d", billId % 100000);
         String restTail = String.format("%05d", restaurantId % 100000);
         String txnid = "KB" + billTail + restTail + txnSuffix;
+        log.info("Creating Easebuzz payment attempt billId={} restaurantId={} txnid={} amount={}",
+                billId, restaurantId, txnid, amount);
 
         Map<String, String> data = new HashMap<>();
         data.put("txnid", txnid);
@@ -90,7 +102,7 @@ public class EasebuzzPaymentService {
         data.put("udf1", billId.toString());
         data.put("udf2", restaurantId.toString());
 
-        log.debug("Initiating Easebuzz payment with full payload: {}", data);
+        log.debug("Initiating Easebuzz payment billId={} txnid={} payload={}", billId, txnid, data);
         Map<String, Object> result = easebuzzApi.initiatePayment(data);
         String status = (String) result.getOrDefault("status", "failure");
 
@@ -101,7 +113,8 @@ public class EasebuzzPaymentService {
         if ("success".equalsIgnoreCase(status)) {
             String accessToken = (String) result.get("access_token");
             String paymentUrl = (String) result.get("payment_url");
-            log.info("Payment order created billId={} txnid={}", billId, txnid);
+            log.info("Payment order created billId={} txnid={} accessKeyLength={} paymentUrlPresent={}",
+                    billId, txnid, accessToken != null ? accessToken.length() : 0, paymentUrl != null && !paymentUrl.isBlank());
             return Map.of(
                 "status", "success",
                 "txnid", txnid,
@@ -111,8 +124,35 @@ public class EasebuzzPaymentService {
                 "pay_mode", props.getPayMode()
             );
         }
-        log.warn("Payment order creation failed billId={} response={}", billId, result);
+        log.warn("Payment order creation failed billId={} txnid={} response={}", billId, txnid, result);
         return Map.of("status", "failure", "error", result.getOrDefault("error", "Payment initiation failed"));
+    }
+
+    @Transactional
+    public Map<String, Object> getPaymentStatus(Long billId, boolean refresh) {
+        Bill bill = billRepo.findById(billId)
+                .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
+        if (refresh && bill.getGatewayTxnId() != null
+                && !"paid".equalsIgnoreCase(bill.getPaymentStatus())
+                && !"success".equalsIgnoreCase(bill.getPaymentStatus())) {
+            log.info("Refreshing Easebuzz payment status billId={} txnid={}", billId, bill.getGatewayTxnId());
+            verifyPayment(billId);
+            bill = billRepo.findById(billId)
+                    .orElseThrow(() -> new EntityNotFoundException("Bill", billId));
+        }
+        String paymentStatus = bill.getPaymentStatus() != null ? bill.getPaymentStatus() : "unknown";
+        String gatewayTxnId = bill.getGatewayTxnId() != null ? bill.getGatewayTxnId() : "";
+        BigDecimal amount = bill.getTotalAmount() != null ? bill.getTotalAmount() : BigDecimal.ZERO;
+        log.info("Payment status read billId={} paymentStatus={} gatewayStatus={} txnid={}",
+                billId, paymentStatus, bill.getGatewayStatus(), gatewayTxnId);
+        return Map.of(
+                "billId", billId,
+                "paymentId", bill.getId(),
+                "paymentStatus", paymentStatus,
+                "gatewayTxnId", gatewayTxnId,
+                "amount", amount,
+                "message", bill.getGatewayStatus() != null ? bill.getGatewayStatus() : paymentStatus
+        );
     }
 
     @SuppressWarnings("unchecked")
@@ -123,6 +163,7 @@ public class EasebuzzPaymentService {
         if (bill.getGatewayTxnId() == null) {
             return Map.of("status", "failure", "error", "No gateway transaction found");
         }
+        log.info("Verifying Easebuzz payment billId={} txnid={}", billId, bill.getGatewayTxnId());
         Map<String, Object> raw = easebuzzApi.getTransactionStatus(bill.getGatewayTxnId());
 
         // v2.1 response has top-level status (API call success) and nested msg with transaction data
@@ -159,11 +200,13 @@ public class EasebuzzPaymentService {
             bill.setPaidAt(System.currentTimeMillis());
             billRepo.save(bill);
             saveGatewayEventIfPresent(bill, easebuzzId, "success");
+            log.info("Payment verification success billId={} txnid={} easebuzzId={}", billId, bill.getGatewayTxnId(), easebuzzId);
             return Map.of("status", "success", "easebuzz_id", easebuzzId, "txnid", bill.getGatewayTxnId());
         }
 
         bill.setGatewayStatus(easebuzzStatus);
         billRepo.save(bill);
+        log.info("Payment verification result billId={} txnid={} status={}", billId, bill.getGatewayTxnId(), easebuzzStatus);
         return Map.of("status", easebuzzStatus, "txnid", bill.getGatewayTxnId());
     }
 

@@ -150,4 +150,67 @@ h1, h2, h3, h4, p { margin-top: 0; }
   gap: 1.5rem;
 }
 
+/* ── Shimmer & Global Animations ── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 var(--glow-color, rgba(199, 115, 47, 0.4));
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px var(--glow-color-transparent, rgba(199, 115, 47, 0));
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.shimmer-bg {
+  background: linear-gradient(90deg, var(--bg) 25%, var(--line-strong) 37%, var(--bg) 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.dark-theme .glass-panel {
+  background: rgba(33, 26, 20, 0.65) !important;
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(247, 243, 238, 0.05) !important;
+}
+
+.glow-border {
+  position: relative;
+  transition: all 0.3s ease;
+}
+.glow-border:hover {
+  border-color: var(--brand-light) !important;
+  box-shadow: 0 0 12px var(--brand-glow) !important;
+}
+
+
 /* More legacy styles here... but we'll focus on Material migration */
