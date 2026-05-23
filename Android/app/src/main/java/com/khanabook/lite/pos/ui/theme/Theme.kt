@@ -107,9 +107,7 @@ fun KhanaBookLiteTheme(
         }
     }
 
-    val isDark = isSystemInDarkTheme()
-    // Keep ThemeState in sync so existing screens that read ThemeState.isDark still work
-    ThemeState.isDark = isDark
+    val isDark = ThemeState.isDark
 
     if (!view.isInEditMode) {
         SideEffect {

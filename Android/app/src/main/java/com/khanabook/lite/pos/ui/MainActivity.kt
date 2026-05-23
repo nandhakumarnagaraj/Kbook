@@ -396,6 +396,13 @@ class MainActivity : FragmentActivity() {
                             navController.previousBackStackEntry
                                 ?.savedStateHandle
                                 ?.set("gatewayTxnId", gatewayTxnId)
+                            
+                            // Bring MainActivity to the front and close PWECheckoutActivity or any Custom Tab
+                            val clearTopIntent = Intent(context, MainActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                            }
+                            context.startActivity(clearTopIntent)
+                            
                             navController.popBackStack()
                         }
                     )
