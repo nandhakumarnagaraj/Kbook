@@ -15,12 +15,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Percent
-import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.Store
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Percent
+import androidx.compose.material.icons.outlined.Print
+import androidx.compose.material.icons.outlined.Store
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -61,65 +61,65 @@ fun SettingsHomeSection(
             if (isWideScreen) {
                 Row(horizontalArrangement = Arrangement.spacedBy(spacing.medium)) {
                     Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.Store, text = "Shop Configuration") {
+                        SettingsItem(icon = Icons.Outlined.Store, text = "Shop Configuration") {
                             onSectionSelected("shop")
                         }
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.AutoMirrored.Filled.ReceiptLong, text = "Menu Configuration") {
+                        SettingsItem(icon = Icons.AutoMirrored.Outlined.ReceiptLong, text = "Menu Configuration") {
                             onSectionSelected("menu_config")
                         }
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(spacing.medium)) {
                     Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.CreditCard, text = "Payment Configuration") {
+                        SettingsItem(icon = Icons.Outlined.CreditCard, text = "Payment Configuration") {
                             onSectionSelected("payment")
                         }
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration") {
+                        SettingsItem(icon = Icons.Outlined.Print, text = "Printer Configuration") {
                             onSectionSelected("printer")
                         }
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(spacing.medium)) {
                     Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.Percent, text = "Tax Configuration") {
+                        SettingsItem(icon = Icons.Outlined.Percent, text = "Tax Configuration") {
                             onSectionSelected("tax")
                         }
                     }
                     Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.Tune, text = "Settings") {
+                        SettingsItem(icon = Icons.Outlined.Tune, text = "Settings") {
                             onSectionSelected("security")
                         }
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(spacing.medium)) {
                     Box(modifier = Modifier.weight(1f)) {
-                        SettingsItem(icon = Icons.Filled.Tune, text = "Settings") {
+                        SettingsItem(icon = Icons.Outlined.Tune, text = "Settings") {
                             onSectionSelected("security")
                         }
                     }
                     Box(modifier = Modifier.weight(1f)) { }
                 }
             } else {
-                SettingsItem(icon = Icons.Filled.Store, text = "Restaurant Configuration") {
+                SettingsItem(icon = Icons.Outlined.Store, text = "Restaurant Configuration") {
                     onSectionSelected("shop")
                 }
-                SettingsItem(icon = Icons.AutoMirrored.Filled.ReceiptLong, text = "Menu Configuration") {
+                SettingsItem(icon = Icons.AutoMirrored.Outlined.ReceiptLong, text = "Menu Configuration") {
                     onSectionSelected("menu_config")
                 }
-                SettingsItem(icon = Icons.Filled.CreditCard, text = "Payment Configuration") {
+                SettingsItem(icon = Icons.Outlined.CreditCard, text = "Payment Configuration") {
                     onSectionSelected("payment")
                 }
-                SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration") {
+                SettingsItem(icon = Icons.Outlined.Print, text = "Printer Configuration") {
                     onSectionSelected("printer")
                 }
-                SettingsItem(icon = Icons.Filled.Percent, text = "Tax Configuration") {
+                SettingsItem(icon = Icons.Outlined.Percent, text = "Tax Configuration") {
                     onSectionSelected("tax")
                 }
-                SettingsItem(icon = Icons.Filled.Tune, text = "Settings") {
+                SettingsItem(icon = Icons.Outlined.Tune, text = "Settings") {
                     onSectionSelected("security")
                 }
             }

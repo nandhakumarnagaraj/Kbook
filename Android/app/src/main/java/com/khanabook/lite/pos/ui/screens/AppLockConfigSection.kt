@@ -26,20 +26,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Password
-import androidx.compose.material.icons.filled.TextIncrease
-import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Password
+import androidx.compose.material.icons.outlined.TextIncrease
+import androidx.compose.material.icons.outlined.DarkMode
 import com.khanabook.lite.pos.ui.theme.ThemeState
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -110,13 +110,13 @@ fun SettingsListView(
         SettingsGroupLabel("Security")
         Spacer(modifier = Modifier.height(8.dp))
         SettingsItem(
-            icon = Icons.Filled.Lock,
+            icon = Icons.Outlined.Lock,
             text = "App Lock",
             onClick = { onSelectItem("app_lock") }
         )
         Spacer(modifier = Modifier.height(8.dp))
         SettingsItem(
-            icon = Icons.Filled.Password,
+            icon = Icons.Outlined.Password,
             text = "Change Password",
             onClick = { onSelectItem("change_password") }
         )
@@ -125,14 +125,14 @@ fun SettingsListView(
         SettingsGroupLabel("Appearance")
         Spacer(modifier = Modifier.height(8.dp))
         SettingsItem(
-            icon = Icons.Filled.TextIncrease,
+            icon = Icons.Outlined.TextIncrease,
             text = "Display",
             onClick = { onSelectItem("ui_scale") }
         )
         Spacer(modifier = Modifier.height(8.dp))
         val context = LocalContext.current
         SettingsToggleItem(
-            icon = Icons.Filled.DarkMode,
+            icon = Icons.Outlined.DarkMode,
             text = "Dark Mode",
             checked = ThemeState.isDark,
             onCheckedChange = { isDark ->
@@ -150,13 +150,13 @@ fun SettingsListView(
         SettingsGroupLabel("About")
         Spacer(modifier = Modifier.height(8.dp))
         SettingsItem(
-            icon = Icons.AutoMirrored.Filled.HelpOutline,
+            icon = Icons.AutoMirrored.Outlined.HelpOutline,
             text = "Help & Support",
             onClick = { onSelectItem("help_support") }
         )
         Spacer(modifier = Modifier.height(8.dp))
         SettingsItem(
-            icon = Icons.Filled.Info,
+            icon = Icons.Outlined.Info,
             text = "About App",
             onClick = { onSelectItem("about_app") }
         )
@@ -229,7 +229,7 @@ fun AppLockView(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Filled.Lock,
+                        Icons.Outlined.Lock,
                         contentDescription = null,
                         tint = if (isEnabled) SuccessGreen else TextGold.copy(alpha = 0.5f),
                         modifier = Modifier.size(48.dp)
@@ -272,7 +272,7 @@ fun AppLockView(
                         border = BorderStroke(1.dp, BorderGold),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Icon(Icons.Filled.Lock, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.xsmall))
+                        Icon(Icons.Outlined.Lock, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.xsmall))
                         Spacer(modifier = Modifier.width(spacing.small))
                         Text("Change PIN", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
                     }
@@ -421,10 +421,10 @@ fun ChangePasswordView(
             )
 
             if (step >= 2) {
-                CpVerifiedBadge(icon = Icons.Default.Phone, label = phone, note = "Verified")
+                CpVerifiedBadge(icon = Icons.Outlined.Phone, label = phone, note = "Verified")
             }
             if (step >= 3) {
-                CpVerifiedBadge(icon = Icons.Default.Lock, label = "OTP Verified", note = "Confirmed")
+                CpVerifiedBadge(icon = Icons.Outlined.Lock, label = "OTP Verified", note = "Confirmed")
             }
 
             if (step == 1) {
@@ -434,7 +434,7 @@ fun ChangePasswordView(
                     label = { Text("Registered Phone Number", color = TextGold) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     singleLine = true,
-                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = PrimaryGold.copy(alpha = 0.7f)) },
+                    leadingIcon = { Icon(Icons.Outlined.Phone, null, tint = PrimaryGold.copy(alpha = 0.7f)) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PrimaryGold,
                         unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
@@ -480,7 +480,7 @@ fun ChangePasswordView(
                     trailingIcon = {
                         IconButton(onClick = { showPassword = !showPassword }) {
                             Icon(
-                                if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                                 null, tint = PrimaryGold.copy(alpha = 0.7f)
                             )
                         }
@@ -623,7 +623,7 @@ private fun CpVerifiedBadge(icon: ImageVector, label: String, note: String) {
             Text(label, color = TextLight, style = MaterialTheme.typography.bodySmall)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(14.dp))
+            Icon(Icons.Outlined.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(14.dp))
             Spacer(modifier = Modifier.width(4.dp))
             Text(note, color = SuccessGreen, style = MaterialTheme.typography.labelSmall)
         }
@@ -656,7 +656,7 @@ fun HelpSupportView() {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.AutoMirrored.Filled.Chat,
+                    Icons.AutoMirrored.Outlined.Chat,
                     contentDescription = null,
                     tint = PrimaryGold,
                     modifier = Modifier.size(58.dp)
@@ -694,7 +694,7 @@ fun HelpSupportView() {
             shape = RoundedCornerShape(14.dp),
             contentPadding = PaddingValues(horizontal = spacing.medium)
         ) {
-            Icon(Icons.AutoMirrored.Filled.Chat, null, modifier = Modifier.size(28.dp))
+            Icon(Icons.AutoMirrored.Outlined.Chat, null, modifier = Modifier.size(28.dp))
             Spacer(modifier = Modifier.width(spacing.medium))
             Column(horizontalAlignment = Alignment.Start) {
                 Text("Chat on WhatsApp", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
@@ -717,7 +717,7 @@ fun HelpSupportView() {
             shape = RoundedCornerShape(14.dp),
             contentPadding = PaddingValues(horizontal = spacing.medium)
         ) {
-            Icon(Icons.Default.Email, null, tint = PrimaryGold, modifier = Modifier.size(28.dp))
+            Icon(Icons.Outlined.Email, null, tint = PrimaryGold, modifier = Modifier.size(28.dp))
             Spacer(modifier = Modifier.width(spacing.medium))
             Column(horizontalAlignment = Alignment.Start, modifier = Modifier.weight(1f)) {
                 Text("Email Support", color = PrimaryGold, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
@@ -737,7 +737,7 @@ fun HelpSupportView() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Filled.Schedule,
+                    Icons.Outlined.Schedule,
                     contentDescription = null,
                     tint = PrimaryGold.copy(alpha = 0.8f),
                     modifier = Modifier.size(20.dp)
