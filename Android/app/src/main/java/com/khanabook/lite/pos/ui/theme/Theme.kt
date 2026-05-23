@@ -19,44 +19,44 @@ import androidx.compose.ui.unit.Density
 import androidx.core.view.WindowCompat
 import com.khanabook.lite.pos.BuildConfig
 
-// Dark scheme — warm-tinted dark bg + white text + bold saffron primary
+// Dark scheme — near-black bg + off-white text + bright teal primary
 private val DarkColorScheme = darkColorScheme(
-    primary            = KbSaffron500,    // #D07318 bold saffron — brighter for dark bg
-    primaryContainer   = KbSaffron800,    // #7A3400 burnt deep
-    secondary          = KbWarmGray800,   // #2A2A28 warm charcoal
-    tertiary           = KbSaffron400,    // #E4862E burnt saffron accent
-    background         = KbWarmGray950,   // #11110F near black with warmth
-    surface            = KbWarmGray900,   // #1C1C1A card surface
-    surfaceVariant     = KbWarmGray800,   // #2A2A28 elevated surface
+    primary            = KbTeal400,      // #22C3D9 — bright teal for dark bg
+    primaryContainer   = KbTeal900,      // #044A5A dark teal
+    secondary          = KbGray800,      // #303030
+    tertiary           = KbTeal400,      // #22C3D9
+    background         = KbGray950,      // #0D0D0D page bg
+    surface            = KbGray900,      // #212121 card surface
+    surfaceVariant     = KbGray800,      // #303030 elevated
     onPrimary          = Color.White,
-    onPrimaryContainer = KbSaffron50,     // warm white on burnt container
-    onSecondary        = KbWarmGray50,
+    onPrimaryContainer = KbTeal50,       // #ECF9FB teal-tinted white
+    onSecondary        = Color.White,
     onTertiary         = Color.White,
-    onBackground       = KbWarmGray50,    // #F5F5F3 off-white body text
-    onSurface          = KbWarmGray100,   // #EEEEEC card text
-    onSurfaceVariant   = Color(0xFFB0B0AE), // muted text
-    outline            = Color(0x1AFFFFFF.toInt()), // white-alpha-10
-    outlineVariant     = Color(0x0DFFFFFF.toInt()), // white-alpha-05
+    onBackground       = Color(0xFFF0F0F0),   // off-white body text
+    onSurface          = Color(0xFFE0E0E0),   // card text
+    onSurfaceVariant   = Color(0xFFB0B0B0),   // muted text
+    outline            = Color(0x1AFFFFFF.toInt()),
+    outlineVariant     = Color(0x0DFFFFFF.toInt()),
 )
 
-// Light scheme — warm white bg + dark warm text + deep saffron primary
+// Light scheme — white bg + near-black text + teal primary
 private val LightColorScheme = lightColorScheme(
-    primary            = KbSaffron600,    // #C85A00 BRAND — deep saffron
-    primaryContainer   = KbSaffron50,     // #FFF4EA warm white tint
-    secondary          = KbWarmGray100,   // #EEEEEC warm light
-    tertiary           = KbSaffron600,    // #C85A00 accent
-    background         = Color.White,     // pure white bg
-    surface            = KbWarmGray50,    // #F5F5F3 warm card surface
-    surfaceVariant     = KbWarmGray100,   // #EEEEEC elevated surface
+    primary            = KbTeal600,      // #0891B2 BRAND
+    primaryContainer   = KbTeal50,       // #ECF9FB teal tint
+    secondary          = KbGray100,      // #F0F0F0
+    tertiary           = KbTeal600,      // #0891B2
+    background         = Color.White,    // pure white bg
+    surface            = KbGray50,       // #F8F9FA card surface
+    surfaceVariant     = KbGray100,      // #F0F0F0 elevated
     onPrimary          = Color.White,
-    onPrimaryContainer = KbSaffron900,    // #552300 dark saffron
-    onSecondary        = KbWarmGray950,   // #11110F near black
+    onPrimaryContainer = KbTeal900,      // #044A5A dark teal
+    onSecondary        = Color.Black,
     onTertiary         = Color.White,
-    onBackground       = KbWarmGray950,   // #11110F body text (warm near-black)
-    onSurface          = KbWarmGray950,   // #11110F card text
-    onSurfaceVariant   = Color(0xFF555553), // muted text
-    outline            = Color(0x1A000000.toInt()), // black-alpha-10
-    outlineVariant     = Color(0x0D000000.toInt()), // black-alpha-05
+    onBackground       = Color(0xFF0D0D0D),   // near-black body text
+    onSurface          = Color(0xFF0D0D0D),   // card text
+    onSurfaceVariant   = Color(0xFF555555),   // muted text
+    outline            = Color(0x1A000000.toInt()),
+    outlineVariant     = Color(0x0D000000.toInt()),
 )
 
 object KhanaBookTheme {

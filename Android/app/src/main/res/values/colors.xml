@@ -1,55 +1,86 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ── Legacy system defaults (do not remove) ── -->
+    <!-- System defaults -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-
-    <!-- ── Splash screen ── -->
-    <color name="splash_bg">#17130F</color>
+    <color name="splash_bg">#0D0D0D</color>
 
     <!-- ═══════════════════════════════════════════════
-         KB SAFFRON PALETTE
-         The brand orange/saffron scale — warm, food-centric
-    ════════════════════════════════════════════════════ -->
-    <color name="kb_saffron_50">#FDF0E6</color>    <!-- active nav / selection tint (light) -->
-    <color name="kb_saffron_100">#F9D6B8</color>
-    <color name="kb_saffron_200">#F2C28A</color>
-    <color name="kb_saffron_300">#EDAB5C</color>
-    <color name="kb_saffron_400">#E8832A</color>   <!-- warm ember — primary in dark mode -->
-    <color name="kb_saffron_500">#C85A00</color>   <!-- deep saffron — primary in light mode -->
-    <color name="kb_saffron_600">#994500</color>
-    <color name="kb_saffron_700">#6E3200</color>
-    <color name="kb_saffron_800">#4A2100</color>
-    <color name="kb_saffron_950">#2E1F0D</color>   <!-- active nav tint (dark) -->
+         KB TEAL PALETTE (brand #0891B2)
+    ════════════════════════════════════════════════ -->
+    <color name="kb_teal_50">#ECF9FB</color>
+    <color name="kb_teal_100">#D2F1F6</color>
+    <color name="kb_teal_200">#A5E4ED</color>
+    <color name="kb_teal_300">#67D5E5</color>
+    <color name="kb_teal_400">#22C3D9</color>
+    <color name="kb_teal_500">#0AA5BE</color>
+    <color name="kb_teal_600">#0891B2</color>
+    <color name="kb_teal_700">#067A95</color>
+    <color name="kb_teal_800">#056074</color>
+    <color name="kb_teal_900">#044A5A</color>
+    <color name="kb_teal_950">#023241</color>
 
     <!-- ═══════════════════════════════════════════════
-         KB ESPRESSO PALETTE
-         Warm brown-neutral scale for backgrounds and surfaces
-    ════════════════════════════════════════════════════ -->
-    <color name="kb_espresso_50">#F7F3EE</color>   <!-- page background (light) -->
-    <color name="kb_espresso_100">#EAE3DC</color>  <!-- surface / secondary bg (light) -->
-    <color name="kb_espresso_200">#DDD5CC</color>  <!-- surface hover (light) -->
-    <color name="kb_espresso_300">#C1B7AD</color>
-    <color name="kb_espresso_400">#A89E94</color>
-    <color name="kb_espresso_500">#8C8075</color>
-    <color name="kb_espresso_600">#6B6059</color>
-    <color name="kb_espresso_700">#4E4540</color>
-    <color name="kb_espresso_800">#332A22</color>  <!-- borders / outlines (dark) -->
-    <color name="kb_espresso_900">#211A14</color>  <!-- card / surface (dark) -->
-    <color name="kb_espresso_950">#17130F</color>  <!-- page background (dark) -->
+         KB NEUTRAL GRAY PALETTE
+    ════════════════════════════════════════════════ -->
+    <color name="kb_gray_50">#F8F9FA</color>
+    <color name="kb_gray_100">#F0F0F0</color>
+    <color name="kb_gray_200">#E0E0E0</color>
+    <color name="kb_gray_300">#BDBDBD</color>
+    <color name="kb_gray_400">#9E9E9E</color>
+    <color name="kb_gray_500">#757575</color>
+    <color name="kb_gray_600">#616161</color>
+    <color name="kb_gray_700">#424242</color>
+    <color name="kb_gray_800">#303030</color>
+    <color name="kb_gray_900">#212121</color>
+    <color name="kb_gray_950">#0D0D0D</color>
 
-    <!-- ═══════════════════════════════════════════════
-         ABSOLUTE NEUTRALS
-    ════════════════════════════════════════════════════ -->
+    <!-- Keep old names as aliases for compatibility -->
+    <color name="kb_saffron_50">@color/kb_teal_50</color>
+    <color name="kb_saffron_100">@color/kb_teal_100</color>
+    <color name="kb_saffron_200">@color/kb_teal_200</color>
+    <color name="kb_saffron_300">@color/kb_teal_300</color>
+    <color name="kb_saffron_400">@color/kb_teal_400</color>
+    <color name="kb_saffron_500">@color/kb_teal_600</color>
+    <color name="kb_saffron_600">@color/kb_teal_700</color>
+    <color name="kb_saffron_700">@color/kb_teal_800</color>
+    <color name="kb_saffron_800">@color/kb_teal_900</color>
+    <color name="kb_saffron_950">@color/kb_teal_950</color>
+
+    <color name="kb_espresso_50">@color/kb_gray_50</color>
+    <color name="kb_espresso_100">@color/kb_gray_100</color>
+    <color name="kb_espresso_200">@color/kb_gray_200</color>
+    <color name="kb_espresso_300">@color/kb_gray_300</color>
+    <color name="kb_espresso_400">@color/kb_gray_400</color>
+    <color name="kb_espresso_500">@color/kb_gray_500</color>
+    <color name="kb_espresso_600">@color/kb_gray_600</color>
+    <color name="kb_espresso_700">@color/kb_gray_700</color>
+    <color name="kb_espresso_800">@color/kb_gray_800</color>
+    <color name="kb_espresso_900">@color/kb_gray_900</color>
+    <color name="kb_espresso_950">@color/kb_gray_950</color>
+
+    <!-- Semantics -->
+    <color name="kb_green_50">#F0FDF4</color>
+    <color name="kb_green_500">#16A34A</color>
+    <color name="kb_green_950">#052E16</color>
+    <color name="kb_red_50">#FEF2F2</color>
+    <color name="kb_red_400">#F87171</color>
+    <color name="kb_red_500">#DC2626</color>
+    <color name="kb_red_950">#450A0A</color>
+    <color name="kb_yellow_50">#FFFBEB</color>
+    <color name="kb_yellow_500">#D97706</color>
+    <color name="kb_yellow_950">#451A03</color>
+    <color name="kb_blue_50">#F0F9FF</color>
+    <color name="kb_blue_500">#0284C7</color>
+    <color name="kb_blue_950">#082F49</color>
+
     <color name="kb_white">#FFFFFFFF</color>
     <color name="kb_black">#FF000000</color>
 
-    <!-- White alpha scale -->
+    <!-- Alpha scales -->
     <color name="kb_white_alpha_05">#0DFFFFFF</color>
     <color name="kb_white_alpha_10">#1AFFFFFF</color>
     <color name="kb_white_alpha_20">#33FFFFFF</color>
@@ -58,10 +89,8 @@
     <color name="kb_white_alpha_50">#80FFFFFF</color>
     <color name="kb_white_alpha_60">#99FFFFFF</color>
     <color name="kb_white_alpha_70">#B3FFFFFF</color>
-    <color name="kb_white_alpha_80">#CCFFFFFF</color>
     <color name="kb_white_alpha_90">#E6FFFFFF</color>
 
-    <!-- Black alpha scale -->
     <color name="kb_black_alpha_05">#0D000000</color>
     <color name="kb_black_alpha_10">#1A000000</color>
     <color name="kb_black_alpha_20">#33000000</color>
@@ -69,38 +98,4 @@
     <color name="kb_black_alpha_50">#80000000</color>
     <color name="kb_black_alpha_70">#B3000000</color>
     <color name="kb_black_alpha_90">#E6000000</color>
-
-    <!-- ═══════════════════════════════════════════════
-         SEMANTIC STATUS COLORS
-         Status colors encode meaning — kept stable across themes
-    ════════════════════════════════════════════════════ -->
-    <!-- Success / Veg -->
-    <color name="kb_green_50">#F0FDF4</color>
-    <color name="kb_green_500">#16A34A</color>
-    <color name="kb_green_600">#15803D</color>
-    <color name="kb_green_950">#052E16</color>
-
-    <!-- Error / Non-Veg / Danger -->
-    <color name="kb_red_50">#FEF2F2</color>
-    <color name="kb_red_400">#F87171</color>
-    <color name="kb_red_500">#DC2626</color>
-    <color name="kb_red_600">#B91C1C</color>
-    <color name="kb_red_950">#450A0A</color>
-
-    <!-- Warning / Pending -->
-    <color name="kb_yellow_50">#FFFBEB</color>
-    <color name="kb_yellow_500">#D97706</color>
-    <color name="kb_yellow_600">#B45309</color>
-    <color name="kb_yellow_950">#451A03</color>
-
-    <!-- Info / Sync -->
-    <color name="kb_blue_50">#F0F9FF</color>
-    <color name="kb_blue_500">#0284C7</color>
-    <color name="kb_blue_600">#0369A1</color>
-    <color name="kb_blue_950">#082F49</color>
-
-    <!-- Payment type badges (fixed, never theme-dependent) -->
-    <color name="kb_zomato_red">#EF4444</color>
-    <color name="kb_swiggy_orange">#F97316</color>
-    <color name="kb_whatsapp_green">#22C55E</color>
 </resources>
