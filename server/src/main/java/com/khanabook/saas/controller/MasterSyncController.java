@@ -4,6 +4,8 @@ import com.khanabook.saas.sync.dto.payload.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,6 +22,7 @@ import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.StockLog;
 import com.khanabook.saas.entity.User;
+import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.*;
 
@@ -41,6 +44,8 @@ public class MasterSyncController {
 	private final BillService billService;
 	private final BillItemService billItemService;
 	private final BillPaymentService billPaymentService;
+	private final EasebuzzSubMerchantRepository subMerchantRepo;
+	private final SubMerchantService subMerchantService;
 
 	@org.springframework.transaction.annotation.Transactional(readOnly = true)
 	@GetMapping("/pull")
@@ -64,6 +69,13 @@ public class MasterSyncController {
 
 		long currentServerTime = System.currentTimeMillis();
 		boolean firstSync = lastSyncTimestamp == null || lastSyncTimestamp == 0;
+
+		// Retroactive auto-enable: if a sub-merchant with an Easebuzz ID exists but
+		// easebuzzEnabled is still false, fix it. This handles sub-merchants created
+		// before the auto-enable feature was added.
+		if (firstSync) {
+			autoEnableEasebuzzForExistingSubMerchants(tenantId);
+		}
 		boolean sharedDataCrossDevice = ignoreDeviceId || firstSync;
 		boolean transactionalCrossDevice = ignoreDeviceId || firstSync;
 
@@ -160,5 +172,22 @@ public class MasterSyncController {
 	private static <T> List<T> truncate(List<T> source, int limit) {
 		if (source == null || source.isEmpty()) return new java.util.ArrayList<>();
 		return new java.util.ArrayList<>(source.size() <= limit ? source : source.subList(0, limit));
+	}
+
+	/**
+	 * Retroactively enables easebuzzEnabled for restaurants that have a sub-merchant
+	 * with a non-blank Easebuzz ID but whose profile still has easebuzzEnabled = false/null.
+	 * Uses REQUIRES_NEW to write outside the read-only pull transaction.
+	 */
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	private void autoEnableEasebuzzForExistingSubMerchants(Long restaurantId) {
+		var smOpt = subMerchantRepo.findByRestaurantId(restaurantId);
+		boolean hasValidSubMerchant = smOpt.isPresent()
+				&& smOpt.get().getSubMerchantId() != null
+				&& !smOpt.get().getSubMerchantId().isBlank();
+		if (hasValidSubMerchant) {
+			subMerchantService.ensureEasebuzzEnabled(restaurantId);
+			log.info("Auto-enabled easebuzz for restaurant {} (has existing sub-merchant with ID)", restaurantId);
+		}
 	}
 }
