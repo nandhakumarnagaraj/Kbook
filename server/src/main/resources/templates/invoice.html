@@ -16,17 +16,17 @@ body{margin:0;background:#f1f1ef;color:#171210;font-family:Inter,system-ui,-appl
 .status-badge.failed{border-color:#b3261e;background:#fff4f3;color:#b3261e}
 .brand{text-align:center;padding:0 170px 18px}
 .logo{width:144px;max-height:144px;object-fit:contain;margin:0 auto 8px;display:block}
-.shop-name{font-size:46px;line-height:1.08;font-weight:800;letter-spacing:0;color:#1b120e;margin:0 0 12px}
+.shop-name{font-size:46px;line-height:1.08;font-weight:800;letter-spacing:0;color:#1b120e;margin:0 0 12px;overflow-wrap:anywhere}
 .biz-line{display:flex;align-items:flex-start;justify-content:center;gap:10px;color:#3b3836;font-size:19px;margin-top:10px}
-.biz-line .ico{color:#241b17;line-height:1.3;font-size:21px}
+.biz-line .ico{color:#241b17;line-height:1.3;font-size:12px;font-weight:800;letter-spacing:.04em}
 .rule{border:0;border-top:1px dashed #b8aca4;margin:22px 4px 34px}
 .info-grid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #ded8d2;border-radius:12px;padding:16px 18px;margin-bottom:22px}
 .info-col{display:grid;gap:22px;padding:0 24px;border-right:1px solid #ded8d2}
 .info-col:last-child{border-right:0}
 .info-row{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
-.icon{font-size:25px;color:#813806;line-height:1}
+.icon{font-size:12px;color:#813806;line-height:1.2;font-weight:800;letter-spacing:.04em;text-align:center;padding-top:4px}
 .label{font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#272322}
-.value{font-size:19px;color:#090706;margin-top:2px}
+.value{font-size:19px;color:#090706;margin-top:2px;overflow-wrap:anywhere}
 .items-card,.payment-card{border:1px solid #ded8d2;border-radius:12px;overflow:hidden;margin-bottom:18px}
 table{width:100%;border-collapse:collapse}
 thead th{background:linear-gradient(90deg,#4b2108,#2b1205);color:#fff;text-align:left;text-transform:uppercase;letter-spacing:.02em;font-size:16px;padding:14px 20px}
@@ -51,24 +51,65 @@ tbody tr:last-child td{border-bottom:0}
 .payment-card{display:grid;grid-template-columns:1fr 1fr;padding:18px}
 .pay-block{display:grid;grid-template-columns:48px 1fr;gap:18px;align-items:center;padding:0 20px}
 .pay-block:first-child{border-right:1px solid #ded8d2}
-.pay-icon{font-size:38px;color:#813806;line-height:1;text-align:center}
+.pay-icon{font-size:14px;color:#813806;line-height:1;text-align:center;font-weight:800;letter-spacing:.04em}
 .pay-status{color:#e56500}
 .footer-actions{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:26px;align-items:center;border-top:1px dashed #b8aca4;border-bottom:1px solid #ded8d2;padding:16px 0;margin:20px 0 12px}
 .qr-area{display:grid;grid-template-columns:116px 1fr;gap:16px;align-items:center}
 .qr{width:116px;height:116px;border:1px solid #d6d0ca;border-radius:8px;padding:7px;background:#fff}
 .qr img{width:100%;height:100%;display:block}
 .action{display:grid;grid-template-columns:62px 1fr;gap:16px;align-items:center;border-left:1px dashed #b8aca4;padding-left:28px;text-decoration:none;color:#171210}
-.action-circle{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:30px;border:1px solid currentColor}
+.action-circle{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;border:1px solid currentColor}
 .whatsapp{color:#16a234}.download{color:#ef3124}
 .action .label,.qr-area .label{font-size:14px;color:#171210}
-.action p,.qr-area p{margin:3px 0 0;color:#2e2926;font-size:15px}
+.action p,.qr-area p{margin:3px 0 0;color:#2e2926;font-size:15px;overflow-wrap:anywhere}
 .thanks{text-align:center;color:#803707;font-style:italic;font-weight:800;font-size:18px;margin-top:16px}
 .visit{text-align:center;color:#5f3420;font-size:15px;margin-top:4px}
 .powered{text-align:center;font-size:12px;color:#8a817b;margin-top:14px}
 .powered a{color:#5c2a0c;text-decoration:none;font-weight:700}
 button.linkish{font:inherit;border:0;background:transparent;padding:0;text-align:left;color:inherit;cursor:pointer}
 @media(max-width:720px){
-.page-shell{padding:8px}.invoice{border-radius:14px;padding:22px 14px 18px}.status-badge{position:static;margin-left:auto;margin-bottom:12px;width:max-content;font-size:13px;padding:8px 12px}.status-badge:before{width:18px;height:18px}.brand{padding:0 0 10px}.logo{width:104px;max-height:104px}.shop-name{font-size:34px}.biz-line{font-size:15px;text-align:center}.rule{margin:18px 0}.info-grid{grid-template-columns:1fr;padding:0}.info-col{border-right:0;border-bottom:1px solid #ded8d2;padding:16px;gap:16px}.info-col:last-child{border-bottom:0}.value{font-size:16px}thead th,tbody td{padding:11px 10px;font-size:14px}.items-card{overflow-x:auto}.totals{grid-template-columns:1fr;gap:14px;padding:14px 10px}.grand .amount{font-size:30px}.payment-card{grid-template-columns:1fr}.pay-block{padding:12px 4px}.pay-block:first-child{border-right:0;border-bottom:1px solid #ded8d2}.footer-actions{grid-template-columns:1fr;gap:16px}.action{border-left:0;border-top:1px dashed #b8aca4;padding:16px 0 0}.qr-area{grid-template-columns:98px 1fr}.qr{width:98px;height:98px}
+.page-shell{padding:0;background:#fff}
+.invoice{width:100%;min-width:0;border:0;border-radius:0;box-shadow:none;padding:16px 12px 18px}
+.status-badge{position:static;margin-left:auto;margin-bottom:10px;max-width:100%;width:max-content;font-size:13px;padding:8px 11px;gap:8px}
+.status-badge:before{width:18px;height:18px;flex:0 0 18px}
+.brand{padding:0 0 8px}
+.logo{width:96px;max-height:96px}
+.shop-name{font-size:clamp(28px,9vw,36px)}
+.biz-line{font-size:14px;text-align:center;gap:7px;margin-top:8px}
+.biz-line .ico{font-size:15px;flex:0 0 auto}
+.rule{margin:16px 0}
+.info-grid{grid-template-columns:1fr;padding:0;margin-bottom:14px}
+.info-col{border-right:0;border-bottom:1px solid #ded8d2;padding:14px;gap:14px}
+.info-col:last-child{border-bottom:0}
+.info-row{grid-template-columns:30px 1fr;gap:10px}
+.icon{font-size:14px;font-weight:800}
+.label{font-size:12px}
+.value{font-size:16px}
+.items-card{overflow:visible;border-radius:10px}
+table,thead,tbody,tr,td{display:block;width:100%}
+thead{display:none}
+tbody tr{padding:12px;border-bottom:1px solid #e8e3df}
+tbody tr:last-child{border-bottom:0}
+tbody td{display:flex;justify-content:space-between;gap:16px;border:0;padding:5px 0;font-size:14px;text-align:right!important}
+tbody td:before{content:attr(data-label);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b625d;text-align:left;flex:0 0 auto}
+tbody td.item-name{display:block;text-align:left!important;font-size:16px;padding-bottom:8px}
+tbody td.item-name:before{content:"";display:none}
+.totals{grid-template-columns:1fr;gap:12px;padding:12px;border-top:1px solid #ece7e2}
+.tax-box{padding:13px 12px}
+.row{font-size:14px;gap:14px}
+.summary .row{font-size:15px}
+.grand{display:grid;grid-template-columns:1fr;gap:8px;align-items:start}
+.grand .amount{font-size:clamp(28px,9vw,34px);white-space:normal;overflow-wrap:anywhere}
+.payment-card{grid-template-columns:1fr;padding:0}
+.pay-block{grid-template-columns:38px 1fr;padding:14px 12px;gap:12px}
+.pay-block:first-child{border-right:0;border-bottom:1px solid #ded8d2}
+.pay-icon{font-size:15px;font-weight:800}
+.footer-actions{grid-template-columns:1fr;gap:0;padding:0;margin:16px 0 10px}
+.qr-area{grid-template-columns:86px minmax(0,1fr);gap:12px;padding:14px 0}
+.qr{width:86px;height:86px;padding:5px}
+.action{grid-template-columns:46px minmax(0,1fr);gap:12px;border-left:0;border-top:1px dashed #b8aca4;padding:14px 0}
+.action-circle{width:44px;height:44px;font-size:12px;font-weight:800}
+.thanks{font-size:16px}
 }
 @media print{
 @page{margin:0}
@@ -84,25 +125,25 @@ body{background:#fff}.page-shell{padding:0;display:block}.invoice{width:100%;max
 <header class="brand">
 <img th:if="${logoUrl != null and !logoUrl.isEmpty()}" class="logo" th:src="${logoUrl}" th:alt="${shopName}" onerror="this.style.display='none'">
 <h1 class="shop-name" th:text="${shopName}">Restaurant</h1>
-<div th:if="${address != null and !address.isEmpty()}" class="biz-line"><span class="ico">⌖</span><span th:text="${address}">Address</span></div>
-<div th:if="${gstin != null and !gstin.isEmpty()}" class="biz-line"><span class="ico">▣</span><span th:text="'GSTIN: ' + ${gstin}">GSTIN</span></div>
-<div th:if="${fssai != null and !fssai.isEmpty()}" class="biz-line"><span class="ico">▣</span><span th:text="'FSSAI: ' + ${fssai}">FSSAI</span></div>
+<div th:if="${address != null and !address.isEmpty()}" class="biz-line"><span class="ico">PIN</span><span th:text="${address}">Address</span></div>
+<div th:if="${gstin != null and !gstin.isEmpty()}" class="biz-line"><span class="ico">GST</span><span th:text="'GSTIN: ' + ${gstin}">GSTIN</span></div>
+<div th:if="${fssai != null and !fssai.isEmpty()}" class="biz-line"><span class="ico">FSSAI</span><span th:text="'FSSAI: ' + ${fssai}">FSSAI</span></div>
 </header>
 
 <hr class="rule">
 
 <section class="info-grid" aria-label="Invoice details">
 <div class="info-col">
-<div class="info-row"><div class="icon">▤</div><div><div class="label">Order ID</div><div class="value" th:text="${orderCode}">#001</div></div></div>
-<div class="info-row"><div class="icon">▣</div><div><div class="label">Invoice No</div><div class="value" th:text="'INV' + ${lifetimeOrderId}">INV1</div></div></div>
+<div class="info-row"><div class="icon">ORD</div><div><div class="label">Order ID</div><div class="value" th:text="${orderCode}">#001</div></div></div>
+<div class="info-row"><div class="icon">INV</div><div><div class="label">Invoice No</div><div class="value" th:text="'INV' + ${lifetimeOrderId}">INV1</div></div></div>
 </div>
 <div class="info-col">
-<div class="info-row"><div class="icon">□</div><div><div class="label">Date</div><div class="value" th:text="${date}">01 Jan 2026</div></div></div>
-<div class="info-row"><div class="icon">◷</div><div><div class="label">Time</div><div class="value" th:text="${time}">10:00 AM</div></div></div>
+<div class="info-row"><div class="icon">DATE</div><div><div class="label">Date</div><div class="value" th:text="${date}">01 Jan 2026</div></div></div>
+<div class="info-row"><div class="icon">TIME</div><div><div class="label">Time</div><div class="value" th:text="${time}">10:00 AM</div></div></div>
 </div>
 <div class="info-col">
-<div class="info-row"><div class="icon">♙</div><div><div class="label">Tenant ID</div><div class="value" th:text="${tenantId}">1</div></div></div>
-<div class="info-row"><div class="icon">⌂</div><div><div class="label">Outlet ID</div><div class="value" th:text="${outletId}">1</div></div></div>
+<div class="info-row"><div class="icon">TEN</div><div><div class="label">Tenant ID</div><div class="value" th:text="${tenantId}">1</div></div></div>
+<div class="info-row"><div class="icon">OUT</div><div><div class="label">Outlet ID</div><div class="value" th:text="${outletId}">1</div></div></div>
 </div>
 </section>
 
@@ -118,10 +159,10 @@ body{background:#fff}.page-shell{padding:0;display:block}.invoice{width:100%;max
 </thead>
 <tbody>
 <tr th:each="item : ${items}">
-<td class="item-name"><span th:text="${item.itemName}">Item</span> <span class="muted" th:if="${item.variantName != null and !item.variantName.isEmpty()}" th:text="'(' + ${item.variantName} + ')'"></span></td>
-<td class="c" th:text="${item.quantity}">1</td>
-<td class="r" th:text="${currencySymbol + ' ' + item.rateFormatted}">Rs. 0.00</td>
-<td class="r" th:text="${currencySymbol + ' ' + item.itemTotalFormatted}">Rs. 0.00</td>
+<td class="item-name" data-label="Item"><span th:text="${item.itemName}">Item</span> <span class="muted" th:if="${item.variantName != null and !item.variantName.isEmpty()}" th:text="'(' + ${item.variantName} + ')'"></span></td>
+<td class="c" data-label="Qty" th:text="${item.quantity}">1</td>
+<td class="r" data-label="Rate" th:text="${currencySymbol + ' ' + item.rateFormatted}">Rs. 0.00</td>
+<td class="r" data-label="Amount" th:text="${currencySymbol + ' ' + item.itemTotalFormatted}">Rs. 0.00</td>
 </tr>
 </tbody>
 </table>
@@ -152,8 +193,8 @@ body{background:#fff}.page-shell{padding:0;display:block}.invoice{width:100%;max
 </section>
 
 <section class="payment-card">
-<div class="pay-block"><div class="pay-icon">▭</div><div><div class="label">Payment Method</div><div class="value" th:text="${paymentMode}">Pending</div></div></div>
-<div class="pay-block"><div class="pay-icon">₹</div><div><div class="label">Payment Status</div><div class="value pay-status" th:text="${paymentStatus}">Pending Payment</div><div class="muted" th:if="${isPaid and paidDate != null and !paidDate.isEmpty()}" th:text="'Paid on ' + ${paidDate}"></div></div></div>
+<div class="pay-block"><div class="pay-icon">PAY</div><div><div class="label">Payment Method</div><div class="value" th:text="${paymentMode}">Pending</div></div></div>
+<div class="pay-block"><div class="pay-icon">Rs</div><div><div class="label">Payment Status</div><div class="value pay-status" th:text="${paymentStatus}">Pending Payment</div><div class="muted" th:if="${isPaid and paidDate != null and !paidDate.isEmpty()}" th:text="'Paid on ' + ${paidDate}"></div></div></div>
 </section>
 
 <section class="footer-actions">
@@ -162,10 +203,10 @@ body{background:#fff}.page-shell{padding:0;display:block}.invoice{width:100%;max
 <div><div class="label">Scan To Verify</div><p>Invoice Ref No<br><span th:text="${invoiceRef}">reference</span></p></div>
 </div>
 <a class="action whatsapp" th:href="${whatsappShareUrl}" target="_blank" rel="noopener">
-<div class="action-circle">☏</div><div><div class="label">Share Invoice</div><p>Share invoice with your contacts</p></div>
+<div class="action-circle">WA</div><div><div class="label">Share Invoice</div><p>Share invoice with your contacts</p></div>
 </a>
 <button class="action download linkish" type="button" onclick="window.print()">
-<div class="action-circle">▾</div><div><div class="label">Download</div><p>Download invoice as PDF</p></div>
+<div class="action-circle">PDF</div><div><div class="label">Download</div><p>Download invoice as PDF</p></div>
 </button>
 </section>
 
