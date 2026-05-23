@@ -7,113 +7,197 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 *,:after,:before{box-sizing:border-box}
-body{margin:0;background:#f1f1ef;color:#171210;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.45;-webkit-font-smoothing:antialiased}
-.page-shell{min-height:100vh;padding:18px;display:flex;justify-content:center}
-.invoice{width:min(100%,980px);background:#fff;border:1px solid #e2dfda;border-radius:22px;box-shadow:0 16px 40px rgba(43,27,18,.14);padding:32px 48px 24px;position:relative}
-.status-badge{position:absolute;right:38px;top:40px;display:inline-flex;align-items:center;gap:10px;border:1px solid #1b7f2a;background:#f4fff6;color:#087018;border-radius:7px;padding:11px 18px;font-size:17px;font-weight:700;text-transform:uppercase}
-.status-badge:before{content:"";width:22px;height:22px;border-radius:50%;background:currentColor;display:block;box-shadow:inset 0 0 0 6px rgba(255,255,255,.88)}
-.status-badge.pending{border-color:#9a5b15;background:#fff8ec;color:#9a4b00}
-.status-badge.failed{border-color:#b3261e;background:#fff4f3;color:#b3261e}
-.brand{text-align:center;padding:0 170px 18px}
-.logo{width:144px;max-height:144px;object-fit:contain;margin:0 auto 8px;display:block}
-.shop-name{font-size:46px;line-height:1.08;font-weight:800;letter-spacing:0;color:#1b120e;margin:0 0 12px;overflow-wrap:anywhere}
-.biz-line{display:flex;align-items:flex-start;justify-content:center;gap:10px;color:#3b3836;font-size:19px;margin-top:10px}
-.biz-line .ico{color:#241b17;line-height:1.3;font-size:12px;font-weight:800;letter-spacing:.04em}
-.rule{border:0;border-top:1px dashed #b8aca4;margin:22px 4px 34px}
-.info-grid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #ded8d2;border-radius:12px;padding:16px 18px;margin-bottom:22px}
-.info-col{display:grid;gap:22px;padding:0 24px;border-right:1px solid #ded8d2}
+
+:root {
+  --primary-gold: #c85a00;
+  --primary-accent: #e8832a;
+  --bg-soft: #faf8f5;
+  --espresso-text: #211a14;
+  --border-line: rgba(33, 26, 20, 0.08);
+  --success: #16a34a;
+  --success-soft: rgba(22, 163, 74, 0.06);
+  --warning: #d97706;
+  --warning-soft: rgba(217, 119, 6, 0.06);
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.06);
+  --shadow-lg: 0 20px 40px rgba(33, 26, 20, 0.08), 0 1px 3px rgba(33, 26, 20, 0.04);
+}
+
+body{margin:0;background:#faf8f5;color:var(--espresso-text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.45;-webkit-font-smoothing:antialiased}
+.page-shell{min-height:100vh;padding:24px 18px;display:flex;justify-content:center}
+
+.invoice{
+  width:min(100%,920px);
+  background:rgba(255, 255, 255, 0.85);
+  backdrop-filter:blur(20px) saturate(120%);
+  -webkit-backdrop-filter:blur(20px) saturate(120%);
+  border:1px solid rgba(33, 26, 20, 0.06);
+  border-radius:24px;
+  box-shadow:var(--shadow-lg);
+  padding:40px 48px 32px;
+  position:relative;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
+@keyframes pulse-ring-warning {
+  0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(217, 119, 6, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+}
+
+.status-badge{
+  position:absolute;
+  right:48px;
+  top:40px;
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  border:1px solid var(--success);
+  background:var(--success-soft);
+  color:var(--success);
+  border-radius:999px;
+  padding:8px 20px;
+  font-size:14px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  box-shadow:0 2px 8px rgba(22, 163, 74, 0.1);
+  animation: pulse-ring 2.5s infinite;
+}
+.status-badge:before{content:"";width:10px;height:10px;border-radius:50%;background:currentColor;display:block}
+
+.status-badge.pending{
+  border-color:var(--warning);
+  background:var(--warning-soft);
+  color:var(--warning);
+  box-shadow:0 2px 8px rgba(217, 119, 6, 0.1);
+  animation: pulse-ring-warning 2.5s infinite;
+}
+.status-badge.failed{
+  border-color:var(--danger);
+  background:var(--danger-soft);
+  color:var(--danger);
+  box-shadow:0 2px 8px rgba(220, 38, 38, 0.1);
+  animation: none;
+}
+
+.brand{text-align:center;padding:0 120px 24px}
+.logo{width:110px;max-height:110px;object-fit:contain;margin:0 auto 12px;display:block;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.06);background:#fff;padding:8px;border:1px solid var(--border-line)}
+.shop-name{font-size:36px;line-height:1.1;font-weight:800;letter-spacing:-0.5px;color:var(--espresso-text);margin:0 0 10px;overflow-wrap:anywhere}
+.biz-line{display:flex;align-items:flex-start;justify-content:center;gap:8px;color:#5c5248;font-size:16px;margin-top:6px}
+.biz-line .ico{color:var(--primary-gold);font-weight:800;font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.rule{border:0;border-top:1px dashed var(--border-line);margin:24px 0 32px}
+
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--border-line);background:var(--bg-soft);border-radius:16px;padding:18px 24px;margin-bottom:24px}
+.info-col{display:grid;gap:18px;padding:0 16px;border-right:1px solid var(--border-line)}
 .info-col:last-child{border-right:0}
-.info-row{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
-.icon{font-size:12px;color:#813806;line-height:1.2;font-weight:800;letter-spacing:.04em;text-align:center;padding-top:4px}
-.label{font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#272322}
-.value{font-size:19px;color:#090706;margin-top:2px;overflow-wrap:anywhere}
-.items-card,.payment-card{border:1px solid #ded8d2;border-radius:12px;overflow:hidden;margin-bottom:18px}
+.info-row{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start}
+.icon{font-size:11px;color:var(--primary-gold);font-weight:800;letter-spacing:.04em;text-align:left;padding-top:4px}
+.label{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8c8075}
+.value{font-size:16px;font-weight:700;color:var(--espresso-text);margin-top:2px;overflow-wrap:anywhere}
+
+.items-card,.payment-card{border:1px solid var(--border-line);border-radius:16px;overflow:hidden;margin-bottom:24px;box-shadow:0 2px 6px rgba(0,0,0,0.02)}
 table{width:100%;border-collapse:collapse}
-thead th{background:linear-gradient(90deg,#4b2108,#2b1205);color:#fff;text-align:left;text-transform:uppercase;letter-spacing:.02em;font-size:16px;padding:14px 20px}
+thead th{background:linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-accent) 100%);color:#fff;text-align:left;text-transform:uppercase;letter-spacing:.06em;font-weight:800;font-size:13px;padding:14px 20px}
 thead th.c,tbody td.c{text-align:center}
 thead th.r,tbody td.r{text-align:right}
-tbody td{padding:14px 20px;border-bottom:1px solid #e8e3df;font-size:18px;color:#111}
+tbody td{padding:16px 20px;border-bottom:1px solid var(--border-line);font-size:16px;color:var(--espresso-text)}
 tbody tr:last-child td{border-bottom:0}
-.item-name{font-weight:500}
-.muted{color:#6b625d;font-size:.9em}
-.totals{display:grid;grid-template-columns:minmax(260px,1fr) minmax(280px,1fr);gap:44px;align-items:start;border-top:1px solid #ece7e2;padding:18px 18px 12px}
-.tax-box{border:1px solid #ded8d2;border-radius:8px;padding:16px 18px}
-.tax-title{color:#7d3508;text-transform:uppercase;letter-spacing:.06em;font-weight:800;font-size:15px;margin-bottom:12px}
-.row{display:flex;justify-content:space-between;gap:20px;font-size:16px;margin:7px 0}
-.row strong{font-weight:700}
-.thin{border:0;border-top:1px solid #cfc6bd;margin:10px 0}
-.summary{padding:4px 0 0}
-.summary .row{font-size:18px;margin:9px 0}
-.dash{border:0;border-top:1px dashed #b97a4b;margin:14px 0 20px}
-.grand{display:flex;align-items:end;justify-content:space-between;gap:18px;color:#803707}
-.grand .label{color:#803707;font-size:17px}
-.grand .amount{font-size:39px;line-height:1;font-weight:800;white-space:nowrap}
-.payment-card{display:grid;grid-template-columns:1fr 1fr;padding:18px}
-.pay-block{display:grid;grid-template-columns:48px 1fr;gap:18px;align-items:center;padding:0 20px}
-.pay-block:first-child{border-right:1px solid #ded8d2}
-.pay-icon{font-size:14px;color:#813806;line-height:1;text-align:center;font-weight:800;letter-spacing:.04em}
-.pay-status{color:#e56500}
-.footer-actions{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:26px;align-items:center;border-top:1px dashed #b8aca4;border-bottom:1px solid #ded8d2;padding:16px 0;margin:20px 0 12px}
-.qr-area{display:grid;grid-template-columns:116px 1fr;gap:16px;align-items:center}
-.qr{width:116px;height:116px;border:1px solid #d6d0ca;border-radius:8px;padding:7px;background:#fff}
-.qr img{width:100%;height:100%;display:block}
-.action{display:grid;grid-template-columns:62px 1fr;gap:16px;align-items:center;border-left:1px dashed #b8aca4;padding-left:28px;text-decoration:none;color:#171210}
-.action-circle{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;border:1px solid currentColor}
-.whatsapp{color:#16a234}.download{color:#ef3124}
-.action .label,.qr-area .label{font-size:14px;color:#171210}
-.action p,.qr-area p{margin:3px 0 0;color:#2e2926;font-size:15px;overflow-wrap:anywhere}
-.thanks{text-align:center;color:#803707;font-style:italic;font-weight:800;font-size:18px;margin-top:16px}
-.visit{text-align:center;color:#5f3420;font-size:15px;margin-top:4px}
-.powered{text-align:center;font-size:12px;color:#8a817b;margin-top:14px}
-.powered a{color:#5c2a0c;text-decoration:none;font-weight:700}
+.item-name{font-weight:600}
+.muted{color:#8c8075;font-size:.9em}
+
+.totals{display:grid;grid-template-columns:minmax(260px,1.2fr) minmax(280px,1fr);gap:32px;align-items:start;border-top:1px solid var(--border-line);padding:24px 20px 16px}
+.tax-box{border:1px solid var(--border-line);background:var(--bg-soft);border-radius:12px;padding:18px}
+.tax-title{color:var(--primary-gold);text-transform:uppercase;letter-spacing:.08em;font-weight:800;font-size:13px;margin-bottom:14px}
+.row{display:flex;justify-content:space-between;gap:20px;font-size:14px;margin:8px 0;color:#5c5248}
+.row strong{font-weight:700;color:var(--espresso-text)}
+.thin{border:0;border-top:1px solid var(--border-line);margin:12px 0}
+.summary{padding:6px 0 0}
+.summary .row{font-size:16px;margin:10px 0}
+.dash{border:0;border-top:1px dashed var(--primary-accent);margin:16px 0 20px}
+.grand{display:flex;align-items:baseline;justify-content:space-between;gap:18px;color:var(--primary-gold)}
+.grand .label{color:var(--primary-gold);font-size:15px;font-weight:800}
+.grand .amount{font-size:36px;line-height:1;font-weight:800;white-space:nowrap;letter-spacing:-0.5px}
+
+.payment-card{display:grid;grid-template-columns:1fr 1fr;padding:0;background:var(--bg-soft)}
+.pay-block{display:grid;grid-template-columns:40px 1fr;gap:14px;align-items:center;padding:20px 24px}
+.pay-block:first-child{border-right:1px solid var(--border-line)}
+.pay-icon{font-size:12px;color:var(--primary-gold);text-align:left;font-weight:800;letter-spacing:.04em}
+.pay-status{color:var(--primary-accent);font-weight:700}
+
+.footer-actions{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:24px;align-items:center;border-top:1px dashed var(--border-line);border-bottom:1px solid var(--border-line);padding:24px 0;margin:24px 0 16px}
+.qr-area{display:grid;grid-template-columns:100px 1fr;gap:16px;align-items:center}
+.qr{width:100px;height:100px;border:1px solid var(--border-line);border-radius:12px;padding:6px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.04)}
+.qr img{width:100%;height:100%;display:block;object-fit:contain}
+
+.action{display:grid;grid-template-columns:52px 1fr;gap:16px;align-items:center;border-left:1px dashed var(--border-line);padding-left:24px;text-decoration:none;color:var(--espresso-text);transition:all 0.2s ease}
+.action:hover{transform:translateY(-2px)}
+.action-circle{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;border:2px solid currentColor;transition:all 0.2s ease;background:#fff}
+.action:hover .action-circle{box-shadow:0 0 12px currentColor}
+
+.whatsapp{color:#16a34a}.download{color:#dc2626}
+.action .label,.qr-area .label{font-size:12px;font-weight:800;text-transform:uppercase;color:#8c8075;letter-spacing:0.5px}
+.action p,.qr-area p{margin:3px 0 0;color:var(--espresso-text);font-size:14px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+
+.thanks{text-align:center;color:var(--primary-gold);font-style:italic;font-weight:800;font-size:18px;margin-top:20px}
+.visit{text-align:center;color:#8c8075;font-size:14px;margin-top:4px;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.powered{text-align:center;font-size:11px;color:#8c8075;margin-top:16px}
+.powered a{color:var(--primary-gold);text-decoration:none;font-weight:800}
 button.linkish{font:inherit;border:0;background:transparent;padding:0;text-align:left;color:inherit;cursor:pointer}
+
 @media(max-width:720px){
 .page-shell{padding:0;background:#fff}
-.invoice{width:100%;min-width:0;border:0;border-radius:0;box-shadow:none;padding:16px 12px 18px}
-.status-badge{position:static;margin-left:auto;margin-bottom:10px;max-width:100%;width:max-content;font-size:13px;padding:8px 11px;gap:8px}
-.status-badge:before{width:18px;height:18px;flex:0 0 18px}
-.brand{padding:0 0 8px}
-.logo{width:96px;max-height:96px}
-.shop-name{font-size:clamp(28px,9vw,36px)}
-.biz-line{font-size:14px;text-align:center;gap:7px;margin-top:8px}
-.biz-line .ico{font-size:15px;flex:0 0 auto}
-.rule{margin:16px 0}
-.info-grid{grid-template-columns:1fr;padding:0;margin-bottom:14px}
-.info-col{border-right:0;border-bottom:1px solid #ded8d2;padding:14px;gap:14px}
-.info-col:last-child{border-bottom:0}
-.info-row{grid-template-columns:30px 1fr;gap:10px}
-.icon{font-size:14px;font-weight:800}
-.label{font-size:12px}
-.value{font-size:16px}
-.items-card{overflow:visible;border-radius:10px}
+.invoice{width:100%;min-width:0;border:0;border-radius:0;box-shadow:none;padding:24px 16px 24px}
+.status-badge{position:static;margin-left:auto;margin-bottom:16px;max-width:100%;width:max-content;font-size:12px;padding:6px 16px;gap:8px}
+.brand{padding:0 0 16px}
+.logo{width:90px;max-height:90px}
+.shop-name{font-size:clamp(26px,8vw,32px)}
+.biz-line{font-size:14px;text-align:center;gap:6px;margin-top:6px}
+.biz-line .ico{font-size:11px}
+.rule{margin:20px 0}
+.info-grid{grid-template-columns:1fr;padding:0;margin-bottom:16px;background:transparent;border:0}
+.info-col{border-right:0;border-bottom:1px solid var(--border-line);padding:16px 0;gap:16px}
+.info-col:last-child{border-bottom:0;padding-bottom:0}
+.info-row{grid-template-columns:24px 1fr;gap:8px}
+.icon{font-size:11px}
+.label{font-size:10px}
+.value{font-size:15px}
+.items-card{overflow:visible;border-radius:12px}
 table,thead,tbody,tr,td{display:block;width:100%}
 thead{display:none}
-tbody tr{padding:12px;border-bottom:1px solid #e8e3df}
+tbody tr{padding:14px;border-bottom:1px solid var(--border-line)}
 tbody tr:last-child{border-bottom:0}
-tbody td{display:flex;justify-content:space-between;gap:16px;border:0;padding:5px 0;font-size:14px;text-align:right!important}
-tbody td:before{content:attr(data-label);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b625d;text-align:left;flex:0 0 auto}
-tbody td.item-name{display:block;text-align:left!important;font-size:16px;padding-bottom:8px}
+tbody td{display:flex;justify-content:space-between;gap:16px;border:0;padding:6px 0;font-size:14px;text-align:right!important}
+tbody td:before{content:attr(data-label);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8c8075;text-align:left;flex:0 0 auto}
+tbody td.item-name{display:block;text-align:left!important;font-size:15px;padding-bottom:8px;font-weight:700}
 tbody td.item-name:before{content:"";display:none}
-.totals{grid-template-columns:1fr;gap:12px;padding:12px;border-top:1px solid #ece7e2}
-.tax-box{padding:13px 12px}
-.row{font-size:14px;gap:14px}
-.summary .row{font-size:15px}
-.grand{display:grid;grid-template-columns:1fr;gap:8px;align-items:start}
-.grand .amount{font-size:clamp(28px,9vw,34px);white-space:normal;overflow-wrap:anywhere}
+.totals{grid-template-columns:1fr;gap:16px;padding:16px 0;border-top:1px solid var(--border-line)}
+.tax-box{padding:14px}
+.row{font-size:13px;gap:14px}
+.summary .row{font-size:14px}
+.grand{display:grid;grid-template-columns:1fr;gap:4px;align-items:start}
+.grand .amount{font-size:clamp(28px,8vw,32px);white-space:normal;overflow-wrap:anywhere}
 .payment-card{grid-template-columns:1fr;padding:0}
-.pay-block{grid-template-columns:38px 1fr;padding:14px 12px;gap:12px}
-.pay-block:first-child{border-right:0;border-bottom:1px solid #ded8d2}
-.pay-icon{font-size:15px;font-weight:800}
-.footer-actions{grid-template-columns:1fr;gap:0;padding:0;margin:16px 0 10px}
-.qr-area{grid-template-columns:86px minmax(0,1fr);gap:12px;padding:14px 0}
-.qr{width:86px;height:86px;padding:5px}
-.action{grid-template-columns:46px minmax(0,1fr);gap:12px;border-left:0;border-top:1px dashed #b8aca4;padding:14px 0}
-.action-circle{width:44px;height:44px;font-size:12px;font-weight:800}
+.pay-block{grid-template-columns:30px 1fr;padding:16px 0;gap:12px;border-bottom:1px solid var(--border-line)}
+.pay-block:first-child{border-right:0}
+.pay-block:last-child{border-bottom:0;padding-bottom:0}
+.pay-icon{font-size:11px}
+.footer-actions{grid-template-columns:1fr;gap:0;padding:0;margin:20px 0 12px;border-bottom:0}
+.qr-area{grid-template-columns:80px minmax(0,1fr);gap:12px;padding:16px 0}
+.qr{width:80px;height:80px;padding:4px}
+.action{grid-template-columns:46px minmax(0,1fr);gap:12px;border-left:0;border-top:1px dashed var(--border-line);padding:16px 0}
+.action-circle{width:42px;height:42px;font-size:11px}
 .thanks{font-size:16px}
 }
+
 @media print{
-@page{margin:0}
-body{background:#fff}.page-shell{padding:0;display:block}.invoice{width:100%;max-width:none;border:0;border-radius:0;box-shadow:none;padding:24px 36px}.footer-actions{page-break-inside:avoid}.download{display:none}.status-badge,thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+@page{margin:10mm}
+body{background:#fff;color:#000}.page-shell{padding:0;display:block}.invoice{width:100%;max-width:none;border:0;border-radius:0;box-shadow:none;padding:0;background:#fff;backdrop-filter:none}.footer-actions{page-break-inside:avoid}.download{display:none}.status-badge,thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
 </head>
