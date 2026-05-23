@@ -22,8 +22,9 @@ val KbSaffron500 = Color(0xFFC85A00)  // deep saffron (light mode primary)
 val KbSaffron600 = Color(0xFF994500)
 
 // Espresso scale
-val KbEspresso50  = Color(0xFFF7F3EE) // page bg (light)
-val KbEspresso100 = Color(0xFFEAE3DC) // surface (light)
+val KbEspresso50  = Color(0xFFF5EDE4) // page bg (light) — warm linen
+val KbEspresso100 = Color(0xFFE8D9CA) // surface (light) — tan parchment
+val KbEspresso200 = Color(0xFFD4C0AB) // mid-tone for light gradient
 val KbEspresso900 = Color(0xFF211A14) // card/surface (dark)
 val KbEspresso950 = Color(0xFF17130F) // page bg (dark)
 
