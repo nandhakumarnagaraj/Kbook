@@ -5,215 +5,175 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Invoice - <th:block th:text="${shopName}">Shop</th:block></title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-*,:after,:before{margin:0;padding:0;box-sizing:border-box}
-body{
-font-family:'Inter',system-ui,-apple-system,sans-serif;
-background:#f3f3f3;color:#111;padding:24px;min-height:100vh;
-display:flex;align-items:flex-start;justify-content:center;
-line-height:1.5;-webkit-font-smoothing:antialiased
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+*,:after,:before{box-sizing:border-box}
+body{margin:0;background:#f1f1ef;color:#171210;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.45;-webkit-font-smoothing:antialiased}
+.page-shell{min-height:100vh;padding:18px;display:flex;justify-content:center}
+.invoice{width:min(100%,980px);background:#fff;border:1px solid #e2dfda;border-radius:22px;box-shadow:0 16px 40px rgba(43,27,18,.14);padding:32px 48px 24px;position:relative}
+.status-badge{position:absolute;right:38px;top:40px;display:inline-flex;align-items:center;gap:10px;border:1px solid #1b7f2a;background:#f4fff6;color:#087018;border-radius:7px;padding:11px 18px;font-size:17px;font-weight:700;text-transform:uppercase}
+.status-badge:before{content:"";width:22px;height:22px;border-radius:50%;background:currentColor;display:block;box-shadow:inset 0 0 0 6px rgba(255,255,255,.88)}
+.status-badge.pending{border-color:#9a5b15;background:#fff8ec;color:#9a4b00}
+.status-badge.failed{border-color:#b3261e;background:#fff4f3;color:#b3261e}
+.brand{text-align:center;padding:0 170px 18px}
+.logo{width:144px;max-height:144px;object-fit:contain;margin:0 auto 8px;display:block}
+.shop-name{font-size:46px;line-height:1.08;font-weight:800;letter-spacing:0;color:#1b120e;margin:0 0 12px}
+.biz-line{display:flex;align-items:flex-start;justify-content:center;gap:10px;color:#3b3836;font-size:19px;margin-top:10px}
+.biz-line .ico{color:#241b17;line-height:1.3;font-size:21px}
+.rule{border:0;border-top:1px dashed #b8aca4;margin:22px 4px 34px}
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #ded8d2;border-radius:12px;padding:16px 18px;margin-bottom:22px}
+.info-col{display:grid;gap:22px;padding:0 24px;border-right:1px solid #ded8d2}
+.info-col:last-child{border-right:0}
+.info-row{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
+.icon{font-size:25px;color:#813806;line-height:1}
+.label{font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#272322}
+.value{font-size:19px;color:#090706;margin-top:2px}
+.items-card,.payment-card{border:1px solid #ded8d2;border-radius:12px;overflow:hidden;margin-bottom:18px}
+table{width:100%;border-collapse:collapse}
+thead th{background:linear-gradient(90deg,#4b2108,#2b1205);color:#fff;text-align:left;text-transform:uppercase;letter-spacing:.02em;font-size:16px;padding:14px 20px}
+thead th.c,tbody td.c{text-align:center}
+thead th.r,tbody td.r{text-align:right}
+tbody td{padding:14px 20px;border-bottom:1px solid #e8e3df;font-size:18px;color:#111}
+tbody tr:last-child td{border-bottom:0}
+.item-name{font-weight:500}
+.muted{color:#6b625d;font-size:.9em}
+.totals{display:grid;grid-template-columns:minmax(260px,1fr) minmax(280px,1fr);gap:44px;align-items:start;border-top:1px solid #ece7e2;padding:18px 18px 12px}
+.tax-box{border:1px solid #ded8d2;border-radius:8px;padding:16px 18px}
+.tax-title{color:#7d3508;text-transform:uppercase;letter-spacing:.06em;font-weight:800;font-size:15px;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;gap:20px;font-size:16px;margin:7px 0}
+.row strong{font-weight:700}
+.thin{border:0;border-top:1px solid #cfc6bd;margin:10px 0}
+.summary{padding:4px 0 0}
+.summary .row{font-size:18px;margin:9px 0}
+.dash{border:0;border-top:1px dashed #b97a4b;margin:14px 0 20px}
+.grand{display:flex;align-items:end;justify-content:space-between;gap:18px;color:#803707}
+.grand .label{color:#803707;font-size:17px}
+.grand .amount{font-size:39px;line-height:1;font-weight:800;white-space:nowrap}
+.payment-card{display:grid;grid-template-columns:1fr 1fr;padding:18px}
+.pay-block{display:grid;grid-template-columns:48px 1fr;gap:18px;align-items:center;padding:0 20px}
+.pay-block:first-child{border-right:1px solid #ded8d2}
+.pay-icon{font-size:38px;color:#813806;line-height:1;text-align:center}
+.pay-status{color:#e56500}
+.footer-actions{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:26px;align-items:center;border-top:1px dashed #b8aca4;border-bottom:1px solid #ded8d2;padding:16px 0;margin:20px 0 12px}
+.qr-area{display:grid;grid-template-columns:116px 1fr;gap:16px;align-items:center}
+.qr{width:116px;height:116px;border:1px solid #d6d0ca;border-radius:8px;padding:7px;background:#fff}
+.qr img{width:100%;height:100%;display:block}
+.action{display:grid;grid-template-columns:62px 1fr;gap:16px;align-items:center;border-left:1px dashed #b8aca4;padding-left:28px;text-decoration:none;color:#171210}
+.action-circle{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:30px;border:1px solid currentColor}
+.whatsapp{color:#16a234}.download{color:#ef3124}
+.action .label,.qr-area .label{font-size:14px;color:#171210}
+.action p,.qr-area p{margin:3px 0 0;color:#2e2926;font-size:15px}
+.thanks{text-align:center;color:#803707;font-style:italic;font-weight:800;font-size:18px;margin-top:16px}
+.visit{text-align:center;color:#5f3420;font-size:15px;margin-top:4px}
+.powered{text-align:center;font-size:12px;color:#8a817b;margin-top:14px}
+.powered a{color:#5c2a0c;text-decoration:none;font-weight:700}
+button.linkish{font:inherit;border:0;background:transparent;padding:0;text-align:left;color:inherit;cursor:pointer}
+@media(max-width:720px){
+.page-shell{padding:8px}.invoice{border-radius:14px;padding:22px 14px 18px}.status-badge{position:static;margin-left:auto;margin-bottom:12px;width:max-content;font-size:13px;padding:8px 12px}.status-badge:before{width:18px;height:18px}.brand{padding:0 0 10px}.logo{width:104px;max-height:104px}.shop-name{font-size:34px}.biz-line{font-size:15px;text-align:center}.rule{margin:18px 0}.info-grid{grid-template-columns:1fr;padding:0}.info-col{border-right:0;border-bottom:1px solid #ded8d2;padding:16px;gap:16px}.info-col:last-child{border-bottom:0}.value{font-size:16px}thead th,tbody td{padding:11px 10px;font-size:14px}.items-card{overflow-x:auto}.totals{grid-template-columns:1fr;gap:14px;padding:14px 10px}.grand .amount{font-size:30px}.payment-card{grid-template-columns:1fr}.pay-block{padding:12px 4px}.pay-block:first-child{border-right:0;border-bottom:1px solid #ded8d2}.footer-actions{grid-template-columns:1fr;gap:16px}.action{border-left:0;border-top:1px dashed #b8aca4;padding:16px 0 0}.qr-area{grid-template-columns:98px 1fr}.qr{width:98px;height:98px}
 }
-.pg{
-max-width:580px;width:100%;margin:0 auto;background:#fff;
-border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);
-padding:32px 28px 20px
-}
-.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt20{margin-top:20px}.mt24{margin-top:24px}
-.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}
-.sep{height:1px;background:#ededed;margin:14px 0}
-.text-muted{color:#777}.text-sm{font-size:.78em}
-.fw600{font-weight:600}
-.bdg{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;
-border-radius:10px;font-size:.7em;font-weight:600;line-height:1.4}
-.bdg-dot{width:5px;height:5px;border-radius:50%;display:inline-block}
-.bdg-paid,.bdg-completed,.bdg-success{background:#ecfdf5;color:#065f46}
-.bdg-paid .bdg-dot,.bdg-completed .bdg-dot,.bdg-success .bdg-dot{background:#059669}
-.bdg-pending,.bdg-unpaid,.bdg-partial,.bdg-partially_paid{background:#fffbeb;color:#92400e}
-.bdg-pending .bdg-dot,.bdg-unpaid .bdg-dot,.bdg-partial .bdg-dot,.bdg-partially_paid .bdg-dot{background:#d97706}
-.bdg-cancelled,.bdg-failed,.bdg-overdue{background:#fef2f2;color:#991b1b}
-.bdg-cancelled .bdg-dot,.bdg-failed .bdg-dot,.bdg-overdue .bdg-dot{background:#dc2626}
-.bdg-draft,.bdg-refunded{background:#f5f5f5;color:#666}
-.bdg-draft .bdg-dot,.bdg-refunded .bdg-dot{background:#999}
-.hdr{text-align:center;margin-bottom:14px}
-.logo{width:80px;height:80px;border-radius:12px;object-fit:contain;
-border:1px solid #e5e5e5;background:#fff;padding:4px;margin-bottom:10px}
-.biz-name{font-size:1.15em;font-weight:700;color:#111;margin-bottom:3px}
-.biz-info{font-size:.78em;color:#666;line-height:1.6}
-.meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;padding:10px 0;font-size:.82em}
-.meta-i{display:flex;justify-content:space-between;padding:3px 0}
-.meta-i .l{color:#999;font-size:.7em;font-weight:600}
-.meta-i .v{color:#111;font-weight:500}
-.addr{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0}
-.addr .ttl{font-size:.64em;text-transform:uppercase;letter-spacing:.04em;color:#999;font-weight:600;margin-bottom:3px}
-.addr .ct{font-size:.78em;color:#444;line-height:1.6}
-.addr .ct strong{color:#111;font-weight:600}
-table{width:100%;border-collapse:collapse;font-size:.82em}
-thead th{padding:7px 4px;font-size:.64em;text-transform:uppercase;letter-spacing:.04em;
-color:#999;font-weight:600;border-bottom:1px solid #ddd;text-align:left}
-thead th.r{text-align:right}
-thead th.c{text-align:center}
-tbody tr{border-bottom:1px solid #eee}
-tbody tr:last-child{border-bottom:none}
-tbody tr.e{background:#fafafa}
-tbody td{padding:9px 4px;color:#333;vertical-align:top;font-size:.85em}
-tbody td:first-child{padding-left:0}
-tbody td:last-child{padding-right:0}
-tbody td.c{text-align:center;color:#666}
-tbody td.r{text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
-.sum{margin-top:10px;padding-top:6px}
-.sum-r{display:flex;justify-content:space-between;padding:4px 0;font-size:.84em;color:#555}
-.sum-d{height:1px;background:#ddd;margin:7px 0}
-.sum-t{display:flex;justify-content:space-between;padding:8px 0 0;
-font-size:1.1em;font-weight:700;color:#111;border-top:2px solid #111;margin-top:3px}
-.pay{font-size:.82em;color:#555;padding:6px 0}
-.pay strong{color:#111}
-.fmsg{font-size:.82em;color:#555;padding:6px 0;line-height:1.6}
-.fmsg strong{color:#111}
-.rev{text-align:center;font-size:.8em;color:#888;padding:10px 0 0}
-.rev a{color:#111;font-weight:600;text-decoration:none}
-.ft{padding:10px 0 0;text-align:center;font-size:.7em;color:#aaa;
-border-top:1px solid #eee;margin-top:14px}
-.ft a{color:#555;font-weight:500;text-decoration:none}
 @media print{
 @page{margin:0}
-body{background:#fff!important;padding:0!important;display:block}
-.pg{box-shadow:none!important;border-radius:0!important;max-width:100%!important;padding:24px 20px 16px!important}
-.bdg-paid,.bdg-completed,.bdg-success,.bdg-pending,.bdg-cancelled,.bdg-failed,.bdg-draft,.bdg-refunded
-{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-}
-@media(max-width:480px){
-body{padding:10px}
-.pg{padding:20px 14px 16px;border-radius:8px}
-.meta{flex-direction:column;gap:6px}
-.addr{grid-template-columns:1fr;gap:10px}
-tbody td{font-size:.8em;padding:7px 3px}
-thead th{font-size:.6em;padding:6px 3px}
+body{background:#fff}.page-shell{padding:0;display:block}.invoice{width:100%;max-width:none;border:0;border-radius:0;box-shadow:none;padding:24px 36px}.footer-actions{page-break-inside:avoid}.download{display:none}.status-badge,thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
 </head>
 <body>
-<div class="pg">
+<main class="page-shell">
+<article class="invoice">
+<div th:class="'status-badge ' + ${statusClass}" th:text="${orderStatus}">Pending</div>
 
-<!-- HEADER -->
-<div class="hdr">
-<div th:if="${logoUrl != null and !logoUrl.isEmpty()}">
-<img class="logo" th:src="${logoUrl}" th:alt="${shopName}" onerror="this.style.display='none'">
-</div>
-<div class="biz-name" th:text="${shopName}">Shop</div>
-<div class="biz-info">
-<span th:if="${address != null and !address.isEmpty()}" th:text="${address}"></span><br th:if="${address != null and !address.isEmpty()}">
-<span th:if="${gstin != null and !gstin.isEmpty()}" th:text="'GST: ' + ${gstin}"></span><span th:if="${gstin != null and !gstin.isEmpty() and fssai != null and !fssai.isEmpty()}"> · </span>
-<span th:if="${fssai != null and !fssai.isEmpty()}" th:text="'FSSAI: ' + ${fssai}"></span><br th:if="${gstin != null and !gstin.isEmpty() or fssai != null and !fssai.isEmpty()}">
-<span th:if="${phone != null and !phone.isEmpty()}" th:text="${phone}"></span>
-<span th:if="${phone != null and !phone.isEmpty() and email != null and !email.isEmpty()}"> | </span>
-<span th:if="${email != null and !email.isEmpty()}" th:text="${email}"></span>
-</div>
-</div>
+<header class="brand">
+<img th:if="${logoUrl != null and !logoUrl.isEmpty()}" class="logo" th:src="${logoUrl}" th:alt="${shopName}" onerror="this.style.display='none'">
+<h1 class="shop-name" th:text="${shopName}">Restaurant</h1>
+<div th:if="${address != null and !address.isEmpty()}" class="biz-line"><span class="ico">⌖</span><span th:text="${address}">Address</span></div>
+<div th:if="${gstin != null and !gstin.isEmpty()}" class="biz-line"><span class="ico">▣</span><span th:text="'GSTIN: ' + ${gstin}">GSTIN</span></div>
+<div th:if="${fssai != null and !fssai.isEmpty()}" class="biz-line"><span class="ico">▣</span><span th:text="'FSSAI: ' + ${fssai}">FSSAI</span></div>
+</header>
 
-<div class="sep"></div>
+<hr class="rule">
 
-<!-- META -->
-<div class="meta">
-<div class="meta-i"><span class="l">Order ID</span><span class="v" th:text="${orderCode}"></span></div>
-<div class="meta-i"><span class="l">Invoice No</span><span class="v" th:text="'INV' + ${lifetimeOrderId}"></span></div>
-<div class="meta-i"><span class="l">Date</span><span class="v" th:text="${date}"></span></div>
-<div class="meta-i"><span class="l">Time</span><span class="v" th:text="${time}"></span></div>
+<section class="info-grid" aria-label="Invoice details">
+<div class="info-col">
+<div class="info-row"><div class="icon">▤</div><div><div class="label">Order ID</div><div class="value" th:text="${orderCode}">#001</div></div></div>
+<div class="info-row"><div class="icon">▣</div><div><div class="label">Invoice No</div><div class="value" th:text="'INV' + ${lifetimeOrderId}">INV1</div></div></div>
 </div>
+<div class="info-col">
+<div class="info-row"><div class="icon">□</div><div><div class="label">Date</div><div class="value" th:text="${date}">01 Jan 2026</div></div></div>
+<div class="info-row"><div class="icon">◷</div><div><div class="label">Time</div><div class="value" th:text="${time}">10:00 AM</div></div></div>
+</div>
+<div class="info-col">
+<div class="info-row"><div class="icon">♙</div><div><div class="label">Tenant ID</div><div class="value" th:text="${tenantId}">1</div></div></div>
+<div class="info-row"><div class="icon">⌂</div><div><div class="label">Outlet ID</div><div class="value" th:text="${outletId}">1</div></div></div>
+</div>
+</section>
 
-<!-- ADDRESSES -->
-<div class="addr">
-<div>
-<div class="ttl">From</div>
-<div class="ct">
-<strong th:text="${shopName}">Shop</strong><br>
-<span th:if="${address != null and !address.isEmpty()}" th:text="${address}"></span><br th:if="${address != null and !address.isEmpty()}">
-<span th:if="${gstin != null and !gstin.isEmpty()}" th:text="'GST: ' + ${gstin}"></span><br th:if="${gstin != null and !gstin.isEmpty()}">
-<span th:if="${phone != null and !phone.isEmpty()}" th:text="${phone}"></span>
-<span th:if="${phone != null and !phone.isEmpty() and email != null and !email.isEmpty()}"> | </span>
-<span th:if="${email != null and !email.isEmpty()}" th:text="${email}"></span>
-</div>
-</div>
-<div>
-<div class="ttl">Bill To</div>
-<div class="ct">
-<strong th:if="${customerName != null and !customerName.isEmpty()}" th:text="${customerName}">Guest</strong>
-<strong th:if="${customerName == null or customerName.isEmpty()}">Guest</strong><br>
-<span th:if="${customerPhone != null and !customerPhone.isEmpty()}" th:text="${customerPhone}"></span>
-</div>
-</div>
-</div>
-
-<div class="sep"></div>
-
-<!-- ITEMS TABLE -->
+<section class="items-card">
 <table>
 <thead>
 <tr>
-<th style="width:58%">Item</th>
-<th class="c" style="width:15%">Qty</th>
-<th class="r" style="width:27%">Total</th>
+<th style="width:48%">Item</th>
+<th class="c" style="width:12%">Qty</th>
+<th class="r" style="width:20%">Rate</th>
+<th class="r" style="width:20%">Amount</th>
 </tr>
 </thead>
 <tbody>
-<tr th:each="item, iter : ${items}" th:class="${iter.odd ? 'e' : ''}">
-<td>
-<span th:text="${item.itemName}">Item</span>
-<span th:if="${item.variantName != null and !item.variantName.isEmpty()}" style="color:#64748b;font-size:0.85em" th:text="'(' + ${item.variantName} + ')'"></span>
-</td>
+<tr th:each="item : ${items}">
+<td class="item-name"><span th:text="${item.itemName}">Item</span> <span class="muted" th:if="${item.variantName != null and !item.variantName.isEmpty()}" th:text="'(' + ${item.variantName} + ')'"></span></td>
 <td class="c" th:text="${item.quantity}">1</td>
-<td class="r" th:text="${currencySymbol + ' ' + item.itemTotalFormatted}">₹ 0.00</td>
+<td class="r" th:text="${currencySymbol + ' ' + item.rateFormatted}">Rs. 0.00</td>
+<td class="r" th:text="${currencySymbol + ' ' + item.itemTotalFormatted}">Rs. 0.00</td>
 </tr>
 </tbody>
 </table>
 
-<!-- SUMMARY -->
-<div class="sum">
-<div class="sum-r">
-<span>Subtotal</span>
-<span th:text="${currencySymbol + ' ' + subtotalFormatted}">₹ 0.00</span>
+<div class="totals">
+<div class="tax-box" th:if="${hasAnyTax}">
+<div class="tax-title">Tax Breakup</div>
+<div class="row"><span>Taxable Amount</span><span th:text="${currencySymbol + ' ' + subtotalFormatted}">Rs. 0.00</span></div>
+<div class="row" th:if="${hasGst}"><span th:text="'CGST (' + ${halfGstPct} + '%)'">CGST</span><span th:text="${currencySymbol + ' ' + cgstFormatted}">Rs. 0.00</span></div>
+<div class="row" th:if="${hasGst}"><span th:text="'SGST (' + ${halfGstPct} + '%)'">SGST</span><span th:text="${currencySymbol + ' ' + sgstFormatted}">Rs. 0.00</span></div>
+<div class="row" th:if="${hasCustomTax}"><span th:text="${customTaxName}">Custom Tax</span><span th:text="${currencySymbol + ' ' + customTaxFormatted}">Rs. 0.00</span></div>
+<hr class="thin">
+<div class="row"><strong>Total Tax</strong><strong th:text="${currencySymbol + ' ' + totalTaxFormatted}">Rs. 0.00</strong></div>
 </div>
-<div th:if="${hasGst}" class="sum-r">
-<span th:text="'CGST @' + ${halfGstPct} + '%'">CGST</span>
-<span th:text="${currencySymbol + ' ' + cgstFormatted}">₹ 0.00</span>
+<div class="tax-box" th:unless="${hasAnyTax}">
+<div class="tax-title">Tax Breakup</div>
+<div class="row"><span>Taxable Amount</span><span th:text="${currencySymbol + ' ' + subtotalFormatted}">Rs. 0.00</span></div>
+<hr class="thin">
+<div class="row"><strong>Total Tax</strong><strong th:text="${currencySymbol + ' 0.00'}">Rs. 0.00</strong></div>
 </div>
-<div th:if="${hasGst}" class="sum-r">
-<span th:text="'SGST @' + ${halfGstPct} + '%'">SGST</span>
-<span th:text="${currencySymbol + ' ' + sgstFormatted}">₹ 0.00</span>
-</div>
-<div th:if="${hasCustomTax}" class="sum-r">
-<span th:text="${customTaxName}">Custom Tax</span>
-<span th:text="${currencySymbol + ' ' + customTaxFormatted}">₹ 0.00</span>
-</div>
-<div class="sum-d"></div>
-<div class="sum-t">
-<span>Total</span>
-<span th:text="${currencySymbol + ' ' + totalFormatted}">₹ 0.00</span>
+<div class="summary">
+<div class="row"><span>Subtotal</span><span th:text="${currencySymbol + ' ' + subtotalFormatted}">Rs. 0.00</span></div>
+<div class="row"><span>Total Tax</span><span th:text="${currencySymbol + ' ' + totalTaxFormatted}">Rs. 0.00</span></div>
+<hr class="dash">
+<div class="grand"><div class="label">Grand Total</div><div class="amount" th:text="${currencySymbol + ' ' + totalFormatted}">Rs. 0.00</div></div>
 </div>
 </div>
+</section>
 
-<div class="sep"></div>
+<section class="payment-card">
+<div class="pay-block"><div class="pay-icon">▭</div><div><div class="label">Payment Method</div><div class="value" th:text="${paymentMode}">Pending</div></div></div>
+<div class="pay-block"><div class="pay-icon">₹</div><div><div class="label">Payment Status</div><div class="value pay-status" th:text="${paymentStatus}">Pending Payment</div><div class="muted" th:if="${isPaid and paidDate != null and !paidDate.isEmpty()}" th:text="'Paid on ' + ${paidDate}"></div></div></div>
+</section>
 
-<!-- PAYMENT -->
-<div class="pay">
-<span th:text="${paymentIcon}"></span> <strong th:text="${paymentMode}">Cash</strong>
-<span th:if="${isPaid and paidDate != null and !paidDate.isEmpty()}" th:text="' · Paid on ' + ${paidDate}"></span>
+<section class="footer-actions">
+<div class="qr-area">
+<div class="qr"><img th:src="'https://api.qrserver.com/v1/create-qr-code/?size=180x180&amp;data=' + ${#uris.escapeQueryParam(publicUrl)}" alt="Invoice verification QR"></div>
+<div><div class="label">Scan To Verify</div><p>Invoice Ref No<br><span th:text="${invoiceRef}">reference</span></p></div>
 </div>
+<a class="action whatsapp" th:href="${whatsappShareUrl}" target="_blank" rel="noopener">
+<div class="action-circle">☏</div><div><div class="label">Share Invoice</div><p>Share invoice with your contacts</p></div>
+</a>
+<button class="action download linkish" type="button" onclick="window.print()">
+<div class="action-circle">▾</div><div><div class="label">Download</div><p>Download invoice as PDF</p></div>
+</button>
+</section>
 
-<div class="sep"></div>
-
-<!-- FOOTER MESSAGE -->
-<div class="fmsg" th:text="${footerMessage}">Thank you for your business!</div>
-
-<!-- REVIEW -->
-<div th:if="${reviewUrl != null and !reviewUrl.isEmpty()}" class="rev">
-⭐ How was your experience? <a th:href="${reviewUrl}" target="_blank">Leave a review</a>
-</div>
-
-<!-- FOOTER -->
-<div class="ft">
-Powered by <a href="https://play.google.com/store/apps/details?id=com.piquantservices.khanabooklite" target="_blank">KhanaBook</a>
-</div>
-
-</div>
+<div class="thanks" th:text="${footerMessage}">Thank you for your order!</div>
+<div class="visit">Visit Again</div>
+<div th:if="${reviewUrl != null and !reviewUrl.isEmpty()}" class="powered"><a th:href="${reviewUrl}" target="_blank" rel="noopener">Leave a review</a></div>
+<div class="powered">Powered by <a href="https://play.google.com/store/apps/details?id=com.piquantservices.khanabooklite" target="_blank" rel="noopener">KhanaBook</a></div>
+</article>
+</main>
 </body>
 </html>

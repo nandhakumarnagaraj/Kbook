@@ -10,10 +10,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -118,7 +120,10 @@ public class InvoiceController {
         String paymentMode = formatPayment(bill.getPaymentMode());
 
         String ps = bill.getPaymentStatus() != null ? bill.getPaymentStatus() : "";
-        String paymentStatus = ps.isEmpty() ? "" : ps.substring(0, 1).toUpperCase() + ps.substring(1);
+        String paymentStatus = ps.isEmpty() ? "Pending" : titleCase(ps);
+        String orderStatus = bill.getOrderStatus() == null || bill.getOrderStatus().isBlank()
+                ? paymentStatus : titleCase(bill.getOrderStatus());
+        String statusClass = statusClass(ps.isBlank() ? bill.getOrderStatus() : ps);
 
         BigDecimal sub = bill.getSubtotal() != null ? bill.getSubtotal() : BigDecimal.ZERO;
         BigDecimal cgst = bill.getCgstAmount() != null ? bill.getCgstAmount() : BigDecimal.ZERO;
@@ -126,8 +131,10 @@ public class InvoiceController {
         BigDecimal customTax = bill.getCustomTaxAmount() != null ? bill.getCustomTaxAmount() : BigDecimal.ZERO;
         BigDecimal total = bill.getTotalAmount() != null ? bill.getTotalAmount() : BigDecimal.ZERO;
         BigDecimal gstPct = bill.getGstPercentage() != null ? bill.getGstPercentage() : BigDecimal.ZERO;
+        BigDecimal totalTax = cgst.add(sgst).add(customTax);
         boolean hasGst = gstPct.compareTo(BigDecimal.ZERO) > 0;
         boolean hasCustomTax = customTax.compareTo(BigDecimal.ZERO) > 0;
+        boolean hasAnyTax = totalTax.compareTo(BigDecimal.ZERO) > 0;
 
         BigDecimal paidAmount = BigDecimal.ZERO;
         if (bill.getPartAmount1() != null) paidAmount = paidAmount.add(bill.getPartAmount1());
@@ -143,7 +150,11 @@ public class InvoiceController {
         }
 
         String footerMessage = footer.isEmpty() ? "Thank you for your business!" : footer;
-        String halfGstPct = hasGst ? DF.format(gstPct.divide(BigDecimal.valueOf(2))) : "";
+        String halfGstPct = hasGst ? DF.format(gstPct.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP)) : "";
+        String publicUrl = ServletUriComponentsBuilder.fromCurrentRequestUri().build().toUriString();
+        String invoiceRef = bill.getPublicToken() != null ? bill.getPublicToken().toString() : "";
+        String shareText = "Invoice " + "INV" + bill.getLifetimeOrderId() + " from " + shopName + ": " + publicUrl;
+        String whatsappShareUrl = "https://wa.me/?text=" + java.net.URLEncoder.encode(shareText, java.nio.charset.StandardCharsets.UTF_8);
 
         List<Map<String, Object>> itemList = new java.util.ArrayList<>();
         for (BillItem item : items) {
@@ -152,6 +163,7 @@ public class InvoiceController {
             m.put("itemName", blank(item.getItemName()));
             m.put("variantName", blank(item.getVariantName()));
             m.put("quantity", item.getQuantity() != null ? item.getQuantity() : 0);
+            m.put("rateFormatted", DF.format(item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO));
             m.put("itemTotalFormatted", DF.format(item.getItemTotal() != null ? item.getItemTotal() : BigDecimal.ZERO));
             itemList.add(m);
         }
@@ -177,16 +189,25 @@ public class InvoiceController {
         ctx.setVariable("paymentMode", paymentMode);
         ctx.setVariable("paymentIcon", paymentIcon(bill.getPaymentMode()));
         ctx.setVariable("paymentStatus", paymentStatus);
+        ctx.setVariable("orderStatus", orderStatus);
+        ctx.setVariable("statusClass", statusClass);
         ctx.setVariable("paidDate", paidDate);
         ctx.setVariable("subtotalFormatted", DF.format(sub));
         ctx.setVariable("cgstFormatted", DF.format(cgst));
         ctx.setVariable("sgstFormatted", DF.format(sgst));
         ctx.setVariable("customTaxFormatted", DF.format(customTax));
+        ctx.setVariable("totalTaxFormatted", DF.format(totalTax));
         ctx.setVariable("totalFormatted", DF.format(total));
         ctx.setVariable("hasGst", hasGst);
         ctx.setVariable("hasCustomTax", hasCustomTax);
+        ctx.setVariable("hasAnyTax", hasAnyTax);
         ctx.setVariable("halfGstPct", halfGstPct);
         ctx.setVariable("isPaid", isPaid);
+        ctx.setVariable("tenantId", bill.getRestaurantId());
+        ctx.setVariable("outletId", bill.getLocalId());
+        ctx.setVariable("invoiceRef", invoiceRef);
+        ctx.setVariable("publicUrl", publicUrl);
+        ctx.setVariable("whatsappShareUrl", whatsappShareUrl);
         ctx.setVariable("items", itemList);
 
         return templateEngine.process("invoice", ctx);
@@ -222,6 +243,33 @@ public class InvoiceController {
             case "split" -> "Split Payment";
             default -> mode.substring(0, 1).toUpperCase() + mode.substring(1);
         };
+    }
+
+    private String statusClass(String status) {
+        if (status == null) return "pending";
+        String normalized = status.toLowerCase().replace(' ', '_');
+        if (normalized.contains("unpaid") || normalized.contains("partial") || normalized.contains("pending")) {
+            return "pending";
+        }
+        if (normalized.contains("paid") || normalized.contains("success") || normalized.contains("completed")) {
+            return "paid";
+        }
+        if (normalized.contains("cancel") || normalized.contains("fail") || normalized.contains("refund")) {
+            return "failed";
+        }
+        return "pending";
+    }
+
+    private String titleCase(String value) {
+        if (value == null || value.isBlank()) return "";
+        String normalized = value.replace('_', ' ').trim().toLowerCase();
+        StringBuilder out = new StringBuilder();
+        for (String part : normalized.split("\\s+")) {
+            if (part.isEmpty()) continue;
+            if (!out.isEmpty()) out.append(' ');
+            out.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+        }
+        return out.toString();
     }
 
     private static String blank(String s) {
