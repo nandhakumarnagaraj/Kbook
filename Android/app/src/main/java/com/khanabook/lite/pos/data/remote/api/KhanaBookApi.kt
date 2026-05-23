@@ -120,8 +120,8 @@ interface KhanaBookApi {
 
         @GET("api/v2/payments/easebuzz/status/{billId}")
         suspend fun getEasebuzzPaymentStatus(
-            @Query("deviceId") deviceId: String,
             @Path("billId") billId: Long,
+            @Query("deviceId") deviceId: String,
             @Query("refresh") refresh: Boolean = false
         ): EasebuzzPaymentStatusResponse
 
