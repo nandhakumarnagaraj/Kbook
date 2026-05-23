@@ -33,6 +33,7 @@ import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -94,8 +95,9 @@ fun NewBillScreen(
     navController: androidx.navigation.NavController? = null,
     resumePendingPayment: Boolean = false
 ) {
-    var step by remember { mutableIntStateOf(1) }
-    var paymentFlowLocked by remember { mutableStateOf(false) }
+    var step by rememberSaveable { mutableStateOf(1) }
+    var paymentFlowLocked by rememberSaveable { mutableStateOf(false) }
+    var hasInitialized by rememberSaveable { mutableStateOf(false) }
     val shouldResumePendingPayment = resumePendingPayment
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
@@ -130,12 +132,34 @@ fun NewBillScreen(
         }
     }
 
+    // Handle Easebuzz gateway return values
+    val savedStateHandle = navController?.currentBackStackEntry?.savedStateHandle
+    val gatewayTxnId = savedStateHandle?.get<String>("gatewayTxnId")
+    val localBillId = savedStateHandle?.get<Long>("localBillId")
+    LaunchedEffect(gatewayTxnId) {
+        if (gatewayTxnId != null) {
+            val billId = localBillId ?: billingViewModel.lastBill.value?.bill?.id
+            if (billId != null) {
+                savedStateHandle?.remove<String>("gatewayTxnId")
+                savedStateHandle?.remove<Long>("localBillId")
+                billingViewModel.setGatewayResult(gatewayTxnId, "success")
+                if (billingViewModel.finalizeOnlineBill(billId, PaymentStatus.SUCCESS)) {
+                    billingViewModel.clearGatewayResult()
+                    step = 4
+                }
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
-        if (!resumePendingPayment) {
-            billingViewModel.resetForNewBill()
-            billingViewModel.cancelStaleOnlineDrafts()
-            PaymentReturnManager.clearLatestEvent()
-            step = 1
+        if (!hasInitialized) {
+            if (!resumePendingPayment) {
+                billingViewModel.resetForNewBill()
+                billingViewModel.cancelStaleOnlineDrafts()
+                PaymentReturnManager.clearLatestEvent()
+                step = 1
+            }
+            hasInitialized = true
         }
     }
 
@@ -1306,23 +1330,7 @@ fun PaymentStep(
 
 
 
-        val savedStateHandle = navController?.currentBackStackEntry?.savedStateHandle
-        val gatewayTxnId = savedStateHandle?.get<String>("gatewayTxnId")
-        val localBillId = savedStateHandle?.get<Long>("localBillId")
-        LaunchedEffect(gatewayTxnId) {
-            if (gatewayTxnId != null) {
-                val billId = localBillId ?: viewModel.lastBill.value?.bill?.id
-                if (billId != null) {
-                    savedStateHandle?.remove<String>("gatewayTxnId")
-                    savedStateHandle?.remove<Long>("localBillId")
-                    viewModel.setGatewayResult(gatewayTxnId, "success")
-                    if (viewModel.finalizeOnlineBill(billId, PaymentStatus.SUCCESS)) {
-                        viewModel.clearGatewayResult()
-                        onComplete()
-                    }
-                }
-            }
-        }
+
 
         Spacer(modifier = Modifier.height(spacing.extraLarge))
 
