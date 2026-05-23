@@ -119,22 +119,38 @@ val MaterialTheme.kbBgGradient: Brush
 // LEGACY ALIASES — all mapped to teal + neutral grays
 // ═══════════════════════════════════════════════════════════════
 
-val DarkBrown1    = KbGray900     // neutral dark surface
-val DarkBrown2    = KbGray800     // neutral darker surface
-val PrimaryGold   = KbTeal600     // brand primary (was saffron)
-val LightGold     = KbTeal400     // brand lighter variant
-val TextGold      = KbTeal600     // brand text colour
-val TextLight     = Color(0xFFF0F0F0)   // near-white for text on dark
-val TextMuted     = Color(0xFFB0B0B0)   // muted for placeholders on dark
-val CardBG        = KbGray900     // card background (dark)
-val BorderGold    = KbTeal600.copy(alpha = 0.15f)
-val ParchmentBG   = KbTeal50      // tinted bg → teal tint
-val BrownSelected = KbTeal50      // selection tint → teal tint
-val BrandPurple   = KbTeal600     // alias
-val BrandPurpleDim = KbTeal400
-val Brown500      = KbGray800
-val DarkBrownSheet = KbGray950
-val RichEspresso  = KbGray950     // neutral page bg
+val DarkBrown1: Color
+    get() = if (ThemeState.isDark) KbGray900 else KbGray50     // neutral dark surface
+val DarkBrown2: Color
+    get() = if (ThemeState.isDark) KbGray800 else KbGray100     // neutral darker surface
+val PrimaryGold: Color
+    get() = if (ThemeState.isDark) KbTeal400 else KbTeal600     // brand primary (was saffron)
+val LightGold: Color
+    get() = if (ThemeState.isDark) KbTeal300 else KbTeal500     // brand lighter variant
+val TextGold: Color
+    get() = if (ThemeState.isDark) KbTeal300 else KbTeal600     // brand text colour
+val TextLight: Color
+    get() = if (ThemeState.isDark) Color(0xFFF0F0F0) else KbGray950   // near-white for text on dark
+val TextMuted: Color
+    get() = if (ThemeState.isDark) Color(0xFFB0B0B0) else KbGray500   // muted for placeholders on dark
+val CardBG: Color
+    get() = if (ThemeState.isDark) KbGray900 else Color.White     // card background (dark)
+val BorderGold: Color
+    get() = if (ThemeState.isDark) KbTeal400.copy(alpha = 0.15f) else KbTeal600.copy(alpha = 0.15f)
+val ParchmentBG: Color
+    get() = if (ThemeState.isDark) KbTeal950 else KbTeal50      // tinted bg → teal tint
+val BrownSelected: Color
+    get() = if (ThemeState.isDark) KbTeal950 else KbTeal50      // selection tint → teal tint
+val BrandPurple: Color
+    get() = if (ThemeState.isDark) KbTeal400 else KbTeal600     // alias
+val BrandPurpleDim: Color
+    get() = if (ThemeState.isDark) KbTeal300 else KbTeal400
+val Brown500: Color
+    get() = if (ThemeState.isDark) KbGray800 else KbGray100
+val DarkBrownSheet: Color
+    get() = if (ThemeState.isDark) KbGray950 else KbGray50
+val RichEspresso: Color
+    get() = if (ThemeState.isDark) KbGray950 else Color.White     // neutral page bg
 
 // Semantic status
 val VegGreen      = KbGreen
