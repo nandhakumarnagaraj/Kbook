@@ -19,42 +19,42 @@ import androidx.compose.ui.unit.Density
 import androidx.core.view.WindowCompat
 import com.khanabook.lite.pos.BuildConfig
 
-// Dark scheme — dark bg + white text
+// Dark scheme — warm-tinted dark bg + white text + bold saffron primary
 private val DarkColorScheme = darkColorScheme(
-    primary            = KbSaffron400,    // #E8832A warm ember
-    primaryContainer   = KbSaffron500,
-    secondary          = Color(0xFF2C2C2C),
-    tertiary           = KbSaffron400,
-    background         = Color(0xFF121212), // dark bg
-    surface            = Color(0xFF1E1E1E), // card surface
-    surfaceVariant     = Color(0xFF2A2A2A),
+    primary            = KbSaffron500,    // #D07318 bold saffron — brighter for dark bg
+    primaryContainer   = KbSaffron800,    // #7A3400 burnt deep
+    secondary          = KbWarmGray800,   // #2A2A28 warm charcoal
+    tertiary           = KbSaffron400,    // #E4862E burnt saffron accent
+    background         = KbWarmGray950,   // #11110F near black with warmth
+    surface            = KbWarmGray900,   // #1C1C1A card surface
+    surfaceVariant     = KbWarmGray800,   // #2A2A28 elevated surface
     onPrimary          = Color.White,
-    onPrimaryContainer = Color.White,
-    onSecondary        = Color.White,
+    onPrimaryContainer = KbSaffron50,     // warm white on burnt container
+    onSecondary        = KbWarmGray50,
     onTertiary         = Color.White,
-    onBackground       = Color.White,       // white text
-    onSurface          = Color.White,
-    onSurfaceVariant   = Color(0xB3FFFFFF.toInt()), // white-alpha-70
+    onBackground       = KbWarmGray50,    // #F5F5F3 off-white body text
+    onSurface          = KbWarmGray100,   // #EEEEEC card text
+    onSurfaceVariant   = Color(0xFFB0B0AE), // muted text
     outline            = Color(0x1AFFFFFF.toInt()), // white-alpha-10
     outlineVariant     = Color(0x0DFFFFFF.toInt()), // white-alpha-05
 )
 
-// Light scheme — white bg + black text
+// Light scheme — warm white bg + dark warm text + deep saffron primary
 private val LightColorScheme = lightColorScheme(
-    primary            = KbSaffron500,    // #C85A00 deep saffron
-    primaryContainer   = KbSaffron50,
-    secondary          = Color(0xFFF5F5F5),
-    tertiary           = KbSaffron500,
-    background         = Color.White,     // white bg
-    surface            = Color(0xFFF8F8F8), // light gray surface
-    surfaceVariant     = Color(0xFFEEEEEE),
+    primary            = KbSaffron600,    // #C85A00 BRAND — deep saffron
+    primaryContainer   = KbSaffron50,     // #FFF4EA warm white tint
+    secondary          = KbWarmGray100,   // #EEEEEC warm light
+    tertiary           = KbSaffron600,    // #C85A00 accent
+    background         = Color.White,     // pure white bg
+    surface            = KbWarmGray50,    // #F5F5F3 warm card surface
+    surfaceVariant     = KbWarmGray100,   // #EEEEEC elevated surface
     onPrimary          = Color.White,
-    onPrimaryContainer = KbSaffron500,
-    onSecondary        = Color.Black,
+    onPrimaryContainer = KbSaffron900,    // #552300 dark saffron
+    onSecondary        = KbWarmGray950,   // #11110F near black
     onTertiary         = Color.White,
-    onBackground       = Color(0xE6000000.toInt()), // black-alpha-90
-    onSurface          = Color(0xE6000000.toInt()),
-    onSurfaceVariant   = Color(0xB3000000.toInt()), // black-alpha-70
+    onBackground       = KbWarmGray950,   // #11110F body text (warm near-black)
+    onSurface          = KbWarmGray950,   // #11110F card text
+    onSurfaceVariant   = Color(0xFF555553), // muted text
     outline            = Color(0x1A000000.toInt()), // black-alpha-10
     outlineVariant     = Color(0x0D000000.toInt()), // black-alpha-05
 )

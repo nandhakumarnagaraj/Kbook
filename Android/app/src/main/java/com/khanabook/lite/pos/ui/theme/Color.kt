@@ -10,24 +10,32 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // ═══════════════════════════════════════════════════════════════
-// KHANBOOK DLS — STATIC PALETTE CONSTANTS
-// These are always-available concrete Color values.
-// Use in darkColorScheme(), default parameters, non-composable code.
+// KHANBOOK DLS — BRAND PALETTE (from #C85A00 deep saffron)
+// 11-shade scale generated via HSL hue(27°), lightness/saturation
+// stepped per Material Design 3 shade table.
 // ═══════════════════════════════════════════════════════════════
 
-// Saffron scale
-val KbSaffron50  = Color(0xFFFDF0E6)
-val KbSaffron400 = Color(0xFFE8832A)  // warm ember (dark mode primary)
-val KbSaffron500 = Color(0xFFC85A00)  // deep saffron (light mode primary)
-val KbSaffron600 = Color(0xFF994500)
+// Saffron scale — 11-shade brand progression
+val KbSaffron50  = Color(0xFFFFF4EA)  // warm white tint (L97%, S80%)
+val KbSaffron100 = Color(0xFFFDE5CE)  // cream (L94%, S80%)
+val KbSaffron200 = Color(0xFFFAC99E)  // light apricot (L87%, S85%)
+val KbSaffron300 = Color(0xFFF0A65E)  // amber (L75%, S90%)
+val KbSaffron400 = Color(0xFFE4862E)  // burnt saffron (L62%, S95%)
+val KbSaffron500 = Color(0xFFD07318)  // bold saffron (L48%) — dark mode primary
+val KbSaffron600 = Color(0xFFC85A00)  // BRAND BASELINE (L39%) — light mode primary
+val KbSaffron700 = Color(0xFFA04500)  // deep saffron (L33%)
+val KbSaffron800 = Color(0xFF7A3400)  // burnt deep (L27%)
+val KbSaffron900 = Color(0xFF552300)  // espresso saffron (L20%)
+val KbSaffron950 = Color(0xFF301200)  // near black with warmth (L10%)
 
-// Neutral gray scale (replaces espresso/brown)
-val KbGray50  = Color(0xFFF8F8F8)  // page bg (light)
-val KbGray100 = Color(0xFFEEEEEE)  // surface (light)
-val KbGray200 = Color(0xFFE0E0E0)  // borders (light)
-val KbGray800 = Color(0xFF2C2C2C)  // card/surface (dark)
-val KbGray900 = Color(0xFF1E1E1E)  // card/surface (dark)
-val KbGray950 = Color(0xFF121212)  // page bg (dark)
+// Warm neutral scale — subtle warmth for premium feel
+val KbWarmWhite   = Color(0xFFFAFAF8)
+val KbWarmGray50  = Color(0xFFF5F5F3)
+val KbWarmGray100 = Color(0xFFEEEEEC)
+val KbWarmGray200 = Color(0xFFE0E0DD)
+val KbWarmGray800 = Color(0xFF2A2A28)
+val KbWarmGray900 = Color(0xFF1C1C1A)
+val KbWarmGray950 = Color(0xFF11110F)
 
 // Semantic status (stable across themes)
 val KbGreen   = Color(0xFF16A34A)
@@ -116,22 +124,22 @@ val MaterialTheme.kbBgGradient: Brush
 // Gradually migrate call-sites to MaterialTheme.kbXxx extensions.
 // ═══════════════════════════════════════════════════════════════
 
-val DarkBrown1    = KbGray900      // neutral dark surface
-val DarkBrown2    = KbGray800      // neutral darker surface
-val PrimaryGold   = KbSaffron500   // brand primary
-val LightGold     = KbSaffron400   // brand primary (lighter variant)
-val TextGold      = KbSaffron500   // brand text colour
-val TextLight     = Color(0xFFE6FFFFFF.toInt())  // near-white for text on dark
-val TextMuted     = Color(0x80FFFFFF.toInt())    // muted white for placeholders on dark
-val CardBG        = KbGray900      // card background
-val BorderGold    = KbSaffron500.copy(alpha = 0.15f)
+val DarkBrown1    = KbWarmGray900  // neutral dark surface
+val DarkBrown2    = KbWarmGray800  // neutral darker surface
+val PrimaryGold   = KbSaffron600   // brand primary
+val LightGold     = KbSaffron400   // brand lighter variant
+val TextGold      = KbSaffron600   // brand text colour
+val TextLight     = Color(0xFFF5F5F3)  // near-white for text on dark
+val TextMuted     = Color(0xFFB0B0AE)  // muted for placeholders on dark
+val CardBG        = KbWarmGray900  // card background
+val BorderGold    = KbSaffron600.copy(alpha = 0.15f)
 val ParchmentBG   = KbSaffron50    // warm tinted bg
 val BrownSelected = KbSaffron50    // selection tint
-val BrandPurple   = KbSaffron500   // alias from purple era
+val BrandPurple   = KbSaffron600   // alias
 val BrandPurpleDim = KbSaffron400
-val Brown500      = KbGray800
-val DarkBrownSheet = KbGray950
-val RichEspresso  = KbGray950      // neutral page bg
+val Brown500      = KbWarmGray800
+val DarkBrownSheet = KbWarmGray950
+val RichEspresso  = KbWarmGray950  // neutral page bg
 
 // Semantic status — kept stable
 val VegGreen      = KbGreen
