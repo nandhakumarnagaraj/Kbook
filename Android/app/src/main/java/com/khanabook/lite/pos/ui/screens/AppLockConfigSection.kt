@@ -139,6 +139,10 @@ fun SettingsListView(
                 ThemeState.isDark = isDark
                 val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
                 prefs.edit().putBoolean("is_dark_theme", isDark).apply()
+                androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
+                    if (isDark) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+                    else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
+                )
             }
         )
 

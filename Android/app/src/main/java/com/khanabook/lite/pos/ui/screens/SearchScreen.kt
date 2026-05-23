@@ -193,7 +193,7 @@ fun SearchScreen(
                 .padding(padding)
                 .consumeWindowInsets(padding)
                 .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
+                .background(MaterialTheme.kbBgGradient)
                 .imePadding()
                 .padding(horizontal = spacing.medium, vertical = spacing.medium)
         ) {

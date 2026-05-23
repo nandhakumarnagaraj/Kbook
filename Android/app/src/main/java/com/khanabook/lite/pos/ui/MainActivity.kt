@@ -99,6 +99,10 @@ class MainActivity : FragmentActivity() {
 
         val initialPrefs = getSharedPreferences("session_prefs", android.content.Context.MODE_PRIVATE)
         ThemeState.isDark = initialPrefs.getBoolean("is_dark_theme", true)
+        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
+            if (ThemeState.isDark) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+            else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
+        )
 
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)

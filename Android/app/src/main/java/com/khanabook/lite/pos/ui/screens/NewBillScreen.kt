@@ -188,10 +188,10 @@ fun NewBillScreen(
     }
 
     Scaffold(
-        containerColor = DarkBrown1,
+        containerColor = MaterialTheme.kbBgPrimary,
         snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
         topBar = {
-            Column(modifier = Modifier.background(DarkBrown1)) {
+            Column(modifier = Modifier.background(MaterialTheme.kbBgPrimary)) {
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
@@ -211,7 +211,7 @@ fun NewBillScreen(
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
                         }
                     },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1)
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.kbBgPrimary)
                 )
                 
                 BillStepper(currentStep = step)
@@ -227,7 +227,7 @@ fun NewBillScreen(
             .fillMaxSize()
             .padding(paddingValues)
             .consumeWindowInsets(paddingValues)
-            .background(DarkBrown1)
+            .background(MaterialTheme.kbBgPrimary)
         ) {
             AnimatedContent(
                 targetState = step,

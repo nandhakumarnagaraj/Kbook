@@ -6,6 +6,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // ═══════════════════════════════════════════════════════════════
@@ -99,6 +100,11 @@ val MaterialTheme.kbOutlineSubtle: Color
 
 val MaterialTheme.kbOutlineBold: Color
     @Composable @ReadOnlyComposable get() = colorScheme.outline
+
+val MaterialTheme.kbBgGradient: Brush
+    @Composable @ReadOnlyComposable get() = Brush.verticalGradient(
+        listOf(colorScheme.background, colorScheme.surface, colorScheme.surfaceVariant)
+    )
 
 // ═══════════════════════════════════════════════════════════════
 // LEGACY ALIASES — Concrete Color Constants

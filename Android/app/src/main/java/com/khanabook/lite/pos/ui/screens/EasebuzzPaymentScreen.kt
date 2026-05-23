@@ -84,6 +84,7 @@ import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.KhanaShapes
+import com.khanabook.lite.pos.ui.theme.kbBgPrimary
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.RichEspresso
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
@@ -350,7 +351,7 @@ fun EasebuzzPaymentScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBrown1) // Background (#0F0E1A)
+            .background(MaterialTheme.kbBgPrimary)
     ) {
         Column(
             modifier = Modifier

@@ -210,11 +210,11 @@ fun MenuConfigurationScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PrimaryGold)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBrown1)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.kbBgPrimary)
             )
         },
         snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
-        containerColor = DarkBrown1,
+        containerColor = MaterialTheme.kbBgPrimary,
         contentWindowInsets = WindowInsets.systemBars
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
@@ -314,7 +314,7 @@ fun ReviewDetectedItemsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DarkBrown1)
+                .background(MaterialTheme.kbBgPrimary)
         ) {
             Column(
                 modifier = Modifier
@@ -517,7 +517,7 @@ internal fun ReviewDetectedItemsOverlay(
             modifier = Modifier
                 .matchParentSize()
                 .testTag(MenuConfigurationTags.reviewOverlayBackground)
-                .background(DarkBrown1.copy(alpha = 0.82f))
+                .background(MaterialTheme.kbBgPrimary.copy(alpha = 0.82f))
                 .clickable(
                     interactionSource = dismissInteractionSource,
                     indication = null,

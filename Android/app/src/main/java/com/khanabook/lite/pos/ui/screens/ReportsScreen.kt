@@ -94,7 +94,7 @@ fun ReportsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
+            .background(MaterialTheme.kbBgGradient)
     ) {
         Column(
             modifier = Modifier
