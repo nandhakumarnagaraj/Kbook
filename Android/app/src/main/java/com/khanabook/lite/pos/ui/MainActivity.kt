@@ -162,7 +162,9 @@ class MainActivity : FragmentActivity() {
                 LaunchedEffect(navController) {
                     PaymentReturnManager.latestEvent.collect { event ->
                         val currentRoute = navController.currentDestination?.route
-                        if (event != null && currentRoute?.startsWith("new_bill") != true) {
+                        if (event != null && 
+                            currentRoute?.startsWith("new_bill") != true && 
+                            currentRoute?.startsWith("easebuzz_payment") != true) {
                             navController.navigate("new_bill?resumePayment=true")
                         }
                     }

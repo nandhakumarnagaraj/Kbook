@@ -43,6 +43,10 @@ class MenuRepository(
         return menuDao.getItemById(id)
     }
 
+    suspend fun getVariantById(id: Long): ItemVariantEntity? {
+        return menuDao.getVariantById(id)
+    }
+
     suspend fun getItemOnce(id: Long): MenuItemEntity? {
         return menuDao.getItemById(id)
     }

@@ -96,7 +96,7 @@ fun NewBillScreen(
 ) {
     var step by remember { mutableIntStateOf(1) }
     var paymentFlowLocked by remember { mutableStateOf(false) }
-    val shouldResumePendingPayment = false
+    val shouldResumePendingPayment = resumePendingPayment
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
 
@@ -131,10 +131,20 @@ fun NewBillScreen(
     }
 
     LaunchedEffect(Unit) {
-        billingViewModel.resetForNewBill()
-        billingViewModel.cancelStaleOnlineDrafts()
-        PaymentReturnManager.clearLatestEvent()
-        step = 1
+        if (!resumePendingPayment) {
+            billingViewModel.resetForNewBill()
+            billingViewModel.cancelStaleOnlineDrafts()
+            PaymentReturnManager.clearLatestEvent()
+            step = 1
+        }
+    }
+
+    LaunchedEffect(shouldResumePendingPayment) {
+        if (!shouldResumePendingPayment) return@LaunchedEffect
+        val pendingBillId = billingViewModel.getLatestPendingOnlineBillId() ?: return@LaunchedEffect
+        if (billingViewModel.restorePendingOnlineBill(pendingBillId)) {
+            step = 3
+        }
     }
 
     LaunchedEffect(error) {
@@ -1294,11 +1304,7 @@ fun PaymentStep(
             }
         }
 
-        LaunchedEffect(resumePendingPayment) {
-            if (!resumePendingPayment) return@LaunchedEffect
-            val pendingBillId = viewModel.getLatestPendingOnlineBillId() ?: return@LaunchedEffect
-            if (!viewModel.restorePendingOnlineBill(pendingBillId)) return@LaunchedEffect
-        }
+
 
         val savedStateHandle = navController?.currentBackStackEntry?.savedStateHandle
         val gatewayTxnId = savedStateHandle?.get<String>("gatewayTxnId")

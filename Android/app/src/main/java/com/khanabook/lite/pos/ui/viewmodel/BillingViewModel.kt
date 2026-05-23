@@ -294,10 +294,26 @@ class BillingViewModel @Inject constructor(
     }
 
     suspend fun restorePendingOnlineBill(localBillId: Long): Boolean {
-        val bill = billRepository.getBillById(localBillId) ?: return false
-        _paymentMode.value = PaymentMode.fromDbValue(bill.paymentMode)
-        _partAmount1.value = bill.partAmount1
-        _partAmount2.value = bill.partAmount2
+        val billWithItems = billRepository.getBillWithItemsById(localBillId) ?: return false
+        _paymentMode.value = PaymentMode.fromDbValue(billWithItems.bill.paymentMode)
+        _partAmount1.value = billWithItems.bill.partAmount1
+        _partAmount2.value = billWithItems.bill.partAmount2
+        _customerName.value = billWithItems.bill.customerName ?: ""
+        _customerWhatsapp.value = billWithItems.bill.customerWhatsapp ?: ""
+
+        val restoredCart = billWithItems.items.mapNotNull { itemEntity ->
+            val menuItemId = itemEntity.menuItemId ?: return@mapNotNull null
+            val menuItem = menuRepository.getItemById(menuItemId) ?: return@mapNotNull null
+            val variant = itemEntity.variantId?.let { menuRepository.getVariantById(it) }
+            CartItem(
+                item = menuItem,
+                variant = variant,
+                quantity = itemEntity.quantity,
+                note = itemEntity.specialInstruction ?: ""
+            )
+        }
+        _cartItems.value = restoredCart
+        _billSummary.value = computeSummary(restoredCart, _cachedProfile.value)
         return true
     }
 
