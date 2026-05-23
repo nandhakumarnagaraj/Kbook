@@ -23,6 +23,7 @@ import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.StockLog;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.repository.EasebuzzSubMerchantRepository;
+import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.*;
 
@@ -45,6 +46,7 @@ public class MasterSyncController {
 	private final BillItemService billItemService;
 	private final BillPaymentService billPaymentService;
 	private final EasebuzzSubMerchantRepository subMerchantRepo;
+	private final RestaurantProfileRepository profileRepo;
 	private final SubMerchantService subMerchantService;
 
 	@org.springframework.transaction.annotation.Transactional(readOnly = true)
@@ -75,6 +77,7 @@ public class MasterSyncController {
 		// before the auto-enable feature was added.
 		if (firstSync) {
 			autoEnableEasebuzzForExistingSubMerchants(tenantId);
+			autoEnableMarketplaceIfConfigured(tenantId);
 		}
 		boolean sharedDataCrossDevice = ignoreDeviceId || firstSync;
 		boolean transactionalCrossDevice = ignoreDeviceId || firstSync;
@@ -189,5 +192,39 @@ public class MasterSyncController {
 			subMerchantService.ensureEasebuzzEnabled(restaurantId);
 			log.info("Auto-enabled easebuzz for restaurant {} (has existing sub-merchant with ID)", restaurantId);
 		}
+	}
+
+	/**
+	 * Retroactively enables Zomato/Swiggy if their API keys are configured
+	 * but the enabled flag is still false/null.
+	 */
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	private void autoEnableMarketplaceIfConfigured(Long restaurantId) {
+		profileRepo.findByRestaurantId(restaurantId).ifPresent(profile -> {
+			boolean changed = false;
+			// Zomato: auto-enable if apiKey + outletId are set
+			if (profile.getZomatoApiKey() != null && !profile.getZomatoApiKey().isBlank()
+					&& profile.getZomatoOutletId() != null && !profile.getZomatoOutletId().isBlank()
+					&& (profile.getZomatoEnabled() == null || !profile.getZomatoEnabled())) {
+				profile.setZomatoEnabled(true);
+				changed = true;
+				log.info("Auto-enabled zomato for restaurant {} (apiKey+outletId configured)", restaurantId);
+			}
+			// Swiggy: auto-enable if apiKey + storeId are set
+			if (profile.getSwiggyApiKey() != null && !profile.getSwiggyApiKey().isBlank()
+					&& profile.getSwiggyStoreId() != null && !profile.getSwiggyStoreId().isBlank()
+					&& (profile.getSwiggyEnabled() == null || !profile.getSwiggyEnabled())) {
+				profile.setSwiggyEnabled(true);
+				changed = true;
+				log.info("Auto-enabled swiggy for restaurant {} (apiKey+storeId configured)", restaurantId);
+			}
+			if (changed) {
+				long now = System.currentTimeMillis();
+				profile.setUpdatedAt(now);
+				profile.setServerUpdatedAt(now);
+				profile.setDeviceId("server");
+				profileRepo.save(profile);
+			}
+		});
 	}
 }
