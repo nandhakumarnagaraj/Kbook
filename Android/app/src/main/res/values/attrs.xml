@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ═══════════════════════════════════════════════
+         KHANBOOK DLS — SEMANTIC COLOR ATTRIBUTES
+         All UI components reference these, never raw palette values.
+         Resolved automatically by DayNight theme system.
+    ════════════════════════════════════════════════════ -->
+
+    <!-- Backgrounds -->
+    <attr name="colorBgPrimary" format="color"/>       <!-- Page / screen background -->
+    <attr name="colorBgSecondary" format="color"/>     <!-- Slightly elevated bg (list rows) -->
+    <attr name="colorBgCard" format="color"/>          <!-- Card / bottom sheet surface -->
+    <attr name="colorBgDisabled" format="color"/>      <!-- Disabled element background -->
+    <attr name="colorBgMainSubtle" format="color"/>    <!-- Tinted saffron bg (selected state) -->
+    <attr name="colorBgOverlay" format="color"/>       <!-- Scrim / overlay behind modals -->
+
+    <!-- Brand / Primary -->
+    <attr name="colorMainPrimary" format="color"/>     <!-- Primary brand color (buttons, FAB, links) -->
+    <attr name="colorMainPrimaryBold" format="color"/> <!-- Darker shade for pressed state -->
+    <attr name="colorMainPrimarySubtle" format="color"/> <!-- Tinted bg on brand elements -->
+
+    <!-- Text -->
+    <attr name="colorTextPrimary" format="color"/>     <!-- Headlines, main content -->
+    <attr name="colorTextSecondary" format="color"/>   <!-- Subtitles, descriptions -->
+    <attr name="colorTextTertiary" format="color"/>    <!-- Captions, placeholders, hints -->
+    <attr name="colorTextOnBrand" format="color"/>     <!-- Text on primary-colored bg -->
+    <attr name="colorTextDisabled" format="color"/>    <!-- Disabled text -->
+    <attr name="colorTextPositive" format="color"/>    <!-- Success / paid text -->
+    <attr name="colorTextNegative" format="color"/>    <!-- Error / void text -->
+    <attr name="colorTextWarning" format="color"/>     <!-- Warning / pending text -->
+    <attr name="colorTextInfo" format="color"/>        <!-- Info / sync text -->
+
+    <!-- Outlines / Borders / Dividers -->
+    <attr name="colorOutlineSubtle" format="color"/>   <!-- Hairline borders, dividers -->
+    <attr name="colorOutlineBold" format="color"/>     <!-- Card borders, input focus rings -->
+    <attr name="colorOutlineMain" format="color"/>     <!-- Active / selected border (brand color) -->
+
+    <!-- Status backgrounds -->
+    <attr name="colorBgPositive" format="color"/>
+    <attr name="colorBgPositiveSubtle" format="color"/>
+    <attr name="colorBgNegative" format="color"/>
+    <attr name="colorBgNegativeSubtle" format="color"/>
+    <attr name="colorBgWarning" format="color"/>
+    <attr name="colorBgWarningSubtle" format="color"/>
+    <attr name="colorBgInfo" format="color"/>
+    <attr name="colorBgInfoSubtle" format="color"/>
+
+    <!-- Navigation bar -->
+    <attr name="colorNavBgSelected" format="color"/>
+    <attr name="colorNavBgUnselected" format="color"/>
+    <attr name="colorNavIconSelected" format="color"/>
+    <attr name="colorNavIconUnselected" format="color"/>
+
+    <!-- ═══════════════════════════════════════════════
+         KHANBOOK DLS — TYPOGRAPHY ATTRIBUTES
+         Semantic text role attributes.
+    ════════════════════════════════════════════════════ -->
+    <attr name="textAppearanceDisplayLarge" format="reference"/>
+    <attr name="textAppearanceHeadingL" format="reference"/>
+    <attr name="textAppearanceHeadingM" format="reference"/>
+    <attr name="textAppearanceTitleL" format="reference"/>
+    <attr name="textAppearanceTitleM" format="reference"/>
+    <attr name="textAppearanceTitleS" format="reference"/>
+    <attr name="textAppearanceBodyL" format="reference"/>
+    <attr name="textAppearanceBodyM" format="reference"/>
+    <attr name="textAppearanceBodyS" format="reference"/>
+    <attr name="textAppearanceLabelL" format="reference"/>
+    <attr name="textAppearanceLabelM" format="reference"/>
+    <attr name="textAppearanceLabelS" format="reference"/>
+    <attr name="textAppearancePrice" format="reference"/>    <!-- Bill amount — large, bold -->
+    <attr name="textAppearanceBadge" format="reference"/>   <!-- Status badges, chips -->
+    <attr name="textAppearanceButton" format="reference"/>  <!-- Button label -->
+
+    <!-- ═══════════════════════════════════════════════
+         KHANBOOK DLS — SHAPE / BUTTON SIZE ATTRIBUTES
+    ════════════════════════════════════════════════════ -->
+    <attr name="btnHeightLarge" format="dimension"/>   <!-- Primary action button -->
+    <attr name="btnHeightMedium" format="dimension"/>  <!-- Secondary button -->
+    <attr name="btnHeightSmall" format="dimension"/>   <!-- Inline / compact button -->
+    <attr name="btnCornerRadius" format="dimension"/>  <!-- Standard button corner -->
+    <attr name="cardCornerRadius" format="dimension"/> <!-- Card corner -->
+    <attr name="chipCornerRadius" format="dimension"/> <!-- Chip / badge corner -->
+</resources>

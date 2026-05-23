@@ -15,11 +15,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import com.khanabook.lite.pos.ui.theme.BorderGold
-import com.khanabook.lite.pos.ui.theme.DarkBrown2
+import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DangerRed
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
+import com.khanabook.lite.pos.ui.theme.KhanaShapes
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
-import com.khanabook.lite.pos.ui.theme.TextGold
+import com.khanabook.lite.pos.ui.theme.TextMuted
 import com.khanabook.lite.pos.ui.theme.TextLight
 
 @Composable
@@ -51,7 +52,7 @@ fun KhanaBookInputField(
             value = value,
             onValueChange = onValueChange,
             label = { Text(label) },
-            placeholder = placeholder?.let { { Text(it, color = TextGold.copy(alpha = 0.7f)) } },
+            placeholder = placeholder?.let { { Text(it, color = TextMuted.copy(alpha = 0.7f)) } },
             modifier = modifier,
             leadingIcon = leadingIcon,
             trailingIcon = trailingIcon,
@@ -64,31 +65,32 @@ fun KhanaBookInputField(
             keyboardActions = keyboardActions,
             visualTransformation = visualTransformation,
             textStyle = textStyle,
+            shape = KhanaShapes.small, // Input shape (10.dp)
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = DarkBrown2,
-                unfocusedContainerColor = DarkBrown2,
-                disabledContainerColor = DarkBrown2,
-                errorContainerColor = DarkBrown2,
-                focusedBorderColor = PrimaryGold,
-                unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                disabledBorderColor = BorderGold.copy(alpha = 0.35f),
+                focusedContainerColor = CardBG,    // Background Card (#221F35)
+                unfocusedContainerColor = CardBG,  // Background Card (#221F35)
+                disabledContainerColor = CardBG,
+                errorContainerColor = CardBG,
+                focusedBorderColor = PrimaryGold,  // AccentPrimary (#7F77DD)
+                unfocusedBorderColor = BorderGold, // BorderColor (#7F77DD1A)
+                disabledBorderColor = BorderGold.copy(alpha = 0.5f),
                 errorBorderColor = DangerRed,
                 focusedLabelColor = PrimaryGold,
-                unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
-                disabledLabelColor = TextGold.copy(alpha = 0.55f),
+                unfocusedLabelColor = TextMuted,   // TextMuted (#9895B0)
+                disabledLabelColor = TextMuted.copy(alpha = 0.55f),
                 errorLabelColor = DangerRed,
-                focusedTextColor = TextLight,
+                focusedTextColor = TextLight,      // TextPrimary (#F0EFF8)
                 unfocusedTextColor = TextLight,
                 disabledTextColor = TextLight.copy(alpha = 0.75f),
                 errorTextColor = TextLight,
                 cursorColor = PrimaryGold,
                 focusedLeadingIconColor = PrimaryGold,
-                unfocusedLeadingIconColor = TextGold,
-                disabledLeadingIconColor = TextGold.copy(alpha = 0.55f),
+                unfocusedLeadingIconColor = TextMuted,
+                disabledLeadingIconColor = TextMuted.copy(alpha = 0.55f),
                 errorLeadingIconColor = DangerRed,
                 focusedTrailingIconColor = PrimaryGold,
-                unfocusedTrailingIconColor = TextGold,
-                disabledTrailingIconColor = TextGold.copy(alpha = 0.55f),
+                unfocusedTrailingIconColor = TextMuted,
+                disabledTrailingIconColor = TextMuted.copy(alpha = 0.55f),
                 errorTrailingIconColor = DangerRed
             )
         )

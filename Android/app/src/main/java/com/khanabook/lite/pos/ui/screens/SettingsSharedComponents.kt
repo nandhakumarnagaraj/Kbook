@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
@@ -104,6 +105,43 @@ internal fun SettingsItem(icon: ImageVector, text: String, onClick: () -> Unit) 
                 Text(text, color = TextLight, style = MaterialTheme.typography.titleMedium)
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = PrimaryGold)
+        }
+    }
+}
+
+@Composable
+internal fun SettingsToggleItem(
+    icon: ImageVector,
+    text: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
+    KhanaBookCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = spacing.small - spacing.hairline),
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(spacing.medium),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.medium))
+                Spacer(modifier = Modifier.size(spacing.medium))
+                Text(text, color = TextLight, style = MaterialTheme.typography.titleMedium)
+            }
+            KhanaBookSwitch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                checkedTrackColor = PrimaryGold
+            )
         }
     }
 }

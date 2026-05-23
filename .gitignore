@@ -11,6 +11,13 @@
 server-run.log
 server-run.err
 server-output.log
+server-start.log
+web-admin-run.log
+web-admin-start.log
+web-admin-output.log
+
+# Android APK build outputs
+/Android/apk-output/
 
 # Backend IDE metadata (Eclipse)
 /server/.settings/

@@ -1,11 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- ═══════════════════════════════════════════════
+         KHANBOOK LIGHT THEME
+         Warm cream + deep saffron
+    ════════════════════════════════════════════════════ -->
     <style name="Theme.KhanaBookLite" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:elegantTextHeight">false</item>
         <item name="android:windowBackground">@drawable/launch_screen_background</item>
+
+        <!-- ── Background tokens ── -->
+        <item name="colorBgPrimary">@color/kb_espresso_50</item>
+        <item name="colorBgSecondary">@color/kb_espresso_100</item>
+        <item name="colorBgCard">@color/kb_white</item>
+        <item name="colorBgDisabled">@color/kb_espresso_100</item>
+        <item name="colorBgMainSubtle">@color/kb_saffron_50</item>
+        <item name="colorBgOverlay">@color/kb_black_alpha_30</item>
+
+        <!-- ── Brand / Primary tokens ── -->
+        <item name="colorMainPrimary">@color/kb_saffron_500</item>
+        <item name="colorMainPrimaryBold">@color/kb_saffron_600</item>
+        <item name="colorMainPrimarySubtle">@color/kb_saffron_50</item>
+
+        <!-- ── Text tokens ── -->
+        <item name="colorTextPrimary">@color/kb_black_alpha_90</item>
+        <item name="colorTextSecondary">@color/kb_black_alpha_70</item>
+        <item name="colorTextTertiary">@color/kb_black_alpha_50</item>
+        <item name="colorTextOnBrand">@color/kb_white</item>
+        <item name="colorTextDisabled">@color/kb_black_alpha_30</item>
+        <item name="colorTextPositive">@color/kb_green_500</item>
+        <item name="colorTextNegative">@color/kb_red_500</item>
+        <item name="colorTextWarning">@color/kb_yellow_500</item>
+        <item name="colorTextInfo">@color/kb_blue_500</item>
+
+        <!-- ── Outline / Border tokens ── -->
+        <item name="colorOutlineSubtle">@color/kb_black_alpha_05</item>
+        <item name="colorOutlineBold">@color/kb_black_alpha_10</item>
+        <item name="colorOutlineMain">@color/kb_saffron_500</item>
+
+        <!-- ── Status bg tokens ── -->
+        <item name="colorBgPositive">@color/kb_green_500</item>
+        <item name="colorBgPositiveSubtle">@color/kb_green_50</item>
+        <item name="colorBgNegative">@color/kb_red_500</item>
+        <item name="colorBgNegativeSubtle">@color/kb_red_50</item>
+        <item name="colorBgWarning">@color/kb_yellow_500</item>
+        <item name="colorBgWarningSubtle">@color/kb_yellow_50</item>
+        <item name="colorBgInfo">@color/kb_blue_500</item>
+        <item name="colorBgInfoSubtle">@color/kb_blue_50</item>
+
+        <!-- ── Navigation bar tokens ── -->
+        <item name="colorNavBgSelected">@color/kb_saffron_50</item>
+        <item name="colorNavBgUnselected">@color/kb_white</item>
+        <item name="colorNavIconSelected">@color/kb_saffron_500</item>
+        <item name="colorNavIconUnselected">@color/kb_black_alpha_50</item>
+
+        <!-- ── Material color system mapping ── -->
+        <item name="colorPrimary">@color/kb_saffron_500</item>
+        <item name="colorPrimaryVariant">@color/kb_saffron_600</item>
+        <item name="colorOnPrimary">@color/kb_white</item>
+        <item name="colorSecondary">@color/kb_espresso_500</item>
+        <item name="colorOnSecondary">@color/kb_white</item>
+        <item name="colorSurface">@color/kb_white</item>
+        <item name="colorOnSurface">@color/kb_black_alpha_90</item>
+        <item name="android:colorBackground">@color/kb_espresso_50</item>
+
+        <!-- ── Button / Shape sizes ── -->
+        <item name="btnHeightLarge">56dp</item>
+        <item name="btnHeightMedium">44dp</item>
+        <item name="btnHeightSmall">32dp</item>
+        <item name="btnCornerRadius">12dp</item>
+        <item name="cardCornerRadius">14dp</item>
+        <item name="chipCornerRadius">8dp</item>
     </style>
 
+    <!-- Launch theme (splash) -->
     <style name="Theme.KhanaBookLite.Launch" parent="Theme.KhanaBookLite">
         <item name="android:windowBackground">@drawable/launch_screen_background</item>
     </style>

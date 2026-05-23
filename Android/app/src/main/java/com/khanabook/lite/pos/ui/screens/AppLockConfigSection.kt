@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.ui.screens
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
@@ -33,6 +34,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.TextIncrease
+import androidx.compose.material.icons.filled.DarkMode
+import com.khanabook.lite.pos.ui.theme.ThemeState
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Visibility
@@ -125,6 +128,18 @@ fun SettingsListView(
             icon = Icons.Filled.TextIncrease,
             text = "Display",
             onClick = { onSelectItem("ui_scale") }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        val context = LocalContext.current
+        SettingsToggleItem(
+            icon = Icons.Filled.DarkMode,
+            text = "Dark Mode",
+            checked = ThemeState.isDark,
+            onCheckedChange = { isDark ->
+                ThemeState.isDark = isDark
+                val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
+                prefs.edit().putBoolean("is_dark_theme", isDark).apply()
+            }
         )
 
         Spacer(modifier = Modifier.height(spacing.large))

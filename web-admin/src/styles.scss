@@ -34,50 +34,52 @@ $dark-theme: mat.m2-define-dark-theme((
 .dark-theme {
   @include mat.all-component-colors($dark-theme);
   
-  --bg: #0b0e13;
-  --bg-elevated: #11161d;
-  --panel: #151a22;
-  --panel-hover: #1a202a;
-  --surface: #202833;
-  --surface-hover: #26313f;
-  --ink: #f7f2ea;
-  --ink-secondary: #c1b6a7;
-  --muted: #8f8172;
-  --line: rgba(255, 242, 224, 0.08);
-  --line-strong: rgba(255, 242, 224, 0.16);
+  --bg: #17130F;
+  --bg-elevated: #211A14;
+  --panel: #211A14;
+  --panel-hover: #2E1F0D;
+  --surface: #332A22;
+  --surface-hover: #3E332A;
+  --ink: #F7F3EE;
+  --ink-secondary: #C1B7AD;
+  --muted: #8E8276;
+  --line: rgba(247, 243, 238, 0.08);
+  --line-strong: rgba(247, 243, 238, 0.16);
+  --brand-soft: rgba(232, 131, 42, 0.1);
+  --brand-glow: rgba(232, 131, 42, 0.2);
 }
 
 :root {
-  --bg: #f8fafc;
+  --bg: #F7F3EE;
   --bg-elevated: #ffffff;
   --panel: #ffffff;
-  --panel-hover: #f1f5f9;
-  --surface: #e2e8f0;
-  --surface-hover: #cbd5e1;
+  --panel-hover: #FDF0E6;
+  --surface: #EAE3DC;
+  --surface-hover: #DDD5CC;
   
-  --ink: #0f172a;
-  --ink-secondary: #475569;
-  --muted: #64748b;
+  --ink: #17130F;
+  --ink-secondary: #5C5248;
+  --muted: #8C8075;
   
-  --line: rgba(0, 0, 0, 0.08);
-  --line-strong: rgba(0, 0, 0, 0.16);
+  --line: rgba(23, 19, 15, 0.08);
+  --line-strong: rgba(23, 19, 15, 0.16);
   
-  --brand: #c7732f;
-  --brand-light: #f0a24c;
-  --brand-dark: #92501f;
-  --brand-soft: rgba(199, 115, 47, 0.12);
-  --brand-glow: rgba(199, 115, 47, 0.22);
+  --brand: #C85A00;
+  --brand-light: #E8832A;
+  --brand-dark: #994500;
+  --brand-soft: rgba(200, 90, 0, 0.08);
+  --brand-glow: rgba(200, 90, 0, 0.16);
   
-  --accent: #10b981;
-  --accent-light: #34d399;
-  --accent-soft: rgba(16, 185, 129, 0.08);
+  --accent: #16A34A;
+  --accent-light: #22C55E;
+  --accent-soft: rgba(22, 163, 74, 0.08);
   
-  --danger: #ef4444;
-  --danger-soft: rgba(239, 68, 68, 0.08);
-  --warn: #f59e0b;
-  --warn-soft: rgba(245, 158, 11, 0.08);
-  --info: #3b82f6;
-  --info-soft: rgba(59, 130, 246, 0.08);
+  --danger: #DC2626;
+  --danger-soft: rgba(220, 38, 38, 0.08);
+  --warn: #D97706;
+  --warn-soft: rgba(217, 119, 6, 0.08);
+  --info: #0284C7;
+  --info-soft: rgba(2, 132, 199, 0.08);
   --purple: #7c5cdb;
   --purple-soft: rgba(124, 92, 219, 0.1);
 

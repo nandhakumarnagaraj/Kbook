@@ -10,6 +10,23 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.R
 
+// ═══════════════════════════════════════════════════════════════
+// KHANBOOK DLS — TYPOGRAPHY
+//
+// Font: Poppins (Google Fonts) — rounded, modern, food-friendly
+// Scale: Material 3-aligned with POS-specific roles added
+//
+// Role hierarchy:
+//   Display     → Bill totals, splash screen headers
+//   Headline    → Page titles, section headers (H1, H2)
+//   Title L/M   → Card headers, item names
+//   Title S     → Sub-section labels
+//   Body L      → Primary reading text
+//   Body M/S    → Secondary descriptions, table rows
+//   Label L     → Button text, badges, chips
+//   Label M/S   → Captions, timestamps, helper text
+// ═══════════════════════════════════════════════════════════════
+
 private val fontProvider = GoogleFont.Provider(
     providerAuthority = "com.google.android.gms.fonts",
     providerPackage = "com.google.android.gms",
@@ -18,7 +35,7 @@ private val fontProvider = GoogleFont.Provider(
 
 private val PoppinsFont = GoogleFont("Poppins")
 
-private val AppFontFamily = FontFamily(
+val AppFontFamily = FontFamily(
     Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Light),
     Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Normal),
     Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Medium),
@@ -28,45 +45,24 @@ private val AppFontFamily = FontFamily(
 )
 
 private val BaseTypography = Typography(
-    // Display - Reserved for Large UI elements (e.g. Dashboard headers)
+
+    // ── Display ──────────────────────────────────────────────────
+    // Large bill amount, hero numbers on splash/reports
     displayLarge = TextStyle(
-        fontFamily = AppFontFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 57.sp,
-        lineHeight = 64.sp,
-        letterSpacing = (-0.25).sp
-    ),
-    displayMedium = TextStyle(
-        fontFamily = AppFontFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 45.sp,
-        lineHeight = 52.sp,
-        letterSpacing = 0.sp
-    ),
-    displaySmall = TextStyle(
         fontFamily = AppFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 36.sp,
         lineHeight = 44.sp,
-        letterSpacing = 0.sp
+        letterSpacing = (-0.5).sp
     ),
-
-    // Headlines - Main screen titles
-    headlineLarge = TextStyle(
+    displayMedium = TextStyle(
         fontFamily = AppFontFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
-        lineHeight = 40.sp,
-        letterSpacing = 0.sp
-    ),
-    headlineMedium = TextStyle(
-        fontFamily = AppFontFamily,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 28.sp,
         lineHeight = 36.sp,
-        letterSpacing = 0.sp
+        letterSpacing = (-0.25).sp
     ),
-    headlineSmall = TextStyle(
+    displaySmall = TextStyle(
         fontFamily = AppFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
@@ -74,42 +70,68 @@ private val BaseTypography = Typography(
         letterSpacing = 0.sp
     ),
 
-    // Titles - Section headers / Card titles
-    titleLarge = TextStyle(
+    // ── Headlines ────────────────────────────────────────────────
+    // Page title (H1), screen section headers (H2)
+    headlineLarge = TextStyle(
         fontFamily = AppFontFamily,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp
     ),
-    titleMedium = TextStyle(
+    headlineMedium = TextStyle(
+        fontFamily = AppFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
+        letterSpacing = 0.sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = AppFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.sp
+    ),
+
+    // ── Titles ───────────────────────────────────────────────────
+    // Card headers, menu item names, drawer section labels
+    titleLarge = TextStyle(
         fontFamily = AppFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.15.sp
+        lineHeight = 22.sp,
+        letterSpacing = 0.sp
     ),
-    titleSmall = TextStyle(
+    titleMedium = TextStyle(
         fontFamily = AppFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp
     ),
+    titleSmall = TextStyle(
+        fontFamily = AppFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.1.sp
+    ),
 
-    // Body - Main readable content
+    // ── Body ─────────────────────────────────────────────────────
+    // Reading content, descriptions, table rows
     bodyLarge = TextStyle(
         fontFamily = AppFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
+        letterSpacing = 0.15.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = AppFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
         letterSpacing = 0.25.sp
     ),
     bodySmall = TextStyle(
@@ -120,10 +142,11 @@ private val BaseTypography = Typography(
         letterSpacing = 0.4.sp
     ),
 
-    // Labels - Small text, buttons, tags
+    // ── Labels ───────────────────────────────────────────────────
+    // Buttons, badges, chips, captions, timestamps
     labelLarge = TextStyle(
         fontFamily = AppFontFamily,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp
@@ -137,13 +160,14 @@ private val BaseTypography = Typography(
     ),
     labelSmall = TextStyle(
         fontFamily = AppFontFamily,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Normal,
         fontSize = 11.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
     )
 )
 
+// Scale factor for Android 16+ which auto-scales fonts system-wide
 private const val Android16TypographyScale = 0.92f
 
 fun typographyForSdk(sdkInt: Int): Typography {
