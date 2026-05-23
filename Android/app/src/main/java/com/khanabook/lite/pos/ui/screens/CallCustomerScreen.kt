@@ -94,7 +94,7 @@ fun CallCustomerScreen(
                         },
                         colors =
                                 TopAppBarDefaults.centerAlignedTopAppBarColors(
-                                        containerColor = DarkBrown1
+                                        containerColor = MaterialTheme.kbBgCard
                                 )
                 )
             }
@@ -112,7 +112,7 @@ fun CallCustomerScreen(
               Column {
             TabRow(
                     selectedTabIndex = selectedTab,
-                    containerColor = DarkBrown1,
+                    containerColor = MaterialTheme.kbBgCard,
                     contentColor = PrimaryGold,
                     divider = {}
             ) {

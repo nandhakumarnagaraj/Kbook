@@ -184,7 +184,7 @@ fun SearchScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.kbBgPrimary)
             )
         }
     ) { padding ->
@@ -201,7 +201,7 @@ fun SearchScreen(
               Column(modifier = Modifier.wrapContentHeight()) {
                 TabRow(
                     selectedTabIndex = selectedTab,
-                    containerColor = DarkBrown1,
+                    containerColor = MaterialTheme.kbBgCard,
                     contentColor = PrimaryGold,
                     divider = {}
                 ) {

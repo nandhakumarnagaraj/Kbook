@@ -21,12 +21,13 @@ val KbSaffron400 = Color(0xFFE8832A)  // warm ember (dark mode primary)
 val KbSaffron500 = Color(0xFFC85A00)  // deep saffron (light mode primary)
 val KbSaffron600 = Color(0xFF994500)
 
-// Espresso scale
-val KbEspresso50  = Color(0xFFF5EDE4) // page bg (light) — warm linen
-val KbEspresso100 = Color(0xFFE8D9CA) // surface (light) — tan parchment
-val KbEspresso200 = Color(0xFFD4C0AB) // mid-tone for light gradient
-val KbEspresso900 = Color(0xFF211A14) // card/surface (dark)
-val KbEspresso950 = Color(0xFF17130F) // page bg (dark)
+// Neutral gray scale (replaces espresso/brown)
+val KbGray50  = Color(0xFFF8F8F8)  // page bg (light)
+val KbGray100 = Color(0xFFEEEEEE)  // surface (light)
+val KbGray200 = Color(0xFFE0E0E0)  // borders (light)
+val KbGray800 = Color(0xFF2C2C2C)  // card/surface (dark)
+val KbGray900 = Color(0xFF1E1E1E)  // card/surface (dark)
+val KbGray950 = Color(0xFF121212)  // page bg (dark)
 
 // Semantic status (stable across themes)
 val KbGreen   = Color(0xFF16A34A)
@@ -115,22 +116,22 @@ val MaterialTheme.kbBgGradient: Brush
 // Gradually migrate call-sites to MaterialTheme.kbXxx extensions.
 // ═══════════════════════════════════════════════════════════════
 
-val DarkBrown1    = KbEspresso950   // was dark page bg → espresso-950
-val DarkBrown2    = KbEspresso900   // was dark card bg → espresso-900
-val PrimaryGold   = KbSaffron500    // brand primary
-val LightGold     = KbSaffron400    // brand primary (lighter variant)
-val TextGold      = KbSaffron500    // brand text colour
+val DarkBrown1    = KbGray900      // neutral dark surface
+val DarkBrown2    = KbGray800      // neutral darker surface
+val PrimaryGold   = KbSaffron500   // brand primary
+val LightGold     = KbSaffron400   // brand primary (lighter variant)
+val TextGold      = KbSaffron500   // brand text colour
 val TextLight     = Color(0xFFE6FFFFFF.toInt())  // near-white for text on dark
 val TextMuted     = Color(0x80FFFFFF.toInt())    // muted white for placeholders on dark
-val CardBG        = KbEspresso900   // card background
+val CardBG        = KbGray900      // card background
 val BorderGold    = KbSaffron500.copy(alpha = 0.15f)
-val ParchmentBG   = KbSaffron50     // warm tinted bg
-val BrownSelected = KbSaffron50     // selection tint
-val BrandPurple   = KbSaffron500    // alias from purple era
+val ParchmentBG   = KbSaffron50    // warm tinted bg
+val BrownSelected = KbSaffron50    // selection tint
+val BrandPurple   = KbSaffron500   // alias from purple era
 val BrandPurpleDim = KbSaffron400
-val Brown500      = KbEspresso900
-val DarkBrownSheet = KbEspresso950
-val RichEspresso  = KbEspresso950
+val Brown500      = KbGray800
+val DarkBrownSheet = KbGray950
+val RichEspresso  = KbGray950      // neutral page bg
 
 // Semantic status — kept stable
 val VegGreen      = KbGreen

@@ -647,7 +647,7 @@ fun MenuSelectionStep(
                     Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (itemAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
+                                containerColor = if (itemAvailable) MaterialTheme.kbBgCard else MaterialTheme.kbBgCard.copy(alpha = 0.5f)
                             ),
                             shape = RoundedCornerShape(12.dp)
                     ) {
@@ -884,7 +884,7 @@ fun MenuSelectionStep(
                     
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = DarkBrown1),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
                         border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f))
                     ) {
                         Column(modifier = Modifier.padding(spacing.medium)) {
@@ -1246,7 +1246,7 @@ fun PaymentStep(
                 DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
-                        modifier = Modifier.background(DarkBrown2)
+                        modifier = Modifier.background(MaterialTheme.kbBgCard)
                 ) {
                     enabledModes.forEach { mode ->
                         DropdownMenuItem(
@@ -1898,7 +1898,7 @@ fun StepItem(
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(if (isActive) containerColor else DarkBrown1, CircleShape)
+                    .background(if (isActive) containerColor else MaterialTheme.kbBgCard, CircleShape)
                     .border(1.dp, color, CircleShape),
                 contentAlignment = Alignment.Center
             ) {

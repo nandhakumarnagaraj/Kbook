@@ -144,7 +144,7 @@ fun OrdersScreen(
                     Text("Cancel", color = PrimaryGold)
                 }
             },
-            colors = DatePickerDefaults.colors(containerColor = DarkBrown2)
+            colors = DatePickerDefaults.colors(containerColor = MaterialTheme.kbBgCard)
         ) {
             Box(
                 modifier = Modifier
@@ -181,7 +181,7 @@ fun OrdersScreen(
                         )
                     },
                 colors = DatePickerDefaults.colors(
-                    containerColor = DarkBrown2,
+                    containerColor = MaterialTheme.kbBgCard,
                     titleContentColor = PrimaryGold,
                     headlineContentColor = PrimaryGold,
                     weekdayContentColor = TextGold,
@@ -488,7 +488,7 @@ fun TableHeader(isGstEnabled: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DarkBrown1.copy(alpha = 0.7f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+            .background(MaterialTheme.kbBgCard.copy(alpha = 0.7f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
             .padding(vertical = spacing.small, horizontal = spacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -544,7 +544,7 @@ fun OrderTableRow(
             )
             .padding(vertical = spacing.hairline)
             .background(
-                DarkBrown1.copy(alpha = if (isCancelled) 0.15f else 0.35f),
+                MaterialTheme.kbBgCard.copy(alpha = if (isCancelled) 0.15f else 0.35f),
                 RoundedCornerShape(4.dp)
             )
     ) {
@@ -584,7 +584,7 @@ fun OrderTableRow(
                 DropdownMenu(
                     expanded = payModeExpanded,
                     onDismissRequest = { payModeExpanded = false },
-                    modifier = Modifier.background(DarkBrown2)
+                    modifier = Modifier.background(MaterialTheme.kbBgCard)
                 ) {
                     enabledModes.forEach { mode ->
                         DropdownMenuItem(
@@ -624,7 +624,7 @@ fun OrderTableRow(
                     DropdownMenu(
                         expanded = statusExpanded,
                         onDismissRequest = { statusExpanded = false },
-                        modifier = Modifier.background(DarkBrown2)
+                        modifier = Modifier.background(MaterialTheme.kbBgCard)
                     ) {
                         DropdownMenuItem(
                             text = { Text("Completed", color = TextLight, style = MaterialTheme.typography.bodySmall) },
@@ -908,7 +908,7 @@ private fun OnlineOrdersPane(
                 onClick = onRefresh,
                 enabled = !isRefreshing,
                 colors = IconButtonDefaults.filledTonalIconButtonColors(
-                    containerColor = DarkBrown2,
+                    containerColor = MaterialTheme.kbBgCard,
                     contentColor = PrimaryGold
                 )
             ) {
@@ -997,7 +997,7 @@ private fun OnlineTableHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DarkBrown1.copy(alpha = 0.7f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+            .background(MaterialTheme.kbBgCard.copy(alpha = 0.7f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
             .padding(vertical = spacing.small, horizontal = spacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1095,7 +1095,7 @@ private fun OnlineOrderTableRow(
                         DropdownMenu(
                             expanded = actionExpanded,
                             onDismissRequest = { actionExpanded = false },
-                            modifier = Modifier.background(DarkBrown2)
+                            modifier = Modifier.background(MaterialTheme.kbBgCard)
                         ) {
                             nextStatuses.forEach { status ->
                                 DropdownMenuItem(
@@ -1192,7 +1192,7 @@ private fun OnlineOrderDetailsDialog(
     val spacing = KhanaBookTheme.spacing
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DarkBrown2,
+        containerColor = MaterialTheme.kbBgCard,
         titleContentColor = PrimaryGold,
         textContentColor = TextLight,
         title = {

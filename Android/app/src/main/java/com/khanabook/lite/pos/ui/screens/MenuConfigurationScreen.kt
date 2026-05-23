@@ -900,7 +900,7 @@ fun DraftItemRow(
     onToggleFoodType: () -> Unit
 ) {
     val bgColor by animateColorAsState(
-        targetValue = if (draft.isSelected) DarkBrown2 else Color.Transparent,
+        targetValue = if (draft.isSelected) MaterialTheme.kbBgCard else Color.Transparent,
         animationSpec = tween(200),
         label = "item_bg"
     )
@@ -1019,7 +1019,7 @@ fun DraftItemRow(
                 Row(
                     modifier = Modifier
                         .width(ReviewSheetLayout.PRICE_WIDTH)
-                        .background(DarkBrown1.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.kbBgCard.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
                         .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1113,7 +1113,7 @@ fun DraftItemRow(
                         Row(
                             modifier = Modifier
                                 .width(72.dp)
-                                .background(DarkBrown1.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.kbBgCard.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -1434,7 +1434,7 @@ fun ManualMenuView(
                 Surface(
                     onClick = { onCategorySelect(category.id) },
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isSelected) PrimaryGold else DarkBrown2,
+                    color = if (isSelected) PrimaryGold else MaterialTheme.kbBgCard,
                     border = BorderStroke(1.dp, if (isSelected) PrimaryGold else BorderGold.copy(alpha = 0.3f)),
                     contentColor = if (isSelected) DarkBrown1 else TextLight
                 ) {
@@ -1562,7 +1562,7 @@ fun ManualMenuView(
             
             // Fixed Footer Button
             Surface(
-                color = DarkBrown1, // Match background to merge seamlessly
+                color = MaterialTheme.kbBgPrimary, // Match background to merge seamlessly
                 shadowElevation = 8.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -1712,7 +1712,7 @@ fun MenuItemRow(
                 onLongClick = { onEditClick(itemWithVariants) }
             ),
         colors = CardDefaults.cardColors(
-            containerColor = if (item.isAvailable) DarkBrown2 else DarkBrown2.copy(alpha = 0.5f)
+            containerColor = if (item.isAvailable) MaterialTheme.kbBgCard else MaterialTheme.kbBgCard.copy(alpha = 0.5f)
         ),
         border = BorderStroke(
             0.5.dp,

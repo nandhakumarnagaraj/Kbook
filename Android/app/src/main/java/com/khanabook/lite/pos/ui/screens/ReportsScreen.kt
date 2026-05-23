@@ -177,7 +177,7 @@ fun ReportsScreen(
                             Text("Cancel", color = PrimaryGold)
                         }
                     },
-                    colors = DatePickerDefaults.colors(containerColor = DarkBrown2)
+                    colors = DatePickerDefaults.colors(containerColor = MaterialTheme.kbBgCard)
                 ) {
                     Box(
                         modifier = Modifier
@@ -214,7 +214,7 @@ fun ReportsScreen(
                                 )
                             },
                             colors = DatePickerDefaults.colors(
-                                containerColor = DarkBrown2,
+                                containerColor = MaterialTheme.kbBgCard,
                                 titleContentColor = PrimaryGold,
                                 headlineContentColor = PrimaryGold,
                                 weekdayContentColor = TextGold,
@@ -565,7 +565,7 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = spacing.medium)
-                .background(DarkBrown1.copy(alpha = 0.7f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                .background(MaterialTheme.kbBgCard.copy(alpha = 0.7f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -631,7 +631,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = { onViewDetails(row.billId) },
-        colors = CardDefaults.cardColors(containerColor = DarkBrown1.copy(alpha = 0.3f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard.copy(alpha = 0.3f)),
         shape = RoundedCornerShape(4.dp)
     ) {
         Row(
@@ -714,7 +714,7 @@ fun OrderDetailsDialog(
                 .fillMaxWidth(0.94f)
                 .widthIn(max = 900.dp)
                 .padding(spacing.medium),
-            colors = CardDefaults.cardColors(containerColor = DarkBrown1),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(

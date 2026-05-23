@@ -149,7 +149,7 @@ fun SignUpScreen(
     Scaffold(
             snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
             contentWindowInsets = WindowInsets(0),
-            containerColor = DarkBrown1
+            containerColor = MaterialTheme.kbBgPrimary
     ) { _ ->
         Box(
                 modifier =
