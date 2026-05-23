@@ -72,13 +72,11 @@ public class MasterSyncController {
 		long currentServerTime = System.currentTimeMillis();
 		boolean firstSync = lastSyncTimestamp == null || lastSyncTimestamp == 0;
 
-		// Retroactive auto-enable: if a sub-merchant with an Easebuzz ID exists but
-		// easebuzzEnabled is still false, fix it. This handles sub-merchants created
-		// before the auto-enable feature was added.
-		if (firstSync) {
-			autoEnableEasebuzzForExistingSubMerchants(tenantId);
-			autoEnableMarketplaceIfConfigured(tenantId);
-		}
+		// Idempotent auto-enable: ensures Easebuzz/Zomato/Swiggy flags are turned on
+		// whenever their credentials/sub-merchants are configured but the flag is still off.
+		autoEnableEasebuzzForExistingSubMerchants(tenantId);
+		autoEnableMarketplaceIfConfigured(tenantId);
+
 		boolean sharedDataCrossDevice = ignoreDeviceId || firstSync;
 		boolean transactionalCrossDevice = ignoreDeviceId || firstSync;
 
