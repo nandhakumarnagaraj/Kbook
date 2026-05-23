@@ -285,7 +285,9 @@ public class SyncMapper {
                 entity.setReviewUrl(dto.getReviewUrl());
                 entity.setZomatoEnabled(dto.getZomatoEnabled());
                 entity.setSwiggyEnabled(dto.getSwiggyEnabled());
-                entity.setEasebuzzEnabled(dto.getEasebuzzEnabled());
+                if (dto.getEasebuzzEnabled() != null) {
+                    entity.setEasebuzzEnabled(dto.getEasebuzzEnabled());
+                }
                 entity.setOwnWebsiteEnabled(dto.getOwnWebsiteEnabled());
                 entity.setShowBranding(dto.getShowBranding());
                 entity.setMaskCustomerPhone(dto.getMaskCustomerPhone());
