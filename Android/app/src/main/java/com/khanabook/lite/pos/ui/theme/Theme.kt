@@ -39,15 +39,15 @@ private val DarkColorScheme = darkColorScheme(
     outlineVariant     = Color(0x0DFFFFFF.toInt()),
 )
 
-// Light scheme — warm milk-white bg + near-black text + saffron primary
+// Light scheme — warm mid-white bg + near-black text + saffron primary
 private val LightColorScheme = lightColorScheme(
     primary            = KbSaffron600,   // #D97706 BRAND
     primaryContainer   = KbSaffron50,    // #FFFDF5 soft cream tint
-    secondary          = Color(0xFFF3EDE2),
+    secondary          = Color(0xFFEBE8DF),
     tertiary           = KbSaffron600,
-    background         = Color(0xFFFFFDF9),   // warm milk white bg
-    surface            = Color(0xFFFAF6F0),   // warm light cream card surface
-    surfaceVariant     = Color(0xFFF3EDE2),   // elevated
+    background         = Color(0xFFF2F0EB),   // warm mid-white bg
+    surface            = Color.White,         // pure white card surface
+    surfaceVariant     = Color(0xFFEBE8DF),   // elevated / dividers
     onPrimary          = Color.White,
     onPrimaryContainer = KbSaffron900,   // #78350F dark saffron
     onSecondary        = Color.Black,

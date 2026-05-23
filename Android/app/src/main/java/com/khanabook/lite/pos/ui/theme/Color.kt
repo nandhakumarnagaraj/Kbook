@@ -118,9 +118,9 @@ val MaterialTheme.kbBgGradient: Brush
 // ═══════════════════════════════════════════════════════════════
 
 val DarkBrown1: Color
-    get() = if (ThemeState.isDark) Color(0xFF1F1B18) else Color(0xFFFAF6F0)     // warm dark/light surface
+    get() = if (ThemeState.isDark) Color(0xFF1F1B18) else Color.White     // warm dark surface / light white surface
 val DarkBrown2: Color
-    get() = if (ThemeState.isDark) Color(0xFF2B2521) else Color(0xFFF3EDE2)     // warm darker/lighter surface
+    get() = if (ThemeState.isDark) Color(0xFF2B2521) else Color(0xFFEBE8DF)     // warm darker/lighter surface
 val PrimaryGold: Color
     get() = if (ThemeState.isDark) KbSaffron400 else KbSaffron600     // brand primary saffron
 val LightGold: Color
@@ -144,11 +144,11 @@ val BrandPurple: Color
 val BrandPurpleDim: Color
     get() = if (ThemeState.isDark) KbSaffron300 else KbSaffron400
 val Brown500: Color
-    get() = if (ThemeState.isDark) Color(0xFF2B2521) else Color(0xFFF3EDE2)
+    get() = if (ThemeState.isDark) Color(0xFF2B2521) else Color(0xFFEBE8DF)
 val DarkBrownSheet: Color
-    get() = if (ThemeState.isDark) Color(0xFF141210) else Color(0xFFFAF6F0)
+    get() = if (ThemeState.isDark) Color(0xFF141210) else Color(0xFFF2F0EB)
 val RichEspresso: Color
-    get() = if (ThemeState.isDark) Color(0xFF141210) else Color(0xFFFFFDF9)     // neutral page bg
+    get() = if (ThemeState.isDark) Color(0xFF141210) else Color(0xFFF2F0EB)     // neutral page bg (mid-white)
 
 // Semantic status
 val VegGreen      = KbGreen
