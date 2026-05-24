@@ -80,14 +80,15 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
               </div>
 
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Review / Google URL</mat-label>
-                <input matInput [(ngModel)]="form.reviewUrl" placeholder="https://g.page/...">
+                <mat-label>Google Review Link</mat-label>
+                <input matInput [(ngModel)]="form.reviewUrl" placeholder="https://g.page/r/...">
                 <mat-icon matSuffix>star</mat-icon>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Invoice Footer</mat-label>
-                <textarea matInput [(ngModel)]="form.invoiceFooter" rows="2" placeholder="Thank you message..."></textarea>
+                <mat-label>Invoice Footer Message</mat-label>
+                <textarea matInput [(ngModel)]="form.invoiceFooter" rows="3" placeholder="Thank you for your visit!"></textarea>
+                <mat-hint>Shown at the bottom of printed and public invoices.</mat-hint>
               </mat-form-field>
 
               <div class="toggle-group">

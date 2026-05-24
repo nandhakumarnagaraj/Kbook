@@ -408,7 +408,12 @@ fun ShopConfigView(
                 supportingText = if (reviewUrl.isNotBlank() && !isReviewUrlValid) "Must start with https:// and contain google.com or g.co" else null
             )
             Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer")
+            ParchmentTextField(
+                value = invoiceFooter,
+                onValueChange = { invoiceFooter = it },
+                label = "Invoice Footer Message",
+                singleLine = false
+            )
             Spacer(modifier = Modifier.height(spacing.large))
 
             val saveButtonScale by animateFloatAsState(

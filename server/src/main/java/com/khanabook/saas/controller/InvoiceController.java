@@ -95,7 +95,7 @@ public class InvoiceController {
 
     private String renderInvoice(RestaurantProfile profile, Bill bill, List<BillItem> items) {
         String rawCurrency = (profile != null && profile.getCurrency() != null) ? profile.getCurrency() : "";
-        String currencySymbol = rawCurrency.equals("INR") || rawCurrency.equals("Rupee") || rawCurrency.isEmpty() ? "\u20B9" : rawCurrency;
+        String currencySymbol = rawCurrency.equals("INR") || rawCurrency.equals("Rupee") || rawCurrency.isEmpty() ? "Rs." : rawCurrency;
 
         String shopName = blank(profile != null ? profile.getShopName() : null);
         String address = blank(profile != null ? profile.getShopAddress() : null);
@@ -107,6 +107,7 @@ public class InvoiceController {
         String reviewUrl = blank(profile != null ? profile.getReviewUrl() : null);
         String footer = blank(profile != null ? profile.getInvoiceFooter() : null);
         String customTaxName = blank(profile != null ? profile.getCustomTaxName() : null);
+        String invoiceLabel = profile != null && Boolean.TRUE.equals(profile.getGstEnabled()) ? "Tax Invoice No" : "Invoice No";
 
         String dailyOrderDisplay = (bill.getDailyOrderDisplay() != null && !bill.getDailyOrderDisplay().isBlank())
                 ? bill.getDailyOrderDisplay() : "";
@@ -115,6 +116,8 @@ public class InvoiceController {
                 ? Instant.ofEpochMilli(bill.getCreatedAt()).atZone(ZoneId.of("Asia/Kolkata")).format(DT_DATE_FMT) : "";
         String time = bill.getCreatedAt() != null
                 ? Instant.ofEpochMilli(bill.getCreatedAt()).atZone(ZoneId.of("Asia/Kolkata")).format(DT_TIME_FMT) : "";
+        String dateTime = bill.getCreatedAt() != null
+                ? Instant.ofEpochMilli(bill.getCreatedAt()).atZone(ZoneId.of("Asia/Kolkata")).format(DT_FMT) : "";
         String customerName = blank(bill.getCustomerName());
         String customerPhone = blank(bill.getCustomerWhatsapp());
         String paymentMode = formatPayment(bill.getPaymentMode());
@@ -181,9 +184,11 @@ public class InvoiceController {
         ctx.setVariable("footerMessage", footerMessage);
         ctx.setVariable("customTaxName", customTaxName.isEmpty() ? "Custom Tax" : customTaxName);
         ctx.setVariable("orderCode", orderCode);
+        ctx.setVariable("invoiceLabel", invoiceLabel);
         ctx.setVariable("lifetimeOrderId", bill.getLifetimeOrderId());
         ctx.setVariable("date", date);
         ctx.setVariable("time", time);
+        ctx.setVariable("dateTime", dateTime);
         ctx.setVariable("customerName", customerName);
         ctx.setVariable("customerPhone", customerPhone);
         ctx.setVariable("paymentMode", paymentMode);
