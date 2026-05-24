@@ -115,15 +115,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
   <div class="meta-row"><span class="mk">Order ID</span><span class="mv" th:text="${orderCode}">#001</span></div>
   <div class="meta-row"><span class="mk" th:text="${invoiceLabel}">Tax Invoice No</span><span class="mv" th:text="'INV' + ${lifetimeOrderId}">INV1</span></div>
   <div class="meta-row"><span class="mk">Date</span><span class="mv" th:text="${dateTime}">01 Jan 2026, 10:00 AM</span></div>
-  <div class="meta-row"><span class="mk">Outlet</span><span class="mv"><span th:text="${address != null and !address.isEmpty() ? address : 'Main Outlet'}">Main Outlet</span> <span th:text="'· ID ' + ${outletId}">· ID 1</span></span></div>
-  <div class="meta-row">
-    <span class="mk">Status</span>
-    <span class="mv">
-      <span th:if="${statusClass == 'paid'}" class="pill status">✓ Completed</span>
-      <span th:if="${statusClass == 'pending'}" class="pill status">⏳ Pending</span>
-      <span th:if="${statusClass == 'failed'}" class="pill status">✗ Failed</span>
-    </span>
-  </div>
 </section>
 
 <table class="items">
@@ -163,15 +154,6 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 </section>
 
 <footer class="footer">
-  <div class="qr-row">
-    <img th:src="'https://api.qrserver.com/v1/create-qr-code/?size=128x128&amp;data=' + ${#uris.escapeQueryParam(canonicalPublicUrl)}" alt="QR">
-    <div class="qr-info">
-      <div class="qr-title">Scan to verify invoice</div>
-      <div class="qr-ref">Ref: <span th:text="${invoiceRef}">reference</span></div>
-      <div class="qr-valid">Valid for 30 days</div>
-    </div>
-  </div>
-
   <div class="action-row">
     <a class="btn btn-wa" th:href="${whatsappShareUrl}" target="_blank" rel="noopener">WhatsApp Share</a>
     <button class="btn" type="button" onclick="window.print()">PDF Download</button>
