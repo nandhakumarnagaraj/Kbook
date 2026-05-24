@@ -95,7 +95,7 @@ public class InvoiceController {
 
     private String renderInvoice(RestaurantProfile profile, Bill bill, List<BillItem> items) {
         String rawCurrency = (profile != null && profile.getCurrency() != null) ? profile.getCurrency() : "";
-        String currencySymbol = rawCurrency.equals("INR") || rawCurrency.equals("Rupee") || rawCurrency.isEmpty() ? "Rs." : rawCurrency;
+        String currencySymbol = rawCurrency.equals("INR") || rawCurrency.equals("Rupee") || rawCurrency.isEmpty() ? "\u20B9" : rawCurrency;
 
         String shopName = blank(profile != null ? profile.getShopName() : null);
         String address = blank(profile != null ? profile.getShopAddress() : null);
@@ -155,8 +155,9 @@ public class InvoiceController {
         String footerMessage = footer.isEmpty() ? "Thank you for your business!" : footer;
         String halfGstPct = hasGst ? DF.format(gstPct.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP)) : "";
         String publicUrl = ServletUriComponentsBuilder.fromCurrentRequestUri().build().toUriString();
+        String canonicalPublicUrl = publicUrl.replace("/pending", "");
         String invoiceRef = bill.getPublicToken() != null ? bill.getPublicToken().toString() : "";
-        String shareText = "Invoice " + "INV" + bill.getLifetimeOrderId() + " from " + shopName + ": " + publicUrl;
+        String shareText = "Invoice " + "INV" + bill.getLifetimeOrderId() + " from " + shopName + ": " + canonicalPublicUrl;
         String whatsappShareUrl = "https://wa.me/?text=" + java.net.URLEncoder.encode(shareText, java.nio.charset.StandardCharsets.UTF_8);
 
         List<Map<String, Object>> itemList = new java.util.ArrayList<>();
@@ -212,6 +213,7 @@ public class InvoiceController {
         ctx.setVariable("outletId", bill.getLocalId());
         ctx.setVariable("invoiceRef", invoiceRef);
         ctx.setVariable("publicUrl", publicUrl);
+        ctx.setVariable("canonicalPublicUrl", canonicalPublicUrl);
         ctx.setVariable("whatsappShareUrl", whatsappShareUrl);
         ctx.setVariable("items", itemList);
 
