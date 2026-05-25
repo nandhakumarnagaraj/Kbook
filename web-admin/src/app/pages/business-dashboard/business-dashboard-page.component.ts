@@ -345,7 +345,7 @@ Chart.register(...registerables);
     .poll-field .mat-mdc-form-field-subscript-wrapper { display: none; }
     .poll-field .mat-mdc-text-field-wrapper { height: 40px !important; padding: 0 12px !important; border-radius: var(--radius-md) !important; }
 
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 32px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 32px; }
     @media (max-width: 1024px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 600px)  { .stats-grid { grid-template-columns: 1fr; } }
     .stat-card { 
@@ -380,6 +380,11 @@ Chart.register(...registerables);
     }
     .stat-card:hover .stat-icon {
       transform: scale(1.1) rotate(6deg);
+    }
+    .stat-card .mat-mdc-card-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     
     /* Premium Themed Cards */
