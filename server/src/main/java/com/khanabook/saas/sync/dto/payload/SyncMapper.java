@@ -78,6 +78,12 @@ public class SyncMapper {
                 dto.setWhatsappNumber(entity.getWhatsappNumber());
                 dto.setEmail(entity.getEmail());
                 dto.setFssaiNumber(entity.getFssaiNumber());
+                if (entity.getFssaiExpiryDate() != null) {
+                    dto.setFssaiExpiryDate(entity.getFssaiExpiryDate().toString());
+                }
+                if (entity.getGstExpiryDate() != null) {
+                    dto.setGstExpiryDate(entity.getGstExpiryDate().toString());
+                }
                 dto.setLogoPath(entity.getLogoPath());
                 dto.setLogoUrl(entity.getLogoUrl());
                 dto.setLogoVersion(entity.getLogoVersion());
@@ -246,6 +252,16 @@ public class SyncMapper {
                 entity.setWhatsappNumber(dto.getWhatsappNumber());
                 entity.setEmail(dto.getEmail());
                 entity.setFssaiNumber(dto.getFssaiNumber());
+                if (dto.getFssaiExpiryDate() != null && !dto.getFssaiExpiryDate().isEmpty()) {
+                    entity.setFssaiExpiryDate(java.time.LocalDate.parse(dto.getFssaiExpiryDate()));
+                } else {
+                    entity.setFssaiExpiryDate(null);
+                }
+                if (dto.getGstExpiryDate() != null && !dto.getGstExpiryDate().isEmpty()) {
+                    entity.setGstExpiryDate(java.time.LocalDate.parse(dto.getGstExpiryDate()));
+                } else {
+                    entity.setGstExpiryDate(null);
+                }
                 entity.setLogoPath(dto.getLogoPath());
                 entity.setLogoUrl(dto.getLogoUrl());
                 entity.setLogoVersion(dto.getLogoVersion());

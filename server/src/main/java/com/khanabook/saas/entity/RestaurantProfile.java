@@ -43,6 +43,12 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "fssai_number")
 	private String fssaiNumber;
 
+	@Column(name = "fssai_expiry_date")
+	private java.time.LocalDate fssaiExpiryDate;
+
+	@Column(name = "gst_expiry_date")
+	private java.time.LocalDate gstExpiryDate;
+
 	@Column(name = "email_invoice_consent")
 	private Boolean emailInvoiceConsent;
 

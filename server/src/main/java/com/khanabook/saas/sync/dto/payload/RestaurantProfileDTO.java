@@ -24,6 +24,8 @@ public class RestaurantProfileDTO {
     private String whatsappNumber;
     private String email;
     private String fssaiNumber;
+    private String fssaiExpiryDate;
+    private String gstExpiryDate;
     private String logoPath;
     private String logoUrl;
     private Integer logoVersion;

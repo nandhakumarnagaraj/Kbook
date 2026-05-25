@@ -220,6 +220,8 @@ export interface BusinessProfile {
   customTaxNumber: string | null;
   customTaxPercentage: number | null;
   fssaiNumber: string | null;
+  fssaiExpiryDate: string | null;
+  gstExpiryDate: string | null;
   reviewUrl: string | null;
   invoiceFooter: string | null;
   showBranding: boolean | null;
@@ -252,6 +254,8 @@ export interface UpdateBusinessProfileRequest {
   customTaxNumber?: string;
   customTaxPercentage?: number;
   fssaiNumber?: string;
+  fssaiExpiryDate?: string | null;
+  gstExpiryDate?: string | null;
   reviewUrl?: string;
   invoiceFooter?: string;
   showBranding?: boolean;

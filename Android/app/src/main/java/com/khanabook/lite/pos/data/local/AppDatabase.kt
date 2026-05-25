@@ -22,7 +22,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 45,
+        version = 46,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -80,6 +80,21 @@ abstract class AppDatabase : RoomDatabase() {
                         db.execSQL("ALTER TABLE `stock_logs` ADD COLUMN `permanent_failure` INTEGER NOT NULL DEFAULT 0")
                     } catch (e: android.database.sqlite.SQLiteException) {
                         android.util.Log.w("AppDatabase", "MIGRATION_44_45: permanent_failure may already exist: ${e.message}")
+                    }
+                }
+            }
+
+            val MIGRATION_45_46 = object : Migration(45, 46) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    try {
+                        db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `fssai_expiry_date` TEXT")
+                    } catch (e: android.database.sqlite.SQLiteException) {
+                        android.util.Log.w("AppDatabase", "MIGRATION_45_46: fssai_expiry_date may already exist: ${e.message}")
+                    }
+                    try {
+                        db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `gst_expiry_date` TEXT")
+                    } catch (e: android.database.sqlite.SQLiteException) {
+                        android.util.Log.w("AppDatabase", "MIGRATION_45_46: gst_expiry_date may already exist: ${e.message}")
                     }
                 }
             }

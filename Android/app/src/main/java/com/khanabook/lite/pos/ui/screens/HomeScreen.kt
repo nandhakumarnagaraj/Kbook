@@ -57,6 +57,7 @@ fun HomeScreen(
     val shopName by viewModel.shopName.collectAsState()
     val greeting = viewModel.greeting
     val marketplacePendingCount by viewModel.marketplacePendingCount.collectAsState()
+    val complianceAlerts by viewModel.complianceAlerts.collectAsState()
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val isWideScreen = !layout.isCompact
@@ -135,6 +136,19 @@ fun HomeScreen(
                         Box(modifier = Modifier.widthIn(max = 160.dp)) {
                             SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
                         }
+                    }
+
+                    // Compliance warning banners — shown only when alerts exist
+                    if (complianceAlerts.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(spacing.small)
+                        ) {
+                            complianceAlerts.forEach { alert ->
+                                ComplianceBanner(alert = alert)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(spacing.small))
                     }
                 }
             }
@@ -515,6 +529,95 @@ fun HomeActionCard(
                     contentDescription = null,
                     tint = PrimaryGold,
                     modifier = Modifier.size(iconSize.small)
+                )
+            }
+        }
+    }
+}
+
+// ─── Compliance Warning Banner ─────────────────────────────────────────────
+
+@Composable
+fun ComplianceBanner(
+    alert: HomeViewModel.ComplianceAlert,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+
+    val bannerBg: Color
+    val textColor: Color
+    val alertIcon: ImageVector
+    val status: String
+    when (alert.urgency) {
+        HomeViewModel.ComplianceAlert.Urgency.EXPIRED  -> {
+            bannerBg  = DangerRed.copy(alpha = 0.18f)
+            textColor = DangerRed
+            alertIcon = Icons.Default.GppBad
+            status    = "EXPIRED"
+        }
+        HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> {
+            bannerBg  = DangerRed.copy(alpha = 0.12f)
+            textColor = DangerRed
+            alertIcon = Icons.Default.Warning
+            status    = "${alert.daysLeft}d left"
+        }
+        HomeViewModel.ComplianceAlert.Urgency.HIGH     -> {
+            bannerBg  = WarningYellow.copy(alpha = 0.12f)
+            textColor = WarningYellow
+            alertIcon = Icons.Default.WarningAmber
+            status    = "${alert.daysLeft}d left"
+        }
+        HomeViewModel.ComplianceAlert.Urgency.MEDIUM   -> {
+            bannerBg  = PrimaryGold.copy(alpha = 0.10f)
+            textColor = PrimaryGold
+            alertIcon = Icons.Default.Info
+            status    = "${alert.daysLeft}d left"
+        }
+    }
+
+    val message = when (alert.urgency) {
+        HomeViewModel.ComplianceAlert.Urgency.EXPIRED  -> "${alert.label} has expired! Renew immediately."
+        HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> "${alert.label} expires in ${alert.daysLeft} day(s). Renew now!"
+        HomeViewModel.ComplianceAlert.Urgency.HIGH     -> "${alert.label} expires in ${alert.daysLeft} days. Renew soon."
+        HomeViewModel.ComplianceAlert.Urgency.MEDIUM   -> "${alert.label} expires in ${alert.daysLeft} days."
+    }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = bannerBg,
+        tonalElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Icon(
+                imageVector = alertIcon,
+                contentDescription = null,
+                tint = textColor,
+                modifier = Modifier.size(20.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = message,
+                    color = textColor,
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 2
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = textColor.copy(alpha = 0.18f)
+            ) {
+                Text(
+                    text = status,
+                    color = textColor,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
         }

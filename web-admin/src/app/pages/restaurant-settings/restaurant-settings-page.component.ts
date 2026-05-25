@@ -223,6 +223,12 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
                   Fetch
                 </button>
               </div>
+              <div *ngIf="form.fssaiExpiryDate" class="expiry-notice" [class.expiring]="isFssaiExpiringSoon()" [class.expired]="isFssaiExpired()">
+                <mat-icon class="notice-icon">{{ isFssaiExpired() ? 'error' : (isFssaiExpiringSoon() ? 'warning' : 'check_circle') }}</mat-icon>
+                <span *ngIf="isFssaiExpired()">FSSAI License EXPIRED on {{ form.fssaiExpiryDate }}</span>
+                <span *ngIf="isFssaiExpiringSoon()">FSSAI License Expiring soon: {{ form.fssaiExpiryDate }}</span>
+                <span *ngIf="!isFssaiExpired() && !isFssaiExpiringSoon()">FSSAI License valid till {{ form.fssaiExpiryDate }}</span>
+              </div>
 
               <div class="toggle-group row">
                 <mat-slide-toggle [(ngModel)]="form.gstEnabled" color="primary">Enable GST</mat-slide-toggle>
@@ -231,14 +237,22 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
 
               <!-- GSTIN with Fetch Button -->
               <div class="two-col" *ngIf="form.gstEnabled">
-                <div class="fetch-row">
-                  <mat-form-field appearance="outline" style="flex: 1;">
-                    <mat-label>GSTIN</mat-label>
-                    <input matInput [(ngModel)]="form.gstin" (input)="onGstinInput($event)" placeholder="15-char GSTIN" maxlength="15">
-                  </mat-form-field>
-                  <button mat-stroked-button type="button" class="fetch-btn" [disabled]="!isValidGstin() || lookupLoading()" (click)="fetchGst()">
-                    Fetch
-                  </button>
+                <div>
+                  <div class="fetch-row">
+                    <mat-form-field appearance="outline" style="flex: 1;">
+                      <mat-label>GSTIN</mat-label>
+                      <input matInput [(ngModel)]="form.gstin" (input)="onGstinInput($event)" placeholder="15-char GSTIN" maxlength="15">
+                    </mat-form-field>
+                    <button mat-stroked-button type="button" class="fetch-btn" [disabled]="!isValidGstin() || lookupLoading()" (click)="fetchGst()">
+                      Fetch
+                    </button>
+                  </div>
+                  <div *ngIf="form.gstExpiryDate" class="expiry-notice" [class.expiring]="isGstExpiringSoon()" [class.expired]="isGstExpired()">
+                    <mat-icon class="notice-icon">{{ isGstExpired() ? 'error' : (isGstExpiringSoon() ? 'warning' : 'check_circle') }}</mat-icon>
+                    <span *ngIf="isGstExpired()">GSTIN Expired on {{ form.gstExpiryDate }}</span>
+                    <span *ngIf="isGstExpiringSoon()">GSTIN Expiring soon: {{ form.gstExpiryDate }}</span>
+                    <span *ngIf="!isGstExpired() && !isGstExpiringSoon()">GSTIN valid till {{ form.gstExpiryDate }}</span>
+                  </div>
                 </div>
                 <mat-form-field appearance="outline">
                   <mat-label>GST Percentage</mat-label>
@@ -379,6 +393,11 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
     .fetch-btn { height: 56px; font-weight: 700; border-radius: var(--radius-md); border: 1px solid var(--line); }
     .fetch-both-container { width: 100%; display: flex; justify-content: center; margin-top: 12px; margin-bottom: 8px; }
     .fetch-both-btn { width: 100%; height: 48px; font-weight: 700; border-radius: var(--radius-md); border: 1px solid var(--line); }
+    
+    .expiry-notice { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: var(--muted); margin-top: 4px; margin-bottom: 12px; padding: 6px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; width: fit-content; }
+    .expiry-notice.expiring { color: #f59e0b; background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3); }
+    .expiry-notice.expired { color: #ef4444; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.3); }
+    .expiry-notice mat-icon { font-size: 16px; width: 16px; height: 16px; }
 
     /* Lookup modal styling */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
@@ -586,7 +605,8 @@ export class RestaurantSettingsPageComponent implements OnInit {
           this.lookupResult.set({
             businessName: res.businessName,
             address: res.address,
-            fssaiNo: this.form.fssaiNumber
+            fssaiNo: this.form.fssaiNumber,
+            fssaiExpiryDate: res.expiryDate || null
           });
         } else {
           this.lookupError.set(res.error || 'No data found');
@@ -612,7 +632,8 @@ export class RestaurantSettingsPageComponent implements OnInit {
           this.lookupResult.set({
             businessName: res.businessName,
             address: res.address,
-            gstin: this.form.gstin
+            gstin: this.form.gstin,
+            gstExpiryDate: res.expiryDate || null
           });
         } else {
           this.lookupError.set(res.error || 'No data found');
@@ -641,7 +662,9 @@ export class RestaurantSettingsPageComponent implements OnInit {
             businessName: res.businessName || res.fssai?.businessName || res.gst?.businessName,
             address: res.address || res.fssai?.address || res.gst?.address,
             gstin: this.form.gstin,
-            fssaiNo: this.form.fssaiNumber
+            fssaiNo: this.form.fssaiNumber,
+            fssaiExpiryDate: res.fssai?.expiryDate || null,
+            gstExpiryDate: res.gst?.expiryDate || null
           });
         } else {
           this.lookupError.set(res.gst?.error || res.fssai?.error || 'No data found');
@@ -665,12 +688,19 @@ export class RestaurantSettingsPageComponent implements OnInit {
     if (res) {
       if (res.businessName) this.form.shopName = res.businessName;
       if (res.address) this.form.shopAddress = res.address;
+      if (res.fssaiExpiryDate) this.form.fssaiExpiryDate = res.fssaiExpiryDate;
+      if (res.gstExpiryDate) this.form.gstExpiryDate = res.gstExpiryDate;
       this.snackBar.open('Fetched details applied.', 'Close', { duration: 3000 });
     }
     this.closeLookup();
   }
 
   ngOnInit(): void {
+    this.destroyRef.onDestroy(() => {
+      if (this.timerInterval) {
+        clearInterval(this.timerInterval);
+      }
+    });
     this.api.getProfile().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (p) => {
         this.form = {
@@ -698,6 +728,8 @@ export class RestaurantSettingsPageComponent implements OnInit {
           customTaxNumber: p.customTaxNumber ?? undefined,
           customTaxPercentage: p.customTaxPercentage ?? undefined,
           fssaiNumber: p.fssaiNumber ?? undefined,
+          fssaiExpiryDate: p.fssaiExpiryDate ?? undefined,
+          gstExpiryDate: p.gstExpiryDate ?? undefined,
           reviewUrl: p.reviewUrl ?? undefined,
           invoiceFooter: p.invoiceFooter ?? undefined,
           showBranding: p.showBranding ?? undefined,
@@ -731,5 +763,41 @@ export class RestaurantSettingsPageComponent implements OnInit {
         this.snackBar.open(err?.error?.error || 'Failed to save. Please try again.', 'Close', { duration: 5000 });
       }
     });
+  }
+
+  isFssaiExpiringSoon(): boolean {
+    if (!this.form.fssaiExpiryDate) return false;
+    const expiry = new Date(this.form.fssaiExpiryDate);
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= 30;
+  }
+
+  isFssaiExpired(): boolean {
+    if (!this.form.fssaiExpiryDate) return false;
+    const expiry = new Date(this.form.fssaiExpiryDate);
+    const today = new Date();
+    expiry.setHours(0,0,0,0);
+    today.setHours(0,0,0,0);
+    return expiry.getTime() < today.getTime();
+  }
+
+  isGstExpiringSoon(): boolean {
+    if (!this.form.gstExpiryDate) return false;
+    const expiry = new Date(this.form.gstExpiryDate);
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= 30;
+  }
+
+  isGstExpired(): boolean {
+    if (!this.form.gstExpiryDate) return false;
+    const expiry = new Date(this.form.gstExpiryDate);
+    const today = new Date();
+    expiry.setHours(0,0,0,0);
+    today.setHours(0,0,0,0);
+    return expiry.getTime() < today.getTime();
   }
 }

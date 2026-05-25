@@ -130,7 +130,9 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "mask_customer_phone", defaultValue = "1")
     val maskCustomerPhone: Boolean = true,
     @SerializedName("serverId") @ColumnInfo(name = "server_id") val serverId: Long? = null,
-    @SerializedName("serverUpdatedAt") @ColumnInfo(name = "server_updated_at", defaultValue = "0") val serverUpdatedAt: Long = 0L
+    @SerializedName("serverUpdatedAt") @ColumnInfo(name = "server_updated_at", defaultValue = "0") val serverUpdatedAt: Long = 0L,
+    @ColumnInfo(name = "fssai_expiry_date") val fssaiExpiryDate: String? = null,
+    @ColumnInfo(name = "gst_expiry_date") val gstExpiryDate: String? = null
 )
 
 

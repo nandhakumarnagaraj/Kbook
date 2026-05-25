@@ -26,6 +26,8 @@ public record UpdateBusinessProfileRequest(
     String customTaxNumber,
     BigDecimal customTaxPercentage,
     String fssaiNumber,
+    java.time.LocalDate fssaiExpiryDate,
+    java.time.LocalDate gstExpiryDate,
     String reviewUrl,
     String invoiceFooter,
     Boolean showBranding,

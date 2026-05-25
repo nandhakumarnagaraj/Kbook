@@ -31,6 +31,7 @@ public class GstFssaiLookupService {
                 result.put("address", response.getOrDefault("addr", ""));
                 result.put("state", response.getOrDefault("state", ""));
                 result.put("taxType", response.getOrDefault("taxType", "regular"));
+                result.put("expiryDate", response.getOrDefault("expiryDate", response.getOrDefault("validTo", "")));
             } else {
                 result.put("valid", false);
                 result.put("error", "No data found");
@@ -59,6 +60,9 @@ public class GstFssaiLookupService {
                 result.put("businessName", response.getOrDefault("businessName", ""));
                 result.put("address", response.getOrDefault("businessAddress", ""));
                 result.put("fssaiStatus", response.getOrDefault("status", ""));
+                result.put("expiryDate", response.getOrDefault("expiryDate", 
+                                         response.getOrDefault("validUpto", 
+                                         response.getOrDefault("validTo", ""))));
             } else {
                 result.put("valid", false);
                 result.put("error", "No data found");

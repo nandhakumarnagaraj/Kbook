@@ -92,13 +92,27 @@ public class BusinessAdminController {
         if (req.country() != null) p.setCountry(req.country());
         if (req.timezone() != null) p.setTimezone(req.timezone());
         if (req.gstEnabled() != null) p.setGstEnabled(req.gstEnabled());
-        if (req.gstin() != null) p.setGstin(req.gstin());
         if (req.isTaxInclusive() != null) p.setIsTaxInclusive(req.isTaxInclusive());
         if (req.gstPercentage() != null) p.setGstPercentage(req.gstPercentage());
         if (req.customTaxName() != null) p.setCustomTaxName(req.customTaxName());
         if (req.customTaxNumber() != null) p.setCustomTaxNumber(req.customTaxNumber());
         if (req.customTaxPercentage() != null) p.setCustomTaxPercentage(req.customTaxPercentage());
-        if (req.fssaiNumber() != null) p.setFssaiNumber(req.fssaiNumber());
+        if (req.fssaiNumber() != null) {
+            p.setFssaiNumber(req.fssaiNumber());
+            if (req.fssaiNumber().isBlank()) {
+                p.setFssaiExpiryDate(null);
+            }
+        }
+        if (req.fssaiExpiryDate() != null) p.setFssaiExpiryDate(req.fssaiExpiryDate());
+
+        if (req.gstin() != null) {
+            p.setGstin(req.gstin());
+            if (req.gstin().isBlank()) {
+                p.setGstExpiryDate(null);
+            }
+        }
+        if (req.gstExpiryDate() != null) p.setGstExpiryDate(req.gstExpiryDate());
+
         if (req.reviewUrl() != null) p.setReviewUrl(req.reviewUrl());
         if (req.invoiceFooter() != null) p.setInvoiceFooter(req.invoiceFooter());
         if (req.showBranding() != null) p.setShowBranding(req.showBranding());
@@ -140,6 +154,8 @@ public class BusinessAdminController {
                 p.getCustomTaxNumber(),
                 p.getCustomTaxPercentage(),
                 p.getFssaiNumber(),
+                p.getFssaiExpiryDate(),
+                p.getGstExpiryDate(),
                 p.getReviewUrl(),
                 p.getInvoiceFooter(),
                 p.getShowBranding(),

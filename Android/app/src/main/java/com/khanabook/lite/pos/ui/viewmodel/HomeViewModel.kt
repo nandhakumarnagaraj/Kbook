@@ -12,7 +12,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
+import java.time.LocalDate
 import java.time.LocalTime
+import java.time.format.DateTimeParseException
+import java.time.temporal.ChronoUnit
 
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 @HiltViewModel
@@ -101,6 +104,39 @@ class HomeViewModel @Inject constructor(
     private val _marketplacePendingCount = MutableStateFlow(0)
     val marketplacePendingCount: StateFlow<Int> = _marketplacePendingCount.asStateFlow()
 
+    /**
+     * Emits a list of active compliance warnings (FSSAI / GST expiry within 30 days or overdue).
+     * Each item carries the label, how many days are left (negative = overdue), and an urgency
+     * level that drives the warning banner colour on the Home screen.
+     */
+    val complianceAlerts: StateFlow<List<ComplianceAlert>> = profileFlow
+        .map { profile ->
+            val today = LocalDate.now()
+            val alerts = mutableListOf<ComplianceAlert>()
+
+            fun parseExpiry(dateStr: String?): LocalDate? = dateStr?.takeIf { it.isNotBlank() }?.let {
+                try { LocalDate.parse(it.substring(0, 10)) } catch (_: DateTimeParseException) { null }
+            }
+
+            val fssaiExpiry = parseExpiry(profile?.fssaiExpiryDate)
+            val gstExpiry   = parseExpiry(profile?.gstExpiryDate)
+
+            if (fssaiExpiry != null) {
+                val daysLeft = ChronoUnit.DAYS.between(today, fssaiExpiry).toInt()
+                if (daysLeft <= 30) alerts += ComplianceAlert("FSSAI License", daysLeft)
+            }
+            if (gstExpiry != null) {
+                val daysLeft = ChronoUnit.DAYS.between(today, gstExpiry).toInt()
+                if (daysLeft <= 30) alerts += ComplianceAlert("GST Registration", daysLeft)
+            }
+            alerts
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     init { loadMarketplaceCount() }
 
     fun loadMarketplaceCount() {
@@ -158,6 +194,24 @@ class HomeViewModel @Inject constructor(
         val cancelledCount: Int = 0,
         val kdsPendingCount: Int = 0
     )
+
+    /**
+     * Represents a single compliance document that is expiring soon or overdue.
+     * [daysLeft] < 0 → already expired; 0–7 → critical; 8–15 → high; 16–30 → medium.
+     */
+    data class ComplianceAlert(
+        val label: String,
+        val daysLeft: Int
+    ) {
+        val urgency: Urgency get() = when {
+            daysLeft < 0  -> Urgency.EXPIRED
+            daysLeft <= 7 -> Urgency.CRITICAL
+            daysLeft <= 15 -> Urgency.HIGH
+            else           -> Urgency.MEDIUM
+        }
+
+        enum class Urgency { EXPIRED, CRITICAL, HIGH, MEDIUM }
+    }
 }
 
 
