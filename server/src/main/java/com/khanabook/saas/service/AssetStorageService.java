@@ -83,11 +83,11 @@ public class AssetStorageService {
 				throw new IllegalStateException("Upload produced no output");
 			}
 
-			deleteOldVersions(restaurantId, kind, newVersion);
-
 			String url = resolveCdnUrl(restaurantId, filename);
 			applyToProfile(profile, kind, url, newVersion);
 			restaurantProfileRepository.save(profile);
+
+			deleteOldVersions(restaurantId, kind, newVersion);
 
 			log.info("Uploaded {} for restaurant {} -> {}", kind, restaurantId, url);
 			return new AssetUploadResult(url, newVersion);
