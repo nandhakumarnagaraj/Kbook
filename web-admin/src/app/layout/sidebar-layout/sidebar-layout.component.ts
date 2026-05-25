@@ -148,13 +148,14 @@ type NavLink = { icon: string; label: string; path: string };
     }
 
     .brand-logo {
-      width: 42px;
-      height: 42px;
-      border-radius: 8px;
+      width: 56px;
+      height: 56px;
+      border-radius: 10px;
       object-fit: contain;
       background: #fff;
       padding: 4px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      image-rendering: auto;
     }
 
     .brand-info {
