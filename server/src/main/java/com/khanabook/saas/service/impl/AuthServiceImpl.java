@@ -232,13 +232,18 @@ public class AuthServiceImpl implements AuthService {
 								user.setLoginId(email);
 							}
 						user.setAuthProvider(AuthProvider.GOOGLE);
-						user.setUpdatedAt(System.currentTimeMillis());
+						long now = System.currentTimeMillis();
+						user.setUpdatedAt(now);
+						user.setServerUpdatedAt(now);
+						user.setDeviceId("server");
 						userRepository.save(user);
 						// Backfill profile email if missing (legacy records or incomplete signups)
 						restaurantProfileRepository.findByRestaurantId(user.getRestaurantId()).ifPresent(profile -> {
 							if (profile.getEmail() == null || profile.getEmail().isBlank()) {
 								profile.setEmail(user.getEmail());
-								profile.setUpdatedAt(System.currentTimeMillis());
+								profile.setUpdatedAt(now);
+								profile.setServerUpdatedAt(now);
+								profile.setDeviceId("server");
 								restaurantProfileRepository.save(profile);
 							}
 						});
@@ -328,6 +333,7 @@ public class AuthServiceImpl implements AuthService {
 		user.setTokenInvalidatedAt(System.currentTimeMillis());
 		user.setUpdatedAt(System.currentTimeMillis());
 		user.setServerUpdatedAt(System.currentTimeMillis());
+		user.setDeviceId("server");
 		userRepository.save(user);
 		log.info("Password changed successful for user: {}", phoneNumber);
 	}
