@@ -43,7 +43,7 @@ const API_BASE_URL = environment.apiBaseUrl;
       <mat-card class="reset-card mat-elevation-z12">
         <div class="reset-header">
           <div class="logo-wrap">
-            <img src="/khanabook_logo.png" alt="KhanaBook" class="logo" />
+            <img src="khanabook_logo.png" alt="KhanaBook" class="logo" />
           </div>
           <h1>{{ step() === 'request' ? 'Reset Password' : 'Verify & Reset' }}</h1>
           <p class="subtitle">

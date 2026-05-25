@@ -389,7 +389,7 @@ export class SidebarLayoutComponent {
   readonly brandLogo = computed(() => {
     const profile = this.shopProfile();
     if (profile?.logoUrl && !this.logoFailed()) return profile.logoUrl;
-    return '/khanabook_logo.png';
+    return 'khanabook_logo.png';
   });
 
   readonly brandName = computed(() => {

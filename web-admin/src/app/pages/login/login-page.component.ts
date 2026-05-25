@@ -48,7 +48,7 @@ declare const google: GlobalGoogle | undefined;
           </div>
           <div class="showcase-content">
             <div class="brand-header">
-              <img src="/khanabook_logo_header.png" alt="KhanaBook" class="showcase-logo" />
+              <img src="khanabook_logo_header.png" alt="KhanaBook" class="showcase-logo" />
               <h1>KhanaBook</h1>
             </div>
             
@@ -95,7 +95,7 @@ declare const google: GlobalGoogle | undefined;
           <mat-card class="login-card">
             <div class="login-header">
               <div class="logo-wrap">
-                <img src="/khanabook_logo.png" alt="KhanaBook" class="logo" />
+                <img src="khanabook_logo.png" alt="KhanaBook" class="logo" />
               </div>
               <h2>Platform Access</h2>
               <p class="subtitle">Sign in to manage your business operations.</p>
