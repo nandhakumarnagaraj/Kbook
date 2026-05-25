@@ -317,10 +317,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
       margin-bottom: 32px;
     }
+    @media (max-width: 1024px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px)  { .stats-grid { grid-template-columns: 1fr; } }
 
     .stat-card {
       border-radius: var(--radius-xl);
@@ -374,6 +376,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     
     .stat-card:hover .stat-icon {
       transform: scale(1.1) rotate(6deg);
+    }
+    .stat-card .mat-mdc-card-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     /* Premium colors & backgrounds for platform stats cards */
