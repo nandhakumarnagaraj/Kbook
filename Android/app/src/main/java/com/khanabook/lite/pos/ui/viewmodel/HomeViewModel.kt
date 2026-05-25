@@ -17,6 +17,10 @@ import java.time.LocalTime
 import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 
+private fun String?.toLocalDateSafe(): LocalDate? = this?.takeIf { it.isNotBlank() }?.let {
+    try { LocalDate.parse(it.substring(0, 10)) } catch (_: DateTimeParseException) { null }
+}
+
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -114,12 +118,8 @@ class HomeViewModel @Inject constructor(
             val today = LocalDate.now()
             val alerts = mutableListOf<ComplianceAlert>()
 
-            fun parseExpiry(dateStr: String?): LocalDate? = dateStr?.takeIf { it.isNotBlank() }?.let {
-                try { LocalDate.parse(it.substring(0, 10)) } catch (_: DateTimeParseException) { null }
-            }
-
-            val fssaiExpiry = parseExpiry(profile?.fssaiExpiryDate)
-            val gstExpiry   = parseExpiry(profile?.gstExpiryDate)
+            val fssaiExpiry = profile?.fssaiExpiryDate.toLocalDateSafe()
+            val gstExpiry   = profile?.gstExpiryDate.toLocalDateSafe()
 
             if (fssaiExpiry != null) {
                 val daysLeft = ChronoUnit.DAYS.between(today, fssaiExpiry).toInt()

@@ -225,9 +225,9 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
               </div>
               <div *ngIf="form.fssaiExpiryDate" class="expiry-notice" [class.expiring]="isFssaiExpiringSoon()" [class.expired]="isFssaiExpired()">
                 <mat-icon class="notice-icon">{{ isFssaiExpired() ? 'error' : (isFssaiExpiringSoon() ? 'warning' : 'check_circle') }}</mat-icon>
-                <span *ngIf="isFssaiExpired()">FSSAI License EXPIRED on {{ form.fssaiExpiryDate }}</span>
-                <span *ngIf="isFssaiExpiringSoon()">FSSAI License Expiring soon: {{ form.fssaiExpiryDate }}</span>
-                <span *ngIf="!isFssaiExpired() && !isFssaiExpiringSoon()">FSSAI License valid till {{ form.fssaiExpiryDate }}</span>
+                <span *ngIf="isFssaiExpired()">FSSAI License EXPIRED on {{ formatExpiryDate(form.fssaiExpiryDate) }}</span>
+                <span *ngIf="isFssaiExpiringSoon()">FSSAI License Expiring soon: {{ formatExpiryDate(form.fssaiExpiryDate) }}</span>
+                <span *ngIf="!isFssaiExpired() && !isFssaiExpiringSoon()">FSSAI License valid till {{ formatExpiryDate(form.fssaiExpiryDate) }}</span>
               </div>
 
               <div class="toggle-group row">
@@ -249,9 +249,9 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
                   </div>
                   <div *ngIf="form.gstExpiryDate" class="expiry-notice" [class.expiring]="isGstExpiringSoon()" [class.expired]="isGstExpired()">
                     <mat-icon class="notice-icon">{{ isGstExpired() ? 'error' : (isGstExpiringSoon() ? 'warning' : 'check_circle') }}</mat-icon>
-                    <span *ngIf="isGstExpired()">GSTIN Expired on {{ form.gstExpiryDate }}</span>
-                    <span *ngIf="isGstExpiringSoon()">GSTIN Expiring soon: {{ form.gstExpiryDate }}</span>
-                    <span *ngIf="!isGstExpired() && !isGstExpiringSoon()">GSTIN valid till {{ form.gstExpiryDate }}</span>
+                    <span *ngIf="isGstExpired()">GSTIN Expired on {{ formatExpiryDate(form.gstExpiryDate) }}</span>
+                    <span *ngIf="isGstExpiringSoon()">GSTIN Expiring soon: {{ formatExpiryDate(form.gstExpiryDate) }}</span>
+                    <span *ngIf="!isGstExpired() && !isGstExpiringSoon()">GSTIN valid till {{ formatExpiryDate(form.gstExpiryDate) }}</span>
                   </div>
                 </div>
                 <mat-form-field appearance="outline">
@@ -765,39 +765,31 @@ export class RestaurantSettingsPageComponent implements OnInit {
     });
   }
 
-  isFssaiExpiringSoon(): boolean {
-    if (!this.form.fssaiExpiryDate) return false;
-    const expiry = new Date(this.form.fssaiExpiryDate);
+  isFssaiExpiringSoon(): boolean { return this.isExpiringSoon(this.form.fssaiExpiryDate ?? undefined); }
+  isFssaiExpired(): boolean      { return this.isExpired(this.form.fssaiExpiryDate ?? undefined); }
+  isGstExpiringSoon(): boolean   { return this.isExpiringSoon(this.form.gstExpiryDate ?? undefined); }
+  isGstExpired(): boolean        { return this.isExpired(this.form.gstExpiryDate ?? undefined); }
+
+  private isExpiringSoon(dateStr: string | undefined): boolean {
+    if (!dateStr) return false;
+    const expiry = new Date(dateStr);
     const today = new Date();
-    const diffTime = expiry.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    expiry.setHours(0,0,0,0);
+    today.setHours(0,0,0,0);
+    const diffDays = Math.round((expiry.getTime() - today.getTime()) / 86400000);
     return diffDays > 0 && diffDays <= 30;
   }
 
-  isFssaiExpired(): boolean {
-    if (!this.form.fssaiExpiryDate) return false;
-    const expiry = new Date(this.form.fssaiExpiryDate);
+  private isExpired(dateStr: string | undefined): boolean {
+    if (!dateStr) return false;
+    const expiry = new Date(dateStr);
     const today = new Date();
     expiry.setHours(0,0,0,0);
     today.setHours(0,0,0,0);
     return expiry.getTime() < today.getTime();
   }
 
-  isGstExpiringSoon(): boolean {
-    if (!this.form.gstExpiryDate) return false;
-    const expiry = new Date(this.form.gstExpiryDate);
-    const today = new Date();
-    const diffTime = expiry.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 && diffDays <= 30;
-  }
-
-  isGstExpired(): boolean {
-    if (!this.form.gstExpiryDate) return false;
-    const expiry = new Date(this.form.gstExpiryDate);
-    const today = new Date();
-    expiry.setHours(0,0,0,0);
-    today.setHours(0,0,0,0);
-    return expiry.getTime() < today.getTime();
+  formatExpiryDate(dateStr: string): string {
+    return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 }

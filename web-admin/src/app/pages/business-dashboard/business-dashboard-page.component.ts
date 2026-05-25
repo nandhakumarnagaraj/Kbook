@@ -1,8 +1,8 @@
-import { AfterViewInit, Component, DestroyRef, effect, ElementRef, inject, OnDestroy, signal, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, effect, ElementRef, inject, OnDestroy, signal, ViewChild, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,7 +17,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { combineLatest, of, interval, Subject } from 'rxjs';
 import { catchError, map, startWith, switchMap } from 'rxjs/operators';
 import { BusinessApiService } from '../../core/services/business-api.service';
-import { BusinessMarketplaceSetup, MarketplaceOrder } from '../../core/models/api.models';
+import { BusinessMarketplaceSetup, BusinessProfile, MarketplaceOrder } from '../../core/models/api.models';
 import { formatCurrency } from '../../shared/formatters';
 import { Chart, registerables } from 'chart.js';
 
@@ -26,6 +26,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-business-dashboard-page',
   standalone: true,
+  encapsulation: ViewEncapsulation.None,
   imports: [
     CommonModule, 
     FormsModule, 
@@ -46,6 +47,29 @@ Chart.register(...registerables);
     <div class="page-container" (document:keydown.escape)="closeModals()">
       <ng-container *ngIf="vm() as data; else loading">
         <div class="header-row">
+
+          <!-- Compliance expiry banner -->
+          <div class="compliance-banner expired" *ngIf="fssaiExpired()">
+            <mat-icon>error</mat-icon>
+            FSSAI License has EXPIRED — renew immediately to stay compliant.
+            <a routerLink="/business/settings">Go to Settings →</a>
+          </div>
+          <div class="compliance-banner expiring" *ngIf="!fssaiExpired() && fssaiExpiringSoon()">
+            <mat-icon>warning</mat-icon>
+            FSSAI License expiring soon.
+            <a routerLink="/business/settings">Go to Settings →</a>
+          </div>
+          <div class="compliance-banner expired" *ngIf="!fssaiExpired() && gstExpired()">
+            <mat-icon>error</mat-icon>
+            GST Registration has EXPIRED — renew immediately to stay compliant.
+            <a routerLink="/business/settings">Go to Settings →</a>
+          </div>
+          <div class="compliance-banner expiring" *ngIf="!fssaiExpired() && !gstExpired() && gstExpiringSoon()">
+            <mat-icon>warning</mat-icon>
+            GST Registration expiring soon.
+            <a routerLink="/business/settings">Go to Settings →</a>
+          </div>
+
           <div class="header-left">
             <div class="live-status">
               <span class="live-dot"></span>
@@ -105,6 +129,10 @@ Chart.register(...registerables);
               <mat-icon mat-card-avatar class="stat-icon">analytics</mat-icon>
               <mat-card-title>{{ data.avgOrderValueFormatted }}</mat-card-title>
               <mat-card-subtitle>Avg Order Value</mat-card-subtitle>
+              <div class="trend-badge up" *ngIf="data.totalOrders > 0">
+                <mat-icon>analytics</mat-icon>
+                {{ data.totalOrders }} orders
+              </div>
             </mat-card-header>
           </mat-card>
 
@@ -144,7 +172,7 @@ Chart.register(...registerables);
               </mat-card-header>
               <mat-card-content>
                 <div class="order-list" *ngIf="data.recentOrders.length > 0; else noOrders">
-                  <div class="order-item" *ngFor="let order of data.recentOrders"
+                  <div class="order-item" *ngFor="let order of data.recentOrders.slice(0, 8)"
                        [class.paid-row]="order.paymentStatus === 'Paid'"
                        [class.pending-row]="order.paymentStatus !== 'Paid'"
                        [class.refunded-row]="order.refundStatus === 'REFUNDED'">
@@ -195,10 +223,10 @@ Chart.register(...registerables);
             <mat-card class="setup-card">
               <mat-card-header>
                 <mat-card-title>Onboarding Progress</mat-card-title>
-                <div class="progress-percent">{{ setupPercent(data) }}%</div>
+                <div class="progress-percent">{{ data.setupPct }}%</div>
               </mat-card-header>
               <mat-card-content>
-                <mat-progress-bar mode="determinate" [value]="setupPercent(data)" color="primary"></mat-progress-bar>
+                <mat-progress-bar mode="determinate" [value]="data.setupPct" color="primary"></mat-progress-bar>
                 <div class="checklist">
                   <div class="check-item" *ngFor="let item of data.setupChecks" [class.done]="item.ready">
                     <mat-icon>{{ item.ready ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
@@ -221,7 +249,7 @@ Chart.register(...registerables);
                 <div class="stock-list">
                   <div class="stock-item" *ngFor="let item of data.lowStockItems.slice(0, 5)">
                     <span>{{ item.name }}</span>
-                    <span class="stock-status" [class.critical]="item.stockStatus === 'OUT_OF_STOCK'">{{ item.stockStatus }}</span>
+                    <span class="stock-status" [class.critical]="item.stockStatus === 'OUT_OF_STOCK'">{{ stockLabel(item.stockStatus) }}</span>
                   </div>
                 </div>
               </mat-card-content>
@@ -284,7 +312,7 @@ Chart.register(...registerables);
 
       <!-- Keyboard Shortcut Dialog -->
       <div class="shortcut-overlay" *ngIf="showShortcutHint()" (click)="showShortcutHint.set(false)">
-        <mat-card class="shortcut-dialog" (click)="$event.stopPropagation()">
+        <mat-card class="shortcut-dialog" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" (click)="$event.stopPropagation()">
           <mat-card-header>
             <mat-card-title>Quick Shortcuts</mat-card-title>
             <button mat-icon-button (click)="showShortcutHint.set(false)">
@@ -293,7 +321,7 @@ Chart.register(...registerables);
           </mat-card-header>
           <mat-card-content>
             <div class="shortcut-row"><kbd>Ctrl+N</kbd><span>New Transaction</span></div>
-            <div class="shortcut-row"><kbd>Ctrl+F</kbd><span>Search History</span></div>
+            <div class="shortcut-row"><kbd>Ctrl+F</kbd><span>Order History</span></div>
             <div class="shortcut-row"><kbd>Esc</kbd><span>Close Overlays</span></div>
             <div class="shortcut-row"><kbd>?</kbd><span>Show/Hide Shortcuts</span></div>
           </mat-card-content>
@@ -314,10 +342,12 @@ Chart.register(...registerables);
     @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
 
     .poll-field { width: 150px; }
-    ::ng-deep .poll-field .mat-mdc-form-field-subscript-wrapper { display: none; }
-    ::ng-deep .poll-field .mat-mdc-text-field-wrapper { height: 40px !important; padding: 0 12px !important; border-radius: var(--radius-md) !important; }
+    .poll-field .mat-mdc-form-field-subscript-wrapper { display: none; }
+    .poll-field .mat-mdc-text-field-wrapper { height: 40px !important; padding: 0 12px !important; border-radius: var(--radius-md) !important; }
 
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-bottom: 32px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 32px; }
+    @media (max-width: 1024px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px)  { .stats-grid { grid-template-columns: 1fr; } }
     .stat-card { 
       position: relative;
       border-radius: var(--radius-xl) !important; 
@@ -432,10 +462,10 @@ Chart.register(...registerables);
     .status-chip.success { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
 
     .setup-card { border-radius: var(--radius-xl); border: 1px solid var(--line); box-shadow: var(--shadow-md); background: var(--panel); }
-    .setup-card ::ng-deep .mat-mdc-card-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-    .setup-card ::ng-deep .mat-mdc-card-header-text { margin: 0; }
+    .setup-card .mat-mdc-card-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    .setup-card .mat-mdc-card-header-text { margin: 0; }
     .progress-percent { font-size: 1.4rem; font-weight: 800; color: var(--brand); margin-left: 16px; }
-    ::ng-deep .setup-card .mat-mdc-progress-bar { height: 8px !important; border-radius: 4px !important; overflow: hidden !important; }
+    .setup-card .mat-mdc-progress-bar { height: 8px !important; border-radius: 4px !important; overflow: hidden !important; }
     .checklist { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
     .check-item { 
       display: flex; 
@@ -519,16 +549,29 @@ Chart.register(...registerables);
     .skeleton-card { background: var(--line) !important; border-radius: var(--radius-xl) !important; position: relative; overflow: hidden; border: 1px solid var(--line); }
     .skeleton-cell { background: var(--line-strong) !important; border-radius: 4px; }
 
-    @keyframes shimmer { 100% { transform: translateX(100%); } }
+    .shimmer-bg { position: relative; overflow: hidden; background: var(--line) !important; }
+    .shimmer-bg::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 
     .empty-state { padding: 40px; text-align: center; color: var(--muted); }
     .empty-state mat-icon { font-size: 48px; width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.3; }
 
     .shortcut-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(8px); animation: fadeIn 0.2s ease; }
     .shortcut-dialog { width: 400px; padding: 8px; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+    .shortcut-dialog:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
     .shortcut-row { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--line); }
     .shortcut-row:last-child { border-bottom: none; }
     .shortcut-row kbd { background: #f1f5f9; padding: 4px 10px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-weight: 700; border: 1px solid #cbd5e1; box-shadow: 0 2px 0 #94a3b8; font-size: 0.8rem; }
+
+    /* Compliance banner */
+    .compliance-banner { display: flex; align-items: center; gap: 10px; padding: 12px 20px; margin-bottom: 16px; border-radius: var(--radius-lg); font-size: 0.9rem; font-weight: 700; }
+    .compliance-banner.expired { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #dc2626; }
+    .compliance-banner.expiring { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #d97706; }
+    .compliance-banner a { color: inherit; font-weight: 700; text-decoration: underline; margin-left: auto; }
 
     .spinning { animation: rotate 1s linear infinite; }
     @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -551,9 +594,46 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
 
   private readonly api = inject(BusinessApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
 
   readonly Math = Math;
   readonly showShortcutHint = signal(false);
+
+  readonly profileFssaiExpiry = signal<string | null>(null);
+  readonly profileGstExpiry = signal<string | null>(null);
+
+  readonly fssaiExpired = () => this.isExpired(this.profileFssaiExpiry());
+  readonly fssaiExpiringSoon = () => this.isExpiringSoon(this.profileFssaiExpiry());
+  readonly gstExpired = () => this.isExpired(this.profileGstExpiry());
+  readonly gstExpiringSoon = () => this.isExpiringSoon(this.profileGstExpiry());
+
+  private isExpiringSoon(dateStr: string | null): boolean {
+    if (!dateStr) return false;
+    const expiry = new Date(dateStr);
+    const today = new Date();
+    expiry.setHours(0,0,0,0);
+    today.setHours(0,0,0,0);
+    const diffDays = Math.round((expiry.getTime() - today.getTime()) / 86400000);
+    return diffDays > 0 && diffDays <= 30;
+  }
+
+  private isExpired(dateStr: string | null): boolean {
+    if (!dateStr) return false;
+    const expiry = new Date(dateStr);
+    const today = new Date();
+    expiry.setHours(0,0,0,0);
+    today.setHours(0,0,0,0);
+    return expiry.getTime() < today.getTime();
+  }
+
+  stockLabel(status: string): string {
+    switch (status) {
+      case 'OUT_OF_STOCK': return 'Out of stock';
+      case 'UNAVAILABLE': return 'Unavailable';
+      case 'LOW_STOCK': return 'Low stock';
+      default: return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+  }
 
   readonly liveDate = signal(this.formatDate(new Date()));
   private dateInterval: ReturnType<typeof setInterval> | null = null;
@@ -580,11 +660,11 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
   private readonly savedKeyHandler = (e: KeyboardEvent) => {
     if (e.ctrlKey && e.key === 'n') {
       e.preventDefault();
-      window.location.href = '/business/orders';
+      this.router.navigate(['/business/orders']);
     }
     if (e.ctrlKey && e.key === 'f') {
       e.preventDefault();
-      window.location.href = '/business/orders';
+      this.router.navigate(['/business/orders'], { queryParams: { search: 'open' } });
     }
     if (e.key === '?') {
       this.showShortcutHint.update(v => !v);
@@ -597,7 +677,7 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
   constructor() {
     this.dateInterval = setInterval(() => {
       this.liveDate.set(this.formatDate(new Date()));
-    }, 60000);
+    }, 3600000); // update once per hour — date text doesn't change mid-day
 
     if (typeof window !== 'undefined') {
       window.addEventListener('keydown', this.savedKeyHandler);
@@ -668,12 +748,14 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
           switchMap(() => combineLatest([
             this.api.getDashboard().pipe(catchError(() => of(null))),
             this.api.getMarketplaceSetup().pipe(catchError(() => of(null as BusinessMarketplaceSetup | null))),
-            this.api.getMarketplaceOrders().pipe(catchError(() => of([] as MarketplaceOrder[])))
+            this.api.getMarketplaceOrders().pipe(catchError(() => of([] as MarketplaceOrder[]))),
+            this.api.getProfile().pipe(catchError(() => of(null as BusinessProfile | null)))
           ]))
         );
       })
     ).pipe(
-      map(([data, setup, orders]) => {
+      map(([data, setup, orders, profile]) => {
+        this.refreshing = false;
         if (!data) return null;
 
         const today = new Date();
@@ -681,15 +763,12 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
         const values: number[] = [];
         let yesterdayTotal = 0;
         let todayTotal = 0;
-        const hasSalesActivity = data.totalRevenue > 0 || data.todayRevenue > 0 || data.posOrderCount > 0 || orders.length > 0;
 
-        const baseVal = data.todayRevenue > 0 ? data.todayRevenue : Math.max(data.totalRevenue / 30, 0);
         for (let i = 6; i >= 0; i--) {
           const d = new Date(today);
           d.setDate(d.getDate() - i);
           labels.push(d.toLocaleDateString('en-IN', { weekday: 'short' }));
-          const variance = hasSalesActivity ? 0.6 + Math.random() * 0.8 : 0;
-          const val = Math.round(baseVal * variance);
+          const val = (i === 0) ? Math.round(data.todayRevenue) : 0;
           values.push(val);
           if (i === 1) yesterdayTotal = val;
           if (i === 0) todayTotal = val;
@@ -717,7 +796,13 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
         const totalMarketplaceOrders = orders.length;
         const pendingMarketplace = orders.filter(o => o.orderStatus === 'pending').length;
         const readyMarketplace = orders.filter(o => o.orderStatus === 'ready').length;
-        const orderTrend = totalOrders > 0 ? Math.round((Math.random() * 20 - 5)) : 0;
+        const orderTrend = 0; // TODO: calculate from historical data when API provides daily order counts
+
+        // Compliance state from profile
+        if (profile) {
+          this.profileFssaiExpiry.set(profile.fssaiExpiryDate ?? null);
+          this.profileGstExpiry.set(profile.gstExpiryDate ?? null);
+        }
 
         return {
           ...data,
@@ -739,10 +824,19 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
           },
           lowStockItems: this.lowStockItems(),
           setupChecks: [
-            { label: 'Marketplace Integration', ready: false, detail: 'Configure in marketplace setup' },
+            { label: 'Marketplace Integration', ready: !!(setup?.subMerchantId || setup?.subMerchantStatus !== 'NOT_STARTED'), detail: 'Configure in marketplace setup' },
             { label: 'Payment Gateway', ready: setup?.subMerchantStatus === 'ACTIVE', detail: 'Easebuzz ready for settlements' },
             { label: 'Staff & Menu', ready: data.totalStaff > 0 && data.totalMenuItems > 0, detail: `${data.totalStaff} staff, ${data.totalMenuItems} items` }
-          ]
+          ],
+          setupPct: (() => {
+            const checks = [
+              { label: 'Marketplace Integration', ready: !!(setup?.subMerchantId || setup?.subMerchantStatus !== 'NOT_STARTED') },
+              { label: 'Payment Gateway', ready: setup?.subMerchantStatus === 'ACTIVE' },
+              { label: 'Staff & Menu', ready: data.totalStaff > 0 && data.totalMenuItems > 0 }
+            ];
+            const done = checks.filter(c => c.ready).length;
+            return Math.round((done / checks.length) * 100);
+          })()
         };
       })
     )
@@ -751,7 +845,7 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
   refresh(): void {
     this.refreshing = true;
     this.refresh$.next();
-    setTimeout(() => (this.refreshing = false), 800);
+    // spinner clears on next data emission via vm pipeline
   }
 
   setPollInterval(val: number): void {

@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.layout.fillMaxWidth
+import kotlin.math.abs
 
 @Composable
 fun HomeScreen(
@@ -58,6 +59,7 @@ fun HomeScreen(
     val greeting = viewModel.greeting
     val marketplacePendingCount by viewModel.marketplacePendingCount.collectAsState()
     val complianceAlerts by viewModel.complianceAlerts.collectAsState()
+    val dismissedAlerts = remember { mutableListOf<String>() }
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val isWideScreen = !layout.isCompact
@@ -138,17 +140,20 @@ fun HomeScreen(
                         }
                     }
 
-                    // Compliance warning banners — shown only when alerts exist
-                    if (complianceAlerts.isNotEmpty()) {
+                    // Compliance warning banners — shown only when un-dismissed alerts exist
+                    val visibleAlerts = complianceAlerts.filter { it.label !in dismissedAlerts }
+                    if (visibleAlerts.isNotEmpty()) {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(spacing.small)
                         ) {
-                            complianceAlerts.forEach { alert ->
-                                ComplianceBanner(alert = alert)
+                            visibleAlerts.forEach { alert ->
+                                ComplianceBanner(
+                                    alert = alert,
+                                    onDismiss = { dismissedAlerts.add(alert.label) }
+                                )
                             }
                         }
-                        Spacer(modifier = Modifier.height(spacing.small))
                     }
                 }
             }
@@ -475,7 +480,6 @@ fun HomeActionCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 68.dp)
                 .padding(spacing.medium),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -540,44 +544,51 @@ fun HomeActionCard(
 @Composable
 fun ComplianceBanner(
     alert: HomeViewModel.ComplianceAlert,
+    onDismiss: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
 
     val bannerBg: Color
     val textColor: Color
     val alertIcon: ImageVector
+    val contentDesc: String
     val status: String
     when (alert.urgency) {
         HomeViewModel.ComplianceAlert.Urgency.EXPIRED  -> {
-            bannerBg  = DangerRed.copy(alpha = 0.18f)
-            textColor = DangerRed
-            alertIcon = Icons.Default.GppBad
-            status    = "EXPIRED"
+            bannerBg    = DangerRed.copy(alpha = 0.18f)
+            textColor   = DangerRed
+            alertIcon   = Icons.Default.GppBad
+            contentDesc = "Expired"
+            status      = "EXPIRED"
         }
         HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> {
-            bannerBg  = DangerRed.copy(alpha = 0.12f)
-            textColor = DangerRed
-            alertIcon = Icons.Default.Warning
-            status    = "${alert.daysLeft}d left"
+            bannerBg    = DangerRed.copy(alpha = 0.12f)
+            textColor   = DangerRed
+            alertIcon   = Icons.Default.Warning
+            contentDesc = "Critical warning"
+            status      = "${alert.daysLeft}d left"
         }
         HomeViewModel.ComplianceAlert.Urgency.HIGH     -> {
-            bannerBg  = WarningYellow.copy(alpha = 0.12f)
-            textColor = WarningYellow
-            alertIcon = Icons.Default.WarningAmber
-            status    = "${alert.daysLeft}d left"
+            bannerBg    = WarningYellow.copy(alpha = 0.12f)
+            textColor   = WarningYellow
+            alertIcon   = Icons.Default.WarningAmber
+            contentDesc = "High priority warning"
+            status      = "${alert.daysLeft}d left"
         }
         HomeViewModel.ComplianceAlert.Urgency.MEDIUM   -> {
-            bannerBg  = PrimaryGold.copy(alpha = 0.10f)
-            textColor = PrimaryGold
-            alertIcon = Icons.Default.Info
-            status    = "${alert.daysLeft}d left"
+            bannerBg    = PrimaryGold.copy(alpha = 0.10f)
+            textColor   = PrimaryGold
+            alertIcon   = Icons.Default.Info
+            contentDesc = "Info"
+            status      = "${alert.daysLeft}d left"
         }
     }
 
     val message = when (alert.urgency) {
         HomeViewModel.ComplianceAlert.Urgency.EXPIRED  -> "${alert.label} has expired! Renew immediately."
-        HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> "${alert.label} expires in ${alert.daysLeft} day(s). Renew now!"
+        HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> "${alert.label} expires in ${abs(alert.daysLeft)} day(s). Renew now!"
         HomeViewModel.ComplianceAlert.Urgency.HIGH     -> "${alert.label} expires in ${alert.daysLeft} days. Renew soon."
         HomeViewModel.ComplianceAlert.Urgency.MEDIUM   -> "${alert.label} expires in ${alert.daysLeft} days."
     }
@@ -591,15 +602,15 @@ fun ComplianceBanner(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
+                .padding(horizontal = spacing.medium, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
             Icon(
                 imageVector = alertIcon,
-                contentDescription = null,
+                contentDescription = contentDesc,
                 tint = textColor,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(iconSize.small)
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -619,6 +630,20 @@ fun ComplianceBanner(
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
+            }
+            if (onDismiss != null) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = textColor.copy(alpha = 0.10f),
+                    onClick = onDismiss
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Dismiss alert",
+                        tint = textColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(iconSize.xsmall)
+                    )
+                }
             }
         }
     }
