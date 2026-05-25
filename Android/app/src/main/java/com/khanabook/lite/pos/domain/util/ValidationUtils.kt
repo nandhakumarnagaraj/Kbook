@@ -41,7 +41,13 @@ object ValidationUtils {
 
     fun isValidGoogleReviewLink(url: String): Boolean {
         if (url.isBlank()) return true // optional field
-        return url.startsWith("https://") && (url.contains("google.com") || url.contains("g.co"))
+        val lower = url.lowercase(java.util.Locale.ROOT)
+        return lower.startsWith("https://") && (
+            lower.contains("google.com") ||
+            lower.contains("google.co.in") ||
+            lower.contains("g.co") ||
+            lower.contains("share.google")
+        )
     }
 
     fun isValidUpiId(upiId: String): Boolean {

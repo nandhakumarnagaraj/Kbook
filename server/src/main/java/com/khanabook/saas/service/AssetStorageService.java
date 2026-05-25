@@ -189,6 +189,7 @@ public class AssetStorageService {
 		profile.setLogoVersion(version);
 		profile.setUpdatedAt(now);
 		profile.setServerUpdatedAt(now);
+		profile.setDeviceId("server");
 	}
 
 	private void deleteOldVersions(Long restaurantId, String kind, int keepVersion) {

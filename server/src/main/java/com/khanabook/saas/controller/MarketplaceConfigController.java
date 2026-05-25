@@ -47,6 +47,12 @@ public class MarketplaceConfigController {
         if (data.containsKey("swiggyApiKey")) profile.setSwiggyApiKey((String) data.get("swiggyApiKey"));
         if (data.containsKey("swiggyWebhookSecret")) profile.setSwiggyWebhookSecret((String) data.get("swiggyWebhookSecret"));
         if (data.containsKey("swiggyStoreId")) profile.setSwiggyStoreId((String) data.get("swiggyStoreId"));
+        
+        long now = System.currentTimeMillis();
+        profile.setUpdatedAt(now);
+        profile.setServerUpdatedAt(now);
+        profile.setDeviceId("server");
+        
         profileRepo.save(profile);
         return getConfig();
     }

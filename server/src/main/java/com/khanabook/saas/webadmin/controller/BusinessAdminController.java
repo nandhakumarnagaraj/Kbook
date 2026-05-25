@@ -107,6 +107,7 @@ public class BusinessAdminController {
 
         p.setUpdatedAt(System.currentTimeMillis());
         p.setServerUpdatedAt(System.currentTimeMillis());
+        p.setDeviceId("server");
         restaurantProfileRepository.save(p);
         return ResponseEntity.ok(toProfileResponse(p));
     }
