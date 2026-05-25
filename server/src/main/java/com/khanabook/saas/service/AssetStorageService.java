@@ -166,7 +166,7 @@ public class AssetStorageService {
 				int port = req.getServerPort();
 				String contextPath = req.getContextPath();
 				String portStr = (scheme.equals("http") && port == 80) || (scheme.equals("https") && port == 443) ? "" : ":" + port;
-				return scheme + "://" + host + portStr + contextPath + "/cdn/" + restaurantId + "/" + filename;
+				return scheme + "://" + host + portStr + "/cdn/" + restaurantId + "/" + filename;
 			}
 		} catch (Exception e) {
 			log.debug("Could not resolve CDN URL from request context, falling back to configured prefix");
