@@ -56,6 +56,30 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
           
           <mat-card-content>
             <div class="form-grid">
+              <!-- Shop Logo Upload & Controls -->
+              <div class="logo-section">
+                <div class="logo-preview-container">
+                  <img *ngIf="logoUrl()" [src]="logoUrl()" alt="Shop Logo" class="logo-preview">
+                  <div *ngIf="!logoUrl() && !uploadingLogo()" class="logo-placeholder">
+                    <mat-icon>storefront</mat-icon>
+                  </div>
+                  <div *ngIf="uploadingLogo()" class="logo-loading">
+                    <mat-spinner diameter="32"></mat-spinner>
+                  </div>
+                </div>
+                <div class="logo-actions">
+                  <button mat-stroked-button type="button" (click)="logoInput.click()" [disabled]="uploadingLogo()">
+                    <mat-icon>upload</mat-icon>
+                    {{ logoUrl() ? 'Change Logo' : 'Upload Logo' }}
+                  </button>
+                  <button mat-stroked-button color="warn" type="button" *ngIf="logoUrl()" (click)="removeLogo()" [disabled]="uploadingLogo()">
+                    <mat-icon>delete</mat-icon>
+                    Remove
+                  </button>
+                  <input #logoInput type="file" (change)="onLogoSelected($event)" accept="image/*" style="display: none;">
+                </div>
+              </div>
+
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Shop Name</mat-label>
                 <input matInput [(ngModel)]="form.shopName" placeholder="e.g. Khana Khazana">
@@ -67,14 +91,45 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
               </mat-form-field>
 
               <div class="two-col">
-                <mat-form-field appearance="outline">
-                  <mat-label>WhatsApp Number</mat-label>
-                  <input matInput [(ngModel)]="form.whatsappNumber" placeholder="+91...">
-                  <mat-icon matSuffix>chat</mat-icon>
-                </mat-form-field>
+                <!-- WhatsApp OTP Verification field -->
+                <div class="whatsapp-container">
+                  <div class="whatsapp-input-row">
+                    <mat-form-field appearance="outline" style="flex: 1;">
+                      <mat-label>WhatsApp Number</mat-label>
+                      <input matInput [(ngModel)]="form.whatsappNumber" (ngModelChange)="onWhatsappChanged()" placeholder="10-digit number" type="tel" maxlength="10">
+                      <mat-icon matSuffix>chat</mat-icon>
+                    </mat-form-field>
+                    <button mat-flat-button color="primary" type="button" class="verify-btn" 
+                            *ngIf="numberChanged() && !otpSent && !isOtpVerified" 
+                            [disabled]="sendingOtp() || !isValidWhatsapp()" (click)="sendOtp()">
+                      <span *ngIf="!sendingOtp()">Send OTP</span>
+                      <mat-spinner diameter="18" *ngIf="sendingOtp()"></mat-spinner>
+                    </button>
+                    <div class="verified-badge" *ngIf="isOtpVerified && !numberChanged() && form.whatsappNumber">
+                      <mat-icon>check_circle</mat-icon>
+                      <span>Verified</span>
+                    </div>
+                  </div>
+
+                  <!-- OTP Input Box -->
+                  <div class="otp-verification-box animate-fade-in-up" *ngIf="otpSent">
+                    <p class="otp-instructions">Enter the 6-digit OTP sent to WhatsApp number <strong>{{ form.whatsappNumber }}</strong></p>
+                    <div class="otp-input-row">
+                      <mat-form-field appearance="outline" class="otp-field">
+                        <mat-label>Enter OTP</mat-label>
+                        <input matInput [ngModel]="otpValue" (ngModelChange)="onOtpInput($event)" placeholder="6-digit OTP" maxlength="6" type="tel">
+                      </mat-form-field>
+                      <span class="timer-text" *ngIf="otpTimer > 0">Resend in {{ getFormattedTimer() }}</span>
+                      <button mat-button color="primary" type="button" *ngIf="otpTimer === 0" (click)="sendOtp()" [disabled]="sendingOtp()">
+                        Resend OTP
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 <mat-form-field appearance="outline">
                   <mat-label>Email Address</mat-label>
-                  <input matInput [(ngModel)]="form.email" type="email" placeholder="owner@example.com">
+                  <input matInput [(ngModel)]="form.email" type="email" placeholder="owner@example.com" [disabled]="true">
                   <mat-icon matSuffix>email</mat-icon>
                 </mat-form-field>
               </div>
@@ -90,15 +145,6 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
                 <textarea matInput [(ngModel)]="form.invoiceFooter" rows="3" placeholder="Thank you for your visit!"></textarea>
                 <mat-hint>Shown at the bottom of printed and public invoices.</mat-hint>
               </mat-form-field>
-
-              <div class="toggle-group">
-                <mat-slide-toggle [(ngModel)]="form.showBranding" color="primary">
-                  Show KhanaBook Branding
-                </mat-slide-toggle>
-                <mat-slide-toggle [(ngModel)]="form.maskCustomerPhone" color="primary">
-                  Mask Phone on Receipts
-                </mat-slide-toggle>
-              </div>
             </div>
           </mat-card-content>
         </mat-card>
@@ -116,32 +162,26 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
               <div class="two-col">
                 <mat-form-field appearance="outline">
                   <mat-label>Default Currency</mat-label>
-                  <mat-select [(ngModel)]="form.currency">
+                  <mat-select [(ngModel)]="form.currency" [disabled]="true">
                     <mat-option value="INR">INR (₹) - Indian Rupee</mat-option>
-                    <mat-option value="USD">USD ($) - US Dollar</mat-option>
-                    <mat-option value="AED">AED (د.إ) - UAE Dirham</mat-option>
                   </mat-select>
                 </mat-form-field>
                 <mat-form-field appearance="outline">
                   <mat-label>UPI Handle</mat-label>
-                  <input matInput [(ngModel)]="form.upiHandle" placeholder="business@upi">
+                  <input matInput [(ngModel)]="form.upiHandle" placeholder="business@upi" [disabled]="!form.upiEnabled">
                   <mat-icon matSuffix>qr_code</mat-icon>
                 </mat-form-field>
               </div>
 
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>UPI Linked Mobile</mat-label>
-                <input matInput [(ngModel)]="form.upiMobile" placeholder="Used for QR generation">
-              </mat-form-field>
-
               <h3 class="section-divider">Accepted Payment Methods</h3>
               <div class="checkbox-grid">
                 <mat-checkbox [(ngModel)]="form.cashEnabled" color="primary">Cash</mat-checkbox>
-                <mat-checkbox [(ngModel)]="form.upiEnabled" color="primary">Direct UPI</mat-checkbox>
-                <mat-checkbox [(ngModel)]="form.posEnabled" color="primary">POS / Card</mat-checkbox>
-                <mat-checkbox [(ngModel)]="form.zomatoEnabled" color="primary">Zomato Orders</mat-checkbox>
-                <mat-checkbox [(ngModel)]="form.swiggyEnabled" color="primary">Swiggy Orders</mat-checkbox>
-                <mat-checkbox [(ngModel)]="form.ownWebsiteEnabled" color="primary">Online Store</mat-checkbox>
+                <mat-checkbox [(ngModel)]="form.upiEnabled" color="primary">Offline UPI</mat-checkbox>
+                <mat-checkbox [(ngModel)]="form.posEnabled" color="primary">POS Machine</mat-checkbox>
+                <mat-checkbox [(ngModel)]="form.zomatoEnabled" color="primary" [disabled]="true">Zomato Orders</mat-checkbox>
+                <mat-checkbox [(ngModel)]="form.swiggyEnabled" color="primary" [disabled]="true">Swiggy Orders</mat-checkbox>
+                <mat-checkbox [(ngModel)]="form.ownWebsiteEnabled" color="primary" [disabled]="true">Online Store</mat-checkbox>
+                <mat-checkbox [(ngModel)]="form.easebuzzEnabled" color="primary" [disabled]="true">Easebuzz Payments</mat-checkbox>
               </div>
             </div>
           </mat-card-content>
@@ -160,11 +200,11 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
               <div class="two-col">
                 <mat-form-field appearance="outline">
                   <mat-label>Country</mat-label>
-                  <input matInput [(ngModel)]="form.country">
+                  <input matInput [(ngModel)]="form.country" [disabled]="true">
                 </mat-form-field>
                 <mat-form-field appearance="outline">
                   <mat-label>Timezone</mat-label>
-                  <mat-select [(ngModel)]="form.timezone">
+                  <mat-select [(ngModel)]="form.timezone" [disabled]="true">
                     <mat-option value="Asia/Kolkata">Asia/Kolkata (IST)</mat-option>
                     <mat-option value="Asia/Dubai">Asia/Dubai (GST)</mat-option>
                     <mat-option value="UTC">UTC (Universal)</mat-option>
@@ -172,21 +212,46 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
                 </mat-form-field>
               </div>
 
+              <!-- FSSAI License with Fetch Button -->
+              <div class="fetch-row">
+                <mat-form-field appearance="outline" style="flex: 1;">
+                  <mat-label>FSSAI License Number</mat-label>
+                  <input matInput [(ngModel)]="form.fssaiNumber" (input)="onFssaiInput($event)" placeholder="Enter 14 digits" maxlength="14">
+                  <mat-icon matSuffix>assignment</mat-icon>
+                </mat-form-field>
+                <button mat-stroked-button type="button" class="fetch-btn" [disabled]="!isValidFssai() || lookupLoading()" (click)="fetchFssai()">
+                  Fetch
+                </button>
+              </div>
+
               <div class="toggle-group row">
                 <mat-slide-toggle [(ngModel)]="form.gstEnabled" color="primary">Enable GST</mat-slide-toggle>
                 <mat-slide-toggle [(ngModel)]="form.isTaxInclusive" color="primary">Inclusive Pricing</mat-slide-toggle>
               </div>
 
+              <!-- GSTIN with Fetch Button -->
               <div class="two-col" *ngIf="form.gstEnabled">
-                <mat-form-field appearance="outline">
-                  <mat-label>GSTIN</mat-label>
-                  <input matInput [(ngModel)]="form.gstin" placeholder="15-char GSTIN">
-                </mat-form-field>
+                <div class="fetch-row">
+                  <mat-form-field appearance="outline" style="flex: 1;">
+                    <mat-label>GSTIN</mat-label>
+                    <input matInput [(ngModel)]="form.gstin" (input)="onGstinInput($event)" placeholder="15-char GSTIN" maxlength="15">
+                  </mat-form-field>
+                  <button mat-stroked-button type="button" class="fetch-btn" [disabled]="!isValidGstin() || lookupLoading()" (click)="fetchGst()">
+                    Fetch
+                  </button>
+                </div>
                 <mat-form-field appearance="outline">
                   <mat-label>GST Percentage</mat-label>
                   <input matInput type="number" step="0.1" [(ngModel)]="form.gstPercentage">
                   <span matSuffix>%</span>
                 </mat-form-field>
+              </div>
+
+              <!-- Fetch Both button if both valid -->
+              <div class="fetch-both-container" *ngIf="isValidFssai() && form.gstEnabled && isValidGstin()">
+                <button mat-stroked-button type="button" class="fetch-both-btn" [disabled]="lookupLoading()" (click)="fetchBoth()">
+                  Fetch Both (GST + FSSAI)
+                </button>
               </div>
 
               <h3 class="section-divider">Custom Taxes</h3>
@@ -205,12 +270,6 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
                   <input matInput [(ngModel)]="form.customTaxNumber">
                 </mat-form-field>
               </div>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>FSSAI License Number</mat-label>
-                <input matInput [(ngModel)]="form.fssaiNumber">
-                <mat-icon matSuffix>assignment</mat-icon>
-              </mat-form-field>
             </div>
           </mat-card-content>
         </mat-card>
@@ -223,8 +282,35 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
            <button mat-flat-button color="primary" class="save-btn" (click)="save()" [disabled]="saving()">
               <mat-icon *ngIf="!saving()">save</mat-icon>
               <mat-spinner diameter="18" *ngIf="saving()"></mat-spinner>
-              Save Changes
+              Save
            </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lookup Results Dialog Overlay -->
+    <div class="modal-overlay" *ngIf="showLookupResult()">
+      <div class="modal-card">
+        <h2>Lookup Result</h2>
+        <div class="modal-content">
+          <div *ngIf="lookupLoading()" class="modal-loading">
+            <mat-spinner diameter="32"></mat-spinner>
+            <p>Fetching details...</p>
+          </div>
+          <div *ngIf="!lookupLoading() && lookupResult() as result">
+            <p *ngIf="result.businessName"><strong>Business Name:</strong> {{ result.businessName }}</p>
+            <p *ngIf="result.address"><strong>Address:</strong> {{ result.address }}</p>
+            <p *ngIf="result.gstin"><strong>GSTIN:</strong> {{ result.gstin }}</p>
+            <p *ngIf="result.fssaiNo"><strong>FSSAI:</strong> {{ result.fssaiNo }}</p>
+            <p *ngIf="!result.businessName && !result.address" class="info-text">No name/address returned, but details are valid.</p>
+          </div>
+          <div *ngIf="!lookupLoading() && lookupError()">
+            <p class="error-text">{{ lookupError() }}</p>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button mat-stroked-button (click)="closeLookup()">Dismiss</button>
+          <button mat-flat-button color="primary" *ngIf="!lookupLoading() && lookupResult() && !lookupError()" (click)="applyLookupResult()">Apply</button>
         </div>
       </div>
     </div>
@@ -267,10 +353,57 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
     .status-text { color: var(--muted); font-size: 0.9rem; font-weight: 600; }
     .spacer { flex: 1; }
 
+    /* Logo Uploader styling */
+    .logo-section { display: flex; align-items: center; gap: 20px; margin-bottom: 24px; padding: 12px; background: var(--bg); border: 1px dashed var(--line); border-radius: var(--radius-lg); }
+    .logo-preview-container { width: 80px; height: 80px; border-radius: var(--radius-md); overflow: hidden; background: #ffffff; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; position: relative; }
+    .logo-preview { width: 100%; height: 100%; object-fit: cover; }
+    .logo-placeholder { color: var(--muted); display: flex; align-items: center; justify-content: center; }
+    .logo-placeholder mat-icon { font-size: 40px; width: 40px; height: 40px; }
+    .logo-loading { display: flex; align-items: center; justify-content: center; }
+    .logo-actions { display: flex; gap: 12px; }
+
+    /* WhatsApp OTP styling */
+    .whatsapp-container { display: flex; flex-direction: column; gap: 8px; }
+    .whatsapp-input-row { display: flex; align-items: center; gap: 12px; }
+    .verify-btn { height: 52px; font-weight: 700; border-radius: var(--radius-md); }
+    .verified-badge { display: flex; align-items: center; gap: 6px; color: var(--accent); font-weight: 700; padding: 8px 12px; background: var(--accent-soft); border-radius: var(--radius-md); font-size: 0.9rem; }
+    .verified-badge mat-icon { font-size: 20px; width: 20px; height: 20px; color: var(--accent); }
+    .otp-verification-box { padding: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-md); margin-top: 8px; }
+    .otp-instructions { margin: 0 0 12px; font-size: 0.85rem; color: var(--muted); }
+    .otp-input-row { display: flex; align-items: center; gap: 16px; }
+    .otp-field { width: 140px; margin-bottom: 0; }
+    .timer-text { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+
+    /* Fetch buttons styling */
+    .fetch-row { display: flex; align-items: flex-start; gap: 12px; width: 100%; }
+    .fetch-btn { height: 56px; font-weight: 700; border-radius: var(--radius-md); border: 1px solid var(--line); }
+    .fetch-both-container { width: 100%; display: flex; justify-content: center; margin-top: 12px; margin-bottom: 8px; }
+    .fetch-both-btn { width: 100%; height: 48px; font-weight: 700; border-radius: var(--radius-md); border: 1px solid var(--line); }
+
+    /* Lookup modal styling */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-xl); padding: 24px; width: 90%; max-width: 450px; box-shadow: var(--shadow-xl); animation: fadeInUp 0.3s ease; }
+    .modal-card h2 { margin-top: 0; color: var(--brand); font-size: 1.3rem; font-weight: 800; }
+    .modal-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; justify-content: center; padding: 20px; }
+    .modal-content { margin: 16px 0 24px; color: var(--ink); }
+    .modal-content p { margin: 8px 0; font-size: 0.95rem; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
+    .error-text { color: var(--danger); font-weight: 600; }
+    .info-text { color: var(--muted); font-style: italic; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     @media (max-width: 768px) {
       .two-col, .three-col { grid-template-columns: 1fr; }
       .footer-container { flex-direction: column; gap: 12px; }
       .save-btn { width: 100%; }
+      .whatsapp-input-row { flex-direction: column; align-items: stretch; }
+      .verify-btn { width: 100%; }
+      .fetch-row { flex-direction: column; align-items: stretch; }
+      .fetch-btn { width: 100%; }
     }
   `]
 })
@@ -283,6 +416,260 @@ export class RestaurantSettingsPageComponent implements OnInit {
   saving = signal(false);
   loading = signal(true);
 
+  logoUrl = signal<string | null>(null);
+  uploadingLogo = signal(false);
+
+  originalWhatsappNumber = '';
+  otpSent = false;
+  otpValue = '';
+  otpTimer = 0;
+  timerInterval: any;
+  isOtpVerified = false;
+  sendingOtp = signal(false);
+  verifyingOtp = signal(false);
+
+  showLookupResult = signal(false);
+  lookupLoading = signal(false);
+  lookupResult = signal<any>(null);
+  lookupError = signal<string | null>(null);
+
+  isValidWhatsapp(): boolean {
+    return !!this.form.whatsappNumber && this.form.whatsappNumber.length === 10 && /^\d+$/.test(this.form.whatsappNumber);
+  }
+
+  isValidFssai(): boolean {
+    return !!this.form.fssaiNumber && this.form.fssaiNumber.length === 14 && /^\d+$/.test(this.form.fssaiNumber);
+  }
+
+  isValidGstin(): boolean {
+    return !!this.form.gstin && this.form.gstin.length === 15;
+  }
+
+  onWhatsappChanged(): void {
+    if (this.form.whatsappNumber) {
+      this.form.whatsappNumber = this.form.whatsappNumber.replace(/\D/g, '').slice(0, 10);
+    }
+    if (this.form.whatsappNumber !== this.originalWhatsappNumber) {
+      this.otpSent = false;
+      this.isOtpVerified = false;
+      this.otpValue = '';
+      if (this.timerInterval) {
+        clearInterval(this.timerInterval);
+      }
+    } else {
+      this.isOtpVerified = true;
+    }
+  }
+
+  numberChanged(): boolean {
+    return this.form.whatsappNumber !== this.originalWhatsappNumber;
+  }
+
+  sendOtp(): void {
+    if (!this.isValidWhatsapp()) return;
+    this.sendingOtp.set(true);
+    this.api.requestUpdateMobileOtp(this.form.whatsappNumber!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.sendingOtp.set(false);
+        this.otpSent = true;
+        this.isOtpVerified = false;
+        this.startOtpTimer();
+        this.snackBar.open('OTP sent to WhatsApp.', 'Close', { duration: 3000 });
+      },
+      error: (err) => {
+        this.sendingOtp.set(false);
+        this.snackBar.open(err?.error?.error || 'Failed to send OTP. Please try again.', 'Close', { duration: 5000 });
+      }
+    });
+  }
+
+  startOtpTimer(): void {
+    this.otpTimer = 120;
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+    }
+    this.timerInterval = setInterval(() => {
+      if (this.otpTimer > 0) {
+        this.otpTimer--;
+      } else {
+        clearInterval(this.timerInterval);
+      }
+    }, 1000);
+  }
+
+  getFormattedTimer(): string {
+    const minutes = Math.floor(this.otpTimer / 60);
+    const seconds = this.otpTimer % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  onOtpInput(value: string): void {
+    this.otpValue = value.replace(/\D/g, '').slice(0, 6);
+    if (this.otpValue.length === 6) {
+      this.verifyOtp();
+    }
+  }
+
+  verifyOtp(): void {
+    this.verifyingOtp.set(true);
+    this.api.confirmUpdateMobile(this.form.whatsappNumber!, this.otpValue).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.verifyingOtp.set(false);
+        this.isOtpVerified = true;
+        this.originalWhatsappNumber = this.form.whatsappNumber!;
+        this.otpSent = false;
+        this.otpValue = '';
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        this.snackBar.open('WhatsApp number verified successfully.', 'Close', { duration: 3000 });
+      },
+      error: (err) => {
+        this.verifyingOtp.set(false);
+        this.isOtpVerified = false;
+        this.snackBar.open(err?.error?.error || 'Invalid OTP code.', 'Close', { duration: 5000 });
+      }
+    });
+  }
+
+  onLogoSelected(event: any): void {
+    const file = event.target.files?.[0];
+    if (file) {
+      this.uploadingLogo.set(true);
+      this.api.uploadLogo(file).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: (res) => {
+          this.logoUrl.set(res.logoUrl);
+          this.uploadingLogo.set(false);
+          this.snackBar.open('Logo uploaded successfully.', 'Close', { duration: 3000 });
+        },
+        error: (err) => {
+          this.uploadingLogo.set(false);
+          this.snackBar.open(err?.error?.error || 'Failed to upload logo.', 'Close', { duration: 5000 });
+        }
+      });
+    }
+  }
+
+  removeLogo(): void {
+    this.uploadingLogo.set(true);
+    this.api.deleteLogo().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.logoUrl.set(null);
+        this.uploadingLogo.set(false);
+        this.snackBar.open('Logo removed successfully.', 'Close', { duration: 3000 });
+      },
+      error: (err) => {
+        this.uploadingLogo.set(false);
+        this.snackBar.open(err?.error?.error || 'Failed to remove logo.', 'Close', { duration: 5000 });
+      }
+    });
+  }
+
+  onFssaiInput(event: any): void {
+    const val = event.target.value;
+    this.form.fssaiNumber = val.replace(/\D/g, '').slice(0, 14);
+  }
+
+  onGstinInput(event: any): void {
+    const val = event.target.value;
+    this.form.gstin = val.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+  }
+
+  fetchFssai(): void {
+    if (!this.isValidFssai()) return;
+    this.showLookupResult.set(true);
+    this.lookupLoading.set(true);
+    this.lookupError.set(null);
+    this.lookupResult.set(null);
+    this.api.lookupFssai(this.form.fssaiNumber!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res) => {
+        this.lookupLoading.set(false);
+        if (res.valid) {
+          this.lookupResult.set({
+            businessName: res.businessName,
+            address: res.address,
+            fssaiNo: this.form.fssaiNumber
+          });
+        } else {
+          this.lookupError.set(res.error || 'No data found');
+        }
+      },
+      error: (err) => {
+        this.lookupLoading.set(false);
+        this.lookupError.set(err?.error?.error || 'Lookup service unavailable');
+      }
+    });
+  }
+
+  fetchGst(): void {
+    if (!this.isValidGstin()) return;
+    this.showLookupResult.set(true);
+    this.lookupLoading.set(true);
+    this.lookupError.set(null);
+    this.lookupResult.set(null);
+    this.api.lookupGst(this.form.gstin!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res) => {
+        this.lookupLoading.set(false);
+        if (res.valid) {
+          this.lookupResult.set({
+            businessName: res.businessName,
+            address: res.address,
+            gstin: this.form.gstin
+          });
+        } else {
+          this.lookupError.set(res.error || 'No data found');
+        }
+      },
+      error: (err) => {
+        this.lookupLoading.set(false);
+        this.lookupError.set(err?.error?.error || 'Lookup service unavailable');
+      }
+    });
+  }
+
+  fetchBoth(): void {
+    if (!this.isValidFssai() || !this.isValidGstin()) return;
+    this.showLookupResult.set(true);
+    this.lookupLoading.set(true);
+    this.lookupError.set(null);
+    this.lookupResult.set(null);
+    this.api.lookupBoth(this.form.gstin!, this.form.fssaiNumber!).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res) => {
+        this.lookupLoading.set(false);
+        const gstValid = res.gst?.valid;
+        const fssaiValid = res.fssai?.valid;
+        if (gstValid || fssaiValid) {
+          this.lookupResult.set({
+            businessName: res.businessName || res.fssai?.businessName || res.gst?.businessName,
+            address: res.address || res.fssai?.address || res.gst?.address,
+            gstin: this.form.gstin,
+            fssaiNo: this.form.fssaiNumber
+          });
+        } else {
+          this.lookupError.set(res.gst?.error || res.fssai?.error || 'No data found');
+        }
+      },
+      error: (err) => {
+        this.lookupLoading.set(false);
+        this.lookupError.set(err?.error?.error || 'Lookup service unavailable');
+      }
+    });
+  }
+
+  closeLookup(): void {
+    this.showLookupResult.set(false);
+    this.lookupResult.set(null);
+    this.lookupError.set(null);
+  }
+
+  applyLookupResult(): void {
+    const res = this.lookupResult();
+    if (res) {
+      if (res.businessName) this.form.shopName = res.businessName;
+      if (res.address) this.form.shopAddress = res.address;
+      this.snackBar.open('Fetched details applied.', 'Close', { duration: 3000 });
+    }
+    this.closeLookup();
+  }
+
   ngOnInit(): void {
     this.api.getProfile().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (p) => {
@@ -291,7 +678,7 @@ export class RestaurantSettingsPageComponent implements OnInit {
           shopAddress: p.shopAddress ?? undefined,
           whatsappNumber: p.whatsappNumber ?? undefined,
           email: p.email ?? undefined,
-          currency: p.currency ?? undefined,
+          currency: 'INR',
           upiEnabled: p.upiEnabled ?? undefined,
           upiHandle: p.upiHandle ?? undefined,
           upiMobile: p.upiMobile ?? undefined,
@@ -300,8 +687,9 @@ export class RestaurantSettingsPageComponent implements OnInit {
           zomatoEnabled: p.zomatoEnabled ?? undefined,
           swiggyEnabled: p.swiggyEnabled ?? undefined,
           ownWebsiteEnabled: p.ownWebsiteEnabled ?? undefined,
-          country: p.country ?? undefined,
-          timezone: p.timezone ?? undefined,
+          easebuzzEnabled: p.easebuzzEnabled ?? undefined,
+          country: 'India',
+          timezone: 'Asia/Kolkata',
           gstEnabled: p.gstEnabled ?? undefined,
           gstin: p.gstin ?? undefined,
           isTaxInclusive: p.isTaxInclusive ?? undefined,
@@ -315,6 +703,9 @@ export class RestaurantSettingsPageComponent implements OnInit {
           showBranding: p.showBranding ?? undefined,
           maskCustomerPhone: p.maskCustomerPhone ?? undefined,
         };
+        this.logoUrl.set(p.logoUrl ?? null);
+        this.originalWhatsappNumber = p.whatsappNumber ?? '';
+        this.isOtpVerified = true;
         this.loading.set(false);
       },
       error: () => { 
@@ -325,6 +716,10 @@ export class RestaurantSettingsPageComponent implements OnInit {
   }
 
   save(): void {
+    if (this.numberChanged() && !this.isOtpVerified) {
+      this.snackBar.open('Verify the new WhatsApp number', 'Close', { duration: 5000 });
+      return;
+    }
     this.saving.set(true);
     this.api.updateProfile(this.form).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {

@@ -224,6 +224,7 @@ export interface BusinessProfile {
   invoiceFooter: string | null;
   showBranding: boolean | null;
   maskCustomerPhone: boolean | null;
+  easebuzzEnabled?: boolean | null;
 }
 
 export interface UpdateBusinessProfileRequest {
@@ -240,6 +241,7 @@ export interface UpdateBusinessProfileRequest {
   zomatoEnabled?: boolean;
   swiggyEnabled?: boolean;
   ownWebsiteEnabled?: boolean;
+  easebuzzEnabled?: boolean;
   country?: string;
   timezone?: string;
   gstEnabled?: boolean;

@@ -32,5 +32,6 @@ public record BusinessProfileResponse(
     String reviewUrl,
     String invoiceFooter,
     Boolean showBranding,
-    Boolean maskCustomerPhone
+    Boolean maskCustomerPhone,
+    Boolean easebuzzEnabled
 ) {}

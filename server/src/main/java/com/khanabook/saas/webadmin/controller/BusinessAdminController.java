@@ -103,6 +103,7 @@ public class BusinessAdminController {
         if (req.invoiceFooter() != null) p.setInvoiceFooter(req.invoiceFooter());
         if (req.showBranding() != null) p.setShowBranding(req.showBranding());
         if (req.maskCustomerPhone() != null) p.setMaskCustomerPhone(req.maskCustomerPhone());
+        if (req.easebuzzEnabled() != null) p.setEasebuzzEnabled(req.easebuzzEnabled());
 
         p.setUpdatedAt(System.currentTimeMillis());
         p.setServerUpdatedAt(System.currentTimeMillis());
@@ -141,7 +142,8 @@ public class BusinessAdminController {
                 p.getReviewUrl(),
                 p.getInvoiceFooter(),
                 p.getShowBranding(),
-                p.getMaskCustomerPhone()
+                p.getMaskCustomerPhone(),
+                p.getEasebuzzEnabled()
         );
     }
 

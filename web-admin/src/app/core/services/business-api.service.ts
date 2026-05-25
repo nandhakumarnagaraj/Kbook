@@ -105,4 +105,29 @@ export class BusinessApiService {
       healthy: boolean;
     }>(`${API_BASE_URL}/marketplace/health`, { params: { platform } });
   }
+
+  uploadLogo(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ logoUrl: string; logoVersion: number }>(`${API_BASE_URL}/restaurants/logo`, formData);
+  }
+
+  deleteLogo() {
+    return this.http.delete<void>(`${API_BASE_URL}/restaurants/logo`);
+  }
+
+  requestUpdateMobileOtp(newMobileNumber: string) {
+    return this.http.post<any>(`${API_BASE_URL}/sync/config/users/update-mobile/request`, { newMobileNumber });
+  }
+
+  confirmUpdateMobile(newMobileNumber: string, otp: string) {
+    return this.http.post<any>(`${API_BASE_URL}/sync/config/users/update-mobile`, { newMobileNumber, otp });
+  }
+
+  lookupBoth(gstin?: string, fssaiNo?: string) {
+    const params: any = {};
+    if (gstin) params.gstin = gstin;
+    if (fssaiNo) params.fssaiNo = fssaiNo;
+    return this.http.get<any>(`${API_BASE_URL}/business/lookup/both`, { params });
+  }
 }

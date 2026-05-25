@@ -118,9 +118,9 @@ val MaterialTheme.kbBgGradient: Brush
 // ═══════════════════════════════════════════════════════════════
 
 val DarkBrown1: Color
-    get() = if (ThemeState.isDark) Color(0xFF1F1B18) else Color.White     // warm dark surface / light white surface
+    get() = if (ThemeState.isDark) Color(0xFF1C1810) else Color.White     // warm dark surface / light white surface
 val DarkBrown2: Color
-    get() = if (ThemeState.isDark) Color(0xFF2B2521) else Color(0xFFEBE8DF)     // warm darker/lighter surface
+    get() = if (ThemeState.isDark) Color(0xFF241F14) else Color(0xFFF8F0E4)     // elevated surface
 val PrimaryGold: Color
     get() = if (ThemeState.isDark) KbSaffron400 else KbSaffron600     // brand primary saffron
 val LightGold: Color
@@ -132,7 +132,7 @@ val TextLight: Color
 val TextMuted: Color
     get() = if (ThemeState.isDark) Color(0xFFD6C8C0) else Color(0xFF8C7D75)   // warm muted text
 val CardBG: Color
-    get() = if (ThemeState.isDark) Color(0xFF1F1B18) else Color.White     // card background
+    get() = if (ThemeState.isDark) Color(0xFF1C1810) else Color.White     // card background
 val BorderGold: Color
     get() = if (ThemeState.isDark) KbSaffron400.copy(alpha = 0.15f) else KbSaffron600.copy(alpha = 0.15f)
 val ParchmentBG: Color
@@ -144,11 +144,13 @@ val BrandPurple: Color
 val BrandPurpleDim: Color
     get() = if (ThemeState.isDark) KbSaffron300 else KbSaffron400
 val Brown500: Color
-    get() = if (ThemeState.isDark) Color(0xFF2B2521) else Color(0xFFEBE8DF)
+    get() = if (ThemeState.isDark) Color(0xFF241F14) else Color(0xFFF8F0E4)
 val DarkBrownSheet: Color
-    get() = if (ThemeState.isDark) Color(0xFF141210) else Color(0xFFF2F0EB)
+    get() = if (ThemeState.isDark) Color(0xFF1C1810) else Color(0xFFF8F0E4)
 val RichEspresso: Color
-    get() = if (ThemeState.isDark) Color(0xFF141210) else Color(0xFFF2F0EB)     // neutral page bg (mid-white)
+    get() = if (ThemeState.isDark) Color(0xFF060604) else Color(0xFFC8B898)     // high-contrast page bg
+val BottomNavBG: Color
+    get() = if (ThemeState.isDark) Color(0xFF060604) else Color(0xFFF8F0E4)
 
 // Semantic status
 val VegGreen      = KbGreen
