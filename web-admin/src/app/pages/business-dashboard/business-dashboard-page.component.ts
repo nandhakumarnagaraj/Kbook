@@ -350,6 +350,7 @@ Chart.register(...registerables);
     @media (max-width: 600px)  { .stats-grid { grid-template-columns: 1fr; } }
     .stat-card { 
       position: relative;
+      min-width: 0;
       border-radius: var(--radius-xl) !important; 
       border: 1px solid var(--line) !important; 
       background: rgba(255, 255, 255, 0.7) !important;
@@ -357,6 +358,15 @@ Chart.register(...registerables);
       -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
       box-shadow: var(--shadow-md) !important; 
       transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+      overflow: hidden;
+    }
+    .stat-card .mat-mdc-card-header {
+      min-width: 0;
+      padding: 14px 16px;
+      gap: 10px;
+    }
+    .stat-card .mat-mdc-card-header-text {
+      min-width: 0;
       overflow: hidden;
     }
     :host-context(.dark-theme) .stat-card {
@@ -370,13 +380,14 @@ Chart.register(...registerables);
     .stat-icon { 
       background: var(--brand-soft); 
       color: var(--brand); 
-      width: 52px; 
-      height: 52px; 
-      line-height: 52px; 
+      width: 44px; 
+      height: 44px; 
+      line-height: 44px; 
       text-align: center; 
       border-radius: var(--radius-lg); 
-      font-size: 26px; 
+      font-size: 22px; 
       transition: all 0.3s ease;
+      flex-shrink: 0;
     }
     .stat-card:hover .stat-icon {
       transform: scale(1.1) rotate(6deg);

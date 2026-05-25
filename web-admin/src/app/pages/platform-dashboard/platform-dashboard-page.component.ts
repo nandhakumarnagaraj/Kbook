@@ -332,6 +332,16 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       overflow: hidden;
       position: relative;
       background: var(--panel);
+      min-width: 0;
+    }
+    .stat-card .mat-mdc-card-header {
+      min-width: 0;
+      padding: 14px 16px;
+      gap: 10px;
+    }
+    .stat-card .mat-mdc-card-header-text {
+      min-width: 0;
+      overflow: hidden;
     }
 
     .stat-card.clickable {
@@ -365,13 +375,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     .stat-icon {
       background: var(--brand-soft);
       color: var(--brand);
-      width: 52px;
-      height: 52px;
-      line-height: 52px;
+      width: 44px;
+      height: 44px;
+      line-height: 44px;
       text-align: center;
       border-radius: var(--radius-lg);
-      font-size: 26px;
+      font-size: 22px;
       transition: all 0.3s ease;
+      flex-shrink: 0;
     }
     
     .stat-card:hover .stat-icon {
