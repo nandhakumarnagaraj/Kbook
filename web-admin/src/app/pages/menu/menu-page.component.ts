@@ -16,6 +16,9 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessMenuItem } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
@@ -39,7 +42,10 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     MatChipsModule,
     MatTooltipModule,
     MatDividerModule,
-    MatMenuModule
+    MatMenuModule,
+    MatSlideToggleModule,
+    MatSnackBarModule,
+    MatDialogModule
   ],
   template: `
     <div class="page-container">
@@ -93,7 +99,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             <mat-select [(ngModel)]="stockFilter" (selectionChange)="applyFilters()">
               <mat-option value="ALL">All Levels</mat-option>
               <mat-option value="IN_STOCK">In Stock</mat-option>
-              <mat-option value="RUNNING_LOW">Running Low</mat-option>
+              <mat-option value="RUN_LOW">Running Low</mat-option>
               <mat-option value="OUT_OF_STOCK">Out of Stock</mat-option>
             </mat-select>
           </mat-form-field>
@@ -119,8 +125,9 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         </div>
 
         <table mat-table [dataSource]="dataSource" matSort>
+          <!-- Item Details -->
           <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header> Item Details </th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-name-header"> Item Details </th>
             <td mat-cell *matCellDef="let item"> 
               <div class="item-cell">
                 <div class="item-avatar" [class.veg]="item.foodType === 'VEG'">
@@ -134,6 +141,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             </td>
           </ng-container>
 
+          <!-- Category -->
           <ng-container matColumnDef="categoryName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Category </th>
             <td mat-cell *matCellDef="let item"> 
@@ -141,6 +149,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             </td>
           </ng-container>
 
+          <!-- Base Price -->
           <ng-container matColumnDef="basePrice">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Base Price </th>
             <td mat-cell *matCellDef="let item" class="price-cell"> 
@@ -148,6 +157,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             </td>
           </ng-container>
 
+          <!-- Inventory Status -->
           <ng-container matColumnDef="availability">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Inventory </th>
             <td mat-cell *matCellDef="let item">
@@ -157,6 +167,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
             </td>
           </ng-container>
 
+          <!-- App Status (Live/Hidden slide toggle) -->
           <ng-container matColumnDef="status">
             <th mat-header-cell *matHeaderCellDef> App Status </th>
             <td mat-cell *matCellDef="let item">
@@ -164,33 +175,41 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
                  <span class="status-label" [class.on]="item.available">
                    {{ item.available ? 'Live' : 'Hidden' }}
                  </span>
-                 <button mat-icon-button (click)="$event.stopPropagation()" [color]="item.available ? 'primary' : ''">
-                   <mat-icon>{{ item.available ? 'toggle_on' : 'toggle_off' }}</mat-icon>
-                 </button>
+                 <mat-slide-toggle 
+                   [checked]="item.available" 
+                   (change)="toggleAvailability(item)" 
+                   (click)="$event.stopPropagation()"
+                   color="primary">
+                 </mat-slide-toggle>
                </div>
             </td>
           </ng-container>
 
           <!-- Actions Column -->
           <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef></th>
+            <th mat-header-cell *matHeaderCellDef class="col-actions-header"> Action </th>
             <td mat-cell *matCellDef="let item" class="actions-cell">
                <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
                  <mat-icon>more_vert</mat-icon>
                </button>
                <mat-menu #menu="matMenu" xPosition="before">
-                 <button mat-menu-item>
+                 <button mat-menu-item (click)="openEditDialog(item)">
                    <mat-icon>edit</mat-icon>
                    <span>Edit Item</span>
                  </button>
-                 <button mat-menu-item>
+                 <button mat-menu-item (click)="openStockDialog(item)">
                    <mat-icon>inventory_2</mat-icon>
                    <span>Update Stock</span>
                  </button>
                  <mat-divider></mat-divider>
-                 <button mat-menu-item color="warn">
-                   <mat-icon>delete</mat-icon>
-                   <span>Remove Item</span>
+                 <!-- Mark Available/Unavailable toggles replace raw delete button -->
+                 <button mat-menu-item *ngIf="!item.available" (click)="setAvailability(item, true)">
+                   <mat-icon>check_circle</mat-icon>
+                   <span>Mark as Available</span>
+                 </button>
+                 <button mat-menu-item *ngIf="item.available" (click)="setAvailability(item, false)">
+                   <mat-icon>cancel</mat-icon>
+                   <span>Mark as Unavailable</span>
                  </button>
                </mat-menu>
             </td>
@@ -198,8 +217,6 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="item-row"></tr>
-
-
         </table>
 
         <div class="empty-view" *ngIf="loaded && !dataSource.data.length">
@@ -211,6 +228,90 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         <mat-paginator [pageSizeOptions]="[10, 25, 50]" aria-label="Select page of menu items"></mat-paginator>
       </div>
     </div>
+
+    <!-- Dialog Templates -->
+    <ng-template #editDialog>
+      <h2 mat-dialog-title class="dialog-title">Edit Menu Item</h2>
+      <mat-dialog-content class="dialog-content">
+        <form class="edit-form">
+          <div class="form-field-full">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Item Name</mat-label>
+              <input matInput [(ngModel)]="selectedItem.name" name="name" required>
+            </mat-form-field>
+          </div>
+
+          <div class="form-field-full">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Description</mat-label>
+              <textarea matInput [(ngModel)]="selectedItem.description" name="description" rows="3"></textarea>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row-2">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Base Price (₹)</mat-label>
+              <input matInput type="number" [(ngModel)]="selectedItem.basePrice" name="basePrice" required>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Food Type</mat-label>
+              <mat-select [(ngModel)]="selectedItem.foodType" name="foodType">
+                <mat-option value="VEG">Veg (Green)</mat-option>
+                <mat-option value="NON_VEG">Non-Veg (Red)</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row-2">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Category</mat-label>
+              <input matInput [value]="selectedItem.categoryName || 'General'" name="categoryName" readonly matTooltip="Category is synchronized from POS">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Stock Level</mat-label>
+              <mat-select [(ngModel)]="selectedItem.stockStatus" name="stockStatus">
+                <mat-option value="IN_STOCK">In Stock</mat-option>
+                <mat-option value="RUNNING_LOW">Running Low</mat-option>
+                <mat-option value="OUT_OF_STOCK">Out of Stock</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </form>
+      </mat-dialog-content>
+      <mat-dialog-actions align="end" class="dialog-actions">
+        <button mat-button (click)="closeDialog()">Cancel</button>
+        <button mat-flat-button color="primary" [disabled]="savingItem" (click)="saveItem()">
+          <mat-spinner diameter="18" color="accent" *ngIf="savingItem" style="display:inline-block; margin-right:8px;"></mat-spinner>
+          <span>Save Changes</span>
+        </button>
+      </mat-dialog-actions>
+    </ng-template>
+
+    <ng-template #stockDialog>
+      <h2 mat-dialog-title class="dialog-title">Update Inventory</h2>
+      <mat-dialog-content class="dialog-content">
+        <div class="stock-dialog-body">
+          <p>Update inventory status for <strong>{{ selectedItem.name }}</strong></p>
+          <mat-form-field appearance="outline" class="w-100" style="margin-top: 12px;">
+            <mat-label>Inventory Level</mat-label>
+            <mat-select [(ngModel)]="selectedItem.stockStatus" name="stockStatus">
+              <mat-option value="IN_STOCK">In Stock (Available)</mat-option>
+              <mat-option value="RUNNING_LOW">Running Low</mat-option>
+              <mat-option value="OUT_OF_STOCK">Out of Stock (Hidden/Disabled)</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </mat-dialog-content>
+      <mat-dialog-actions align="end" class="dialog-actions">
+        <button mat-button (click)="closeDialog()">Cancel</button>
+        <button mat-flat-button color="primary" [disabled]="savingItem" (click)="saveItem()">
+          <mat-spinner diameter="18" color="accent" *ngIf="savingItem" style="display:inline-block; margin-right:8px;"></mat-spinner>
+          <span>Update Status</span>
+        </button>
+      </mat-dialog-actions>
+    </ng-template>
   `,
   styles: [`
     .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
@@ -292,6 +393,15 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       font-size: 0.9rem !important;
     }
 
+    ::ng-deep .mat-column-name { text-align: left !important; width: 35%; }
+    ::ng-deep .mat-column-categoryName { text-align: left !important; width: 15%; }
+    ::ng-deep .mat-column-basePrice { text-align: left !important; width: 12%; }
+    ::ng-deep .mat-column-availability { text-align: left !important; width: 15%; }
+    ::ng-deep .mat-column-status { text-align: left !important; width: 15%; }
+    ::ng-deep .mat-column-actions { text-align: right !important; width: 8%; }
+
+    ::ng-deep th.col-actions-header { text-align: right !important; }
+
     .item-row { transition: all 0.2s ease; background: transparent; }
     .item-row:hover { background: var(--panel-hover) !important; }
 
@@ -316,27 +426,21 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     .status-toggle-wrap { display: flex; align-items: center; gap: 8px; }
     .status-label { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
     .status-label.on { color: var(--brand); }
-    .status-toggle-wrap button { width: 32px; height: 32px; line-height: 32px; }
-    .status-toggle-wrap mat-icon { font-size: 24px; }
+    .status-toggle-wrap mat-slide-toggle { transform: scale(0.9); }
 
     .actions-cell { text-align: right; }
-
-    .skeleton-row td { padding: 16px !important; }
-    .skeleton-shimmer { height: 24px; width: 100%; background: #f1f5f9; border-radius: 6px; position: relative; overflow: hidden; }
-    .skeleton-shimmer::after {
-      content: "";
-      position: absolute;
-      top: 0; right: 0; bottom: 0; left: 0;
-      transform: translateX(-100%);
-      background-image: linear-gradient(90deg, rgba(255,255,255,0) 0, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
-      animation: shimmer 1.5s infinite;
-    }
-
-    @keyframes shimmer { 100% { transform: translateX(100%); } }
 
     .empty-view { padding: 80px 24px; text-align: center; color: var(--muted); }
     .empty-view mat-icon { font-size: 64px; width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.2; }
     .empty-view h3 { margin: 0 0 8px; font-weight: 700; }
+
+    /* Dialog Styles */
+    .w-100 { width: 100%; }
+    .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px; }
+    .dialog-title { font-weight: 800; color: var(--ink); margin: 0; padding-bottom: 8px; }
+    .dialog-content { padding-top: 16px !important; }
+    .dialog-actions { padding: 12px 24px !important; }
+    .stock-dialog-body p { margin: 0; color: var(--ink-secondary); font-size: 0.95rem; }
 
     @media (max-width: 768px) {
       .header-row { flex-direction: column; gap: 16px; }
@@ -348,9 +452,13 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 export class MenuPageComponent implements AfterViewInit {
   private readonly api = inject(BusinessApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild('editDialog') editDialogTemplate!: any;
+  @ViewChild('stockDialog') stockDialogTemplate!: any;
 
   items: BusinessMenuItem[] = [];
   loaded = false;
@@ -361,6 +469,10 @@ export class MenuPageComponent implements AfterViewInit {
   searchTerm = '';
   stockFilter: string = 'ALL';
   availabilityFilter: string = 'ALL';
+
+  selectedItem: any = {};
+  savingItem = false;
+  dialogRef: any = null;
 
   constructor() {
     this.loadMenu();
@@ -425,12 +537,76 @@ export class MenuPageComponent implements AfterViewInit {
     this.applyFilters();
   }
 
+  openEditDialog(item: BusinessMenuItem): void {
+    this.selectedItem = { ...item };
+    this.dialogRef = this.dialog.open(this.editDialogTemplate, {
+      width: '500px',
+      autoFocus: false
+    });
+  }
+
+  openStockDialog(item: BusinessMenuItem): void {
+    this.selectedItem = { ...item };
+    this.dialogRef = this.dialog.open(this.stockDialogTemplate, {
+      width: '400px',
+      autoFocus: false
+    });
+  }
+
+  closeDialog(): void {
+    if (this.dialogRef) {
+      this.dialogRef.close();
+      this.dialogRef = null;
+    }
+  }
+
+  saveItem(): void {
+    this.savingItem = true;
+    const payload = {
+      name: this.selectedItem.name,
+      description: this.selectedItem.description,
+      basePrice: this.selectedItem.basePrice,
+      foodType: this.selectedItem.foodType,
+      stockStatus: this.selectedItem.stockStatus,
+      available: this.selectedItem.available
+    };
+    this.api.updateMenuItem(this.selectedItem.menuItemId, payload).subscribe({
+      next: () => {
+        this.snackBar.open('Menu item updated successfully', 'Close', { duration: 3000 });
+        this.loadMenu();
+        this.closeDialog();
+        this.savingItem = false;
+      },
+      error: (err) => {
+        this.snackBar.open(err?.error?.error ?? err?.error?.message ?? 'Failed to update menu item', 'Close', { duration: 4000 });
+        this.savingItem = false;
+      }
+    });
+  }
+
+  setAvailability(item: BusinessMenuItem, available: boolean): void {
+    this.api.updateMenuItemAvailability(item.menuItemId, available).subscribe({
+      next: () => {
+        this.snackBar.open(`Item marked as ${available ? 'available' : 'unavailable'}`, 'Close', { duration: 3000 });
+        this.loadMenu();
+      },
+      error: (err) => {
+        this.snackBar.open(err?.error?.error ?? err?.error?.message ?? 'Failed to update status', 'Close', { duration: 4000 });
+      }
+    });
+  }
+
+  toggleAvailability(item: BusinessMenuItem): void {
+    const newStatus = !item.available;
+    this.setAvailability(item, newStatus);
+  }
+
   availableCount = () => this.items.filter(i => i.available).length;
   lowStockCount = () => this.items.filter(i => i.stockStatus === 'RUNNING_LOW').length;
 
   getAvailabilityClass(item: BusinessMenuItem) {
     if (!item.available || item.stockStatus === 'OUT_OF_STOCK') return 'danger';
-    if (item.stockStatus === 'RUNNING_LOW') return 'warn';
+    if (item.stockStatus === 'RUNNING_LOW' || item.stockStatus === 'RUN_LOW') return 'warn';
     return 'success';
   }
 

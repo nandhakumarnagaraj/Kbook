@@ -188,7 +188,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
                   <div class="input-row">
                     <mat-form-field appearance="outline" class="w-100">
                       <mat-label>API Key</mat-label>
-                      <mat-icon matPrefix>vpn_key</mat-icon>
+                      <mat-icon matSuffix>vpn_key</mat-icon>
                       <input matInput formControlName="zomatoApiKey" [type]="marketplaceSaveState() === 'saved' ? 'password' : 'text'" placeholder="Enter Zomato API Key">
                       <mat-hint *ngIf="marketplaceConfig()?.zomatoApiKeyMasked">Stored: {{ marketplaceConfig()?.zomatoApiKeyMasked }}</mat-hint>
                     </mat-form-field>
@@ -197,13 +197,13 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
                   <div class="input-row-grid">
                     <mat-form-field appearance="outline">
                       <mat-label>Webhook Secret</mat-label>
-                      <mat-icon matPrefix>security</mat-icon>
+                      <mat-icon matSuffix>security</mat-icon>
                       <input matInput formControlName="zomatoWebhookSecret" type="password" placeholder="Enter Secret">
                     </mat-form-field>
 
                     <mat-form-field appearance="outline">
                       <mat-label>Outlet ID</mat-label>
-                      <mat-icon matPrefix>storefront</mat-icon>
+                      <mat-icon matSuffix>storefront</mat-icon>
                       <input matInput formControlName="zomatoOutletId" placeholder="Zomato Outlet ID">
                     </mat-form-field>
                   </div>
@@ -267,7 +267,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
                   <div class="input-row">
                     <mat-form-field appearance="outline" class="w-100">
                       <mat-label>API Key</mat-label>
-                      <mat-icon matPrefix>vpn_key</mat-icon>
+                      <mat-icon matSuffix>vpn_key</mat-icon>
                       <input matInput formControlName="swiggyApiKey" [type]="marketplaceSaveState() === 'saved' ? 'password' : 'text'" placeholder="Enter Swiggy API Key">
                       <mat-hint *ngIf="marketplaceConfig()?.swiggyApiKeyMasked">Stored: {{ marketplaceConfig()?.swiggyApiKeyMasked }}</mat-hint>
                     </mat-form-field>
@@ -276,13 +276,13 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
                   <div class="input-row-grid">
                     <mat-form-field appearance="outline">
                       <mat-label>Webhook Secret</mat-label>
-                      <mat-icon matPrefix>security</mat-icon>
+                      <mat-icon matSuffix>security</mat-icon>
                       <input matInput formControlName="swiggyWebhookSecret" type="password" placeholder="Enter Secret">
                     </mat-form-field>
 
                     <mat-form-field appearance="outline">
                       <mat-label>Store ID</mat-label>
-                      <mat-icon matPrefix>storefront</mat-icon>
+                      <mat-icon matSuffix>storefront</mat-icon>
                       <input matInput formControlName="swiggyStoreId" placeholder="Swiggy Store ID">
                     </mat-form-field>
                   </div>
@@ -336,6 +336,11 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       padding: 32px 24px;
       max-width: 1100px;
       margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .content-grid {
       display: flex;
       flex-direction: column;
       gap: 32px;

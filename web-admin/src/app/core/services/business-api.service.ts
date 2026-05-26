@@ -46,6 +46,14 @@ export class BusinessApiService {
     return this.http.get<BusinessMenuItem[]>(`${API_BASE_URL}/business/menu`);
   }
 
+  updateMenuItem(itemId: number, payload: any) {
+    return this.http.put<void>(`${API_BASE_URL}/business/menu/${itemId}`, payload);
+  }
+
+  updateMenuItemAvailability(itemId: number, available: boolean) {
+    return this.http.put<void>(`${API_BASE_URL}/business/menu/${itemId}/availability`, { available });
+  }
+
   getStaff() {
     return this.http.get<BusinessStaffItem[]>(`${API_BASE_URL}/business/staff`);
   }

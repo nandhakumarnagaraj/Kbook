@@ -1,6 +1,8 @@
 package com.khanabook.saas.webadmin.controller;
 
+import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.RestaurantProfile;
+import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.webadmin.dto.BusinessDashboardResponse;
@@ -26,6 +28,7 @@ public class BusinessAdminController {
 
     private final BusinessReadService businessReadService;
     private final RestaurantProfileRepository restaurantProfileRepository;
+    private final MenuItemRepository menuItemRepository;
 
     @GetMapping("/dashboard")
     public ResponseEntity<BusinessDashboardResponse> getDashboard() {
@@ -45,6 +48,71 @@ public class BusinessAdminController {
     @GetMapping("/menu")
     public ResponseEntity<List<BusinessMenuListItemResponse>> getMenu() {
         return ResponseEntity.ok(businessReadService.getMenu(requireTenant()));
+    }
+
+    @PutMapping("/menu/{itemId}")
+    public ResponseEntity<Void> updateMenuItem(
+            @PathVariable Long itemId,
+            @RequestBody java.util.Map<String, Object> payload) {
+        Long tenantId = requireTenant();
+        MenuItem item = menuItemRepository.findById(itemId)
+                .filter(existing -> existing.getRestaurantId().equals(tenantId))
+                .orElseThrow(() -> new IllegalArgumentException("Menu item not found"));
+
+        if (payload.containsKey("name")) {
+            item.setName((String) payload.get("name"));
+        }
+        if (payload.containsKey("basePrice")) {
+            Object priceObj = payload.get("basePrice");
+            if (priceObj instanceof Number) {
+                item.setBasePrice(new java.math.BigDecimal(priceObj.toString()));
+            } else if (priceObj instanceof String) {
+                item.setBasePrice(new java.math.BigDecimal((String) priceObj));
+            }
+        }
+        if (payload.containsKey("description")) {
+            item.setDescription((String) payload.get("description"));
+        }
+        if (payload.containsKey("available")) {
+            item.setIsAvailable((Boolean) payload.get("available"));
+        }
+        if (payload.containsKey("stockStatus")) {
+            String stockStatus = (String) payload.get("stockStatus");
+            if ("OUT_OF_STOCK".equals(stockStatus)) {
+                item.setCurrentStock(java.math.BigDecimal.ZERO);
+            } else if ("IN_STOCK".equals(stockStatus)) {
+                item.setCurrentStock(new java.math.BigDecimal("100"));
+            } else if ("RUNNING_LOW".equals(stockStatus)) {
+                item.setCurrentStock(new java.math.BigDecimal("5"));
+                item.setLowStockThreshold(new java.math.BigDecimal("10"));
+            }
+        }
+        if (payload.containsKey("foodType")) {
+            item.setFoodType((String) payload.get("foodType"));
+        }
+
+        item.setUpdatedAt(System.currentTimeMillis());
+        item.setServerUpdatedAt(System.currentTimeMillis());
+        menuItemRepository.save(item);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/menu/{itemId}/availability")
+    public ResponseEntity<Void> updateAvailability(
+            @PathVariable Long itemId,
+            @RequestBody java.util.Map<String, Boolean> payload) {
+        Long tenantId = requireTenant();
+        MenuItem item = menuItemRepository.findById(itemId)
+                .filter(existing -> existing.getRestaurantId().equals(tenantId))
+                .orElseThrow(() -> new IllegalArgumentException("Menu item not found"));
+
+        if (payload.containsKey("available")) {
+            item.setIsAvailable(payload.get("available"));
+            item.setUpdatedAt(System.currentTimeMillis());
+            item.setServerUpdatedAt(System.currentTimeMillis());
+            menuItemRepository.save(item);
+        }
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/staff")
