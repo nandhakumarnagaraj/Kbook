@@ -73,20 +73,20 @@ type OnlineView = 'table' | 'kanban';
         <mat-tab label="Store (POS)">
           <div class="tab-content">
             <div class="stats-row" *ngIf="orders.length">
-              <mat-card class="mini-stat">
-                <mat-icon mat-card-avatar>receipt</mat-icon>
-                <div class="stat-copy">
-                  <div class="val">{{ orders.length }}</div>
-                  <div class="lab">Total Orders</div>
-                </div>
-              </mat-card>
-              <mat-card class="mini-stat">
-                <mat-icon mat-card-avatar>payments</mat-icon>
-                <div class="stat-copy">
-                  <div class="val">{{ formatCurrencyValue(totalRevenue()) }}</div>
-                  <div class="lab">Total Revenue</div>
-                </div>
-              </mat-card>
+               <mat-card class="mini-stat">
+                 <mat-icon class="stat-icon">receipt</mat-icon>
+                 <div class="stat-copy">
+                   <div class="val">{{ orders.length }}</div>
+                   <div class="lab">Total Orders</div>
+                 </div>
+               </mat-card>
+               <mat-card class="mini-stat">
+                 <mat-icon class="stat-icon">payments</mat-icon>
+                 <div class="stat-copy">
+                   <div class="val">{{ formatCurrencyValue(totalRevenue()) }}</div>
+                   <div class="lab">Total Revenue</div>
+                 </div>
+               </mat-card>
             </div>
 
             <mat-card class="filter-card mat-elevation-z1">
@@ -439,19 +439,27 @@ type OnlineView = 'table' | 'kanban';
       transform: translateY(-2px);
       box-shadow: var(--shadow-md);
     }
-    .mini-stat mat-icon { 
+    .mini-stat .stat-icon { 
       background: var(--brand-soft); 
       color: var(--brand); 
       width: 36px; 
       height: 36px; 
-      line-height: 36px; 
-      text-align: center; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
       border-radius: var(--radius-md); 
       font-size: 18px;
       transition: all 0.3s ease;
+      flex-shrink: 0;
     }
-    .mini-stat:hover mat-icon {
+    .mini-stat:hover .stat-icon {
       transform: scale(1.05) rotate(4deg);
+    }
+    .stat-copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      line-height: 1.2;
     }
     .mini-stat .val { font-size: 1.25rem; font-weight: 800; color: var(--ink); line-height: 1; }
     .mini-stat .lab { font-size: 0.75rem; color: var(--muted); margin-top: 2px; font-weight: 600; }
