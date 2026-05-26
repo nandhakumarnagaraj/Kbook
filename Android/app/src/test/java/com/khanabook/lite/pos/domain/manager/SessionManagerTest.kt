@@ -25,10 +25,17 @@ class SessionManagerTest {
         
         sessionManager = mockk<SessionManager>(relaxed = true)
         
+        val gracePeriodField = SessionManager::class.java.getDeclaredField("appLockGracePeriodMs")
+        gracePeriodField.isAccessible = true
+        gracePeriodField.set(sessionManager, 30_000L)
+        
         // Setup common behaviors
         every { sessionManager.onAppBackgrounded() } answers { callOriginal() }
         every { sessionManager.shouldShowAppLock() } answers { callOriginal() }
         every { sessionManager.clearBackgroundTime() } answers { callOriginal() }
+        every { sessionManager.isPinLockFlagEnabled() } answers { callOriginal() }
+        every { sessionManager.isPinLockEnabled() } answers { callOriginal() }
+        every { sessionManager.getPinHash() } answers { callOriginal() }
         
         // Use reflection or private field mocking if needed, 
         // but SessionManager reads from 'prefs' and 'securePrefs' via helper methods.
@@ -71,7 +78,7 @@ class SessionManagerTest {
         prefsField.isAccessible = true
         prefsField.set(sessionManager, prefs)
         
-        val securePrefs = mockk<SharedPreferences>(relaxed = true)
+        val securePrefs = mockk<com.khanabook.lite.pos.domain.util.KeystoreBackedPreferences>(relaxed = true)
         val securePrefsField = SessionManager::class.java.getDeclaredField("securePrefs")
         securePrefsField.isAccessible = true
         securePrefsField.set(sessionManager, securePrefs)
@@ -91,7 +98,7 @@ class SessionManagerTest {
         prefsField.isAccessible = true
         prefsField.set(sessionManager, prefs)
         
-        val securePrefs = mockk<SharedPreferences>(relaxed = true)
+        val securePrefs = mockk<com.khanabook.lite.pos.domain.util.KeystoreBackedPreferences>(relaxed = true)
         val securePrefsField = SessionManager::class.java.getDeclaredField("securePrefs")
         securePrefsField.isAccessible = true
         securePrefsField.set(sessionManager, securePrefs)

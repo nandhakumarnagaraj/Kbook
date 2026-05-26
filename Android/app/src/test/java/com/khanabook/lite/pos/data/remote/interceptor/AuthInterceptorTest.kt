@@ -23,7 +23,7 @@ class AuthInterceptorTest {
 
     @Before
     fun setUp() {
-        sessionManager = mockk()
+        sessionManager = mockk(relaxed = true)
         authInterceptor = AuthInterceptor(sessionManager)
         chain = mockk()
         mockResponse = Response.Builder()

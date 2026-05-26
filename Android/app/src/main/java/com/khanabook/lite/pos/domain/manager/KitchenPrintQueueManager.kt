@@ -9,6 +9,7 @@ import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -27,9 +28,10 @@ class KitchenPrintQueueManager @Inject constructor(
 ) {
     companion object {
         private const val TAG = "KitchenPrintQueue"
+        var ioDispatcher: CoroutineDispatcher = Dispatchers.IO
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private val flushMutex = Mutex()
 
     init {
@@ -79,28 +81,40 @@ class KitchenPrintQueueManager @Inject constructor(
     }
 
     suspend fun flushPendingForPrinter(printerMac: String) = flushMutex.withLock {
-        if (printerMac.isBlank()) return
+        println("flushPendingForPrinter: printerMac=$printerMac")
+        if (printerMac.isBlank()) {
+            println("printerMac is blank")
+            return
+        }
 
         // Only flush if this MAC is actually a kitchen printer
         val printerProfile = resolveKitchenPrinter(printerMac)
         if (printerProfile?.role != PrinterRole.KITCHEN.name) {
+            println("printerProfile role is not KITCHEN: role=${printerProfile?.role}")
             Log.d(TAG, "Connected device $printerMac is not configured as a kitchen printer. Skipping flush.")
             return
         }
 
         val queue = queueRepository.getPendingForPrinter(printerMac)
+        println("queue size: ${queue.size}")
         if (queue.isEmpty()) return
 
-        val restaurantProfile = restaurantRepository.getProfile() ?: return
+        val restaurantProfile = restaurantRepository.getProfile() ?: run {
+            println("restaurantProfile is null")
+            return
+        }
 
         for (job in queue) {
+            println("processing job: id=${job.id}, billId=${job.billId}")
             if (!queueRepository.claimPendingForRetry(job.id)) {
+                println("claimPendingForRetry failed for job.id=${job.id}")
                 Log.d(TAG, "Skipping billId=${job.billId}: queue entry already claimed elsewhere")
                 continue
             }
 
             val bill = billRepository.getBillWithItemsById(job.billId)
             if (bill == null) {
+                println("bill is null for job.billId=${job.billId}")
                 queueRepository.deleteById(job.id)
                 continue
             }
@@ -108,18 +122,21 @@ class KitchenPrintQueueManager @Inject constructor(
             val isPrintable = bill.bill.orderStatus.equals("completed", ignoreCase = true) ||
                 bill.bill.orderStatus.equals("paid", ignoreCase = true)
             if (!isPrintable) {
+                println("isPrintable is false for orderStatus=${bill.bill.orderStatus}")
                 queueRepository.deleteById(job.id)
                 continue
             }
 
             try {
+                println("connecting to printerMac=$printerMac")
                 if (!printerManager.isConnectedTo(printerMac) && !printerManager.connect(printerMac)) {
+                    println("connection failed to printerMac=$printerMac")
                     queueRepository.markPending(job.id, "connection failed")
                     break
                 }
 
                 val bytes = KitchenTicketFormatter.format(bill, restaurantProfile, printerProfile)
-                if (printerManager.printBytes(bytes)) {
+                if (printerManager.printBytes(printerMac, bytes)) {
                     queueRepository.markSent(job.id)
                 } else {
                     queueRepository.markPending(job.id, "print failed")

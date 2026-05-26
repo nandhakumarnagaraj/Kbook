@@ -354,13 +354,18 @@ fun directPrint(
         ?: CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     scope.launch(Dispatchers.IO) {
-        if (!printerManager.isConnected() && !profile.printerMac.isNullOrBlank()) {
-            printerManager.connect(profile.printerMac)
+        val mac = profile.printerMac
+        if (!printerManager.isConnected() && !mac.isNullOrBlank()) {
+            printerManager.connect(mac)
         }
         
         if (printerManager.isConnected()) {
             val bytes = InvoiceFormatter.formatForThermalPrinter(billWithItems, profile, context)
-            printerManager.printBytes(bytes)
+            if (!mac.isNullOrBlank()) {
+                printerManager.printBytes(mac, bytes)
+            } else {
+                printerManager.printBytes(bytes)
+            }
         } else {
             kotlinx.coroutines.withContext(Dispatchers.Main) {
                 Toast.makeText(context, context.getString(R.string.toast_printer_opening_pdf), Toast.LENGTH_SHORT).show()

@@ -65,8 +65,9 @@ class HomeViewModelTest {
         
         kitchenPrintQueueManager = mockk(relaxed = true)
         printerProfileRepository = mockk(relaxed = true)
+        val marketplaceOrderRepository: com.khanabook.lite.pos.data.repository.MarketplaceOrderRepository = mockk(relaxed = true)
         
-        val viewModel = HomeViewModel(billRepository, kitchenPrintQueueRepository, kitchenPrintQueueManager, printerProfileRepository, networkMonitor)
+        val viewModel = HomeViewModel(billRepository, kitchenPrintQueueRepository, kitchenPrintQueueManager, printerProfileRepository, networkMonitor, marketplaceOrderRepository)
         testDispatcher.scheduler.advanceUntilIdle()
     }
 }

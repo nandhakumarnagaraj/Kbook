@@ -127,7 +127,7 @@ class PrintRouter @Inject constructor(
                         PrinterRole.CUSTOMER -> InvoiceFormatter.formatForThermalPrinter(bill, printProfile, context)
                         PrinterRole.KITCHEN -> KitchenTicketFormatter.format(bill, restaurantProfile, target)
                     }
-                    if (printerManager.printBytes(bytes)) {
+                    if (printerManager.printBytes(target.macAddress, bytes)) {
                         maybeClearKitchenQueue(bill.bill.id, target)
                         successCount += 1
                         successTargets += target.role

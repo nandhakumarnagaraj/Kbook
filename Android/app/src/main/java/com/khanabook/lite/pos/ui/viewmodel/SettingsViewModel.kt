@@ -129,7 +129,7 @@ class SettingsViewModel @Inject constructor(
                 "\n\n\n\n" +
                 "\u001d\u0056\u0042\u0000"
             ).toByteArray(Charsets.US_ASCII)
-            btManager.printBytes(testData)
+            btManager.printBytes(printer.macAddress, testData)
         }
     }
 

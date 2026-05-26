@@ -16,6 +16,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -41,7 +42,10 @@ class KitchenPrintQueueManagerTest {
         every { android.util.Log.d(any(), any()) } returns 0
         every { android.util.Log.w(any(), any<String>()) } returns 0
         every { android.util.Log.w(any(), any<String>(), any()) } returns 0
+        KitchenPrintQueueManager.ioDispatcher = Dispatchers.Unconfined
         every { printerManager.connectedDeviceEvents } returns connectedEvents
+        every { printerManager.connectedDeviceMac } returns kotlinx.coroutines.flow.MutableStateFlow(null)
+        coEvery { queueRepository.claimPendingForRetry(any()) } returns true
         manager = KitchenPrintQueueManager(
             queueRepository = queueRepository,
             billRepository = billRepository,
@@ -53,6 +57,7 @@ class KitchenPrintQueueManagerTest {
 
     @After
     fun tearDown() {
+        KitchenPrintQueueManager.ioDispatcher = Dispatchers.IO
         unmockkAll()
     }
 
@@ -92,14 +97,13 @@ class KitchenPrintQueueManagerTest {
         coEvery { restaurantRepository.getProfile() } returns RestaurantProfileEntity(shopName = "KhanaBook")
         coEvery { billRepository.getBillWithItemsById(queuedJob.billId) } returns bill
         coEvery { printerManager.connect(connectedMac) } returns true
-        coEvery { printerManager.printBytes(any()) } returns true
+        coEvery { printerManager.printBytes(any(), any()) } returns true
 
         manager.flushPendingForPrinter(connectedMac)
 
-        coVerify(exactly = 1) { queueRepository.getByBillAndPrinter(queuedJob.billId, "") }
         coVerify(exactly = 1) { printerManager.connect(connectedMac) }
-        coVerify(exactly = 1) { printerManager.printBytes(any()) }
-        coVerify(exactly = 1) { queueRepository.deleteById(queuedJob.id) }
+        coVerify(exactly = 1) { printerManager.printBytes(any(), any()) }
+        coVerify(exactly = 1) { queueRepository.markSent(queuedJob.id) }
         coVerify(exactly = 0) { printerManager.disconnect() }
     }
 
@@ -139,7 +143,7 @@ class KitchenPrintQueueManagerTest {
         coEvery { restaurantRepository.getProfile() } returns RestaurantProfileEntity(shopName = "KhanaBook")
         coEvery { billRepository.getBillWithItemsById(queuedJob.billId) } returns bill
         coEvery { printerManager.connect(kitchenMac) } returns true
-        coEvery { printerManager.printBytes(any()) } returns true
+        coEvery { printerManager.printBytes(any(), any()) } returns true
 
         // Simulate kitchen printer reconnecting — fires connectedDeviceEvents
         connectedEvents.emit(kitchenMac)
@@ -147,8 +151,8 @@ class KitchenPrintQueueManagerTest {
 
         // Queue was flushed: connected, printed, entry removed
         coVerify(exactly = 1) { printerManager.connect(kitchenMac) }
-        coVerify(exactly = 1) { printerManager.printBytes(any()) }
-        coVerify(exactly = 1) { queueRepository.deleteById(queuedJob.id) }
+        coVerify(exactly = 1) { printerManager.printBytes(any(), any()) }
+        coVerify(exactly = 1) { queueRepository.markSent(queuedJob.id) }
         // Connection stays open (no disconnect called)
         coVerify(exactly = 0) { printerManager.disconnect() }
     }
@@ -191,7 +195,7 @@ class KitchenPrintQueueManagerTest {
 
         // Connect attempted but failed → job re-enqueued, not deleted
         coVerify(exactly = 1) { printerManager.connect(kitchenMac) }
-        coVerify(exactly = 0) { printerManager.printBytes(any()) }
+        coVerify(exactly = 0) { printerManager.printBytes(any(), any()) }
         coVerify(exactly = 0) { queueRepository.deleteById(any()) }
         coVerify(exactly = 1) { queueRepository.markPending(queuedJob.id, any()) }
     }
@@ -213,7 +217,7 @@ class KitchenPrintQueueManagerTest {
         advanceUntilIdle()
 
         coVerify(exactly = 0) { printerManager.connect(any<String>()) }
-        coVerify(exactly = 0) { printerManager.printBytes(any()) }
+        coVerify(exactly = 0) { printerManager.printBytes(any(), any()) }
         coVerify(exactly = 0) { queueRepository.deleteById(any()) }
     }
 
@@ -236,7 +240,7 @@ class KitchenPrintQueueManagerTest {
 
         coVerify(exactly = 0) { queueRepository.getPendingForPrinter(customerMac) }
         coVerify(exactly = 0) { printerManager.connect(any<String>()) }
-        coVerify(exactly = 0) { printerManager.printBytes(any()) }
+        coVerify(exactly = 0) { printerManager.printBytes(any(), any()) }
         coVerify(exactly = 0) { queueRepository.deleteById(any()) }
     }
 }

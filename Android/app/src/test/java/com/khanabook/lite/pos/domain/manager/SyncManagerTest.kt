@@ -28,9 +28,11 @@ class SyncManagerTest {
     @Before
     fun setUp() {
         mockkStatic(android.util.Log::class)
+        every { android.util.Log.d(any<String>(), any<String>()) } returns 0
         every { android.util.Log.i(any<String>(), any<String>()) } returns 0
         every { android.util.Log.w(any<String>(), any<String>()) } returns 0
         every { android.util.Log.w(any<String>(), any<String>(), any<Throwable>()) } returns 0
+        every { android.util.Log.e(any<String>(), any<String>()) } returns 0
         every { android.util.Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
         every { sessionManager.getDeviceId() } returns "device-1"
         every { sessionManager.getLastSyncTimestamp() } returns 10L
@@ -45,7 +47,7 @@ class SyncManagerTest {
     @Test
     fun `performFullSync pulls latest data and returns conflict on push 409`() = runTest {
         coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException()
-        coEvery { api.pullMasterSync(10L, "device-1") } returns MasterSyncResponse(serverTimestamp = 42L)
+        coEvery { api.pullMasterSync(10L, "device-1", any(), any()) } returns MasterSyncResponse(serverTimestamp = 42L)
 
         val result = syncManager.performFullSync()
 
@@ -60,7 +62,7 @@ class SyncManagerTest {
     @Test
     fun `performFullSync returns unresolved conflict when recovery pull fails`() = runTest {
         coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException()
-        coEvery { api.pullMasterSync(10L, "device-1") } throws IllegalStateException("pull failed")
+        coEvery { api.pullMasterSync(10L, "device-1", any(), any()) } throws IllegalStateException("pull failed")
 
         val result = syncManager.performFullSync()
 

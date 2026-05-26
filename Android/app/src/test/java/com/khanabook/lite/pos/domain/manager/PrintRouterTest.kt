@@ -83,6 +83,10 @@ class PrintRouterTest {
         every { android.util.Log.e(any(), any<String>()) } returns 0
         every { android.util.Log.e(any(), any<String>(), any()) } returns 0
 
+        every { printerManager.connectedDeviceEvents } returns kotlinx.coroutines.flow.MutableSharedFlow()
+        every { printerManager.connectedDeviceMac } returns kotlinx.coroutines.flow.MutableStateFlow(null)
+        every { printerManager.isConnectedTo(any()) } returns false
+
         mockkObject(InvoiceFormatter)
         every { InvoiceFormatter.formatForThermalPrinter(any(), any()) } returns byteArrayOf(0x01)
 
@@ -103,10 +107,16 @@ class PrintRouterTest {
 
     @Test
     fun `AUTO - only customer printer configured - receipt prints and KDS queued as unassigned`() = runTest {
+        val blankKitchenPrinter = PrinterProfileEntity(
+            role = PrinterRole.KITCHEN.name,
+            name = "Kitchen Printer",
+            macAddress = "",
+            enabled = true
+        )
         coEvery { printerProfileRepository.getProfiles() } returns listOf(customerPrinter)
-        coEvery { printerProfileRepository.getByRole(PrinterRole.KITCHEN.name) } returns null
+        coEvery { printerProfileRepository.getByRole(PrinterRole.KITCHEN.name) } returns blankKitchenPrinter
         coEvery { printerManager.connect(customerMac) } returns true
-        coEvery { printerManager.printBytes(any()) } returns true
+        coEvery { printerManager.printBytes(any(), any()) } returns true
 
         val result = router.printBill(bill, restaurantProfile, PrintDispatchMode.AUTO)
 
@@ -117,7 +127,7 @@ class PrintRouterTest {
 
         // Customer printer connected and printed
         coVerify(exactly = 1) { printerManager.connect(customerMac) }
-        coVerify(exactly = 1) { printerManager.printBytes(any()) }
+        coVerify(exactly = 1) { printerManager.printBytes(any(), any()) }
 
         // No kitchen printer configured → unassigned queue entry
         coVerify(exactly = 1) { kitchenQueueManager.enqueueUnassigned(bill.bill.id, any()) }
@@ -132,7 +142,7 @@ class PrintRouterTest {
         coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter, customerPrinter)
         coEvery { printerManager.connect(kitchenMac) } returns false   // kitchen offline
         coEvery { printerManager.connect(customerMac) } returns true   // customer online
-        coEvery { printerManager.printBytes(any()) } returns true
+        coEvery { printerManager.printBytes(any(), any()) } returns true
 
         val result = router.printBill(bill, restaurantProfile, PrintDispatchMode.AUTO)
 
@@ -141,7 +151,7 @@ class PrintRouterTest {
         assertTrue(result.successTargets.contains(PrinterRole.CUSTOMER.name))
 
         // Kitchen failed → queued with kitchen MAC
-        coVerify(exactly = 1) { kitchenQueueManager.enqueue(bill.bill.id, kitchenMac, any()) }
+        coVerify(exactly = 1) { kitchenQueueManager.enqueue(bill.bill.id, kitchenMac, any(), any()) }
 
         // Customer connected and printed
         coVerify(exactly = 1) { printerManager.connect(customerMac) }
@@ -153,9 +163,10 @@ class PrintRouterTest {
 
     @Test
     fun `AUTO - only kitchen printer configured - KDS prints no receipt`() = runTest {
+        every { printerManager.isConnectedTo(kitchenMac) } returns true
         coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
         coEvery { printerManager.connect(kitchenMac) } returns true
-        coEvery { printerManager.printBytes(any()) } returns true
+        coEvery { printerManager.printBytes(any(), any()) } returns true
 
         val result = router.printBill(bill, restaurantProfile, PrintDispatchMode.AUTO)
 
@@ -168,7 +179,7 @@ class PrintRouterTest {
 
         // Kitchen connected and printed
         coVerify(exactly = 1) { printerManager.connect(kitchenMac) }
-        coVerify(exactly = 1) { printerManager.printBytes(any()) }
+        coVerify(exactly = 1) { printerManager.printBytes(any(), any()) }
 
         // No customer printer → no customer print attempted
         coVerify(exactly = 0) { printerManager.connect(customerMac) }
@@ -180,9 +191,10 @@ class PrintRouterTest {
 
     @Test
     fun `AUTO - both printers connected - receipt and KDS both print`() = runTest {
+        every { printerManager.isConnectedTo(any()) } returns true
         coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter, customerPrinter)
         coEvery { printerManager.connect(any<String>()) } returns true
-        coEvery { printerManager.printBytes(any()) } returns true
+        coEvery { printerManager.printBytes(any(), any()) } returns true
 
         val result = router.printBill(bill, restaurantProfile, PrintDispatchMode.AUTO)
 
@@ -193,9 +205,9 @@ class PrintRouterTest {
 
         coVerify(exactly = 1) { printerManager.connect(kitchenMac) }
         coVerify(exactly = 1) { printerManager.connect(customerMac) }
-        coVerify(exactly = 2) { printerManager.printBytes(any()) }
+        coVerify(exactly = 2) { printerManager.printBytes(any(), any()) }
         // No queue entry because kitchen printed directly
-        coVerify(exactly = 0) { kitchenQueueManager.enqueue(any(), any(), any()) }
+        coVerify(exactly = 0) { kitchenQueueManager.enqueue(any(), any(), any(), any()) }
         coVerify(exactly = 0) { kitchenQueueManager.enqueueUnassigned(any(), any()) }
     }
 
@@ -207,7 +219,7 @@ class PrintRouterTest {
     fun `MANUAL_RECEIPT_ONLY - only customer printer is targeted`() = runTest {
         coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter, customerPrinter)
         coEvery { printerManager.connect(customerMac) } returns true
-        coEvery { printerManager.printBytes(any()) } returns true
+        coEvery { printerManager.printBytes(any(), any()) } returns true
 
         val result = router.printBill(bill, restaurantProfile, PrintDispatchMode.MANUAL_RECEIPT_ONLY)
 
@@ -217,7 +229,7 @@ class PrintRouterTest {
         coVerify(exactly = 1) { printerManager.connect(customerMac) }
         coVerify(exactly = 0) { printerManager.connect(kitchenMac) }
         // No queue logic in manual mode
-        coVerify(exactly = 0) { kitchenQueueManager.enqueue(any(), any(), any()) }
+        coVerify(exactly = 0) { kitchenQueueManager.enqueue(any(), any(), any(), any()) }
         coVerify(exactly = 0) { kitchenQueueManager.enqueueUnassigned(any(), any()) }
     }
 
@@ -227,15 +239,21 @@ class PrintRouterTest {
 
     @Test
     fun `AUTO - no printer configured - nothing attempted`() = runTest {
+        val blankKitchenPrinter = PrinterProfileEntity(
+            role = PrinterRole.KITCHEN.name,
+            name = "Kitchen Printer",
+            macAddress = "",
+            enabled = true
+        )
         coEvery { printerProfileRepository.getProfiles() } returns emptyList()
-        coEvery { printerProfileRepository.getByRole(any()) } returns null
+        coEvery { printerProfileRepository.getByRole(any()) } returns blankKitchenPrinter
 
         val result = router.printBill(bill, restaurantProfile, PrintDispatchMode.AUTO)
 
         assertEquals(0, result.attempted)
         assertEquals(0, result.succeeded)
         coVerify(exactly = 0) { printerManager.connect(any<String>()) }
-        coVerify(exactly = 0) { printerManager.printBytes(any()) }
+        coVerify(exactly = 0) { printerManager.printBytes(any(), any()) }
         coVerify(exactly = 1) { kitchenQueueManager.enqueueUnassigned(bill.bill.id, any()) }
     }
 }

@@ -224,6 +224,26 @@ object InvoiceFormatter {
         // 6. Payment & QR
         add(leftPad + "Payment Mode : ${bill.bill.paymentMode.uppercase()}\n")
 
+        if (profile?.upiHandle?.isNotBlank() == true) {
+            try {
+                val upiQrBitmap = com.khanabook.lite.pos.domain.manager.QrCodeManager.generateUpiQr(
+                    profile.upiHandle ?: "",
+                    profile.shopName ?: "",
+                    bill.bill.totalAmount.toDoubleOrNull() ?: 0.0,
+                    256
+                )
+                upiQrBitmap?.let {
+                    add(ALIGN_CENTER)
+                    add("\n")
+                    add(decodeBitmapToESC_POS(it, 256))
+                    add("\nSCAN TO PAY\n")
+                    it.recycle()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error printing UPI QR", e)
+            }
+        }
+
         if (profile?.reviewUrl?.isNotBlank() == true) {
             try {
                 val reviewQrBitmap = com.khanabook.lite.pos.domain.manager.QrCodeManager.generateQr(

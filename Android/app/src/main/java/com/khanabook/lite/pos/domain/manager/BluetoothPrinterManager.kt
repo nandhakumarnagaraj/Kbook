@@ -106,8 +106,10 @@ class BluetoothPrinterManager(private val context: Context) {
                 BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
                     _connectedDeviceMacs.value = _connectedDeviceMacs.value - deviceAddress
                     if (activeSockets.containsKey(deviceAddress)) {
-                        activeSockets.remove(deviceAddress)
-                        outputStreams.remove(deviceAddress)
+                        val socket = activeSockets.remove(deviceAddress)
+                        val stream = outputStreams.remove(deviceAddress)
+                        try { stream?.close() } catch (_: Exception) {}
+                        try { socket?.close() } catch (_: Exception) {}
                         if (_connectedDeviceMac.value == deviceAddress) {
                             _connectedDeviceMac.value = activeSockets.keys.firstOrNull()
                         }
@@ -186,6 +188,11 @@ class BluetoothPrinterManager(private val context: Context) {
                 }
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
                     _isScanning.value = false
+                    try {
+                        ctx.unregisterReceiver(this)
+                    } catch (e: IllegalArgumentException) {
+                        Log.d(TAG, "Discovery receiver already unregistered on finish")
+                    }
                 }
             }
         }
@@ -290,29 +297,32 @@ class BluetoothPrinterManager(private val context: Context) {
 
                 var socket: BluetoothSocket? = null
                 try {
-                    socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-                    socket.connect()
+                    try {
+                        socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+                        socket.connect()
+                    } catch (e: Exception) {
+                        socket?.close()
+                        // Fallback to insecure RFCOMM — common for thermal printers.
+                        socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
+                        socket.connect()
+                    }
+
+                    // Phase 3 (fast, global mutex): register the new socket.
+                    printerMutex.withLock {
+                        activeSockets[mac] = socket!!
+                        outputStreams[mac] = socket.outputStream
+                        lastConnectedMac = mac
+                        _isConnected.value = true
+                        _connectedDeviceMac.value = mac
+                        _connectedDeviceMacs.value = _connectedDeviceMacs.value + mac
+                    }
+                    _connectedDeviceEvents.tryEmit(mac)
+                    true
                 } catch (e: Exception) {
                     socket?.close()
-                    // Fallback to insecure RFCOMM — common for thermal printers.
-                    socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
-                    socket.connect()
+                    Log.e(TAG, "Failed to connect to printer $mac", e)
+                    false
                 }
-
-                // Phase 3 (fast, global mutex): register the new socket.
-                printerMutex.withLock {
-                    activeSockets[mac] = socket!!
-                    outputStreams[mac] = socket.outputStream
-                    lastConnectedMac = mac
-                    _isConnected.value = true
-                    _connectedDeviceMac.value = mac
-                    _connectedDeviceMacs.value = _connectedDeviceMacs.value + mac
-                }
-                _connectedDeviceEvents.tryEmit(mac)
-                true
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to connect to printer $mac", e)
-                false
             } finally {
                 _isConnecting.value = false
             }
@@ -334,6 +344,15 @@ class BluetoothPrinterManager(private val context: Context) {
             Log.e(TAG, "printBytes called but no printer is connected")
             return false
         }
+        return printBytes(mac, data)
+    }
+
+    /**
+     * Sends raw bytes to a specific Bluetooth printer by MAC address.
+     * The actual write runs outside [printerMutex] so slow I/O does not block
+     * concurrent connect calls on other printers.
+     */
+    suspend fun printBytes(mac: String, data: ByteArray): Boolean {
         val stream = printerMutex.withLock { outputStreams[mac] } ?: run {
             Log.e(TAG, "No output stream for printer $mac")
             return false
