@@ -190,6 +190,7 @@ export interface MarketplaceOrderCounts {
   pending: number;
   accepted: number;
   ready: number;
+  completed: number;
   rejected: number;
 }
 

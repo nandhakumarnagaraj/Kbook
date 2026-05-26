@@ -232,8 +232,12 @@ type OnlineView = 'table' | 'kanban';
                 <div class="label">Accepted</div>
               </mat-card>
               <mat-card class="status-box clickable" (click)="filterOnlineStatus('READY')" [class.active]="onlineStatusFilter === 'READY'">
-                <div class="count success">{{ onlineCounts.ready }}</div>
+                <div class="count info">{{ onlineCounts.ready }}</div>
                 <div class="label">Ready</div>
+              </mat-card>
+              <mat-card class="status-box clickable" (click)="filterOnlineStatus('COMPLETED')" [class.active]="onlineStatusFilter === 'COMPLETED'">
+                <div class="count success">{{ onlineCounts.completed }}</div>
+                <div class="label">Completed</div>
               </mat-card>
               <mat-card class="status-box clickable" (click)="filterOnlineStatus('REJECTED')" [class.active]="onlineStatusFilter === 'REJECTED'">
                 <div class="count danger">{{ onlineCounts.rejected }}</div>
@@ -309,6 +313,7 @@ type OnlineView = 'table' | 'kanban';
                       <button mat-flat-button color="primary" *ngIf="order.orderStatus === 'PENDING'" (click)="acceptOrder(order)">Accept</button>
                       <button mat-button color="warn" *ngIf="order.orderStatus === 'PENDING'" (click)="startReject(order)">Reject</button>
                       <button mat-flat-button color="accent" *ngIf="order.orderStatus === 'ACCEPTED'" (click)="markReady(order)">Mark Ready</button>
+                      <button mat-flat-button color="success" *ngIf="order.orderStatus === 'READY'" (click)="completeOrder(order)" style="background-color: #16a34a; color: white;">Complete</button>
                     </div>
                   </td>
                 </ng-container>
@@ -337,10 +342,11 @@ type OnlineView = 'table' | 'kanban';
                       <div class="time">{{ formatDateValue(order.createdAt) }}</div>
                       <div class="ready-info" *ngIf="order.readyAt">Ready since {{ formatDateValue(order.readyAt) }}</div>
                     </div>
-                    <mat-card-actions align="end" *ngIf="['PENDING', 'ACCEPTED'].includes(order.orderStatus)">
+                    <mat-card-actions align="end" *ngIf="['PENDING', 'ACCEPTED', 'READY'].includes(order.orderStatus)">
                       <button mat-button color="primary" *ngIf="order.orderStatus === 'PENDING'" (click)="acceptOrder(order)">Accept</button>
                       <button mat-button color="warn" *ngIf="order.orderStatus === 'PENDING'" (click)="startReject(order)">Reject</button>
                       <button mat-button color="accent" *ngIf="order.orderStatus === 'ACCEPTED'" (click)="markReady(order)">Ready</button>
+                      <button mat-button color="success" *ngIf="order.orderStatus === 'READY'" (click)="completeOrder(order)">Complete</button>
                     </mat-card-actions>
                   </mat-card>
                 </div>
@@ -417,38 +423,38 @@ type OnlineView = 'table' | 'kanban';
     .mini-stat { 
       flex: 1; 
       position: relative;
-      border-radius: var(--radius-xl); 
+      border-radius: var(--radius-lg); 
       border: 1px solid var(--line); 
       background: var(--panel);
       backdrop-filter: blur(12px);
-      box-shadow: var(--shadow-md); 
+      box-shadow: var(--shadow-sm); 
       display: flex; 
       align-items: center; 
-      padding: 20px 24px; 
-      gap: 20px; 
+      padding: 12px 18px; 
+      gap: 12px; 
       transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
     }
     .mini-stat:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-xl);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
     .mini-stat mat-icon { 
       background: var(--brand-soft); 
       color: var(--brand); 
-      width: 52px; 
-      height: 52px; 
-      line-height: 52px; 
+      width: 36px; 
+      height: 36px; 
+      line-height: 36px; 
       text-align: center; 
-      border-radius: var(--radius-lg); 
-      font-size: 26px;
+      border-radius: var(--radius-md); 
+      font-size: 18px;
       transition: all 0.3s ease;
     }
     .mini-stat:hover mat-icon {
-      transform: scale(1.1) rotate(6deg);
+      transform: scale(1.05) rotate(4deg);
     }
-    .mini-stat .val { font-size: 1.6rem; font-weight: 800; color: var(--ink); line-height: 1; }
-    .mini-stat .lab { font-size: 0.8rem; color: var(--muted); margin-top: 6px; font-weight: 600; }
+    .mini-stat .val { font-size: 1.25rem; font-weight: 800; color: var(--ink); line-height: 1; }
+    .mini-stat .lab { font-size: 0.75rem; color: var(--muted); margin-top: 2px; font-weight: 600; }
 
     .filter-card { 
       margin-bottom: 24px; 
@@ -520,32 +526,33 @@ type OnlineView = 'table' | 'kanban';
     .total-cell .amount { font-weight: 700; font-size: 1rem; color: var(--ink); }
     .refunded-amount { color: #dc2626; font-size: 0.75rem; font-weight: 700; margin-top: 2px; }
 
-    .online-counts-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px; }
+    .online-counts-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
     .status-box { 
-      padding: 20px; 
+      padding: 12px 16px; 
       text-align: center; 
-      border-radius: var(--radius-xl); 
+      border-radius: var(--radius-lg); 
       border: 1px solid var(--line); 
       background: var(--panel);
       backdrop-filter: blur(12px);
-      box-shadow: var(--shadow-md); 
+      box-shadow: var(--shadow-sm); 
       cursor: pointer; 
       transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
     }
     .status-box:hover { 
-      transform: translateY(-4px); 
-      box-shadow: var(--shadow-xl); 
+      transform: translateY(-2px); 
+      box-shadow: var(--shadow-md); 
     }
     .status-box.active { background: var(--brand); border-color: var(--brand-light); }
     .status-box.active .count, .status-box.active .label { color: #fff !important; }
     
-    .status-box .count { font-size: 1.85rem; font-weight: 800; line-height: 1; }
-    .status-box .label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-top: 8px; opacity: 0.8; letter-spacing: 0.5px; }
+    .status-box .count { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+    .status-box .label { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; margin-top: 4px; opacity: 0.8; letter-spacing: 0.5px; }
     
     .count.primary { color: #0284c7; }
     .count.success { color: #16a34a; }
     .count.warn { color: #d97706; }
+    .count.info { color: #0d9488; }
     .count.danger { color: #dc2626; }
 
     .view-actions { display: flex; align-items: center; margin-bottom: 20px; gap: 16px; }
@@ -559,16 +566,16 @@ type OnlineView = 'table' | 'kanban';
 
     .action-btn-row { display: flex; gap: 8px; }
 
-    .kanban-view { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .kanban-view { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
     .kanban-col { 
       background: var(--bg); 
       border: 1px solid var(--line);
       border-radius: var(--radius-xl); 
-      padding: 16px; 
+      padding: 12px; 
       min-height: 600px; 
       display: flex; 
       flex-direction: column; 
-      gap: 16px; 
+      gap: 12px; 
     }
     .col-header { 
       display: flex; 
@@ -584,7 +591,8 @@ type OnlineView = 'table' | 'kanban';
     .col-header .dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
     .col-header .dot.pending { background: #d97706; }
     .col-header .dot.accepted { background: #0284c7; }
-    .col-header .dot.ready { background: #16a34a; }
+    .col-header .dot.ready { background: #0d9488; }
+    .col-header .dot.completed { background: #16a34a; }
     .col-header .dot.rejected { background: #dc2626; }
     .col-header .badge { 
       margin-left: auto; 
@@ -626,7 +634,11 @@ type OnlineView = 'table' | 'kanban';
     @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     .spacer { flex: 1; }
 
-    @media (max-width: 1100px) {
+    @media (max-width: 1200px) {
+      .kanban-view { grid-template-columns: repeat(3, 1fr); }
+      .online-counts-row { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 900px) {
       .kanban-view { grid-template-columns: repeat(2, 1fr); }
       .online-counts-row { grid-template-columns: repeat(2, 1fr); }
     }
@@ -669,7 +681,7 @@ export class OrdersPageComponent implements AfterViewInit {
   // Online orders
   marketplaceOrders: MarketplaceOrder[] = [];
   marketplaceOrdersLoaded = false;
-  onlineCounts: { pending: number; accepted: number; ready: number; rejected: number } | null = null;
+  onlineCounts: { pending: number; accepted: number; ready: number; completed: number; rejected: number } | null = null;
   onlineDataSource = new MatTableDataSource<MarketplaceOrder>([]);
   onlineDisplayedColumns = ['platform', 'platformOrderId', 'customer', 'totalAmount', 'orderStatus', 'createdAt', 'actions'];
 
@@ -693,6 +705,7 @@ export class OrdersPageComponent implements AfterViewInit {
     { label: 'Pending', status: 'PENDING' },
     { label: 'Accepted', status: 'ACCEPTED' },
     { label: 'Ready', status: 'READY' },
+    { label: 'Completed', status: 'COMPLETED' },
     { label: 'Rejected', status: 'REJECTED' }
   ];
 
@@ -924,6 +937,12 @@ export class OrdersPageComponent implements AfterViewInit {
     });
   }
 
+  completeOrder(order: MarketplaceOrder): void {
+    this.api.completeMarketplaceOrder(order.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => { this.loadMarketplaceOrders(); this.loadMarketplaceCounts(); }
+    });
+  }
+
   // Formatters
   formatCurrencyValue(v: number): string { return formatCurrency(v); }
   formatDateValue(v: number | null): string { return formatDate(v); }
@@ -940,7 +959,8 @@ export class OrdersPageComponent implements AfterViewInit {
     switch(status) {
       case 'PENDING': return 'warn';
       case 'ACCEPTED': return 'info';
-      case 'READY': return 'success';
+      case 'READY': return 'info';
+      case 'COMPLETED': return 'success';
       case 'REJECTED': return 'danger';
       default: return '';
     }

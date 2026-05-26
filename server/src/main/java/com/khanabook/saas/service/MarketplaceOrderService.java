@@ -35,6 +35,7 @@ public class MarketplaceOrderService {
             "pending", orderRepo.countByRestaurantIdAndOrderStatus(restaurantId, "pending"),
             "accepted", orderRepo.countByRestaurantIdAndOrderStatus(restaurantId, "accepted"),
             "ready", orderRepo.countByRestaurantIdAndOrderStatus(restaurantId, "ready"),
+            "completed", orderRepo.countByRestaurantIdAndOrderStatus(restaurantId, "completed"),
             "rejected", orderRepo.countByRestaurantIdAndOrderStatus(restaurantId, "rejected")
         );
     }

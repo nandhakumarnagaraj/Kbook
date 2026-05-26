@@ -78,6 +78,10 @@ export class BusinessApiService {
     return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/mark-ready`, {});
   }
 
+  completeMarketplaceOrder(orderId: number) {
+    return this.http.post<MarketplaceOrder>(`${API_BASE_URL}/business/marketplace-orders/${orderId}/complete`, {});
+  }
+
   getProfile() {
     return this.http.get<BusinessProfile>(`${API_BASE_URL}/business/profile`);
   }
