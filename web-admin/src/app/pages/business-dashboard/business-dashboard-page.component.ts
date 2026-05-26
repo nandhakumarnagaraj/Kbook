@@ -168,7 +168,7 @@ Chart.register(...registerables);
               </mat-card-header>
               <mat-card-content>
                 <div class="order-list" *ngIf="data.recentOrders.length > 0; else noOrders">
-                  <div class="order-item" *ngFor="let order of data.recentOrders.slice(0, 8)"
+                  <div class="order-item" *ngFor="let order of data.recentOrders.slice(0, 10)"
                        [class.paid-row]="order.paymentStatus === 'Paid'"
                        [class.pending-row]="order.paymentStatus !== 'Paid'"
                        [class.refunded-row]="order.refundStatus === 'REFUNDED'">
@@ -427,7 +427,7 @@ Chart.register(...registerables);
     .value { font-weight: 700; margin-left: 2px; color: var(--ink); }
 
     .recent-orders-card { border-radius: var(--radius-xl); border: 1px solid var(--line); box-shadow: var(--shadow-md); background: var(--panel); flex: 1; }
-    .order-list { display: flex; flex-direction: column; gap: 8px; }
+    .order-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .order-item { 
       display: flex; 
       align-items: center; 
