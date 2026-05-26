@@ -843,36 +843,60 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
     if (!ctx) return;
 
     this.chartInstance = new Chart(ctx, {
-      type: 'line',
+      type: 'bar',
       data: {
         labels: this.salesLabels(),
         datasets: [{
           label: 'Revenue',
           data: this.salesData(),
-          borderColor: '#b56a2d',
-          backgroundColor: 'rgba(181,106,45,0.08)',
-          fill: true,
-          tension: 0.4,
-          pointRadius: 4,
-          pointBackgroundColor: '#b56a2d',
-          borderWidth: 2
+          backgroundColor: 'rgba(181, 106, 45, 0.85)',
+          hoverBackgroundColor: '#b56a2d',
+          borderRadius: 6,
+          borderSkipped: false,
+          barPercentage: 0.6,
+          categoryPercentage: 0.7
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(23, 19, 15, 0.9)',
+            titleColor: '#f7f3ee',
+            bodyColor: '#f7f3ee',
+            padding: 12,
+            cornerRadius: 8,
+            displayColors: false,
+            callbacks: {
+              label: (ctx) => `Revenue: ${formatCurrency(ctx.parsed.y)}`
+            }
+          }
+        },
         scales: {
-          x: { display: true, grid: { display: false }, ticks: { font: { size: 10 }, color: '#64748b' } },
+          x: { 
+            display: true, 
+            grid: { display: false }, 
+            ticks: { font: { size: 11, weight: '600' }, color: '#64748b' } 
+          },
           y: { 
             display: true, 
-            grid: { color: '#f1f5f9' }, 
-            ticks: { font: { size: 10 }, color: '#64748b' },
+            grid: { color: 'rgba(100, 116, 139, 0.1)', drawBorder: false }, 
+            ticks: { 
+              font: { size: 10 }, 
+              color: '#64748b',
+              callback: (val) => formatCurrency(val as number)
+            },
             beginAtZero: true,
             min: 0
           }
         },
-        interaction: { intersect: false, mode: 'index' }
+        interaction: { intersect: false, mode: 'index' },
+        animation: {
+          duration: 800,
+          easing: 'easeOutQuart'
+        }
       }
     });
   }
