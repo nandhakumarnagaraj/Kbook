@@ -864,7 +864,13 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
         plugins: { legend: { display: false } },
         scales: {
           x: { display: true, grid: { display: false }, ticks: { font: { size: 10 }, color: '#64748b' } },
-          y: { display: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, color: '#64748b' } }
+          y: { 
+            display: true, 
+            grid: { color: '#f1f5f9' }, 
+            ticks: { font: { size: 10 }, color: '#64748b' },
+            beginAtZero: true,
+            min: 0
+          }
         },
         interaction: { intersect: false, mode: 'index' }
       }
