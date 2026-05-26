@@ -3,7 +3,10 @@ package com.khanabook.lite.pos.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,13 +14,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -30,7 +41,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -103,25 +117,7 @@ fun EasebuzzKycScreen(
                     }
                 } else if (subMerchantStatus != null) {
                     val status = subMerchantStatus!!
-                    val statusColor = when (status.status.lowercase()) {
-                        "active" -> SuccessGreen
-                        "pending kyc", "pending" -> PrimaryGold
-                        "rejected" -> MaterialTheme.colorScheme.error
-                        "suspended" -> Color(0xFFFF9800)
-                        else -> TextGold
-                    }
-
-                    StatusRow(label = "Status", value = status.status, valueColor = statusColor)
-
-                    if (status.kycSubmissionDate != null) {
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                        StatusRow(label = "KYC Submitted", value = status.kycSubmissionDate)
-                    }
-
-                    if (status.activationDate != null) {
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                        StatusRow(label = "Activated On", value = status.activationDate)
-                    }
+                    KycTimeline(status = status, spacing = spacing)
 
                     Spacer(modifier = Modifier.height(spacing.large))
 
@@ -212,26 +208,165 @@ fun EasebuzzKycScreen(
 }
 
 @Composable
-private fun StatusRow(
-    label: String,
-    value: String,
-    valueColor: Color = TextLight
+fun KycTimeline(
+    status: EasebuzzSubMerchantStatusResponse,
+    spacing: com.khanabook.lite.pos.ui.theme.Spacing
 ) {
+    val isSubmitted = status.kycSubmissionDate != null
+    val isActive = status.status.lowercase() == "active"
+    val isRejected = status.status.lowercase() == "rejected"
+    val isSuspended = status.status.lowercase() == "suspended"
+    
+    val steps = listOf(
+        TimelineStep(
+            title = "Account Setup",
+            description = "Merchant account registered",
+            state = StepState.COMPLETED,
+            date = null
+        ),
+        TimelineStep(
+            title = "KYC Document Verification",
+            description = when {
+                isRejected -> "Documents rejected. Please re-submit."
+                isSubmitted -> "Documents successfully uploaded"
+                else -> "Upload ID and Bank proof to proceed"
+            },
+            state = when {
+                isRejected -> StepState.ERROR
+                isSubmitted -> StepState.COMPLETED
+                else -> StepState.PENDING
+            },
+            date = status.kycSubmissionDate
+        ),
+        TimelineStep(
+            title = "Settlement Activation",
+            description = when {
+                isSuspended -> "Settlements temporarily suspended"
+                isActive -> "Account active — splits & settlements enabled"
+                else -> "Awaiting compliance review"
+            },
+            state = when {
+                isSuspended -> StepState.ERROR
+                isActive -> StepState.COMPLETED
+                else -> StepState.PENDING
+            },
+            date = status.activationDate
+        )
+    )
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        steps.forEachIndexed { index, step ->
+            KycTimelineItem(
+                step = step,
+                isLast = index == steps.size - 1,
+                spacing = spacing
+            )
+        }
+    }
+}
+
+enum class StepState {
+    COMPLETED, PENDING, ERROR
+}
+
+data class TimelineStep(
+    val title: String,
+    val description: String,
+    val state: StepState,
+    val date: String?
+)
+
+@Composable
+fun KycTimelineItem(
+    step: TimelineStep,
+    isLast: Boolean,
+    spacing: com.khanabook.lite.pos.ui.theme.Spacing
+) {
+    val circleColor = when (step.state) {
+        StepState.COMPLETED -> SuccessGreen
+        StepState.ERROR -> MaterialTheme.colorScheme.error
+        StepState.PENDING -> TextGold.copy(alpha = 0.35f)
+    }
+    
+    val icon = when (step.state) {
+        StepState.COMPLETED -> Icons.Default.Check
+        StepState.ERROR -> Icons.Default.Close
+        StepState.PENDING -> Icons.Default.Circle
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
-        Text(
-            text = label,
-            color = TextGold,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = value,
-            color = valueColor,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold
-        )
+        // Timeline Indicator Column
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.width(32.dp)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(circleColor.copy(alpha = 0.15f))
+                    .border(1.5.dp, circleColor, CircleShape)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = circleColor,
+                    modifier = Modifier.size(if (step.state == StepState.PENDING) 8.dp else 14.dp)
+                )
+            }
+            
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(36.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(circleColor, TextGold.copy(alpha = 0.15f))
+                            )
+                        )
+                )
+            }
+        }
+        
+        // Content Column
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = if (isLast) 0.dp else spacing.medium)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = step.title,
+                    color = if (step.state == StepState.PENDING) TextGold.copy(alpha = 0.6f) else TextLight,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                if (step.date != null) {
+                    Text(
+                        text = step.date,
+                        color = TextGold.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = step.description,
+                color = if (step.state == StepState.PENDING) TextGold.copy(alpha = 0.45f) else TextGold,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }

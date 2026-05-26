@@ -87,11 +87,11 @@ fun HomeScreen(
         }
     }
 
-    val enterSpec = fadeIn(tween(350)) + slideInVertically(
+    val enterSpec = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) + slideInVertically(
         initialOffsetY = { it / 6 },
-        animationSpec = tween(350, easing = FastOutSlowInEasing)
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
     )
-    val exitSpec = fadeOut(tween(200))
+    val exitSpec = fadeOut(spring(stiffness = Spring.StiffnessMediumLow))
 
     Box(
         modifier = Modifier
@@ -632,16 +632,15 @@ fun ComplianceBanner(
                 )
             }
             if (onDismiss != null) {
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = textColor.copy(alpha = 0.10f),
-                    onClick = onDismiss
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Dismiss alert",
                         tint = textColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(iconSize.xsmall)
+                        modifier = Modifier.size(iconSize.small)
                     )
                 }
             }

@@ -1,80 +1,92 @@
 {
   "version": 1,
   "skills": {
-    "atxp": {
-      "source": "atxp-dev/cli",
+    "accesslint": {
+      "source": "https://github.com/accesslint/claude-marketplace",
       "sourceType": "github",
-      "computedHash": "fcef89f8eba21cb0274708f8ed2487d261180f38c768f019830a4f23a5a87fc0"
-    },
-    "brand-guidelines": {
-      "source": ".claude/skills/brand-guidelines/SKILL.md",
-      "sourceType": "local",
-      "computedHash": "5d21eb3bb5adf489970d997b1cd7ef30f0b54a5180348ea2ac987ff6b00f2ad3"
-    },
-    "frontend-design": {
-      "source": ".claude/skills/frontend-design/SKILL.md",
-      "sourceType": "local",
-      "computedHash": "a58d5f54fa7a3afdabb659f7d8745a00c56732b3fb6079c7a19812069795e680"
-    },
-    "theme-factory": {
-      "source": ".claude/skills/theme-factory/SKILL.md",
-      "sourceType": "local",
-      "computedHash": "f38ca5bfb263057debd28292bba29b2e3eddea20a5f438eb2b5c8210be1fd215"
-    },
-    "figma": {
-      "source": ".claude/skills/figma/SKILL.md",
-      "sourceType": "local",
-      "computedHash": "0d085c89737076b36099926ff28dfb65f425bd4d3017a3c271cb90bd2c26d2ba"
-    },
-    "canvas-design": {
-      "source": ".claude/skills/canvas-design/SKILL.md",
-      "sourceType": "local",
-      "computedHash": "8792b14060cb2069489a9e00bb846e02b271698721b72b286b50e5e607a1cb92"
-    },
-    "skill-creator": {
-      "source": ".claude/skills/skill-creator/SKILL.md",
-      "sourceType": "local",
-      "computedHash": "5ea41da6a9502570fb8f2546cf63a87469c7ac5f6e0af43c2684dd21df113135"
+      "computedHash": "539a57e5b4eaa962e684d53e93c7a8080893bbd20cca8f4578d9a6863cbb5a98"
     },
     "anthropic-frontend-design": {
       "source": "https://github.com/anthropics/skills",
       "sourceType": "github",
       "computedHash": "b81e2ff87ed8fa4d6c377ccb127a7254c9e6a77e3ae94f21e6b514f7bb2945a0"
     },
-    "vercel-web-design": {
-      "source": "https://github.com/vercel-labs/agent-skills",
+    "atxp": {
+      "source": "atxp-dev/cli",
       "sourceType": "github",
-      "computedHash": "f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f"
+      "computedHash": "fcef89f8eba21cb0274708f8ed2487d261180f38c768f019830a4f23a5a87fc0"
     },
-    "vercel-react-best-practices": {
-      "source": "https://github.com/vercel-labs/agent-skills",
+    "bencium-ux-designer": {
+      "source": "https://github.com/bencium/bencium-marketplace",
       "sourceType": "github",
-      "computedHash": "71ed7794962fa6e803ee83030517b5b93a9f70fbfeb431ec4535c5480a8d8355"
+      "computedHash": "544b8ed5b4d5e2bab41c28d2a317c079c0219ce0309fa6095100b8ce65526ae9"
     },
-    "vercel-composition-patterns": {
-      "source": "https://github.com/vercel-labs/agent-skills",
+    "brand-guidelines": {
+      "source": ".claude/skills/brand-guidelines/SKILL.md",
+      "sourceType": "local",
+      "computedHash": "5d21eb3bb5adf489970d997b1cd7ef30f0b54a5180348ea2ac987ff6b00f2ad3"
+    },
+    "canvas-design": {
+      "source": ".claude/skills/canvas-design/SKILL.md",
+      "sourceType": "local",
+      "computedHash": "8792b14060cb2069489a9e00bb846e02b271698721b72b286b50e5e607a1cb92"
+    },
+    "emil-design-eng": {
+      "source": "emilkowalski/skill",
       "sourceType": "github",
-      "computedHash": "e38e0eaa609316b10423a9a138ed95e35099accd3f735585295c8a8f165c28a3"
+      "skillPath": "skills/emil-design-eng/SKILL.md",
+      "computedHash": "ac3fc5b4e206488ffc408a2806f829bb2e5eaf518fded09be34790685c2b3a0d"
+    },
+    "figma": {
+      "source": ".claude/skills/figma/SKILL.md",
+      "sourceType": "local",
+      "computedHash": "0d085c89737076b36099926ff28dfb65f425bd4d3017a3c271cb90bd2c26d2ba"
+    },
+    "frontend-design": {
+      "source": ".claude/skills/frontend-design/SKILL.md",
+      "sourceType": "local",
+      "computedHash": "a58d5f54fa7a3afdabb659f7d8745a00c56732b3fb6079c7a19812069795e680"
+    },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": "skill/SKILL.md",
+      "computedHash": "e08cc9be673b6b5e66eb55cf77eb50a940fc603245b2f75d8370a2043aa926aa"
+    },
+    "skill-creator": {
+      "source": ".claude/skills/skill-creator/SKILL.md",
+      "sourceType": "local",
+      "computedHash": "5ea41da6a9502570fb8f2546cf63a87469c7ac5f6e0af43c2684dd21df113135"
+    },
+    "theme-factory": {
+      "source": ".claude/skills/theme-factory/SKILL.md",
+      "sourceType": "local",
+      "computedHash": "f38ca5bfb263057debd28292bba29b2e3eddea20a5f438eb2b5c8210be1fd215"
     },
     "ui-ux-pro-max": {
       "source": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",
       "computedHash": "364596a2a8d1688202ae8097cbef9371d93b5b127131c7fcaf05764a76f5d761"
     },
+    "vercel-composition-patterns": {
+      "source": "https://github.com/vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "e38e0eaa609316b10423a9a138ed95e35099accd3f735585295c8a8f165c28a3"
+    },
+    "vercel-react-best-practices": {
+      "source": "https://github.com/vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "71ed7794962fa6e803ee83030517b5b93a9f70fbfeb431ec4535c5480a8d8355"
+    },
     "vercel-react-native": {
       "source": "https://github.com/vercel-labs/agent-skills",
       "sourceType": "github",
       "computedHash": "4012750a5ccbe064ca04af3835d5d1b011979d2d09d9b6df1c8128fac58e0a66"
     },
-    "accesslint": {
-      "source": "https://github.com/accesslint/claude-marketplace",
+    "vercel-web-design": {
+      "source": "https://github.com/vercel-labs/agent-skills",
       "sourceType": "github",
-      "computedHash": "539a57e5b4eaa962e684d53e93c7a8080893bbd20cca8f4578d9a6863cbb5a98"
-    },
-    "bencium-ux-designer": {
-      "source": "https://github.com/bencium/bencium-marketplace",
-      "sourceType": "github",
-      "computedHash": "544b8ed5b4d5e2bab41c28d2a317c079c0219ce0309fa6095100b8ce65526ae9"
+      "computedHash": "f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f"
     }
   }
 }

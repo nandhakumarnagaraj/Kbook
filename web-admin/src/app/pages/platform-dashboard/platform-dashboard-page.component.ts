@@ -69,7 +69,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           </div>
         </div>
 
-        <div class="stats-grid">
+        <div class="stats-grid animate-fade-in-up">
           <mat-card class="stat-card businesses clickable" routerLink="/admin/businesses">
             <mat-card-header>
               <mat-icon mat-card-avatar class="stat-icon">business</mat-icon>
@@ -123,7 +123,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           </mat-card>
         </div>
 
-        <div class="main-grid">
+        <div class="main-grid animate-fade-in-up" style="animation-delay: 0.1s;">
           <div class="left-col">
             <mat-card class="chart-card">
               <mat-card-header>
@@ -347,21 +347,29 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     @media (max-width: 600px)  { .stats-grid { grid-template-columns: 1fr; } }
 
     .stat-card {
-      border-radius: var(--radius-xl);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow-md);
-      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      border-radius: var(--radius-xl) !important;
+      border: 1px solid var(--line) !important;
+      box-shadow: var(--shadow-md) !important;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
       overflow: hidden;
       position: relative;
-      background: var(--panel);
+      background: rgba(255, 255, 255, 0.7) !important;
+      backdrop-filter: blur(16px) saturate(120%) !important;
+      -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
       min-width: 0;
-      container-type: inline-size;
     }
+    
+    :host-context(.dark-theme) .stat-card {
+      background: rgba(33, 26, 20, 0.65) !important;
+      border: 1px solid rgba(247, 243, 238, 0.05) !important;
+    }
+
     .stat-card .mat-mdc-card-header {
       min-width: 0;
-      padding: 12px 12px;
-      gap: 8px;
+      padding: 16px 16px 8px;
+      gap: 12px;
       flex-wrap: nowrap;
+      align-items: center;
     }
     .stat-card .mat-mdc-card-header-text {
       min-width: 0;
@@ -374,7 +382,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
     .stat-card.clickable:hover {
       transform: translateY(-6px);
-      box-shadow: var(--shadow-xl);
+      box-shadow: var(--shadow-xl) !important;
     }
 
     .stat-card.clickable::after {
@@ -382,11 +390,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       font-family: 'Material Icons';
       position: absolute;
       top: 16px;
-      right: 12px;
+      right: 16px;
       font-size: 18px;
       color: var(--muted);
       opacity: 0;
-      transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
+      transition: opacity 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
       transform: translateX(-10px);
     }
 
@@ -399,13 +407,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     .stat-icon {
       background: var(--brand-soft);
       color: var(--brand);
-      width: 36px;
-      height: 36px;
-      line-height: 36px;
+      width: 44px;
+      height: 44px;
+      line-height: 44px;
       text-align: center;
       border-radius: var(--radius-lg);
-      font-size: 18px;
-      transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+      font-size: 22px;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, color 0.25s ease;
       flex-shrink: 0;
       margin: 0;
     }
@@ -414,12 +422,19 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       transform: scale(1.1) rotate(6deg);
     }
     .stat-card .mat-mdc-card-title {
+      font-size: 1.8rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--ink);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      font-size: 1.1rem;
     }
     .stat-card .mat-mdc-card-subtitle {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-top: 2px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;

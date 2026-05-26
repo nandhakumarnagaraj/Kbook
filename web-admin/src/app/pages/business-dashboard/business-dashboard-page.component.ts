@@ -841,6 +841,14 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
     const ctx = canvasEl.getContext('2d');
     if (!ctx) return;
 
+    const computedStyle = getComputedStyle(document.documentElement);
+    const brandColor = computedStyle.getPropertyValue('--brand').trim() || '#C85A00';
+    const brandLight = computedStyle.getPropertyValue('--brand-light').trim() || '#E8832A';
+    const mutedColor = computedStyle.getPropertyValue('--muted').trim() || '#64748b';
+    const lineColor = computedStyle.getPropertyValue('--line').trim() || 'rgba(100, 116, 139, 0.1)';
+    const inkColor = computedStyle.getPropertyValue('--ink').trim() || '#17130F';
+    const panelColor = computedStyle.getPropertyValue('--panel').trim() || '#ffffff';
+
     this.chartInstance = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -848,8 +856,8 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
         datasets: [{
           label: 'Revenue',
           data: this.salesData(),
-          backgroundColor: 'rgba(181, 106, 45, 0.85)',
-          hoverBackgroundColor: '#b56a2d',
+          backgroundColor: brandColor,
+          hoverBackgroundColor: brandLight,
           borderRadius: 6,
           borderSkipped: false,
           barPercentage: 0.6,
@@ -862,9 +870,9 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
         plugins: { 
           legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(23, 19, 15, 0.9)',
-            titleColor: '#f7f3ee',
-            bodyColor: '#f7f3ee',
+            backgroundColor: inkColor === '#17130F' ? 'rgba(23, 19, 15, 0.95)' : 'rgba(247, 243, 238, 0.95)',
+            titleColor: inkColor === '#17130F' ? '#f7f3ee' : '#17130F',
+            bodyColor: inkColor === '#17130F' ? '#f7f3ee' : '#17130F',
             padding: 12,
             cornerRadius: 8,
             displayColors: false,
@@ -877,14 +885,14 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
           x: { 
             display: true, 
             grid: { display: false }, 
-            ticks: { font: { size: 11, weight: 'bold' }, color: '#64748b' } 
+            ticks: { font: { size: 11, weight: 'bold' }, color: mutedColor } 
           },
           y: { 
             display: true, 
-            grid: { color: 'rgba(100, 116, 139, 0.1)' }, 
+            grid: { color: lineColor }, 
             ticks: { 
               font: { size: 10 }, 
-              color: '#64748b',
+              color: mutedColor,
               callback: (val) => formatCurrency(val as number)
             },
             beginAtZero: true,
@@ -909,6 +917,8 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
     if (!ctx) return;
 
     const data = this.orderChartData();
+    const computedStyle = getComputedStyle(document.documentElement);
+    const panelColor = computedStyle.getPropertyValue('--panel').trim() || '#ffffff';
 
     this.orderChartInstance = new Chart(ctx, {
       type: 'doughnut',
@@ -917,7 +927,8 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
         datasets: [{
           data: data.values,
           backgroundColor: data.colors,
-          borderColor: 'transparent',
+          borderColor: panelColor,
+          borderWidth: 2,
           hoverOffset: 4
         }]
       },
@@ -929,7 +940,7 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (ctx) => `${ctx.label}: ${ctx.parsed}`
+              label: (ctx) => ` ${ctx.label}: ${ctx.parsed}`
             }
           }
         }

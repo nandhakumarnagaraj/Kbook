@@ -233,10 +233,12 @@ fun NewBillScreen(
                 targetState = step,
                 transitionSpec = {
                     val forward = targetState > initialState
-                    slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { if (forward) it else -it } +
-                        fadeIn(tween(300)) togetherWith
-                    slideOutHorizontally(tween(250, easing = FastOutSlowInEasing)) { if (forward) -it else it } +
-                        fadeOut(tween(200))
+                    val offsetSpring = spring<androidx.compose.ui.unit.IntOffset>(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)
+                    val floatSpring = spring<Float>(stiffness = Spring.StiffnessMediumLow)
+                    slideInHorizontally(animationSpec = offsetSpring) { if (forward) it else -it } +
+                        fadeIn(floatSpring) togetherWith
+                    slideOutHorizontally(animationSpec = offsetSpring) { if (forward) -it else it } +
+                        fadeOut(floatSpring)
                 },
                 label = "step_transition"
             ) { currentStep ->
@@ -832,9 +834,11 @@ fun MenuSelectionStep(
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(bottom = spacing.bottomListPadding)
                     ) {
-                        items(cartItems) { cartItem ->
+                        items(cartItems, key = { "${it.item.id}_${it.variant?.id ?: 0}" }) { cartItem ->
                             var showNoteDialog by remember { mutableStateOf(false) }
-                            Column {
+                            Column(
+                                modifier = Modifier.animateItem()
+                            ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),
                                     horizontalArrangement = Arrangement.SpaceBetween,
