@@ -57,6 +57,7 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 - **Sub-Merchant Details View (Modal Conversion)**: Refactored sub-merchant details layout in `sub-merchants-page.component.ts` from a fixed side panel to a clean overlay modal (`MatDialog` via `#detailDialog` `<ng-template>`). Table now occupies full screen width.
 - **Business Directory (Table Spacing & Actions Modals)**: Re-styled the table headers and cells in `businesses-page.component.ts` to match the premium design (uppercase uppercase header text, border bottom, shadows, row hover). Right-aligned the Actions header cell `Action`. Replaced bottom drawer with `MatDialog` modals for View Details, Edit Business, and Suspend actions, with local state mapping/simulation and snackbar alerts for testing.
 - **Header Toolbar Alignment**: Styled the profile trigger button as a borderless flex item and removed the Material button wrapper, ensuring that the Toggle Light/Dark Mode button and user avatar align on the exact same vertical center line.
+- **Quick Shortcuts Feature Removal**: Removed the "Quick Shortcuts" button, popover modal template dialog, and key listener events completely from `business-dashboard-page.component.ts` to declutter the header actions layout.
 - **Build & Verification**: Built web-admin using `npm run build` and ran all 133 backend unit tests, verifying successful compilation and passes.
 - **Git**: Committed changes to local tracking branch `origin/v2` (no remote pushes).
 

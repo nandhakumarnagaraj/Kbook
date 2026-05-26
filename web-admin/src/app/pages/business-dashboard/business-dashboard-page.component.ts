@@ -44,7 +44,7 @@ Chart.register(...registerables);
     MatFormFieldModule
   ],
   template: `
-    <div class="page-container" (document:keydown.escape)="closeModals()">
+    <div class="page-container">
       <ng-container *ngIf="vm() as data; else loading">
         <div class="header-row">
 
@@ -91,10 +91,6 @@ Chart.register(...registerables);
             
             <button mat-icon-button (click)="refresh()" matTooltip="Refresh now">
               <mat-icon [class.spinning]="refreshing">refresh</mat-icon>
-            </button>
-            
-            <button mat-icon-button (click)="showShortcutHint.set(true)" matTooltip="Keyboard shortcuts">
-              <mat-icon>keyboard</mat-icon>
             </button>
           </div>
         </div>
@@ -310,23 +306,6 @@ Chart.register(...registerables);
         </div>
       </ng-template>
 
-      <!-- Keyboard Shortcut Dialog -->
-      <div class="shortcut-overlay" *ngIf="showShortcutHint()" (click)="showShortcutHint.set(false)">
-        <mat-card class="shortcut-dialog" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" (click)="$event.stopPropagation()">
-          <mat-card-header>
-            <mat-card-title>Quick Shortcuts</mat-card-title>
-            <button mat-icon-button (click)="showShortcutHint.set(false)">
-              <mat-icon>close</mat-icon>
-            </button>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="shortcut-row"><kbd>Ctrl+N</kbd><span>New Transaction</span></div>
-            <div class="shortcut-row"><kbd>Ctrl+F</kbd><span>Order History</span></div>
-            <div class="shortcut-row"><kbd>Esc</kbd><span>Close Overlays</span></div>
-            <div class="shortcut-row"><kbd>?</kbd><span>Show/Hide Shortcuts</span></div>
-          </mat-card-content>
-        </mat-card>
-      </div>
     </div>
   `,
   styles: [`
@@ -576,12 +555,7 @@ Chart.register(...registerables);
     .empty-state { padding: 40px; text-align: center; color: var(--muted); }
     .empty-state mat-icon { font-size: 48px; width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.3; }
 
-    .shortcut-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(8px); animation: fadeIn 0.2s ease; }
-    .shortcut-dialog { width: 400px; padding: 8px; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
-    .shortcut-dialog:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-    .shortcut-row { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--line); }
-    .shortcut-row:last-child { border-bottom: none; }
-    .shortcut-row kbd { background: #f1f5f9; padding: 4px 10px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-weight: 700; border: 1px solid #cbd5e1; box-shadow: 0 2px 0 #94a3b8; font-size: 0.8rem; }
+
 
     /* Compliance banner */
     .compliance-banner { display: flex; align-items: center; gap: 10px; padding: 12px 20px; margin-bottom: 16px; border-radius: var(--radius-lg); font-size: 0.9rem; font-weight: 700; }
@@ -613,7 +587,6 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
   private readonly router = inject(Router);
 
   readonly Math = Math;
-  readonly showShortcutHint = signal(false);
 
   readonly profileFssaiExpiry = signal<string | null>(null);
   readonly profileGstExpiry = signal<string | null>(null);
@@ -673,31 +646,14 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
   readonly orderChartData = signal<{ labels: string[]; values: number[]; colors: string[] }>({ labels: [], values: [], colors: [] });
   readonly lowStockItems = signal<{ name: string; stockStatus: string }[]>([]);
 
-  private readonly savedKeyHandler = (e: KeyboardEvent) => {
-    if (e.ctrlKey && e.key === 'n') {
-      e.preventDefault();
-      this.router.navigate(['/business/orders']);
-    }
-    if (e.ctrlKey && e.key === 'f') {
-      e.preventDefault();
-      this.router.navigate(['/business/orders'], { queryParams: { search: 'open' } });
-    }
-    if (e.key === '?') {
-      this.showShortcutHint.update(v => !v);
-    }
-    if (e.key === 'Escape') {
-      this.showShortcutHint.set(false);
-    }
-  };
+
 
   constructor() {
     this.dateInterval = setInterval(() => {
       this.liveDate.set(this.formatDate(new Date()));
     }, 3600000); // update once per hour — date text doesn't change mid-day
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('keydown', this.savedKeyHandler);
-    }
+
 
     this.api.getMenu().pipe(
       takeUntilDestroyed(this.destroyRef),
@@ -736,9 +692,7 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
     if (this.dateInterval) clearInterval(this.dateInterval);
     if (this.chartInstance) this.chartInstance.destroy();
     if (this.orderChartInstance) this.orderChartInstance.destroy();
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('keydown', this.savedKeyHandler);
-    }
+
   }
 
   ngAfterViewInit(): void {
@@ -750,9 +704,7 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
     }
   }
 
-  closeModals(): void {
-    this.showShortcutHint.set(false);
-  }
+
 
   readonly vm = toSignal(
     this.refresh$.pipe(
