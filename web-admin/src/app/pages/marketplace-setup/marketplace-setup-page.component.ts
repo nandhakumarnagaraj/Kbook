@@ -44,14 +44,20 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
         </div>
       </div>
 
-      <div class="loading-state" *ngIf="setupState() === 'loading' || marketplaceState() === 'loading'">
-        <mat-spinner diameter="40" color="primary"></mat-spinner>
-        <p>Loading integration data...</p>
+      <!-- Onboarding loading/error state (independent) -->
+      <div class="loading-state" *ngIf="setupState() === 'loading'">
+        <mat-spinner diameter="36" color="primary"></mat-spinner>
+        <p>Loading settlement info...</p>
+      </div>
+      <div class="error-state" *ngIf="setupState() === 'error'">
+        <mat-icon>cloud_off</mat-icon>
+        <p>Could not load settlement onboarding data.</p>
       </div>
 
-      <div class="content-grid" *ngIf="setupState() === 'loaded' && marketplaceState() === 'loaded'">
+      <div class="content-grid">
         <!-- Easebuzz Onboarding Progress -->
-        <div class="config-card onboarding-card" *ngIf="marketplaceSetup() as setup">
+        <ng-container *ngIf="setupState() === 'loaded'">
+          <div class="config-card onboarding-card" *ngIf="marketplaceSetup() as setup">
           <div class="onboarding-header">
             <div class="onboarding-title-group">
               <mat-icon class="onboarding-icon">account_balance</mat-icon>
@@ -61,7 +67,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
               </div>
             </div>
             <span class="status-badge" [class]="getOnboardingStatusClass(setup.subMerchantStatus)">
-              {{ setup.subMerchantStatus || 'NOT STARTED' }}
+              {{ formatStatus(setup.subMerchantStatus) }}
             </span>
           </div>
 
@@ -154,10 +160,25 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
             <mat-icon>info</mat-icon>
             <span>Easebuzz onboarding and merchant registration is managed by KhanaBook Admins. Contact support to update bank or business registration info.</span>
           </div>
-        </div>
+          </div>
+        </ng-container>
 
         <!-- Marketplace Integration Cards -->
-        <form [formGroup]="marketplaceForm" class="config-form" (ngSubmit)="saveMarketplaceConfig()">
+        <div class="section-divider">
+          <span class="section-divider-label">Marketplace Integrations</span>
+        </div>
+
+        <!-- Marketplace loading/error state (independent) -->
+        <div class="loading-state" *ngIf="marketplaceState() === 'loading'">
+          <mat-spinner diameter="36" color="primary"></mat-spinner>
+          <p>Loading marketplace config...</p>
+        </div>
+        <div class="error-state" *ngIf="marketplaceState() === 'error'">
+          <mat-icon>cloud_off</mat-icon>
+          <p>Could not load marketplace configuration.</p>
+        </div>
+
+        <form [formGroup]="marketplaceForm" class="config-form" *ngIf="marketplaceState() === 'loaded'" (ngSubmit)="saveMarketplaceConfig()">
           <div class="integration-grid">
             
             <!-- ZOMATO -->
@@ -555,14 +576,20 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       padding: 0;
     }
     .copy-btn {
-      color: var(--muted);
+      color: var(--muted) !important;
       width: 32px;
       height: 32px;
       line-height: 32px;
       transition: color 0.2s ease;
     }
     .copy-btn:hover {
-      color: var(--brand);
+      color: var(--brand) !important;
+    }
+    ::ng-deep .copy-btn mat-icon {
+      color: inherit !important;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
     }
     .portal-link-btn {
       height: 32px;
@@ -936,9 +963,50 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 80px 20px;
+      padding: 48px 20px;
       color: var(--muted);
       gap: 16px;
+      font-size: 0.9rem;
+    }
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      gap: 12px;
+      color: var(--danger);
+      font-size: 0.9rem;
+      background: rgba(220, 38, 38, 0.05);
+      border: 1px solid rgba(220, 38, 38, 0.15);
+      border-radius: var(--radius-xl);
+    }
+    .error-state mat-icon {
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
+    }
+    .error-state p { margin: 0; font-weight: 600; }
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 8px 0 0;
+    }
+    .section-divider::before,
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+    .section-divider-label {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      white-space: nowrap;
     }
   `]
 })
@@ -1062,19 +1130,35 @@ export class MarketplaceSetupPageComponent implements OnInit {
     return 'warn';
   }
 
+  formatStatus(status?: string | null): string {
+    const map: Record<string, string> = {
+      'ACTIVE': 'Active',
+      'NOT_STARTED': 'Not Started',
+      'PENDING': 'Pending',
+      'PENDING_KYC': 'KYC Pending',
+      'REJECTED': 'Rejected',
+      'SUSPENDED': 'Suspended',
+      'SUBMITTED': 'Submitted',
+    };
+    return status ? (map[status] ?? status) : 'Not Started';
+  }
+
   isStepCompleted(step: number, status?: string | null): boolean {
-    if (!status) return false;
-    if (status === 'ACTIVE') return true;
-    if (step === 1) return true; // Draft is always complete
-    if (step === 2) return status !== 'NOT_STARTED'; // Submitted
-    if (step === 3) return status !== 'NOT_STARTED' && status !== 'PENDING_KYC'; // KYC portal link generated
+    if (!status || status === 'NOT_STARTED') return false;
+    if (status === 'ACTIVE') return true; // All 4 steps done
+    if (step === 1) return true; // Draft always complete once record exists
+    if (step === 2) return ['SUBMITTED', 'PENDING_KYC', 'PENDING', 'REJECTED', 'SUSPENDED'].includes(status);
+    if (step === 3) return ['PENDING', 'REJECTED', 'SUSPENDED'].includes(status);
+    if (step === 4) return status === 'ACTIVE';
     return false;
   }
 
   isStepActive(step: number, status?: string | null): boolean {
-    if (status === 'ACTIVE') return step === 4;
     if (!status || status === 'NOT_STARTED') return step === 1;
+    if (status === 'SUBMITTED') return step === 2;
     if (status === 'PENDING_KYC') return step === 3;
+    if (status === 'PENDING') return step === 4;
+    if (status === 'ACTIVE') return false; // All complete, none pulsing
     return false;
   }
 
