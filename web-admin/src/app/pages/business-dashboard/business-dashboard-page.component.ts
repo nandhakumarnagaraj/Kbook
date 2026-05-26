@@ -406,10 +406,10 @@ Chart.register(...registerables);
     .online .stat-icon { background: rgba(168, 85, 247, 0.12); color: #9333ea; }
     .online:hover { border-color: rgba(168, 85, 247, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(168, 85, 247, 0.2) !important; }
 
-    .trend-badge { position: absolute; top: 16px; right: 16px; display: flex; align-items: center; gap: 2px; font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+    .trend-badge { position: absolute; top: 16px; right: 16px; display: flex; align-items: center; gap: 2px; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; }
     .trend-badge.up { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
     .trend-badge.down { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
-    .trend-badge mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    .trend-badge mat-icon { font-size: 12px; width: 12px; height: 12px; }
     
     .online-status { position: absolute; top: 16px; right: 16px; font-size: 0.7rem; font-weight: 700; color: #dc2626; background: rgba(239, 68, 68, 0.12); padding: 3px 10px; border-radius: 999px; }
 
