@@ -76,8 +76,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             </mat-card-header>
             <mat-card-content>
               <div class="stat-footer">
-                <span class="trend up"><mat-icon>trending_up</mat-icon> 12%</span>
-                <span class="subtext">{{ data.liveBusinesses }} currently active</span>
+                <span class="subtext">{{ data.liveBusinesses }} active &middot; {{ businessLivePct(data) }}% live</span>
               </div>
             </mat-card-content>
           </mat-card>
@@ -90,8 +89,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             </mat-card-header>
             <mat-card-content>
               <div class="stat-footer">
-                <span class="trend up"><mat-icon>trending_up</mat-icon> 8.2%</span>
-                <span class="subtext">Across all time</span>
+                <span class="subtext">Net: {{ netRevenueFormatted(data) }}</span>
               </div>
             </mat-card-content>
           </mat-card>
@@ -104,8 +102,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             </mat-card-header>
             <mat-card-content>
               <div class="stat-footer">
-                <span class="trend down"><mat-icon>trending_down</mat-icon> 3.1%</span>
-                <span class="subtext">{{ data.refundedOrders }} refunded</span>
+                <span class="subtext">{{ data.refundedOrders }} refunded &middot; {{ refundedOrdersPct(data) }}% refund rate</span>
               </div>
             </mat-card-content>
           </mat-card>
@@ -118,8 +115,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             </mat-card-header>
             <mat-card-content>
               <div class="stat-footer">
-                <span class="trend up"><mat-icon>trending_up</mat-icon> 5%</span>
-                <span class="subtext">All active members</span>
+                <span class="subtext">Across all businesses</span>
               </div>
             </mat-card-content>
           </mat-card>
@@ -333,11 +329,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       position: relative;
       background: var(--panel);
       min-width: 0;
+      container-type: inline-size;
     }
     .stat-card .mat-mdc-card-header {
       min-width: 0;
-      padding: 14px 16px;
-      gap: 10px;
+      padding: 12px 12px;
+      gap: 8px;
+      flex-wrap: nowrap;
     }
     .stat-card .mat-mdc-card-header-text {
       min-width: 0;
@@ -357,8 +355,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       content: 'arrow_forward';
       font-family: 'Material Icons';
       position: absolute;
-      top: 20px;
-      right: 20px;
+      top: 16px;
+      right: 12px;
       font-size: 18px;
       color: var(--muted);
       opacity: 0;
@@ -375,20 +373,27 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     .stat-icon {
       background: var(--brand-soft);
       color: var(--brand);
-      width: 44px;
-      height: 44px;
-      line-height: 44px;
+      width: 36px;
+      height: 36px;
+      line-height: 36px;
       text-align: center;
       border-radius: var(--radius-lg);
-      font-size: 22px;
+      font-size: 18px;
       transition: all 0.3s ease;
       flex-shrink: 0;
+      margin: 0;
     }
     
     .stat-card:hover .stat-icon {
       transform: scale(1.1) rotate(6deg);
     }
     .stat-card .mat-mdc-card-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 1.1rem;
+    }
+    .stat-card .mat-mdc-card-subtitle {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -424,27 +429,15 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     .staff:hover { border-color: rgba(168, 85, 247, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(168, 85, 247, 0.2) !important; }
 
     .stat-footer {
-      display: flex;
-      flex-direction: column;
-      margin-top: 16px;
+      margin-top: 12px;
     }
-
-    .trend {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.85rem;
-      font-weight: 700;
-    }
-
-    .trend mat-icon { font-size: 16px; width: 16px; height: 16px; }
-    .trend.up { color: #16a34a; }
-    .trend.down { color: #dc2626; }
 
     .subtext {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--muted);
-      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .main-grid {
@@ -746,6 +739,11 @@ export class PlatformDashboardPageComponent implements OnDestroy {
   businessLivePct(data: any): number {
     if (data.totalBusinesses <= 0) return 0;
     return Math.round((data.liveBusinesses / data.totalBusinesses) * 100);
+  }
+
+  refundedOrdersPct(data: any): string {
+    if (data.totalOrders <= 0) return '0';
+    return ((data.refundedOrders / data.totalOrders) * 100).toFixed(1);
   }
 
   avgOrdersPerBusiness(data: any): string {
