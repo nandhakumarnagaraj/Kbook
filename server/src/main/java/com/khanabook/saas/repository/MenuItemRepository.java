@@ -35,4 +35,14 @@ public interface MenuItemRepository extends SyncRepository<MenuItem, Long> {
 
 	@Query("SELECT m.restaurantId, COUNT(m) FROM MenuItem m WHERE m.isDeleted = false GROUP BY m.restaurantId")
 	java.util.List<Object[]> countGroupedByRestaurant();
+
+	java.util.List<MenuItem> findByRestaurantIdAndIsDeletedFalse(Long restaurantId);
+
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("UPDATE MenuItem m SET m.isAvailable = false, m.updatedAt = :updatedAt WHERE m.id = :id AND m.restaurantId = :restaurantId")
+	int markAsUnavailable(@Param("id") Long id, @Param("restaurantId") Long restaurantId, @Param("updatedAt") Long updatedAt);
+
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("UPDATE MenuItem m SET m.isAvailable = false, m.updatedAt = :updatedAt WHERE m.restaurantId = :restaurantId AND m.isAvailable = true AND m.isDeleted = false")
+	int markAllAsUnavailable(@Param("restaurantId") Long restaurantId, @Param("updatedAt") Long updatedAt);
 }

@@ -2,7 +2,9 @@ package com.khanabook.saas.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khanabook.saas.entity.MenuExtractionJob;
+import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.repository.MenuExtractionJobRepository;
+import com.khanabook.saas.repository.MenuItemRepository;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
@@ -11,11 +13,14 @@ import technology.tabula.*;
 import technology.tabula.extractors.SpreadsheetExtractionAlgorithm;
 
 import java.io.File;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class MenuExtractionWorker {
@@ -25,6 +30,12 @@ public class MenuExtractionWorker {
     
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private MenuItemRepository menuItemRepository;
+
+    @Autowired
+    private MenuItemService menuItemService;
 
     @Async("menuExtractionExecutor")
     public void processMenuJob(Long jobId) {
@@ -36,14 +47,15 @@ public class MenuExtractionWorker {
             File file = new File(job.getFilePath());
             List<Map<String, String>> extractedItems = new ArrayList<>();
 
-            // ATTEMPT TABULA (For Text-Based PDFs - 100% Accurate Variants)
             boolean tabulaSuccess = extractWithTabula(file, extractedItems);
 
             if (tabulaSuccess && !extractedItems.isEmpty()) {
                 job.setExtractedDataJson(objectMapper.writeValueAsString(extractedItems));
+                
+                updateMenuItemsFromExtraction(job.getRestaurantId(), extractedItems);
+                
                 job.setStatus(MenuExtractionJob.JobStatus.COMPLETED);
             } else {
-                // Future fallback for image-based PDFs here (e.g. PaddleOCR)
                 job.setErrorMessage("No tables could be extracted from this PDF using offline parsing.");
                 job.setStatus(MenuExtractionJob.JobStatus.FAILED);
             }
@@ -54,6 +66,69 @@ public class MenuExtractionWorker {
             job.setCompletedAt(LocalDateTime.now());
             jobRepository.save(job);
         }
+    }
+
+    private void updateMenuItemsFromExtraction(Long restaurantId, List<Map<String, String>> extractedItems) {
+        List<MenuItem> existingItems = menuItemRepository.findByRestaurantIdAndIsDeletedFalse(restaurantId);
+        
+        Map<String, MenuItem> existingItemMap = new HashMap<>();
+        for (MenuItem item : existingItems) {
+            String normalizedName = normalizeName(item.getName());
+            existingItemMap.put(normalizedName, item);
+        }
+
+        long now = System.currentTimeMillis();
+        List<MenuItem> toUpdate = new ArrayList<>();
+        List<String> extractedNames = new ArrayList<>();
+
+        for (Map<String, String> extracted : extractedItems) {
+            String itemName = extracted.get("itemName");
+            if (itemName == null || itemName.isBlank()) continue;
+            
+            String normalizedName = normalizeName(itemName);
+            extractedNames.add(normalizedName);
+
+            if (existingItemMap.containsKey(normalizedName)) {
+                MenuItem existing = existingItemMap.get(normalizedName);
+                existing.setIsAvailable(true);
+                existing.setUpdatedAt(now);
+                existing.setServerUpdatedAt(now);
+
+                String priceStr = extracted.getOrDefault("price", 
+                    extracted.getOrDefault("fullPrice", extracted.get("halfPrice")));
+                if (priceStr != null && !priceStr.isBlank()) {
+                    try {
+                        String cleanedPrice = priceStr.replaceAll("[^0-9.]", "");
+                        if (!cleanedPrice.isBlank()) {
+                            existing.setBasePrice(new BigDecimal(cleanedPrice));
+                        }
+                    } catch (NumberFormatException e) {
+                    }
+                }
+
+                if (extracted.containsKey("description") && extracted.get("description") != null) {
+                    existing.setDescription(extracted.get("description"));
+                }
+
+                toUpdate.add(existing);
+            }
+        }
+
+        if (!toUpdate.isEmpty()) {
+            menuItemRepository.saveAll(toUpdate);
+        }
+
+        for (MenuItem existing : existingItems) {
+            String normalizedName = normalizeName(existing.getName());
+            if (!extractedNames.contains(normalizedName) && existing.getIsAvailable()) {
+                menuItemService.markItemAsUnavailable(restaurantId, existing.getId());
+            }
+        }
+    }
+
+    private String normalizeName(String name) {
+        if (name == null) return "";
+        return name.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
     }
 
     private boolean extractWithTabula(File pdfFile, List<Map<String, String>> resultList) {

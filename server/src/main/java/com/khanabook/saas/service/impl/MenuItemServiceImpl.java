@@ -135,4 +135,42 @@ public class MenuItemServiceImpl implements MenuItemService {
 	private String normalizeMenuItemName(String value) {
 		return collapseWhitespace(value).toLowerCase(Locale.ROOT);
 	}
+
+	@Override
+	@Transactional
+	public void markItemAsUnavailable(Long tenantId, Long menuItemId) {
+		long now = System.currentTimeMillis();
+		int updated = repository.markAsUnavailable(menuItemId, tenantId, now);
+		if (updated == 0) {
+			throw new IllegalArgumentException("Menu item not found or already unavailable");
+		}
+	}
+
+	@Override
+	@Transactional
+	public void markAllItemsAsUnavailable(Long tenantId) {
+		long now = System.currentTimeMillis();
+		repository.markAllAsUnavailable(tenantId, now);
+	}
+
+	@Override
+	@Transactional
+	public void updateExistingMenuItems(Long tenantId, List<MenuItem> itemsToUpdate) {
+		long now = System.currentTimeMillis();
+		for (MenuItem item : itemsToUpdate) {
+			Optional<MenuItem> existing = repository.findById(item.getId());
+			if (existing.isPresent() && existing.get().getRestaurantId().equals(tenantId)) {
+				MenuItem toUpdate = existing.get();
+				if (item.getName() != null) toUpdate.setName(item.getName());
+				if (item.getBasePrice() != null) toUpdate.setBasePrice(item.getBasePrice());
+				if (item.getDescription() != null) toUpdate.setDescription(item.getDescription());
+				if (item.getFoodType() != null) toUpdate.setFoodType(item.getFoodType());
+				if (item.getCategoryId() != null) toUpdate.setCategoryId(item.getCategoryId());
+				if (item.getIsAvailable() != null) toUpdate.setIsAvailable(item.getIsAvailable());
+				toUpdate.setUpdatedAt(now);
+				toUpdate.setServerUpdatedAt(now);
+				repository.save(toUpdate);
+			}
+		}
+	}
 }

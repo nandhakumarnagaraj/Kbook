@@ -31,4 +31,23 @@ public class MenuItemController {
 			@RequestParam(defaultValue = "false") boolean ignoreDeviceId) {
 		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId, ignoreDeviceId), MenuItemDTO.class));
 	}
+
+	@PutMapping("/{menuItemId}/unavailable")
+	public ResponseEntity<Void> markAsUnavailable(@PathVariable Long menuItemId) {
+		service.markItemAsUnavailable(TenantContext.getCurrentTenant(), menuItemId);
+		return ResponseEntity.ok().build();
+	}
+
+	@PutMapping("/unavailable/all")
+	public ResponseEntity<Void> markAllAsUnavailable() {
+		service.markAllItemsAsUnavailable(TenantContext.getCurrentTenant());
+		return ResponseEntity.ok().build();
+	}
+
+	@PutMapping("/update-existing")
+	public ResponseEntity<Void> updateExisting(@RequestBody List<MenuItemDTO> itemsToUpdate) {
+		service.updateExistingMenuItems(TenantContext.getCurrentTenant(),
+				SyncMapper.mapToEntityList(itemsToUpdate, MenuItem.class));
+		return ResponseEntity.ok().build();
+	}
 }
