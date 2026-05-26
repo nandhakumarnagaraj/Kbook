@@ -97,7 +97,7 @@ type NavLink = { icon: string; label: string; path: string };
               <mat-icon>{{ themeService.isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
             </button>
 
-            <button mat-icon-button [matMenuTriggerFor]="profileMenu" class="profile-trigger">
+            <button [matMenuTriggerFor]="profileMenu" class="profile-trigger">
               <div class="header-avatar">{{ userInitial() }}</div>
             </button>
           </div>
@@ -174,6 +174,21 @@ type NavLink = { icon: string; label: string; path: string };
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--muted);
+    }
+
+    .profile-trigger {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      outline: none;
+      flex-shrink: 0;
     }
 
     .header-avatar {
