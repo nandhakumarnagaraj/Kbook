@@ -577,9 +577,13 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
     }
     .copy-btn {
       color: var(--muted) !important;
-      width: 32px;
-      height: 32px;
-      line-height: 32px;
+      width: 32px !important;
+      height: 32px !important;
+      min-width: 32px !important;
+      padding: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
       transition: color 0.2s ease;
     }
     .copy-btn:hover {
@@ -587,9 +591,13 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
     }
     ::ng-deep .copy-btn mat-icon {
       color: inherit !important;
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+      line-height: 18px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
     }
     .portal-link-btn {
       height: 32px;
