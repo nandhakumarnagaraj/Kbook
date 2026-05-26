@@ -92,15 +92,15 @@ type NavLink = { icon: string; label: string; path: string };
           <span class="page-title">{{ activePageTitle() }}</span>
           <span class="spacer"></span>
 
-          <div class="toolbar-actions">
-            <button mat-icon-button (click)="themeService.toggleTheme()" matTooltip="Toggle Light/Dark Mode">
-              <mat-icon>{{ themeService.isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
-            </button>
+            <div class="toolbar-actions">
+              <button mat-icon-button class="theme-toggle-btn" (click)="themeService.toggleTheme()" matTooltip="Toggle Light/Dark Mode">
+                <mat-icon>{{ themeService.isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+              </button>
 
-            <button [matMenuTriggerFor]="profileMenu" class="profile-trigger">
-              <div class="header-avatar">{{ userInitial() }}</div>
-            </button>
-          </div>
+              <button [matMenuTriggerFor]="profileMenu" class="profile-trigger">
+                <div class="header-avatar">{{ userInitial() }}</div>
+              </button>
+            </div>
         </mat-toolbar>
 
         <mat-menu #profileMenu="matMenu" class="profile-dropdown">
@@ -336,6 +336,24 @@ type NavLink = { icon: string; label: string; path: string };
       align-items: center !important;
       gap: 12px;
       height: 64px;
+    }
+
+    .theme-toggle-btn {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 40px !important;
+      height: 40px !important;
+      min-width: 40px !important;
+      padding: 0 !important;
+      line-height: 1 !important;
+    }
+
+    .theme-toggle-btn mat-icon {
+      line-height: 1 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
     }
 
 
