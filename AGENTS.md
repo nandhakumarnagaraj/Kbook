@@ -64,6 +64,16 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 - **Build & Verification**: Built web-admin using `npm run build` and ran all 133 backend unit tests, verifying successful compilation and passes.
 - **Git**: Committed changes to local tracking branch `origin/v2` (no remote pushes).
 
+### 2026-05-26 Session (Afternoon) — Accessibility Overhaul, Route Animations, Shared Components, CSS Optimization
+- **Route Transition Animations**: Added `fadeSlide` animation trigger in `AppComponent` with staggered enter/leave transitions. All routes now have `animation` metadata in `app.routes.ts`.
+- **New Shared Components**: Created `BreadcrumbComponent` (configurable breadcrumb nav with home icon), `EmptyStateComponent` (icon + title + description + ng-content), `ErrorStateComponent` (icon + title + description + detail + retry button with EventEmitter), `SkeletonComponent` (configurable shimmer loader with text/card/circle variants).
+- **Accessibility Improvements**: Added `aria-hidden="true"` on all decorative icons, `aria-label` on action buttons and toolbars, `aria-describedby` on critical actions, `#main-content` ID on `<main>` for skip-to-content, global `:focus-visible` ring, `text-balance` utility class for headings, `tabular-nums` for financial data.
+- **CSS Transition Optimization**: Replaced all `transition: all` with specific properties (e.g., `transform`, `background`, `box-shadow`, `color`, `border-color`) across all components for better rendering performance.
+- **Global Style Refinements**: Added `--shadow-sm` through `--shadow-xl` CSS custom properties, refined theme variables, added `overscroll-behavior: contain` for dialogs/overlays.
+- **Sub-Merchant Page**: Added `BreadcrumbComponent` integration with new `crumbs` array, fixed duplicate `MatTooltipModule` import.
+- **Build & Tests**: Web-admin builds successfully (12s), all 133 backend tests pass.
+- **Git**: Committed `288b9ab` (36 files, 2546 insertions, 165 deletions), pushed to `origin/v2`.
+
 ### In Progress
 - None currently
 
