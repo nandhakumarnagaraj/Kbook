@@ -24,6 +24,9 @@ import { Observable } from 'rxjs';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { AdminBusinessListItem, EasebuzzSubMerchant, EasebuzzSubMerchantRequest } from '../../core/models/api.models';
 import { formatDate, formatAge } from '../../shared/formatters';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { ErrorStateComponent } from '../../shared/error-state.component';
+import { BreadcrumbComponent } from '../../shared/breadcrumb.component';
 
 const STATUS_OPTIONS = ['ALL', 'DRAFT', 'PENDING_KYC', 'KYC_SUBMITTED', 'ACTIVE', 'SUSPENDED', 'REJECTED', 'FAILED'] as const;
 const KYC_OPTIONS = ['ALL', 'PENDING', 'SUBMITTED', 'ACTIVATED', 'FAILED'] as const;
@@ -53,13 +56,18 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
     MatProgressSpinnerModule,
     MatMenuModule,
     MatProgressBarModule,
-    MatChipsModule
+    MatChipsModule,
+    MatTooltipModule,
+    EmptyStateComponent,
+    ErrorStateComponent,
+    BreadcrumbComponent
   ],
   template: `
     <div class="page-container">
+      <app-breadcrumb [crumbs]="crumbs"></app-breadcrumb>
       <div class="header-row">
         <div class="header-left">
-          <h1 class="page-title">Sub-Merchants</h1>
+          <h1 class="page-title text-balance">Sub-Merchants</h1>
           <p class="page-subtitle">Manage Easebuzz settlement sub-merchant onboarding and KYC lifecycle.</p>
         </div>
         <div class="header-actions">
@@ -160,7 +168,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
 
           <div class="spacer"></div>
           
-          <button mat-icon-button (click)="loadSubMerchants()" matTooltip="Refresh Data">
+          <button mat-icon-button (click)="loadSubMerchants()" matTooltip="Refresh Data" aria-label="Refresh sub-merchants">
             <mat-icon>refresh</mat-icon>
           </button>
         </mat-card-content>
@@ -190,6 +198,14 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
               <div class="skeleton-cell shimmer-bg" style="width: 20%"></div>
               <div class="skeleton-cell shimmer-bg" style="width: 10%"></div>
             </div>
+          </div>
+
+          <div *ngIf="loaded() && !dataSource.filteredData.length && !loadError()" class="empty-state-wrapper">
+            <app-empty-state icon="search_off" title="No sub-merchants match your search" description="Try clearing filters or adjusting your search terms."></app-empty-state>
+          </div>
+
+          <div *ngIf="loaded() && loadError() && !subMerchants().length" class="empty-state-wrapper">
+            <app-error-state icon="cloud_off" title="Failed to load sub-merchants" [description]="loadError()" [retryable]="true" (retry)="loadSubMerchants()"></app-error-state>
           </div>
 
           <table mat-table [dataSource]="dataSource" matSort [style.display]="loaded() ? 'table' : 'none'">
@@ -244,7 +260,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef> Actions </th>
               <td mat-cell *matCellDef="let sm">
-                <button mat-icon-button [matMenuTriggerFor]="actionMenu" (click)="$event.stopPropagation()">
+                <button mat-icon-button [matMenuTriggerFor]="actionMenu" (click)="$event.stopPropagation()" aria-label="Sub-merchant actions">
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #actionMenu="matMenu">
@@ -622,7 +638,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
       background: var(--panel) !important;
       backdrop-filter: blur(12px);
       box-shadow: var(--shadow-sm) !important; 
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
       overflow: hidden;
     }
     .stat-card:hover {
@@ -638,7 +654,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
       text-align: center; 
       border-radius: var(--radius-lg); 
       font-size: 24px; 
-      transition: all 0.3s ease;
+      transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -695,6 +711,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
       border-radius: var(--radius-lg) !important; 
       background: var(--bg) !important;
     }
+    .empty-state-wrapper { padding: 48px 24px; }
     ::ng-deep .filter-card .mat-mdc-form-field-flex { align-items: center !important; }
     ::ng-deep .filter-card .mat-mdc-form-field-infix { padding-top: 10px !important; padding-bottom: 10px !important; }
 
@@ -742,7 +759,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
       font-size: 0.9rem !important;
       color: var(--ink) !important;
     }
-    .clickable-row { cursor: pointer; transition: all 0.2s ease; }
+    .clickable-row { cursor: pointer; transition: background-color 0.2s ease; }
     .clickable-row:hover { background: var(--panel-hover) !important; }
     .selected-row { background: var(--brand-soft) !important; border-left: 4px solid var(--brand) !important; }
     .selected-row td { font-weight: 500 !important; }
@@ -794,7 +811,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
         border-radius: var(--radius-md); 
         background: var(--bg); 
         border: 1px solid var(--line); 
-        transition: all 0.2s ease;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
       }
       .detail-item:hover { border-color: var(--brand-soft); background: var(--panel-hover); }
       .detail-item .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 700; }
@@ -863,7 +880,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
         align-items: center;
         justify-content: center;
         z-index: 2;
-        transition: all 0.3s ease;
+        transition: transform 0.3s ease, border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
         color: var(--muted);
       }
       .timeline-badge mat-icon {
@@ -893,7 +910,7 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
         border: 1px solid var(--line);
         padding: 12px 16px;
         border-radius: var(--radius-lg);
-        transition: all 0.2s ease;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
       }
       .timeline-item.active .timeline-content {
         border-color: var(--line-strong);
@@ -939,6 +956,11 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
 
   readonly dataSource = new MatTableDataSource<EasebuzzSubMerchant>([]);
   readonly displayedColumns = ['business', 'status', 'kyc', 'kycAge', 'contact', 'commission', 'actions'];
+  
+  readonly crumbs = [
+    { label: 'Admin', path: '/admin/dashboard' },
+    { label: 'Sub-Merchants' }
+  ];
   
   readonly subMerchants = signal<EasebuzzSubMerchant[]>([]);
   readonly loaded = signal(false);

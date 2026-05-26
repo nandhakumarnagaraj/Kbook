@@ -40,7 +40,7 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
     <div class="page-container">
       <div class="header-row">
         <div class="header-left">
-          <h1 class="page-title">Restaurant Settings</h1>
+          <h1 class="page-title text-balance">Restaurant Settings</h1>
           <p class="page-subtitle">Configure your business profile, payment preferences, and tax compliance.</p>
         </div>
       </div>
@@ -342,7 +342,7 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
       backdrop-filter: blur(12px);
       box-shadow: var(--shadow-md);
       border-radius: var(--radius-xl); 
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition: box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
     .settings-card:hover {
       box-shadow: var(--shadow-lg);

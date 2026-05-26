@@ -45,7 +45,7 @@ const API_BASE_URL = environment.apiBaseUrl;
           <div class="logo-wrap">
             <img src="khanabook_logo.png" alt="KhanaBook" class="logo" />
           </div>
-          <h1>{{ step() === 'request' ? 'Reset Password' : 'Verify & Reset' }}</h1>
+          <h1 class="text-balance">{{ step() === 'request' ? 'Reset Password' : 'Verify & Reset' }}</h1>
           <p class="subtitle">
             {{ step() === 'request' 
                ? 'Enter your registered phone number to receive a verification code.' 
@@ -86,7 +86,7 @@ const API_BASE_URL = environment.apiBaseUrl;
                      formControlName="newPassword" 
                      (input)="updatePasswordStrength($any($event.target).value)"
                      autocomplete="new-password">
-              <button mat-icon-button matSuffix (click)="showNewPassword = !showNewPassword" type="button">
+              <button mat-icon-button matSuffix (click)="showNewPassword = !showNewPassword" type="button" [attr.aria-label]="showNewPassword ? 'Hide new password' : 'Show new password'">
                 <mat-icon>{{ showNewPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
             </mat-form-field>
@@ -103,7 +103,7 @@ const API_BASE_URL = environment.apiBaseUrl;
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Confirm New Password</mat-label>
               <input matInput [type]="showConfirmPassword ? 'text' : 'password'" formControlName="confirmPassword">
-              <button mat-icon-button matSuffix (click)="showConfirmPassword = !showConfirmPassword" type="button">
+              <button mat-icon-button matSuffix (click)="showConfirmPassword = !showConfirmPassword" type="button" [attr.aria-label]="showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'">
                 <mat-icon>{{ showConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
               </button>
             </mat-form-field>

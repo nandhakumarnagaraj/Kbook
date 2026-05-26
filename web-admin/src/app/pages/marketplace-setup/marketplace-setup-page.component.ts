@@ -39,7 +39,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
     <div class="page-container">
       <div class="header-row">
         <div class="header-left">
-          <h1 class="page-title">Marketplace Setup</h1>
+          <h1 class="page-title text-balance">Marketplace Setup</h1>
           <p class="page-subtitle">Configure Zomato & Swiggy integrations. Direct settlement routing is managed via Easebuzz onboarding.</p>
         </div>
       </div>
@@ -132,7 +132,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
               <span class="tile-label">Sub-Merchant ID</span>
               <span class="tile-val highlight">
                 <code>{{ setup.subMerchantId || 'Pending registration' }}</code>
-                <button mat-icon-button type="button" class="copy-btn" *ngIf="setup.subMerchantId" (click)="copyToClipboard(setup.subMerchantId)" matTooltip="Copy ID">
+                <button mat-icon-button type="button" class="copy-btn" *ngIf="setup.subMerchantId" (click)="copyToClipboard(setup.subMerchantId)" matTooltip="Copy ID" aria-label="Copy sub-merchant ID">
                   <mat-icon>content_copy</mat-icon>
                 </button>
               </span>
@@ -232,7 +232,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
                   <div class="webhook-block" *ngIf="marketplaceConfig()?.zomatoWebhookUrl">
                     <div class="webhook-header">
                       <span>ZOMATO WEBHOOK ENDPOINT</span>
-                      <button mat-icon-button type="button" (click)="copyToClipboard(marketplaceConfig()?.zomatoWebhookUrl || '')" matTooltip="Copy Link">
+                      <button mat-icon-button type="button" (click)="copyToClipboard(marketplaceConfig()?.zomatoWebhookUrl || '')" matTooltip="Copy Link" aria-label="Copy Zomato webhook URL">
                         <mat-icon>content_copy</mat-icon>
                       </button>
                     </div>
@@ -311,7 +311,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
                   <div class="webhook-block" *ngIf="marketplaceConfig()?.swiggyWebhookUrl">
                     <div class="webhook-header">
                       <span>SWIGGY WEBHOOK ENDPOINT</span>
-                      <button mat-icon-button type="button" (click)="copyToClipboard(marketplaceConfig()?.swiggyWebhookUrl || '')" matTooltip="Copy Link">
+                      <button mat-icon-button type="button" (click)="copyToClipboard(marketplaceConfig()?.swiggyWebhookUrl || '')" matTooltip="Copy Link" aria-label="Copy Swiggy webhook URL">
                         <mat-icon>content_copy</mat-icon>
                       </button>
                     </div>
@@ -478,7 +478,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s ease;
+      transition: transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
     }
     .step-icon-wrapper mat-icon {
       font-size: 20px;
@@ -523,7 +523,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       flex: 1.5;
       margin: 0 -20px;
       margin-top: -24px;
-      transition: all 0.3s ease;
+      transition: background-color 0.3s ease;
       z-index: 1;
     }
     .timeline-connector.completed {
@@ -667,7 +667,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       border: 1px solid var(--line);
       background: var(--panel);
       box-shadow: var(--shadow-md);
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -721,7 +721,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       color: #fff;
       margin-right: 18px;
       box-shadow: var(--shadow-md);
-      transition: all 0.3s ease;
+      transition: transform 0.3s ease;
     }
     .platform-card:hover .platform-logo {
       transform: scale(1.06);
@@ -879,7 +879,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       display: flex;
       align-items: center;
       gap: 8px;
-      transition: all 0.2s ease;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
     }
     .check-btn:hover {
       background: var(--surface-hover) !important;
@@ -948,7 +948,7 @@ import { BusinessMarketplaceSetup, MarketplaceConfig, MarketplaceConfigRequest }
       font-weight: 700;
       font-size: 0.95rem;
       box-shadow: var(--shadow-md);
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       background: linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 100%) !important;
       color: #fff !important;
     }

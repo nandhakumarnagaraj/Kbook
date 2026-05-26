@@ -19,6 +19,8 @@ import { catchError, map, startWith, switchMap } from 'rxjs/operators';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessMarketplaceSetup, BusinessProfile, MarketplaceOrder } from '../../core/models/api.models';
 import { formatCurrency } from '../../shared/formatters';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { SkeletonComponent } from '../../shared/skeleton.component';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -41,7 +43,9 @@ Chart.register(...registerables);
     MatChipsModule,
     MatTooltipModule,
     MatMenuModule,
-    MatFormFieldModule
+    MatFormFieldModule,
+    EmptyStateComponent,
+    SkeletonComponent
   ],
   template: `
     <div class="page-container">
@@ -50,22 +54,22 @@ Chart.register(...registerables);
 
           <!-- Compliance expiry banner -->
           <div class="compliance-banner expired" *ngIf="fssaiExpired()">
-            <mat-icon>error</mat-icon>
+            <mat-icon aria-hidden="true">error</mat-icon>
             FSSAI License has EXPIRED — renew immediately to stay compliant.
             <a routerLink="/business/settings">Go to Settings →</a>
           </div>
           <div class="compliance-banner expiring" *ngIf="!fssaiExpired() && fssaiExpiringSoon()">
-            <mat-icon>warning</mat-icon>
+            <mat-icon aria-hidden="true">warning</mat-icon>
             FSSAI License expiring soon.
             <a routerLink="/business/settings">Go to Settings →</a>
           </div>
           <div class="compliance-banner expired" *ngIf="!fssaiExpired() && gstExpired()">
-            <mat-icon>error</mat-icon>
+            <mat-icon aria-hidden="true">error</mat-icon>
             GST Registration has EXPIRED — renew immediately to stay compliant.
             <a routerLink="/business/settings">Go to Settings →</a>
           </div>
           <div class="compliance-banner expiring" *ngIf="!fssaiExpired() && !gstExpired() && gstExpiringSoon()">
-            <mat-icon>warning</mat-icon>
+            <mat-icon aria-hidden="true">warning</mat-icon>
             GST Registration expiring soon.
             <a routerLink="/business/settings">Go to Settings →</a>
           </div>
@@ -75,7 +79,7 @@ Chart.register(...registerables);
               <span class="live-dot"></span>
               <span class="live-text">Live Console</span>
             </div>
-            <h1 class="page-title">{{ data.shopName || 'Business Dashboard' }}</h1>
+            <h1 class="page-title text-balance">{{ data.shopName || 'Business Dashboard' }}</h1>
             <p class="page-subtitle">{{ liveDate() }}</p>
           </div>
           <div class="header-actions">
@@ -89,7 +93,7 @@ Chart.register(...registerables);
               </mat-select>
             </mat-form-field>
             
-            <button mat-icon-button (click)="refresh()" matTooltip="Refresh now">
+            <button mat-icon-button (click)="refresh()" matTooltip="Refresh now" aria-label="Refresh dashboard data">
               <mat-icon [class.spinning]="refreshing">refresh</mat-icon>
             </button>
           </div>
@@ -98,7 +102,7 @@ Chart.register(...registerables);
         <div class="stats-grid">
           <mat-card class="stat-card revenue clickable" routerLink="/business/orders">
             <mat-card-header>
-              <mat-icon mat-card-avatar class="stat-icon">payments</mat-icon>
+              <mat-icon aria-hidden="true" mat-card-avatar class="stat-icon">payments</mat-icon>
               <mat-card-title>{{ data.todayRevenueFormatted }}</mat-card-title>
               <mat-card-subtitle>Today's Revenue</mat-card-subtitle>
               <div class="trend-badge" [class.up]="data.revenueTrend > 0" [class.down]="data.revenueTrend < 0">
@@ -110,7 +114,7 @@ Chart.register(...registerables);
 
           <mat-card class="stat-card orders clickable" routerLink="/business/orders">
             <mat-card-header>
-              <mat-icon mat-card-avatar class="stat-icon">shopping_bag</mat-icon>
+              <mat-icon aria-hidden="true" mat-card-avatar class="stat-icon">shopping_bag</mat-icon>
               <mat-card-title>{{ data.totalOrders }}</mat-card-title>
               <mat-card-subtitle>Total Orders</mat-card-subtitle>
               <div class="trend-badge" [class.up]="data.orderTrend > 0" [class.down]="data.orderTrend < 0">
@@ -122,11 +126,11 @@ Chart.register(...registerables);
 
           <mat-card class="stat-card avg-value clickable" routerLink="/business/orders">
             <mat-card-header>
-              <mat-icon mat-card-avatar class="stat-icon">analytics</mat-icon>
+              <mat-icon aria-hidden="true" mat-card-avatar class="stat-icon">analytics</mat-icon>
               <mat-card-title>{{ data.avgOrderValueFormatted }}</mat-card-title>
               <mat-card-subtitle>Avg Order Value</mat-card-subtitle>
               <div class="trend-badge up" *ngIf="data.totalOrders > 0">
-                <mat-icon>analytics</mat-icon>
+                <mat-icon aria-hidden="true">analytics</mat-icon>
                 {{ data.totalOrders }} orders
               </div>
             </mat-card-header>
@@ -134,7 +138,7 @@ Chart.register(...registerables);
 
           <mat-card class="stat-card online clickable" routerLink="/business/orders">
             <mat-card-header>
-              <mat-icon mat-card-avatar class="stat-icon">language</mat-icon>
+              <mat-icon aria-hidden="true" mat-card-avatar class="stat-icon">language</mat-icon>
               <mat-card-title>{{ data.marketplaceOrders.total }}</mat-card-title>
               <mat-card-subtitle>Online Orders</mat-card-subtitle>
               <div class="online-status" *ngIf="data.marketplaceOrders.pending > 0">
@@ -163,7 +167,7 @@ Chart.register(...registerables);
                 <mat-card-title>Recent Transactions</mat-card-title>
                 <span class="spacer"></span>
                 <a mat-button color="primary" routerLink="/business/orders">
-                  All Orders <mat-icon>chevron_right</mat-icon>
+                  All Orders            <mat-icon aria-hidden="true">chevron_right</mat-icon>
                 </a>
               </mat-card-header>
               <mat-card-content>
@@ -185,10 +189,7 @@ Chart.register(...registerables);
                   </div>
                 </div>
                 <ng-template #noOrders>
-                  <div class="empty-state">
-                    <mat-icon>description</mat-icon>
-                    <p>No transactions found for today.</p>
-                  </div>
+                  <app-empty-state icon="receipt" title="No transactions today" description="Orders placed today will appear here." [compact]="true"></app-empty-state>
                 </ng-template>
               </mat-card-content>
             </mat-card>
@@ -224,8 +225,7 @@ Chart.register(...registerables);
               <mat-card-content>
                 <mat-progress-bar mode="determinate" [value]="data.setupPct" color="primary"></mat-progress-bar>
                 <div class="checklist">
-                  <div class="check-item" *ngFor="let item of data.setupChecks" [class.done]="item.ready">
-                    <mat-icon>{{ item.ready ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                  <div class="check-item" *ngFor="let item of data.setupChecks" [class.done]="item.ready">                      <mat-icon aria-hidden="true">{{ item.ready ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
                     <div class="check-info">
                       <div class="check-label">{{ item.label }}</div>
                       <div class="check-detail">{{ item.detail }}</div>
@@ -237,7 +237,7 @@ Chart.register(...registerables);
 
             <mat-card class="alert-card low-stock" *ngIf="data.lowStockItems.length > 0">
               <mat-card-header>
-                <mat-icon mat-card-avatar color="warn">warning</mat-icon>
+                <mat-icon aria-hidden="true" mat-card-avatar color="warn">warning</mat-icon>
                 <mat-card-title>Inventory Alert</mat-card-title>
                 <mat-card-subtitle>{{ data.lowStockItems.length }} items are low or out of stock</mat-card-subtitle>
               </mat-card-header>
@@ -258,23 +258,23 @@ Chart.register(...registerables);
 
         <div class="quick-actions-bar">
           <mat-card class="action-card clickable" routerLink="/business/orders">
-            <mat-icon>receipt</mat-icon>
+            <mat-icon aria-hidden="true">receipt</mat-icon>
             <div class="action-label">Orders</div>
           </mat-card>
           <mat-card class="action-card clickable" routerLink="/business/menu">
-            <mat-icon>restaurant_menu</mat-icon>
+            <mat-icon aria-hidden="true">restaurant_menu</mat-icon>
             <div class="action-label">Menu</div>
           </mat-card>
           <mat-card class="action-card clickable" routerLink="/business/marketplace-setup">
-            <mat-icon>store</mat-icon>
+            <mat-icon aria-hidden="true">store</mat-icon>
             <div class="action-label">Marketplace</div>
           </mat-card>
           <mat-card class="action-card clickable" routerLink="/business/staff">
-            <mat-icon>people</mat-icon>
+            <mat-icon aria-hidden="true">people</mat-icon>
             <div class="action-label">Staff</div>
           </mat-card>
           <mat-card class="action-card clickable" routerLink="/business/settings">
-            <mat-icon>settings</mat-icon>
+            <mat-icon aria-hidden="true">settings</mat-icon>
             <div class="action-label">Settings</div>
           </mat-card>
         </div>
@@ -284,23 +284,23 @@ Chart.register(...registerables);
         <div class="skeleton-container animate-fade-in-up">
           <div class="header-row" style="margin-bottom: 28px;">
             <div class="header-left">
-              <div class="skeleton-cell shimmer-bg" style="width: 250px; height: 32px; margin-bottom: 8px;"></div>
-              <div class="skeleton-cell shimmer-bg" style="width: 150px; height: 16px;"></div>
+              <app-skeleton width="250px" height="32px" style="margin-bottom: 8px; display: block;"></app-skeleton>
+              <app-skeleton width="150px" height="16px"></app-skeleton>
             </div>
           </div>
-          
+
           <div class="stats-grid">
-            <div class="skeleton-card shimmer-bg" style="height: 110px;" *ngFor="let i of [1,2,3,4]"></div>
+            <app-skeleton height="110px" variant="card" *ngFor="let i of [1,2,3,4]"></app-skeleton>
           </div>
 
           <div class="main-grid">
-            <div class="grid-left">
-              <div class="skeleton-card shimmer-bg" style="height: 380px;"></div>
-              <div class="skeleton-card shimmer-bg" style="height: 250px;"></div>
+            <div class="grid-left" style="display: flex; flex-direction: column; gap: 32px;">
+              <app-skeleton height="380px" variant="card"></app-skeleton>
+              <app-skeleton height="250px" variant="card"></app-skeleton>
             </div>
-            <div class="grid-right">
-              <div class="skeleton-card shimmer-bg" style="height: 300px;"></div>
-              <div class="skeleton-card shimmer-bg" style="height: 330px;"></div>
+            <div class="grid-right" style="display: flex; flex-direction: column; gap: 32px;">
+              <app-skeleton height="300px" variant="card"></app-skeleton>
+              <app-skeleton height="330px" variant="card"></app-skeleton>
             </div>
           </div>
         </div>
@@ -336,7 +336,7 @@ Chart.register(...registerables);
       backdrop-filter: blur(16px) saturate(120%) !important;
       -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
       box-shadow: var(--shadow-md) !important; 
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
       overflow: hidden;
     }
     .stat-card .mat-mdc-card-header {
@@ -365,7 +365,7 @@ Chart.register(...registerables);
       text-align: center; 
       border-radius: var(--radius-lg); 
       font-size: 22px; 
-      transition: all 0.3s ease;
+      transition: transform 0.3s ease;
       flex-shrink: 0;
     }
     .stat-card:hover .stat-icon {
@@ -435,7 +435,7 @@ Chart.register(...registerables);
       border-radius: var(--radius-md); 
       border: 1px solid var(--line); 
       background: var(--bg); 
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
     }
     .order-item:hover { 
       transform: translateX(4px); 
@@ -446,12 +446,11 @@ Chart.register(...registerables);
     .order-item.pending-row { border-left: 4px solid #d97706 !important; }
     .order-item.refunded-row { border-left: 4px solid #dc2626 !important; }
 
-    .status-indicator { width: 4px; height: 32px; border-radius: 2px; background: #e2e8f0; margin-right: 12px; display: none; } /* Replaced with border-left */
     .order-info { flex: 1; }
     .order-code { font-weight: 700; color: var(--ink); font-size: 0.95rem; }
     .order-customer { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
     .order-status { margin: 0 16px; }
-    .order-amount { font-weight: 700; color: var(--ink); font-size: 0.95rem; }
+    .order-amount { font-weight: 700; color: var(--ink); font-size: 0.95rem; font-variant-numeric: tabular-nums; }
 
     .status-chip { padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; background: #f1f5f9; color: #64748b; letter-spacing: 0.5px; }
     .status-chip.success { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
@@ -470,7 +469,7 @@ Chart.register(...registerables);
       padding: 10px 12px; 
       border-radius: var(--radius-md); 
       border: 1px solid transparent; 
-      transition: all 0.2s ease;
+      transition: background 0.2s ease;
     }
     .check-item:hover { background: var(--bg); }
     .check-item.done { opacity: 1; color: var(--ink); border-color: rgba(34, 197, 94, 0.1); background: rgba(34, 197, 94, 0.02); }
@@ -495,7 +494,7 @@ Chart.register(...registerables);
       border: 1px solid var(--line);
       border-radius: var(--radius-md); 
       font-size: 0.85rem; 
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, border-color 0.2s ease;
     }
     .stock-item:hover {
       transform: scale(1.02);
@@ -519,7 +518,7 @@ Chart.register(...registerables);
       backdrop-filter: blur(16px) saturate(120%) !important;
       -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
       box-shadow: var(--shadow-md) !important; 
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important; 
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important; 
       color: var(--ink);
     }
     :host-context(.dark-theme) .action-card {
@@ -533,7 +532,7 @@ Chart.register(...registerables);
       color: #fff !important; 
       border-color: var(--brand-light) !important;
     }
-    .action-card mat-icon { font-size: 32px; width: 32px; height: 32px; color: var(--brand); transition: all 0.3s ease; }
+    .action-card mat-icon { font-size: 32px; width: 32px; height: 32px; color: var(--brand); transition: transform 0.3s ease, color 0.3s ease; }
     .action-card:hover mat-icon { transform: scale(1.15); color: #fff !important; }
     .action-label { font-weight: 700; font-size: 0.95rem; }
 
@@ -878,11 +877,11 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
           x: { 
             display: true, 
             grid: { display: false }, 
-            ticks: { font: { size: 11, weight: '600' }, color: '#64748b' } 
+            ticks: { font: { size: 11, weight: 'bold' }, color: '#64748b' } 
           },
           y: { 
             display: true, 
-            grid: { color: 'rgba(100, 116, 139, 0.1)', drawBorder: false }, 
+            grid: { color: 'rgba(100, 116, 139, 0.1)' }, 
             ticks: { 
               font: { size: 10 }, 
               color: '#64748b',

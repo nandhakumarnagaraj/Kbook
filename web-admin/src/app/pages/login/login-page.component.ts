@@ -53,7 +53,7 @@ declare const google: GlobalGoogle | undefined;
             </div>
             
             <div class="showcase-hero">
-              <h1>Modern Restaurant Billing & POS</h1>
+              <h1 class="text-balance">Modern Restaurant Billing & POS</h1>
               <p class="hero-sub">The offline-first operating system built for high-growth food businesses, cafes, and modern restaurants.</p>
             </div>
 
@@ -310,7 +310,7 @@ declare const google: GlobalGoogle | undefined;
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
       border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 14px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .feature-item:hover {
@@ -405,7 +405,7 @@ declare const google: GlobalGoogle | undefined;
       background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(20px);
       box-shadow: 0 20px 40px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02);
-      transition: all 0.3s ease;
+      transition: box-shadow 0.3s ease, border-color 0.3s ease;
     }
 
     .login-header {
@@ -517,7 +517,7 @@ declare const google: GlobalGoogle | undefined;
       align-items: center;
     }
 
-    .custom-input {
+.custom-input {
       height: 36px;
       width: 100%;
       border: 1px solid rgba(0, 0, 0, 0.12);
@@ -527,7 +527,7 @@ declare const google: GlobalGoogle | undefined;
       font-family: inherit;
       color: var(--ink);
       background: #ffffff;
-      transition: all 0.2s ease;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
       box-sizing: border-box;
     }
 
@@ -556,7 +556,7 @@ declare const google: GlobalGoogle | undefined;
       justify-content: center;
     }
 
-    .input-action-btn {
+.input-action-btn {
       position: absolute;
       right: 8px;
       background: transparent;
@@ -569,7 +569,7 @@ declare const google: GlobalGoogle | undefined;
       height: 28px;
       border-radius: 50%;
       color: var(--muted);
-      transition: all 0.2s ease;
+      transition: background 0.2s ease, color 0.2s ease;
       padding: 0;
     }
 
@@ -619,7 +619,7 @@ declare const google: GlobalGoogle | undefined;
       border: 1px solid #fecaca;
     }
 
-    .submit-btn {
+.submit-btn {
       height: 38px;
       border-radius: 8px;
       font-size: 0.9rem;
@@ -628,7 +628,7 @@ declare const google: GlobalGoogle | undefined;
       background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%) !important;
       color: white !important;
       box-shadow: 0 4px 12px rgba(199, 115, 47, 0.2);
-      transition: all 0.2s ease !important;
+      transition: transform 0.2s ease, box-shadow 0.2s ease !important;
     }
 
     .submit-btn:hover:not([disabled]) {

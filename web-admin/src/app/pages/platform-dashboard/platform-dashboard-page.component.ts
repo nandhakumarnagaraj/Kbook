@@ -49,7 +49,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               <span class="live-text">Live Platform Data</span>
             </div>
             <div class="title-container">
-              <h1 class="page-title">Platform Overview</h1>
+              <h1 class="page-title text-balance">Platform Overview</h1>
               <p class="page-subtitle">{{ liveDate() }}</p>
             </div>
           </div>
@@ -63,7 +63,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                 <mat-option [value]="60000">60s</mat-option>
               </mat-select>
             </mat-form-field>
-            <button mat-icon-button (click)="refresh()" [disabled]="refreshing" matTooltip="Refresh Now">
+            <button mat-icon-button (click)="refresh()" [disabled]="refreshing" matTooltip="Refresh Now" aria-label="Refresh dashboard">
               <mat-icon [class.spinning]="refreshing">refresh</mat-icon>
             </button>
           </div>
@@ -350,7 +350,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       border-radius: var(--radius-xl);
       border: 1px solid var(--line);
       box-shadow: var(--shadow-md);
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
       position: relative;
       background: var(--panel);
@@ -386,7 +386,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       font-size: 18px;
       color: var(--muted);
       opacity: 0;
-      transition: all 0.3s ease;
+      transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
       transform: translateX(-10px);
     }
 
@@ -405,7 +405,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       text-align: center;
       border-radius: var(--radius-lg);
       font-size: 18px;
-      transition: all 0.3s ease;
+      transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
       flex-shrink: 0;
       margin: 0;
     }
@@ -525,7 +525,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       border: 1px solid var(--line) !important;
       background: var(--panel) !important;
       box-shadow: var(--shadow-md);
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
       color: var(--ink);
     }
 
@@ -541,7 +541,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       width: 32px;
       height: 32px;
       color: var(--brand);
-      transition: all 0.3s ease;
+      transition: transform 0.3s ease;
     }
     .action-item:hover mat-icon {
       transform: scale(1.15);

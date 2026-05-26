@@ -42,7 +42,7 @@ interface PaymentDashboardData {
       <div class="header-row">
         <div class="header-left">
           <div class="title-container">
-            <h1 class="page-title">Payment Dashboard</h1>
+            <h1 class="page-title text-balance">Payment Dashboard</h1>
             <p class="page-subtitle">Real-time payment gateway analytics and transaction insights.</p>
           </div>
         </div>

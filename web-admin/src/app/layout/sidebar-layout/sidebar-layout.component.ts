@@ -82,19 +82,19 @@ type NavLink = { icon: string; label: string; path: string };
         <mat-toolbar color="primary" class="header-toolbar">
           <button
             type="button"
-            aria-label="Toggle sidenav"
+            aria-label="Toggle navigation menu"
             mat-icon-button
             (click)="drawer.toggle()"
             *ngIf="isHandset$ | async">
-            <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
+            <mat-icon aria-hidden="true">menu</mat-icon>
           </button>
           
           <span class="page-title">{{ activePageTitle() }}</span>
           <span class="spacer"></span>
 
             <div class="toolbar-actions">
-              <button mat-icon-button class="theme-toggle-btn" (click)="themeService.toggleTheme()" matTooltip="Toggle Light/Dark Mode">
-                <mat-icon>{{ themeService.isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+              <button mat-icon-button class="theme-toggle-btn" (click)="themeService.toggleTheme()" matTooltip="Toggle Light/Dark Mode" aria-label="Toggle light or dark mode">
+                <mat-icon aria-hidden="true">{{ themeService.isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
               </button>
 
               <button [matMenuTriggerFor]="profileMenu" class="profile-trigger">
@@ -122,7 +122,7 @@ type NavLink = { icon: string; label: string; path: string };
           </button>
         </mat-menu>
 
-        <main class="page-content">
+        <main id="main-content" class="page-content">
           <router-outlet></router-outlet>
         </main>
       </mat-sidenav-content>
@@ -203,7 +203,7 @@ type NavLink = { icon: string; label: string; path: string };
       font-weight: 700;
       font-size: 0.8rem;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       flex-shrink: 0;
     }
@@ -278,7 +278,7 @@ type NavLink = { icon: string; label: string; path: string };
       margin: 2px 0;
       border-radius: 0;
       height: 44px !important;
-      transition: all 0.2s ease !important;
+      transition: background 0.2s ease, color 0.2s ease !important;
     }
 
     ::ng-deep .nav-links .mat-mdc-list-item-icon {

@@ -18,6 +18,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessStaffItem } from '../../core/models/api.models';
 import { formatDate } from '../../shared/formatters';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { ErrorStateComponent } from '../../shared/error-state.component';
 
 @Component({
   selector: 'app-staff-page',
@@ -37,13 +39,15 @@ import { formatDate } from '../../shared/formatters';
     MatProgressSpinnerModule,
     MatChipsModule,
     MatTooltipModule,
-    MatDividerModule
+    MatDividerModule,
+    EmptyStateComponent,
+    ErrorStateComponent
   ],
   template: `
     <div class="page-container">
       <div class="header-row">
         <div class="header-left">
-          <h1 class="page-title">Team Management</h1>
+          <h1 class="page-title text-balance">Team Management</h1>
           <p class="page-subtitle">Manage staff accounts, roles, and platform access levels.</p>
         </div>
         <div class="header-actions">
@@ -166,10 +170,12 @@ import { formatDate } from '../../shared/formatters';
           <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="staff-row"></tr>
         </table>
 
-        <div class="empty-view" *ngIf="loaded && !dataSource.data.length">
-          <mat-icon>person_search</mat-icon>
-          <h3>No team members found</h3>
-          <p>{{ loadError || 'Your search filters did not match any staff records.' }}</p>
+        <div *ngIf="loaded && !dataSource.data.length && !loadError" class="empty-state-wrapper">
+          <app-empty-state icon="person_search" title="No team members found" description="Your search filters did not match any staff records."></app-empty-state>
+        </div>
+
+        <div *ngIf="loaded && loadError && !staff.length" class="empty-state-wrapper">
+          <app-error-state icon="error_outline" title="Failed to load staff" [description]="loadError" [retryable]="true" (retry)="loadStaff()"></app-error-state>
         </div>
 
         <mat-paginator [pageSizeOptions]="[10, 25, 50]"></mat-paginator>
@@ -190,7 +196,7 @@ import { formatDate } from '../../shared/formatters';
       background: var(--panel);
       backdrop-filter: blur(12px);
       box-shadow: var(--shadow-md); 
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
     }
     .stat-card:hover {
@@ -204,7 +210,7 @@ import { formatDate } from '../../shared/formatters';
       text-align: center; 
       border-radius: var(--radius-lg); 
       font-size: 26px; 
-      transition: all 0.3s ease;
+      transition: transform 0.3s ease;
     }
     .stat-card:hover .stat-icon {
       transform: scale(1.1) rotate(6deg);
@@ -256,7 +262,7 @@ import { formatDate } from '../../shared/formatters';
       font-size: 0.9rem !important;
     }
 
-    .staff-row { transition: all 0.2s ease; background: transparent; }
+    .staff-row { transition: background 0.2s ease; background: transparent; }
     .staff-row:hover { background: var(--panel-hover) !important; }
 
     .user-cell { display: flex; flex-direction: column; }
@@ -277,9 +283,7 @@ import { formatDate } from '../../shared/formatters';
     .status-chip.inactive { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
     .status-chip.inactive mat-icon { font-size: 14px; width: 14px; height: 14px; }
 
-    .empty-view { padding: 80px 24px; text-align: center; color: var(--muted); }
-    .empty-view mat-icon { font-size: 64px; width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.2; }
-    .empty-view h3 { margin: 0 0 8px; font-weight: 700; }
+    .empty-state-wrapper { padding: 48px 24px; }
 
     @media (max-width: 768px) {
       .header-row { flex-direction: column; gap: 16px; }

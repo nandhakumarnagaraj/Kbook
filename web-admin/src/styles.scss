@@ -42,11 +42,16 @@ $dark-theme: mat.m2-define-dark-theme((
   --surface-hover: #3E332A;
   --ink: #F7F3EE;
   --ink-secondary: #C1B7AD;
-  --muted: #8E8276;
+  --muted: #B0A496;
   --line: rgba(247, 243, 238, 0.08);
   --line-strong: rgba(247, 243, 238, 0.16);
   --brand-soft: rgba(232, 131, 42, 0.1);
   --brand-glow: rgba(232, 131, 42, 0.2);
+  
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
 }
 
 :root {
@@ -59,7 +64,7 @@ $dark-theme: mat.m2-define-dark-theme((
   
   --ink: #17130F;
   --ink-secondary: #5C5248;
-  --muted: #8C8075;
+  --muted: #6E6257;
   
   --line: rgba(23, 19, 15, 0.08);
   --line-strong: rgba(23, 19, 15, 0.16);
@@ -93,6 +98,15 @@ $dark-theme: mat.m2-define-dark-theme((
   --radius-lg: 14px;
   --radius-xl: 18px;
 
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-toast: 1070;
+  --z-tooltip: 1080;
+
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -108,12 +122,54 @@ html, body {
   font-size: 14px;
   line-height: 1.5;
   height: 100%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Hide scrollbars */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; }
+
+/* ── Accessibility: Focus visible ring ── */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ── Accessibility: Skip link ── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: var(--z-toast);
+  padding: 8px 16px;
+  background: var(--brand);
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0 0 var(--radius-sm) 0;
+  transition: top 0.2s ease;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+/* ── Typography helpers ── */
+.text-balance {
+  text-wrap: balance;
+}
+.text-pretty {
+  text-wrap: pretty;
+}
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Scroll margin for anchor headings ── */
+h1[id], h2[id], h3[id], h4[id] {
+  scroll-margin-top: 80px;
+}
 
 h1, h2, h3, h4, p { margin-top: 0; }
 
@@ -132,7 +188,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  transition: all 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .page-hero {
@@ -178,6 +234,33 @@ h1, h2, h3, h4, p { margin-top: 0; }
   }
 }
 
+/* ── Skeleton loader ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--line-strong) 37%, var(--surface) 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-text {
+  height: 14px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+.skeleton-text:last-child {
+  width: 60%;
+}
+
+.skeleton-card {
+  height: 120px;
+  border-radius: var(--radius-lg);
+}
+
+/* ── Modal overscroll containment ── */
+.cdk-overlay-container, .mat-mdc-dialog-container {
+  overscroll-behavior: contain;
+}
+
 .animate-fade-in-up {
   animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -205,7 +288,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
 
 .glow-border {
   position: relative;
-  transition: all 0.3s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .glow-border:hover {
   border-color: var(--brand-light) !important;

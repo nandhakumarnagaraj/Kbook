@@ -35,7 +35,7 @@ interface Settlement {
     <div class="page-container">
       <div class="header-row">
         <div class="header-left">
-          <h1 class="page-title">Settlement Reports</h1>
+          <h1 class="page-title text-balance">Settlement Reports</h1>
           <p class="page-subtitle">Per-restaurant settlement summaries and platform commission details.</p>
         </div>
         <div class="header-right">
@@ -206,7 +206,7 @@ interface Settlement {
     .settlement-card {
       border-radius: 12px;
       border: 1px solid var(--line);
-      transition: all 0.2s ease;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     .settlement-card:hover {
@@ -239,6 +239,7 @@ interface Settlement {
       font-size: 1.1rem;
       font-weight: 600;
       color: var(--ink);
+      font-variant-numeric: tabular-nums;
     }
 
     .metric-value.date {

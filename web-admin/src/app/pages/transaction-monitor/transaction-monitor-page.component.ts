@@ -50,7 +50,7 @@ interface Transaction {
     <div class="page-container">
       <div class="header-row">
         <div class="header-left">
-          <h1 class="page-title">Transaction Monitor</h1>
+          <h1 class="page-title text-balance">Transaction Monitor</h1>
           <p class="page-subtitle">View all Easebuzz payment transactions across the platform.</p>
         </div>
         <div class="header-right">
@@ -81,10 +81,10 @@ interface Transaction {
 
           <div class="spacer"></div>
           
-          <button mat-icon-button (click)="clearFilters()" matTooltip="Clear Filters">
+          <button mat-icon-button (click)="clearFilters()" matTooltip="Clear Filters" aria-label="Clear all filters">
             <mat-icon>filter_list_off</mat-icon>
           </button>
-          <button mat-icon-button (click)="loadTransactions()" matTooltip="Refresh">
+          <button mat-icon-button (click)="loadTransactions()" matTooltip="Refresh" aria-label="Refresh transactions">
             <mat-icon>refresh</mat-icon>
           </button>
         </mat-card-content>
@@ -113,7 +113,7 @@ interface Transaction {
 
           <ng-container matColumnDef="amount">
             <th mat-header-cell *matHeaderCellDef> Amount </th>
-            <td mat-cell *matCellDef="let txn"> <strong>{{ formatAmount(txn.amount) }}</strong> </td>
+            <td mat-cell *matCellDef="let txn" class="tabular-nums"> <strong>{{ formatAmount(txn.amount) }}</strong> </td>
           </ng-container>
 
           <ng-container matColumnDef="status">

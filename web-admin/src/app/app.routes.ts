@@ -32,85 +32,85 @@ export const routes: Routes = [
         path: 'admin/dashboard',
         component: PlatformDashboardPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['KBOOK_ADMIN'] }
+        data: { roles: ['KBOOK_ADMIN'], animation: 'adminDashboard' }
       },
       {
         path: 'admin/businesses',
         component: BusinessesPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['KBOOK_ADMIN'] }
+        data: { roles: ['KBOOK_ADMIN'], animation: 'adminBusinesses' }
       },
       {
         path: 'admin/sub-merchants',
         component: SubMerchantsPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['KBOOK_ADMIN'] }
+        data: { roles: ['KBOOK_ADMIN'], animation: 'adminSubMerchants' }
       },
       {
         path: 'admin/payment-dashboard',
         component: PaymentDashboardPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['KBOOK_ADMIN'] }
+        data: { roles: ['KBOOK_ADMIN'], animation: 'adminPaymentDashboard' }
       },
       {
         path: 'admin/commission-report',
         component: CommissionReportPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['KBOOK_ADMIN'] }
+        data: { roles: ['KBOOK_ADMIN'], animation: 'adminCommissionReport' }
       },
       {
         path: 'admin/transactions',
         component: TransactionMonitorPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['KBOOK_ADMIN'] }
+        data: { roles: ['KBOOK_ADMIN'], animation: 'adminTransactions' }
       },
       {
         path: 'admin/settlements',
         component: SettlementReportsPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['KBOOK_ADMIN'] }
+        data: { roles: ['KBOOK_ADMIN'], animation: 'adminSettlements' }
       },
       {
         path: 'admin/commission',
         component: CommissionConfigPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['KBOOK_ADMIN'] }
+        data: { roles: ['KBOOK_ADMIN'], animation: 'adminCommission' }
       },
       {
         path: 'business/dashboard',
         component: BusinessDashboardPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER'] }
+        data: { roles: ['OWNER'], animation: 'businessDashboard' }
       },
       {
         path: 'business/orders',
         component: OrdersPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER'] }
+        data: { roles: ['OWNER'], animation: 'businessOrders' }
       },
       {
         path: 'business/marketplace-setup',
         component: MarketplaceSetupPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER'] }
+        data: { roles: ['OWNER'], animation: 'businessMarketplace' }
       },
       {
         path: 'business/menu',
         component: MenuPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER'] }
+        data: { roles: ['OWNER'], animation: 'businessMenu' }
       },
       {
         path: 'business/staff',
         component: StaffPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER'] }
+        data: { roles: ['OWNER'], animation: 'businessStaff' }
       },
       {
         path: 'business/settings',
         component: RestaurantSettingsPageComponent,
         canActivate: [roleGuard],
-        data: { roles: ['OWNER'] }
+        data: { roles: ['OWNER'], animation: 'businessSettings' }
       },
       { path: '', pathMatch: 'full', redirectTo: 'business/dashboard' }
     ]

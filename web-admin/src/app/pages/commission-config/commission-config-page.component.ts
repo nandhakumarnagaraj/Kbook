@@ -49,11 +49,11 @@ interface CommissionRecord {
     <div class="page-container">
       <div class="header-row">
         <div class="header-left">
-          <h1 class="page-title">Commission Configuration</h1>
+          <h1 class="page-title text-balance">Commission Configuration</h1>
           <p class="page-subtitle">Manage commission rates for all sub-merchants across the platform.</p>
         </div>
         <div class="header-actions">
-           <button mat-icon-button (click)="loadCommissions()" matTooltip="Refresh Data">
+           <button mat-icon-button (click)="loadCommissions()" matTooltip="Refresh Data" aria-label="Refresh commission data">
             <mat-icon>refresh</mat-icon>
           </button>
         </div>
@@ -97,15 +97,15 @@ interface CommissionRecord {
                     <input matInput type="number" step="0.01" min="0" max="100" [(ngModel)]="editRate">
                     <span matSuffix>%</span>
                   </mat-form-field>
-                  <button mat-icon-button color="primary" (click)="saveCommission(rec.id)" [disabled]="saving()">
+                  <button mat-icon-button color="primary" (click)="saveCommission(rec.id)" [disabled]="saving()" aria-label="Save commission">
                     <mat-icon>check</mat-icon>
                   </button>
-                  <button mat-icon-button color="warn" (click)="cancelEdit()">
+                  <button mat-icon-button color="warn" (click)="cancelEdit()" aria-label="Cancel edit">
                     <mat-icon>close</mat-icon>
                   </button>
                 </div>
 
-                <button mat-icon-button *ngIf="editingId() !== rec.id" (click)="startEdit(rec)">
+                <button mat-icon-button *ngIf="editingId() !== rec.id" (click)="startEdit(rec)" aria-label="Edit commission">
                   <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
                 </button>
               </div>
@@ -149,7 +149,7 @@ interface CommissionRecord {
     .status-chip.danger { background: #fee2e2; color: #dc2626; }
 
     .commission-cell { display: flex; align-items: center; gap: 8px; }
-    .rate-value { font-weight: 700; font-size: 1.1rem; }
+    .rate-value { font-weight: 700; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
     
     .edit-inline { display: flex; align-items: center; gap: 4px; }
     .inline-field { width: 100px; }

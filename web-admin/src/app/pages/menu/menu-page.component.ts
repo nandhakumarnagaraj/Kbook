@@ -22,6 +22,8 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessMenuItem } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { ErrorStateComponent } from '../../shared/error-state.component';
 
 @Component({
   selector: 'app-menu-page',
@@ -45,13 +47,15 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
     MatMenuModule,
     MatSlideToggleModule,
     MatSnackBarModule,
-    MatDialogModule
+    MatDialogModule,
+    EmptyStateComponent,
+    ErrorStateComponent
   ],
   template: `
     <div class="page-container">
       <div class="header-row">
         <div class="header-left">
-          <h1 class="page-title">Menu Catalog</h1>
+          <h1 class="page-title text-balance">Menu Catalog</h1>
           <p class="page-subtitle">Manage your restaurant menu items, categories, and real-time availability.</p>
         </div>
         <div class="header-actions">
@@ -189,7 +193,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef class="col-actions-header"> Action </th>
             <td mat-cell *matCellDef="let item" class="actions-cell">
-               <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+               <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()" aria-label="Menu item actions">
                  <mat-icon>more_vert</mat-icon>
                </button>
                <mat-menu #menu="matMenu" xPosition="before">
@@ -219,10 +223,12 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
           <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="item-row"></tr>
         </table>
 
-        <div class="empty-view" *ngIf="loaded && !dataSource.data.length">
-          <mat-icon>search_off</mat-icon>
-          <h3>No items found</h3>
-          <p>{{ loadError || 'Try adjusting your search or filters to see more results.' }}</p>
+        <div *ngIf="loaded && !dataSource.data.length && !loadError" class="empty-state-wrapper">
+          <app-empty-state icon="search_off" title="No items found" description="Try adjusting your search or filters to see more results."></app-empty-state>
+        </div>
+
+        <div *ngIf="loaded && loadError && !items.length" class="empty-state-wrapper">
+          <app-error-state icon="error_outline" title="Failed to load menu" [description]="loadError" [retryable]="true" (retry)="loadMenu()"></app-error-state>
         </div>
 
         <mat-paginator [pageSizeOptions]="[10, 25, 50]" aria-label="Select page of menu items"></mat-paginator>
@@ -327,7 +333,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       background: var(--panel);
       backdrop-filter: blur(12px);
       box-shadow: var(--shadow-md); 
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
     }
     .stat-card:hover {
@@ -341,7 +347,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       text-align: center; 
       border-radius: var(--radius-lg); 
       font-size: 26px; 
-      transition: all 0.3s ease;
+      transition: transform 0.3s ease;
     }
     .stat-card:hover .stat-icon {
       transform: scale(1.1) rotate(6deg);
@@ -402,7 +408,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 
     ::ng-deep th.col-actions-header { text-align: right !important; }
 
-    .item-row { transition: all 0.2s ease; background: transparent; }
+    .item-row { transition: background 0.2s ease; background: transparent; }
     .item-row:hover { background: var(--panel-hover) !important; }
 
     .item-cell { display: flex; align-items: center; gap: 12px; }
@@ -416,7 +422,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 
     .category-tag { background: var(--brand-soft); color: var(--brand); padding: 4px 12px; border-radius: var(--radius-md); font-size: 0.8rem; font-weight: 700; }
 
-    .price-cell { font-weight: 700; color: var(--ink); }
+    .price-cell { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
 
     .stock-status-chip { padding: 4px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
     .stock-status-chip.success { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
@@ -430,9 +436,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 
     .actions-cell { text-align: right; }
 
-    .empty-view { padding: 80px 24px; text-align: center; color: var(--muted); }
-    .empty-view mat-icon { font-size: 64px; width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.2; }
-    .empty-view h3 { margin: 0 0 8px; font-weight: 700; }
+    .empty-state-wrapper { padding: 48px 24px; }
 
     /* Dialog Styles */
     .w-100 { width: 100%; }

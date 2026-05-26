@@ -56,7 +56,7 @@ interface LocalBusinessDetail extends AdminBusinessDetail {
     <div class="page-container">
       <div class="header-row">
         <div class="header-left">
-          <h1 class="page-title">Business Directory</h1>
+          <h1 class="page-title text-balance">Business Directory</h1>
           <p class="page-subtitle">Manage and inspect all registered businesses on the platform.</p>
         </div>
         <button mat-flat-button color="primary" (click)="loadBusinesses()">
@@ -144,7 +144,7 @@ interface LocalBusinessDetail extends AdminBusinessDetail {
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef class="actions-cell"> Action </th>
             <td mat-cell *matCellDef="let row" class="actions-cell">
-               <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+               <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()" aria-label="Business actions">
                  <mat-icon>more_vert</mat-icon>
                </button>
                <mat-menu #menu="matMenu" xPosition="before">
@@ -376,7 +376,7 @@ interface LocalBusinessDetail extends AdminBusinessDetail {
 
     .clickable-row {
       cursor: pointer;
-      transition: background 0.2s ease;
+      transition: background-color 0.2s ease;
     }
 
     .clickable-row:hover {
@@ -495,7 +495,7 @@ interface LocalBusinessDetail extends AdminBusinessDetail {
         border-radius: var(--radius-md);
         background: var(--bg);
         border: 1px solid var(--line);
-        transition: all 0.2s ease;
+        transition: border-color 0.2s ease, background-color 0.2s ease;
       }
       .detail-item:hover {
         border-color: var(--brand-soft);

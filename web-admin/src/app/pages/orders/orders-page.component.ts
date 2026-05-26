@@ -24,6 +24,7 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { BusinessOrder, MarketplaceOrder } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
 
 type OrderTab = 'pos' | 'online';
 type OnlineView = 'table' | 'kanban';
@@ -51,13 +52,14 @@ type OnlineView = 'table' | 'kanban';
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatDividerModule,
-    DragDropModule
+    DragDropModule,
+    EmptyStateComponent
   ],
   template: `
     <div class="page-container">
       <div class="header-row">
         <div class="header-left">
-          <h1 class="page-title">Order Management</h1>
+          <h1 class="page-title text-balance">Order Management</h1>
           <p class="page-subtitle">Unified dashboard for POS and marketplace orders.</p>
         </div>
         <div class="header-actions">
@@ -202,7 +204,7 @@ type OnlineView = 'table' | 'kanban';
                 <ng-container matColumnDef="actions">
                   <th mat-header-cell *matHeaderCellDef></th>
                   <td mat-cell *matCellDef="let order">
-                    <button mat-icon-button color="warn" *ngIf="order.manualRefundAllowed" 
+                    <button mat-icon-button color="warn" *ngIf="order.manualRefundAllowed" aria-label="Refund order" 
                             matTooltip="Record Manual Refund"
                             (click)="openManualRefund(order)">
                       <mat-icon>undo</mat-icon>
@@ -213,6 +215,10 @@ type OnlineView = 'table' | 'kanban';
                 <tr mat-header-row *matHeaderRowDef="posDisplayedColumns"></tr>
                 <tr mat-row *matRowDef="let row; columns: posDisplayedColumns;" class="order-row"></tr>
               </table>
+
+              <div *ngIf="ordersLoaded && !posDataSource.filteredData.length" class="empty-state-wrapper">
+                <app-empty-state icon="receipt_long" title="No orders found" description="Try adjusting your search or filters."></app-empty-state>
+              </div>
 
               <mat-paginator #posPaginator [pageSizeOptions]="[10, 25, 50]"></mat-paginator>
             </div>
@@ -321,6 +327,10 @@ type OnlineView = 'table' | 'kanban';
                 <tr mat-header-row *matHeaderRowDef="onlineDisplayedColumns"></tr>
                 <tr mat-row *matRowDef="let row; columns: onlineDisplayedColumns;" class="order-row"></tr>
               </table>
+              <div *ngIf="marketplaceOrdersLoaded && !onlineDataSource.filteredData.length" class="empty-state-wrapper">
+                <app-empty-state icon="storefront" title="No marketplace orders" description="Online orders will appear here once received from Swiggy or Zomato."></app-empty-state>
+              </div>
+
               <mat-paginator #onlinePaginator [pageSizeOptions]="[10, 25, 50]"></mat-paginator>
             </div>
 
@@ -432,7 +442,7 @@ type OnlineView = 'table' | 'kanban';
       align-items: center; 
       padding: 12px 18px; 
       gap: 12px; 
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
     }
     .mini-stat:hover {
@@ -449,7 +459,7 @@ type OnlineView = 'table' | 'kanban';
       justify-content: center;
       border-radius: var(--radius-md); 
       font-size: 18px;
-      transition: all 0.3s ease;
+      transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
       flex-shrink: 0;
     }
     .mini-stat:hover .stat-icon {
@@ -508,7 +518,7 @@ type OnlineView = 'table' | 'kanban';
       font-size: 0.9rem !important;
     }
 
-    .order-row { cursor: default; transition: all 0.2s ease; background: transparent; }
+    .order-row { cursor: default; transition: background-color 0.2s ease; background: transparent; }
     .order-row:hover { background: var(--panel-hover) !important; }
 
     .id-cell { display: flex; flex-direction: column; gap: 2px; }
@@ -544,7 +554,7 @@ type OnlineView = 'table' | 'kanban';
       backdrop-filter: blur(12px);
       box-shadow: var(--shadow-sm); 
       cursor: pointer; 
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
     }
     .status-box:hover { 
@@ -617,7 +627,7 @@ type OnlineView = 'table' | 'kanban';
       background: var(--panel) !important;
       border-radius: var(--radius-lg) !important;
       box-shadow: var(--shadow-sm); 
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       padding: 16px;
     }
     .kanban-card:hover {
@@ -641,6 +651,7 @@ type OnlineView = 'table' | 'kanban';
 
     @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     .spacer { flex: 1; }
+    .empty-state-wrapper { padding: 48px 24px; }
 
     @media (max-width: 1200px) {
       .kanban-view { grid-template-columns: repeat(3, 1fr); }
