@@ -41,8 +41,10 @@ interface PaymentDashboardData {
     <div class="page-container">
       <div class="header-row">
         <div class="header-left">
-          <h1 class="page-title">Payment Dashboard</h1>
-          <p class="page-subtitle">Real-time payment gateway analytics and transaction insights.</p>
+          <div class="title-container">
+            <h1 class="page-title">Payment Dashboard</h1>
+            <p class="page-subtitle">Real-time payment gateway analytics and transaction insights.</p>
+          </div>
         </div>
         <div class="header-right">
           <div class="status-indicator">
@@ -199,9 +201,45 @@ interface PaymentDashboardData {
   `,
   styles: [`
     .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
-    .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
-    .page-title { margin: 0; font-size: 1.75rem; font-weight: 700; color: var(--ink); }
-    .page-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.9rem; }
+    .header-row { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 32px; 
+      gap: 16px;
+      flex-wrap: nowrap;
+    }
+    .header-left {
+      min-width: 0;
+      flex: 1;
+    }
+    .header-right {
+      flex-shrink: 0;
+    }
+    .title-container {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: nowrap;
+      min-width: 0;
+    }
+
+    .page-title { 
+      margin: 0; 
+      font-size: 1.75rem; 
+      font-weight: 700; 
+      color: var(--ink); 
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .page-subtitle { 
+      margin: 0; 
+      color: var(--muted); 
+      font-size: 0.85rem; 
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
 
     .status-indicator { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--bg-elevated); border-radius: 999px; border: 1px solid var(--line); }
     .dot { width: 8px; height: 8px; border-radius: 50%; }
@@ -210,15 +248,46 @@ interface PaymentDashboardData {
     @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(22, 163, 74, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); } 100% { box-shadow: 0 0 0 0px rgba(22, 163, 74, 0); } }
     .status-label { font-size: 0.85rem; font-weight: 600; color: var(--ink); }
 
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-bottom: 32px; }
-    .stat-card { border-radius: 16px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-    .stat-icon { background: var(--brand-soft); color: var(--brand); width: 48px; height: 48px; line-height: 48px; text-align: center; border-radius: 12px; font-size: 24px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { border-radius: 12px; border: none; box-shadow: 0 4px 16px rgba(0,0,0,0.05); }
+    
+    ::ng-deep .stat-card .mat-mdc-card-header {
+      padding: 12px 16px !important;
+      gap: 12px !important;
+    }
+    ::ng-deep .stat-card .mat-mdc-card-content {
+      padding: 0 16px 12px !important;
+    }
+    ::ng-deep .stat-card .mat-mdc-card-title {
+      font-size: 1.25rem !important;
+      font-weight: 700 !important;
+      margin: 0 !important;
+    }
+    ::ng-deep .stat-card .mat-mdc-card-subtitle {
+      font-size: 0.8rem !important;
+      color: var(--muted) !important;
+      margin-top: 2px !important;
+    }
+
+    .stat-icon { 
+      background: var(--brand-soft); 
+      color: var(--brand); 
+      width: 36px; 
+      height: 36px; 
+      line-height: 36px; 
+      text-align: center; 
+      border-radius: 8px; 
+      font-size: 18px; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .transactions .stat-icon { background: #f3e8ff; color: #9333ea; }
     .success-rate .stat-icon { background: #dcfce7; color: #16a34a; }
     .revenue .stat-icon { background: #fef3c7; color: #d97706; }
     .orders .stat-icon { background: #e0f2fe; color: #0284c7; }
-
-    .stat-footer { margin-top: 16px; }
+ 
+    .stat-footer { margin-top: 8px; }
     .subtext { font-size: 0.75rem; color: var(--muted); }
     .rate-bar { height: 6px; border-radius: 3px; }
 

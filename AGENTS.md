@@ -52,11 +52,12 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 - **MenuExtractionJobRepository**: added `findByRestaurantIdOrderByCreatedAtDesc`
 - **All 133 tests passing** after changes; committed `05683fc`, pushed to `origin/v2`
 
-### 2026-05-26 Session — Platform Dashboard Header & Sub-Merchant Modal Fixes
-- **Platform Overview Header**: Wrapped the page title "Platform Overview" and the liveDate subtitle in a `.title-container` inline-flex layout inside `platform-dashboard-page.component.ts` to display them on a single line instead of wrapping to two lines.
-- **Sub-Merchant Details View (Modal Conversion)**: Refactored the sub-merchant details layout in `sub-merchants-page.component.ts` from a fixed side panel to a clean overlay modal (`MatDialog` via `#detailDialog` `<ng-template>`). The table now occupies full screen width, improving list scannability.
-- **Build & Verification**: Built web-admin using `npm run build` and verified successful compilation.
-- **Git**: Committed and pushed changes to remote tracking branch `origin/v2`.
+### 2026-05-26 Session — Dashboard Layout, Sub-Merchant & Business Directory Modal Fixes
+- **Platform & Payment Dashboard Headers**: Wrapped page titles and subtitles/dates in `platform-dashboard-page.component.ts` and `payment-dashboard-page.component.ts` to display on a single line. Reduced stat card padding and icon size in `payment-dashboard-page.component.ts` to prevent cards from wrapping.
+- **Sub-Merchant Details View (Modal Conversion)**: Refactored sub-merchant details layout in `sub-merchants-page.component.ts` from a fixed side panel to a clean overlay modal (`MatDialog` via `#detailDialog` `<ng-template>`). Table now occupies full screen width.
+- **Business Directory (Table Spacing & Actions Modals)**: Re-styled the table headers and cells in `businesses-page.component.ts` to match the premium design (uppercase uppercase header text, border bottom, shadows, row hover). Right-aligned the Actions header cell `Action`. Replaced bottom drawer with `MatDialog` modals for View Details, Edit Business, and Suspend actions, with local state mapping/simulation and snackbar alerts for testing.
+- **Build & Verification**: Built web-admin using `npm run build` and ran all 133 backend unit tests, verifying successful compilation and passes.
+- **Git**: Committed changes to local tracking branch `origin/v2` (no remote pushes).
 
 ### In Progress
 - None currently

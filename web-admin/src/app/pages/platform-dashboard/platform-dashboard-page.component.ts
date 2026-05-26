@@ -255,15 +255,27 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     .header-row {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       margin-bottom: 32px;
+      gap: 16px;
+      flex-wrap: nowrap;
+    }
+
+    .header-left {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .header-right {
+      flex-shrink: 0;
     }
 
     .title-container {
       display: flex;
       align-items: baseline;
-      gap: 16px;
-      flex-wrap: wrap;
+      gap: 12px;
+      flex-wrap: nowrap;
+      min-width: 0;
     }
 
     .page-title {
@@ -272,12 +284,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       font-weight: 800;
       color: var(--ink);
       letter-spacing: -0.5px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .page-subtitle {
       margin: 0;
       color: var(--muted);
       font-size: 0.95rem;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
 
     .live-status {
