@@ -208,6 +208,23 @@ class WebAdminControllerTest extends BaseIntegrationTest {
                         .header("Authorization", "Bearer " + ownerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.role=='OWNER')]").exists());
+
+        MenuItem item = menuItemRepository.findAll().stream()
+                .filter(i -> i.getRestaurantId().equals(RESTAURANT_ID))
+                .findFirst()
+                .orElseThrow();
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/business/menu/" + item.getId())
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Updated Veg Fried Rice\",\"basePrice\":195.50,\"description\":\"Even better now\",\"available\":false}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/business/menu/" + item.getId() + "/availability")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"available\":true}"))
+                .andExpect(status().isOk());
     }
 
     @Test

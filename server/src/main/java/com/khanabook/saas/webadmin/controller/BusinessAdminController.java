@@ -18,6 +18,7 @@ import com.khanabook.saas.webadmin.service.BusinessReadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -51,12 +52,13 @@ public class BusinessAdminController {
     }
 
     @PutMapping("/menu/{itemId}")
+    @Transactional
     public ResponseEntity<Void> updateMenuItem(
             @PathVariable Long itemId,
             @RequestBody java.util.Map<String, Object> payload) {
         Long tenantId = requireTenant();
         MenuItem item = menuItemRepository.findById(itemId)
-                .filter(existing -> existing.getRestaurantId().equals(tenantId))
+                .filter(existing -> java.util.Objects.equals(existing.getRestaurantId(), tenantId))
                 .orElseThrow(() -> new IllegalArgumentException("Menu item not found"));
 
         if (payload.containsKey("name")) {
@@ -74,7 +76,7 @@ public class BusinessAdminController {
             item.setDescription((String) payload.get("description"));
         }
         if (payload.containsKey("available")) {
-            item.setIsAvailable((Boolean) payload.get("available"));
+            item.setIsAvailable(parseBoolean(payload.get("available")));
         }
         if (payload.containsKey("stockStatus")) {
             String stockStatus = (String) payload.get("stockStatus");
@@ -98,16 +100,17 @@ public class BusinessAdminController {
     }
 
     @PutMapping("/menu/{itemId}/availability")
+    @Transactional
     public ResponseEntity<Void> updateAvailability(
             @PathVariable Long itemId,
-            @RequestBody java.util.Map<String, Boolean> payload) {
+            @RequestBody java.util.Map<String, Object> payload) {
         Long tenantId = requireTenant();
         MenuItem item = menuItemRepository.findById(itemId)
-                .filter(existing -> existing.getRestaurantId().equals(tenantId))
+                .filter(existing -> java.util.Objects.equals(existing.getRestaurantId(), tenantId))
                 .orElseThrow(() -> new IllegalArgumentException("Menu item not found"));
 
-        if (payload.containsKey("available")) {
-            item.setIsAvailable(payload.get("available"));
+        if (payload != null && payload.containsKey("available")) {
+            item.setIsAvailable(parseBoolean(payload.get("available")));
             item.setUpdatedAt(System.currentTimeMillis());
             item.setServerUpdatedAt(System.currentTimeMillis());
             menuItemRepository.save(item);
@@ -238,5 +241,16 @@ public class BusinessAdminController {
             throw new IllegalArgumentException("Tenant context is missing");
         }
         return tenantId;
+    }
+
+    private Boolean parseBoolean(Object val) {
+        if (val == null) return null;
+        if (val instanceof Boolean) return (Boolean) val;
+        if (val instanceof Number) return ((Number) val).intValue() != 0;
+        if (val instanceof String) {
+            String s = ((String) val).trim().toLowerCase();
+            return "true".equals(s) || "1".equals(s) || "yes".equals(s) || "on".equals(s);
+        }
+        return false;
     }
 }
