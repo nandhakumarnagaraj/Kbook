@@ -331,159 +331,155 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
           <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" aria-label="Select page of sub-merchants"></mat-paginator>
         </div>
 
-        <!-- Detail Panel -->
-        <div class="detail-panel" *ngIf="selectedSubMerchant() as sm">
-          <mat-card class="detail-card">
-            <mat-card-header>
-              <mat-icon mat-card-avatar color="primary">person</mat-icon>
-              <mat-card-title>{{ sm.businessName }}</mat-card-title>
-              <mat-card-subtitle>Sub-Merchant ID: {{ sm.id }} | Restaurant: #{{ sm.restaurantId }}</mat-card-subtitle>
-              <span class="spacer"></span>
-              <button mat-icon-button (click)="closeDetail()">
-                <mat-icon>close</mat-icon>
-              </button>
-            </mat-card-header>
-            
-            <mat-divider></mat-divider>
-            
-            <mat-card-content>
-              <div class="status-banner" *ngIf="sm.status === 'ACTIVE'">
-                <mat-icon>check_circle</mat-icon>
-                <div class="banner-text">
-                  <strong>Fully Active</strong>
-                  <span>Ready for settlements. KYC approved on {{ formatDateValue(sm.kycActivatedAt) }}.</span>
-                </div>
-              </div>
-
-              <div class="detail-grid">
-                 <div class="detail-item">
-                    <span class="label">Status</span>
-                    <span class="status-chip" [class]="getStatusChipClass(sm.status)">{{ formatStatusValue(sm.status) }}</span>
-                 </div>
-                 <div class="detail-item">
-                    <span class="label">Easebuzz ID</span>
-                    <span class="value">{{ sm.subMerchantId || '-' }}</span>
-                 </div>
-                 <div class="detail-item">
-                    <span class="label">Commission</span>
-                    <span class="value">{{ sm.commissionRate != null ? sm.commissionRate + '%' : '-' }}</span>
-                 </div>
-                 <div class="detail-item">
-                    <span class="label">Business Type</span>
-                    <span class="value">{{ sm.businessType || '-' }}</span>
-                 </div>
-                 <div class="detail-item">
-                    <span class="label">Contact Email</span>
-                    <span class="value">{{ sm.contactEmail || '-' }}</span>
-                 </div>
-                 <div class="detail-item">
-                    <span class="label">Contact Phone</span>
-                    <span class="value">{{ sm.contactPhone || '-' }}</span>
-                 </div>
-                 <div class="detail-item">
-                    <span class="label">PAN</span>
-                    <span class="value">{{ sm.pan || '-' }}</span>
-                 </div>
-                 <div class="detail-item">
-                    <span class="label">GST</span>
-                    <span class="value">{{ sm.gst || '-' }}</span>
-                 </div>
-                 <div class="detail-item span-2">
-                    <span class="label">Beneficiary</span>
-                    <span class="value">{{ sm.beneficiaryName || '-' }}</span>
-                    <div class="sub-text">
-                      {{ sm.bankName }}{{ sm.branchName ? ' - ' + sm.branchName : '' }}<br/>
-                      {{ sm.bankAccountNo ? 'A/C: ' + sm.bankAccountNo : '' }} {{ sm.ifsc ? ' | IFSC: ' + sm.ifsc : '' }}
-                    </div>
-                 </div>
-                 <div class="detail-item span-2">
-                    <span class="label">Address</span>
-                    <span class="value address">{{ sm.businessAddress || '-' }}</span>
-                 </div>
-              </div>
-
-              <mat-divider></mat-divider>
-
-              <div class="section-title">KYC & Onboarding Timeline</div>
-              <div class="kyc-timeline">
-                <!-- Step 1: Registered -->
-                <div class="timeline-item" [class.active]="sm.status !== 'DRAFT'">
-                  <div class="timeline-badge" [class.success]="sm.status !== 'DRAFT'">
-                    <mat-icon>{{ sm.status !== 'DRAFT' ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-                  </div>
-                  <div class="timeline-content">
-                    <h4 class="step-title">1. Merchant Registered</h4>
-                    <p class="step-desc">Sub-merchant profile initialized in local DB.</p>
-                    <span class="step-time" *ngIf="sm.createdAt">{{ formatDateValue(sm.createdAt) }}</span>
-                  </div>
-                </div>
-
-                <!-- Step 2: KYC Link -->
-                <div class="timeline-item" [class.active]="!!sm.kycPortalUrl" [class.pending]="sm.status !== 'DRAFT' && !sm.kycPortalUrl">
-                  <div class="timeline-badge" [class.success]="!!sm.kycPortalUrl" [class.warning]="sm.status !== 'DRAFT' && !sm.kycPortalUrl">
-                    <mat-icon>{{ sm.kycPortalUrl ? 'check_circle' : (sm.status !== 'DRAFT' ? 'pending' : 'radio_button_unchecked') }}</mat-icon>
-                  </div>
-                  <div class="timeline-content">
-                    <h4 class="step-title">2. KYC Portal Link</h4>
-                    <p class="step-desc" *ngIf="sm.kycPortalUrl">Portal access generated successfully.</p>
-                    <p class="step-desc" *ngIf="!sm.kycPortalUrl">Pending URL generation. Go to actions menu to generate.</p>
-                  </div>
-                </div>
-
-                <!-- Step 3: Submitted -->
-                <div class="timeline-item" 
-                     [class.active]="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'"
-                     [class.pending]="!!sm.kycPortalUrl && !(sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True')">
-                  <div class="timeline-badge" 
-                       [class.success]="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'"
-                       [class.warning]="!!sm.kycPortalUrl && !(sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True')">
-                    <mat-icon>{{ (sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True') ? 'check_circle' : (!!sm.kycPortalUrl ? 'pending' : 'radio_button_unchecked') }}</mat-icon>
-                  </div>
-                  <div class="timeline-content">
-                    <h4 class="step-title">3. KYC Documents Submitted</h4>
-                    <p class="step-desc" *ngIf="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">Documents submitted to Easebuzz.</p>
-                    <p class="step-desc" *ngIf="!(sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True')">Waiting for merchant to upload details.</p>
-                    <span class="step-time" *ngIf="sm.kycSubmittedAt">{{ formatDateValue(sm.kycSubmittedAt) }}</span>
-                  </div>
-                </div>
-
-                <!-- Step 4: Activated -->
-                <div class="timeline-item" 
-                     [class.active]="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'"
-                     [class.pending]="(sm.kycStatus === 'SUBMITTED')">
-                  <div class="timeline-badge" 
-                       [class.success]="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'"
-                       [class.warning]="sm.kycStatus === 'SUBMITTED'">
-                    <mat-icon>{{ (sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True') ? 'check_circle' : (sm.kycStatus === 'SUBMITTED' ? 'pending' : 'radio_button_unchecked') }}</mat-icon>
-                  </div>
-                  <div class="timeline-content">
-                    <h4 class="step-title">4. Account Activated</h4>
-                    <p class="step-desc" *ngIf="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">Easebuzz KYC approved. Ready to accept splits.</p>
-                    <p class="step-desc" *ngIf="sm.kycStatus === 'SUBMITTED'">Easebuzz verifying documents (KYC aging: {{ formatKycAge(sm) }}).</p>
-                    <p class="step-desc" *ngIf="sm.kycStatus !== 'SUBMITTED' && sm.kycStatus !== 'ACTIVATED' && sm.kycStatus !== 'True'">Onboarding verification pending.</p>
-                    <span class="step-time" *ngIf="sm.kycActivatedAt">{{ formatDateValue(sm.kycActivatedAt) }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="info-box" *ngIf="sm.kycPortalUrl">
-                 <strong>KYC Portal URL:</strong>
-                 <a [href]="sm.kycPortalUrl" target="_blank" class="link">{{ sm.kycPortalUrl }}</a>
-              </div>
-
-               <div class="info-box" *ngIf="sm.splitLabel">
-                 <strong>Split Label:</strong> <code>{{ sm.splitLabel }}</code>
-                 <button mat-button color="primary" (click)="retrieveSplitStatus(sm)">Check Split Status</button>
-              </div>
-            </mat-card-content>
-            
-            <mat-card-actions align="end">
-              <button mat-button (click)="closeDetail()">Dismiss</button>
-              <button mat-raised-button color="primary" (click)="openEdit(sm)">Edit Sub-Merchant</button>
-            </mat-card-actions>
-          </mat-card>
-        </div>
       </div>
+
+      <!-- Detail Dialog Template -->
+      <ng-template #detailDialog>
+        <h2 mat-dialog-title style="display: flex; align-items: center; gap: 12px; margin: 0; padding: 20px 24px 10px;">
+          <mat-icon color="primary">person</mat-icon>
+          <span style="font-weight: 800; font-size: 1.3rem;">{{ selectedSubMerchant()?.businessName }}</span>
+        </h2>
+        <mat-dialog-content style="padding: 0 24px 20px;">
+          <div *ngIf="selectedSubMerchant() as sm" class="sub-merchant-detail-dialog">
+            <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 16px;">
+              Sub-Merchant ID: {{ sm.id }} | Restaurant: #{{ sm.restaurantId }}
+            </div>
+            
+            <div class="status-banner" *ngIf="sm.status === 'ACTIVE'" style="margin-top: 0;">
+              <mat-icon>check_circle</mat-icon>
+              <div class="banner-text">
+                <strong>Fully Active</strong>
+                <span>Ready for settlements. KYC approved on {{ formatDateValue(sm.kycActivatedAt) }}.</span>
+              </div>
+            </div>
+
+            <div class="detail-grid">
+               <div class="detail-item">
+                  <span class="label">Status</span>
+                  <span class="status-chip" [class]="getStatusChipClass(sm.status)">{{ formatStatusValue(sm.status) }}</span>
+               </div>
+               <div class="detail-item">
+                  <span class="label">Easebuzz ID</span>
+                  <span class="value">{{ sm.subMerchantId || '-' }}</span>
+               </div>
+               <div class="detail-item">
+                  <span class="label">Commission</span>
+                  <span class="value">{{ sm.commissionRate != null ? sm.commissionRate + '%' : '-' }}</span>
+               </div>
+               <div class="detail-item">
+                  <span class="label">Business Type</span>
+                  <span class="value">{{ sm.businessType || '-' }}</span>
+               </div>
+               <div class="detail-item">
+                  <span class="label">Contact Email</span>
+                  <span class="value">{{ sm.contactEmail || '-' }}</span>
+               </div>
+               <div class="detail-item">
+                  <span class="label">Contact Phone</span>
+                  <span class="value">{{ sm.contactPhone || '-' }}</span>
+               </div>
+               <div class="detail-item">
+                  <span class="label">PAN</span>
+                  <span class="value">{{ sm.pan || '-' }}</span>
+               </div>
+               <div class="detail-item">
+                  <span class="label">GST</span>
+                  <span class="value">{{ sm.gst || '-' }}</span>
+               </div>
+               <div class="detail-item span-2">
+                  <span class="label">Beneficiary</span>
+                  <span class="value">{{ sm.beneficiaryName || '-' }}</span>
+                  <div class="sub-text">
+                    {{ sm.bankName }}{{ sm.branchName ? ' - ' + sm.branchName : '' }}<br/>
+                    {{ sm.bankAccountNo ? 'A/C: ' + sm.bankAccountNo : '' }} {{ sm.ifsc ? ' | IFSC: ' + sm.ifsc : '' }}
+                  </div>
+               </div>
+               <div class="detail-item span-2">
+                  <span class="label">Address</span>
+                  <span class="value address">{{ sm.businessAddress || '-' }}</span>
+               </div>
+            </div>
+
+            <mat-divider></mat-divider>
+
+            <div class="section-title">KYC & Onboarding Timeline</div>
+            <div class="kyc-timeline">
+              <!-- Step 1: Registered -->
+              <div class="timeline-item" [class.active]="sm.status !== 'DRAFT'">
+                <div class="timeline-badge" [class.success]="sm.status !== 'DRAFT'">
+                  <mat-icon>{{ sm.status !== 'DRAFT' ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                </div>
+                <div class="timeline-content">
+                  <h4 class="step-title">1. Merchant Registered</h4>
+                  <p class="step-desc">Sub-merchant profile initialized in local DB.</p>
+                  <span class="step-time" *ngIf="sm.createdAt">{{ formatDateValue(sm.createdAt) }}</span>
+                </div>
+              </div>
+
+              <!-- Step 2: KYC Link -->
+              <div class="timeline-item" [class.active]="!!sm.kycPortalUrl" [class.pending]="sm.status !== 'DRAFT' && !sm.kycPortalUrl">
+                <div class="timeline-badge" [class.success]="!!sm.kycPortalUrl" [class.warning]="sm.status !== 'DRAFT' && !sm.kycPortalUrl">
+                  <mat-icon>{{ sm.kycPortalUrl ? 'check_circle' : (sm.status !== 'DRAFT' ? 'pending' : 'radio_button_unchecked') }}</mat-icon>
+                </div>
+                <div class="timeline-content">
+                  <h4 class="step-title">2. KYC Portal Link</h4>
+                  <p class="step-desc" *ngIf="sm.kycPortalUrl">Portal access generated successfully.</p>
+                  <p class="step-desc" *ngIf="!sm.kycPortalUrl">Pending URL generation. Go to actions menu to generate.</p>
+                </div>
+              </div>
+
+              <!-- Step 3: Submitted -->
+              <div class="timeline-item" 
+                   [class.active]="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'"
+                   [class.pending]="!!sm.kycPortalUrl && !(sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True')">
+                <div class="timeline-badge" 
+                     [class.success]="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'"
+                     [class.warning]="!!sm.kycPortalUrl && !(sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True')">
+                  <mat-icon>{{ (sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True') ? 'check_circle' : (!!sm.kycPortalUrl ? 'pending' : 'radio_button_unchecked') }}</mat-icon>
+                </div>
+                <div class="timeline-content">
+                  <h4 class="step-title">3. KYC Documents Submitted</h4>
+                  <p class="step-desc" *ngIf="sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">Documents submitted to Easebuzz.</p>
+                  <p class="step-desc" *ngIf="!(sm.kycStatus === 'SUBMITTED' || sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True')">Waiting for merchant to upload details.</p>
+                  <span class="step-time" *ngIf="sm.kycSubmittedAt">{{ formatDateValue(sm.kycSubmittedAt) }}</span>
+                </div>
+              </div>
+
+              <!-- Step 4: Activated -->
+              <div class="timeline-item" 
+                   [class.active]="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'"
+                   [class.pending]="(sm.kycStatus === 'SUBMITTED')">
+                <div class="timeline-badge" 
+                     [class.success]="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'"
+                     [class.warning]="sm.kycStatus === 'SUBMITTED'">
+                  <mat-icon>{{ (sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True') ? 'check_circle' : (sm.kycStatus === 'SUBMITTED' ? 'pending' : 'radio_button_unchecked') }}</mat-icon>
+                </div>
+                <div class="timeline-content">
+                  <h4 class="step-title">4. Account Activated</h4>
+                  <p class="step-desc" *ngIf="sm.kycStatus === 'ACTIVATED' || sm.kycStatus === 'True'">Easebuzz KYC approved. Ready to accept splits.</p>
+                  <p class="step-desc" *ngIf="sm.kycStatus === 'SUBMITTED'">Easebuzz verifying documents (KYC aging: {{ formatKycAge(sm) }}).</p>
+                  <p class="step-desc" *ngIf="sm.kycStatus !== 'SUBMITTED' && sm.kycStatus !== 'ACTIVATED' && sm.kycStatus !== 'True'">Onboarding verification pending.</p>
+                  <span class="step-time" *ngIf="sm.kycActivatedAt">{{ formatDateValue(sm.kycActivatedAt) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="info-box" *ngIf="sm.kycPortalUrl">
+               <strong>KYC Portal URL:</strong>
+               <a [href]="sm.kycPortalUrl" target="_blank" class="link">{{ sm.kycPortalUrl }}</a>
+            </div>
+
+            <div class="info-box" *ngIf="sm.splitLabel" style="margin-bottom: 12px;">
+               <strong>Split Label:</strong> <code>{{ sm.splitLabel }}</code>
+               <button mat-button color="primary" (click)="retrieveSplitStatus(sm)">Check Split Status</button>
+            </div>
+          </div>
+        </mat-dialog-content>
+        <mat-dialog-actions align="end">
+          <button mat-button mat-dialog-close>Dismiss</button>
+          <button mat-raised-button color="primary" (click)="openEdit(selectedSubMerchant()!)" *ngIf="selectedSubMerchant() as sm">Edit Sub-Merchant</button>
+        </mat-dialog-actions>
+      </ng-template>
     </div>
 
     <!-- Create/Edit Dialog Template -->
@@ -772,277 +768,160 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
     .status-chip.info { background: rgba(2, 132, 199, 0.08); color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.2); }
     .status-chip.danger { background: rgba(239, 68, 68, 0.08); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
 
-    /* Detail Drawer Panel */
-    .detail-panel { width: 460px; flex-shrink: 0; animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-    @keyframes slideIn {
-      from { transform: translateX(30px); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    .detail-card {
-      border: 1px solid var(--line) !important;
-      border-radius: var(--radius-xl) !important;
-      background: var(--panel) !important;
-      box-shadow: var(--shadow-lg) !important;
-      overflow: hidden;
-    }
-    .detail-card mat-card-header { padding: 20px 24px !important; align-items: center; }
-    .detail-card mat-card-title { font-size: 1.2rem !important; font-weight: 800 !important; color: var(--ink) !important; margin: 0 !important; }
-    .detail-card mat-card-subtitle { font-size: 0.8rem !important; color: var(--muted) !important; margin-top: 4px !important; }
-    .detail-card mat-card-content { padding: 0 24px 24px !important; }
-    .detail-card mat-card-actions { padding: 16px 24px 20px !important; border-top: 1px solid var(--line); }
+    /* Detail Dialog styles wrapper */
+    ::ng-deep .sub-merchant-detail-dialog {
+      .status-banner { 
+        display: flex; 
+        align-items: center; 
+        gap: 16px; 
+        padding: 16px; 
+        background: rgba(34, 197, 94, 0.06); 
+        border: 1px solid rgba(34, 197, 94, 0.2); 
+        border-radius: var(--radius-lg); 
+        margin: 16px 0; 
+      }
+      .status-banner mat-icon { color: #16a34a; font-size: 32px; width: 32px; height: 32px; }
+      .banner-text { display: flex; flex-direction: column; gap: 2px; }
+      .banner-text strong { font-weight: 700; color: #16a34a; font-size: 0.95rem; }
+      .banner-text span { font-size: 0.8rem; color: var(--ink-secondary); }
 
-    .status-banner { 
-      display: flex; 
-      align-items: center; 
-      gap: 16px; 
-      padding: 16px; 
-      background: rgba(34, 197, 94, 0.06); 
-      border: 1px solid rgba(34, 197, 94, 0.2); 
-      border-radius: var(--radius-lg); 
-      margin: 16px 0; 
-    }
-    .status-banner mat-icon { color: #16a34a; font-size: 32px; width: 32px; height: 32px; }
-    .banner-text { display: flex; flex-direction: column; gap: 2px; }
-    .banner-text strong { font-weight: 700; color: #16a34a; font-size: 0.95rem; }
-    .banner-text span { font-size: 0.8rem; color: var(--ink-secondary); }
+      .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 0; }
+      .detail-item { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 4px; 
+        padding: 12px 14px; 
+        border-radius: var(--radius-md); 
+        background: var(--bg); 
+        border: 1px solid var(--line); 
+        transition: all 0.2s ease;
+      }
+      .detail-item:hover { border-color: var(--brand-soft); background: var(--panel-hover); }
+      .detail-item .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 700; }
+      .detail-item .value { font-size: 0.9rem; font-weight: 700; color: var(--ink); word-break: break-all; }
+      .detail-item .sub-text { font-size: 0.75rem; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+      .span-2 { grid-column: span 2; }
 
-    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 0; }
-    .detail-item { 
-      display: flex; 
-      flex-direction: column; 
-      gap: 4px; 
-      padding: 12px 14px; 
-      border-radius: var(--radius-md); 
-      background: var(--bg); 
-      border: 1px solid var(--line); 
-      transition: all 0.2s ease;
-    }
-    .detail-item:hover { border-color: var(--brand-soft); background: var(--panel-hover); }
-    .detail-item .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 700; }
-    .detail-item .value { font-size: 0.9rem; font-weight: 700; color: var(--ink); word-break: break-all; }
-    .detail-item .sub-text { font-size: 0.75rem; color: var(--muted); margin-top: 4px; line-height: 1.4; }
-    .span-2 { grid-column: span 2; }
+      .section-title { font-weight: 800; margin: 28px 0 16px; font-size: 0.8rem; text-transform: uppercase; color: var(--ink-secondary); letter-spacing: 1.2px; }
+      
+      .info-box { 
+        background: var(--bg); 
+        border: 1px solid var(--line);
+        padding: 14px 16px; 
+        border-radius: var(--radius-lg); 
+        margin-top: 16px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: space-between;
+        gap: 12px; 
+        font-size: 0.85rem; 
+      }
+      .info-box strong { color: var(--ink); font-weight: 700; }
+      .info-box code {
+        background: var(--panel);
+        padding: 3px 8px;
+        border-radius: 4px;
+        border: 1px solid var(--line);
+        font-family: monospace;
+        font-size: 0.8rem;
+      }
+      .link { color: var(--brand); text-decoration: none; font-weight: 600; word-break: break-all; }
+      .link:hover { text-decoration: underline; }
 
-    /* KYC Visual Pipeline */
-    .section-title { font-weight: 800; margin: 28px 0 16px; font-size: 0.8rem; text-transform: uppercase; color: var(--ink-secondary); letter-spacing: 1.2px; }
-    .kyc-row { display: flex; justify-content: space-between; padding: 16px 0; position: relative; }
-    .kyc-row::before {
-      content: '';
-      position: absolute;
-      top: 28px;
-      left: 10%;
-      right: 10%;
-      height: 2px;
-      background: var(--line);
-      z-index: 1;
-    }
-    .kyc-step { 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
-      gap: 8px; 
-      color: var(--muted); 
-      font-size: 0.7rem; 
-      font-weight: 700; 
-      position: relative;
-      z-index: 2;
-      background: var(--panel);
-      padding: 0 12px;
-    }
-    .kyc-step mat-icon { 
-      font-size: 24px; 
-      width: 24px;
-      height: 24px;
-      color: var(--muted);
-      background: var(--panel);
-      border-radius: 50%;
-    }
-    .kyc-step.done { color: #16a34a; }
-    .kyc-step.done mat-icon { color: #16a34a; }
-
-    .info-box { 
-      background: var(--bg); 
-      border: 1px solid var(--line);
-      padding: 14px 16px; 
-      border-radius: var(--radius-lg); 
-      margin-top: 16px; 
-      display: flex; 
-      align-items: center; 
-      justify-content: space-between;
-      gap: 12px; 
-      font-size: 0.85rem; 
-    }
-    .info-box strong { color: var(--ink); font-weight: 700; }
-    .info-box code {
-      background: var(--panel);
-      padding: 3px 8px;
-      border-radius: 4px;
-      border: 1px solid var(--line);
-      font-family: monospace;
-      font-size: 0.8rem;
-    }
-    .link { color: var(--brand); text-decoration: none; font-weight: 600; word-break: break-all; }
-    .link:hover { text-decoration: underline; }
-
-    /* Dialog styling */
-    .dialog-form { padding-top: 16px; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .uppercase { text-transform: uppercase; }
-    ::ng-deep .dialog-form .mat-mdc-text-field-wrapper { border-radius: var(--radius-md) !important; }
-
-    .fetch-row { display: flex; align-items: flex-start; gap: 12px; grid-column: span 2; }
-    .fetch-row .flex-grow { flex: 1; }
-    .fetch-btn { height: 56px; white-space: nowrap; display: flex; align-items: center; gap: 6px; padding: 0 20px; border-radius: var(--radius-md) !important; }
-    .fetch-hint {
-      grid-column: span 2;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      border-radius: var(--radius-md);
-      font-size: 0.82rem;
-      font-weight: 600;
-      margin-top: -8px;
-    }
-    .fetch-hint mat-icon { font-size: 18px; width: 18px; height: 18px; }
-    .fetch-hint.success { background: rgba(22,163,74,0.08); color: #16a34a; border: 1px solid rgba(22,163,74,0.2); }
-    .fetch-hint.error   { background: rgba(239,68,68,0.08);  color: #dc2626; border: 1px solid rgba(239,68,68,0.2); }
-
-    @media (max-width: 1100px) {
-      .content-layout { flex-direction: column; }
-      .detail-panel { width: 100%; }
-    }
-    @media (max-width: 768px) {
-      .filter-row { flex-direction: column; align-items: stretch; }
-      .search-field { max-width: none; }
-      .form-grid { grid-template-columns: 1fr; }
-      .fetch-row { flex-direction: column; }
-      .fetch-btn { width: 100%; justify-content: center; }
-    }
-
-    /* Skeleton Loader Styling */
-    .skeleton-table {
-      display: flex;
-      flex-direction: column;
-      background: var(--panel);
-      width: 100%;
-    }
-    .skeleton-header {
-      display: flex;
-      padding: 16px;
-      background: var(--bg);
-      border-bottom: 1px solid var(--line);
-      gap: 16px;
-    }
-    .skeleton-row {
-      display: flex;
-      padding: 20px 16px;
-      border-bottom: 1px solid var(--line);
-      gap: 16px;
-    }
-    .skeleton-cell {
-      height: 18px;
-      border-radius: 4px;
-    }
-
-    /* KYC Visual Vertical Timeline */
-    .kyc-timeline {
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      padding-left: 8px;
-      margin: 16px 0;
-    }
-    .kyc-timeline::before {
-      content: '';
-      position: absolute;
-      left: 20px;
-      top: 10px;
-      bottom: 24px;
-      width: 2px;
-      background: var(--line);
-    }
-    .timeline-item {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 24px;
-      position: relative;
-    }
-    .timeline-item:last-child {
-      margin-bottom: 0;
-    }
-    .timeline-badge {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: var(--bg);
-      border: 2px solid var(--muted);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 2;
-      transition: all 0.3s ease;
-      color: var(--muted);
-    }
-    .timeline-badge mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      line-height: 16px;
-    }
-    .timeline-badge.success {
-      border-color: var(--accent);
-      background: var(--accent-soft);
-      color: var(--accent);
-      box-shadow: 0 0 8px rgba(22, 163, 74, 0.2);
-    }
-    .timeline-badge.warning {
-      border-color: var(--warn);
-      background: var(--warn-soft);
-      color: var(--warn);
-      animation: pulse-border 2s infinite;
-    }
-    @keyframes pulse-border {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4); }
-      70% { box-shadow: 0 0 0 6px rgba(217, 119, 6, 0); }
-    }
-    .timeline-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      background: var(--bg);
-      border: 1px solid var(--line);
-      padding: 12px 16px;
-      border-radius: var(--radius-lg);
-      transition: all 0.2s ease;
-    }
-    .timeline-item.active .timeline-content {
-      border-color: var(--line-strong);
-      background: var(--bg-elevated);
-      box-shadow: var(--shadow-sm);
-    }
-    .timeline-item.pending .timeline-content {
-      border-color: var(--warn-soft);
-      background: linear-gradient(135deg, rgba(217, 119, 6, 0.02) 0%, var(--bg) 100%);
-    }
-    .step-title {
-      margin: 0;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--ink);
-    }
-    .step-desc {
-      margin: 0;
-      font-size: 0.75rem;
-      color: var(--muted);
-      line-height: 1.4;
-    }
-    .step-time {
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: var(--brand);
-      margin-top: 4px;
+      .kyc-timeline {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        padding-left: 8px;
+        margin: 16px 0;
+      }
+      .kyc-timeline::before {
+        content: '';
+        position: absolute;
+        left: 20px;
+        top: 10px;
+        bottom: 24px;
+        width: 2px;
+        background: var(--line);
+      }
+      .timeline-item {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+        position: relative;
+      }
+      .timeline-item:last-child {
+        margin-bottom: 0;
+      }
+      .timeline-badge {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--bg);
+        border: 2px solid var(--muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        transition: all 0.3s ease;
+        color: var(--muted);
+      }
+      .timeline-badge mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        line-height: 16px;
+      }
+      .timeline-badge.success {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+        color: var(--accent);
+        box-shadow: 0 0 8px rgba(22, 163, 74, 0.2);
+      }
+      .timeline-badge.warning {
+        border-color: var(--warn);
+        background: var(--warn-soft);
+        color: var(--warn);
+        animation: pulse-border 2s infinite;
+      }
+      .timeline-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        padding: 12px 16px;
+        border-radius: var(--radius-lg);
+        transition: all 0.2s ease;
+      }
+      .timeline-item.active .timeline-content {
+        border-color: var(--line-strong);
+        background: var(--bg-elevated);
+        box-shadow: var(--shadow-sm);
+      }
+      .timeline-item.pending .timeline-content {
+        border-color: var(--warn-soft);
+        background: linear-gradient(135deg, rgba(217, 119, 6, 0.02) 0%, var(--bg) 100%);
+      }
+      .step-title {
+        margin: 0;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .step-desc {
+        margin: 0;
+        font-size: 0.75rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      .step-time {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--brand);
+        margin-top: 4px;
+      }
     }
   `]
 })
@@ -1056,6 +935,7 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild('formDialog') formDialogTemplate!: any;
+  @ViewChild('detailDialog') detailDialogTemplate!: any;
 
   readonly dataSource = new MatTableDataSource<EasebuzzSubMerchant>([]);
   readonly displayedColumns = ['business', 'status', 'kyc', 'kycAge', 'contact', 'commission', 'actions'];
@@ -1260,6 +1140,7 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
   }
 
   openEdit(merchant: EasebuzzSubMerchant): void {
+    this.dialog.closeAll();
     this.editingSubMerchant.set(merchant);
     this.subMerchantForm.patchValue({
       restaurantId: merchant.restaurantId ?? 0,
@@ -1277,7 +1158,7 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
       contactPhone: merchant.contactPhone ?? '',
       commissionRate: merchant.commissionRate ?? 0
     });
-    this.dialog.open(this.formDialogTemplate, { width: '800px' });
+    this.dialog.open(this.formDialogTemplate, { width: '800px', maxHeight: '90vh' });
   }
 
   submitForm(): void {
@@ -1311,9 +1192,20 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
 
   viewDetail(merchant: EasebuzzSubMerchant): void {
     this.selectedSubMerchant.set(merchant);
+    const dialogRef = this.dialog.open(this.detailDialogTemplate, {
+      width: '650px',
+      maxHeight: '90vh',
+      autoFocus: false
+    });
+    dialogRef.afterClosed().subscribe(() => {
+      if (this.selectedSubMerchant()?.id === merchant.id) {
+        this.selectedSubMerchant.set(null);
+      }
+    });
   }
 
   closeDetail(): void {
+    this.dialog.closeAll();
     this.selectedSubMerchant.set(null);
   }
 
