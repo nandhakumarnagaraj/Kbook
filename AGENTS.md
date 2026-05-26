@@ -52,6 +52,11 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 - **MenuExtractionJobRepository**: added `findByRestaurantIdOrderByCreatedAtDesc`
 - **All 133 tests passing** after changes; committed `05683fc`, pushed to `origin/v2`
 
+### 2026-05-26 Session — Platform Dashboard Header Layout Fix
+- **Platform Overview Header**: Wrapped the page title "Platform Overview" and the liveDate subtitle in a `.title-container` inline-flex layout inside `platform-dashboard-page.component.ts` to display them on a single line instead of wrapping to two lines.
+- **Build & Verification**: Built web-admin using `npm run build` and verified successful compilation.
+- **Git**: Committed and pushed changes to remote tracking branch `origin/v2`.
+
 ### In Progress
 - None currently
 
