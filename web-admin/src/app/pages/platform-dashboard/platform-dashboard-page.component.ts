@@ -48,8 +48,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               <span class="live-dot"></span>
               <span class="live-text">Live Platform Data</span>
             </div>
-            <h1 class="page-title">Platform Overview</h1>
-            <p class="page-subtitle">{{ liveDate() }}</p>
+            <div class="title-container">
+              <h1 class="page-title">Platform Overview</h1>
+              <p class="page-subtitle">{{ liveDate() }}</p>
+            </div>
           </div>
           <div class="header-right">
             <mat-form-field appearance="outline" class="poll-field">
@@ -257,6 +259,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       margin-bottom: 32px;
     }
 
+    .title-container {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
     .page-title {
       margin: 0;
       font-size: 2rem;
@@ -266,7 +275,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     .page-subtitle {
-      margin: 4px 0 0;
+      margin: 0;
       color: var(--muted);
       font-size: 0.95rem;
     }
