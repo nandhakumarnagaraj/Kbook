@@ -313,7 +313,7 @@ const API_BASE_URL = environment.apiBaseUrl;
     }
 
     .brand-header h1 {
-      font-size: 1.5rem;
+      font-size: 2rem;
       font-weight: 800;
       letter-spacing: -0.5px;
       color: #fff;
