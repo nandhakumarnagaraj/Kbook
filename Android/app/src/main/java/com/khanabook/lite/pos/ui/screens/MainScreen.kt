@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.ime
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -119,11 +121,13 @@ fun MainScreen(
             }
         }
     ) { padding ->
+        val density = LocalDensity.current
+        val isKeyboardOpen = WindowInsets.ime.getBottom(density) > 0
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(bottom = if (showBottomBar) padding.calculateBottomPadding() else 0.dp)
+                .padding(bottom = if (showBottomBar && !isKeyboardOpen) padding.calculateBottomPadding() else 0.dp)
         ) {
             content(Modifier.fillMaxSize())
         }
