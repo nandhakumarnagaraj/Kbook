@@ -49,6 +49,7 @@ import androidx.compose.material.icons.outlined.Password
 import androidx.compose.material.icons.outlined.TextIncrease
 import androidx.compose.material.icons.outlined.DarkMode
 import com.khanabook.lite.pos.ui.theme.globalIsDark
+import com.khanabook.lite.pos.ui.theme.kbBgCard
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Visibility
@@ -223,7 +224,7 @@ fun AppLockView(
     ) {
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(
@@ -278,7 +279,7 @@ fun AppLockView(
         if (showPinOptions) {
             KhanaBookCard(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = CardBG),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.small)) {
@@ -534,7 +535,7 @@ fun ChangePasswordView(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(DarkBrown1.copy(alpha = 0.5f))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 .padding(horizontal = spacing.large, vertical = spacing.medium),
             horizontalArrangement = Arrangement.spacedBy(spacing.small)
         ) {

@@ -38,6 +38,11 @@ import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
 import com.khanabook.lite.pos.ui.designsystem.*
+import com.khanabook.lite.pos.ui.theme.kbBgCard
+import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.kbTertiary
+import com.khanabook.lite.pos.ui.theme.kbTextPrimary
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.ui.draw.blur
@@ -361,14 +366,14 @@ fun HomeScreen(
                         HomeActionGridCard(
                             text = "Find Bill",
                             icon = Icons.Default.Search,
-                            backgroundColor = CardBG,
+                            backgroundColor = MaterialTheme.kbBgCard,
                             modifier = Modifier.weight(1f),
                             onClick = onSearchBill
                         )
                         HomeActionGridCard(
                             text = "Reprint KDS",
                             icon = Icons.Default.Restaurant,
-                            backgroundColor = CardBG,
+                            backgroundColor = MaterialTheme.kbBgCard,
                             modifier = Modifier.weight(1f),
                             onClick = onReprintKds
                         )
@@ -380,14 +385,14 @@ fun HomeScreen(
                         HomeActionGridCard(
                             text = "Order Status",
                             icon = Icons.Default.Info,
-                            backgroundColor = CardBG,
+                            backgroundColor = MaterialTheme.kbBgCard,
                             modifier = Modifier.weight(1f),
                             onClick = onOrderStatus
                         )
                         HomeActionGridCard(
                             text = "Call Customers",
                             icon = Icons.Default.Call,
-                            backgroundColor = CardBG,
+                            backgroundColor = MaterialTheme.kbBgCard,
                             modifier = Modifier.weight(1f),
                             onClick = onCallCustomer
                         )

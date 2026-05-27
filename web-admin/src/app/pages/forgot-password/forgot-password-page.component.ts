@@ -157,7 +157,25 @@ const API_BASE_URL = environment.apiBaseUrl;
     }
 
     .reset-header { padding: 40px 40px 24px; text-align: center; }
-    .logo { height: 56px; margin-bottom: 24px; }
+    .logo-wrap {
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .logo {
+      height: 96px;
+      width: 96px;
+      object-fit: contain;
+      background: #ffffff;
+      padding: 4px;
+      border-radius: 20px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: transform 0.3s ease;
+      margin-bottom: 24px;
+    }
+    .logo:hover {
+      transform: scale(1.05);
+    }
     h1 { margin: 0; font-size: 1.75rem; font-weight: 800; color: var(--ink); letter-spacing: -0.5px; }
     .subtitle { margin: 8px 0 0; color: var(--muted); font-size: 0.95rem; line-height: 1.4; }
 

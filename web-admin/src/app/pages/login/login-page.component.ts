@@ -427,7 +427,7 @@ declare const google: GlobalGoogle | undefined;
       width: 96px;
       object-fit: contain;
       background: #ffffff;
-      padding: 10px;
+      padding: 4px;
       border-radius: 20px;
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
       transition: transform 0.3s ease;
