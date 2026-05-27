@@ -124,8 +124,6 @@ fun TaxConfigView(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .imePadding()
-            .navigationBarsPadding()
             .padding(spacing.medium)
     ) {
         ConfigCard {

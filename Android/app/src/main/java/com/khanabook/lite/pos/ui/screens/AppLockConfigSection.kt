@@ -416,7 +416,6 @@ fun ChangePasswordView(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding()
     ) {
         Column(
             modifier = Modifier

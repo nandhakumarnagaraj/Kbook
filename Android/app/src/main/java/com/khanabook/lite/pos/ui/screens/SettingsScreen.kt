@@ -106,6 +106,7 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.kbBgGradient)
+            .navigationBarsPadding()
             .imePadding()
     ) {
         KhanaBookScreenScaffold(

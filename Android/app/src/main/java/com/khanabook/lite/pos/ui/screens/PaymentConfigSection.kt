@@ -90,8 +90,6 @@ fun PaymentConfigView(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .imePadding()
-            .navigationBarsPadding()
             .padding(layout.contentPadding)
     ) {
         ConfigCard {
