@@ -1,95 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     KhanaBook adaptive icon foreground.
-    Canvas: 108×108dp. Safe zone: inner 72×72dp (18dp inset each side).
-    All artwork is kept inside the safe zone so it survives circular,
-    squircle, and rounded-square masks.
-
-    Design: open book (spine + two pages) with a saffron plate/dot accent
-    above — the KhanaBook brand mark.
-    White on transparent so it sits cleanly over the saffron background.
+    Centers and scales the new logo PNG so it fits perfectly inside the safe zone (72dp).
 -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-
-    <!-- ── Left page fill ──────────────────────────────────────── -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillAlpha="0.20"
-        android:pathData="M54,30 L62,38 L62,78 L54,70 Z" />
-
-    <!-- ── Right page fill ─────────────────────────────────────── -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillAlpha="0.28"
-        android:pathData="M54,30 L46,38 L46,78 L54,70 Z" />
-
-    <!-- ── Left page stroke ────────────────────────────────────── -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2.5"
-        android:fillColor="@android:color/transparent"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M54,30 L62,38 L62,78 L54,70" />
-
-    <!-- ── Right page stroke ───────────────────────────────────── -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2.5"
-        android:fillColor="@android:color/transparent"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M54,30 L46,38 L46,78 L54,70" />
-
-    <!-- ── Spine ───────────────────────────────────────────────── -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2.5"
-        android:fillColor="@android:color/transparent"
-        android:strokeLineCap="round"
-        android:pathData="M54,30 L54,70" />
-
-    <!-- ── Bottom page connector (base of spine) ──────────────── -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2"
-        android:fillColor="@android:color/transparent"
-        android:strokeLineCap="round"
-        android:pathData="M46,78 Q54,82 62,78" />
-
-    <!-- ── Saffron plate arc (above book) ─────────────────────── -->
-    <path
-        android:strokeColor="#FFF3C4"
-        android:strokeWidth="2.2"
-        android:fillColor="@android:color/transparent"
-        android:strokeLineCap="round"
-        android:pathData="M46,28 Q54,21 62,28" />
-
-    <!-- ── Saffron plate dot (centre accent) ──────────────────── -->
-    <path
-        android:fillColor="#FFF3C4"
-        android:pathData="M54,26 m-4,0 a4,4 0,1 1,8 0 a4,4 0,1 1,-8 0" />
-
-    <!-- ── Left page lines (ruled lines detail) ───────────────── -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1"
-        android:fillColor="@android:color/transparent"
-        android:strokeLineCap="round"
-        android:strokeAlpha="0.35"
-        android:pathData="M56,46 L61,46 M56,52 L61,52 M56,58 L61,58 M56,64 L61,64" />
-
-    <!-- ── Right page lines (ruled lines detail) ──────────────── -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1"
-        android:fillColor="@android:color/transparent"
-        android:strokeLineCap="round"
-        android:strokeAlpha="0.35"
-        android:pathData="M47,46 L52,46 M47,52 L52,52 M47,58 L52,58 M47,64 L52,64" />
-
-</vector>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:drawable="@drawable/khanabook_logo"
+        android:width="76dp"
+        android:height="76dp"
+        android:gravity="center" />
+</layer-list>

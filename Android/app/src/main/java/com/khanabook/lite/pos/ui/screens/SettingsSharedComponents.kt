@@ -40,6 +40,9 @@ import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
+import com.khanabook.lite.pos.ui.theme.kbBgCard
+import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
+import com.khanabook.lite.pos.ui.theme.kbSecondary
 import java.text.SimpleDateFormat
 
 @Composable
@@ -55,7 +58,7 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
 
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardBG),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
         shape = RoundedCornerShape(20.dp)
     ) {
         Row(
@@ -171,9 +174,9 @@ fun ConfigCard(content: @Composable ColumnScope.() -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = spacing.medium),
-        colors = CardDefaults.cardColors(containerColor = CardBG),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f))
+        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
     ) {
         Column(modifier = Modifier.padding(spacing.large)) { content() }
     }

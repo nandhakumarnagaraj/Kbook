@@ -340,7 +340,7 @@ fun HomeScreen(
                     HomeActionCard(
                         text = "Online Orders",
                         icon = Icons.Default.ShoppingCart,
-                        backgroundColor = CardBG,
+                        backgroundColor = MaterialTheme.kbBgCard,
                         modifier = Modifier.fillMaxWidth(),
                         onClick = onMarketplaceOrders,
                         badgeCount = marketplacePendingCount

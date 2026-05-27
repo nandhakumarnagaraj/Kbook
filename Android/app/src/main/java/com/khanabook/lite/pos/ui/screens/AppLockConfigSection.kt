@@ -793,7 +793,7 @@ fun AboutAppView() {
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.about_app_logo),
+                painter = painterResource(id = R.drawable.khanabook_logo),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize()

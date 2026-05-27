@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Density
@@ -63,7 +64,7 @@ private val LightColorScheme = lightColorScheme(
     tertiaryContainer  = Color(0xFFD5E8FF),     // light blue container
     onTertiary         = Color.White,
     onTertiaryContainer = Color(0xFF001B3C),
-    background         = Color(0xFFF8F6F3),     // WARM OFF-WHITE page (not pure white!)
+    background         = Color(0xFFF8F6F3),     // WARM OFF-WHITE page — matches BottomNavBG light
     surface            = Color(0xFFFFFFFF),     // PURE WHITE cards — pop against off-white bg
     surfaceVariant     = Color(0xFFF0EBE6),     // slightly warmer elevated surface
     onBackground       = Color(0xFF1A1510),     // near-black text
@@ -129,12 +130,23 @@ fun KhanaBookLiteTheme(
         }
     }
 
-    // Seed globalIsDark from system preference on first composition so the app
-    // launches in the correct mode without requiring a manual toggle.
-    LaunchedEffect(darkTheme) {
-        if (globalIsDark != darkTheme) {
+    // Seed globalIsDark from system preference ONLY on the very first launch
+    // (i.e. when the user has never explicitly saved a preference).
+    // If the user has already toggled Dark Mode in Settings, their saved value
+    // in SharedPreferences is loaded by MainActivity.onCreate into globalIsDark
+    // before this composable runs — we must NOT overwrite it here.
+    // We detect "first launch" by checking whether the prefs key exists.
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(Unit) {
+        val prefs = context.getSharedPreferences("session_prefs", android.content.Context.MODE_PRIVATE)
+        val hasUserPref = prefs.contains("is_dark_theme")
+        if (!hasUserPref) {
+            // First launch — follow the system setting and persist it
             globalIsDark = darkTheme
+            prefs.edit().putBoolean("is_dark_theme", darkTheme).apply()
         }
+        // else: MainActivity.onCreate already loaded the user's saved preference
+        // into globalIsDark — leave it alone.
     }
 
     if (!view.isInEditMode) {

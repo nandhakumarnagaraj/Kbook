@@ -15,8 +15,8 @@
         <!-- Foreground icon — use the vector foreground, not the PNG -->
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
 
-        <!-- Icon background circle — saffron brand colour -->
-        <item name="android:windowSplashScreenIconBackgroundColor">@color/kb_brand_saffron_android</item>
+        <!-- Icon background circle — white to match new logo -->
+        <item name="android:windowSplashScreenIconBackgroundColor">#FFFFFF</item>
 
         <!-- Branding image shown below the icon (optional — remove if not needed) -->
         <!-- <item name="android:windowSplashScreenBrandingImage">@drawable/ic_khanabook_logo</item> -->

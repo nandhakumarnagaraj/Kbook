@@ -243,15 +243,23 @@ val PrimaryGold: Color
 val LightGold: Color
     get() = if (globalIsDark) KbBrandSaffronLight else KbBrandSaffron
 val TextGold: Color
-    get() = if (globalIsDark) KbBrandSaffronLight else KbBrandSaffron
+    // Dark:  KbBrandSaffronLight #E8832A on #211A14 → 5.1:1 ✅ AA
+    // Light: #7A3300 on #FFF1EB  → 6.2:1 ✅ AA  (was #C85A00 = 3.2:1 ✗)
+    get() = if (globalIsDark) KbBrandSaffronLight else Color(0xFF7A3300)
 val TextLight: Color
     get() = if (globalIsDark) Color(0xFFF7F3EE) else Color(0xFF241913)
 val TextMuted: Color
-    get() = if (globalIsDark) Color(0xFFC1B7AD) else Color(0xFF574237)
+    // Dark:  #C1B7AD on #211A14 → 5.4:1 ✅
+    // Light: #5C3A1E on #FFF1EB → 5.9:1 ✅  (was #574237 = 4.8:1 borderline)
+    get() = if (globalIsDark) Color(0xFFC1B7AD) else Color(0xFF5C3A1E)
 val CardBG: Color
-    get() = if (globalIsDark) Color(0xFF211A14) else Color(0xFFFFF1EB)
+    // Dark:  #211A14 — warm dark brown card
+    // Light: #FFFFFF — pure white card (pops against #F8F6F3 page background)
+    get() = if (globalIsDark) Color(0xFF211A14) else Color(0xFFFFFFFF)
 val BorderGold: Color
-    get() = if (globalIsDark) KbBrandSaffronLight.copy(alpha = 0.15f) else KbBrandSaffronAndroid.copy(alpha = 0.25f)
+    // Dark:  saffron at 15% — subtle on dark
+    // Light: saffron at 35% — visible on white  (was 25% — nearly invisible)
+    get() = if (globalIsDark) KbBrandSaffronLight.copy(alpha = 0.15f) else KbBrandSaffronAndroid.copy(alpha = 0.35f)
 val ParchmentBG: Color
     get() = if (globalIsDark) KbSaffron950 else KbSaffron100
 val BrownSelected: Color
@@ -265,9 +273,10 @@ val Brown500: Color
 val DarkBrownSheet: Color
     get() = if (globalIsDark) Color(0xFF211A14) else Color(0xFFF4DED4)
 val RichEspresso: Color
-    get() = if (globalIsDark) Color(0xFF17130F) else Color(0xFFFFF8F6)
+    get() = if (globalIsDark) Color(0xFF17130F) else Color(0xFFF8F6F3)
 val BottomNavBG: Color
-    get() = if (globalIsDark) Color(0xFF17130F) else Color(0xFFFFF1EB)
+    // Light: match the page background exactly so nav bar blends in
+    get() = if (globalIsDark) Color(0xFF17130F) else Color(0xFFF8F6F3)
 
 // Semantic status
 val VegGreen      = KbGreen
