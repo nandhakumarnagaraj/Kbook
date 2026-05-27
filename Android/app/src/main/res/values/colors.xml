@@ -1,31 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- System defaults -->
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="splash_bg">#0D0D0D</color>
 
-    <!-- ═══════════════════════════════════════════════
-         KB TEAL PALETTE (brand #0891B2)
-    ════════════════════════════════════════════════ -->
-    <color name="kb_teal_50">#ECF9FB</color>
-    <color name="kb_teal_100">#D2F1F6</color>
-    <color name="kb_teal_200">#A5E4ED</color>
-    <color name="kb_teal_300">#67D5E5</color>
-    <color name="kb_teal_400">#22C3D9</color>
-    <color name="kb_teal_500">#0AA5BE</color>
-    <color name="kb_teal_600">#0891B2</color>
-    <color name="kb_teal_700">#067A95</color>
-    <color name="kb_teal_800">#056074</color>
-    <color name="kb_teal_900">#044A5A</color>
-    <color name="kb_teal_950">#023241</color>
+    <!-- ═══════════════════════════════════════════════════════════
+         KHANBOOK DESIGN SYSTEM — COLOR PALETTE
+         Mirrors Color.kt exactly so XML themes stay in sync with
+         the Compose token layer.
+    ════════════════════════════════════════════════════════════ -->
 
-    <!-- ═══════════════════════════════════════════════
-         KB NEUTRAL GRAY PALETTE
-    ════════════════════════════════════════════════ -->
+    <!-- ── Saffron brand scale (11 shades) ──────────────────── -->
+    <color name="kb_saffron_50">#FFFBFF</color>
+    <color name="kb_saffron_100">#FFDBCA</color>
+    <color name="kb_saffron_200">#FFB68E</color>
+    <color name="kb_saffron_300">#E07B3A</color>
+    <color name="kb_saffron_400">#BF5500</color>
+    <color name="kb_saffron_500">#A84C00</color>
+    <color name="kb_saffron_600">#984300</color><!-- Brand Saffron (Stitch primary) -->
+    <color name="kb_saffron_700">#773300</color>
+    <color name="kb_saffron_800">#5C2500</color>
+    <color name="kb_saffron_900">#4A1D00</color>
+    <color name="kb_saffron_950">#331200</color>
+
+    <!-- ── Named brand tokens ────────────────────────────────── -->
+    <color name="kb_brand_saffron">#C85A00</color>       <!-- Primary CTA -->
+    <color name="kb_brand_saffron_light">#E8832A</color> <!-- Bright accent -->
+    <color name="kb_brand_saffron_dark">#994500</color>  <!-- Pressed / container -->
+    <color name="kb_brand_saffron_android">#D97706</color><!-- Launcher / splash -->
+
+    <!-- ── Neutral gray scale ────────────────────────────────── -->
     <color name="kb_gray_50">#F8F9FA</color>
     <color name="kb_gray_100">#F0F0F0</color>
     <color name="kb_gray_200">#E0E0E0</color>
@@ -38,51 +39,35 @@
     <color name="kb_gray_900">#212121</color>
     <color name="kb_gray_950">#0D0D0D</color>
 
-    <!-- Keep old names as aliases for compatibility -->
-    <color name="kb_saffron_50">@color/kb_teal_50</color>
-    <color name="kb_saffron_100">@color/kb_teal_100</color>
-    <color name="kb_saffron_200">@color/kb_teal_200</color>
-    <color name="kb_saffron_300">@color/kb_teal_300</color>
-    <color name="kb_saffron_400">@color/kb_teal_400</color>
-    <color name="kb_saffron_500">@color/kb_teal_600</color>
-    <color name="kb_saffron_600">@color/kb_teal_700</color>
-    <color name="kb_saffron_700">@color/kb_teal_800</color>
-    <color name="kb_saffron_800">@color/kb_teal_900</color>
-    <color name="kb_saffron_950">@color/kb_teal_950</color>
+    <!-- ── Semantic status colors ────────────────────────────── -->
+    <color name="kb_green">#16A34A</color>
+    <color name="kb_green_subtle">#F0FDF4</color>
+    <color name="kb_green_dark">#052E16</color>
+    <color name="kb_red">#BA1A1A</color>
+    <color name="kb_red_subtle">#FFDAD6</color>
+    <color name="kb_red_dark">#93000A</color>
+    <color name="kb_yellow">#D97706</color>
+    <color name="kb_yellow_subtle">#FFFBEB</color>
+    <color name="kb_yellow_dark">#451A03</color>
+    <color name="kb_blue">#005BAF</color>
+    <color name="kb_blue_subtle">#F0F9FF</color>
+    <color name="kb_blue_dark">#001B3C</color>
 
-    <color name="kb_espresso_50">@color/kb_gray_50</color>
-    <color name="kb_espresso_100">@color/kb_gray_100</color>
-    <color name="kb_espresso_200">@color/kb_gray_200</color>
-    <color name="kb_espresso_300">@color/kb_gray_300</color>
-    <color name="kb_espresso_400">@color/kb_gray_400</color>
-    <color name="kb_espresso_500">@color/kb_gray_500</color>
-    <color name="kb_espresso_600">@color/kb_gray_600</color>
-    <color name="kb_espresso_700">@color/kb_gray_700</color>
-    <color name="kb_espresso_800">@color/kb_gray_800</color>
-    <color name="kb_espresso_900">@color/kb_gray_900</color>
-    <color name="kb_espresso_950">@color/kb_gray_950</color>
+    <!-- ── Payment brand colors ──────────────────────────────── -->
+    <color name="kb_zomato_red">#EF4444</color>
+    <color name="kb_swiggy_orange">#F97316</color>
+    <color name="kb_whatsapp_green">#22C55E</color>
+    <color name="kb_google_red">#EF4444</color>
 
-    <!-- Semantics -->
-    <color name="kb_green_50">#F0FDF4</color>
-    <color name="kb_green_500">#16A34A</color>
-    <color name="kb_green_950">#052E16</color>
-    <color name="kb_red_50">#FEF2F2</color>
-    <color name="kb_red_400">#F87171</color>
-    <color name="kb_red_500">#DC2626</color>
-    <color name="kb_red_950">#450A0A</color>
-    <color name="kb_yellow_50">#FFFBEB</color>
-    <color name="kb_yellow_500">#D97706</color>
-    <color name="kb_yellow_950">#451A03</color>
-    <color name="kb_blue_50">#F0F9FF</color>
-    <color name="kb_blue_500">#0284C7</color>
-    <color name="kb_blue_950">#082F49</color>
-
+    <!-- ── Pure white / black ────────────────────────────────── -->
     <color name="kb_white">#FFFFFFFF</color>
     <color name="kb_black">#FF000000</color>
 
-    <!-- Alpha scales -->
+    <!-- ── White alpha scale ─────────────────────────────────── -->
     <color name="kb_white_alpha_05">#0DFFFFFF</color>
     <color name="kb_white_alpha_10">#1AFFFFFF</color>
+    <color name="kb_white_alpha_12">#1FFFFFFF</color>
+    <color name="kb_white_alpha_18">#2EFFFFFF</color>
     <color name="kb_white_alpha_20">#33FFFFFF</color>
     <color name="kb_white_alpha_30">#4DFFFFFF</color>
     <color name="kb_white_alpha_40">#66FFFFFF</color>
@@ -91,6 +76,7 @@
     <color name="kb_white_alpha_70">#B3FFFFFF</color>
     <color name="kb_white_alpha_90">#E6FFFFFF</color>
 
+    <!-- ── Black alpha scale ─────────────────────────────────── -->
     <color name="kb_black_alpha_05">#0D000000</color>
     <color name="kb_black_alpha_10">#1A000000</color>
     <color name="kb_black_alpha_20">#33000000</color>
@@ -98,4 +84,19 @@
     <color name="kb_black_alpha_50">#80000000</color>
     <color name="kb_black_alpha_70">#B3000000</color>
     <color name="kb_black_alpha_90">#E6000000</color>
+
+    <!-- ── Splash / system chrome ────────────────────────────── -->
+    <color name="splash_bg">#060604</color>
+    <color name="splash_bg_light">#FFFBFF</color>
+
+    <!-- ── Dark theme surface tokens ────────────────────────── -->
+    <color name="kb_dark_bg">#060604</color>
+    <color name="kb_dark_surface">#1C1810</color>
+    <color name="kb_dark_surface_variant">#241F14</color>
+
+    <!-- ── Light theme surface tokens ───────────────────────── -->
+    <color name="kb_light_bg">#FFFFFF</color>
+    <color name="kb_light_surface">#FFFFFF</color>
+    <color name="kb_light_surface_variant">#F5F0EB</color>
+
 </resources>

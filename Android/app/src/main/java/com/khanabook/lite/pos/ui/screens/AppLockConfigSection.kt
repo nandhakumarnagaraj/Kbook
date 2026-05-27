@@ -3,6 +3,19 @@ package com.khanabook.lite.pos.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Password
+import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.TextIncrease
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -35,7 +48,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Password
 import androidx.compose.material.icons.outlined.TextIncrease
 import androidx.compose.material.icons.outlined.DarkMode
-import com.khanabook.lite.pos.ui.theme.ThemeState
+import com.khanabook.lite.pos.ui.theme.globalIsDark
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Visibility
@@ -83,9 +96,13 @@ import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
+import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
+import com.khanabook.lite.pos.ui.theme.kbPrimary
+import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.kbTertiary
+import com.khanabook.lite.pos.ui.theme.kbTextPrimary
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
-import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
@@ -134,9 +151,9 @@ fun SettingsListView(
         SettingsToggleItem(
             icon = Icons.Outlined.DarkMode,
             text = "Dark Mode",
-            checked = ThemeState.isDark,
+            checked = globalIsDark,
             onCheckedChange = { isDark ->
-                ThemeState.isDark = isDark
+                globalIsDark = isDark
                 val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
                 prefs.edit().putBoolean("is_dark_theme", isDark).apply()
                 androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
@@ -168,7 +185,7 @@ private fun SettingsGroupLabel(text: String) {
     val spacing = KhanaBookTheme.spacing
     Text(
         text = text.uppercase(),
-        color = PrimaryGold.copy(alpha = 0.7f),
+        color = MaterialTheme.kbSecondary.copy(alpha = 0.7f),
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(horizontal = spacing.small, vertical = spacing.extraSmall)
@@ -218,7 +235,7 @@ fun AppLockView(
                     modifier = Modifier
                         .size(96.dp)
                         .background(
-                            if (isEnabled) SuccessGreen.copy(alpha = 0.15f) else TextGold.copy(alpha = 0.1f),
+                            if (isEnabled) SuccessGreen.copy(alpha = 0.15f) else MaterialTheme.kbOutlineSubtle.copy(alpha = 0.1f),
                             CircleShape
                         )
                         .border(
@@ -231,7 +248,7 @@ fun AppLockView(
                     Icon(
                         Icons.Outlined.Lock,
                         contentDescription = null,
-                        tint = if (isEnabled) SuccessGreen else TextGold.copy(alpha = 0.5f),
+                        tint = if (isEnabled) SuccessGreen else MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
                         modifier = Modifier.size(48.dp)
                     )
                 }
@@ -243,7 +260,7 @@ fun AppLockView(
                 )
                 Text(
                     if (isEnabled) "PIN lock is active" else "Disabled — anyone can open the app",
-                    color = if (isEnabled) SuccessGreen else TextGold.copy(alpha = 0.6f),
+                    color = if (isEnabled) SuccessGreen else MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
@@ -272,14 +289,14 @@ fun AppLockView(
                         border = BorderStroke(1.dp, BorderGold),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Icon(Icons.Outlined.Lock, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.xsmall))
+                        Icon(Icons.Outlined.Lock, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(iconSize.xsmall))
                         Spacer(modifier = Modifier.width(spacing.small))
-                        Text("Change PIN", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+                        Text("Change PIN", color = MaterialTheme.kbTertiary, style = MaterialTheme.typography.labelLarge)
                     }
                     if (showBiometric) {
                         Text(
                             "Biometric unlock is available on this device and will be used alongside your PIN.",
-                            color = TextGold.copy(alpha = 0.6f),
+                            color = MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -311,7 +328,7 @@ fun AppLockView(
                     errorMessage = state.error
                 )
                 TextButton(onClick = { viewModel.resetSetupState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Text("Cancel", color = TextGold.copy(alpha = 0.5f))
+                    Text("Cancel", color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f))
                 }
             }
             is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.ConfirmNew -> {
@@ -328,7 +345,7 @@ fun AppLockView(
                     errorMessage = state.error
                 )
                 TextButton(onClick = { viewModel.resetSetupState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Text("Cancel", color = TextGold.copy(alpha = 0.5f))
+                    Text("Cancel", color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f))
                 }
             }
             is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.EnterCurrent -> {
@@ -345,7 +362,7 @@ fun AppLockView(
                     errorMessage = state.error
                 )
                 TextButton(onClick = { viewModel.resetSetupState() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Text("Cancel", color = TextGold.copy(alpha = 0.5f))
+                    Text("Cancel", color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f))
                 }
             }
             else -> {}
@@ -431,15 +448,15 @@ fun ChangePasswordView(
                 OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
-                    label = { Text("Registered Phone Number", color = TextGold) },
+                    label = { Text("Registered Phone Number", color = MaterialTheme.kbTextSecondary) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     singleLine = true,
-                    leadingIcon = { Icon(Icons.Outlined.Phone, null, tint = PrimaryGold.copy(alpha = 0.7f)) },
+                    leadingIcon = { Icon(Icons.Outlined.Phone, null, tint = MaterialTheme.kbSecondary.copy(alpha = 0.7f)) },
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryGold,
-                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                        focusedTextColor = TextLight,
-                        unfocusedTextColor = TextLight
+                        focusedBorderColor = MaterialTheme.kbPrimary,
+                        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
+                        focusedTextColor = MaterialTheme.kbTextPrimary,
+                        unfocusedTextColor = MaterialTheme.kbTextPrimary
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -449,14 +466,14 @@ fun ChangePasswordView(
                 OutlinedTextField(
                     value = otp,
                     onValueChange = { if (it.length <= 6) otp = it },
-                    label = { Text("Enter OTP", color = TextGold) },
+                    label = { Text("Enter OTP", color = MaterialTheme.kbTextSecondary) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryGold,
-                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                        focusedTextColor = TextLight,
-                        unfocusedTextColor = TextLight
+                        focusedBorderColor = MaterialTheme.kbPrimary,
+                        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
+                        focusedTextColor = MaterialTheme.kbTextPrimary,
+                        unfocusedTextColor = MaterialTheme.kbTextPrimary
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -467,7 +484,7 @@ fun ChangePasswordView(
                     },
                     enabled = !isLoading
                 ) {
-                    Text("Resend OTP", color = PrimaryGold.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall)
+                    Text("Resend OTP", color = MaterialTheme.kbTertiary.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall)
                 }
             }
 
@@ -475,36 +492,35 @@ fun ChangePasswordView(
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it },
-                    label = { Text("New Password", color = TextGold) },
+                    label = { Text("New Password", color = MaterialTheme.kbTextSecondary) },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { showPassword = !showPassword }) {
                             Icon(
-                                if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                null, tint = PrimaryGold.copy(alpha = 0.7f)
+                                if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,                                null, tint = MaterialTheme.kbSecondary.copy(alpha = 0.7f)
                             )
                         }
                     },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryGold,
-                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                        focusedTextColor = TextLight,
-                        unfocusedTextColor = TextLight
+                            focusedBorderColor = MaterialTheme.kbPrimary,
+                            unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
+                            focusedTextColor = MaterialTheme.kbTextPrimary,
+                            unfocusedTextColor = MaterialTheme.kbTextPrimary
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
-                    label = { Text("Confirm New Password", color = TextGold) },
+                    label = { Text("Confirm New Password", color = MaterialTheme.kbTextSecondary) },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryGold,
-                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                        focusedTextColor = TextLight,
-                        unfocusedTextColor = TextLight
+                        focusedBorderColor = MaterialTheme.kbPrimary,
+                        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
+                        focusedTextColor = MaterialTheme.kbTextPrimary,
+                        unfocusedTextColor = MaterialTheme.kbTextPrimary
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -535,7 +551,7 @@ fun ChangePasswordView(
                     shape = RoundedCornerShape(28.dp),
                     enabled = !isLoading
                 ) {
-                    Text("Back", color = TextGold)
+                    Text("Back", color = MaterialTheme.kbTextSecondary)
                 }
             }
             Button(
@@ -565,7 +581,7 @@ fun ChangePasswordView(
                     }
                 },
                 modifier = Modifier.weight(2f).height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary, contentColor = Color.White),
                 shape = RoundedCornerShape(28.dp),
                 enabled = !isLoading
             ) {
@@ -594,8 +610,8 @@ private fun CpStepIndicator(currentStep: Int, totalSteps: Int) {
             val isActive = i == currentStep
             val color = when {
                 isCompleted -> SuccessGreen
-                isActive -> PrimaryGold
-                else -> BorderGold.copy(alpha = 0.3f)
+                isActive -> MaterialTheme.kbPrimary
+                else -> MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f)
             }
             Box(
                 modifier = Modifier
@@ -651,22 +667,21 @@ fun HelpSupportView() {
             Box(
                 modifier = Modifier
                     .size(108.dp)
-                    .background(PrimaryGold.copy(alpha = 0.12f), CircleShape)
-                    .border(2.dp, PrimaryGold.copy(alpha = 0.3f), CircleShape),
+                    .background(MaterialTheme.kbSecondary.copy(alpha = 0.12f), CircleShape)
+                    .border(2.dp, MaterialTheme.kbSecondary.copy(alpha = 0.3f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.AutoMirrored.Outlined.Chat,
                     contentDescription = null,
-                    tint = PrimaryGold,
+                    tint = MaterialTheme.kbSecondary,
                     modifier = Modifier.size(58.dp)
                 )
             }
         }
 
-        Text(
-            "We're here to help you succeed",
-            color = PrimaryGold,
+        Text(            "We're here to help you succeed",
+                    color = MaterialTheme.kbSecondary,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -713,15 +728,15 @@ fun HelpSupportView() {
                 } catch (_: Exception) {}
             },
             modifier = Modifier.fillMaxWidth().height(72.dp),
-            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.6f)),
+            border = BorderStroke(1.dp, MaterialTheme.kbTertiary.copy(alpha = 0.6f)),
             shape = RoundedCornerShape(14.dp),
             contentPadding = PaddingValues(horizontal = spacing.medium)
         ) {
-            Icon(Icons.Outlined.Email, null, tint = PrimaryGold, modifier = Modifier.size(28.dp))
+            Icon(Icons.Outlined.Email, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(28.dp))
             Spacer(modifier = Modifier.width(spacing.medium))
             Column(horizontalAlignment = Alignment.Start, modifier = Modifier.weight(1f)) {
-                Text("Email Support", color = PrimaryGold, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
-                Text(SUPPORT_EMAIL, color = TextGold.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+                Text("Email Support", color = MaterialTheme.kbTertiary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                Text(SUPPORT_EMAIL, color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
             }
         }
 
@@ -739,7 +754,7 @@ fun HelpSupportView() {
                 Icon(
                     Icons.Outlined.Schedule,
                     contentDescription = null,
-                    tint = PrimaryGold.copy(alpha = 0.8f),
+                    tint = MaterialTheme.kbSecondary.copy(alpha = 0.8f),
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(spacing.medium))
@@ -747,7 +762,7 @@ fun HelpSupportView() {
                     Text("Support Hours", color = TextLight, style = MaterialTheme.typography.labelLarge)
                     Text(
                         "Mon – Sat, 10 AM – 7 PM IST",
-                        color = TextGold.copy(alpha = 0.7f),
+                        color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -772,8 +787,8 @@ fun AboutAppView() {
         Box(
             modifier = Modifier
                 .size(184.dp)
-                .background(PrimaryGold.copy(alpha = 0.12f), CircleShape)
-                .border(2.dp, PrimaryGold.copy(alpha = 0.3f), CircleShape)
+                .background(MaterialTheme.kbSecondary.copy(alpha = 0.12f), CircleShape)
+                .border(2.dp, MaterialTheme.kbSecondary.copy(alpha = 0.3f), CircleShape)
                 .clip(CircleShape),
             contentAlignment = Alignment.Center
         ) {
@@ -791,13 +806,13 @@ fun AboutAppView() {
         ) {
             Text(
                 "KhanaBook",
-                color = PrimaryGold,
+                color = MaterialTheme.kbPrimary,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 "Version ${BuildConfig.VERSION_NAME}",
-                color = TextGold.copy(alpha = 0.7f),
+                color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -819,7 +834,7 @@ fun AboutAppView() {
 
         Text(
             "© $currentYear KhanaBook. All rights reserved.",
-            color = TextGold.copy(alpha = 0.5f),
+            color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
             style = MaterialTheme.typography.labelSmall,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()

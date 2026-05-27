@@ -20,7 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
+import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 
 @Composable
 fun KhanaBookScreenScaffold(
@@ -44,7 +45,7 @@ fun KhanaBookScreenScaffold(
         ) {
             if (onBack != null) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PrimaryGold)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.kbTextSecondary)
                 }
             } else {
                 Spacer(modifier = Modifier.width(spacing.huge))
@@ -52,7 +53,7 @@ fun KhanaBookScreenScaffold(
             Text(
                 text = title,
                 modifier = Modifier.weight(1f),
-                color = PrimaryGold,
+                color = MaterialTheme.kbSecondary,
                 style = if (layout.isCompact) titleStyleCompact else titleStyleExpanded,
                 textAlign = TextAlign.Center
             )

@@ -43,6 +43,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -72,8 +73,12 @@ import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.ErrorPink
+import com.khanabook.lite.pos.ui.theme.kbPrimary
+import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.kbTextPrimary
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 import com.khanabook.lite.pos.ui.theme.ParchmentBG
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
+
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -169,7 +174,7 @@ fun OcrScannerScreen(
                 title = {
                     Text(
                         if (returnBarcode) "Scan Barcode" else "Scan Menu",
-                        color = PrimaryGold
+                        color = MaterialTheme.kbSecondary
                     )
                 },
                 navigationIcon = {
@@ -177,7 +182,7 @@ fun OcrScannerScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = PrimaryGold
+                            tint = MaterialTheme.kbTextSecondary
                         )
                     }
                 },
@@ -192,7 +197,7 @@ fun OcrScannerScreen(
                         Icon(
                             Icons.Default.PhotoLibrary,
                             contentDescription = "Gallery",
-                            tint = PrimaryGold
+                            tint = MaterialTheme.kbTextSecondary
                         )
                     }
                     
@@ -207,7 +212,7 @@ fun OcrScannerScreen(
                             Icon(
                                 Icons.Default.PictureAsPdf,
                                 contentDescription = "Upload PDF",
-                                tint = PrimaryGold
+                                tint = MaterialTheme.kbTextPrimary
                             )
                         }
                     }
@@ -387,7 +392,7 @@ private fun ScanControls(
                     androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         "Tip: Ensure menu is fully in frame, well-lit, text in English.",
-                        color = PrimaryGold.copy(alpha = 0.55f),
+                        color = MaterialTheme.kbTextSecondary.copy(alpha = 0.55f),
                         fontSize = 11.sp
                     )
                 }
@@ -410,7 +415,7 @@ private fun ScanControls(
                         modifier = Modifier.fillMaxWidth(),
                         colors =
                             ButtonDefaults.buttonColors(
-                                containerColor = PrimaryGold,
+                                containerColor = MaterialTheme.kbPrimary,
                                 contentColor = DarkBrown1
                             )
                     ) {
@@ -428,7 +433,7 @@ private fun ScanControls(
                             modifier = Modifier.weight(1f),
                             colors =
                                 ButtonDefaults.outlinedButtonColors(
-                                    contentColor = PrimaryGold
+                                    contentColor = MaterialTheme.kbSecondary
                                 )
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null)
@@ -442,7 +447,7 @@ private fun ScanControls(
                             modifier = Modifier.weight(1f),
                             colors =
                                 ButtonDefaults.buttonColors(
-                                    containerColor = PrimaryGold,
+                                    containerColor = MaterialTheme.kbPrimary,
                                     contentColor = DarkBrown1
                                 )
                         ) {
@@ -481,7 +486,7 @@ fun PermissionDeniedContent(onRequestPermission: () -> Unit) {
         Spacer(modifier = Modifier.height(com.khanabook.lite.pos.ui.theme.KhanaBookTheme.spacing.medium))
         Button(
             onClick = onRequestPermission,
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary)
         ) {
             Text("Grant Permission", color = DarkBrown1)
         }
@@ -494,7 +499,7 @@ fun PermissionDeniedContent(onRequestPermission: () -> Unit) {
                 context.startActivity(intent)
             }
         ) {
-            Text("Open Settings", color = PrimaryGold)
+            Text("Open Settings", color = MaterialTheme.kbTextSecondary)
         }
     }
 }

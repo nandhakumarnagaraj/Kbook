@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 // ── Button Heights ────────────────────────────────────────────
 object KbButtonSize {
     /** Primary CTA — "Pay Now", "Place Order", "Submit" */
-    val HeightLarge: Dp = 56.dp
+    val HeightLarge: Dp = 48.dp
 
     /** Secondary action — "Cancel", "Edit", "Save Draft" */
     val HeightMedium: Dp = 44.dp
@@ -26,7 +26,7 @@ object KbButtonSize {
     val HeightIcon: Dp = 40.dp
 
     // Padding inside buttons
-    val PaddingLarge  = PaddingValues(horizontal = 24.dp, vertical = 16.dp)
+    val PaddingLarge  = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
     val PaddingMedium = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
     val PaddingSmall  = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
 
@@ -38,26 +38,26 @@ object KbButtonSize {
 
 // ── Corner Radii (Shape Tokens) ───────────────────────────────
 object KbShape {
-    /** Small components — checkboxes, input fields */
-    val ExtraSmall = RoundedCornerShape(4.dp)
+    /** Small components — badges, extra-small elements */
+    val ExtraSmall = RoundedCornerShape(6.dp)
 
-    /** Chips, badges, small cards */
-    val Small = RoundedCornerShape(8.dp)
+    /** Inputs, search fields */
+    val Small = RoundedCornerShape(10.dp)
 
-    /** Standard buttons, most cards */
-    val Medium = RoundedCornerShape(12.dp)
+    /** Standard buttons, small cards */
+    val Medium = RoundedCornerShape(14.dp)
 
     /** Large cards, modals, bottom sheets */
-    val Large = RoundedCornerShape(14.dp)
+    val Large = RoundedCornerShape(18.dp)
 
     /** Fully rounded — FAB, avatar, pill chips */
     val ExtraLarge = RoundedCornerShape(50)
 
     /** Bottom sheet top corners only */
-    val BottomSheet = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    val BottomSheet = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
 
     /** Dialog */
-    val Dialog = RoundedCornerShape(20.dp)
+    val Dialog = RoundedCornerShape(18.dp)
 }
 
 // ── Spacing / Padding Tokens ─────────────────────────────────

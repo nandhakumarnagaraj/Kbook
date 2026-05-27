@@ -136,12 +136,12 @@ fun OrdersScreen(
                     enabled = dateRangePickerState.selectedStartDateMillis != null &&
                         dateRangePickerState.selectedEndDateMillis != null
                 ) {
-                    Text("OK", color = PrimaryGold)
+                    Text("OK", color = MaterialTheme.kbSecondary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDateRangePicker = false }) {
-                    Text("Cancel", color = PrimaryGold)
+                    Text("Cancel", color = MaterialTheme.kbTextSecondary)
                 }
             },
             colors = DatePickerDefaults.colors(containerColor = MaterialTheme.kbBgCard)
@@ -162,7 +162,7 @@ fun OrdersScreen(
                                 .fillMaxWidth()
                                 .padding(top = spacing.medium, bottom = spacing.small),
                             textAlign = TextAlign.Center,
-                            color = PrimaryGold,
+                            color = MaterialTheme.kbTertiary,
                             style = MaterialTheme.typography.titleMedium
                         )
                     },
@@ -176,19 +176,19 @@ fun OrdersScreen(
                                 .fillMaxWidth()
                                 .padding(bottom = spacing.medium),
                             textAlign = TextAlign.Center,
-                            color = PrimaryGold,
+                            color = MaterialTheme.kbSecondary,
                             style = MaterialTheme.typography.headlineSmall
                         )
                     },
                 colors = DatePickerDefaults.colors(
                     containerColor = MaterialTheme.kbBgCard,
-                    titleContentColor = PrimaryGold,
-                    headlineContentColor = PrimaryGold,
-                    weekdayContentColor = TextGold,
-                    dayContentColor = TextLight,
-                    selectedDayContainerColor = PrimaryGold,
+                    titleContentColor = MaterialTheme.kbSecondary,
+                    headlineContentColor = MaterialTheme.kbSecondary,
+                    weekdayContentColor = MaterialTheme.kbSecondary.copy(alpha = 0.7f),
+                    dayContentColor = MaterialTheme.kbTextPrimary,
+                    selectedDayContainerColor = KbBrandSaffron,
                     selectedDayContentColor = DarkBrown1,
-                    todayContentColor = PrimaryGold
+                    todayContentColor = MaterialTheme.kbSecondary
                 )
                 )
             }
@@ -213,12 +213,12 @@ fun OrdersScreen(
                     contentAlignment = Alignment.CenterStart
                 ) {
                     IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.kbSecondary)
                     }
                     Text(
                         text = "Order Details",
                         modifier = Modifier.align(Alignment.Center),
-                        color = PrimaryGold,
+                        color = MaterialTheme.kbTextPrimary,
                         style = MaterialTheme.typography.headlineMedium
                     )
                 }
@@ -259,20 +259,40 @@ fun OrdersScreen(
 
                     Spacer(modifier = Modifier.height(spacing.medium))
 
-                    PeriodTabs(
-                        selectedFilter = timeFilter,
-                        onTabSelected = {
-                            if (it == "Custom") {
-                                showDateRangePicker = true
-                            } else {
-                                viewModel.setTimeFilter(it)
+                    // Premium Date Filter Chips — evenly distributed, no collapse
+                    KhanaBookGlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = spacing.medium),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(spacing.small),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            listOf("Daily", "Weekly", "Monthly", "Custom").forEach { title ->
+                                OrderFilterChip(
+                                    label = title,
+                                    isSelected = timeFilter == title,
+                                    onClick = {
+                                        if (title == "Custom") {
+                                            showDateRangePicker = true
+                                        } else {
+                                            viewModel.setTimeFilter(title)
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
                             }
                         }
-                    )
+                    }
 
                     Spacer(modifier = Modifier.height(spacing.medium))
                 }
             }
+
 
             val isGstEnabled = profile?.gstEnabled == true
 
@@ -447,7 +467,7 @@ fun PeriodTabs(selectedFilter: String, onTabSelected: (String) -> Unit) {
 @Composable
 fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     val containerColor by animateColorAsState(
-        targetValue = if (isSelected) PrimaryGold else Color.Transparent,
+        targetValue = if (isSelected) MaterialTheme.kbPrimary else Color.Transparent,
         animationSpec = tween(200),
         label = "chip_container"
     )
@@ -456,19 +476,25 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
         animationSpec = tween(200),
         label = "chip_content"
     )
+    val borderColor = if (isSelected) MaterialTheme.kbPrimary else MaterialTheme.kbSecondary.copy(alpha = 0.4f)
     Surface(
         onClick = onClick,
         modifier = modifier.height(36.dp),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(10.dp),
         color = containerColor,
-        border = if (isSelected) null else BorderStroke(1.dp, BorderGold),
+        border = if (isSelected) null else BorderStroke(1.dp, borderColor),
         contentColor = contentColor,
         enabled = enabled
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = 14.dp)
+        ) {
             Text(
                 text = label,
-                style = if (isSelected) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelMedium
+                style = if (isSelected) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                softWrap = false
             )
         }
     }
@@ -535,6 +561,8 @@ fun OrderTableRow(
     }
     val canEdit = !isCancelled && isTodayBill
 
+    // Stitch zebra-stripe pattern: alternating #14110F / #1A1614 for list clarity
+    val stripeColor = if (row.dailyNo.toIntOrNull()?.rem(2) == 0) KbZebraOdd else KbZebraEven
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -544,8 +572,8 @@ fun OrderTableRow(
             )
             .padding(vertical = spacing.hairline)
             .background(
-                MaterialTheme.kbBgCard.copy(alpha = if (isCancelled) 0.15f else 0.35f),
-                RoundedCornerShape(4.dp)
+                if (isCancelled) KbZebraOdd.copy(alpha = 0.25f) else stripeColor,
+                RoundedCornerShape(6.dp)
             )
     ) {
         Row(
@@ -568,16 +596,21 @@ fun OrderTableRow(
                 val color = if (!canEdit) Color.Gray else getPayModeColor(row.payMode)
                 Surface(
                     onClick = { if (canEdit) payModeExpanded = true },
-                    color = color,
-                    shape = RoundedCornerShape(4.dp),
+                    color = color.copy(alpha = 0.22f),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(1.dp, color.copy(alpha = 0.4f)),
                     modifier = Modifier.padding(horizontal = spacing.hairline)
                 ) {
                     Text(
-                        text = row.payMode.displayLabel,
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                        text = row.payMode.displayLabel.uppercase(),
+                        color = color,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 8.sp,
+                            letterSpacing = 0.5.sp
+                        ),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                         maxLines = 1
                     )
                 }
@@ -601,22 +634,28 @@ fun OrderTableRow(
                     OrderStatus.CANCELLED -> DangerRed
                     else -> TextMuted
                 }
+                // Stitch "label-caps" style: uppercase, tracked, high-contrast
                 Surface(
                     onClick = { if (canEdit) statusExpanded = true },
-                    color = statusColor,
-                    shape = RoundedCornerShape(4.dp),
+                    color = statusColor.copy(alpha = 0.22f),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.4f)),
                     modifier = Modifier.padding(horizontal = spacing.extraSmall)
                 ) {
                     Text(
                         text = when (row.orderStatus) {
-                            OrderStatus.COMPLETED -> "Completed"
-                            OrderStatus.CANCELLED -> "Cancelled"
-                            else -> "Draft"
+                            OrderStatus.COMPLETED -> "COMPLETED"
+                            OrderStatus.CANCELLED -> "CANCELLED"
+                            else -> "DRAFT"
                         },
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                        color = statusColor,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        ),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                         lineHeight = 10.sp
                     )
                 }
@@ -739,7 +778,7 @@ fun PartAmountDialog(
                         modifier = Modifier.weight(1f),
                         isError = !isValid,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryGold,
+                            focusedBorderColor = MaterialTheme.kbPrimary,
                             unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
                             focusedTextColor = TextLight,
                             unfocusedTextColor = TextLight
@@ -756,7 +795,7 @@ fun PartAmountDialog(
                         modifier = Modifier.weight(1f),
                         isError = !isValid,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryGold,
+                            focusedBorderColor = MaterialTheme.kbPrimary,
                             unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
                             focusedTextColor = TextLight,
                             unfocusedTextColor = TextLight
@@ -784,7 +823,7 @@ fun PartAmountDialog(
             onClick = { onConfirm(p1Text, p2Text) },
             enabled = isValid
         ) {
-            Text("Confirm", color = PrimaryGold, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+            Text("Confirm", color = MaterialTheme.kbPrimary, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
         }
     }
 }
@@ -811,7 +850,7 @@ private fun getPayModeColor(mode: PaymentMode): Color {
     return when (mode) {
         PaymentMode.CASH -> SuccessGreen
         PaymentMode.UPI -> Brown500 
-        PaymentMode.POS -> PrimaryGold
+        PaymentMode.POS -> KbBrandSaffron
         PaymentMode.ZOMATO -> VegGreen
         PaymentMode.SWIGGY -> SwiggyOrange
         else -> Brown500
@@ -897,7 +936,7 @@ private fun OnlineOrdersPane(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("Live online orders", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
+                Text("Live online orders", color = MaterialTheme.kbTertiary, style = MaterialTheme.typography.titleMedium)
                 Text(
                     "${orders.size} orders from website checkout",
                     color = TextGold.copy(alpha = 0.75f),
@@ -909,14 +948,14 @@ private fun OnlineOrdersPane(
                 enabled = !isRefreshing,
                 colors = IconButtonDefaults.filledTonalIconButtonColors(
                     containerColor = MaterialTheme.kbBgCard,
-                    contentColor = PrimaryGold
+                    contentColor = MaterialTheme.kbSecondary
                 )
             ) {
                 if (isRefreshing) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp,
-                        color = PrimaryGold
+                        color = MaterialTheme.kbSecondary
                     )
                 } else {
                     Icon(Icons.Default.Refresh, contentDescription = "Refresh online orders")
@@ -945,7 +984,7 @@ private fun OnlineOrdersPane(
         when {
             isLoading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PrimaryGold)
+                    CircularProgressIndicator(color = MaterialTheme.kbSecondary)
                 }
             }
             orders.isEmpty() -> {
@@ -1042,7 +1081,7 @@ private fun OnlineOrderTableRow(
                 order.publicOrderCode,
                 COL_ONLINE_ORDER_ID,
                 fontWeight = FontWeight.Bold,
-                color = PrimaryGold
+                color = MaterialTheme.kbPrimary
             )
 
             // Status
@@ -1062,7 +1101,7 @@ private fun OnlineOrderTableRow(
                 ) {
                     Text(
                         "View",
-                        color = PrimaryGold,
+                        color = MaterialTheme.kbSecondary,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                     )
                 }
@@ -1074,7 +1113,7 @@ private fun OnlineOrderTableRow(
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = PrimaryGold
+                        color = MaterialTheme.kbSecondary
                     )
                 } else if (nextStatuses.isNotEmpty()) {
                     var actionExpanded by remember { mutableStateOf(false) }
@@ -1193,11 +1232,11 @@ private fun OnlineOrderDetailsDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.kbBgCard,
-        titleContentColor = PrimaryGold,
+        titleContentColor = MaterialTheme.kbSecondary,
         textContentColor = TextLight,
         title = {
             Column {
-                Text(order.publicOrderCode)
+                Text(order.publicOrderCode, color = MaterialTheme.kbPrimary)
                 Text(
                     order.customerName,
                     style = MaterialTheme.typography.bodyMedium,
@@ -1235,7 +1274,7 @@ private fun OnlineOrderDetailsDialog(
                 DetailRow("Total", CurrencyUtils.formatPrice(order.totalAmount))
                 val nextStatuses = remember(order.orderStatus) { storefrontNextStatuses(order.orderStatus) }
                 if (nextStatuses.isNotEmpty()) {
-                    Text("Update status", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+                    Text("Update status", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.labelLarge)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         nextStatuses.forEach { nextStatus ->
                             AssistChip(
@@ -1254,7 +1293,7 @@ private fun OnlineOrderDetailsDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close", color = PrimaryGold)
+                Text("Close", color = MaterialTheme.kbSecondary)
             }
         }
     )
@@ -1286,7 +1325,7 @@ private fun StatusBadge(
 
 private fun storefrontOrderStatusColor(status: String): Color {
     return when (status.uppercase(Locale.getDefault())) {
-        "PENDING_CONFIRMATION" -> PrimaryGold
+        "PENDING_CONFIRMATION" -> KbBrandSaffron
         "ACCEPTED" -> Brown500
         "PREPARING" -> SwiggyOrange
         "READY" -> VegGreen

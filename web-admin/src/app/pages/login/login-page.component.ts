@@ -59,21 +59,21 @@ declare const google: GlobalGoogle | undefined;
 
             <div class="features-list">
               <div class="feature-item">
-                <div class="feature-icon">⚡</div>
+                <div class="feature-icon"><mat-icon aria-hidden="true">bolt</mat-icon></div>
                 <div class="feature-details">
                   <h3>Offline-First Billing</h3>
                   <p>Generate bills instantly, even when offline. Seamless auto-sync once internet is back.</p>
                 </div>
               </div>
               <div class="feature-item">
-                <div class="feature-icon">📊</div>
+                <div class="feature-icon"><mat-icon aria-hidden="true">analytics</mat-icon></div>
                 <div class="feature-details">
                   <h3>Real-Time Analytics</h3>
                   <p>Track sales, inventory, and staff performance from a centralized dashboard.</p>
                 </div>
               </div>
               <div class="feature-item">
-                <div class="feature-icon">🔌</div>
+                <div class="feature-icon"><mat-icon aria-hidden="true">cable</mat-icon></div>
                 <div class="feature-details">
                   <h3>Multi-Terminal Sync</h3>
                   <p>Connect and share orders across waitstaff devices and kitchen terminals instantly.</p>
@@ -245,6 +245,11 @@ declare const google: GlobalGoogle | undefined;
       0%, 100% { transform: translate(0, 0) scale(1); }
       50% { transform: translate(40px, 30px) scale(1.1); }
     }
+    @media (prefers-reduced-motion: reduce) {
+      .glow-orb { animation: none; }
+      .showcase-hero h1, .feature-item { transition: none; }
+      .feature-item:hover { transform: none; }
+    }
 
     .showcase-content {
       position: relative;
@@ -279,14 +284,12 @@ declare const google: GlobalGoogle | undefined;
     }
 
     .showcase-hero h1 {
-      font-size: 2.75rem;
+      font-size: clamp(2rem, 4vw, 2.75rem);
       font-weight: 800;
       line-height: 1.15;
       margin: 0 0 16px;
       letter-spacing: -1px;
-      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #f8fafc;
     }
 
     .hero-sub {
@@ -390,7 +393,7 @@ declare const google: GlobalGoogle | undefined;
     .form-orb-2 {
       width: 450px;
       height: 450px;
-      background: #3b82f6;
+      background: var(--info);
       bottom: -150px;
       left: -150px;
     }
@@ -518,7 +521,7 @@ declare const google: GlobalGoogle | undefined;
     }
 
 .custom-input {
-      height: 36px;
+      height: 48px;
       width: 100%;
       border: 1px solid rgba(0, 0, 0, 0.12);
       border-radius: 8px;
@@ -565,8 +568,8 @@ declare const google: GlobalGoogle | undefined;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 28px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       color: var(--muted);
       transition: background 0.2s ease, color 0.2s ease;
@@ -620,7 +623,7 @@ declare const google: GlobalGoogle | undefined;
     }
 
 .submit-btn {
-      height: 38px;
+      height: 48px;
       border-radius: 8px;
       font-size: 0.9rem;
       font-weight: 700;

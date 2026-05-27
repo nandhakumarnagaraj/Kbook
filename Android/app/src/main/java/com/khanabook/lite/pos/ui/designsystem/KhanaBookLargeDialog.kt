@@ -1,6 +1,5 @@
 package com.khanabook.lite.pos.ui.designsystem
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -25,12 +24,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.khanabook.lite.pos.ui.theme.BorderGold
-import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
+import com.khanabook.lite.pos.ui.theme.kbBgCard
+import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
+import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 
+/**
+ * KhanaBook large (full-height) dialog — used for multi-step flows like
+ * Forgot Password, KYC, and configuration sheets.
+ *
+ * Container colour is resolved from MaterialTheme so it renders correctly
+ * in both dark and light mode.
+ */
 @Composable
 fun KhanaBookLargeDialog(
     title: String,
@@ -41,7 +48,7 @@ fun KhanaBookLargeDialog(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
-    val layout = KhanaBookTheme.layout
+    val layout  = KhanaBookTheme.layout
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -52,8 +59,9 @@ fun KhanaBookLargeDialog(
                 .fillMaxWidth(if (layout.isCompact) 0.94f else 0.88f)
                 .widthIn(max = if (layout.isExpanded) 900.dp else 560.dp)
                 .padding(spacing.medium),
-            colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-            shape = RoundedCornerShape(18.dp),
+            // Theme-aware surface colour
+            colors    = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+            shape     = RoundedCornerShape(18.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
@@ -63,25 +71,30 @@ fun KhanaBookLargeDialog(
                 verticalArrangement = Arrangement.spacedBy(spacing.medium)
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier          = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = title,
-                            color = PrimaryGold,
+                            text  = title,
+                            color = MaterialTheme.kbSecondary,
                             style = MaterialTheme.typography.titleLarge
                         )
-                        if (subtitle != null) {
-                            subtitle()
-                        }
+                        subtitle?.invoke()
                     }
                     IconButton(onClick = onDismissRequest) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = PrimaryGold)
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Close dialog",
+                            tint = MaterialTheme.kbTextSecondary
+                        )
                     }
                 }
 
-                HorizontalDivider(color = BorderGold.copy(alpha = 0.45f), thickness = 1.dp)
+                HorizontalDivider(
+                    color     = MaterialTheme.kbOutlineSubtle,
+                    thickness = 1.dp
+                )
 
                 Column(
                     modifier = Modifier
@@ -92,12 +105,15 @@ fun KhanaBookLargeDialog(
                 )
 
                 if (actions != null) {
-                    HorizontalDivider(color = BorderGold.copy(alpha = 0.25f), thickness = 0.5.dp)
+                    HorizontalDivider(
+                        color     = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
+                        thickness = 0.5.dp
+                    )
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(spacing.small),
-                        horizontalAlignment = Alignment.End,
-                        content = actions
+                        modifier              = Modifier.fillMaxWidth(),
+                        verticalArrangement   = Arrangement.spacedBy(spacing.small),
+                        horizontalAlignment   = Alignment.End,
+                        content               = actions
                     )
                 }
             }
@@ -105,17 +121,16 @@ fun KhanaBookLargeDialog(
     }
 }
 
-@Preview
+@Preview(name = "Dark",  showBackground = true, backgroundColor = 0xFF060604)
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 private fun KhanaBookLargeDialogPreview() {
     KhanaBookLiteTheme {
         KhanaBookLargeDialog(
-            title = "Large Dialog",
-            onDismissRequest = {},
-            subtitle = { Text("Preview subtitle", color = PrimaryGold.copy(alpha = 0.75f)) },
-            actions = {
-                Text("Close", color = PrimaryGold)
-            }
+            title             = "Large Dialog",
+            onDismissRequest  = {},
+            subtitle          = { Text("Preview subtitle", color = MaterialTheme.kbSecondary.copy(alpha = 0.75f)) },
+            actions           = { Text("Close", color = MaterialTheme.kbSecondary) }
         ) {
             Text("Large dialog content preview.")
         }

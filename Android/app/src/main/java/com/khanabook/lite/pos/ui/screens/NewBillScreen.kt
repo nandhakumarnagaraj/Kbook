@@ -25,6 +25,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -84,6 +85,11 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import kotlin.math.roundToLong
 import java.util.Locale
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 @Composable
 fun NewBillScreen(
@@ -196,7 +202,7 @@ fun NewBillScreen(
                     title = {
                         Text(
                             "New Bill",
-                            color = PrimaryGold,
+                            color = MaterialTheme.kbTextPrimary,
                             style = MaterialTheme.typography.titleLarge
                         )
                     },
@@ -208,7 +214,7 @@ fun NewBillScreen(
                                 if (step == 1) onBack() else if (step == 2) step = 1 else if (step == 3) step = 2 else onBack()
                             }
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.kbSecondary)
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.kbBgPrimary)
@@ -333,16 +339,16 @@ fun CustomerInfoStep(
                     Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = PrimaryGold
+                            tint = MaterialTheme.kbSecondary
                     )
                 }
                 Column {
                     Text(
                             "New Bill",
-                            color = PrimaryGold,
+                            color = MaterialTheme.kbTextPrimary,
                             style = MaterialTheme.typography.headlineMedium
                     )
-                    Text("Customer Details", color = TextGold, style = MaterialTheme.typography.bodySmall)
+                    Text("Customer Details", color = MaterialTheme.kbTertiary, style = MaterialTheme.typography.bodySmall)
                 }
             }
             Spacer(modifier = Modifier.height(spacing.extraLarge))
@@ -351,7 +357,7 @@ fun CustomerInfoStep(
         if (recentCustomers.isNotEmpty()) {
             Text(
                 "Recent Customers",
-                color = TextGold,
+                color = MaterialTheme.kbTertiary,
                 style = MaterialTheme.typography.labelMedium
             )
             Spacer(modifier = Modifier.height(spacing.extraSmall))
@@ -382,7 +388,7 @@ fun CustomerInfoStep(
                                 overflow = TextOverflow.Ellipsis
                             )
                             if (customerName.isNotBlank()) {
-                                Text(phone, color = TextGold.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(phone, color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
@@ -392,37 +398,35 @@ fun CustomerInfoStep(
         }
 
         val showPhoneError = whatsapp.isNotEmpty() && !ValidationUtils.isValidPhone(whatsapp)
-        OutlinedTextField(
-                value = whatsapp,
-                onValueChange = {
-                    val filtered = it.filter { ch -> ch.isDigit() }.take(10)
-                    whatsapp = filtered
-                    billingViewModel?.setCustomerInfo(name, filtered)
-                },
-                label = { Text("Customer WhatsApp Number *") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = menuTextFieldColors(),
-                leadingIcon = { Icon(Icons.Default.Phone, null, tint = VegGreen) },
-                isError = showPhoneError,
-                supportingText = {
-                    if (showPhoneError) Text("Enter 10-digit number", color = DangerRed)
-                },
-                keyboardOptions =
-                        androidx.compose.foundation.text.KeyboardOptions(
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
-                        )
+        KhanaBookInputField(
+            value = whatsapp,
+            onValueChange = {
+                val filtered = it.filter { ch -> ch.isDigit() }.take(10)
+                whatsapp = filtered
+                billingViewModel?.setCustomerInfo(name, filtered)
+            },
+            label = "Customer WhatsApp Number *",
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = { Icon(Icons.Default.Phone, null, tint = VegGreen) },
+            isError = showPhoneError,
+            supportingText = {
+                if (showPhoneError) Text("Enter 10-digit number", color = DangerRed)
+            },
+            keyboardOptions =
+                androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
+                )
         )
         Spacer(modifier = Modifier.height(spacing.medium))
-        OutlinedTextField(
-                value = name,
-                onValueChange = {
-                    name = it
-                    billingViewModel?.setCustomerInfo(it, whatsapp)
-                },
-                label = { Text("Customer Name (optional)") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = menuTextFieldColors(),
-                leadingIcon = { Icon(Icons.Default.Person, null, tint = PrimaryGold) }
+        KhanaBookInputField(
+            value = name,
+            onValueChange = {
+                name = it
+                billingViewModel?.setCustomerInfo(it, whatsapp)
+            },
+            label = "Customer Name (optional)",
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.kbSecondary) }
         )
 
         Spacer(modifier = Modifier.height(spacing.huge))
@@ -430,11 +434,10 @@ fun CustomerInfoStep(
             onClick = { if (isNextEnabled) onNext(name, whatsapp) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
-            colors =
-                    ButtonDefaults.buttonColors(
-                            containerColor = if (isNextEnabled) PrimaryGold else Color.Gray
-                    ),
+                .height(56.dp),                    colors =
+                            ButtonDefaults.buttonColors(
+                                    containerColor = if (isNextEnabled) MaterialTheme.kbPrimary else Color.Gray
+                            ),
             shape = RoundedCornerShape(12.dp),
             enabled = isNextEnabled
         ) {
@@ -452,16 +455,15 @@ fun OrderTypeButton(text: String, isSelected: Boolean, modifier: Modifier, onCli
     Box(
             modifier =
                     modifier.height(40.dp)
-                            .background(
-                                    if (isSelected) PrimaryGold else Color.Transparent,
+                            .background(                                    if (isSelected) MaterialTheme.kbPrimary else Color.Transparent,
                                     RoundedCornerShape(8.dp)
                             )
                             .clickable { onClick() },
             contentAlignment = Alignment.Center
-    ) {
-        Text(
-                text,
-                color = if (isSelected) DarkBrown1 else TextGold,
+        ) {
+            Text(
+                    text,
+                    color = if (isSelected) DarkBrown1 else MaterialTheme.kbTextSecondary,
                 style = if (isSelected) MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge
         )
     }
@@ -515,11 +517,11 @@ fun MenuSelectionStep(
                     Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             null,
-                            tint = PrimaryGold,
+                            tint = MaterialTheme.kbPrimary,
                             modifier = Modifier.clickable { onBack() }
                     )
                     Spacer(modifier = Modifier.width(spacing.medium))
-                    Text("New Bill", color = PrimaryGold, style = MaterialTheme.typography.titleLarge)
+                    Text("New Bill", color = MaterialTheme.kbPrimary, style = MaterialTheme.typography.titleLarge)
                 }
             }
 
@@ -552,22 +554,20 @@ fun MenuSelectionStep(
                     )
                 }
             }
-            OutlinedTextField(
+            KhanaBookInputField(
                 value = searchQuery,
                 onValueChange = { menuViewModel.setSearchQuery(it) },
-                placeholder = { Text("Search items...", color = TextGold.copy(alpha = 0.5f)) },
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = PrimaryGold) },
+                label = "Search",
+                placeholder = "Search items...",
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.kbSecondary) },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
                         IconButton(onClick = { menuViewModel.setSearchQuery("") }) {
-                            Icon(Icons.Default.Close, null, tint = TextGold)
+                            Icon(Icons.Default.Close, null, tint = MaterialTheme.kbSecondary)
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium, vertical = spacing.small),
-                colors = menuTextFieldColors(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium, vertical = spacing.small)
             )
 
             if (searchQuery.isBlank() && categories.isNotEmpty()) {
@@ -575,7 +575,7 @@ fun MenuSelectionStep(
                         categories.indexOfFirst { it.id == selectedCategoryId }.coerceAtLeast(0)
                 ScrollableTabRow(
                         selectedTabIndex = selectedIndex,
-                        containerColor = PrimaryGold,
+                        containerColor = MaterialTheme.kbBgPrimary,
                         contentColor = DarkBrown1,
                         edgePadding = spacing.medium,
                         divider = {},
@@ -622,14 +622,14 @@ fun MenuSelectionStep(
                         Icon(
                             androidx.compose.material.icons.Icons.Default.SearchOff,
                             contentDescription = null,
-                            tint = TextGold.copy(alpha = 0.3f),
+                            tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.3f),
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(Modifier.height(spacing.small))
                         Text(
                             if (searchQuery.isNotBlank()) "No items match \"$searchQuery\""
                             else "No items in this category",
-                            color = TextGold.copy(alpha = 0.5f),
+                            color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -669,7 +669,7 @@ fun MenuSelectionStep(
                                             style = MaterialTheme.typography.titleSmall
                                     )
                                     if (itemAvailable) {
-                                        Text("₹${item.basePrice}", color = TextGold, style = MaterialTheme.typography.bodySmall)
+                                        Text("₹${item.basePrice}", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.bodySmall)
                                     } else {
                                         Text("Unavailable", color = ErrorPink.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                     }
@@ -700,7 +700,7 @@ fun MenuSelectionStep(
                                         } else {
                                             Text(
                                                     "${variants.size} Variants",
-                                                    color = PrimaryGold,
+                                                    color = MaterialTheme.kbSecondary,
                                                     style = MaterialTheme.typography.labelSmall
                                             )
                                         }
@@ -722,14 +722,14 @@ fun MenuSelectionStep(
                                         ) {
                                             Text(
                                                     variant.variantName,
-                                                    color = if (variantAvailable) TextGold else TextGold.copy(alpha = 0.35f),
+                                                    color = if (variantAvailable) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary.copy(alpha = 0.35f),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     modifier = Modifier.weight(1f)
                                             )
                                             if (variantAvailable) {
                                                 Text(
                                                         CurrencyUtils.formatPrice(variant.price),
-                                                        color = PrimaryGold,
+                                                        color = MaterialTheme.kbSecondary,
                                                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                                                         modifier = Modifier.padding(end = spacing.smallMedium)
                                                 )
@@ -767,14 +767,12 @@ fun MenuSelectionStep(
             }
 
             if (!isWideScreen) {
-                // Bottom Floating Cart Card for Phones
-                Card(
+                // Bottom Floating Cart Card for Phones - Redesigned with Glassmorphism
+                KhanaBookGlassCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = spacing.medium, vertical = spacing.small),
-                    colors = CardDefaults.cardColors(containerColor = PrimaryGold),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    shape = RoundedCornerShape(20.dp)
                 ) {
                     Row(
                             modifier = Modifier
@@ -786,31 +784,33 @@ fun MenuSelectionStep(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                     "$derivedItemCount Items Added",
-                                    color = DarkBrown1,
+                                    color = MaterialTheme.kbTextSecondary,
                                     style = MaterialTheme.typography.labelSmall
                             )
                             Text(
                                     CurrencyUtils.formatPrice(total),
-                                    color = DarkBrown1,
+                                    color = MaterialTheme.kbSecondary,
                                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
                             )
                         }
                         Button(
                                 onClick = onProceedToPayment,
-                                colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1),
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.smallMedium),
-                                enabled = derivedItemCount > 0
-                        ) {
-                            Text(
-                                    "Proceed",
-                                    color = PrimaryGold,
-                                    style = MaterialTheme.typography.titleMedium
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.smallMedium),
+                        enabled = derivedItemCount > 0
+                ) {
+                    Text(
+                            "Place Order",
+                            color = Color.White,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
             }
+
         }
 
         // Side Cart Area for Wide Screens
@@ -825,7 +825,7 @@ fun MenuSelectionStep(
                 Column(modifier = Modifier.padding(spacing.medium)) {
                     Text(
                         "Order Summary", 
-                        color = PrimaryGold, 
+                        color = MaterialTheme.kbTertiary, 
                         style = MaterialTheme.typography.titleLarge
                     )
                     Spacer(modifier = Modifier.height(spacing.medium))
@@ -847,10 +847,10 @@ fun MenuSelectionStep(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(cartItem.item.name, color = TextLight, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         if (cartItem.variant != null) {
-                                            Text(cartItem.variant.variantName, color = TextGold, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text(cartItem.variant.variantName, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
                                         if (cartItem.note.isNotBlank()) {
-                                            Text("Note: ${cartItem.note}", color = PrimaryGold.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text("Note: ${cartItem.note}", color = MaterialTheme.kbPrimary.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
                                     }
                                     Text(
@@ -863,7 +863,7 @@ fun MenuSelectionStep(
                                         Icon(
                                             if (cartItem.note.isNotBlank()) Icons.Default.EditNote else Icons.AutoMirrored.Filled.NoteAdd,
                                             contentDescription = "Add note",
-                                            tint = if (cartItem.note.isNotBlank()) PrimaryGold else TextGold.copy(alpha = 0.5f),
+                                            tint = if (cartItem.note.isNotBlank()) MaterialTheme.kbSecondary else MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -896,23 +896,23 @@ fun MenuSelectionStep(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Total Amount", color = TextGold, style = MaterialTheme.typography.bodyMedium)
-                                Text(CurrencyUtils.formatPrice(total), color = PrimaryGold, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                                Text("Total Amount", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+                                Text(CurrencyUtils.formatPrice(total), color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                             }
                             Spacer(modifier = Modifier.height(spacing.medium))
                             Button(
                                 onClick = onProceedToPayment,
                                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
                                 shape = RoundedCornerShape(12.dp),
                                 enabled = derivedItemCount > 0
                             ) {
-                                Text("Proceed to Payment", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
+                                Text("Proceed to Payment", color = Color.White, style = MaterialTheme.typography.titleMedium)
                             }
                             if (derivedItemCount == 0) {
                                 Text(
                                     "Add items from the menu to proceed",
-                                    color = TextGold.copy(alpha = 0.45f),
+                                    color = MaterialTheme.kbTextSecondary.copy(alpha = 0.45f),
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.fillMaxWidth(),
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -933,22 +933,20 @@ private fun CartItemNoteDialog(initialNote: String, itemName: String, onDismiss:
         onDismissRequest = onDismiss,
         title = "Note for $itemName",
         content = {
-            OutlinedTextField(
+            KhanaBookInputField(
                 value = noteText,
                 onValueChange = { noteText = it },
-                placeholder = { Text("e.g. No onions, extra spicy...", color = TextGold.copy(alpha = 0.4f)) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = menuTextFieldColors(),
-                maxLines = 3,
-                shape = RoundedCornerShape(8.dp)
+                label = "Note",
+                placeholder = "e.g. No onions, extra spicy...",
+                modifier = Modifier.fillMaxWidth()
             )
         }
     ) {
         TextButton(onClick = onDismiss) {
-            Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
+            Text("Cancel", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelLarge)
         }
         TextButton(onClick = { onSave(noteText.trim()) }) {
-            Text("Save", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+            Text("Save", color = MaterialTheme.kbPrimary, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -956,29 +954,51 @@ private fun CartItemNoteDialog(initialNote: String, itemName: String, onDismiss:
 @Composable
 fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     if (quantity == 0) {
         OutlinedButton(
-                onClick = onAdd,
-                modifier = Modifier.height(32.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold),
-                contentPadding = PaddingValues(horizontal = spacing.smallMedium)
-        ) { Text("Add", style = MaterialTheme.typography.labelMedium) }
+                onClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    onAdd()
+                },
+                modifier = Modifier.height(48.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbPrimary),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbPrimary),
+                contentPadding = PaddingValues(horizontal = spacing.medium)
+        ) { Text("Add", style = MaterialTheme.typography.labelLarge) }
     } else {
         Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.background(PrimaryGold, RoundedCornerShape(4.dp)).height(32.dp)
+                modifier = Modifier.background(MaterialTheme.kbPrimary, RoundedCornerShape(8.dp)).height(48.dp)
         ) {
-            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Remove, null, tint = DarkBrown1, modifier = Modifier.size(16.dp))
+            IconButton(
+                onClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    onRemove()
+                },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(Icons.Default.Remove, contentDescription = "Remove one", tint = DarkBrown1, modifier = Modifier.size(20.dp))
             }
-            Text("$quantity", color = DarkBrown1, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-            IconButton(onClick = onAdd, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Add, null, tint = DarkBrown1, modifier = Modifier.size(16.dp))
+            Text(
+                text = "$quantity",
+                color = DarkBrown1,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+            IconButton(
+                onClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    onAdd()
+                },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add one", tint = DarkBrown1, modifier = Modifier.size(20.dp))
             }
         }
     }
 }
+
 
 @Composable
 fun PaymentStep(
@@ -1091,14 +1111,14 @@ fun PaymentStep(
             horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (showQrCode) {
-            Text("Scan to Pay", color = PrimaryGold, style = MaterialTheme.typography.headlineSmall)
+            Text("Scan to Pay", color = MaterialTheme.kbTertiary, style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(spacing.medium))
 
             Box(
                 modifier =
                 Modifier.size(200.dp)
                     .background(Color.White, RoundedCornerShape(12.dp))
-                    .border(2.dp, PrimaryGold, RoundedCornerShape(12.dp))
+                    .border(2.dp, MaterialTheme.kbPrimary, RoundedCornerShape(12.dp))
                     .padding(spacing.smallMedium)
                     .clickable { showQrModal = true },
                 contentAlignment = Alignment.Center
@@ -1120,7 +1140,7 @@ fun PaymentStep(
             }
             Text(
                 "Tap to Enlarge",
-                color = PrimaryGold.copy(alpha = 0.7f),
+                color = MaterialTheme.kbSecondary.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.padding(top = spacing.extraSmall)
             )
@@ -1161,14 +1181,14 @@ fun PaymentStep(
                     Spacer(modifier = Modifier.height(spacing.medium))
                     Text(
                         "UPI ID: ${profile?.upiHandle}",
-                        color = TextGold,
+                        color = MaterialTheme.kbTextSecondary,
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
                 },
                 actions = {
                     TextButton(onClick = { showQrModal = false }) {
-                        Text("Close", color = PrimaryGold)
+                        Text("Close", color = MaterialTheme.kbSecondary)
                     }
                 }
             )
@@ -1179,7 +1199,7 @@ fun PaymentStep(
             Icon(
                 Icons.Default.Payment,
                 null,
-                tint = PrimaryGold.copy(alpha = 0.3f),
+                tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.3f),
                 modifier = Modifier.size(KhanaBookTheme.iconSize.heroCircle)
             )
             Spacer(modifier = Modifier.height(spacing.medium))
@@ -1209,11 +1229,11 @@ fun PaymentStep(
                     Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Payable Amount", color = TextGold, style = MaterialTheme.typography.bodyMedium)
+                    ) {Text(
+                        "Payable Amount", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
                         Text(
                                 "₹${"%.2f".format(summary.total.toDoubleOrNull() ?: 0.0)}",
-                                color = PrimaryGold,
+                                color = MaterialTheme.kbSecondary,
                                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold)
                         )
                     }
@@ -1224,7 +1244,7 @@ fun PaymentStep(
 
             Text(
                     "Select Payment Mode:",
-                    color = TextLight,
+                    color = MaterialTheme.kbTertiary,
                     modifier = Modifier.align(Alignment.Start),
                     style = MaterialTheme.typography.bodyMedium
             )
@@ -1244,8 +1264,8 @@ fun PaymentStep(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(selectedMode.displayLabel, color = PrimaryGold, style = MaterialTheme.typography.bodyLarge)
-                    Icon(Icons.Default.ArrowDropDown, null, tint = PrimaryGold)
+                    Text(selectedMode.displayLabel, color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.bodyLarge)
+                    Icon(Icons.Default.ArrowDropDown, null, tint = MaterialTheme.kbSecondary)
                 }
                 DropdownMenu(
                         expanded = expanded,
@@ -1370,7 +1390,7 @@ fun PaymentStep(
                     .fillMaxWidth()
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isOnline == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) PrimaryGold else Color.Gray
+                    containerColor = if (isOnline == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) MaterialTheme.kbPrimary else Color.Gray
                 ),
                 shape = RoundedCornerShape(12.dp),
                 enabled = isOnline == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available
@@ -1507,9 +1527,9 @@ fun FailedStep(
             border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(Icons.Default.Home, null, tint = PrimaryGold)
+            Icon(Icons.Default.Home, null, tint = MaterialTheme.kbSecondary)
             Spacer(modifier = Modifier.width(spacing.small))
-            Text("Back to Home", color = TextGold, style = MaterialTheme.typography.titleMedium)
+            Text("Back to Home", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -1574,7 +1594,7 @@ fun SuccessStep(
 
         Text(
                 "Payment of ₹${"%.2f".format(totalAmount)} received successfully.",
-                color = TextGold,
+                color = MaterialTheme.kbTextSecondary,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
                     .padding(vertical = spacing.smallMedium)
@@ -1633,7 +1653,7 @@ fun SuccessStep(
                         lastBill?.let { viewModel.printReceipt(it) }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
                     shape = RoundedCornerShape(12.dp),
                     enabled = lastBill?.let { it.bill.orderStatus != "cancelled" } == true && !receiptPrinting
             ) {
@@ -1660,7 +1680,7 @@ fun SuccessStep(
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
                 shape = RoundedCornerShape(12.dp)
-        ) { Text("Back to Home", color = TextGold, style = MaterialTheme.typography.titleMedium) }
+        ) {                        Text("Back to Home", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.titleMedium) }
     }
 }
 
@@ -1676,7 +1696,7 @@ private fun PaymentSuccessBadge() {
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(start = 44.dp, top = 34.dp),
-            color = PrimaryGold
+            color = MaterialTheme.kbSecondary
         )
         SuccessSpark(
             modifier = Modifier
@@ -1694,7 +1714,7 @@ private fun PaymentSuccessBadge() {
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 62.dp, bottom = 28.dp),
-            color = PrimaryGold.copy(alpha = 0.9f)
+            color = MaterialTheme.kbPrimary.copy(alpha = 0.9f)
         )
         Surface(
             modifier = Modifier.size(132.dp),
@@ -1779,21 +1799,30 @@ fun VariantPickerDialog(
 
 @Composable
 fun FoodTypeIcon(type: String) {
-    val color = if (type == "veg") VegGreen else NonVegRed
+    val isVeg = type == "veg"
+    val color = if (isVeg) VegGreen else NonVegRed
+    // Content description tells screen readers whether the item is veg or non-veg
+    // so the distinction is not conveyed by colour alone.
+    // Shape differentiation: veg → circle, non-veg → rounded square (diamond-like indicator)
+    val outerShape = if (isVeg) CircleShape else RoundedCornerShape(3.dp)
+    val rotation = if (isVeg) 0f else 45f
     Box(
-            modifier = Modifier.size(14.dp).border(1.dp, color).padding(2.dp),
-            contentAlignment = Alignment.Center
-    ) { Box(modifier = Modifier.fillMaxSize().background(color, RoundedCornerShape(100.dp))) }
-}
-
-@Composable
-private fun menuTextFieldColors() =
-        OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = BorderGold.copy(alpha = 0.3f),
-                focusedBorderColor = PrimaryGold,
-                focusedTextColor = TextLight,
-                unfocusedTextColor = TextLight
+        modifier = Modifier
+            .size(16.dp)
+            .graphicsLayer(rotationZ = rotation)
+            .border(1.5.dp, color, outerShape)
+            .padding(3.dp)
+            .semantics { contentDescription = if (isVeg) "Vegetarian" else "Non-vegetarian" },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color, if (isVeg) CircleShape else RoundedCornerShape(2.dp))
+                .graphicsLayer(rotationZ = -rotation)
         )
+    }
+}
 
 @Composable
 fun BillStepper(currentStep: Int) {
@@ -1871,8 +1900,16 @@ fun StepItem(
     showEndConnector: Boolean = false,
     endConnectorCompleted: Boolean = false
 ) {
-    val color = if (isActive) PrimaryGold else Color.Gray
-    val containerColor = if (isActive) PrimaryGold.copy(alpha = 0.1f) else Color.Transparent
+    val color = if (isActive) MaterialTheme.kbPrimary else Color.Gray.copy(alpha = 0.4f)
+    val containerColor = if (isActive) KbBrandSaffron.copy(alpha = 0.15f) else Color.Transparent
+    val borderColor = if (isActive) KbBrandSaffron else Color.Gray.copy(alpha = 0.3f)
+
+    // Spring-animated scale so step dots pop in when activated
+    val scale by animateFloatAsState(
+        targetValue = if (isActive) 1f else 0.88f,
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessMediumLow),
+        label = "step_scale"
+    )
 
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
@@ -1886,8 +1923,13 @@ fun StepItem(
                     modifier = Modifier
                         .align(Alignment.CenterStart)
                         .fillMaxWidth(0.5f)
-                        .height(1.dp)
-                        .background(if (startConnectorCompleted) PrimaryGold else Color.Gray)
+                        .height(1.5.dp)
+                        .background(
+                            if (startConnectorCompleted)
+                                Brush.horizontalGradient(listOf(Color.Gray.copy(alpha = 0.3f), KbBrandSaffron))
+                            else
+                                Brush.horizontalGradient(listOf(Color.Gray.copy(alpha = 0.2f), Color.Gray.copy(alpha = 0.2f)))
+                        )
                 )
             }
             if (showEndConnector) {
@@ -1895,15 +1937,21 @@ fun StepItem(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .fillMaxWidth(0.5f)
-                        .height(1.dp)
-                        .background(if (endConnectorCompleted) PrimaryGold else Color.Gray)
+                        .height(1.5.dp)
+                        .background(
+                            if (endConnectorCompleted)
+                                Brush.horizontalGradient(listOf(KbBrandSaffron, Color.Gray.copy(alpha = 0.3f)))
+                            else
+                                Brush.horizontalGradient(listOf(Color.Gray.copy(alpha = 0.2f), Color.Gray.copy(alpha = 0.2f)))
+                        )
                 )
             }
             Box(
                 modifier = Modifier
+                    .scale(scale)
                     .size(36.dp)
-                    .background(if (isActive) containerColor else MaterialTheme.kbBgCard, CircleShape)
-                    .border(1.dp, color, CircleShape),
+                    .background(containerColor, CircleShape)
+                    .border(1.5.dp, borderColor, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -1925,7 +1973,14 @@ fun StepItem(
                 }
             }
         }
-        Text(label, color = color, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp))
+        Text(
+            label,
+            color = color,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 9.sp,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
+            )
+        )
     }
 }
 

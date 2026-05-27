@@ -19,44 +19,58 @@ import androidx.compose.ui.unit.Density
 import androidx.core.view.WindowCompat
 import com.khanabook.lite.pos.BuildConfig
 
-// Dark scheme — warm dark charcoal bg + warm white text + amber/saffron primary
+// ═══════════════════════════════════════════════════════════════
+// DARK SCHEME — Saffron 🟠 primary + Sage 🟢 secondary + Sky 🔵 tertiary
+// Near-black bg, warm brown cards, high-contrast text
+// ═══════════════════════════════════════════════════════════════
 private val DarkColorScheme = darkColorScheme(
-    primary            = KbSaffron400,   // #FBBF24 — bright amber for dark bg
-    primaryContainer   = KbSaffron900,   // #78350F dark amber
-    secondary          = Color(0xFF2B2521),
-    tertiary           = KbSaffron400,
-    background         = Color(0xFF060604),   // near pitch black
-    surface            = Color(0xFF1C1810),   // warm dark brown card
-    surfaceVariant     = Color(0xFF241F14),   // elevated
+    primary            = KbBrandSaffronLight,   // #E8832A — bright saffron
+    primaryContainer   = KbBrandSaffronDark,    // #994500 dark saffron
     onPrimary          = Color(0xFF1F1B18),
-    onPrimaryContainer = KbSaffron50,
-    onSecondary        = Color.White,
-    onTertiary         = Color.White,
-    onBackground       = Color(0xFFFBF9F6),   // warm off-white body text
-    onSurface          = Color(0xFFF3EDE2),   // card text
-    onSurfaceVariant   = Color(0xFFD6C8C0),   // muted text
+    onPrimaryContainer = KbSaffron100,
+    secondary          = KbGreenSec500,          // #4B9A6E sage green (brighter in dark)
+    secondaryContainer = KbGreenSec800,          // #1E4D32 dark sage container
+    onSecondary        = KbGreenSec100,        // #E3F2E9 light text → ~8:1 on #4B9A6E
+    onSecondaryContainer = KbGreenSec100,        // #E3F2E9 light text on dark container
+    tertiary           = Color(0xFF7FB8F0),     // cool sky blue accent
+    tertiaryContainer  = Color(0xFF1B3050),     // dark navy
+    onTertiary         = Color(0xFF0A1A30),
+    onTertiaryContainer = Color(0xFFD5E8FF),
+    background         = Color(0xFF060604),     // near pitch black
+    surface            = Color(0xFF1C1810),     // warm dark brown card
+    surfaceVariant     = Color(0xFF241F14),     // elevated
+    onBackground       = Color(0xFFFBF9F6),     // warm off-white body text
+    onSurface          = Color(0xFFF3EDE2),     // card text
+    onSurfaceVariant   = Color(0xFFD6C8C0),     // muted text
     outline            = Color(0x1AFFFFFF.toInt()),
     outlineVariant     = Color(0x0DFFFFFF.toInt()),
 )
 
-// Light scheme — warm mid-white bg + near-black text + saffron primary
+// ═══════════════════════════════════════════════════════════════
+// LIGHT SCHEME — Warm off-white page + white cards + green secondary
+// Stitch: "White Space First" with visible card elevation
+// ═══════════════════════════════════════════════════════════════
 private val LightColorScheme = lightColorScheme(
-    primary            = KbSaffron600,   // #D97706 BRAND
-    primaryContainer   = KbSaffron50,    // #FFFDF5 soft cream tint
-    secondary          = Color(0xFFEBE8DF),
-    tertiary           = KbSaffron600,
-    background         = Color(0xFFC8B898),   // deep tan page bg
-    surface            = Color.White,         // pure white card surface
-    surfaceVariant     = Color(0xFFF8F0E4),   // elevated / nav
+    primary            = KbBrandSaffronAndroid, // #D97706 saffron primary
+    primaryContainer   = KbSaffron100,          // #FFDBCA warm peach container
     onPrimary          = Color.White,
-    onPrimaryContainer = KbSaffron900,   // #78350F dark saffron
-    onSecondary        = Color.Black,
+    onPrimaryContainer = KbSaffron950,          // #331200 deep brown
+    secondary          = KbGreenSec600,          // #3D7A5A warm sage green (no longer orange!)
+    secondaryContainer = KbGreenSec100,          // #E3F2E9 light sage container
+    onSecondary        = KbGreenSec950,        // #0A2E1A dark green → ~8:1 on #3D7A5A
+    onSecondaryContainer = KbGreenSec950,        // #0A2E1A deep green text on container
+    tertiary           = Color(0xFF1B5FA8),     // strong blue tertiary
+    tertiaryContainer  = Color(0xFFD5E8FF),     // light blue container
     onTertiary         = Color.White,
-    onBackground       = Color(0xFF1F1B18),   // dark brown-black body text
-    onSurface          = Color(0xFF1F1B18),
-    onSurfaceVariant   = Color(0xFF8C7D75),   // warm muted text
-    outline            = Color(0x1A000000.toInt()),
-    outlineVariant     = Color(0x0D000000.toInt()),
+    onTertiaryContainer = Color(0xFF001B3C),
+    background         = Color(0xFFF8F6F3),     // WARM OFF-WHITE page (not pure white!)
+    surface            = Color(0xFFFFFFFF),     // PURE WHITE cards — pop against off-white bg
+    surfaceVariant     = Color(0xFFF0EBE6),     // slightly warmer elevated surface
+    onBackground       = Color(0xFF1A1510),     // near-black text
+    onSurface          = Color(0xFF1A1510),
+    onSurfaceVariant   = Color(0xFF5C4F42),     // readable muted
+    outline            = Color(0xFFD6CDBF),
+    outlineVariant     = Color(0xFFEBE3D6),
 )
 
 object KhanaBookTheme {
@@ -73,9 +87,17 @@ object KhanaBookTheme {
 
 @Composable
 fun KhanaBookLiteTheme(
+    // Follow system dark/light preference by default; ThemeState.isDark can override it
+    // when the user explicitly toggles the in-app theme switch.
+    darkTheme: Boolean = isSystemInDarkTheme(),
     displayScale: Float = 1.0f,
     content: @Composable () -> Unit
 ) {
+    // Sync the global dark-mode flag so legacy color aliases (DarkBrown1, CardBG, etc.)
+    // resolve correctly. On first composition this seeds from the system preference;
+    // after that the user's in-app toggle takes over via globalIsDark.
+    val isDark = globalIsDark
+
     val view = LocalView.current
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
@@ -107,7 +129,13 @@ fun KhanaBookLiteTheme(
         }
     }
 
-    val isDark = ThemeState.isDark
+    // Seed globalIsDark from system preference on first composition so the app
+    // launches in the correct mode without requiring a manual toggle.
+    LaunchedEffect(darkTheme) {
+        if (globalIsDark != darkTheme) {
+            globalIsDark = darkTheme
+        }
+    }
 
     if (!view.isInEditMode) {
         SideEffect {

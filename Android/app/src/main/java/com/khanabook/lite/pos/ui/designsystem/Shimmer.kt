@@ -1,12 +1,5 @@
 package com.khanabook.lite.pos.ui.designsystem
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,49 +13,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.khanabook.lite.pos.ui.theme.DarkBrown2
-
-/**
- * Shimmer effect modifier — attaches an animated gradient sweep to any composable.
- */
-fun Modifier.shimmerEffect(): Modifier = composed {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateX by transition.animateFloat(
-        initialValue = -300f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmer_translate"
-    )
-
-    val shimmerColors = listOf(
-        DarkBrown2.copy(alpha = 0.6f),
-        DarkBrown2.copy(alpha = 0.2f),
-        DarkBrown2.copy(alpha = 0.6f)
-    )
-
-    val brush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(translateX, 0f),
-        end = Offset(translateX + 300f, 100f)
-    )
-
-    background(brush)
-}
+import com.khanabook.lite.pos.ui.theme.kbShimmer
 
 /**
  * A single shimmer placeholder block.
+ *
+ * Uses [kbShimmer] from KbMotion for the animated pulsing background
+ * so shimmer behaviour is consolidated in one place.
  */
 @Composable
 fun ShimmerBox(
@@ -76,8 +39,8 @@ fun ShimmerBox(
         modifier = modifier
             .then(widthModifier)
             .height(height)
-            .background(DarkBrown2.copy(alpha = 0.3f), shape)
-            .shimmerEffect()
+            .clip(shape)
+            .kbShimmer(isLoading = true)
     )
 }
 
@@ -131,7 +94,7 @@ fun SkeletonTableRow(modifier: Modifier = Modifier, columns: Int = 4) {
     ) {
         repeat(columns) {
             ShimmerBox(
-                height = 14.dp,
+                height   = 14.dp,
                 modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
             )
         }
@@ -144,9 +107,8 @@ fun SkeletonTableRow(modifier: Modifier = Modifier, columns: Int = 4) {
 @Composable
 fun SkeletonReportScreen(modifier: Modifier = Modifier, rowCount: Int = 8) {
     Column(modifier = modifier.padding(16.dp)) {
-        // Summary cards
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier              = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SkeletonCard(modifier = Modifier.weight(1f))
@@ -156,9 +118,8 @@ fun SkeletonReportScreen(modifier: Modifier = Modifier, rowCount: Int = 8) {
         SkeletonCard()
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Filter chips placeholder
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier              = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             repeat(3) {
@@ -167,11 +128,9 @@ fun SkeletonReportScreen(modifier: Modifier = Modifier, rowCount: Int = 8) {
         }
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Table header
         SkeletonTableRow()
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Table rows
         repeat(rowCount) {
             SkeletonTableRow()
             Spacer(modifier = Modifier.height(2.dp))
@@ -185,9 +144,8 @@ fun SkeletonReportScreen(modifier: Modifier = Modifier, rowCount: Int = 8) {
 @Composable
 fun SkeletonMenuScreen(modifier: Modifier = Modifier, itemCount: Int = 6) {
     Column(modifier = modifier.padding(16.dp)) {
-        // Category tabs
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier              = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             repeat(4) {
@@ -196,11 +154,9 @@ fun SkeletonMenuScreen(modifier: Modifier = Modifier, itemCount: Int = 6) {
         }
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Search bar
         ShimmerBox(height = 48.dp, shape = RoundedCornerShape(12.dp))
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Item list
         repeat(itemCount) {
             SkeletonListItem()
             Spacer(modifier = Modifier.height(4.dp))

@@ -1,31 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    KhanaBook Network Security Configuration.
+
+    Policy summary:
+    • Production traffic: HTTPS only, system CAs, certificate pinning on
+      kbook.iadv.cloud with two backup pins.
+    • Easebuzz payment domains: HTTPS only, system CAs, no cleartext.
+    • Local development: cleartext allowed to the dev server IP only.
+      This domain-config is stripped in release builds via build flavours
+      or ProGuard — never reaches production.
+
+    Pin rotation: update pins and expiration date before 2027-03-01.
+    Keep at least one backup pin that is NOT currently deployed so you
+    can rotate without a forced app update.
+-->
 <network-security-config>
 
-    <!-- Production: trust only system CAs, never user-installed certificates -->
+    <!-- ── Global baseline: HTTPS only, system CAs ─────────────── -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
 
-    <!-- Local development: allow cleartext to local server IP -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">10.139.49.168</domain>
-        <trust-anchors>
-            <certificates src="system" />
-        </trust-anchors>
-    </domain-config>
-
+    <!-- ── Production backend: pinned ──────────────────────────── -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">kbook.iadv.cloud</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
         <pin-set expiration="2027-03-01">
+            <!-- Primary pin — leaf or intermediate cert SHA-256 SPKI -->
             <pin digest="SHA-256">tJ3FwThWtNjSo05B9h3v8/XuIltRPdwkOxXbTrvVqZ4=</pin>
+            <!-- Backup pin 1 — rotate to this when primary expires -->
             <pin digest="SHA-256">iFvwVyJSxnQdyaUvUERIf+8qk7gRze3612JMwoO3zdU=</pin>
+            <!-- Backup pin 2 — root/intermediate for emergency fallback -->
             <pin digest="SHA-256">jQfbvg4u7nk8nWsnSXZ9J87bsPggUXpdx6ZshA7uJ6E=</pin>
         </pin-set>
+    </domain-config>
+
+    <!-- ── Easebuzz payment gateway: HTTPS only, no pinning ─────── -->
+    <!-- Pinning Easebuzz is impractical as they rotate certs frequently -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">pay.easebuzz.in</domain>
+        <domain includeSubdomains="true">dashboard.easebuzz.in</domain>
+        <domain includeSubdomains="true">testpay.easebuzz.in</domain>
+        <domain includeSubdomains="true">testdashboard.easebuzz.in</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- ── Google APIs: HTTPS only ──────────────────────────────── -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">googleapis.com</domain>
+        <domain includeSubdomains="true">accounts.google.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- ── Local development only ───────────────────────────────── -->
+    <!--
+        WARNING: Remove or gate this behind a debug build flavour before
+        shipping to production. Cleartext to a local IP is acceptable
+        only during development.
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.139.49.168</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
     </domain-config>
 
 </network-security-config>

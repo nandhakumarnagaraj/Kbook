@@ -10,19 +10,26 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
-import com.khanabook.lite.pos.ui.theme.BorderGold
-import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DangerRed
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.theme.KhanaShapes
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
-import com.khanabook.lite.pos.ui.theme.TextMuted
-import com.khanabook.lite.pos.ui.theme.TextLight
+import com.khanabook.lite.pos.ui.theme.kbOutlineBold
+import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
+import com.khanabook.lite.pos.ui.theme.kbPrimary
+import com.khanabook.lite.pos.ui.theme.kbBgCard
+import com.khanabook.lite.pos.ui.theme.kbTextPrimary
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
+import com.khanabook.lite.pos.ui.theme.kbTextDisabled
 
+/**
+ * KhanaBook design-system input field.
+ *
+ * All colours are resolved from MaterialTheme.colorScheme so the field
+ * renders correctly in both dark and light mode without any hardcoded values.
+ */
 @Composable
 fun KhanaBookInputField(
     value: String,
@@ -42,9 +49,17 @@ fun KhanaBookInputField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     textStyle: TextStyle = MaterialTheme.typography.bodyMedium
 ) {
+    val primary      = MaterialTheme.kbPrimary
+    val containerBg  = MaterialTheme.kbBgCard          // surface — white in light, dark brown in dark
+    val textPrimary  = MaterialTheme.kbTextPrimary
+    val textMuted    = MaterialTheme.kbTextSecondary
+    val textDisabled = MaterialTheme.kbTextDisabled
+    val borderFocus  = MaterialTheme.kbOutlineBold
+    val borderIdle   = MaterialTheme.kbOutlineSubtle
+
     val selectionColors = androidx.compose.foundation.text.selection.TextSelectionColors(
-        handleColor = PrimaryGold,
-        backgroundColor = PrimaryGold.copy(alpha = 0.35f)
+        handleColor = primary,
+        backgroundColor = primary.copy(alpha = 0.35f)
     )
 
     CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
@@ -52,7 +67,7 @@ fun KhanaBookInputField(
             value = value,
             onValueChange = onValueChange,
             label = { Text(label) },
-            placeholder = placeholder?.let { { Text(it, color = TextMuted.copy(alpha = 0.7f)) } },
+            placeholder = placeholder?.let { { Text(it, color = textMuted.copy(alpha = 0.7f)) } },
             modifier = modifier,
             leadingIcon = leadingIcon,
             trailingIcon = trailingIcon,
@@ -65,39 +80,47 @@ fun KhanaBookInputField(
             keyboardActions = keyboardActions,
             visualTransformation = visualTransformation,
             textStyle = textStyle,
-            shape = KhanaShapes.small, // Input shape (10.dp)
+            shape = KhanaShapes.small, // 10.dp rounded corners
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = CardBG,    // Background Card (#221F35)
-                unfocusedContainerColor = CardBG,  // Background Card (#221F35)
-                disabledContainerColor = CardBG,
-                errorContainerColor = CardBG,
-                focusedBorderColor = PrimaryGold,  // AccentPrimary (#7F77DD)
-                unfocusedBorderColor = BorderGold, // BorderColor (#7F77DD1A)
-                disabledBorderColor = BorderGold.copy(alpha = 0.5f),
-                errorBorderColor = DangerRed,
-                focusedLabelColor = PrimaryGold,
-                unfocusedLabelColor = TextMuted,   // TextMuted (#9895B0)
-                disabledLabelColor = TextMuted.copy(alpha = 0.55f),
-                errorLabelColor = DangerRed,
-                focusedTextColor = TextLight,      // TextPrimary (#F0EFF8)
-                unfocusedTextColor = TextLight,
-                disabledTextColor = TextLight.copy(alpha = 0.75f),
-                errorTextColor = TextLight,
-                cursorColor = PrimaryGold,
-                focusedLeadingIconColor = PrimaryGold,
-                unfocusedLeadingIconColor = TextMuted,
-                disabledLeadingIconColor = TextMuted.copy(alpha = 0.55f),
-                errorLeadingIconColor = DangerRed,
-                focusedTrailingIconColor = PrimaryGold,
-                unfocusedTrailingIconColor = TextMuted,
-                disabledTrailingIconColor = TextMuted.copy(alpha = 0.55f),
-                errorTrailingIconColor = DangerRed
+                // Container — theme-aware surface colour
+                focusedContainerColor   = containerBg,
+                unfocusedContainerColor = containerBg,
+                disabledContainerColor  = containerBg,
+                errorContainerColor     = containerBg,
+                // Border
+                focusedBorderColor   = primary,
+                unfocusedBorderColor = borderIdle,
+                disabledBorderColor  = borderIdle.copy(alpha = 0.5f),
+                errorBorderColor     = DangerRed,
+                // Label
+                focusedLabelColor   = primary,
+                unfocusedLabelColor = textMuted,
+                disabledLabelColor  = textDisabled,
+                errorLabelColor     = DangerRed,
+                // Text
+                focusedTextColor   = textPrimary,
+                unfocusedTextColor = textPrimary,
+                disabledTextColor  = textDisabled,
+                errorTextColor     = textPrimary,
+                // Cursor
+                cursorColor = primary,
+                // Leading icon
+                focusedLeadingIconColor   = primary,
+                unfocusedLeadingIconColor = textMuted,
+                disabledLeadingIconColor  = textDisabled,
+                errorLeadingIconColor     = DangerRed,
+                // Trailing icon
+                focusedTrailingIconColor   = primary,
+                unfocusedTrailingIconColor = textMuted,
+                disabledTrailingIconColor  = textDisabled,
+                errorTrailingIconColor     = DangerRed
             )
         )
     }
 }
 
-@Preview
+@Preview(name = "Dark", showBackground = true, backgroundColor = 0xFF060604)
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 private fun KhanaBookInputFieldPreview() {
     KhanaBookLiteTheme {

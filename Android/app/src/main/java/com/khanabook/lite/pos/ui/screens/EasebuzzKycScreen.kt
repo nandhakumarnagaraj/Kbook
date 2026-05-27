@@ -51,14 +51,19 @@ import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.data.repository.EasebuzzPaymentRepository
 import com.khanabook.lite.pos.data.remote.dto.EasebuzzSubMerchantStatusResponse
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookGlassCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.theme.CardBG
+import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
+import com.khanabook.lite.pos.ui.theme.kbPrimary
+import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.kbTertiary
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
-import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
+
 import kotlinx.coroutines.launch
 
 @Composable
@@ -101,7 +106,7 @@ fun EasebuzzKycScreen(
             Column(modifier = Modifier.padding(spacing.large)) {
                 Text(
                     text = "Easebuzz KYC Status",
-                    color = PrimaryGold,
+                    color = MaterialTheme.kbSecondary,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -113,7 +118,7 @@ fun EasebuzzKycScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        CircularProgressIndicator(color = PrimaryGold)
+                        CircularProgressIndicator(color = MaterialTheme.kbSecondary)
                     }
                 } else if (subMerchantStatus != null) {
                     val status = subMerchantStatus!!
@@ -128,7 +133,7 @@ fun EasebuzzKycScreen(
                                 context.startActivity(intent)
                             },
                             modifier = Modifier.fillMaxWidth().height(56.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
                             shape = RoundedCornerShape(28.dp)
                         ) {
                             Text(
@@ -156,10 +161,10 @@ fun EasebuzzKycScreen(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
-                            border = BorderStroke(1.dp, TextGold),
+                            border = BorderStroke(1.dp, MaterialTheme.kbSecondary),
                             shape = RoundedCornerShape(24.dp)
                         ) {
-                            Text("Refresh Status", color = TextGold)
+                            Text("Refresh Status", color = MaterialTheme.kbSecondary)
                         }
                     }
                 } else if (errorMessage != null) {
@@ -185,10 +190,10 @@ fun EasebuzzKycScreen(
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
-                        border = BorderStroke(1.dp, PrimaryGold),
+                        border = BorderStroke(1.dp, MaterialTheme.kbTertiary),
                         shape = RoundedCornerShape(24.dp)
                     ) {
-                        Text("Retry", color = PrimaryGold)
+                        Text("Retry", color = MaterialTheme.kbTertiary)
                     }
                 }
 
@@ -197,10 +202,10 @@ fun EasebuzzKycScreen(
                 OutlinedButton(
                     onClick = onBack,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    border = BorderStroke(1.dp, TextGold),
+                    border = BorderStroke(1.dp, MaterialTheme.kbSecondary),
                     shape = RoundedCornerShape(28.dp)
                 ) {
-                    Text("Back", color = TextGold)
+                    Text("Back", color = MaterialTheme.kbSecondary)
                 }
             }
         }
@@ -287,8 +292,8 @@ fun KycTimelineItem(
 ) {
     val circleColor = when (step.state) {
         StepState.COMPLETED -> SuccessGreen
-        StepState.ERROR -> MaterialTheme.colorScheme.error
-        StepState.PENDING -> TextGold.copy(alpha = 0.35f)
+        StepState.ERROR -> Color(0xFFEF4444) // Premium Red
+        StepState.PENDING -> KbBrandSaffron.copy(alpha = 0.4f)
     }
     
     val icon = when (step.state) {
@@ -301,7 +306,7 @@ fun KycTimelineItem(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
-        // Timeline Indicator Column
+        // Timeline Indicator Column with Glow Path
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.width(32.dp)
@@ -309,64 +314,80 @@ fun KycTimelineItem(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(28.dp)
                     .clip(CircleShape)
-                    .background(circleColor.copy(alpha = 0.15f))
+                    .background(circleColor.copy(alpha = 0.12f))
                     .border(1.5.dp, circleColor, CircleShape)
             ) {
+                // Success Glow
+                if (step.state == StepState.COMPLETED) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.radialGradient(
+                                    listOf(circleColor.copy(alpha = 0.2f), Color.Transparent)
+                                )
+                            )
+                    )
+                }
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = circleColor,
-                    modifier = Modifier.size(if (step.state == StepState.PENDING) 8.dp else 14.dp)
+                    modifier = Modifier.size(if (step.state == StepState.PENDING) 8.dp else 16.dp)
                 )
             }
             
             if (!isLast) {
                 Box(
                     modifier = Modifier
-                        .width(2.dp)
-                        .height(36.dp)
+                        .width(2.5.dp)
+                        .height(42.dp)
                         .background(
                             Brush.verticalGradient(
-                                listOf(circleColor, TextGold.copy(alpha = 0.15f))
+                                listOf(circleColor, KbBrandSaffron.copy(alpha = 0.1f))
                             )
                         )
                 )
             }
         }
         
-        // Content Column
-        Column(
+        // Premium Content Card
+        KhanaBookGlassCard(
             modifier = Modifier
                 .weight(1f)
-                .padding(bottom = if (isLast) 0.dp else spacing.medium)
+                .padding(bottom = if (isLast) 0.dp else spacing.medium),
+            shape = RoundedCornerShape(14.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = step.title,
-                    color = if (step.state == StepState.PENDING) TextGold.copy(alpha = 0.6f) else TextLight,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                if (step.date != null) {
+            Column(modifier = Modifier.padding(spacing.medium)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = step.date,
-                        color = TextGold.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.labelSmall
+                        text = step.title,
+                        color = if (step.state == StepState.PENDING) MaterialTheme.kbTextSecondary.copy(alpha = 0.6f) else TextLight,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
+                    if (step.date != null) {
+                        Text(
+                            text = step.date,
+                            color = MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = step.description,
+                    color = if (step.state == StepState.PENDING) MaterialTheme.kbTextSecondary.copy(alpha = 0.5f) else MaterialTheme.kbTextSecondary.copy(alpha = 0.85f),
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = step.description,
-                color = if (step.state == StepState.PENDING) TextGold.copy(alpha = 0.45f) else TextGold,
-                style = MaterialTheme.typography.bodySmall
-            )
         }
     }
 }
+

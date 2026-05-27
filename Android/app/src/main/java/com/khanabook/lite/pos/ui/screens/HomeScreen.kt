@@ -3,6 +3,10 @@
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -26,6 +30,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,8 +43,13 @@ import androidx.compose.animation.core.*
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.scale
 import kotlin.math.abs
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.khanabook.lite.pos.R
+
 
 @Composable
 fun HomeScreen(
@@ -65,6 +75,13 @@ fun HomeScreen(
     val isWideScreen = !layout.isCompact
 
     val statsReady by viewModel.statsReady.collectAsState()
+
+    val newBillInteractionSource = remember { MutableInteractionSource() }
+    val isNewBillPressed by newBillInteractionSource.collectIsPressedAsState()
+    val newBillScale by animateFloatAsState(
+        targetValue = if (isNewBillPressed) 0.96f else 1f,
+        label = "new_bill_scale"
+    )
 
     var headerVisible by remember { mutableStateOf(false) }
     var statsVisible by remember { mutableStateOf(false) }
@@ -93,11 +110,27 @@ fun HomeScreen(
     )
     val exitSpec = fadeOut(spring(stiffness = Spring.StiffnessMediumLow))
 
+    val bgModifier = if (globalIsDark) {
+        Modifier.background(KbMidnightBase)
+    } else {
+        Modifier.background(MaterialTheme.kbBgGradient)
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.kbBgGradient)
+            .then(bgModifier)
     ) {
+        // Stitch "Midnight Harvest" mesh gradient accent layers
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(KbMeshGradientSaffron)
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(KbMeshGradientAmber)
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -119,17 +152,24 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(spacing.small),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Brand logo
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_khanabook_logo),
+                            contentDescription = "KhanaBook",
+                            modifier = Modifier.size(36.dp),
+                            contentScale = ContentScale.Fit
+                        )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = greeting,
-                                color = TextGold,
+                                color = MaterialTheme.kbTextSecondary,
                                 style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = shopName,
-                                color = PrimaryGold,
+                                color = MaterialTheme.kbTextPrimary,
                                 style = MaterialTheme.typography.headlineSmall,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -160,35 +200,43 @@ fun HomeScreen(
 
             AnimatedVisibility(visible = statsVisible, enter = enterSpec, exit = exitSpec) {
                 if (!statsReady) {
-                    // Skeleton placeholder while stats load
                     SkeletonCard(modifier = Modifier.fillMaxWidth())
                 } else {
-                    KhanaBookCard(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(spacing.medium)
+                    // Stitch Glassmorphism stat card with inner border
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, KbGlassBorder, RoundedCornerShape(18.dp)),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = KbGlassSurface),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Text(
-                                text = "Today's Summary",
-                                color = PrimaryGold,
-                                style = MaterialTheme.typography.titleSmall
-                            )
-                            Spacer(modifier = Modifier.height(spacing.small))
-                            FlowRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                                verticalArrangement = Arrangement.spacedBy(spacing.small),
-                                maxItemsInEachRow = 3
+                            Column(
+                                modifier = Modifier.padding(spacing.medium)
                             ) {
-                                val statMod = Modifier.weight(1f)
-                                StatItem("Orders", stats.orderCount.toString(), statMod)
-                                StatItem("Revenue", CurrencyUtils.formatPriceCompact(stats.revenue), statMod)
-                                StatItem("Customers", stats.customerCount.toString(), statMod)
-                                if (stats.orderCount > 0 || stats.kdsPendingCount > 0) {
-                                    StatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), statMod)
-                                    StatItem("Cancelled", stats.cancelledCount.toString(), statMod)
-                                    StatItem("KDS Pending", stats.kdsPendingCount.toString(), statMod)
+                                Text(
+                                    text = "Today's Summary",
+                                    color = MaterialTheme.kbTertiary,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.height(spacing.small))
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                                    verticalArrangement = Arrangement.spacedBy(spacing.small),
+                                    maxItemsInEachRow = 3
+                                ) {
+                                    val statMod = Modifier.weight(1f)
+                                    StatItem("Orders", stats.orderCount.toString(), statMod)
+                                    StatItem("Revenue", CurrencyUtils.formatPriceCompact(stats.revenue), statMod)
+                                    StatItem("Customers", stats.customerCount.toString(), statMod)
+                                    if (stats.orderCount > 0 || stats.kdsPendingCount > 0) {
+                                        StatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), statMod)
+                                        StatItem("Cancelled", stats.cancelledCount.toString(), statMod)
+                                        StatItem("KDS Pending", stats.kdsPendingCount.toString(), statMod)
+                                    }
                                 }
                             }
                         }
@@ -197,131 +245,155 @@ fun HomeScreen(
             }
 
             AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
-                KhanaBookCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { onNewBill() },
-                    colors = CardDefaults.cardColors(containerColor = PrimaryGold),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Row(
+                Box(contentAlignment = Alignment.Center) {
+                    // Stitch "Saffron Glow Zone" — radial mesh gradient behind primary CTA
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.9f)
+                            .height(130.dp)
+                            .background(KbSaffronGlowStrong)
+                    )
+                    
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 120.dp)
-                            .padding(spacing.large),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .scale(newBillScale)
+                            .border(
+                                width = 2.dp,
+                                color = KbBrandSaffronLight.copy(alpha = 0.6f),
+                                shape = RoundedCornerShape(18.dp)
+                            ),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
                     ) {
-                        Column {
-                            Text(
-                                text = "Create New Bill",
-                                color = DarkBrown1,
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                            Text(
-                                text = "Start taking orders",
-                                color = DarkBrown1.copy(alpha = 0.85f),
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(top = spacing.extraSmall)
-                            )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(KbMeshHeroGradient)
+                                .clickable(
+                                    interactionSource = newBillInteractionSource,
+                                    indication = ripple(bounded = true, color = Color.White),
+                                    onClick = { onNewBill() }
+                                )
+                                .padding(spacing.large)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 120.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "Create New Bill",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Start taking orders",
+                                        color = Color.White.copy(alpha = 0.7f),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        modifier = Modifier.padding(top = spacing.extraSmall)
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.AddCircle,
+                                    contentDescription = "Create New Bill",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(spacing.huge)
+                                )
+                            }
                         }
-                        Icon(
-                            imageVector = Icons.Default.AddCircle,
-                            contentDescription = null,
-                            tint = DarkBrown1,
-                            modifier = Modifier.size(spacing.huge)
-                        )
                     }
                 }
             }
 
             AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
-                HomeActionCard(
-                    text = "Online Orders",
-                    icon = Icons.Default.ShoppingCart,
-                    backgroundColor = CardBG,
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = onMarketplaceOrders,
-                    badgeCount = marketplacePendingCount
+                // Online Orders card with pulsing Saffron glow
+                val infiniteTransition = rememberInfiniteTransition(label = "badge_pulse")
+                val pulseAlpha by infiniteTransition.animateFloat(
+                    initialValue = 0.05f,
+                    targetValue = 0.25f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1200, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "alpha"
                 )
-            }
 
-            AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
-            if (isWideScreen) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.medium),
-                    verticalArrangement = Arrangement.spacedBy(spacing.medium),
-                    maxItemsInEachRow = 2
-                ) {
+                Box {
+                    if (marketplacePendingCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(KbBrandSaffron.copy(alpha = pulseAlpha), Color.Transparent)
+                                    )
+                                )
+                        )
+                    }
+                    
                     HomeActionCard(
-                        text = "Find Bill",
-                        icon = Icons.Default.Search,
+                        text = "Online Orders",
+                        icon = Icons.Default.ShoppingCart,
                         backgroundColor = CardBG,
-                        modifier = Modifier.weight(1f),
-                        onClick = onSearchBill
-                    )
-                    HomeActionCard(
-                        text = "Reprint KDS",
-                        icon = Icons.Default.Restaurant,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.weight(1f),
-                        onClick = onReprintKds
-                    )
-                    HomeActionCard(
-                        text = "Order Status",
-                        icon = Icons.Default.Info,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.weight(1f),
-                        onClick = onOrderStatus
-                    )
-                    HomeActionCard(
-                        text = "Call Customers",
-                        icon = Icons.Default.Call,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.weight(1f),
-                        onClick = onCallCustomer
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onMarketplaceOrders,
+                        badgeCount = marketplacePendingCount
                     )
                 }
-            } else {
-                // Vertical list for phones
+            }
+
+
+            AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
                 ) {
-                    HomeActionCard(
-                        text = "Find Bill",
-                        icon = Icons.Default.Search,
-                        backgroundColor = CardBG,
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = onSearchBill
-                    )
-
-                    HomeActionCard(
-                        text = "Reprint KDS",
-                        icon = Icons.Default.Restaurant,
-                        backgroundColor = CardBG,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)
+                    ) {
+                        HomeActionGridCard(
+                            text = "Find Bill",
+                            icon = Icons.Default.Search,
+                            backgroundColor = CardBG,
+                            modifier = Modifier.weight(1f),
+                            onClick = onSearchBill
+                        )
+                        HomeActionGridCard(
+                            text = "Reprint KDS",
+                            icon = Icons.Default.Restaurant,
+                            backgroundColor = CardBG,
+                            modifier = Modifier.weight(1f),
+                            onClick = onReprintKds
+                        )
+                    }
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = onReprintKds
-                    )
-
-                    HomeActionCard(
-                        text = "Order Status",
-                        icon = Icons.Default.Info,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = onOrderStatus
-                    )
-
-                    HomeActionCard(
-                        text = "Call Customers",
-                        icon = Icons.Default.Call,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = onCallCustomer
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)
+                    ) {
+                        HomeActionGridCard(
+                            text = "Order Status",
+                            icon = Icons.Default.Info,
+                            backgroundColor = CardBG,
+                            modifier = Modifier.weight(1f),
+                            onClick = onOrderStatus
+                        )
+                        HomeActionGridCard(
+                            text = "Call Customers",
+                            icon = Icons.Default.Call,
+                            backgroundColor = CardBG,
+                            modifier = Modifier.weight(1f),
+                            onClick = onCallCustomer
+                        )
+                    }
                 }
             }
-            } // end AnimatedVisibility(actionsVisible)
 
             // Mirror of the top flex spacer — keeps top and bottom whitespace
             // equal so the content block looks vertically centred.
@@ -377,8 +449,8 @@ fun SyncStatusHeader(
     val containerColor = when {
         !isOnline -> DangerRed
         !isSessionValid -> WarningYellow
-        unsyncedCount > 0 -> PrimaryGold
-        else -> SuccessGreen
+        unsyncedCount > 0 -> MaterialTheme.kbSecondary   // amber for syncing
+        else -> MaterialTheme.kbTertiary                  // blue for synced
     }
 
     Box(
@@ -491,7 +563,7 @@ fun HomeActionCard(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = PrimaryGold,
+                    tint = MaterialTheme.kbSecondary,
                     modifier = Modifier.size(iconSize.medium)
                 )
                 Spacer(modifier = Modifier.width(spacing.small))
@@ -531,9 +603,72 @@ fun HomeActionCard(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = PrimaryGold,
+                    tint = MaterialTheme.kbSecondary,
                     modifier = Modifier.size(iconSize.small)
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun HomeActionGridCard(
+    text: String,
+    icon: ImageVector,
+    backgroundColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    badgeCount: Int = 0
+) {
+    val spacing = KhanaBookTheme.spacing
+    val iconSize = KhanaBookTheme.iconSize
+    KhanaBookCard(
+        modifier = modifier,
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(spacing.medium),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.kbSecondary,
+                    modifier = Modifier.size(iconSize.large)
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+                Text(
+                    text = text,
+                    color = TextLight,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+            }
+            if (badgeCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(24.dp)
+                        .background(DangerRed, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = badgeCount.toString(),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
             }
         }
     }
@@ -578,8 +713,8 @@ fun ComplianceBanner(
             status      = "${alert.daysLeft}d left"
         }
         HomeViewModel.ComplianceAlert.Urgency.MEDIUM   -> {
-            bannerBg    = PrimaryGold.copy(alpha = 0.10f)
-            textColor   = PrimaryGold
+            bannerBg    = MaterialTheme.kbSecondary.copy(alpha = 0.10f)
+            textColor   = MaterialTheme.kbSecondary
             alertIcon   = Icons.Default.Info
             contentDesc = "Info"
             status      = "${alert.daysLeft}d left"

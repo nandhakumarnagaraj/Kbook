@@ -46,10 +46,12 @@ import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
+import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
+import com.khanabook.lite.pos.ui.theme.kbPrimary
+import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.SwiggyOrange
-import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.ZomatoRed
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
@@ -100,7 +102,7 @@ fun PaymentConfigView(
                 enabled = false
             )
             Spacer(modifier = Modifier.height(spacing.large))
-            Text("Payment Methods", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
+            Text("Payment Methods", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium)
             PaymentToggle("Cash Payment", cashEnabled) { cashEnabled = it }
             PaymentToggle("POS Machine", posEnabled) { posEnabled = it }
             PaymentToggle("Offline UPI QR", upiSupported) { upiSupported = it }
@@ -117,10 +119,10 @@ fun PaymentConfigView(
             }
 
             Spacer(modifier = Modifier.height(spacing.large))
-            Text("Online Platforms", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
+            Text("Online Platforms", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium)
             Text(
                 "Setup is managed via the web admin dashboard.",
-                color = TextGold.copy(alpha = 0.7f),
+                color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.labelSmall
             )
             Spacer(modifier = Modifier.height(spacing.medium))
@@ -159,7 +161,7 @@ fun PaymentConfigView(
                 OutlinedButton(
                     onClick = onBack,
                     modifier = Modifier.weight(1f).height(56.dp),
-                    border = BorderStroke(1.dp, TextGold),
+                    border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
                     shape = RoundedCornerShape(28.dp)
                 ) { Text("Back") }
             }
@@ -174,7 +176,7 @@ fun PaymentToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) ->
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = TextGold, style = MaterialTheme.typography.bodyMedium)
+        Text(label, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
         KhanaBookSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
@@ -194,7 +196,7 @@ fun PlatformToggle(label: String, enabled: Boolean, onOpenDashboard: () -> Unit)
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = TextGold, style = MaterialTheme.typography.bodyMedium)
+        Text(label, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
         Row(verticalAlignment = Alignment.CenterVertically) {
             KhanaBookSwitch(
                 checked = enabled,
@@ -206,7 +208,7 @@ fun PlatformToggle(label: String, enabled: Boolean, onOpenDashboard: () -> Unit)
             Icon(
                 imageVector = Icons.Default.OpenInNew,
                 contentDescription = "Open dashboard",
-                tint = TextGold.copy(alpha = 0.6f),
+                tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
                 modifier = Modifier.size(18.dp).padding(start = 4.dp)
             )
         }

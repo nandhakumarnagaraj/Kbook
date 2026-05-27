@@ -133,7 +133,7 @@ fun AppLockScreen(
             Icon(
                 Icons.Default.Lock,
                 contentDescription = "App locked",
-                tint = PrimaryGold,
+                tint = MaterialTheme.kbPrimary,
                 modifier = Modifier.size(64.dp)
             )
 
@@ -141,7 +141,7 @@ fun AppLockScreen(
 
             Text(
                 "KhanaBook",
-                color = PrimaryGold,
+                color = MaterialTheme.kbTextPrimary,
                 style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
             )
 
@@ -166,12 +166,12 @@ fun AppLockScreen(
                         modifier = Modifier
                             .size(20.dp)
                             .background(
-                                color = if (filled) PrimaryGold else Color.Transparent,
+                                color = if (filled) MaterialTheme.kbPrimary else Color.Transparent,
                                 shape = CircleShape
                             )
                             .border(
                                 width = 2.dp,
-                                color = if (filled) PrimaryGold else BorderGold,
+                                color = if (filled) MaterialTheme.kbPrimary else MaterialTheme.kbOutlineSubtle,
                                 shape = CircleShape
                             )
                     )
@@ -245,7 +245,7 @@ fun PinNumpad(
                             Icon(
                                 Icons.Default.Fingerprint,
                                 contentDescription = "Biometric",
-                                tint = if (showBiometric) PrimaryGold else Color.Transparent,
+                                tint = if (showBiometric) MaterialTheme.kbSecondary else Color.Transparent,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -316,10 +316,10 @@ fun InlinePinEntry(
                     modifier = Modifier
                         .size(14.dp)
                         .background(
-                            color = if (filled) PrimaryGold else Color.Transparent,
+                            color = if (filled) MaterialTheme.kbPrimary else Color.Transparent,
                             shape = CircleShape
                         )
-                        .border(1.5.dp, if (filled) PrimaryGold else BorderGold, CircleShape)
+                        .border(1.5.dp, if (filled) MaterialTheme.kbPrimary else MaterialTheme.kbOutlineSubtle, CircleShape)
                 )
             }
         }

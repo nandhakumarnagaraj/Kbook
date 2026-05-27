@@ -2,9 +2,9 @@
 
 @include mat.core();
 
-// Define palettes
-$khanabook-primary: mat.m2-define-palette(mat.$m2-orange-palette, 800);
-$khanabook-accent: mat.m2-define-palette(mat.$m2-blue-grey-palette, A200, A100, A400);
+// Define palettes — aligned with Stitch DESIGN.md
+$khanabook-primary: mat.m2-define-palette(mat.$m2-deep-orange-palette, 900);
+$khanabook-accent: mat.m2-define-palette(mat.$m2-blue-palette, 800);
 $khanabook-warn: mat.m2-define-palette(mat.$m2-red-palette);
 
 // Define themes
@@ -45,46 +45,60 @@ $dark-theme: mat.m2-define-dark-theme((
   --muted: #B0A496;
   --line: rgba(247, 243, 238, 0.08);
   --line-strong: rgba(247, 243, 238, 0.16);
-  --brand-soft: rgba(232, 131, 42, 0.1);
-  --brand-glow: rgba(232, 131, 42, 0.2);
+  --brand-soft: rgba(191, 85, 0, 0.1);
+  --brand-glow: rgba(191, 85, 0, 0.2);
   
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+
+  /* DESIGN.md Saffron variables - Dark theme */
+  --brand-saffron: #C85A00;
+  --brand-saffron-light: #E8832A;
+  --brand-saffron-dark: #994500;
+  --brand-saffron-android: #D97706;
+  --warm-cream-bg: #17130F;
+  --white-panel: #211A14;
+  --warm-tan-surface: #332A22;
+  --warm-tan-hover: #3E332A;
+  --warm-orange-hover: #2E1F0D;
+  --deep-brown-ink: #F7F3EE;
+  --warm-brown-secondary: #C1B7AD;
+  --warm-muted: #B0A496;
 }
 
 :root {
-  --bg: #F7F3EE;
+  --bg: #fff8f6;
   --bg-elevated: #ffffff;
-  --panel: #ffffff;
-  --panel-hover: #FDF0E6;
-  --surface: #EAE3DC;
-  --surface-hover: #DDD5CC;
+  --panel: #fff1eb;
+  --panel-hover: #ffeae0;
+  --surface: #fae4da;
+  --surface-hover: #f4ded4;
   
-  --ink: #17130F;
-  --ink-secondary: #5C5248;
-  --muted: #6E6257;
+  --ink: #241913;
+  --ink-secondary: #574237;
+  --muted: #8b7265;
   
-  --line: rgba(23, 19, 15, 0.08);
-  --line-strong: rgba(23, 19, 15, 0.16);
+  --line: rgba(36, 25, 19, 0.08);
+  --line-strong: rgba(36, 25, 19, 0.16);
   
-  --brand: #C85A00;
-  --brand-light: #E8832A;
-  --brand-dark: #994500;
-  --brand-soft: rgba(200, 90, 0, 0.08);
-  --brand-glow: rgba(200, 90, 0, 0.16);
+  --brand: #984300;
+  --brand-light: #bf5500;
+  --brand-dark: #773300;
+  --brand-soft: rgba(152, 67, 0, 0.08);
+  --brand-glow: rgba(152, 67, 0, 0.16);
   
-  --accent: #16A34A;
-  --accent-light: #22C55E;
-  --accent-soft: rgba(22, 163, 74, 0.08);
+  --accent: #005baf;
+  --accent-light: #0074db;
+  --accent-soft: rgba(0, 91, 175, 0.08);
   
-  --danger: #DC2626;
-  --danger-soft: rgba(220, 38, 38, 0.08);
+  --danger: #ba1a1a;
+  --danger-soft: rgba(186, 26, 26, 0.08);
   --warn: #D97706;
   --warn-soft: rgba(217, 119, 6, 0.08);
-  --info: #0284C7;
-  --info-soft: rgba(2, 132, 199, 0.08);
+  --info: #005baf;
+  --info-soft: rgba(0, 91, 175, 0.08);
   --purple: #7c5cdb;
   --purple-soft: rgba(124, 92, 219, 0.1);
 
@@ -92,6 +106,20 @@ $dark-theme: mat.m2-define-dark-theme((
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+  /* DESIGN.md Saffron variables - Light theme */
+  --brand-saffron: #C85A00;
+  --brand-saffron-light: #E8832A;
+  --brand-saffron-dark: #994500;
+  --brand-saffron-android: #D97706;
+  --warm-cream-bg: #F7F3EE;
+  --white-panel: #FFFFFF;
+  --warm-tan-surface: #EAE3DC;
+  --warm-tan-hover: #DDD5CC;
+  --warm-orange-hover: #FDF0E6;
+  --deep-brown-ink: #17130F;
+  --warm-brown-secondary: #5C5248;
+  --warm-muted: #6E6257;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -124,6 +152,11 @@ html, body {
   height: 100%;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.panel, .mat-mdc-card, .mat-mdc-table, th, td, .sidebar {
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
 }
 
 /* Hide scrollbars */
@@ -256,6 +289,16 @@ h1, h2, h3, h4, p { margin-top: 0; }
   border-radius: var(--radius-lg);
 }
 
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ── Modal overscroll containment ── */
 .cdk-overlay-container, .mat-mdc-dialog-container {
   overscroll-behavior: contain;
@@ -297,3 +340,151 @@ h1, h2, h3, h4, p { margin-top: 0; }
 
 
 /* More legacy styles here... but we'll focus on Material migration */
+
+/* ==========================================
+   DESIGN.md SPECIFIC COMPONENT STYLES
+   ========================================== */
+
+/* 1. Button Primary Styling & MDC Override */
+.button-primary {
+  background-color: var(--brand-saffron) !important;
+  color: #FFFFFF !important;
+  border-radius: var(--radius-md) !important; /* 10px */
+  padding: 0 24px !important;
+  height: 48px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease, transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  gap: 8px !important;
+}
+.button-primary:hover {
+  background-color: var(--brand-saffron-dark) !important;
+}
+.button-primary:active {
+  transform: scale(0.97) !important;
+}
+
+/* Deep override for Material primary buttons to keep buttons consistent */
+::ng-deep .mat-mdc-flat-button.mat-primary,
+.mat-mdc-flat-button.mat-primary,
+::ng-deep .mat-mdc-raised-button.mat-primary,
+.mat-mdc-raised-button.mat-primary {
+  background-color: var(--brand-saffron) !important;
+  color: #FFFFFF !important;
+  border-radius: var(--radius-md) !important; /* 10px */
+  height: 48px !important;
+  font-weight: 600 !important;
+  padding: 0 24px !important;
+  transition: background-color 0.2s ease, transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+::ng-deep .mat-mdc-flat-button.mat-primary:hover,
+.mat-mdc-flat-button.mat-primary:hover,
+::ng-deep .mat-mdc-raised-button.mat-primary:hover,
+.mat-mdc-raised-button.mat-primary:hover {
+  background-color: var(--brand-saffron-dark) !important;
+}
+::ng-deep .mat-mdc-flat-button.mat-primary:active,
+.mat-mdc-flat-button.mat-primary:active,
+::ng-deep .mat-mdc-raised-button.mat-primary:active,
+.mat-mdc-raised-button.mat-primary:active {
+  transform: scale(0.97) !important;
+}
+
+/* 2. Stat Cards styling */
+.card-stat {
+  background-color: var(--white-panel) !important;
+  border-radius: var(--radius-xl) !important; /* 18px */
+  padding: 16px !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow-sm) !important;
+  background: linear-gradient(135deg, rgba(200, 90, 0, 0.03) 0%, var(--white-panel) 100%) !important;
+}
+.dark-theme .card-stat {
+  background-color: var(--white-panel) !important; /* Maps to dark-panel under dark mode */
+  background: linear-gradient(135deg, rgba(200, 90, 0, 0.05) 0%, var(--white-panel) 100%) !important;
+}
+
+/* Deep override for stats card in pages */
+::ng-deep .mat-mdc-card.stat-card,
+.mat-mdc-card.stat-card {
+  background-color: var(--white-panel) !important;
+  border-radius: var(--radius-xl) !important; /* 18px */
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow-sm) !important;
+  background: linear-gradient(135deg, rgba(200, 90, 0, 0.03) 0%, var(--white-panel) 100%) !important;
+}
+.dark-theme ::ng-deep .mat-mdc-card.stat-card,
+.dark-theme .mat-mdc-card.stat-card {
+  background-color: var(--white-panel) !important;
+  background: linear-gradient(135deg, rgba(200, 90, 0, 0.05) 0%, var(--white-panel) 100%) !important;
+}
+
+/* 3. Input field styling */
+.input-field {
+  background-color: var(--white-panel) !important;
+  border-radius: var(--radius-sm) !important; /* 6px */
+  padding: 0 12px 0 38px !important;
+  height: 48px !important;
+  border: 1px solid var(--line) !important;
+  color: var(--ink) !important;
+  transition: border-color 0.2s ease !important;
+}
+.input-field:focus {
+  border-color: var(--brand-saffron) !important;
+  outline: none !important;
+}
+
+/* Deep override for Material outline form fields for consistency */
+::ng-deep .mat-mdc-form-field-appearance-outline .mat-mdc-text-field-wrapper {
+  border-radius: var(--radius-sm) !important; /* 6px */
+  height: 48px !important;
+  background-color: var(--white-panel) !important;
+}
+::ng-deep .mat-mdc-form-field-appearance-outline.mat-focused .mdc-notched-outline__leading,
+::ng-deep .mat-mdc-form-field-appearance-outline.mat-focused .mdc-notched-outline__notch,
+::ng-deep .mat-mdc-form-field-appearance-outline.mat-focused .mdc-notched-outline__trailing {
+  border-color: var(--brand-saffron) !important;
+  border-width: 2px !important;
+}
+
+/* 4. Status chips styling */
+.status-chip-active {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #16A34A !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+.status-chip-pending {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  color: #D97706 !important;
+  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+}
+.status-chip-rejected {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  color: #EF4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Deep override for custom status chips on list pages */
+.status-chip.success,
+.status-chip.active {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #16A34A !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+.status-chip.warn,
+.status-chip.pending {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  color: #D97706 !important;
+  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+}
+.status-chip.danger,
+.status-chip.rejected,
+.status-chip.suspended {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  color: #EF4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+}

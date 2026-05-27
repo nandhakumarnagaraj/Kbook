@@ -20,13 +20,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.khanabook.lite.pos.ui.theme.BorderGold
-import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
-import com.khanabook.lite.pos.ui.theme.TextLight
+import com.khanabook.lite.pos.ui.theme.kbBgCard
+import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
+import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.kbTextPrimary
 
+/**
+ * KhanaBook standard dialog.
+ *
+ * Surface colour and border are resolved from MaterialTheme so the dialog
+ * renders correctly in both dark and light mode.
+ */
 @Composable
 fun KhanaBookDialog(
     onDismissRequest: () -> Unit,
@@ -39,50 +45,51 @@ fun KhanaBookDialog(
     actions: @Composable RowScope.() -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
-    val layout = KhanaBookTheme.layout
+    val layout  = KhanaBookTheme.layout
 
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            dismissOnClickOutside = dismissOnClickOutside,
-            dismissOnBackPress = dismissOnBackPress
+            dismissOnClickOutside   = dismissOnClickOutside,
+            dismissOnBackPress      = dismissOnBackPress
         )
     ) {
         Surface(
             modifier = modifier
                 .fillMaxWidth(layout.dialogWidthFraction)
                 .widthIn(max = layout.dialogMaxWidth),
-            shape = RoundedCornerShape(20.dp),
-            color = DarkBrown1,
-            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.35f))
+            shape  = RoundedCornerShape(20.dp),
+            // Theme-aware: white surface in light mode, dark surface in dark mode
+            color  = MaterialTheme.kbBgCard,
+            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = spacing.mediumLarge, vertical = spacing.mediumLarge),
-                verticalArrangement = Arrangement.spacedBy(spacing.medium),
-                horizontalAlignment = Alignment.Start
+                verticalArrangement   = Arrangement.spacedBy(spacing.medium),
+                horizontalAlignment   = Alignment.Start
             ) {
                 if (title != null) {
                     Text(
-                        text = title,
-                        color = PrimaryGold,
+                        text  = title,
+                        color = MaterialTheme.kbSecondary,
                         style = MaterialTheme.typography.titleLarge
                     )
                 }
                 if (message != null) {
                     Text(
-                        text = message,
-                        color = TextLight,
+                        text  = message,
+                        color = MaterialTheme.kbTextPrimary,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
                 content()
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(spacing.small, Alignment.End),
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment     = Alignment.Top
                 ) {
                     actions()
                 }
@@ -91,17 +98,18 @@ fun KhanaBookDialog(
     }
 }
 
-@Preview
+@Preview(name = "Dark",  showBackground = true, backgroundColor = 0xFF060604)
+@Preview(name = "Light", showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 private fun KhanaBookDialogPreview() {
     KhanaBookLiteTheme {
         KhanaBookDialog(
             onDismissRequest = {},
-            title = "Preview Dialog",
+            title   = "Preview Dialog",
             message = "Shared small dialog preview."
         ) {
-            Text("Primary Action", color = PrimaryGold)
-            Text("Secondary Action", color = TextLight)
+            Text("Primary Action",   color = MaterialTheme.kbSecondary)
+            Text("Secondary Action", color = MaterialTheme.kbTextPrimary)
         }
     }
 }

@@ -44,9 +44,12 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import com.khanabook.lite.pos.ui.theme.DangerRed
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
+import com.khanabook.lite.pos.ui.theme.kbPrimary
+import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.kbTertiary
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 
 @Composable
 internal fun AppInfoSection() {
@@ -73,7 +76,7 @@ internal fun AppInfoSection() {
             } catch (_: Exception) {
             }
         }) {
-            Text("Contact Support", color = PrimaryGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
+            Text("Contact Support", color = MaterialTheme.kbTertiary.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -129,7 +132,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(iconSize.medium),
-                        color = PrimaryGold,
+                        color = MaterialTheme.kbSecondary,
                         strokeWidth = 3.dp
                     )
                     Text(loadingMessage, color = TextLight, style = MaterialTheme.typography.bodyMedium)
@@ -162,7 +165,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                     viewModel.cancelLogout()
                 }
             ) {
-                Text("Cancel", color = PrimaryGold)
+                Text("Cancel", color = MaterialTheme.kbTextSecondary)
             }
             TextButton(
                 onClick = {
@@ -208,7 +211,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                     appLockViewModel.clearPin()
                 }
             ) {
-                Text("Cancel", color = PrimaryGold)
+                Text("Cancel", color = MaterialTheme.kbTextSecondary)
             }
         }
         }
@@ -220,7 +223,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
             message = "You will be signed out of this device."
         ) {
             TextButton(onClick = { showConfirmDialog = false }) {
-                Text("Cancel", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+                Text("Cancel", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelLarge)
             }
             TextButton(onClick = { showConfirmDialog = false; viewModel.initiateLogout() }) {
                 Text("Sign Out", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))

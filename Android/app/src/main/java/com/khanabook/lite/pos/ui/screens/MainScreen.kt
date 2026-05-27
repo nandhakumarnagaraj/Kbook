@@ -105,7 +105,7 @@ fun MainScreen(
         // statusBarsPadding() on the content box and navigationBarsPadding() on the NavigationBar
         // handle all insets explicitly instead.
         contentWindowInsets = WindowInsets(0),
-        containerColor = RichEspresso,
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             if (showBottomBar) {
                 AppBottomBar(
@@ -136,7 +136,7 @@ fun AppBottomBar(
     currentSelectedIndex: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    HorizontalDivider(color = BorderGold.copy(alpha = 0.3f), thickness = 0.5.dp)
+    HorizontalDivider(color = MaterialTheme.kbOutlineSubtle, thickness = 0.5.dp)
     NavigationBar(
         containerColor = BottomNavBG,
         modifier = Modifier.navigationBarsPadding(),
@@ -149,11 +149,11 @@ fun AppBottomBar(
                 icon = { Icon(item.icon, contentDescription = null) },
                 label = { Text(item.label, style = MaterialTheme.typography.labelSmall) },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = PrimaryGold,
-                    unselectedIconColor = TextLight.copy(alpha = 0.6f),
-                    selectedTextColor = PrimaryGold,
-                    unselectedTextColor = TextLight.copy(alpha = 0.6f),
-                    indicatorColor = PrimaryGold.copy(alpha = 0.1f)
+                    selectedIconColor = MaterialTheme.kbPrimary,
+                    unselectedIconColor = MaterialTheme.kbTextSecondary,
+                    selectedTextColor = MaterialTheme.kbPrimary,
+                    unselectedTextColor = MaterialTheme.kbTextSecondary,
+                    indicatorColor = MaterialTheme.kbPrimary.copy(alpha = 0.1f)
                 )
             )
         }

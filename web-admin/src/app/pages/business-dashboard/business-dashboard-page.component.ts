@@ -327,15 +327,13 @@ Chart.register(...registerables);
     .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 32px; }
     @media (max-width: 1024px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 600px)  { .stats-grid { grid-template-columns: 1fr; } }
-    .stat-card { 
+    .stat-card {
       position: relative;
       min-width: 0;
-      border-radius: var(--radius-xl) !important; 
-      border: 1px solid var(--line) !important; 
-      background: rgba(255, 255, 255, 0.7) !important;
-      backdrop-filter: blur(16px) saturate(120%) !important;
-      -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
-      box-shadow: var(--shadow-md) !important; 
+      border-radius: var(--radius-xl) !important;
+      border: 1px solid var(--line) !important;
+      background: var(--panel) !important;
+      box-shadow: var(--shadow-md) !important;
       transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
       overflow: hidden;
     }

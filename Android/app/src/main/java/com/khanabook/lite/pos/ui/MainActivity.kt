@@ -43,7 +43,7 @@ import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.TrustedExternalAppReturn
 import com.khanabook.lite.pos.ui.screens.*
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
-import com.khanabook.lite.pos.ui.theme.ThemeState
+import com.khanabook.lite.pos.ui.theme.globalIsDark
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -98,9 +98,9 @@ class MainActivity : FragmentActivity() {
         if (BuildConfig.DEBUG) logWindowAndResources("onCreate")
 
         val initialPrefs = getSharedPreferences("session_prefs", android.content.Context.MODE_PRIVATE)
-        ThemeState.isDark = initialPrefs.getBoolean("is_dark_theme", true)
+        globalIsDark = initialPrefs.getBoolean("is_dark_theme", true)
         androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
-            if (ThemeState.isDark) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+            if (globalIsDark) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
             else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
         )
 

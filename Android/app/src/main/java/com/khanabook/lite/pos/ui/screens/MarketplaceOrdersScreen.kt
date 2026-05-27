@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -158,8 +159,8 @@ fun MarketplaceOrdersScreen(
         Scaffold(
             topBar = {
                 CenterAlignedTopAppBar(
-                    title = { Text("Online Orders", color = PrimaryGold, style = MaterialTheme.typography.titleLarge) },
-                    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold) } },
+                    title = { Text("Online Orders", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleLarge) },
+                    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.kbTextPrimary) } },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
                 )
             },
@@ -176,7 +177,7 @@ fun MarketplaceOrdersScreen(
                 when (val s = state) {
                     is MarketplaceOrdersState.Loading -> {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = PrimaryGold)
+                            CircularProgressIndicator(color = MaterialTheme.kbSecondary)
                         }
                     }
                     is MarketplaceOrdersState.Error -> {
@@ -198,10 +199,10 @@ fun MarketplaceOrdersScreen(
                             Spacer(modifier = Modifier.height(spacing.medium))
                             OutlinedButton(
                                 onClick = { viewModel.loadOrders() },
-                                border = BorderStroke(1.dp, PrimaryGold),
+                                border = BorderStroke(1.dp, MaterialTheme.kbPrimary),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
-                                Text("Retry", color = PrimaryGold)
+                                Text("Retry", color = MaterialTheme.kbPrimary)
                             }
                         }
                     }
@@ -212,13 +213,13 @@ fun MarketplaceOrdersScreen(
                                     Icon(
                                         Icons.Default.ShoppingCart,
                                         contentDescription = null,
-                                        tint = TextGold.copy(alpha = 0.25f),
+                                        tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.25f),
                                         modifier = Modifier.size(56.dp)
                                     )
                                     Spacer(modifier = Modifier.height(spacing.small))
                                     Text(
                                         "No pending marketplace orders",
-                                        color = TextGold.copy(alpha = 0.55f),
+                                        color = MaterialTheme.kbTextSecondary.copy(alpha = 0.55f),
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                 }
@@ -267,12 +268,13 @@ private fun MarketplaceOrderCard(
         isZomato -> ZomatoRed
         else -> Brown500
     }
+    
+    val isPending = order.orderStatus.lowercase() == "pending"
 
-    Surface(
-        onClick = { expanded = !expanded },
-        shape = RoundedCornerShape(14.dp),
-        color = DarkBrown1.copy(alpha = 0.55f),
-        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.18f))
+    // Premium Glassmorphism Marketplace Card
+    KhanaBookGlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { expanded = !expanded }
     ) {
         Column(
             modifier = Modifier
@@ -289,42 +291,53 @@ private fun MarketplaceOrderCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {
+                    // Unified Logo Container
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
-                            .background(platformColor, CircleShape),
+                            .size(40.dp)
+                            .background(platformColor.copy(alpha = 0.1f), CircleShape)
+                            .border(1.dp, platformColor.copy(alpha = 0.3f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (isSwiggy) Icons.Default.Restaurant else Icons.Default.Store,
                             contentDescription = order.platform,
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
+                            tint = platformColor,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     Column {
                         Text(
                             order.platformOrderId,
-                            color = PrimaryGold,
-                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.kbPrimary,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             order.platform,
-                            color = TextGold.copy(alpha = 0.7f),
+                            color = MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
                 }
-                if (isLoading) {
+                
+                if (isPending) {
+                   Box(
+                       modifier = Modifier
+                           .background(KbBrandSaffron.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                           .padding(horizontal = 8.dp, vertical = 4.dp)
+                   ) {
+                       Text("NEW", color = KbBrandSaffron, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
+                   }                    } else if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp,
-                        color = PrimaryGold
+                        color = MaterialTheme.kbPrimary
                     )
                 }
             }
+
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -340,7 +353,7 @@ private fun MarketplaceOrderCard(
                         )
                     }
                     order.customerPhone?.takeIf { it.isNotBlank() }?.let {
-                        Text(it, color = TextGold, style = MaterialTheme.typography.bodySmall)
+                        Text(it, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 Text(
@@ -358,7 +371,7 @@ private fun MarketplaceOrderCard(
                 OrderStatusBadge(order.orderStatus)
                 Text(
                     formatTimestamp(order.createdAt),
-                    color = TextGold.copy(alpha = 0.75f),
+                    color = MaterialTheme.kbTextSecondary.copy(alpha = 0.75f),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -509,17 +522,21 @@ private fun OrderStatusBadge(status: String) {
         "rejected" -> DangerRed
         else -> TextMuted
     }
+    // Stitch label-caps style: uppercase, tracked, glass morph outer border
     Surface(
         color = color.copy(alpha = 0.18f),
         shape = RoundedCornerShape(999.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.28f))
+        border = BorderStroke(1.dp, color.copy(alpha = 0.35f))
     ) {
         Text(
             text = status.uppercase().replace("_", " "),
             color = color,
             textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            ),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
         )
     }
 }
@@ -530,7 +547,7 @@ private fun DetailRow(label: String, value: String) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = TextGold.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
+        Text(label, color = MaterialTheme.kbTextSecondary.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
         Text(value, color = TextLight, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold))
     }
 }

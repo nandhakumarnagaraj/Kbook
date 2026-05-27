@@ -36,11 +36,12 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.VegGreen
+import com.khanabook.lite.pos.ui.theme.kbPrimary
+import com.khanabook.lite.pos.ui.theme.kbSecondary
 
 data class LookupUiState(
     val loading: Boolean = false,
@@ -150,8 +151,8 @@ fun TaxConfigView(
                     onClick = { onLookupFssai(fssaiNumber) },
                     enabled = isFssaiValid && !lookupState.loading,
                     modifier = Modifier.height(56.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbPrimary.copy(alpha = 0.7f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbPrimary),
                     shape = RoundedCornerShape(28.dp)
                 ) {
                     Text("Fetch", style = MaterialTheme.typography.labelLarge)
@@ -191,14 +192,13 @@ fun TaxConfigView(
                     OutlinedButton(
                         onClick = { onLookupGst(gstNumber) },
                         enabled = isGstValid && !lookupState.loading,
-                        modifier = Modifier.height(56.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                        shape = RoundedCornerShape(28.dp)
-                    ) {
-                        Text("Fetch", style = MaterialTheme.typography.labelLarge)
-                    }
+                        modifier = Modifier.height(56.dp),                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbPrimary.copy(alpha = 0.7f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbPrimary),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text("Fetch", style = MaterialTheme.typography.labelLarge)
                 }
+            }
                 Spacer(modifier = Modifier.height(spacing.small))
                 ParchmentTextField(
                     value = gstPct,
@@ -217,8 +217,8 @@ fun TaxConfigView(
                     onClick = { onLookupBoth(gstNumber, fssaiNumber) },
                     enabled = !lookupState.loading,
                     modifier = Modifier.fillMaxWidth().height(48.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbPrimary.copy(alpha = 0.7f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbPrimary),
                     shape = RoundedCornerShape(24.dp)
                 ) {
                     Text("Fetch Both (GST + FSSAI)", style = MaterialTheme.typography.labelLarge)
@@ -232,7 +232,7 @@ fun TaxConfigView(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    CircularProgressIndicator(color = PrimaryGold, modifier = Modifier.height(24.dp))
+                    CircularProgressIndicator(color = MaterialTheme.kbSecondary, modifier = Modifier.height(24.dp))
                     Spacer(modifier = Modifier.width(spacing.small))
                     Text("Looking up…", color = TextGold)
                 }
@@ -268,8 +268,8 @@ fun TaxConfigView(
                 OutlinedButton(
                     onClick = onBack,
                     modifier = Modifier.weight(1f).height(56.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbPrimary.copy(alpha = 0.7f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbPrimary),
                     shape = RoundedCornerShape(28.dp)
                 ) {
                     Text("Back", style = MaterialTheme.typography.titleMedium)

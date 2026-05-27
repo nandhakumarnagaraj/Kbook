@@ -268,7 +268,7 @@ private fun DisplayScaleView(viewModel: SettingsViewModel) {
                     scaleLabels.forEachIndexed { i, label ->
                         Text(
                             text = label,
-                            color = if (i == sliderIndex) PrimaryGold else TextGold.copy(alpha = 0.5f),
+                            color = if (i == sliderIndex) MaterialTheme.kbPrimary else TextGold.copy(alpha = 0.5f),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = if (i == sliderIndex) FontWeight.Bold else FontWeight.Normal
                         )
@@ -282,8 +282,8 @@ private fun DisplayScaleView(viewModel: SettingsViewModel) {
                     steps = 0,
                     modifier = Modifier.fillMaxWidth(),
                     colors = SliderDefaults.colors(
-                        thumbColor = PrimaryGold,
-                        activeTrackColor = PrimaryGold,
+                        thumbColor = MaterialTheme.kbPrimary,
+                        activeTrackColor = MaterialTheme.kbPrimary,
                         inactiveTrackColor = BorderGold.copy(alpha = 0.3f)
                     )
                 )
@@ -311,7 +311,7 @@ private fun DisplayScaleView(viewModel: SettingsViewModel) {
                         Spacer(modifier = Modifier.height(spacing.hairline))
                         Text(
                             "₹ 100.00",
-                            color = PrimaryGold,
+                            color = MaterialTheme.kbSecondary,
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Text(

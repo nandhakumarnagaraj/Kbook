@@ -32,6 +32,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
@@ -193,7 +194,7 @@ fun MenuConfigurationScreen(
                                 "manual" -> "Manual Entry"
                                 else -> "Menu Configuration"
                             },
-                            color = PrimaryGold,
+                            color = MaterialTheme.kbSecondary,
                             style = MaterialTheme.typography.titleLarge
                         )
                         if (ocrUiState.configMode == "manual") {
@@ -207,7 +208,7 @@ fun MenuConfigurationScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PrimaryGold)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.kbSecondary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.kbBgPrimary)
@@ -329,7 +330,7 @@ fun ReviewDetectedItemsScreen(
                         modifier = Modifier
                             .width(40.dp)
                             .height(4.dp)
-                            .background(PrimaryGold.copy(alpha = 0.4f), CircleShape)
+                            .background(MaterialTheme.kbSecondary.copy(alpha = 0.4f), CircleShape)
                     )
                 }
 
@@ -342,7 +343,7 @@ fun ReviewDetectedItemsScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     "Review Detected Items",
-                                    color = PrimaryGold,
+                                    color = MaterialTheme.kbSecondary,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -394,12 +395,11 @@ fun ReviewDetectedItemsScreen(
                                         modifier = Modifier
                                             .size(ReviewSheetLayout.CHECKBOX_WIDTH)
                                             .clip(RoundedCornerShape(6.dp))
-                                            .background(
-                                                if (allInCategorySelected) PrimaryGold else Color.Transparent
-                                            )
-                                            .border(
-                                                1.5.dp,
-                                                if (allInCategorySelected) PrimaryGold else TextGold.copy(alpha = 0.5f),
+                                            .background(                                if (allInCategorySelected) MaterialTheme.kbPrimary else Color.Transparent
+                            )
+                            .border(
+                                1.5.dp,
+                                if (allInCategorySelected) MaterialTheme.kbPrimary else TextGold.copy(alpha = 0.5f),
                                                 RoundedCornerShape(6.dp)
                                             )
                                             .clickable {
@@ -426,7 +426,7 @@ fun ReviewDetectedItemsScreen(
 
                                     Text(
                                         categoryName.uppercase(),
-                                        color = PrimaryGold,
+                                        color = MaterialTheme.kbSecondary,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         modifier = Modifier.weight(1f)
@@ -475,7 +475,7 @@ fun ReviewDetectedItemsScreen(
                                 onClick = onConfirm,
                                 enabled = selectedCount > 0,
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = PrimaryGold,
+                                    containerColor = KbBrandSaffron,
                                     contentColor = DarkBrown1
                                 ),
                                 modifier = Modifier.weight(2f).height(56.dp),
@@ -552,7 +552,7 @@ internal fun ReviewDetectedItemsOverlay(
                         modifier = Modifier
                             .width(40.dp)
                             .height(4.dp)
-                            .background(PrimaryGold.copy(alpha = 0.4f), CircleShape)
+                            .background(MaterialTheme.kbSecondary.copy(alpha = 0.4f), CircleShape)
                     )
                 }
 
@@ -565,7 +565,7 @@ internal fun ReviewDetectedItemsOverlay(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             "Review Detected Items",
-                            color = PrimaryGold,
+                            color = MaterialTheme.kbSecondary,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -630,10 +630,11 @@ internal fun ReviewDetectedItemsOverlay(
                                     modifier = Modifier
                                         .size(ReviewSheetLayout.CHECKBOX_WIDTH)
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(if (allInCategorySelected) PrimaryGold else Color.Transparent)
-                                        .border(
-                                            1.5.dp,
-                                            if (allInCategorySelected) PrimaryGold else TextGold.copy(alpha = 0.5f),
+                                        .background(                                        if (allInCategorySelected) MaterialTheme.kbPrimary else Color.Transparent
+                                    )
+                                    .border(
+                                        1.5.dp,
+                                        if (allInCategorySelected) MaterialTheme.kbPrimary else TextGold.copy(alpha = 0.5f),
                                             RoundedCornerShape(6.dp)
                                         )
                                         .clickable {
@@ -660,7 +661,7 @@ internal fun ReviewDetectedItemsOverlay(
 
                                 Text(
                                     categoryName.uppercase(),
-                                    color = PrimaryGold,
+                                    color = MaterialTheme.kbSecondary,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     modifier = Modifier.weight(1f)
@@ -690,7 +691,7 @@ internal fun ReviewDetectedItemsOverlay(
                         primaryLabel = "Discard",
                         primaryColor = NonVegRed,
                         secondaryLabel = "Keep Editing",
-                        secondaryColor = PrimaryGold,
+                        secondaryColor = MaterialTheme.kbTertiary,
                         onPrimaryClick = {
                             showDiscardConfirm = false
                             onDismiss()
@@ -736,14 +737,13 @@ internal fun ReviewDetectedItemsOverlay(
                                 showDiscardConfirm = false
                                 onConfirm()
                             },
-                            enabled = selectedCount > 0,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PrimaryGold,
-                                contentColor = DarkBrown1
-                            ),
-                            modifier = Modifier
-                                .weight(2f)
-                                .height(56.dp)
+                            enabled = selectedCount > 0,                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = KbBrandSaffron,
+                                    contentColor = DarkBrown1
+                                ),
+                                modifier = Modifier
+                                    .weight(2f)
+                                    .height(56.dp)
                                 .testTag(MenuConfigurationTags.reviewOverlayConfirm),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -800,7 +800,7 @@ private fun InlineDecisionBar(
                 .padding(horizontal = 20.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(title, color = PrimaryGold, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+            Text(title, color = MaterialTheme.kbSecondary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
             Text(message, color = TextLight, style = MaterialTheme.typography.bodySmall)
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -931,11 +931,11 @@ fun DraftItemRow(
                     .size(ReviewSheetLayout.CHECKBOX_WIDTH)
                     .clip(RoundedCornerShape(6.dp))
                     .background(
-                        if (draft.isSelected) PrimaryGold else Color.Transparent
+                        if (draft.isSelected) MaterialTheme.kbPrimary else Color.Transparent
                     )
                     .border(
                         1.2.dp,
-                        if (draft.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
+                        if (draft.isSelected) MaterialTheme.kbPrimary else TextGold.copy(alpha = 0.4f),
                         RoundedCornerShape(6.dp)
                     ),
                 contentAlignment = Alignment.Center
@@ -986,7 +986,7 @@ fun DraftItemRow(
                         fontWeight = FontWeight.Bold,
                         textDecoration = if (!draft.isSelected) TextDecoration.LineThrough else null
                     ),
-                    cursorBrush = SolidColor(PrimaryGold),
+                    cursorBrush = SolidColor(MaterialTheme.kbPrimary),
                     modifier = Modifier.onFocusChanged {
                         if (it.isFocused) scope.launch { rowRequester.bringIntoView() }
                     }
@@ -995,18 +995,17 @@ fun DraftItemRow(
                 BasicTextField(
                     value = draft.categoryName ?: "",
                     onValueChange = { onUpdateDraft(draft.copy(categoryName = it.ifBlank { null })) },
-                    textStyle = TextStyle(
-                        color = PrimaryGold.copy(alpha = 0.6f),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    decorationBox = { innerTextField ->
-                        if (draft.categoryName.isNullOrBlank()) {
-                            Text("No Category", color = PrimaryGold.copy(alpha = 0.2f), fontSize = 11.sp)
+                    textStyle = TextStyle(color = MaterialTheme.kbSecondary.copy(alpha = 0.6f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        decorationBox = { innerTextField ->
+                            if (draft.categoryName.isNullOrBlank()) {
+                                Text("No Category", color = MaterialTheme.kbSecondary.copy(alpha = 0.2f), fontSize = 11.sp)
                         }
                         innerTextField()
                     },
-                    cursorBrush = SolidColor(PrimaryGold),
+                    cursorBrush = SolidColor(MaterialTheme.kbPrimary),
                     modifier = Modifier.onFocusChanged {
                         if (it.isFocused) scope.launch { rowRequester.bringIntoView() }
                     }
@@ -1023,7 +1022,7 @@ fun DraftItemRow(
                         .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("₹", color = PrimaryGold.copy(alpha = 0.8f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("₹", color = MaterialTheme.kbSecondary.copy(alpha = 0.8f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     BasicTextField(
                         value = if (draft.price == 0.0) "" else {
                             val i = draft.price.toLong()
@@ -1039,7 +1038,7 @@ fun DraftItemRow(
                             textAlign = TextAlign.End,
                             fontWeight = FontWeight.Bold
                         ),
-                        cursorBrush = SolidColor(PrimaryGold),
+                        cursorBrush = SolidColor(MaterialTheme.kbPrimary),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f).onFocusChanged {
                             if (it.isFocused) scope.launch { rowRequester.bringIntoView() }
@@ -1066,11 +1065,11 @@ fun DraftItemRow(
                                 .size(20.dp)
                                 .clip(RoundedCornerShape(5.dp))
                                 .background(
-                                    if (variant.isSelected) PrimaryGold.copy(alpha = 0.8f) else Color.Transparent
+                                    if (variant.isSelected) MaterialTheme.kbPrimary.copy(alpha = 0.8f) else Color.Transparent
                                 )
                                 .border(
                                     1.dp,
-                                    if (variant.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
+                                    if (variant.isSelected) MaterialTheme.kbPrimary else TextGold.copy(alpha = 0.4f),
                                     RoundedCornerShape(5.dp)
                                 )
                                 .clickable {
@@ -1104,7 +1103,7 @@ fun DraftItemRow(
                                 fontSize = 12.sp,
                                 textDecoration = if (!variant.isSelected) TextDecoration.LineThrough else null
                             ),
-                            cursorBrush = SolidColor(PrimaryGold),
+                            cursorBrush = SolidColor(MaterialTheme.kbPrimary),
                             modifier = Modifier.weight(1f).onFocusChanged {
                                 if (it.isFocused) scope.launch { rowRequester.bringIntoView() }
                             }
@@ -1117,7 +1116,7 @@ fun DraftItemRow(
                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("₹", color = PrimaryGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("₹", color = MaterialTheme.kbSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             BasicTextField(
                                 value = if (variant.price == 0.0) "" else {
                                     val i = variant.price.toLong()
@@ -1133,7 +1132,7 @@ fun DraftItemRow(
                                     fontSize = 11.sp,
                                     textAlign = TextAlign.End
                                 ),
-                                cursorBrush = SolidColor(PrimaryGold),
+                                cursorBrush = SolidColor(MaterialTheme.kbPrimary),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f).onFocusChanged {
                                     if (it.isFocused) scope.launch { rowRequester.bringIntoView() }
@@ -1168,33 +1167,27 @@ fun ModeSelectionView(
             .padding(horizontal = spacing.medium, vertical = spacing.medium),
         verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
-        // Dashboard Stats
+        // Dashboard Stats with Glassmorphism
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Card(
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = CardBG),
-                border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f)),
-                shape = RoundedCornerShape(12.dp)
+            KhanaBookGlassCard(
+                modifier = Modifier.weight(1f)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Categories", color = TextGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
+                    Text("Categories", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.labelMedium)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("$totalCategoriesCount", color = PrimaryGold, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text("$totalCategoriesCount", color = KbBrandSaffron, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
                 }
             }
-            Card(
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = CardBG),
-                border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f)),
-                shape = RoundedCornerShape(12.dp)
+            KhanaBookGlassCard(
+                modifier = Modifier.weight(1f)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Total Items", color = TextGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
+                    Text("Total Items", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.labelMedium)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("$totalItemsCount", color = PrimaryGold, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text("$totalItemsCount", color = KbBrandSaffron, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
                 }
             }
         }
@@ -1202,33 +1195,37 @@ fun ModeSelectionView(
         Spacer(modifier = Modifier.height(spacing.small))
 
         Text(
-            "How would you like to add items?",
-            color = PrimaryGold,
+            "Configure Menu",
+            color = TextLight,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
 
-        // 1. Manual Entry (View & Edit)
-        Card(
+        // 1. Manual Entry (View & Edit) - Redesigned with Glassmorphism
+        KhanaBookGlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag(MenuConfigurationTags.manualEntryCard),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.35f))
+                .testTag(MenuConfigurationTags.manualEntryCard)
         ) {
             Column {
                 Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
-                    Surface(color = PrimaryGold.copy(alpha = 0.18f), shape = CircleShape, modifier = Modifier.size(iconSize.avatar)) {
-                        Icon(Icons.Default.Edit, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .background(KbBrandSaffron.copy(alpha = 0.1f), CircleShape)
+                            .border(1.dp, KbBrandSaffron.copy(alpha = 0.2f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Edit, null, tint = KbBrandSaffron, modifier = Modifier.size(24.dp))
                     }
                     Spacer(modifier = Modifier.width(spacing.medium))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Manual Entry", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("Add, view & Edit items one by one", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                        Text("Add, view & edit items one by one", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
-                HorizontalDivider(color = BorderGold.copy(alpha = 0.1f), modifier = Modifier.padding(horizontal = 20.dp))
+                HorizontalDivider(color = KbBrandSaffron.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 20.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1257,34 +1254,42 @@ fun ModeSelectionView(
             }
         }
 
-        // 2. Smart AI
-        Card(
+        // 2. Smart AI - Redesigned with Saffron Glow
+        KhanaBookGlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag(MenuConfigurationTags.smartAiCard),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
-            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.5f))
+                .testTag(MenuConfigurationTags.smartAiCard)
         ) {
             Column {
                 Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
-                    Surface(color = PrimaryGold.copy(alpha = 0.2f), shape = CircleShape, modifier = Modifier.size(iconSize.avatar)) {
-                        Icon(Icons.Default.AutoAwesome, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .background(
+                                Brush.radialGradient(
+                                    listOf(KbBrandSaffron.copy(alpha = 0.2f), Color.Transparent)
+                                ), CircleShape
+                            )
+                            .border(1.5.dp, KbBrandSaffron, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.AutoAwesome, null, tint = KbBrandSaffron, modifier = Modifier.size(24.dp))
                     }
                     Spacer(modifier = Modifier.width(spacing.medium))
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Smart AI", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("Smart AI Import", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Surface(color = PrimaryGold, shape = RoundedCornerShape(4.dp)) {
-                                Text("AI", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = DarkBrown1)
+                            Surface(color = KbBrandSaffron, shape = RoundedCornerShape(4.dp)) {
+                                Text("MAGICAL", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.Black)
                             }
                         }
-                        Text("Extract from camera gallery, pdf.", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                        Text("Extract from camera, gallery, or PDF", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
                 Column {
-                    HorizontalDivider(color = BorderGold.copy(alpha = 0.1f), modifier = Modifier.padding(horizontal = 20.dp))
+                    HorizontalDivider(color = KbBrandSaffron.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 20.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1313,20 +1318,27 @@ fun ModeSelectionView(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    Text(
-                        text = "AI can make mistakes.please view before saving..",
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center,
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
-                    )
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .background(KbBrandSaffron.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = "AI might make mistakes. Please review before saving.",
+                            color = KbBrandSaffron.copy(alpha = 0.8f),
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun SmartAIOption(
@@ -1349,9 +1361,9 @@ fun SmartAIOption(
             color = DarkBrown1,
             shape = CircleShape,
             modifier = Modifier.size(44.dp),
-            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.2f))
+            border = BorderStroke(1.dp, MaterialTheme.kbSecondary.copy(alpha = 0.2f))
         ) {
-            Icon(icon, null, tint = PrimaryGold, modifier = Modifier.padding(12.dp))
+            Icon(icon, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.padding(12.dp))
         }
         Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.small))
         Text(
@@ -1434,8 +1446,8 @@ fun ManualMenuView(
                 Surface(
                     onClick = { onCategorySelect(category.id) },
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isSelected) PrimaryGold else MaterialTheme.kbBgCard,
-                    border = BorderStroke(1.dp, if (isSelected) PrimaryGold else BorderGold.copy(alpha = 0.3f)),
+                    color = if (isSelected) MaterialTheme.kbPrimary else MaterialTheme.kbBgCard,
+                    border = BorderStroke(1.dp, if (isSelected) MaterialTheme.kbPrimary else BorderGold.copy(alpha = 0.3f)),
                     contentColor = if (isSelected) DarkBrown1 else TextLight
                 ) {
                     Row(
@@ -1471,7 +1483,7 @@ fun ManualMenuView(
                     onClick = { showAddCategoryDialog = true },
                     modifier = Modifier.testTag(MenuConfigurationTags.addCategoryButton)
                 ) {
-                    Icon(Icons.Default.Add, null, tint = PrimaryGold)
+                    Icon(Icons.Default.Add, null, tint = MaterialTheme.kbSecondary)
                 }
             }
         }
@@ -1490,11 +1502,11 @@ fun ManualMenuView(
                     Box(
                         modifier = Modifier
                             .size(KhanaBookTheme.iconSize.heroCircle)
-                            .background(PrimaryGold.copy(alpha = 0.1f), CircleShape)
-                            .border(1.dp, PrimaryGold.copy(alpha = 0.3f), CircleShape),
+                            .background(MaterialTheme.kbSecondary.copy(alpha = 0.1f), CircleShape)
+                            .border(1.dp, MaterialTheme.kbSecondary.copy(alpha = 0.3f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Add, null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
+                        Icon(Icons.Default.Add, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
                     }
                     Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.medium))
                     Text(
@@ -1585,7 +1597,7 @@ fun ManualMenuView(
                             .fillMaxWidth()
                             .testTag(MenuConfigurationTags.addItemButton),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryGold,
+                            containerColor = KbBrandSaffron,
                             contentColor = DarkBrown1
                         ),
                         enabled = selectedCategoryId != null,
@@ -1620,8 +1632,7 @@ fun ManualMenuView(
                     )
                     pendingOverwrite = null
                 }
-            ) {
-                Text("Overwrite", color = PrimaryGold)
+            ) {                    Text("Overwrite", color = MaterialTheme.kbPrimary)
             }
         }
     }
@@ -1754,7 +1765,7 @@ fun MenuItemRow(
             KhanaBookSwitch(
                 checked = item.isAvailable,
                 onCheckedChange = { onToggleAvailability(item.id, it) },
-                checkedTrackColor = PrimaryGold,
+                checkedTrackColor = MaterialTheme.kbPrimary,
                 checkedThumbColor = BrownSelected
             )
         }
@@ -1779,7 +1790,7 @@ fun CategoryEditDialog(
                 onValueChange = { name = it },
                 label = { Text("Category Name", color = TextGold) },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PrimaryGold,
+                    focusedBorderColor = MaterialTheme.kbPrimary,
                     unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
                     focusedTextColor = TextLight,
                     unfocusedTextColor = TextLight
@@ -1798,7 +1809,7 @@ fun CategoryEditDialog(
             onClick = { if (name.isNotBlank()) onConfirm(name) },
             enabled = name.isNotBlank()
         ) {
-            Text("Save", color = PrimaryGold)
+            Text("Save", color = MaterialTheme.kbPrimary)
         }
     }
 }
@@ -1851,7 +1862,7 @@ fun ItemEditDialog(
                     label = { Text("Item Name", color = TextGold) },
                     isError = nameError != null,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PrimaryGold,
+                        focusedBorderColor = MaterialTheme.kbPrimary,
                         unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
                         focusedTextColor = TextLight,
                         unfocusedTextColor = TextLight
@@ -1875,7 +1886,7 @@ fun ItemEditDialog(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         isError = priceError != null,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryGold,
+                            focusedBorderColor = MaterialTheme.kbPrimary,
                             unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
                             focusedTextColor = TextLight,
                             unfocusedTextColor = TextLight
@@ -1918,7 +1929,7 @@ fun ItemEditDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Variants", color = PrimaryGold, fontWeight = FontWeight.Bold)
+                    Text("Variants", color = MaterialTheme.kbSecondary, fontWeight = FontWeight.Bold)
                     TextButton(onClick = { showAddVariantDialog = true }) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
                         Text("Add Variant", fontSize = 12.sp)
@@ -2008,7 +2019,7 @@ fun ItemEditDialog(
                 }
             }
         ) {
-            Text("Save", color = PrimaryGold)
+            Text("Save", color = MaterialTheme.kbPrimary)
         }
     }
 
@@ -2050,7 +2061,7 @@ fun ItemEditDialog(
                     }
                 }
             }) {
-                Text("Add", color = PrimaryGold)
+                Text("Add", color = MaterialTheme.kbPrimary)
             }
         }
     }

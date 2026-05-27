@@ -100,7 +100,7 @@ fun SplashScreen(
                         }
                         .border(
                             width = 1.dp,
-                            color = PrimaryGold.copy(alpha = 0.28f),
+                            color = KbBrandSaffron.copy(alpha = 0.28f),
                             shape = CircleShape
                         )
                 ) {
@@ -119,7 +119,7 @@ fun SplashScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.khanabook_logo),
+                            painter = painterResource(id = R.drawable.ic_khanabook_logo),
                             contentDescription = stringResource(id = R.string.cd_logo),
                             modifier = Modifier
                                 .fillMaxSize()
@@ -131,9 +131,8 @@ fun SplashScreen(
                 Spacer(modifier = Modifier.height(spacing.large))
 
                 Text(
-                    text = stringResource(id = R.string.khanabook),
-                    color = PrimaryGold,
-                    style = MaterialTheme.typography.displayMedium,
+                    text = stringResource(id = R.string.khanabook),color = KbBrandSaffron,
+                            style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(spacing.medium))

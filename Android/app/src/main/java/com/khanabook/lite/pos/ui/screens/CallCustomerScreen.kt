@@ -70,14 +70,14 @@ fun CallCustomerScreen(
             topBar = {
                 CenterAlignedTopAppBar(
                         title = {
-                            Text("Call Customer", color = PrimaryGold, style = MaterialTheme.typography.titleLarge)
+                            Text("Call Customer", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleLarge)
                         },
                         navigationIcon = {
                             IconButton(onClick = onBack) {
                                 Icon(
                                         Icons.AutoMirrored.Filled.ArrowBack,
                                         contentDescription = null,
-                                        tint = PrimaryGold
+                                        tint = MaterialTheme.kbTextPrimary
                                 )
                             }
                         },
@@ -87,7 +87,7 @@ fun CallCustomerScreen(
                                     Icon(
                                             Icons.Default.Close,
                                             contentDescription = "Clear",
-                                            tint = PrimaryGold
+                                            tint = MaterialTheme.kbTextSecondary
                                     )
                                 }
                             }
@@ -113,7 +113,7 @@ fun CallCustomerScreen(
             TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = MaterialTheme.kbBgCard,
-                    contentColor = PrimaryGold,
+                    contentColor = MaterialTheme.kbSecondary,
                     divider = {}
             ) {
                 Tab(
@@ -173,7 +173,7 @@ fun CallCustomerScreen(
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                         enabled = dailyId.isNotEmpty()
                 ) {
@@ -216,13 +216,13 @@ fun CallCustomerScreen(
                             lifetimeId.toLongOrNull()?.let { viewModel.searchByLifetimeId(it) }
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                         enabled = lifetimeId.isNotEmpty()
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1, modifier = Modifier.size(iconSize.small))
+                    Icon(Icons.Default.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                     Spacer(modifier = Modifier.width(spacing.small))
-                    Text("Search Customer", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                    Text("Search Customer", color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 } // closes Button
               } // closes else
              } // closes Column
@@ -246,14 +246,14 @@ fun CallCustomerScreen(
                         Surface(
                                 modifier = Modifier.size(iconSize.heroCircle),
                                 shape = androidx.compose.foundation.shape.CircleShape,
-                                color = PrimaryGold.copy(alpha = 0.1f)
+                                color = MaterialTheme.kbSecondary.copy(alpha = 0.1f)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 val name = currentResult.bill.customerName
                                 val initial = if (name.isNullOrBlank() || name == "Walking Customer") "G" else name.take(1).uppercase()
                                 Text(
                                         text = initial,
-                                        color = PrimaryGold,
+                                        color = MaterialTheme.kbSecondary,
                                         style = MaterialTheme.typography.headlineLarge
                                 )
                             }
@@ -269,7 +269,7 @@ fun CallCustomerScreen(
 
                         Text(
                                 text = "Phone: ${currentResult.bill.customerWhatsapp ?: "Not Provided"}",
-                                color = TextGold,
+                                color = MaterialTheme.kbSecondary,
                                 style = MaterialTheme.typography.bodyLarge
                         )
 
@@ -277,7 +277,7 @@ fun CallCustomerScreen(
 
                         Text(
                                 text = "Last Order: #${currentResult.bill.dailyOrderDisplay.split("-").last()} on ${DateUtils.formatDateOnly(currentResult.bill.createdAt)}",
-                                color = TextGold.copy(alpha = 0.7f),
+                                color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f),
                                 style = MaterialTheme.typography.labelSmall
                         )
 
@@ -312,13 +312,13 @@ fun CallCustomerScreen(
                             Icon(
                                     Icons.Default.Call,
                                     contentDescription = null,
-                                    tint = TextGold.copy(alpha = 0.3f),
+                                    tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.3f),
                                     modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
                             )
                             Spacer(modifier = Modifier.height(spacing.medium))
                             Text(
                                     "Enter order details to find customer",
-                                    color = TextGold.copy(alpha = 0.5f),
+                                    color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
                                     style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -335,8 +335,8 @@ private fun outlinedSearchFieldColors() =
     OutlinedTextFieldDefaults.colors(
         focusedTextColor = TextLight,
         unfocusedTextColor = TextLight,
-        focusedBorderColor = PrimaryGold,
-        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-        focusedLabelColor = PrimaryGold,
-        unfocusedLabelColor = TextGold
+        focusedBorderColor = MaterialTheme.kbSecondary,
+        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
+        focusedLabelColor = MaterialTheme.kbSecondary,
+        unfocusedLabelColor = MaterialTheme.kbTextSecondary
     )

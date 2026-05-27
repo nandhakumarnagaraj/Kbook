@@ -13,9 +13,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { formatDate } from '../../shared/formatters';
+import { EmptyStateComponent } from '../../shared/empty-state.component';
 
 interface CommissionRecord {
   id: number;
@@ -27,23 +29,93 @@ interface CommissionRecord {
 }
 
 @Component({
+  selector: 'app-commission-edit-dialog',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatProgressSpinnerModule
+  ],
+  template: `
+    <h2 mat-dialog-title>Edit Commission Rate</h2>
+    <mat-dialog-content>
+      <p class="dialog-subtitle">
+        Set the platform commission rate for <strong>{{ data.businessName }}</strong>.
+      </p>
+      
+      <div class="form-container">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Commission Rate (%)</mat-label>
+          <input matInput type="number" step="0.01" min="0" max="100" [(ngModel)]="editRate" [disabled]="saving()">
+          <span matSuffix>%</span>
+          <mat-hint>Percentage taken from each successful transaction.</mat-hint>
+        </mat-form-field>
+      </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close [disabled]="saving()">Cancel</button>
+      <button mat-flat-button color="primary" (click)="save()" [disabled]="saving() || editRate < 0 || editRate > 100">
+        <span *ngIf="!saving()">Save Changes</span>
+        <mat-spinner *ngIf="saving()" diameter="20" color="accent"></mat-spinner>
+      </button>
+    </mat-dialog-actions>
+  `,
+  styles: [`
+    .dialog-subtitle { color: var(--muted); margin-bottom: 24px; font-size: 0.95rem; }
+    .form-container { padding-top: 8px; }
+    .full-width { width: 100%; }
+  `]
+})
+export class CommissionEditDialogComponent {
+  readonly dialogRef = inject(MatDialogRef<CommissionEditDialogComponent>);
+  readonly data = inject<{ id: number, businessName: string, currentRate: number }>(MAT_DIALOG_DATA);
+  readonly api = inject(AdminApiService);
+  readonly destroyRef = inject(DestroyRef);
+  readonly snackBar = inject(MatSnackBar);
+
+  editRate = this.data.currentRate;
+  saving = signal(false);
+
+  save(): void {
+    if (this.editRate < 0 || this.editRate > 100) return;
+    
+    this.saving.set(true);
+    this.api.updateCommission(this.data.id, this.editRate).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.snackBar.open('Commission rate updated successfully.', 'Close', { duration: 3000 });
+        this.dialogRef.close(true);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.snackBar.open('Failed to update commission rate.', 'Close', { duration: 5000 });
+      }
+    });
+  }
+}
+
+@Component({
   selector: 'app-commission-config-page',
   standalone: true,
   imports: [
     CommonModule, 
-    FormsModule,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatDividerModule,
-    MatChipsModule
+    MatTooltipModule,
+    MatDialogModule,
+    EmptyStateComponent
   ],
   template: `
     <div class="page-container">
@@ -53,26 +125,27 @@ interface CommissionRecord {
           <p class="page-subtitle">Manage commission rates for all sub-merchants across the platform.</p>
         </div>
         <div class="header-actions">
-           <button mat-icon-button (click)="loadCommissions()" matTooltip="Refresh Data" aria-label="Refresh commission data">
+           <button mat-flat-button color="primary" (click)="loadCommissions()" [disabled]="!loaded()" aria-label="Refresh commission data">
             <mat-icon>refresh</mat-icon>
+            Refresh
           </button>
         </div>
       </div>
 
-      <div class="table-container mat-elevation-z2">
-        <div class="loading-shade" *ngIf="!loaded()">
+      <mat-card class="table-card mat-elevation-z1">
+        <div class="loading-overlay" *ngIf="!loaded()">
           <mat-spinner diameter="40"></mat-spinner>
         </div>
 
-        <table mat-table [dataSource]="dataSource" matSort>
+        <table mat-table [dataSource]="dataSource" matSort *ngIf="dataSource.data.length > 0 || !loaded()">
           <ng-container matColumnDef="businessName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Business Name </th>
-            <td mat-cell *matCellDef="let rec"> <strong>{{ rec.businessName }}</strong> </td>
+            <td mat-cell *matCellDef="let rec"> <strong class="business-name">{{ rec.businessName }}</strong> </td>
           </ng-container>
 
           <ng-container matColumnDef="subMerchantId">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Sub-Merchant ID </th>
-            <td mat-cell *matCellDef="let rec"> <code>{{ rec.subMerchantId || '-' }}</code> </td>
+            <td mat-cell *matCellDef="let rec"> <code class="mono-code">{{ rec.subMerchantId || '-' }}</code> </td>
           </ng-container>
 
           <ng-container matColumnDef="status">
@@ -85,101 +158,84 @@ interface CommissionRecord {
           </ng-container>
 
           <ng-container matColumnDef="commissionRate">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header> Commission Rate </th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Rate </th>
             <td mat-cell *matCellDef="let rec">
-              <div class="commission-cell">
-                <span *ngIf="editingId() !== rec.id" class="rate-value">
-                  {{ rec.commissionRate }}%
-                </span>
-                
-                <div class="edit-inline" *ngIf="editingId() === rec.id">
-                  <mat-form-field appearance="outline" class="inline-field">
-                    <input matInput type="number" step="0.01" min="0" max="100" [(ngModel)]="editRate">
-                    <span matSuffix>%</span>
-                  </mat-form-field>
-                  <button mat-icon-button color="primary" (click)="saveCommission(rec.id)" [disabled]="saving()" aria-label="Save commission">
-                    <mat-icon>check</mat-icon>
-                  </button>
-                  <button mat-icon-button color="warn" (click)="cancelEdit()" aria-label="Cancel edit">
-                    <mat-icon>close</mat-icon>
-                  </button>
-                </div>
-
-                <button mat-icon-button *ngIf="editingId() !== rec.id" (click)="startEdit(rec)" aria-label="Edit commission">
-                  <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
-                </button>
-              </div>
+              <span class="rate-value">{{ rec.commissionRate }}%</span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="updatedAt">
             <th mat-header-cell *matHeaderCellDef mat-sort-header> Last Updated </th>
-            <td mat-cell *matCellDef="let rec"> {{ formatDateVal(rec.updatedAt) }} </td>
+            <td mat-cell *matCellDef="let rec" class="tabular-nums text-muted"> {{ formatDateVal(rec.updatedAt) }} </td>
+          </ng-container>
+          
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="actions-header"> Actions </th>
+            <td mat-cell *matCellDef="let rec" class="actions-cell">
+              <button mat-icon-button color="primary" (click)="openEditDialog(rec)" aria-label="Edit commission" matTooltip="Edit Rate">
+                <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+              </button>
+            </td>
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="hover-row"></tr>
         </table>
 
-        <div class="empty-state" *ngIf="loaded() && !dataSource.data.length">
-          <mat-icon>inbox</mat-icon>
-          <p>No commission records found.</p>
-        </div>
+        <app-empty-state 
+            *ngIf="loaded() && !dataSource.data.length"
+            icon="monetization_on"
+            title="No Commission Records"
+            message="There are no sub-merchants available for commission configuration.">
+        </app-empty-state>
 
-        <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" aria-label="Select page of commissions"></mat-paginator>
-      </div>
+        <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" aria-label="Select page of commissions" class="table-paginator"></mat-paginator>
+      </mat-card>
     </div>
   `,
   styles: [`
-    .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
-    .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
-    .page-title { margin: 0; font-size: 1.75rem; font-weight: 700; color: var(--ink); }
-    .page-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.9rem; }
-    .header-actions { display: flex; gap: 8px; }
-
-    .table-container { position: relative; background: white; border-radius: 8px; overflow: hidden; }
-    .loading-shade { position: absolute; top: 0; left: 0; bottom: 56px; right: 0; background: rgba(255, 255, 255, 0.7); z-index: 1; display: flex; align-items: center; justify-content: center; }
-    table { width: 100%; }
-
-    code { font-family: monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #475569; }
-
-    .status-chip { padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .status-chip.success { background: #dcfce7; color: #16a34a; }
-    .status-chip.warn { background: #fef3c7; color: #d97706; }
-    .status-chip.danger { background: #fee2e2; color: #dc2626; }
-
-    .commission-cell { display: flex; align-items: center; gap: 8px; }
-    .rate-value { font-weight: 700; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+    .page-container { padding: 32px; max-width: 1400px; margin: 0 auto; }
+    .header-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; }
+    .page-title { margin: 0; font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+    .page-subtitle { margin: 8px 0 0; color: var(--muted); font-size: 1rem; }
     
-    .edit-inline { display: flex; align-items: center; gap: 4px; }
-    .inline-field { width: 100px; }
-    ::ng-deep .inline-field .mat-mdc-form-field-subscript-wrapper { display: none; }
-    ::ng-deep .inline-field .mat-mdc-text-field-wrapper { height: 40px !important; padding: 0 8px !important; }
+    .table-card { position: relative; overflow: hidden; border-radius: 12px; background: var(--bg-elevated); }
+    .loading-overlay { position: absolute; inset: 0; background: rgba(255, 255, 255, 0.7); z-index: 10; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    
+    table { width: 100%; }
+    
+    .hover-row { transition: background-color 0.2s ease; }
+    .hover-row:hover { background-color: var(--surface-hover); }
 
-    .empty-state { padding: 48px; text-align: center; color: var(--muted); }
-    .empty-state mat-icon { font-size: 48px; width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.5; }
+    .business-name { color: var(--ink); font-weight: 600; }
+    .mono-code { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: var(--surface); padding: 4px 8px; border-radius: 6px; color: var(--ink-secondary); font-size: 0.85rem; border: 1px solid var(--line); }
+
+    .rate-value { font-weight: 800; font-size: 1.15rem; font-variant-numeric: tabular-nums; color: var(--brand-saffron); }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+    .text-muted { color: var(--muted); }
+
+    .actions-header { text-align: right; padding-right: 24px !important; }
+    .actions-cell { text-align: right; padding-right: 12px !important; }
+
+    .table-paginator { border-top: 1px solid var(--line); background: transparent; }
 
     @media (max-width: 768px) {
-      .header-row { flex-direction: column; gap: 16px; }
+      .page-container { padding: 16px; }
+      .header-row { flex-direction: column; align-items: flex-start; gap: 16px; }
     }
   `]
 })
 export class CommissionConfigPageComponent implements OnInit, AfterViewInit {
   private readonly api = inject(AdminApiService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  readonly records = signal<CommissionRecord[]>([]);
   readonly loaded = signal(false);
-  readonly editingId = signal<number | null>(null);
-  readonly saving = signal(false);
   readonly dataSource = new MatTableDataSource<CommissionRecord>([]);
-  readonly displayedColumns = ['businessName', 'subMerchantId', 'status', 'commissionRate', 'updatedAt'];
-
-  editRate = 0;
+  readonly displayedColumns = ['businessName', 'subMerchantId', 'status', 'commissionRate', 'updatedAt', 'actions'];
 
   ngOnInit(): void { this.loadCommissions(); }
 
@@ -192,37 +248,26 @@ export class CommissionConfigPageComponent implements OnInit, AfterViewInit {
     this.loaded.set(false);
     this.api.getCommissions().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
-        this.records.set(data);
         this.dataSource.data = data;
         this.loaded.set(true);
       },
       error: () => {
-        this.records.set([]);
         this.dataSource.data = [];
         this.loaded.set(true);
       }
     });
   }
 
-  startEdit(rec: CommissionRecord): void {
-    this.editingId.set(rec.id);
-    this.editRate = rec.commissionRate;
-  }
+  openEditDialog(rec: CommissionRecord): void {
+    const dialogRef = this.dialog.open(CommissionEditDialogComponent, {
+      width: '450px',
+      data: { id: rec.id, businessName: rec.businessName, currentRate: rec.commissionRate },
+      disableClose: true
+    });
 
-  cancelEdit(): void { this.editingId.set(null); this.editRate = 0; }
-
-  saveCommission(id: number): void {
-    this.saving.set(true);
-    this.api.updateCommission(id, this.editRate).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.cancelEdit();
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
         this.loadCommissions();
-        this.snackBar.open('Commission rate updated successfully.', 'Close', { duration: 3000 });
-      },
-      error: () => {
-        this.saving.set(false);
-        this.snackBar.open('Failed to update commission rate.', 'Close', { duration: 5000 });
       }
     });
   }

@@ -140,6 +140,7 @@ fun LoginScreen(
         Column(
                 modifier =
                         Modifier.fillMaxWidth()
+                                .widthIn(max = 480.dp)
                                 .verticalScroll(rememberScrollState())
                                 .statusBarsPadding()
                                 .navigationBarsPadding()
@@ -148,131 +149,93 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
         ) {
-            Image(
-                    painter = painterResource(id = R.drawable.khanabook_logo),
+            // Logo with Saffron Aura
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(bottom = spacing.medium)) {
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .background(KbSaffronGlow)
+                )
+                Image(
+                    painter = painterResource(id = R.drawable.ic_khanabook_logo),
                     contentDescription = "KhanaBook logo",
-                    modifier = Modifier.size(120.dp).padding(bottom = spacing.medium),
+                    modifier = Modifier.size(120.dp),
                     contentScale = ContentScale.Fit
-            )
+                )
+            }
 
             Text(
                     text = "Smart Billing for Restaurants",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = TextGold,
+                    color = MaterialTheme.kbTextSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = spacing.extraLarge)
             )
 
-            
-            OutlinedTextField(
-                    value = loginId,
-                    onValueChange = {
-                        val updatedLoginId = it.trim()
-                        loginId = updatedLoginId
-                        if (ValidationUtils.isValidPhone(updatedLoginId) || ValidationUtils.isValidEmail(updatedLoginId)) {
-                            runCatching { passwordFocusRequester.requestFocus() }
-                        }
-                    },
-                    label = { Text("Login ID") },
-                    placeholder = { Text("Phone number or email", color = TextGold.copy(alpha = 0.7f)) },
-                    leadingIcon = {
-                        Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Login",
-                                tint = PrimaryGold
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = MaterialTheme.kbBgCard,
-                        focusedContainerColor = MaterialTheme.kbBgCard,
-                        unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
-                        focusedLabelColor = PrimaryGold,
-                        focusedBorderColor = PrimaryGold,
-                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                        cursorColor = PrimaryGold,
-                        errorContainerColor = MaterialTheme.kbBgCard,
-                        focusedTextColor = TextLight,
-                        unfocusedTextColor = TextLight
-                    ),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextLight),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { runCatching { passwordFocusRequester.requestFocus() } }
-                    ),
-                    isError = (loginId.isNotEmpty() && !isLoginIdValid) || (loginId.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
-                    supportingText = {
-                        if (loginId.isNotEmpty() && !isLoginIdValid) {
-                            Text("Enter a 10-digit phone number or valid email", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
-                        }
+            // Login ID Field
+            KhanaBookInputField(
+                value = loginId,
+                onValueChange = {
+                    val updatedLoginId = it.trim()
+                    loginId = updatedLoginId
+                    if (ValidationUtils.isValidPhone(updatedLoginId) || ValidationUtils.isValidEmail(updatedLoginId)) {
+                        runCatching { passwordFocusRequester.requestFocus() }
                     }
+                },
+                label = "Login ID",
+                placeholder = "Phone number or email",
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Login", tint = MaterialTheme.kbSecondary) },
+                modifier = Modifier.fillMaxWidth(),
+                isError = (loginId.isNotEmpty() && !isLoginIdValid) || (loginId.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
+                supportingText = {
+                    if (loginId.isNotEmpty() && !isLoginIdValid) {
+                        Text("Enter a 10-digit phone number or valid email", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                    }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { runCatching { passwordFocusRequester.requestFocus() } }
+                )
             )
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            
-            OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Password") },
-                    placeholder = { Text("Enter your password", color = TextGold.copy(alpha = 0.7f)) },
-                    leadingIcon = {
-                        Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = "Password",
-                                tint = PrimaryGold
-                        )
-                    },
-                    trailingIcon = {
-                        Icon(
-                                imageVector =
-                                        if (showPassword) Icons.Default.Visibility
-                                        else Icons.Default.VisibilityOff,
-                                contentDescription = "Toggle Password",
-                                tint = PrimaryGold,
-                                modifier = Modifier.clickable { showPassword = !showPassword }
-                        )
-                    },
-                    visualTransformation =
-                            if (showPassword) VisualTransformation.None
-                            else PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth().focusRequester(passwordFocusRequester),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = MaterialTheme.kbBgCard,
-                        focusedContainerColor = MaterialTheme.kbBgCard,
-                        unfocusedLabelColor = TextGold.copy(alpha = 0.7f),
-                        focusedLabelColor = PrimaryGold,
-                        focusedBorderColor = PrimaryGold,
-                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                        cursorColor = PrimaryGold,
-                        errorContainerColor = MaterialTheme.kbBgCard,
-                        focusedTextColor = TextLight,
-                        unfocusedTextColor = TextLight
-                    ),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = TextLight),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = { 
-                            val isLoadingStatus = loginStatus is AuthViewModel.LoginResult.Loading
-                            val isLoginEnabledAction = isLoginIdValid && password.isNotBlank() && !isLoadingStatus
-                            if (isLoginEnabledAction) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.login(loginId, password)
-                            }
-                            focusManager.clearFocus()
+            // Password Field
+            KhanaBookInputField(
+                value = password,
+                onValueChange = { password = it },
+                label = "Password",
+                placeholder = "Enter your password",
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Password", tint = MaterialTheme.kbSecondary) },
+                trailingIcon = {
+                    Icon(
+                        imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = "Toggle Password",
+                        tint = MaterialTheme.kbSecondary,
+                        modifier = Modifier.clickable { showPassword = !showPassword }
+                    )
+                },
+                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth().focusRequester(passwordFocusRequester),
+                isError = password.isBlank() && loginStatus is AuthViewModel.LoginResult.Error,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        val isLoadingStatus = loginStatus is AuthViewModel.LoginResult.Loading
+                        val isLoginEnabledAction = isLoginIdValid && password.isNotBlank() && !isLoadingStatus
+                        if (isLoginEnabledAction) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.login(loginId, password)
                         }
-                    ),
-                    isError = password.isBlank() && loginStatus is AuthViewModel.LoginResult.Error
+                        focusManager.clearFocus()
+                    }
+                )
             )
 
             Spacer(modifier = Modifier.height(spacing.small))
@@ -280,7 +243,7 @@ fun LoginScreen(
             
             Text(
                     text = "Forgot Password?",
-                    color = PrimaryGold,
+                    color = MaterialTheme.kbTertiary,
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.align(Alignment.End).clickable { showForgotDialog = true }.padding(end = spacing.medium),
                     fontWeight = FontWeight.Medium
@@ -309,14 +272,19 @@ fun LoginScreen(
                             viewModel.login(loginId, password) 
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors =
-                            ButtonDefaults.buttonColors(
-                                    containerColor =
-                                            if (isLoginEnabled) PrimaryGold else TextMuted,
-                                    contentColor = DarkBrown1
-                            ),
-                    shape = RoundedCornerShape(28.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(58.dp)
+                        .padding(horizontal = spacing.extraSmall),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isLoginEnabled) KbBrandSaffron else TextMuted,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(14.dp),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 8.dp,
+                        pressedElevation = 2.dp
+                    ),
                     enabled = isLoginEnabled
             ) {
                 if (isLoading && !isGoogleLogin) {
@@ -341,7 +309,7 @@ fun LoginScreen(
                 Text(text = "Don't have an account? ", color = TextLight, style = MaterialTheme.typography.bodyMedium)
                 Text(
                         text = "Sign Up",
-                        color = PrimaryGold,
+                        color = MaterialTheme.kbTertiary,
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         modifier = Modifier.clickable { onSignUpClick() }
                 )
@@ -349,7 +317,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
 
-            Text(text = "or Continue with", color = TextGold, style = MaterialTheme.typography.labelMedium)
+            Text(text = "or Continue with", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelMedium)
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -497,7 +465,7 @@ fun ForgotPasswordDialog(
                     2 -> "Step 2 of 3 | Verify OTP"
                     else -> "Step 3 of 3 | Create new password"
                 },
-                color = TextGold.copy(alpha = 0.7f),
+                color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.bodySmall
             )
         },
@@ -506,12 +474,12 @@ fun ForgotPasswordDialog(
                 Button(
                     onClick = { if (isPhoneValid && !isResetLoading) viewModel.sendOtp(phone, "reset") },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary, contentColor = MaterialTheme.kbTextOnBrand),
                     shape = RoundedCornerShape(12.dp),
                     enabled = isPhoneValid && !isResetLoading
                 ) {
                     if (isResetLoading)
-                        CircularProgressIndicator(modifier = Modifier.size(iconSize.small), color = DarkBrown1, strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(iconSize.small), color = MaterialTheme.kbTextOnBrand, strokeWidth = 2.dp)
                     else
                         Text("Send OTP", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 }
@@ -531,7 +499,7 @@ fun ForgotPasswordDialog(
                             }
                         },
                         modifier = Modifier.weight(1f).height(52.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbSecondary),
                         border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
                         shape = RoundedCornerShape(12.dp)
                     ) { Text("Back", style = MaterialTheme.typography.labelLarge) }
@@ -545,7 +513,7 @@ fun ForgotPasswordDialog(
                             }
                         },
                         modifier = Modifier.weight(2f).height(52.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary, contentColor = MaterialTheme.kbTextOnBrand),
                         shape = RoundedCornerShape(12.dp),
                         enabled = when (step) {
                             2 -> otp.length == 6
@@ -569,7 +537,7 @@ fun ForgotPasswordDialog(
                         Text(
                             text = if (resendTimer > 0) "Resend OTP in ${resendTimer}s" else "Resend OTP",
                             style = MaterialTheme.typography.labelLarge,
-                            color = if (resendTimer > 0 || isResetLoading) TextMuted else PrimaryGold
+                            color = if (resendTimer > 0 || isResetLoading) TextMuted else MaterialTheme.kbTertiary
                         )
                     }
                 }
@@ -602,7 +570,7 @@ fun ForgotPasswordDialog(
                     placeholder = "Enter your 10-digit number",
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = PrimaryGold) },
+                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = MaterialTheme.kbSecondary) },
                     isError = phone.isNotEmpty() && !isPhoneValid || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
                     supportingText = {
                         val err = fieldError("phoneNumber", "loginId", "whatsappNumber")
@@ -633,7 +601,7 @@ fun ForgotPasswordDialog(
                             err != null -> Text(err, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                             otp.isNotEmpty() && otp.length < 6 -> Text(
                                 "${6 - otp.length} more digit${if (6 - otp.length == 1) "" else "s"} required",
-                                color = TextGold.copy(alpha = 0.6f),
+                                color = MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
@@ -653,12 +621,12 @@ fun ForgotPasswordDialog(
                     modifier = Modifier.fillMaxWidth(),
                     isError = fieldError("password") != null,
                     visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryGold) },
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = MaterialTheme.kbSecondary) },
                     trailingIcon = {
                         Icon(
                             imageVector = if (showNewPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             contentDescription = null,
-                            tint = PrimaryGold,
+                            tint = MaterialTheme.kbSecondary,
                             modifier = Modifier.clickable { showNewPassword = !showNewPassword }
                         )
                     },
@@ -675,12 +643,12 @@ fun ForgotPasswordDialog(
                     modifier = Modifier.fillMaxWidth(),
                     isError = !passwordsMatch,
                     visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryGold) },
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = MaterialTheme.kbSecondary) },
                     trailingIcon = {
                         Icon(
                             imageVector = if (showConfirmPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             contentDescription = null,
-                            tint = PrimaryGold,
+                            tint = MaterialTheme.kbSecondary,
                             modifier = Modifier.clickable { showConfirmPassword = !showConfirmPassword }
                         )
                     },
@@ -714,7 +682,7 @@ private fun ForgotPasswordStepRow(currentStep: Int) {
                 modifier = Modifier.weight(1f),
                 color = when {
                     isDone -> SuccessGreen.copy(alpha = 0.16f)
-                    isActive -> PrimaryGold.copy(alpha = 0.18f)
+                    isActive -> MaterialTheme.kbPrimary.copy(alpha = 0.18f)
                     else -> DarkBrown2
                 },
                 shape = RoundedCornerShape(14.dp),
@@ -722,7 +690,7 @@ private fun ForgotPasswordStepRow(currentStep: Int) {
                     1.dp,
                     when {
                         isDone -> SuccessGreen.copy(alpha = 0.55f)
-                        isActive -> PrimaryGold.copy(alpha = 0.75f)
+                        isActive -> MaterialTheme.kbPrimary.copy(alpha = 0.75f)
                         else -> BorderGold.copy(alpha = 0.3f)
                     }
                 )
@@ -734,12 +702,12 @@ private fun ForgotPasswordStepRow(currentStep: Int) {
                 ) {
                     Text(
                         text = if (isDone) "Done" else "Step $stepNumber",
-                        color = if (isDone) SuccessGreen else TextGold.copy(alpha = 0.75f),
+                        color = if (isDone) SuccessGreen else MaterialTheme.kbTextSecondary.copy(alpha = 0.75f),
                         style = MaterialTheme.typography.labelSmall
                     )
                     Text(
                         text = label,
-                        color = if (isActive || isDone) TextLight else TextGold.copy(alpha = 0.8f),
+                        color = if (isActive || isDone) TextLight else MaterialTheme.kbTextSecondary.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.labelLarge
                     )
                 }
@@ -748,15 +716,3 @@ private fun ForgotPasswordStepRow(currentStep: Int) {
     }
 }
 
-@Composable
-fun loginTextFieldColors() =
-        OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                focusedBorderColor = PrimaryGold,
-                focusedTextColor = TextLight,
-                unfocusedTextColor = TextLight,
-                focusedLabelColor = PrimaryGold,
-                unfocusedLabelColor = TextMuted,
-                errorBorderColor = ErrorPink,
-                errorLabelColor = ErrorPink
-        )

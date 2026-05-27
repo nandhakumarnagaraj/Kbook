@@ -65,11 +65,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.khanabook.lite.pos.ui.theme.DangerRed
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
+import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
+import com.khanabook.lite.pos.ui.theme.kbPrimary
+import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.kbTertiary
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -132,7 +135,7 @@ fun ShopConfigView(
             message = "You have unsaved changes. Discard them?"
         ) {
             TextButton(onClick = { showUnsavedDialog = false }) {
-                Text("Keep Editing", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+                Text("Keep Editing", color = MaterialTheme.kbTertiary, style = MaterialTheme.typography.labelLarge)
             }
             TextButton(onClick = { showUnsavedDialog = false; onBack() }) {
                 Text("Discard", color = DangerRed, style = MaterialTheme.typography.labelLarge)
@@ -248,7 +251,7 @@ fun ShopConfigView(
             .padding(layout.contentPadding)
     ) {
         ConfigCard {
-            Text("Shop Profile", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
+            Text("Shop Profile", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(spacing.medium))
 
             val logoContent = @Composable {
@@ -273,17 +276,17 @@ fun ShopConfigView(
                             modifier = Modifier.fillMaxSize().padding(spacing.extraSmall)
                         )
                     } else if (logoUploadLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(iconSize.medium), color = PrimaryGold, strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(iconSize.medium), color = MaterialTheme.kbSecondary, strokeWidth = 2.dp)
                     } else {
                         Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge))
                     }
                 }
                 OutlinedButton(
                     onClick = { logoLauncher.launch("image/*") },
-                    border = BorderStroke(1.dp, PrimaryGold),
+                    border = BorderStroke(1.dp, MaterialTheme.kbPrimary),
                     shape = RoundedCornerShape(20.dp),
                     enabled = !logoUploadLoading
-                ) { Text(if (logoUploadLoading) "Uploading..." else "Change Logo", color = PrimaryGold) }
+                ) { Text(if (logoUploadLoading) "Uploading..." else "Change Logo", color = MaterialTheme.kbPrimary) }
             }
 
             if (isCompactWidth) {
@@ -325,7 +328,7 @@ fun ShopConfigView(
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
                             strokeWidth = 2.dp,
-                            color = PrimaryGold
+                            color = MaterialTheme.kbSecondary
                         )
                     } else if (numberChanged && (!otpSent || otpTimer == 0)) {
                         Button(
@@ -333,7 +336,7 @@ fun ShopConfigView(
                                 if (isPhoneValid && userExistsError == null) authViewModel.sendOtp(whatsapp, "update_whatsapp")
                             },
                             modifier = Modifier.padding(end = spacing.extraSmall).height(56.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
                             shape = RoundedCornerShape(20.dp),
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
                             enabled = isPhoneValid && !isUserChecking && userExistsError == null
@@ -477,8 +480,8 @@ fun ShopConfigView(
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
-                    border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    border = BorderStroke(1.dp, MaterialTheme.kbSecondary.copy(alpha = 0.7f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbSecondary),
                     shape = RoundedCornerShape(28.dp)
                 ) {
                     Text("Back", style = MaterialTheme.typography.titleMedium)

@@ -87,12 +87,12 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
           <mat-form-field appearance="outline" class="search-field">
             <mat-label>Quick Search</mat-label>
             <mat-icon matPrefix>search</mat-icon>
-            <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, ID, contact..." #input>
+            <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, ID, contact..." #input aria-label="Search staff members">
           </mat-form-field>
           
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>Role Filter</mat-label>
-            <mat-select [(ngModel)]="roleFilter" (selectionChange)="applyFilters()">
+            <mat-select [(ngModel)]="roleFilter" (selectionChange)="applyFilters()" aria-label="Filter by role">
               <mat-option value="ALL">All Roles</mat-option>
               <mat-option *ngFor="let role of roleOptions" [value]="role">{{ role }}</mat-option>
             </mat-select>
@@ -100,7 +100,7 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
 
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>Status</mat-label>
-            <mat-select [(ngModel)]="statusFilter" (selectionChange)="applyFilters()">
+            <mat-select [(ngModel)]="statusFilter" (selectionChange)="applyFilters()" aria-label="Filter by status">
               <mat-option value="ALL">All Status</mat-option>
               <mat-option value="ACTIVE">Active</mat-option>
               <mat-option value="INACTIVE">Inactive</mat-option>
@@ -109,7 +109,7 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
 
           <div class="spacer"></div>
           
-          <button mat-button (click)="clearFilters()">Reset Filters</button>
+          <button mat-button (click)="clearFilters()" aria-label="Reset all filters">Reset Filters</button>
         </mat-card-content>
       </mat-card>
 
@@ -183,32 +183,31 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
     </div>
   `,
   styles: [`
-    .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
-    .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
-    .page-title { margin: 0; font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -0.5px; }
-    .page-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+    .page-container { padding: 32px; max-width: 1400px; margin: 0 auto; }
+    .header-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; }
+    .page-title { margin: 0; font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+    .page-subtitle { margin: 8px 0 0; color: var(--muted); font-size: 1rem; }
 
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-bottom: 32px; }
     .stat-card { 
       position: relative;
       border-radius: var(--radius-xl); 
       border: 1px solid var(--line); 
-      background: var(--panel);
-      backdrop-filter: blur(12px);
+      background: var(--bg-elevated);
       box-shadow: var(--shadow-md); 
       transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
     }
     .stat-card:hover {
-      transform: translateY(-6px);
-      box-shadow: var(--shadow-xl);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
     }
     .stat-icon { 
       width: 52px; 
       height: 52px; 
       line-height: 52px; 
       text-align: center; 
-      border-radius: var(--radius-lg); 
+      border-radius: var(--radius-md); 
       font-size: 26px; 
       transition: transform 0.3s ease;
     }
@@ -216,79 +215,81 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
       transform: scale(1.1) rotate(6deg);
     }
     
-    .stat-icon.total { background: rgba(2, 132, 199, 0.12); color: #0284c7; }
-    .stat-icon.active { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
-    .stat-icon.admin { background: rgba(147, 51, 234, 0.12); color: #9333ea; }
+    .stat-icon.total { background: var(--info-soft); color: var(--info); }
+    .stat-icon.active { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+    .stat-icon.admin { background: var(--purple-soft); color: var(--purple); }
 
     .filter-card { 
       margin-bottom: 24px; 
-      border-radius: var(--radius-xl); 
+      border-radius: var(--radius-lg); 
       border: 1px solid var(--line); 
-      background: var(--panel);
-      backdrop-filter: blur(12px);
-      box-shadow: var(--shadow-md); 
+      background: var(--bg-elevated);
+      box-shadow: var(--shadow-sm); 
     }
-    .filter-row { display: flex; align-items: center; gap: 16px; padding: 16px 20px !important; }
+    .filter-row { display: flex; align-items: center; gap: 16px; padding: 16px 24px !important; }
     .search-field { flex: 1; max-width: 400px; }
-    .filter-field { width: 160px; }
+    .filter-field { width: 180px; }
     ::ng-deep .filter-row .mat-mdc-form-field-subscript-wrapper { display: none; }
     .spacer { flex: 1; }
 
     .table-container { 
       position: relative; 
-      background: var(--panel); 
-      border-radius: var(--radius-xl); 
+      background: var(--bg-elevated); 
+      border-radius: var(--radius-lg); 
       border: 1px solid var(--line);
-      box-shadow: var(--shadow-md); 
+      box-shadow: var(--shadow-sm); 
       overflow: hidden; 
     }
-    .loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.7); z-index: 10; display: flex; align-items: center; justify-content: center; }
+    .loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.7); z-index: 10; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
     table { width: 100%; background: transparent; }
 
     ::ng-deep table th.mat-mdc-header-cell {
-      background: var(--panel) !important;
+      background: var(--surface) !important;
       font-weight: 700 !important;
       color: var(--ink) !important;
       text-transform: uppercase !important;
       font-size: 0.75rem !important;
       letter-spacing: 0.5px !important;
       border-bottom: 2px solid var(--line) !important;
-      padding: 16px !important;
+      padding: 16px 24px !important;
     }
     ::ng-deep table td.mat-mdc-cell {
-      padding: 16px !important;
+      padding: 16px 24px !important;
       border-bottom: 1px solid var(--line) !important;
       color: var(--ink-secondary) !important;
       font-size: 0.9rem !important;
     }
 
-    .staff-row { transition: background 0.2s ease; background: transparent; }
-    .staff-row:hover { background: var(--panel-hover) !important; }
+    .hover-row { transition: background 0.2s ease; background: transparent; }
+    .hover-row:hover { background: var(--surface-hover) !important; }
 
     .user-cell { display: flex; flex-direction: column; }
     .user-name { font-weight: 700; color: var(--ink); }
     .user-id { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
 
-    code { font-family: 'JetBrains Mono', monospace; background: var(--bg); border: 1px solid var(--line); padding: 4px 8px; border-radius: 6px; color: var(--ink); font-size: 0.85rem; }
+    code { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: var(--surface); border: 1px solid var(--line); padding: 4px 8px; border-radius: 6px; color: var(--ink-secondary); font-size: 0.85rem; }
 
     .contact-cell { display: flex; flex-direction: column; }
     .contact-cell .phone { font-weight: 600; color: var(--ink); }
     .contact-cell .email { font-size: 0.75rem; color: var(--muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
 
-    .role-badge { padding: 4px 12px; border-radius: 6px; background: var(--brand-soft); color: var(--brand); font-weight: 700; font-size: 0.75rem; border: 1px solid var(--line); text-transform: uppercase; letter-spacing: 0.5px; }
+    .role-badge { padding: 4px 12px; border-radius: 6px; background: var(--brand-soft); color: var(--brand-saffron-dark); font-weight: 700; font-size: 0.75rem; border: 1px solid var(--line); text-transform: uppercase; letter-spacing: 0.5px; }
 
-    .status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    .status-chip mat-icon { font-size: 8px; width: 8px; height: 8px; }
-    .status-chip.active { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
-    .status-chip.inactive { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
-    .status-chip.inactive mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    .status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
+    .status-chip mat-icon { font-size: 10px; width: 10px; height: 10px; }
+    .status-chip.active { background: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.2); }
+    .status-chip.inactive { background: rgba(239, 68, 68, 0.12); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
 
     .empty-state-wrapper { padding: 48px 24px; }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+    .table-paginator { border-top: 1px solid var(--line); background: transparent; }
 
     @media (max-width: 768px) {
-      .header-row { flex-direction: column; gap: 16px; }
-      .filter-row { flex-direction: column; align-items: stretch; }
+      .page-container { padding: 16px; }
+      .header-row { flex-direction: column; gap: 16px; align-items: flex-start; }
+      .filter-row { flex-direction: column; align-items: stretch; padding: 16px !important; }
       .search-field { max-width: none; }
+      .filter-field { width: 100%; }
     }
   `]
 })

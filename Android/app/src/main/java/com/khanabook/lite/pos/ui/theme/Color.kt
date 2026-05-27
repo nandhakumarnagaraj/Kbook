@@ -13,17 +13,23 @@ import androidx.compose.ui.graphics.Color
 // KHANBOOK DLS — SAFFRON & AMBER BRAND PALETTE
 // 11-shade scale, warm orange-gold culinary tone
 // ═══════════════════════════════════════════════════════════════
-val KbSaffron50  = Color(0xFFFFFDF5)  // very soft warm cream tint
-val KbSaffron100 = Color(0xFFFFFBEB)  // soft amber tint
-val KbSaffron200 = Color(0xFFFEF3C7)
-val KbSaffron300 = Color(0xFFFDE68A)
-val KbSaffron400 = Color(0xFFFBBF24)  // bright gold/saffron for dark theme
-val KbSaffron500 = Color(0xFFF59E0B)  // amber
-val KbSaffron600 = Color(0xFFD97706)  // BRAND SAFFRON
-val KbSaffron700 = Color(0xFFB45309)
-val KbSaffron800 = Color(0xFF92400E)
-val KbSaffron900 = Color(0xFF78350F)
-val KbSaffron950 = Color(0xFF451A03)
+val KbSaffron50  = Color(0xFFFFFBFF)  // on-primary-container
+val KbSaffron100 = Color(0xFFFFDBCA)  // primary-fixed
+val KbSaffron200 = Color(0xFFFFB68E)  // primary-fixed-dim
+val KbSaffron300 = Color(0xFFE07B3A)
+val KbSaffron400 = Color(0xFFBF5500)  // primary-container
+val KbSaffron500 = Color(0xFFA84C00)
+val KbSaffron600 = Color(0xFF984300)  // BRAND SAFFRON (Stitch primary)
+val KbSaffron700 = Color(0xFF773300)  // on-primary-fixed-variant
+val KbSaffron800 = Color(0xFF5C2500)
+val KbSaffron900 = Color(0xFF4A1D00)
+val KbSaffron950 = Color(0xFF331200)  // on-primary-fixed
+
+// DESIGN.md brand colors
+val KbBrandSaffron = Color(0xFFC85A00)
+val KbBrandSaffronLight = Color(0xFFE8832A)
+val KbBrandSaffronDark = Color(0xFF994500)
+val KbBrandSaffronAndroid = Color(0xFFD97706)
 
 // Pure neutral gray scale
 val KbGray50  = Color(0xFFF8F9FA)
@@ -38,19 +44,31 @@ val KbGray800 = Color(0xFF303030)
 val KbGray900 = Color(0xFF212121)
 val KbGray950 = Color(0xFF0D0D0D)
 
+// Secondary — warm sage green (food-complementary to orange)
+val KbGreenSec100 = Color(0xFFE3F2E9)  // light container
+val KbGreenSec200 = Color(0xFFC8E6D4)
+val KbGreenSec300 = Color(0xFFA5D6B7)
+val KbGreenSec400 = Color(0xFF78B892)
+val KbGreenSec500 = Color(0xFF4B9A6E)
+val KbGreenSec600 = Color(0xFF3D7A5A)  // brand secondary (light)
+val KbGreenSec700 = Color(0xFF2E5C44)
+val KbGreenSec800 = Color(0xFF1E4D32)  // container (dark)
+val KbGreenSec900 = Color(0xFF143D26)
+val KbGreenSec950 = Color(0xFF0A2E1A)
+
 // Semantic status
 val KbGreen   = Color(0xFF16A34A)
 val KbGreenSubtle  = Color(0xFFF0FDF4)
 val KbGreenDark    = Color(0xFF052E16)
-val KbRed     = Color(0xFFDC2626)
-val KbRedSubtle    = Color(0xFFFEF2F2)
-val KbRedDark      = Color(0xFF450A0A)
+val KbRed     = Color(0xFFBA1A1A)
+val KbRedSubtle    = Color(0xFFFFDAD6)
+val KbRedDark      = Color(0xFF93000A)
 val KbYellow  = Color(0xFFD97706)
 val KbYellowSubtle = Color(0xFFFFFBEB)
 val KbYellowDark   = Color(0xFF451A03)
-val KbBlue    = Color(0xFF0284C7)
+val KbBlue    = Color(0xFF005BAF)
 val KbBlueSubtle   = Color(0xFFF0F9FF)
-val KbBlueDark     = Color(0xFF082F49)
+val KbBlueDark     = Color(0xFF001B3C)
 
 // Payment brand colours
 val KbZomatoRed   = Color(0xFFEF4444)
@@ -58,11 +76,10 @@ val KbSwiggyOrange = Color(0xFFF97316)
 val KbWhatsAppGreen = Color(0xFF22C55E)
 
 // ═══════════════════════════════════════════════════════════════
-// THEME STATE
+// GLOBAL DARK MODE FLAG — used by legacy color aliases below.
+// The composable ThemeState system is now in ThemeState.kt.
 // ═══════════════════════════════════════════════════════════════
-object ThemeState {
-    var isDark: Boolean by mutableStateOf(true)
-}
+var globalIsDark: Boolean by mutableStateOf(true)
 
 // ═══════════════════════════════════════════════════════════════
 // MATERIAL THEME EXTENSION PROPERTIES
@@ -86,6 +103,30 @@ val MaterialTheme.kbPrimaryBold: Color
 
 val MaterialTheme.kbPrimarySubtle: Color
     @Composable @ReadOnlyComposable get() = colorScheme.primary.copy(alpha = 0.12f)
+
+val MaterialTheme.kbSecondary: Color
+    @Composable @ReadOnlyComposable get() = colorScheme.secondary
+
+val MaterialTheme.kbSecondaryBold: Color
+    @Composable @ReadOnlyComposable get() = colorScheme.secondaryContainer
+
+val MaterialTheme.kbSecondarySubtle: Color
+    @Composable @ReadOnlyComposable get() = colorScheme.secondary.copy(alpha = 0.12f)
+
+val MaterialTheme.kbSecondaryContainer: Color
+    @Composable @ReadOnlyComposable get() = colorScheme.secondaryContainer
+
+val MaterialTheme.kbTertiary: Color
+    @Composable @ReadOnlyComposable get() = colorScheme.tertiary
+
+val MaterialTheme.kbTertiaryBold: Color
+    @Composable @ReadOnlyComposable get() = colorScheme.tertiaryContainer
+
+val MaterialTheme.kbTertiarySubtle: Color
+    @Composable @ReadOnlyComposable get() = colorScheme.tertiary.copy(alpha = 0.12f)
+
+val MaterialTheme.kbTertiaryContainer: Color
+    @Composable @ReadOnlyComposable get() = colorScheme.tertiaryContainer
 
 val MaterialTheme.kbTextPrimary: Color
     @Composable @ReadOnlyComposable get() = colorScheme.onBackground
@@ -114,47 +155,127 @@ val MaterialTheme.kbBgGradient: Brush
     )
 
 // ═══════════════════════════════════════════════════════════════
+// PREMIUM TOKENS — STITCH "NOCTURNE HOSPITALITY" INSPIRED
+// Glassmorphism, mesh gradients, midnight harvest palette
+// ═══════════════════════════════════════════════════════════════
+
+// ── Midnight Harvest Depth Layers (Stitch Nocturne) ──────────
+val KbMidnightBase: Color
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF0A0A0A) else Color(0xFFF5F0EB)
+val KbMidnightSurface: Color
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF1A1614) else Color(0xFFFDF8F4)
+val KbMidnightOverlay: Color
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xE61A1614.toInt()) else Color(0xE6FFFFFF.toInt())
+
+// ── Glassmorphism Surfaces ────────────────────────────────────
+val KbGlassSurface: Color
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) {
+        Color(0x991C1810)
+    } else {
+        Color(0x99FFFFFF)
+    }
+
+val KbGlassOverlay: Color
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) {
+        Color(0xCC1A1614.toInt())
+    } else {
+        Color(0xCCFFFFFF.toInt())
+    }
+
+val KbGlassBorder: Color
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) {
+        Color(0x1AFFFFFF.toInt())
+    } else {
+        Color(0x1A000000.toInt())
+    }
+
+// ── Mesh Gradients (Stitch "glow zones") ──────────────────────
+val KbMeshGradientSaffron: Brush
+    @Composable @ReadOnlyComposable get() = Brush.radialGradient(
+        colors = listOf(KbBrandSaffron.copy(alpha = 0.12f), KbBrandSaffron.copy(alpha = 0.04f), Color.Transparent),
+        center = androidx.compose.ui.geometry.Offset(0.7f, 0.3f),
+        radius = 600f
+    )
+
+val KbMeshGradientAmber: Brush
+    @Composable @ReadOnlyComposable get() = Brush.radialGradient(
+        colors = listOf(KbBrandSaffronLight.copy(alpha = 0.10f), Color.Transparent),
+        center = androidx.compose.ui.geometry.Offset(0.3f, 0.7f),
+        radius = 500f
+    )
+
+val KbMeshHeroGradient: Brush
+    @Composable @ReadOnlyComposable get() = Brush.verticalGradient(
+        colors = listOf(KbBrandSaffron, Color(0xFF7A3300), Color(0xFF5A2200))
+    )
+
+// ── Brand Glows ──────────────────────────────────────────────
+val KbSaffronGlow: Brush
+    @Composable @ReadOnlyComposable get() = Brush.radialGradient(
+        colors = listOf(KbBrandSaffron.copy(alpha = 0.15f), Color.Transparent)
+    )
+
+val KbSaffronGlowStrong: Brush
+    @Composable @ReadOnlyComposable get() = Brush.radialGradient(
+        colors = listOf(KbBrandSaffron.copy(alpha = 0.35f), Color.Transparent)
+    )
+
+// ── Zebra Stripe Pattern (Stitch list clarity) ────────────────
+val KbZebraOdd: Color
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF14110F) else Color(0xFFF5F0EB)
+val KbZebraEven: Color
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF1A1614) else Color.White
+
+// ── Focus Glow (input borders, active states) ─────────────────
+val KbFocusGlow: Color
+    @Composable @ReadOnlyComposable get() = KbBrandSaffron.copy(alpha = 0.5f)
+
+// ═══════════════════════════════════════════════════════════════
 // LEGACY ALIASES — all mapped to teal + neutral grays
 // ═══════════════════════════════════════════════════════════════
 
 val DarkBrown1: Color
-    get() = if (ThemeState.isDark) Color(0xFF1C1810) else Color.White     // warm dark surface / light white surface
+    get() = if (globalIsDark) Color(0xFF211A14) else Color(0xFFFFF8F6)
 val DarkBrown2: Color
-    get() = if (ThemeState.isDark) Color(0xFF241F14) else Color(0xFFF8F0E4)     // elevated surface
+    get() = if (globalIsDark) Color(0xFF332A22) else Color(0xFFEADDD4)
 val PrimaryGold: Color
-    get() = if (ThemeState.isDark) KbSaffron400 else KbSaffron600     // brand primary saffron
+    get() = if (globalIsDark) KbBrandSaffronLight else KbBrandSaffronAndroid
 val LightGold: Color
-    get() = if (ThemeState.isDark) KbSaffron300 else KbSaffron500     // brand lighter variant
+    get() = if (globalIsDark) KbBrandSaffronLight else KbBrandSaffron
 val TextGold: Color
-    get() = if (ThemeState.isDark) KbSaffron300 else KbSaffron700     // brand text colour
+    get() = if (globalIsDark) KbBrandSaffronLight else KbBrandSaffron
 val TextLight: Color
-    get() = if (ThemeState.isDark) Color(0xFFFBF9F6) else Color(0xFF1F1B18)   // near-white / near-black text
+    get() = if (globalIsDark) Color(0xFFF7F3EE) else Color(0xFF241913)
 val TextMuted: Color
-    get() = if (ThemeState.isDark) Color(0xFFD6C8C0) else Color(0xFF8C7D75)   // warm muted text
+    get() = if (globalIsDark) Color(0xFFC1B7AD) else Color(0xFF574237)
 val CardBG: Color
-    get() = if (ThemeState.isDark) Color(0xFF1C1810) else Color.White     // card background
+    get() = if (globalIsDark) Color(0xFF211A14) else Color(0xFFFFF1EB)
 val BorderGold: Color
-    get() = if (ThemeState.isDark) KbSaffron400.copy(alpha = 0.15f) else KbSaffron600.copy(alpha = 0.15f)
+    get() = if (globalIsDark) KbBrandSaffronLight.copy(alpha = 0.15f) else KbBrandSaffronAndroid.copy(alpha = 0.25f)
 val ParchmentBG: Color
-    get() = if (ThemeState.isDark) KbSaffron950 else KbSaffron100      // tinted bg
+    get() = if (globalIsDark) KbSaffron950 else KbSaffron100
 val BrownSelected: Color
-    get() = if (ThemeState.isDark) KbSaffron900 else KbSaffron200     // selection tint
+    get() = if (globalIsDark) KbSaffron900 else KbSaffron200
 val BrandPurple: Color
-    get() = if (ThemeState.isDark) KbSaffron400 else KbSaffron600     // alias
+    get() = if (globalIsDark) KbSaffron400 else KbSaffron600
 val BrandPurpleDim: Color
-    get() = if (ThemeState.isDark) KbSaffron300 else KbSaffron400
+    get() = if (globalIsDark) KbSaffron300 else KbSaffron400
 val Brown500: Color
-    get() = if (ThemeState.isDark) Color(0xFF241F14) else Color(0xFFF8F0E4)
+    get() = if (globalIsDark) Color(0xFF332A22) else Color(0xFFE8D5C8)
 val DarkBrownSheet: Color
-    get() = if (ThemeState.isDark) Color(0xFF1C1810) else Color(0xFFF8F0E4)
+    get() = if (globalIsDark) Color(0xFF211A14) else Color(0xFFF4DED4)
 val RichEspresso: Color
-    get() = if (ThemeState.isDark) Color(0xFF060604) else Color(0xFFC8B898)     // high-contrast page bg
+    get() = if (globalIsDark) Color(0xFF17130F) else Color(0xFFFFF8F6)
 val BottomNavBG: Color
-    get() = if (ThemeState.isDark) Color(0xFF060604) else Color(0xFFF8F0E4)
+    get() = if (globalIsDark) Color(0xFF17130F) else Color(0xFFFFF1EB)
 
 // Semantic status
 val VegGreen      = KbGreen
 val NonVegRed     = KbRed
+
+// Secondary green aliases for theme mapping
+val KbSecondaryGreen    = KbGreenSec600  // = #3D7A5A
+val KbSecondaryGreenDark = KbGreenSec500 // = #4B9A6E (brighter in dark)
 val SuccessGreen  = KbGreen
 val DangerRed     = KbRed
 val ErrorPink     = KbRed

@@ -22,15 +22,14 @@ import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
-import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 
 data class SelectionDialogOption<T>(
     val value: T,
     val title: String,
     val subtitle: String? = null,
-    val selectedAccent: Color = PrimaryGold,
+    val selectedAccent: Color = Color(0xFFD97706), // KbBrandSaffronAndroid — brand primary
     val onSelect: (() -> Unit)? = null
 )
 
@@ -91,7 +90,7 @@ fun <T> KhanaBookSelectionDialog(
                                 option.subtitle?.let {
                                     Text(
                                         text = it,
-                                        color = TextGold.copy(alpha = 0.75f),
+                                        color = MaterialTheme.kbTextSecondary.copy(alpha = 0.75f),
                                         style = MaterialTheme.typography.labelSmall
                                     )
                                 }
@@ -104,7 +103,7 @@ fun <T> KhanaBookSelectionDialog(
         }
     ) {
         TextButton(onClick = onDismissRequest) {
-            Text(cancelLabel, color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+            Text(cancelLabel, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelLarge)
         }
         actions?.invoke()
     }

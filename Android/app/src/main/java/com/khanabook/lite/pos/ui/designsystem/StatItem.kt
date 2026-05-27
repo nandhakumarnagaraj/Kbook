@@ -9,14 +9,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
-import com.khanabook.lite.pos.ui.theme.TextGold
+import com.khanabook.lite.pos.ui.theme.kbTextPrimary
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 
 @Composable
 fun StatItem(
-    label: String, 
-    value: String, 
+    label: String,
+    value: String,
     modifier: Modifier = Modifier,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally
 ) {
@@ -27,16 +28,19 @@ fun StatItem(
     ) {
         Text(
             text = value,
-            color = PrimaryGold,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.kbTextPrimary,
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
             maxLines = 1,
             softWrap = false,
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = label,
-            color = TextGold,
-            style = MaterialTheme.typography.labelSmall,
+            text = label.uppercase(),
+            color = MaterialTheme.kbTextSecondary,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 0.8.sp
+            ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = spacing.extraSmall)

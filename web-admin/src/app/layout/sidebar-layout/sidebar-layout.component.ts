@@ -130,7 +130,7 @@ type NavLink = { icon: string; label: string; path: string };
   `,
   styles: [`
     .layout-container {
-      height: 100vh;
+      height: 100dvh;
     }
 
     .sidebar {
@@ -152,7 +152,7 @@ type NavLink = { icon: string; label: string; path: string };
       height: 56px;
       border-radius: 10px;
       object-fit: contain;
-      background: #fff;
+      background: var(--bg-elevated);
       padding: 4px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       image-rendering: auto;
@@ -262,7 +262,7 @@ type NavLink = { icon: string; label: string; path: string };
 
     .nav-section-label {
       padding: 16px 24px 8px;
-      font-size: 0.65rem;
+      font-size: 0.75rem;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 1.5px;
@@ -375,7 +375,7 @@ type NavLink = { icon: string; label: string; path: string };
 
     .page-content {
       padding: 0;
-      min-height: calc(100vh - 64px);
+      min-height: calc(100dvh - 64px);
     }
 
     @media (max-width: 599px) {

@@ -24,9 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -36,12 +38,11 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.khanabook.lite.pos.R
-import com.khanabook.lite.pos.ui.theme.DarkBrown1
-import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
-import com.khanabook.lite.pos.ui.theme.TextGold
-import com.khanabook.lite.pos.ui.theme.TextLight
+import com.khanabook.lite.pos.ui.theme.kbBgCard
+import com.khanabook.lite.pos.ui.theme.kbTertiary
+import com.khanabook.lite.pos.ui.theme.kbTextPrimary
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 
 /**
  * Predefined loading types that map to specific animations and default messages.
@@ -62,13 +63,14 @@ enum class LoadingType(@RawRes val animRes: Int, val defaultMessage: String) {
  * Universal branded loading overlay for KhanaBook.
  *
  * Displays a Lottie animation with a message and optional progress indicator.
- * Use this instead of raw CircularProgressIndicator overlays throughout the app.
+ * All colours are resolved from MaterialTheme so the overlay renders correctly
+ * in both dark and light mode.
  *
- * @param visible Controls visibility with animated fade in/out.
- * @param type Determines the animation and default message.
- * @param message Override the default message for the loading type.
- * @param subtitle Optional secondary text (e.g., "Please wait. Do not close the app.").
- * @param progress Optional determinate progress (0f..1f). Shows LinearProgressIndicator when set.
+ * @param visible   Controls visibility with animated fade in/out.
+ * @param type      Determines the animation and default message.
+ * @param message   Override the default message for the loading type.
+ * @param subtitle  Optional secondary text (e.g., "Please wait. Do not close the app.").
+ * @param progress  Optional determinate progress (0f..1f). Shows LinearProgressIndicator when set.
  */
 @Composable
 fun KhanaBookLoadingOverlay(
@@ -80,14 +82,18 @@ fun KhanaBookLoadingOverlay(
 ) {
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(tween(200)),
-        exit = fadeOut(tween(200))
+        enter   = fadeIn(tween(200)),
+        exit    = fadeOut(tween(200))
     ) {
+        // Scrim: theme-aware — near-black in dark mode, near-white in light mode
+        val scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.72f)
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DarkBrown1.copy(alpha = 0.82f))
-                .pointerInput(Unit) { /* block touches */ },
+                .background(scrimColor)
+                .pointerInput(Unit) { /* block touches while loading */ }
+                .semantics { liveRegion = LiveRegionMode.Polite },
             contentAlignment = Alignment.Center
         ) {
             val spacing = KhanaBookTheme.spacing
@@ -96,8 +102,9 @@ fun KhanaBookLoadingOverlay(
                 modifier = Modifier
                     .padding(horizontal = spacing.extraLarge)
                     .fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                shape = RoundedCornerShape(20.dp)
+                // Theme-aware card surface
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+                shape  = RoundedCornerShape(20.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -106,54 +113,46 @@ fun KhanaBookLoadingOverlay(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Lottie animation
                     val composition by rememberLottieComposition(
                         LottieCompositionSpec.RawRes(type.animRes)
                     )
                     val lottieProgress by animateLottieCompositionAsState(
                         composition = composition,
-                        iterations = LottieConstants.IterateForever
+                        iterations  = LottieConstants.IterateForever
                     )
 
                     LottieAnimation(
                         composition = composition,
-                        progress = { lottieProgress },
-                        modifier = Modifier.size(80.dp)
+                        progress    = { lottieProgress },
+                        modifier    = Modifier.size(80.dp)
                     )
 
                     Spacer(modifier = Modifier.height(spacing.medium))
 
-                    // Primary message
                     Text(
-                        text = message,
-                        color = TextLight,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
+                        text  = message,
+                        color = MaterialTheme.kbTextPrimary,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center
                     )
 
-                    // Subtitle
                     if (subtitle != null) {
                         Spacer(modifier = Modifier.height(spacing.small))
                         Text(
-                            text = subtitle,
-                            color = TextGold.copy(alpha = 0.7f),
+                            text  = subtitle,
+                            color = MaterialTheme.kbTextSecondary,
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center
                         )
                     }
 
-                    // Progress bar
                     if (progress != null) {
                         Spacer(modifier = Modifier.height(spacing.medium))
                         LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(4.dp),
-                            color = PrimaryGold,
-                            trackColor = PrimaryGold.copy(alpha = 0.2f),
+                            progress  = { progress },
+                            modifier  = Modifier.fillMaxWidth().height(4.dp),
+                            color     = MaterialTheme.kbTertiary,
+                            trackColor = MaterialTheme.kbTertiary.copy(alpha = 0.2f),
                             strokeCap = StrokeCap.Round
                         )
                     }

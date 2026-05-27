@@ -57,7 +57,6 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
     MatMenuModule,
     MatProgressBarModule,
     MatChipsModule,
-    MatTooltipModule,
     EmptyStateComponent,
     ErrorStateComponent,
     BreadcrumbComponent

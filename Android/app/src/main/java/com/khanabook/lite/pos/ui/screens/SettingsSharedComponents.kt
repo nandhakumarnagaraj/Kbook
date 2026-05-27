@@ -27,13 +27,17 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.text.font.FontWeight
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookGlassCard
+import com.khanabook.lite.pos.ui.theme.*
+import com.khanabook.lite.pos.ui.designsystem.*
+
 import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
+import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
 import java.text.SimpleDateFormat
@@ -63,7 +67,7 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier
                     .size(64.dp)
-                    .background(PrimaryGold, CircleShape),
+                    .background(KbBrandSaffron, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(text = displayName.take(1).uppercase(), color = DarkBrown1, style = MaterialTheme.typography.headlineSmall)
@@ -84,13 +88,14 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
 internal fun SettingsItem(icon: ImageVector, text: String, onClick: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
-    KhanaBookCard(
+    
+    // Premium Glassmorphism Settings Item
+    KhanaBookGlassCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = spacing.small - spacing.hairline),
         onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = CardBG),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(14.dp)
     ) {
         Row(
             modifier = Modifier
@@ -100,14 +105,27 @@ internal fun SettingsItem(icon: ImageVector, text: String, onClick: () -> Unit) 
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.medium))
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(KbBrandSaffron.copy(alpha = 0.12f), RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(iconSize.small))
+                }
                 Spacer(modifier = Modifier.size(spacing.medium))
-                Text(text, color = TextLight, style = MaterialTheme.typography.titleMedium)
+                Text(text, color = TextLight, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
             }
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = PrimaryGold)
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight, 
+                null, 
+                tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
+                modifier = Modifier.size(iconSize.small)
+            )
         }
     }
 }
+
 
 @Composable
 internal fun SettingsToggleItem(
@@ -122,7 +140,7 @@ internal fun SettingsToggleItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = spacing.small - spacing.hairline),
-        colors = CardDefaults.cardColors(containerColor = CardBG),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -133,14 +151,14 @@ internal fun SettingsToggleItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, tint = PrimaryGold, modifier = Modifier.size(iconSize.medium))
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(iconSize.medium))
                 Spacer(modifier = Modifier.size(spacing.medium))
-                Text(text, color = TextLight, style = MaterialTheme.typography.titleMedium)
+                Text(text, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
             }
             KhanaBookSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                checkedTrackColor = PrimaryGold
+                checkedTrackColor = MaterialTheme.colorScheme.primary
             )
         }
     }

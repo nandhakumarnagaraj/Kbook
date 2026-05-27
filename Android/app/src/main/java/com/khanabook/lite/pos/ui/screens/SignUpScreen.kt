@@ -160,6 +160,7 @@ fun SignUpScreen(
             Column(
                     modifier =
                             Modifier.fillMaxWidth()
+                                    .widthIn(max = 480.dp)
                                     .statusBarsPadding()
                                     .verticalScroll(rememberScrollState())
                                     .imePadding()
@@ -169,7 +170,7 @@ fun SignUpScreen(
                     verticalArrangement = Arrangement.Center
             ) {
                 Image(
-                        painter = painterResource(id = R.drawable.khanabook_logo),
+                        painter = painterResource(id = R.drawable.ic_khanabook_logo),
                         contentDescription = "KhanaBook logo",
                         modifier = Modifier.size(120.dp).padding(bottom = spacing.small),
                         contentScale = ContentScale.Fit
@@ -178,7 +179,7 @@ fun SignUpScreen(
                 Text(
                         text = "Sign Up",
                         style = MaterialTheme.typography.headlineLarge,
-                        color = PrimaryGold
+                        color = MaterialTheme.kbSecondary
                 )
 
                 Text(
@@ -204,7 +205,7 @@ fun SignUpScreen(
                                 Icon(
                                         Icons.Default.Business,
                                         contentDescription = null,
-                                        tint = PrimaryGold
+                                        tint = MaterialTheme.kbSecondary
                                 )
                             },
                             modifier = Modifier.fillMaxWidth(),
@@ -277,7 +278,7 @@ fun SignUpScreen(
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(16.dp),
                                         strokeWidth = 2.dp,
-                                        color = PrimaryGold
+                                        color = MaterialTheme.kbSecondary
                                     )
                                 } else if (!otpSent || otpTimer == 0) {
                                     Button(
@@ -290,7 +291,7 @@ fun SignUpScreen(
                                             modifier = Modifier.padding(end = 4.dp).height(40.dp),
                                             colors =
                                                     ButtonDefaults.buttonColors(
-                                                            containerColor = PrimaryGold
+                                                            containerColor = KbBrandSaffron
                                                     ),
                                             shape = RoundedCornerShape(20.dp),
                                             contentPadding = PaddingValues(horizontal = 12.dp),
@@ -327,12 +328,12 @@ fun SignUpScreen(
                                     Icon(
                                             Icons.Default.Dialpad,
                                             contentDescription = null,
-                                            tint = PrimaryGold
-                                    )
-                                },
-                                keyboardOptions =
-                                        KeyboardOptions(
-                                            keyboardType = KeyboardType.Number,
+                                        tint = MaterialTheme.kbSecondary
+                                )
+                            },
+                            keyboardOptions =
+                                    KeyboardOptions(
+                                        keyboardType = KeyboardType.Number,
                                             imeAction = ImeAction.Next
                                         ),
                                 keyboardActions = KeyboardActions(
@@ -374,7 +375,7 @@ fun SignUpScreen(
                                 Icon(
                                         Icons.Default.Lock,
                                         contentDescription = null,
-                                        tint = PrimaryGold
+                                        tint = MaterialTheme.kbSecondary
                                 )
                             },
                             trailingIcon = {
@@ -383,7 +384,7 @@ fun SignUpScreen(
                                                 if (showNewPassword) Icons.Default.Visibility
                                                 else Icons.Default.VisibilityOff,
                                         contentDescription = null,
-                                        tint = PrimaryGold,
+                                        tint = MaterialTheme.kbSecondary,
                                         modifier =
                                                 Modifier.clickable(enabled = !isLoading) {
                                                             showNewPassword = !showNewPassword
@@ -436,7 +437,7 @@ fun SignUpScreen(
                                 Icon(
                                         Icons.Default.Lock,
                                         contentDescription = null,
-                                        tint = PrimaryGold
+                                        tint = MaterialTheme.kbSecondary
                                 )
                             },
                             trailingIcon = {
@@ -445,7 +446,7 @@ fun SignUpScreen(
                                                 if (showConfirmPassword) Icons.Default.Visibility
                                                 else Icons.Default.VisibilityOff,
                                         contentDescription = null,
-                                        tint = PrimaryGold,
+                                        tint = MaterialTheme.kbSecondary,
                                         modifier =
                                                 Modifier.clickable(enabled = !isLoading) {
                                                             showConfirmPassword =
@@ -505,7 +506,7 @@ fun SignUpScreen(
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFormValid) PrimaryGold else TextMuted,
+                            containerColor = if (isFormValid) KbBrandSaffron else TextMuted,
                             contentColor = DarkBrown1
                         ),
                         shape = RoundedCornerShape(28.dp),
@@ -536,7 +537,7 @@ fun SignUpScreen(
                     Text("Already have an account? ", color = TextLight, style = MaterialTheme.typography.bodySmall)
                     Text(
                             text = "Log In",
-                            color = PrimaryGold,
+                            color = MaterialTheme.kbTertiary,
                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.clickable(enabled = !isLoading) { onLoginClick() }
                     )
@@ -558,8 +559,8 @@ private fun outlinedTextFieldColors() =
                 unfocusedContainerColor = DarkBrown1,
                 focusedContainerColor = DarkBrown2,
                 unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                focusedBorderColor = PrimaryGold,
-                cursorColor = PrimaryGold,
+                focusedBorderColor = MaterialTheme.kbPrimary,
+                cursorColor = MaterialTheme.kbPrimary,
                 focusedTextColor = TextLight,
                 unfocusedTextColor = TextLight,
                 errorBorderColor = ErrorPink,

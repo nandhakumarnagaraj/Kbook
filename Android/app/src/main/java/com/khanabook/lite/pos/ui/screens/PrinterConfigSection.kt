@@ -78,7 +78,9 @@ import com.khanabook.lite.pos.ui.theme.DarkBrownSheet
 import com.khanabook.lite.pos.ui.theme.DangerRed
 import com.khanabook.lite.pos.ui.theme.Green800
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
+import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
+import com.khanabook.lite.pos.ui.theme.kbPrimary
+import com.khanabook.lite.pos.ui.theme.kbSecondary
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
@@ -247,7 +249,7 @@ fun PrinterConfigView(
                 )
             }
             ConfigCard {
-                Text("Print Options", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
+                Text("Print Options", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium)
                 PrinterOptionRow("Mask Customer Phone", maskPhone) { maskPhone = it }
             }
             Spacer(modifier = Modifier.height(spacing.large))
@@ -293,8 +295,8 @@ fun PrinterConfigView(
                 OutlinedButton(
                     onClick = onBack,
                     modifier = Modifier.weight(1f).height(56.dp),
-                    border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    border = BorderStroke(1.dp, MaterialTheme.kbSecondary.copy(alpha = 0.7f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbSecondary),
                     shape = RoundedCornerShape(28.dp)
                 ) {
                     Text("Back", style = MaterialTheme.typography.titleMedium)
@@ -328,13 +330,13 @@ fun PrinterConfigView(
             ) {
                 Text(
                     "Select ${if (pendingRole == PrinterRole.CUSTOMER) "Customer" else "Kitchen"} Printer",
-                    color = PrimaryGold,
+                    color = MaterialTheme.kbSecondary,
                     style = MaterialTheme.typography.headlineSmall
                 )
                 if (btIsScanning) {
                     LinearProgressIndicator(
                         modifier = Modifier.fillMaxWidth().padding(vertical = spacing.medium),
-                        color = PrimaryGold
+                        color = MaterialTheme.kbSecondary
                     )
                 }
                 LazyColumn(modifier = Modifier.heightIn(max = 300.dp), contentPadding = PaddingValues(bottom = spacing.small)) {
@@ -398,7 +400,7 @@ private fun PrinterTargetCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(title, color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
+                Text(title, color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium)
                 KhanaBookSwitch(
                     checked = enabled,
                     onCheckedChange = onEnabledChange
@@ -426,10 +428,10 @@ private fun PrinterTargetCard(
                     PrinterOptionRow("Include Logo", includeLogo) { onIncludeLogoChange(it) }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = paper58, onClick = { onPaperSizeChange(true) }, colors = RadioButtonDefaults.colors(selectedColor = PrimaryGold))
+                    RadioButton(selected = paper58, onClick = { onPaperSizeChange(true) }, colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.kbPrimary))
                     Text("58mm", color = TextGold)
                     Spacer(modifier = Modifier.width(spacing.large))
-                    RadioButton(selected = !paper58, onClick = { onPaperSizeChange(false) }, colors = RadioButtonDefaults.colors(selectedColor = PrimaryGold))
+                    RadioButton(selected = !paper58, onClick = { onPaperSizeChange(false) }, colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.kbPrimary))
                     Text("80mm", color = TextGold)
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
@@ -440,7 +442,7 @@ private fun PrinterTargetCard(
                         onClick = onTestPrint,
                         enabled = !macAddress.isNullOrBlank(),
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, disabledContainerColor = PrimaryGold.copy(alpha = 0.35f))
+                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron, disabledContainerColor = KbBrandSaffron.copy(alpha = 0.35f))
                     ) {
                         Text("Test Printer", color = DarkBrown1)
                     }
@@ -462,7 +464,7 @@ fun DeviceRow(
     val iconSize = KhanaBookTheme.iconSize
     @Suppress("MissingPermission")
     val name = device.name ?: "Unknown"
-    val border = if (isSelected) BorderStroke(2.dp, PrimaryGold) else null
+    val border = if (isSelected) BorderStroke(2.dp, MaterialTheme.kbPrimary) else null
     val backgroundColor = if (isSelected) DarkBrown1 else DarkBrown1.copy(alpha = 0.5f)
 
     KhanaBookCard(
@@ -478,16 +480,16 @@ fun DeviceRow(
             Icon(
                 if (isConnected) Icons.Default.BluetoothConnected else Icons.Default.Bluetooth,
                 null,
-                tint = if (isSelected) PrimaryGold else TextGold,
+                tint = if (isSelected) MaterialTheme.kbPrimary else TextGold,
                 modifier = Modifier.size(iconSize.medium)
             )
             Spacer(modifier = Modifier.width(spacing.medium))
             Column(modifier = Modifier.weight(1f)) {
                 Text(name, color = TextLight, style = MaterialTheme.typography.titleMedium.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium))
-                Text(device.address, color = if (isSelected) PrimaryGold.copy(alpha = 0.7f) else TextGold, style = MaterialTheme.typography.labelSmall)
+                Text(device.address, color = if (isSelected) MaterialTheme.kbPrimary.copy(alpha = 0.7f) else TextGold, style = MaterialTheme.typography.labelSmall)
             }
             if (isConnecting) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = PrimaryGold, strokeWidth = 2.dp)
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.kbSecondary, strokeWidth = 2.dp)
             } else if (isConnected) {
                 Box(modifier = Modifier.size(8.dp).background(SuccessGreen, CircleShape))
             }
@@ -498,7 +500,7 @@ fun DeviceRow(
 @Composable
 private fun PrinterOptionRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange, colors = CheckboxDefaults.colors(checkedColor = PrimaryGold))
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange, colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.kbPrimary))
         Text(label, color = TextGold, style = MaterialTheme.typography.bodyMedium)
     }
 }

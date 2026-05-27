@@ -76,19 +76,26 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.khanabook.lite.pos.data.repository.EasebuzzSdkPaymentRepository
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookGlassCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.BrandPurple
 import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
+import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.KhanaShapes
+import com.khanabook.lite.pos.ui.theme.kbBgCard
 import com.khanabook.lite.pos.ui.theme.kbBgPrimary
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
+import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
+import com.khanabook.lite.pos.ui.theme.kbPrimary
+import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.kbTertiary
+import com.khanabook.lite.pos.ui.theme.kbTextPrimary
+import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 import com.khanabook.lite.pos.ui.theme.RichEspresso
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
-import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.theme.TextMuted
 import kotlinx.coroutines.delay
@@ -515,31 +522,30 @@ private fun TransactionDetailsCard(
     payMode: String,
     spacing: com.khanabook.lite.pos.ui.theme.Spacing
 ) {
-    KhanaBookCard(
+    KhanaBookGlassCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(spacing.medium)
         ) {
             Text(
-                text = "Transaction Details",
-                color = TextGold,
+                text = "Secure Checkout Details",
+                color = MaterialTheme.kbSecondary,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = spacing.small)
             )
 
-            EasebuzzDetailRow(label = "Bill number reference", value = "#$billId")
+            EasebuzzDetailRow(label = "Internal Bill Ref", value = "#$billId")
             EasebuzzDivider()
-            EasebuzzDetailRow(label = "Subtotal payable", value = "₹$amount")
+            EasebuzzDetailRow(label = "Amount Payable", value = "₹$amount")
             EasebuzzDivider()
-            EasebuzzDetailRow(label = "Terminal transaction", value = "ONLINE")
+            EasebuzzDetailRow(label = "Payment Gateway", value = "EASEBUZZ")
             EasebuzzDivider()
-            EasebuzzDetailRow(label = "Restaurant ID", value = "$restaurantId")
-
-            val modeLabel = if ("test" == payMode) "Sandbox Tunnel" else "Live Gateway"
-            val modeColor = if ("test" == payMode) PrimaryGold else SuccessGreen
-            EasebuzzDivider()
+            
+            val modeLabel = if ("test" == payMode) "SANDBOX TUNNEL" else "LIVE PRODUCTION"
+            val modeColor = if ("test" == payMode) KbBrandSaffron else SuccessGreen
+            
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -548,27 +554,29 @@ private fun TransactionDetailsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Gateway context",
-                    color = TextMuted,
+                    text = "Security Context",
+                    color = MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(modeColor.copy(alpha = 0.15f))
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                        .background(modeColor.copy(alpha = 0.12f))
+                        .border(1.dp, modeColor.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = modeLabel,
                         color = modeColor,
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Black
                     )
                 }
             }
         }
     }
 }
+
 
 @Composable
 private fun ActionButtonsArea(
@@ -597,7 +605,7 @@ private fun ActionButtonsArea(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 CircularProgressIndicator(
-                    color = PrimaryGold,
+                    color = MaterialTheme.kbSecondary,
                     strokeWidth = 3.dp,
                     modifier = Modifier.size(24.dp)
                 )
@@ -605,7 +613,7 @@ private fun ActionButtonsArea(
                 Text(
                     text = if (retryCount > 0) "Network issue, retrying ($retryCount/$MAX_RETRIES)..."
                     else "Initiating secure session...",
-                    color = TextGold,
+                    color = MaterialTheme.kbSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -617,7 +625,7 @@ private fun ActionButtonsArea(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp), // Height = 52.dp
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold), // Background = AccentPrimary
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
                 shape = KhanaShapes.medium // Shape = Button shape (12.dp)
             ) {
                 Text(
@@ -638,14 +646,14 @@ private fun ActionButtonsArea(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 CircularProgressIndicator(
-                    color = PrimaryGold,
+                    color = MaterialTheme.kbSecondary,
                     strokeWidth = 3.dp,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(spacing.medium))
                 Text(
                     text = "Awaiting checkout response...",
-                    color = TextGold,
+                    color = MaterialTheme.kbSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -660,14 +668,14 @@ private fun ActionButtonsArea(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 CircularProgressIndicator(
-                    color = PrimaryGold,
+                    color = MaterialTheme.kbSecondary,
                     strokeWidth = 3.dp,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(spacing.medium))
                 Text(
                     text = "Confirming payment with bank...",
-                    color = TextGold,
+                    color = MaterialTheme.kbSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -754,7 +762,7 @@ private fun ActionButtonsArea(
                         Button(
                             onClick = retryPayment,
                             modifier = Modifier.fillMaxWidth().height(52.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
                             shape = KhanaShapes.medium
                         ) {
                             Text(
@@ -768,10 +776,10 @@ private fun ActionButtonsArea(
                         OutlinedButton(
                             onClick = onBack,
                             modifier = Modifier.fillMaxWidth().height(52.dp),
-                            border = BorderStroke(0.5.dp, BorderGold),
+                            border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = CardBG,
-                                contentColor = TextLight
+                                containerColor = MaterialTheme.kbBgCard,
+                                contentColor = MaterialTheme.kbTextPrimary
                             ),
                             shape = KhanaShapes.medium
                         ) {
@@ -790,7 +798,7 @@ private fun ActionButtonsArea(
                         Button(
                             onClick = retryPayment,
                             modifier = Modifier.weight(1f).height(52.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
                             shape = KhanaShapes.medium
                         ) {
                             Text(
@@ -804,10 +812,10 @@ private fun ActionButtonsArea(
                         OutlinedButton(
                             onClick = onBack,
                             modifier = Modifier.weight(1f).height(52.dp),
-                            border = BorderStroke(0.5.dp, BorderGold),
+                            border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = CardBG,
-                                contentColor = TextLight
+                                containerColor = MaterialTheme.kbBgCard,
+                                contentColor = MaterialTheme.kbTextPrimary
                             ),
                             shape = KhanaShapes.medium
                         ) {
@@ -834,18 +842,18 @@ private fun ActionButtonsArea(
                             openFreshBrowserFlow()
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
-                        border = BorderStroke(1.dp, PrimaryGold),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                        border = BorderStroke(1.dp, MaterialTheme.kbTertiary),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbTertiary),
                         shape = RoundedCornerShape(24.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Info,
                             contentDescription = "Browser",
-                            tint = PrimaryGold,
+                            tint = MaterialTheme.kbTertiary,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Open in Browser Flow", fontWeight = FontWeight.Bold)
+                        Text("Open in Browser Flow", fontWeight = FontWeight.Bold, color = MaterialTheme.kbTertiary)
                     }
                 }
             }
@@ -864,7 +872,7 @@ private fun EasebuzzStatusGauge(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = LinearEasing),
+            animation = tween(2000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "rotation"
@@ -872,9 +880,9 @@ private fun EasebuzzStatusGauge(
 
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.05f,
+        targetValue = 1.04f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
+            animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulse"
@@ -894,21 +902,23 @@ private fun EasebuzzStatusGauge(
             },
         contentAlignment = Alignment.Center
     ) {
-        // Soft radial background glow matching state
+        // Immersive Glow Base
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = size.center
             val radius = size.minDimension / 2
             val glowColor = when (state) {
-                PaymentScreenState.SUCCESS -> SuccessGreen.copy(alpha = 0.15f)
-                PaymentScreenState.FAILED -> Color(0x26FF5252)
-                else -> BrandPurple.copy(alpha = 0.15f)
+                PaymentScreenState.SUCCESS -> SuccessGreen.copy(alpha = 0.2f)
+                PaymentScreenState.FAILED -> Color(0x33FF4444)
+                else -> KbBrandSaffron.copy(alpha = 0.15f)
             }
-            val brush = Brush.radialGradient(
-                colors = listOf(glowColor, Color.Transparent),
-                center = center,
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(glowColor, Color.Transparent),
+                    center = center,
+                    radius = radius
+                ),
                 radius = radius
             )
-            drawCircle(brush = brush, radius = radius)
         }
 
         // Circular OneScore-style visual meter
@@ -926,17 +936,10 @@ private fun EasebuzzStatusGauge(
             val center = size.center
             val radius = size.minDimension / 2
 
-            // 1. Decorative outer boundary ring (thin)
-            drawCircle(
-                color = Color(0x22FFFFFF),
-                radius = radius - 1.dp.toPx(),
-                style = Stroke(width = 1.dp.toPx())
-            )
-
-            // 2. Dashboard tick marks (dials) around the gauge
-            val tickCount = 36
-            val tickLength = 5.dp.toPx()
-            val tickDistance = radius - 12.dp.toPx()
+            // 1. Quantum Tick Marks
+            val tickCount = 48
+            val tickLength = 6.dp.toPx()
+            val tickDistance = radius - 10.dp.toPx()
             for (i in 0 until tickCount) {
                 val angleDegrees = (i * 360f / tickCount)
                 val angleRadians = Math.toRadians(angleDegrees.toDouble())
@@ -946,9 +949,9 @@ private fun EasebuzzStatusGauge(
                 val endY = center.y + ((tickDistance - tickLength) * Math.sin(angleRadians)).toFloat()
                 
                 val tickColor = when (state) {
-                    PaymentScreenState.SUCCESS -> SuccessGreen.copy(alpha = 0.25f)
-                    PaymentScreenState.FAILED -> Color(0x4DFF5252)
-                    else -> PrimaryGold.copy(alpha = 0.2f)
+                    PaymentScreenState.SUCCESS -> SuccessGreen.copy(alpha = 0.3f)
+                    PaymentScreenState.FAILED -> Color(0x66FF4444)
+                    else -> KbBrandSaffron.copy(alpha = 0.2f)
                 }
                 drawLine(
                     color = tickColor,
@@ -958,68 +961,40 @@ private fun EasebuzzStatusGauge(
                 )
             }
 
-            // 3. Full background track line
+            // 2. Track Line
             drawCircle(
                 color = Color(0x11FFFFFF),
-                radius = radius - 20.dp.toPx(),
+                radius = radius - 24.dp.toPx(),
                 style = Stroke(width = strokeWidth)
             )
 
-            // 4. State-specific indicator arc/circle on the track
-            when (state) {
-                PaymentScreenState.INITIALIZING,
-                PaymentScreenState.PROCESSING,
-                PaymentScreenState.VERIFYING -> {
-                    drawArc(
-                        brush = Brush.sweepGradient(
-                            listOf(BrandPurple, PrimaryGold, BrandPurple)
-                        ),
-                        startAngle = 0f,
-                        sweepAngle = 120f,
-                        useCenter = false,
-                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-                        topLeft = androidx.compose.ui.geometry.Offset(20.dp.toPx(), 20.dp.toPx()),
-                        size = androidx.compose.ui.geometry.Size(size.width - 40.dp.toPx(), size.height - 40.dp.toPx())
-                    )
-                }
-                PaymentScreenState.SUCCESS -> {
-                    drawCircle(
-                        brush = Brush.linearGradient(
-                            listOf(SuccessGreen, Color(0xFF00E676))
-                        ),
-                        radius = radius - 20.dp.toPx(),
-                        style = Stroke(width = strokeWidth)
-                    )
-                }
-                PaymentScreenState.FAILED -> {
-                    drawCircle(
-                        brush = Brush.linearGradient(
-                            listOf(Color(0xFFC62828), Color(0xFFFF5252))
-                        ),
-                        radius = radius - 20.dp.toPx(),
-                        style = Stroke(width = strokeWidth)
-                    )
-                }
-                PaymentScreenState.READY -> {
-                    drawCircle(
-                        brush = Brush.linearGradient(
-                            listOf(PrimaryGold, TextGold)
-                        ),
-                        radius = radius - 20.dp.toPx(),
-                        style = Stroke(width = strokeWidth)
-                    )
-                }
+            // 3. Glowing Progress Arc
+            val arcBrush = when (state) {
+                PaymentScreenState.SUCCESS -> Brush.sweepGradient(listOf(SuccessGreen, Color(0xFF00E676), SuccessGreen))
+                PaymentScreenState.FAILED -> Brush.sweepGradient(listOf(Color(0xFFFF4444), Color(0xFFEF4444), Color(0xFFFF4444)))
+                else -> Brush.sweepGradient(listOf(KbBrandSaffron.copy(alpha = 0.4f), KbBrandSaffron, KbBrandSaffron.copy(alpha = 0.4f)))
             }
 
-            // 5. Decorative inner boundary ring (thin)
-            drawCircle(
-                color = Color(0x18FFFFFF),
-                radius = radius - 28.dp.toPx(),
-                style = Stroke(width = 1.dp.toPx())
-            )
+            if (isLoaderState) {
+                drawArc(
+                    brush = arcBrush,
+                    startAngle = 0f,
+                    sweepAngle = 100f,
+                    useCenter = false,
+                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+                    topLeft = androidx.compose.ui.geometry.Offset(24.dp.toPx(), 24.dp.toPx()),
+                    size = androidx.compose.ui.geometry.Size(size.width - 48.dp.toPx(), size.height - 48.dp.toPx())
+                )
+            } else {
+                drawCircle(
+                    brush = arcBrush,
+                    radius = radius - 24.dp.toPx(),
+                    style = Stroke(width = strokeWidth)
+                )
+            }
         }
 
-        // Internal textual/icon content centered inside the gauge
+        // Inner Content
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
@@ -1030,66 +1005,67 @@ private fun EasebuzzStatusGauge(
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = "Success",
-                        tint = Color(0xFF00E676),
-                        modifier = Modifier.size(52.dp)
+                        tint = SuccessGreen,
+                        modifier = Modifier.size(56.dp)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "VERIFIED",
-                        color = Color(0xFF00E676),
+                        text = "SECURE",
+                        color = SuccessGreen,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp
                     )
                 }
                 PaymentScreenState.FAILED -> {
                     Icon(
                         imageVector = Icons.Default.Error,
                         contentDescription = "Failed",
-                        tint = Color(0xFFFF5252),
-                        modifier = Modifier.size(52.dp)
+                        tint = Color(0xFFFF4444),
+                        modifier = Modifier.size(56.dp)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "FAILED",
-                        color = Color(0xFFFF5252),
+                        color = Color(0xFFFF4444),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp
                     )
                 }
                 else -> {
                     Icon(
                         imageVector = Icons.Default.Lock,
-                        contentDescription = "Secure Link",
-                        tint = PrimaryGold.copy(alpha = 0.8f),
-                        modifier = Modifier.size(22.dp)
+                        contentDescription = "Secured",
+                        tint = KbBrandSaffron.copy(alpha = 0.7f),
+                        modifier = Modifier.size(24.dp)
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "₹$amount",
-                        color = Color.White,
+                        color = TextLight,
                         style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold
+                        fontWeight = FontWeight.Black
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = when (state) {
-                            PaymentScreenState.INITIALIZING -> "INITIALIZING"
+                            PaymentScreenState.INITIALIZING -> "TUNNELING"
                             PaymentScreenState.PROCESSING -> "PROCESSING"
                             PaymentScreenState.VERIFYING -> "VERIFYING"
-                            else -> "READY TO PAY"
+                            else -> "READY"
                         },
-                        color = TextGold,
+                        color = KbBrandSaffron.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.2.sp
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.5.sp
                     )
                 }
             }
         }
     }
 }
+
 
 @Composable
 private fun EasebuzzDetailRow(label: String, value: String) {

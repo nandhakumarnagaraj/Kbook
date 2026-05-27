@@ -3,167 +3,409 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Invoice - <th:block th:text="${shopName}">Shop</th:block></title>
+<meta name="robots" content="noindex,nofollow">
+<title>Invoice – <th:block th:text="${shopName}">Shop</th:block></title>
 <style>
-*{box-sizing:border-box}
+/* ── Reset & tokens ─────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#f4f4f3;
-  --card:#fff;
-  --text:#111827;
-  --muted:#667085;
-  --tertiary:#98a2b3;
-  --line:#d0d5dd;
-  --line-soft:#eaecf0;
-  --secondary:#f7f8fa;
-  --success-bg:#eaf3de;
-  --success:#27500a;
-  --pending-bg:#fff4d6;
-  --pending:#8a5b00;
-  --failed-bg:#fde8e8;
-  --failed:#9b1c1c;
-  --blue:#185fa5;
+  --brand:#C85A00;
+  --brand-light:#E8832A;
+  --brand-dim:rgba(200,90,0,.10);
+  --bg:#F5F0EB;
+  --card:#FFFFFF;
+  --text:#1A1510;
+  --muted:#5C4F42;
+  --tertiary:#9E8E82;
+  --line:#D6CDBF;
+  --line-soft:#EBE3D6;
+  --surface:#FDF8F4;
+  --success-bg:#F0FDF4;
+  --success:#16A34A;
+  --pending-bg:#FFFBEB;
+  --pending:#D97706;
+  --failed-bg:#FFF1F2;
+  --failed:#BE123C;
+  --blue:#1B5FA8;
+  --radius-card:16px;
+  --radius-pill:999px;
+  --shadow:0 8px 32px rgba(26,21,16,.09);
+  --shadow-sm:0 2px 8px rgba(26,21,16,.06);
 }
-html,body{margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.35;-webkit-font-smoothing:antialiased}
-.wrap{min-height:100dvh;display:flex;justify-content:center;align-items:flex-start;padding:14px}
-.receipt{width:100%;max-width:480px;background:var(--card);border:0.5px solid var(--line-soft);border-radius:14px;padding:28px 24px;box-shadow:0 8px 24px rgba(16,24,40,.08)}
-.header{text-align:center;padding-bottom:16px;border-bottom:1px dashed var(--line)}
-.logo{width:96px;height:96px;border-radius:8px;object-fit:contain;margin:0 auto 10px;display:block;background:#fff;padding:4px;image-rendering:auto}
-.tenant-name{font-size:20px;font-weight:500;color:var(--text);margin:0 0 4px;overflow-wrap:anywhere}
+
+/* ── Base ───────────────────────────────────────────────────── */
+html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.4;-webkit-font-smoothing:antialiased;font-size:14px}
+.wrap{min-height:100dvh;display:flex;justify-content:center;align-items:flex-start;padding:20px 12px}
+
+/* ── Receipt card ───────────────────────────────────────────── */
+.receipt{
+  width:100%;max-width:500px;
+  background:var(--card);
+  border:1px solid var(--line-soft);
+  border-radius:var(--radius-card);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+/* ── Brand stripe at top ────────────────────────────────────── */
+.brand-stripe{
+  height:4px;
+  background:linear-gradient(90deg,var(--brand),var(--brand-light));
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.header{
+  text-align:center;
+  padding:24px 24px 18px;
+  border-bottom:1px dashed var(--line);
+  background:linear-gradient(180deg,rgba(200,90,0,.04) 0%,transparent 100%);
+}
+.logo{
+  width:80px;height:80px;
+  border-radius:12px;
+  object-fit:contain;
+  margin:0 auto 12px;
+  display:block;
+  background:var(--surface);
+  padding:6px;
+  border:1px solid var(--line-soft);
+  box-shadow:var(--shadow-sm);
+}
+.tenant-name{font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px;overflow-wrap:anywhere;line-height:1.2}
 .outlet-name{font-size:12px;color:var(--muted);margin-bottom:6px;overflow-wrap:anywhere}
-.biz-meta{font-size:12px;color:var(--muted);margin-bottom:3px;overflow-wrap:anywhere}
-.biz-meta strong{font-weight:700;color:var(--text)}
-.meta-section{padding:12px 0;border-bottom:1px dashed var(--line)}
-.meta-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:3px 0;font-size:13px}
-.meta-row .mk{color:var(--muted);flex:0 0 auto}
+.biz-meta{font-size:11.5px;color:var(--muted);margin-bottom:3px;overflow-wrap:anywhere;line-height:1.5}
+.biz-meta strong{font-weight:600;color:var(--text)}
+
+/* ── Meta section ───────────────────────────────────────────── */
+.meta-section{padding:14px 24px;border-bottom:1px dashed var(--line);background:var(--surface)}
+.meta-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:4px 0;font-size:13px}
+.meta-row .mk{color:var(--muted);flex:0 0 auto;font-size:12px}
 .meta-row .mv{font-weight:700;color:var(--text);text-align:right;overflow-wrap:anywhere}
-.pill{display:inline-flex;align-items:center;gap:4px;border-radius:99px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap}
-.pill.status{background:var(--success-bg);color:var(--success)}
+
+/* ── Status pill ────────────────────────────────────────────── */
+.pill{
+  display:inline-flex;align-items:center;gap:4px;
+  border-radius:var(--radius-pill);
+  padding:3px 10px;
+  font-size:11px;font-weight:700;
+  white-space:nowrap;
+  letter-spacing:.02em;
+}
+.pill::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%}
 .pill.success{background:var(--success-bg);color:var(--success)}
+.pill.success::before{background:var(--success)}
 .pill.pending{background:var(--pending-bg);color:var(--pending)}
+.pill.pending::before{background:var(--pending)}
 .pill.failed{background:var(--failed-bg);color:var(--failed)}
+.pill.failed::before{background:var(--failed)}
+
+/* ── Items table ────────────────────────────────────────────── */
+.items-wrap{padding:0 24px}
 .items{width:100%;border-collapse:collapse;margin:14px 0 0;font-size:13px}
-.items thead tr{border-bottom:1px solid var(--line)}
-.items th{padding:6px 0;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.items thead tr{border-bottom:1.5px solid var(--line)}
+.items th{
+  padding:7px 0;
+  font-size:10.5px;font-weight:700;
+  color:var(--muted);
+  text-transform:uppercase;letter-spacing:.06em;
+}
 .items th:first-child{text-align:left}
 .items th:nth-child(2){text-align:center}
 .items th:last-child{text-align:right}
-.items td{padding:9px 0;color:var(--text);border-bottom:.5px solid var(--line-soft);vertical-align:top}
-.items td:first-child{text-align:left;overflow-wrap:anywhere}
+.items td{
+  padding:10px 0;
+  color:var(--text);
+  border-bottom:.5px solid var(--line-soft);
+  vertical-align:top;
+  font-size:13px;
+}
+.items td:first-child{text-align:left;overflow-wrap:anywhere;padding-right:8px}
 .items td:nth-child(2){text-align:center;color:var(--muted);white-space:nowrap}
-.items td:last-child{text-align:right;white-space:nowrap}
-.variant{color:var(--muted)}
-.totals{padding-top:8px}
-.t-row{display:flex;justify-content:space-between;gap:16px;font-size:13px;padding:3px 0;color:var(--muted)}
+.items td:last-child{text-align:right;white-space:nowrap;font-weight:600}
+.variant{font-size:11.5px;color:var(--muted);display:block;margin-top:1px}
+.item-note{font-size:11px;color:var(--brand);display:block;margin-top:2px;font-style:italic}
+
+/* ── Totals ─────────────────────────────────────────────────── */
+.totals{padding:10px 24px 0}
+.t-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:4px 0;color:var(--muted)}
 .t-row.sub{color:var(--text)}
-.t-row.grand{border-top:1.5px solid var(--text);margin-top:8px;padding-top:10px;font-size:16px;font-weight:700;color:var(--text)}
-.payment{padding:12px 0;border-top:1px dashed var(--line);margin-top:12px}
-.payment-label{font-size:12px;color:var(--muted);margin-bottom:5px}
-.pay-chip{display:inline-flex;align-items:center;gap:6px;background:var(--secondary);border-radius:8px;padding:5px 10px;font-size:13px}
+.t-row.grand{
+  border-top:1.5px solid var(--text);
+  margin-top:10px;padding-top:12px;
+  font-size:16px;font-weight:800;
+  color:var(--text);
+}
+.t-row.grand span:last-child{color:var(--brand)}
+
+/* ── Payment section ────────────────────────────────────────── */
+.payment{
+  padding:14px 24px;
+  border-top:1px dashed var(--line);
+  margin-top:14px;
+}
+.payment-label{font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.pay-chip{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--surface);
+  border:1px solid var(--line-soft);
+  border-radius:10px;
+  padding:8px 12px;
+  font-size:13px;
+}
 .pay-method{font-weight:700;color:var(--text)}
-.footer{border-top:1px dashed var(--line);padding-top:14px;text-align:center}
-.qr-row{display:flex;align-items:center;gap:10px;background:var(--secondary);border-radius:8px;padding:10px;margin-bottom:12px;text-align:left}
-.qr-row img{width:64px;height:64px;border-radius:6px;flex:0 0 auto}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.footer{
+  border-top:1px dashed var(--line);
+  padding:18px 24px 20px;
+  text-align:center;
+  background:var(--surface);
+}
+.qr-row{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);
+  border:1px solid var(--line-soft);
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:14px;
+  text-align:left;
+  box-shadow:var(--shadow-sm);
+}
+.qr-row img{width:68px;height:68px;border-radius:8px;flex:0 0 auto;border:1px solid var(--line-soft)}
 .qr-info{min-width:0;flex:1}
-.qr-title{font-size:11px;color:var(--muted);margin-bottom:2px}
+.qr-title{font-size:11px;color:var(--muted);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
 .qr-ref{font-size:10px;color:var(--tertiary);word-break:break-all}
 .qr-valid{font-size:10px;color:var(--tertiary);margin-top:3px}
-.action-row{display:flex;gap:8px;margin-bottom:12px}
-.btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;padding:8px 6px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:.5px solid var(--line);background:var(--card);color:var(--text);text-decoration:none;font-family:inherit}
-.btn-wa{background:var(--success-bg);border-color:#c0dd97;color:var(--success)}
-.thanks{font-size:13px;color:var(--muted);margin-bottom:8px;white-space:pre-line}
-.review-link{font-size:12px;color:var(--blue);text-decoration:none}
-.review-link:hover{text-decoration:underline}
-.powered{font-size:11px;color:var(--tertiary);margin-top:8px}
-.powered a{color:inherit;text-decoration:none}
-@media(max-width:520px){
-  .wrap{padding:12px 10px}
-  .receipt{padding:24px 18px;border-radius:12px}
-  .action-row{gap:6px}
-  .btn{font-size:11px}
+
+/* ── Action buttons ─────────────────────────────────────────── */
+.action-row{display:flex;gap:8px;margin-bottom:16px}
+.btn{
+  flex:1;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  min-width:0;
+  padding:10px 8px;
+  border-radius:10px;
+  font-size:12px;font-weight:700;
+  cursor:pointer;
+  border:1px solid var(--line);
+  background:var(--card);
+  color:var(--text);
+  text-decoration:none;
+  font-family:inherit;
+  transition:background .15s,border-color .15s,transform .1s;
+  -webkit-tap-highlight-color:transparent;
 }
+.btn:hover{background:var(--surface);border-color:var(--line)}
+.btn:active{transform:scale(.97)}
+.btn-wa{background:var(--success-bg);border-color:#86efac;color:var(--success)}
+.btn-wa:hover{background:#dcfce7}
+.btn-brand{background:var(--brand-dim);border-color:rgba(200,90,0,.25);color:var(--brand)}
+.btn-brand:hover{background:rgba(200,90,0,.15)}
+
+/* ── Thanks & powered ───────────────────────────────────────── */
+.thanks{font-size:13px;color:var(--muted);margin-bottom:10px;white-space:pre-line;line-height:1.5}
+.review-link{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;color:var(--blue);
+  text-decoration:none;
+  font-weight:600;
+  padding:6px 12px;
+  border-radius:8px;
+  background:rgba(27,95,168,.07);
+  border:1px solid rgba(27,95,168,.15);
+  margin-bottom:12px;
+  transition:background .15s;
+}
+.review-link:hover{background:rgba(27,95,168,.12);text-decoration:none}
+.powered{font-size:11px;color:var(--tertiary);margin-top:10px}
+.powered a{color:var(--brand);text-decoration:none;font-weight:600}
+.powered a:hover{text-decoration:underline}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media(max-width:520px){
+  .wrap{padding:12px 8px}
+  .receipt{border-radius:14px}
+  .header,.meta-section,.items-wrap,.totals,.payment,.footer{padding-left:18px;padding-right:18px}
+  .action-row{gap:6px}
+  .btn{font-size:11.5px;padding:9px 6px}
+}
+
+/* ── Print ──────────────────────────────────────────────────── */
 @media print{
-  @page{margin:10mm}
-  body{background:#fff}
+  @page{margin:8mm}
+  body{background:#fff;font-size:12px}
   .wrap{display:block;min-height:auto;padding:0}
-  .receipt{max-width:none;border:0;border-radius:0;box-shadow:none;padding:0}
+  .receipt{max-width:none;border:0;border-radius:0;box-shadow:none}
+  .brand-stripe{display:none}
   .action-row{display:none}
+  .footer{background:#fff}
+  .btn{display:none}
 }
 </style>
 </head>
 <body>
 <main class="wrap">
-<article class="receipt">
+<article class="receipt" role="main" aria-label="Invoice">
 
-<header class="header">
-  <img th:if="${logoUrl != null and !logoUrl.isEmpty()}" class="logo" th:src="${logoUrl}" th:alt="${shopName}" onerror="this.style.display='none'">
-  <h1 class="tenant-name" th:text="${shopName}">Tenant Name</h1>
-  <div class="outlet-name" th:text="${address != null and !address.isEmpty() ? address : 'Main Outlet'}">Main Outlet</div>
-  <div class="biz-meta" th:if="${(gstin != null and !gstin.isEmpty()) or (fssai != null and !fssai.isEmpty())}">
-    <span th:if="${gstin != null and !gstin.isEmpty()}"><strong>GSTIN:</strong> <span th:text="${gstin}">GSTIN</span></span>
-    <span th:if="${(gstin != null and !gstin.isEmpty()) and (fssai != null and !fssai.isEmpty())}">&nbsp;&nbsp;</span>
-    <span th:if="${fssai != null and !fssai.isEmpty()}"><strong>FSSAI:</strong> <span th:text="${fssai}">FSSAI</span></span>
+  <!-- Brand accent stripe -->
+  <div class="brand-stripe" aria-hidden="true"></div>
+
+  <!-- Shop header -->
+  <header class="header">
+    <img th:if="${logoUrl != null and !logoUrl.isEmpty()}"
+         class="logo"
+         th:src="${logoUrl}"
+         th:alt="${shopName} logo"
+         onerror="this.style.display='none'">
+    <h1 class="tenant-name" th:text="${shopName}">Restaurant Name</h1>
+    <p class="outlet-name" th:text="${address != null and !address.isEmpty() ? address : 'Main Outlet'}">Main Outlet</p>
+    <p class="biz-meta" th:if="${(gstin != null and !gstin.isEmpty()) or (fssai != null and !fssai.isEmpty())}">
+      <span th:if="${gstin != null and !gstin.isEmpty()}"><strong>GSTIN:</strong> <span th:text="${gstin}"></span></span>
+      <span th:if="${(gstin != null and !gstin.isEmpty()) and (fssai != null and !fssai.isEmpty())}">&ensp;·&ensp;</span>
+      <span th:if="${fssai != null and !fssai.isEmpty()}"><strong>FSSAI:</strong> <span th:text="${fssai}"></span></span>
+    </p>
+    <p class="biz-meta" th:if="${(email != null and !email.isEmpty()) or (phone != null and !phone.isEmpty())}">
+      <span th:if="${email != null and !email.isEmpty()}"><strong>Email:</strong> <span th:text="${email}"></span></span>
+      <span th:if="${(email != null and !email.isEmpty()) and (phone != null and !phone.isEmpty())}">&ensp;·&ensp;</span>
+      <span th:if="${phone != null and !phone.isEmpty()}"><strong>Ph:</strong> <span th:text="${phone}"></span></span>
+    </p>
+  </header>
+
+  <!-- Order meta -->
+  <section class="meta-section" aria-label="Invoice details">
+    <div class="meta-row">
+      <span class="mk">Order ID</span>
+      <span class="mv" th:text="${orderCode}">#001</span>
+    </div>
+    <div class="meta-row">
+      <span class="mk" th:text="${invoiceLabel}">Tax Invoice No</span>
+      <span class="mv" th:text="'INV' + ${lifetimeOrderId}">INV1</span>
+    </div>
+    <div class="meta-row">
+      <span class="mk">Date &amp; Time</span>
+      <span class="mv" th:text="${dateTime}">01 Jan 2026, 10:00 AM</span>
+    </div>
+  </section>
+
+  <!-- Line items -->
+  <div class="items-wrap">
+    <table class="items" aria-label="Order items">
+      <thead>
+        <tr>
+          <th scope="col">Item</th>
+          <th scope="col">Qty</th>
+          <th scope="col">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="item : ${items}">
+          <td>
+            <span th:text="${item.itemName}">Item</span>
+            <span class="variant"
+                  th:if="${item.variantName != null and !item.variantName.isEmpty()}"
+                  th:text="${item.variantName}"></span>
+          </td>
+          <td th:text="${item.quantity}">1</td>
+          <td th:text="${currencySymbol + item.itemTotalFormatted}">₹0.00</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
-  <div class="biz-meta" th:if="${(email != null and !email.isEmpty()) or (phone != null and !phone.isEmpty())}">
-    <span th:if="${email != null and !email.isEmpty()}"><strong>Email:</strong> <span th:text="${email}">email@example.com</span></span>
-    <span th:if="${(email != null and !email.isEmpty()) and (phone != null and !phone.isEmpty())}">&nbsp;&nbsp;</span>
-    <span th:if="${phone != null and !phone.isEmpty()}"><strong>Contact Number:</strong> <span th:text="${phone}">9999999999</span></span>
-  </div>
-</header>
 
-<section class="meta-section" aria-label="Invoice details">
-  <div class="meta-row"><span class="mk">Order ID</span><span class="mv" th:text="${orderCode}">#001</span></div>
-  <div class="meta-row"><span class="mk" th:text="${invoiceLabel}">Tax Invoice No</span><span class="mv" th:text="'INV' + ${lifetimeOrderId}">INV1</span></div>
-  <div class="meta-row"><span class="mk">Date</span><span class="mv" th:text="${dateTime}">01 Jan 2026, 10:00 AM</span></div>
-</section>
+  <!-- Totals -->
+  <section class="totals" aria-label="Bill totals">
+    <div class="t-row sub">
+      <span>Subtotal</span>
+      <span th:text="${currencySymbol + subtotalFormatted}">₹0.00</span>
+    </div>
+    <div class="t-row" th:if="${hasAnyTax and hasGst}">
+      <span th:text="'CGST @ ' + ${halfGstPct} + '%'">CGST</span>
+      <span th:text="${currencySymbol + cgstFormatted}">₹0.00</span>
+    </div>
+    <div class="t-row" th:if="${hasAnyTax and hasGst}">
+      <span th:text="'SGST @ ' + ${halfGstPct} + '%'">SGST</span>
+      <span th:text="${currencySymbol + sgstFormatted}">₹0.00</span>
+    </div>
+    <div class="t-row" th:if="${hasAnyTax and hasCustomTax}">
+      <span th:text="${customTaxName}">Custom Tax</span>
+      <span th:text="${currencySymbol + customTaxFormatted}">₹0.00</span>
+    </div>
+    <div class="t-row grand">
+      <span>Total Payable</span>
+      <span th:text="${currencySymbol + totalFormatted}">₹0.00</span>
+    </div>
+  </section>
 
-<table class="items">
-  <thead>
-    <tr>
-      <th>Item</th>
-      <th>Qty</th>
-      <th>Total</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr th:each="item : ${items}">
-      <td><span th:text="${item.itemName}">Item</span> <span class="variant" th:if="${item.variantName != null and !item.variantName.isEmpty()}" th:text="'(' + ${item.variantName} + ')'"></span></td>
-      <td th:text="${item.quantity}">1</td>
-      <td th:text="${currencySymbol + item.itemTotalFormatted}">₹0.00</td>
-    </tr>
-  </tbody>
-</table>
+  <!-- Payment -->
+  <section class="payment" aria-label="Payment details">
+    <div class="payment-label">Payment</div>
+    <div class="pay-chip">
+      <span aria-hidden="true">💳</span>
+      <span class="pay-method" th:text="${paymentMode}">UPI</span>
+      <span th:if="${statusClass == 'paid'}"   class="pill success">Paid</span>
+      <span th:if="${statusClass == 'pending'}" class="pill pending">Pending</span>
+      <span th:if="${statusClass == 'failed'}"  class="pill failed">Failed</span>
+    </div>
+  </section>
 
-<section class="totals" aria-label="Totals">
-  <div class="t-row sub"><span>Subtotal</span><span th:text="${currencySymbol + subtotalFormatted}">₹0.00</span></div>
-  <div class="t-row" th:if="${hasAnyTax and hasGst}"><span th:text="'CGST @' + ${halfGstPct} + '%'">CGST</span><span th:text="${currencySymbol + cgstFormatted}">₹0.00</span></div>
-  <div class="t-row" th:if="${hasAnyTax and hasGst}"><span th:text="'SGST @' + ${halfGstPct} + '%'">SGST</span><span th:text="${currencySymbol + sgstFormatted}">₹0.00</span></div>
-  <div class="t-row" th:if="${hasAnyTax and hasCustomTax}"><span th:text="${customTaxName}">Custom Tax</span><span th:text="${currencySymbol + customTaxFormatted}">₹0.00</span></div>
-  <div class="t-row grand"><span>Total</span><span th:text="${currencySymbol + totalFormatted}">₹0.00</span></div>
-</section>
+  <!-- Footer: QR, actions, thanks -->
+  <footer class="footer">
 
-<section class="payment" aria-label="Payment">
-  <div class="payment-label">Payment Type</div>
-  <div class="pay-chip">
-    <span aria-hidden="true">💳</span>
-    <span class="pay-method" th:text="'Online · ' + ${paymentMode}">Online · UPI</span>
-    <span th:if="${statusClass == 'paid'}" class="pill success">Success</span>
-    <span th:if="${statusClass == 'pending'}" class="pill pending">Pending</span>
-    <span th:if="${statusClass == 'failed'}" class="pill failed">Failed</span>
-  </div>
-</section>
+    <!-- QR code block (optional) -->
+    <div class="qr-row" th:if="${qrImageUrl != null and !qrImageUrl.isEmpty()}">
+      <img th:src="${qrImageUrl}" alt="Invoice QR code" width="68" height="68">
+      <div class="qr-info">
+        <div class="qr-title">Scan to view invoice</div>
+        <div class="qr-ref" th:text="${canonicalPublicUrl}"></div>
+        <div class="qr-valid" th:if="${qrValidUntil != null}" th:text="'Valid until ' + ${qrValidUntil}"></div>
+      </div>
+    </div>
 
-<footer class="footer">
-  <div class="action-row">
-    <a class="btn btn-wa" th:href="${whatsappShareUrl}" target="_blank" rel="noopener">WhatsApp Share</a>
-    <button class="btn" type="button" onclick="window.print()">PDF Download</button>
-    <button class="btn" type="button" th:attr="data-copy-url=${canonicalPublicUrl}" onclick="navigator.clipboard && navigator.clipboard.writeText(this.getAttribute('data-copy-url'))">Copy Link</button>
-  </div>
+    <!-- Action buttons -->
+    <div class="action-row" role="group" aria-label="Invoice actions">
+      <a class="btn btn-wa"
+         th:href="${whatsappShareUrl}"
+         target="_blank"
+         rel="noopener noreferrer"
+         aria-label="Share invoice on WhatsApp">
+        <span aria-hidden="true">📲</span> WhatsApp
+      </a>
+      <button class="btn btn-brand"
+              type="button"
+              onclick="window.print()"
+              aria-label="Download invoice as PDF">
+        <span aria-hidden="true">⬇</span> PDF
+      </button>
+      <button class="btn"
+              type="button"
+              th:attr="data-copy-url=${canonicalPublicUrl}"
+              onclick="var u=this.getAttribute('data-copy-url');navigator.clipboard&&navigator.clipboard.writeText(u).then(function(){var b=document.querySelector('.btn[data-copy-url]');if(b){var t=b.textContent;b.textContent='✓ Copied';setTimeout(function(){b.textContent=t},1500)}})"
+              aria-label="Copy invoice link to clipboard">
+        <span aria-hidden="true">🔗</span> Copy
+      </button>
+    </div>
 
-  <div class="thanks" th:text="${footerMessage}">Thank you for your business!</div>
-  <a th:if="${reviewUrl != null and !reviewUrl.isEmpty()}" class="review-link" th:href="${reviewUrl}" target="_blank" rel="noopener">Review us on Google ↗</a>
-  <div class="powered">Powered by <a href="https://play.google.com/store/apps/details?id=com.piquantservices.khanabooklite" target="_blank" rel="noopener">KhanaBook</a></div>
-</footer>
+    <!-- Thank you message -->
+    <p class="thanks" th:text="${footerMessage}">Thank you for your business!</p>
+
+    <!-- Google review link -->
+    <a th:if="${reviewUrl != null and !reviewUrl.isEmpty()}"
+       class="review-link"
+       th:href="${reviewUrl}"
+       target="_blank"
+       rel="noopener noreferrer"
+       aria-label="Leave a Google review (opens in new tab)">
+      ⭐ Leave a Google Review
+    </a>
+
+    <div class="powered">
+      Powered by
+      <a href="https://play.google.com/store/apps/details?id=com.piquantservices.khanabooklite"
+         target="_blank"
+         rel="noopener noreferrer">KhanaBook</a>
+    </div>
+
+  </footer>
 
 </article>
 </main>

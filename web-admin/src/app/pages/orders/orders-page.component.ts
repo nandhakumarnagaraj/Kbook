@@ -502,7 +502,7 @@ type OnlineView = 'table' | 'kanban';
     table { width: 100%; background: transparent; }
 
     ::ng-deep table th.mat-mdc-header-cell {
-      background: var(--panel) !important;
+      background: var(--bg-elevated) !important;
       font-weight: 700 !important;
       color: var(--ink) !important;
       text-transform: uppercase !important;
@@ -624,7 +624,7 @@ type OnlineView = 'table' | 'kanban';
 
     .kanban-card { 
       border: 1px solid var(--line) !important; 
-      background: var(--panel) !important;
+      background: var(--bg-elevated) !important;
       border-radius: var(--radius-lg) !important;
       box-shadow: var(--shadow-sm); 
       transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);

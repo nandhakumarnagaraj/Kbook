@@ -95,7 +95,7 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
           <mat-form-field appearance="outline" class="search-field">
             <mat-label>Find item...</mat-label>
             <mat-icon matPrefix>search</mat-icon>
-            <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, category..." #input>
+            <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, category..." #input aria-label="Search menu items">
           </mat-form-field>
           
           <mat-form-field appearance="outline" class="filter-field">
@@ -330,15 +330,14 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
       position: relative;
       border-radius: var(--radius-xl); 
       border: 1px solid var(--line); 
-      background: var(--panel);
-      backdrop-filter: blur(12px);
-      box-shadow: var(--shadow-md); 
+      background: var(--bg-elevated);
+      box-shadow: var(--shadow-sm); 
       transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       overflow: hidden;
     }
     .stat-card:hover {
-      transform: translateY(-6px);
-      box-shadow: var(--shadow-xl);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
     }
     .stat-icon { 
       width: 52px; 
@@ -361,7 +360,7 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
       margin-bottom: 24px; 
       border-radius: var(--radius-xl); 
       border: 1px solid var(--line); 
-      background: var(--panel);
+      background: var(--bg-elevated);
       backdrop-filter: blur(12px);
       box-shadow: var(--shadow-md); 
     }
@@ -373,7 +372,7 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
 
     .table-container { 
       position: relative; 
-      background: var(--panel); 
+      background: var(--bg-elevated); 
       border-radius: var(--radius-xl); 
       border: 1px solid var(--line);
       box-shadow: var(--shadow-md); 
@@ -383,7 +382,7 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
     table { width: 100%; background: transparent; }
 
     ::ng-deep table th.mat-mdc-header-cell {
-      background: var(--panel) !important;
+      background: var(--surface) !important;
       font-weight: 700 !important;
       color: var(--ink) !important;
       text-transform: uppercase !important;

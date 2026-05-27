@@ -1,5 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    FileProvider paths for KhanaBook.
+    Referenced by android:resource in the FileProvider manifest entry.
+
+    Exposed paths:
+    • invoices/  — generated PDF/text invoice files shared via WhatsApp
+    • images/    — cached shop logo and QR code bitmaps shared in invoices
+    • cache/     — general cache (Coil image cache, temp files)
+
+    These paths are used with FileProvider.getUriForFile() and are only
+    accessible to apps that receive an explicit Intent with the URI —
+    they are NOT world-readable.
+-->
 <paths>
-    <files-path name="invoices" path="invoices/"/>
-    <cache-path name="cache" path="."/>
+
+    <!-- Internal files dir: context.filesDir/invoices/ -->
+    <files-path
+        name="invoices"
+        path="invoices/" />
+
+    <!-- Internal files dir: context.filesDir/images/ -->
+    <files-path
+        name="images"
+        path="images/" />
+
+    <!-- Internal cache dir: context.cacheDir/ -->
+    <cache-path
+        name="cache"
+        path="." />
+
+    <!-- External cache dir (for sharing to apps that need external URIs) -->
+    <external-cache-path
+        name="external_cache"
+        path="." />
+
 </paths>

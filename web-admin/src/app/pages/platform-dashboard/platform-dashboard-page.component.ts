@@ -353,14 +353,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
       overflow: hidden;
       position: relative;
-      background: rgba(255, 255, 255, 0.7) !important;
-      backdrop-filter: blur(16px) saturate(120%) !important;
-      -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
+      background: var(--panel) !important;
       min-width: 0;
     }
-    
+
     :host-context(.dark-theme) .stat-card {
-      background: rgba(33, 26, 20, 0.65) !important;
       border: 1px solid rgba(247, 243, 238, 0.05) !important;
     }
 
@@ -647,8 +644,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
     /* Skeleton Loading Effects */
     .skeleton-container { width: 100%; }
-    .skeleton-title { width: 300px; height: 32px; background: #e2e8f0; border-radius: 8px; margin-bottom: 24px; }
-    .skeleton-card { height: 160px; background: #e2e8f0; border-radius: 20px; position: relative; overflow: hidden; }
+    .skeleton-title { width: 300px; height: 32px; background: var(--line); border-radius: 8px; margin-bottom: 24px; }
+    .skeleton-card { height: 160px; background: var(--line); border-radius: 20px; position: relative; overflow: hidden; }
     .skeleton-card.large { height: 400px; }
     .skeleton-card.medium { height: 300px; }
 
@@ -657,7 +654,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       position: absolute;
       top: 0; right: 0; bottom: 0; left: 0;
       transform: translateX(-100%);
-      background-image: linear-gradient(90deg, rgba(255,255,255,0) 0, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+      background-image: linear-gradient(90deg, transparent 0, var(--line-strong) 50%, transparent 100%);
       animation: shimmer 1.5s infinite;
     }
 
@@ -665,6 +662,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
     .spinning { animation: rotate 1s linear infinite; }
     @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .stat-card.clickable:hover { transform: none; }
+      .stat-card.clickable::after { display: none; }
+      .stat-icon { transition: none; }
+      .stat-card.clickable:hover::after { opacity: 0; }
+      .action-item:hover { transform: none; }
+      .action-item:hover mat-icon { transform: none; }
+      .bar { transition: none; }
+      .spinning { animation: none; }
+    }
 
     @media (max-width: 960px) {
       .main-grid { grid-template-columns: 1fr; }

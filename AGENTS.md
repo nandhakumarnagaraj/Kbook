@@ -80,6 +80,16 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 - **Builds Compiled and Verified**: Verified Angular dashboard production compilation (`ng build` succeeded in 16s) and Android Gradle Kotlin compilation (`.\gradlew.bat compileDebugKotlin` succeeded in 1m 33s).
 - **Git**: Committed and pushed commit `e9078ab` to `origin/v2`.
 
+### 2026-05-27 Session — Design System Tokens Mapped & Tactile Polish
+- **Applied "Grounded Earth & Saffron" Design System**:
+  - Web Admin: Configured missing brand saffron color variables under `:root` and `.dark-theme` blocks. Overrode Material flat and raised buttons to use the brand saffron color (`#C85A00`), `48px` height, and `10px` rounded corners.
+  - Android POS: Added saffron color constants (`KbBrandSaffron`, `KbBrandSaffronLight`, `KbBrandSaffronDark`, `KbBrandSaffronAndroid`) in `Color.kt` and bound them as primary theme values in `Theme.kt`. Synced rounded corner scaling in `Shape.kt` and `KbTokens.kt` (`sm` -> `6.dp`, `md` -> `10.dp`, `lg` -> `14.dp`, `xl` -> `18.dp`). Set primary button CTA height to `48.dp`.
+- **UI/UX Polish & Micro-interactions**:
+  - Web Admin: Added smooth theme transitions for background/panels, spring active press states (`transform: scale(0.97)`) on action buttons, and subtle mesh gradients (`linear-gradient`) on platform stats cards. Verified compilation via `ng build`.
+  - Android POS: Integrated tactile haptic feedback (`LocalHapticFeedback` and `HapticFeedbackType.LongPress`) on quantity selectors in `NewBillScreen.kt` cart update flow.
+- **Stitch MCP Setup**: Initialized authentication configuration using Stitch API Key and created a non-interactive, automated environment configuration.
+- **Android Theme Token Migration & Compilation Fixes**: Migrated all hardcoded color references across 50+ Android files to use theme-aware `MaterialTheme.kb*` extension properties (kbPrimary, kbSecondary, kbTextPrimary, kbTextSecondary, kbOutlineSuble, kbBgCard, etc.). Fixed missing imports in KhanaBookSelectionDialog.kt (kbTextSecondary), OcrScannerScreen.kt (MaterialTheme), and 5 other files. Added `KhanaBookGlassCard` composable with saffron gradient border. Android `compileDebugKotlin` passes with BUILD SUCCESSFUL.
+
 ### In Progress
 - None currently
 

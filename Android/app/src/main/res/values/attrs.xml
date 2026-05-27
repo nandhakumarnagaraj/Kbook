@@ -74,10 +74,13 @@
     <!-- ═══════════════════════════════════════════════
          KHANBOOK DLS — SHAPE / BUTTON SIZE ATTRIBUTES
     ════════════════════════════════════════════════════ -->
-    <attr name="btnHeightLarge" format="dimension"/>   <!-- Primary action button -->
-    <attr name="btnHeightMedium" format="dimension"/>  <!-- Secondary button -->
-    <attr name="btnHeightSmall" format="dimension"/>   <!-- Inline / compact button -->
-    <attr name="btnCornerRadius" format="dimension"/>  <!-- Standard button corner -->
-    <attr name="cardCornerRadius" format="dimension"/> <!-- Card corner -->
-    <attr name="chipCornerRadius" format="dimension"/> <!-- Chip / badge corner -->
+    <attr name="btnHeightLarge" format="dimension"/>         <!-- Primary action button (48dp) -->
+    <attr name="btnHeightMedium" format="dimension"/>        <!-- Secondary button (44dp) -->
+    <attr name="btnHeightSmall" format="dimension"/>         <!-- Inline / compact button (32dp) -->
+    <attr name="btnCornerRadius" format="dimension"/>        <!-- Standard button corner (10dp) -->
+    <attr name="cardCornerRadius" format="dimension"/>       <!-- Card corner (14dp) -->
+    <attr name="chipCornerRadius" format="dimension"/>       <!-- Chip / badge corner (8dp) -->
+    <attr name="inputCornerRadius" format="dimension"/>      <!-- Input field corner (10dp) -->
+    <attr name="dialogCornerRadius" format="dimension"/>     <!-- Dialog / bottom sheet corner (18dp) -->
+    <attr name="bottomSheetCornerRadius" format="dimension"/><!-- Bottom sheet top corners (18dp) -->
 </resources>

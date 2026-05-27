@@ -51,7 +51,7 @@ fun KhanaDatePickerField(
         enabled = false,
         trailingIcon = {
             IconButton(onClick = { showDatePicker = true }) {
-                Icon(Icons.Default.CalendarToday, contentDescription = null, tint = PrimaryGold)
+                Icon(Icons.Default.CalendarToday, contentDescription = null, tint = MaterialTheme.kbSecondary)
             }
         }
     )
@@ -67,12 +67,12 @@ fun KhanaDatePickerField(
                     }
                     showDatePicker = false
                 }) {
-                    Text("OK", color = PrimaryGold)
+                    Text("OK", color = MaterialTheme.kbPrimary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel", color = PrimaryGold)
+                    Text("Cancel", color = MaterialTheme.kbTextSecondary)
                 }
             },
             colors = DatePickerDefaults.colors(
@@ -82,12 +82,12 @@ fun KhanaDatePickerField(
             DatePicker(
                 state = datePickerState,
                 colors = DatePickerDefaults.colors(
-                    todayContentColor = PrimaryGold,
-                    selectedDayContainerColor = PrimaryGold,
+                    todayContentColor = MaterialTheme.kbSecondary,
+                    selectedDayContainerColor = MaterialTheme.kbPrimary,
                     selectedDayContentColor = DarkBrown1,
                     titleContentColor = TextLight,
-                    headlineContentColor = PrimaryGold,
-                    weekdayContentColor = TextGold,
+                    headlineContentColor = MaterialTheme.kbPrimary,
+                    weekdayContentColor = MaterialTheme.kbTextSecondary,
                     dayContentColor = TextLight
                 )
             )

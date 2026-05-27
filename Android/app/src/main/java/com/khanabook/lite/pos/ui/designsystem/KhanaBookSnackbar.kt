@@ -51,16 +51,23 @@ private data class KindStyle(
     val icon: ImageVector,
 )
 
+/**
+ * Snackbar colour mapping.
+ *
+ * Success / Error use fully opaque semantic colours — they need to stand out
+ * regardless of theme. Warning and Info use the brand saffron/amber palette.
+ * Content colour is chosen for legibility on each container.
+ */
 private fun styleFor(kind: ToastKind): KindStyle = when (kind) {
-    ToastKind.Success -> KindStyle(SuccessGreen, TextLight, Icons.Default.CheckCircle)
-    ToastKind.Error -> KindStyle(DangerRed, TextLight, Icons.Default.Error)
-    ToastKind.Warning -> KindStyle(WarningYellow, DarkBrown1, Icons.Default.Warning)
-    ToastKind.Info -> KindStyle(PrimaryGold, DarkBrown1, Icons.Default.Info)
+    ToastKind.Success -> KindStyle(KbGreen,          Color.White,            Icons.Default.CheckCircle)
+    ToastKind.Error   -> KindStyle(KbRed,             Color.White,            Icons.Default.Error)
+    ToastKind.Warning -> KindStyle(KbYellow,          Color(0xFF1A1510),      Icons.Default.Warning)
+    ToastKind.Info    -> KindStyle(KbBrandSaffron,    Color.White,            Icons.Default.Info)
 }
 
 @Composable
 fun KhanaBookSnackbar(data: SnackbarData) {
-    val kind = (data.visuals as? KhanaSnackbarVisuals)?.kind ?: ToastKind.Info
+    val kind  = (data.visuals as? KhanaSnackbarVisuals)?.kind ?: ToastKind.Info
     val style = styleFor(kind)
 
     LaunchedEffect(data) {
@@ -84,16 +91,16 @@ fun KhanaBookSnackbar(data: SnackbarData) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = style.icon,
+                imageVector        = style.icon,
                 contentDescription = null,
-                tint = style.content,
-                modifier = Modifier.size(20.dp),
+                tint               = style.content,
+                modifier           = Modifier.size(20.dp),
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = data.visuals.message,
-                color = style.content,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                text     = data.visuals.message,
+                color    = style.content,
+                style    = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                 modifier = Modifier.weight(1f),
             )
             data.visuals.actionLabel?.let { label ->

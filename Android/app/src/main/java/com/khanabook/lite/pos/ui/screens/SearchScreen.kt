@@ -98,7 +98,7 @@ fun SearchScreen(
     if (showRefundDialog) {
         AlertDialog(
             onDismissRequest = { showRefundDialog = false },
-            title = { Text("Refund Order", color = PrimaryGold) },
+            title = { Text("Refund Order", color = MaterialTheme.kbSecondary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
                     OutlinedTextField(
@@ -160,7 +160,7 @@ fun SearchScreen(
                 title = {
                     Text(
                         title,
-                        color = PrimaryGold,
+                        color = MaterialTheme.kbSecondary,
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
@@ -169,18 +169,18 @@ fun SearchScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = null,
-                            tint = PrimaryGold
+                            tint = MaterialTheme.kbSecondary
                         )
                     }
                 },
                 actions = {
                     if (result != null) {
                         IconButton(onClick = { viewModel.clearSearch() }) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Clear",
-                                tint = PrimaryGold
-                            )
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = MaterialTheme.kbSecondary
+                        )
                         }
                     }
                 },
@@ -202,7 +202,7 @@ fun SearchScreen(
                 TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = MaterialTheme.kbBgCard,
-                    contentColor = PrimaryGold,
+                    contentColor = MaterialTheme.kbSecondary,
                     divider = {}
                 ) {
                     Tab(
@@ -260,7 +260,7 @@ fun SearchScreen(
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
                         shape = RoundedCornerShape(12.dp),
                         enabled = dailyId.isNotEmpty()
                     ) {
@@ -306,7 +306,7 @@ fun SearchScreen(
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
                         shape = RoundedCornerShape(12.dp),
                         enabled = lifetimeQuery.isNotEmpty()
                     ) {
@@ -443,12 +443,12 @@ fun SearchScreen(
                             ) {
                                 Text(
                                     "Total Amount",
-                                    color = PrimaryGold,
+                                    color = MaterialTheme.kbSecondary,
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                                 Text(
                                     CurrencyUtils.formatPrice(currentResult.bill.totalAmount),
-                                    color = PrimaryGold,
+                                    color = MaterialTheme.kbSecondary,
                                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold)
                                 )
                             }
@@ -515,7 +515,7 @@ fun SearchScreen(
                                         },
                                         enabled = currentResult.items.isNotEmpty() && currentResult.bill.orderStatus != "cancelled",
                                         modifier = Modifier.fillMaxWidth().height(48.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
                                         Icon(Icons.Default.Receipt, null, tint = DarkBrown1, modifier = Modifier.size(iconSize.small))
@@ -603,8 +603,8 @@ private fun outlinedSearchFieldColors() =
     OutlinedTextFieldDefaults.colors(
         focusedTextColor = TextLight,
         unfocusedTextColor = TextLight,
-        focusedBorderColor = PrimaryGold,
+        focusedBorderColor = MaterialTheme.kbPrimary,
         unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-        focusedLabelColor = PrimaryGold,
+        focusedLabelColor = MaterialTheme.kbPrimary,
         unfocusedLabelColor = TextGold
     )

@@ -1,12 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    KhanaBook launch / splash screen background.
+    "Midnight Harvest" — warm near-black gradient that matches the dark
+    theme background stack in Theme.kt (KbMidnightBase → KbDarkSurface).
+
+    Used by:
+      • Theme.KhanaBookLite.Launch (windowBackground)
+      • Android 12+ SplashScreen API (windowSplashScreenBackground
+        overrides this with @color/splash_bg for the icon phase)
+-->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Base layer: deep warm-black vertical gradient -->
     <item>
         <shape android:shape="rectangle">
             <gradient
+                android:type="linear"
                 android:angle="270"
-                android:startColor="#1A0A0A"
-                android:centerColor="#2D1010"
-                android:endColor="#3A1812" />
+                android:startColor="#060604"
+                android:endColor="#1C1810" />
         </shape>
     </item>
+
+    <!-- Subtle saffron radial glow at top-right (matches KbMeshGradientSaffron) -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#14C85A00" />
+            <size android:width="320dp" android:height="320dp" />
+        </shape>
+        <item
+            android:gravity="top|right"
+            android:right="-80dp"
+            android:top="-80dp" />
+    </item>
+
 </layer-list>

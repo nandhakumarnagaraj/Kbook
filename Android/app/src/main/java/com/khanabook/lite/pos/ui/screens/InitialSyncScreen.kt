@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -121,8 +122,8 @@ fun InitialSyncScreen(
                         modifier = Modifier
                             .fillMaxWidth(0.6f)
                             .height(4.dp),
-                        color = PrimaryGold,
-                        trackColor = PrimaryGold.copy(alpha = 0.2f),
+                        color = MaterialTheme.kbSecondary,
+                        trackColor = MaterialTheme.kbSecondary.copy(alpha = 0.2f),
                         strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                     )
                 }
@@ -143,13 +144,13 @@ fun InitialSyncScreen(
                     Spacer(modifier = Modifier.height(spacing.extraLarge))
                     Button(
                         onClick = { onNavigateToLogin() },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth().height(56.dp)
                     ) {
                         Text(
                             "Login Again",
-                            color = DarkBrown1,
+                            color = Color.White,
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             )
@@ -173,13 +174,13 @@ fun InitialSyncScreen(
                     Spacer(modifier = Modifier.height(spacing.extraLarge))
                     Button(
                         onClick = { viewModel.startInitialSync() },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth().height(56.dp)
                     ) {
                         Text(
                             "Retry",
-                            color = DarkBrown1,
+                            color = Color.White,
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             )

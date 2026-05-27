@@ -98,9 +98,9 @@ fun ReprintKdsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PrimaryGold)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.kbSecondary)
                     }
-                    Text("Reprint KDS", color = PrimaryGold, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Reprint KDS", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Box {}
                 }
             }
@@ -109,7 +109,7 @@ fun ReprintKdsScreen(
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.Transparent,
-                contentColor = PrimaryGold,
+                contentColor = MaterialTheme.kbSecondary,
                 divider = {}
             ) {
                 Tab(
@@ -168,10 +168,9 @@ fun ReprintKdsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .padding(horizontal = spacing.medium),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = dailyId.isNotEmpty()
+                        .padding(horizontal = spacing.medium),colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = dailyId.isNotEmpty()
                 ) {
                     Icon(
                         Icons.Default.Search,
@@ -220,7 +219,7 @@ fun ReprintKdsScreen(
                         .fillMaxWidth()
                         .height(56.dp)
                         .padding(horizontal = spacing.medium),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
                     shape = RoundedCornerShape(12.dp),
                     enabled = invoiceQuery.isNotEmpty()
                 ) {
@@ -301,7 +300,7 @@ private fun KdsBillCard(
                     Column {
                         Text(
                             text = "Order #${bill.dailyOrderDisplay.split("-").last()}",
-                            color = PrimaryGold,
+                            color = MaterialTheme.kbSecondary,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -353,13 +352,13 @@ private fun KdsBillCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Total", color = TextLight, style = MaterialTheme.typography.titleMedium)
-                    Text(CurrencyUtils.formatPrice(bill.totalAmount), color = PrimaryGold, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(CurrencyUtils.formatPrice(bill.totalAmount), color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(spacing.medium))
                 Button(
                     onClick = { onPrint(billWithItems) },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Icon(Icons.Default.Print, null, tint = DarkBrown1, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
@@ -376,8 +375,8 @@ private fun outlinedSearchFieldColors() =
     OutlinedTextFieldDefaults.colors(
         focusedTextColor = TextLight,
         unfocusedTextColor = TextLight,
-        focusedBorderColor = PrimaryGold,
+        focusedBorderColor = MaterialTheme.kbPrimary,
         unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-        focusedLabelColor = PrimaryGold,
+        focusedLabelColor = MaterialTheme.kbPrimary,
         unfocusedLabelColor = TextGold
     )

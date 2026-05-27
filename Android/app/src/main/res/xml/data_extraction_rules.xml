@@ -1,13 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android Data Extraction Rules (API 31+).
+    Used when android:dataExtractionRules points here.
 
+    Replaces the legacy full-backup-content approach for Android 12+.
+    Applies to both cloud backup (Google Drive) and device-to-device
+    transfer (e.g. phone migration wizard).
+
+    Policy: same as backup_rules.xml — no databases, prefs, or local
+    files leave the device. All data is re-synced from the server.
+-->
 <data-extraction-rules>
-    <cloud-backup>
-        
-        <exclude domain="database" path="." />
+
+    <!-- ── Cloud backup (Google Drive) ─────────────────────────── -->
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <exclude domain="database"   path="." />
         <exclude domain="sharedpref" path="." />
+        <exclude domain="file"       path="invoices/" />
+        <exclude domain="file"       path="images/" />
+        <exclude domain="external"   path="." />
     </cloud-backup>
+
+    <!-- ── Device-to-device transfer ───────────────────────────── -->
+    <!--
+        Device transfer is less risky than cloud backup (stays local),
+        but billing data and auth tokens should still not transfer
+        automatically — the user should log in fresh on the new device.
+    -->
     <device-transfer>
-        <exclude domain="database" path="." />
+        <exclude domain="database"   path="." />
         <exclude domain="sharedpref" path="." />
+        <exclude domain="file"       path="invoices/" />
+        <exclude domain="file"       path="images/" />
+        <exclude domain="external"   path="." />
     </device-transfer>
+
 </data-extraction-rules>

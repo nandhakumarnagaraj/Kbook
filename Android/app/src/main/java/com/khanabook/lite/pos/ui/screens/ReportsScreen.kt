@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -113,13 +114,13 @@ fun ReportsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = PrimaryGold
+                            tint = MaterialTheme.kbSecondary
                         )
                     }
                     Text(
                         text = "Report Details",
                         modifier = Modifier.align(Alignment.Center),
-                        color = PrimaryGold,
+                        color = MaterialTheme.kbSecondary,
                         style = MaterialTheme.typography.headlineMedium
                     )
                 }
@@ -169,12 +170,12 @@ fun ReportsScreen(
                             },
                             enabled = dateRangePickerState.selectedStartDateMillis != null && dateRangePickerState.selectedEndDateMillis != null
                         ) {
-                            Text("OK", color = PrimaryGold)
+                            Text("OK", color = MaterialTheme.kbTextPrimary)
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showDateRangePicker = false }) {
-                            Text("Cancel", color = PrimaryGold)
+                            Text("Cancel", color = MaterialTheme.kbTextSecondary)
                         }
                     },
                     colors = DatePickerDefaults.colors(containerColor = MaterialTheme.kbBgCard)
@@ -195,7 +196,7 @@ fun ReportsScreen(
                                         .fillMaxWidth()
                                         .padding(top = spacing.medium, bottom = spacing.small),
                                     textAlign = TextAlign.Center,
-                                    color = PrimaryGold,
+                                    color = MaterialTheme.kbSecondary,
                                     style = MaterialTheme.typography.titleMedium
                                 )
                             },
@@ -209,19 +210,19 @@ fun ReportsScreen(
                                         .fillMaxWidth()
                                         .padding(bottom = spacing.medium),
                                     textAlign = TextAlign.Center,
-                                    color = PrimaryGold,
+                                    color = MaterialTheme.kbSecondary,
                                     style = MaterialTheme.typography.headlineSmall
                                 )
                             },
                             colors = DatePickerDefaults.colors(
                                 containerColor = MaterialTheme.kbBgCard,
-                                titleContentColor = PrimaryGold,
-                                headlineContentColor = PrimaryGold,
+                                titleContentColor = MaterialTheme.kbSecondary,
+                                headlineContentColor = MaterialTheme.kbSecondary,
                                 weekdayContentColor = TextGold,
                                 dayContentColor = TextLight,
-                                selectedDayContainerColor = PrimaryGold,
+                                selectedDayContainerColor = MaterialTheme.kbPrimary,
                                 selectedDayContentColor = DarkBrown1,
-                                todayContentColor = PrimaryGold
+                                todayContentColor = MaterialTheme.kbPrimary
                             )
                         )
                     }
@@ -329,7 +330,7 @@ fun ReportsScreen(
 @Composable
 fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val containerColor by animateColorAsState(
-        targetValue = if (isSelected) PrimaryGold else Color.Transparent,
+        targetValue = if (isSelected) MaterialTheme.kbPrimary else Color.Transparent,
         animationSpec = tween(200),
         label = "chip_container"
     )
@@ -340,7 +341,7 @@ fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier
     )
     Surface(
         onClick = onClick,
-        modifier = modifier.height(36.dp),
+        modifier = modifier.height(48.dp),
         shape = RoundedCornerShape(8.dp),
         color = containerColor,
         border = if (isSelected) null else BorderStroke(1.dp, BorderGold),
@@ -360,11 +361,11 @@ fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, mo
     val spacing = KhanaBookTheme.spacing
     Surface(
         onClick = onClick,
-        modifier = modifier.height(44.dp),
+        modifier = modifier.height(48.dp),
         shape = RoundedCornerShape(8.dp),
         color = if (isSelected) BrownSelected.copy(alpha = 0.8f) else Color.Transparent,
-        border = if (isSelected) BorderStroke(1.dp, PrimaryGold) else BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f)),
-        contentColor = if (isSelected) PrimaryGold else TextGold.copy(alpha = 0.7f)
+        border = if (isSelected) BorderStroke(1.dp, MaterialTheme.kbPrimary) else BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f)),
+        contentColor = if (isSelected) MaterialTheme.kbPrimary else TextGold.copy(alpha = 0.7f)
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
@@ -462,7 +463,7 @@ fun ReportDownloadBottomBar(
                 .fillMaxWidth()
                 .height(45.dp)
                 .padding(horizontal = spacing.medium),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+            colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
             shape = RoundedCornerShape(12.dp)
         ) {
             if (isExporting) {
@@ -499,9 +500,11 @@ fun ReportDownloadBottomBar(
 fun PaymentModeItem(mode: String, amount: Double) {
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
-    KhanaBookCard(
+    
+    // Financial Command Center Style Card
+    KhanaBookGlassCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = CardBG.copy(alpha = 0.4f))
+        onClick = {}
     ) {
         Row(
             modifier = Modifier
@@ -509,24 +512,37 @@ fun PaymentModeItem(mode: String, amount: Double) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Default.Description,
-                contentDescription = null,
-                tint = PrimaryGold.copy(alpha = 0.5f),
-                modifier = Modifier.size(iconSize.medium)
-            )
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(KbBrandSaffron.copy(alpha = 0.1f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Description,
+                    contentDescription = null,
+                    tint = MaterialTheme.kbSecondary,
+                    modifier = Modifier.size(iconSize.small)
+                )
+            }
             Spacer(modifier = Modifier.width(spacing.medium))
             Text(mode, color = TextLight, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Text(CurrencyUtils.formatPrice(amount), color = PrimaryGold, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = TextGold,
-                modifier = Modifier.size(iconSize.small)
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    CurrencyUtils.formatPrice(amount),
+                    color = MaterialTheme.kbSecondary,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold)
+                )
+                Text(
+                    "Total Sales",
+                    color = TextGold.copy(alpha = 0.5f),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
         }
     }
 }
+
 
 @Composable
 fun PartPaymentCard(
@@ -675,7 +691,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
             Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
                 Surface(
                     color = Color.Transparent,
-                    border = BorderStroke(1.dp, PrimaryGold),
+                    border = BorderStroke(1.dp, MaterialTheme.kbPrimary),
                     shape = RoundedCornerShape(4.dp)
                 ) {
                     Text(
@@ -728,14 +744,14 @@ fun OrderDetailsDialog(
                 ) {
                     Text(
                         text = "Order Details",
-                        color = PrimaryGold,
+                        color = MaterialTheme.kbSecondary,
                         style = MaterialTheme.typography.titleLarge
                     )
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier.align(Alignment.CenterEnd)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = PrimaryGold)
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.kbSecondary)
                     }
                 }
 
@@ -820,7 +836,7 @@ fun OrderDetailsDialog(
                     Spacer(modifier = Modifier.height(spacing.medium))
                     DetailRow("Payment Mode:", PaymentMode.fromDbValue(bill.paymentMode).displayLabel)
                     Spacer(modifier = Modifier.height(spacing.small))
-                    DetailRow("Total Amount:", CurrencyUtils.formatPrice(bill.totalAmount), PrimaryGold, FontWeight.Bold)
+                    DetailRow("Total Amount:", CurrencyUtils.formatPrice(bill.totalAmount), MaterialTheme.kbSecondary, FontWeight.Bold)
                     Spacer(modifier = Modifier.height(spacing.medium))
 
                     val statusValue = OrderStatus.fromDbValue(bill.orderStatus)
@@ -847,7 +863,7 @@ fun OrderDetailsDialog(
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Close", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
