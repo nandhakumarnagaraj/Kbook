@@ -423,8 +423,8 @@ declare const google: GlobalGoogle | undefined;
     }
 
     .logo {
-      height: 96px;
-      width: 96px;
+      height: 120px;
+      width: 120px;
       object-fit: contain;
       background: #ffffff;
       padding: 4px;

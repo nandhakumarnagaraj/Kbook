@@ -163,8 +163,8 @@ const API_BASE_URL = environment.apiBaseUrl;
       justify-content: center;
     }
     .logo {
-      height: 96px;
-      width: 96px;
+      height: 120px;
+      width: 120px;
       object-fit: contain;
       background: #ffffff;
       padding: 4px;
