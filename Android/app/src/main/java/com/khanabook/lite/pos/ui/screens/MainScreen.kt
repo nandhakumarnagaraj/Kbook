@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
@@ -140,9 +141,15 @@ fun AppBottomBar(
     currentSelectedIndex: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    HorizontalDivider(color = MaterialTheme.kbOutlineSubtle, thickness = 0.5.dp)
+    // reason: Styled to match the designer specification (#FFFFFF background, #E0D8D0 top border 0.5dp, active #8B3A0F, inactive #756E66 for contrast)
+    // ⚠ override: Hardcoded color overrides applied to the NavigationBar for brand compliance.
+    val activeColor = Color(0xFF8B3A0F)
+    val inactiveColor = Color(0xFF756E66) // ⚠ override: Changed from #9E9890 to #756E66 to pass WCAG AA 4.5:1 contrast on #FAF7F4 / #FFFFFF
+    val borderColor = Color(0xFFE0D8D0)
+    
+    HorizontalDivider(color = borderColor, thickness = 0.5.dp)
     NavigationBar(
-        containerColor = BottomNavBG,
+        containerColor = Color.White, // ⚠ override: pure white bottom nav
         modifier = Modifier.navigationBarsPadding(),
         tonalElevation = 0.dp
     ) {
@@ -153,11 +160,11 @@ fun AppBottomBar(
                 icon = { Icon(item.icon, contentDescription = null) },
                 label = { Text(item.label, style = MaterialTheme.typography.labelSmall) },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.kbPrimary,
-                    unselectedIconColor = MaterialTheme.kbTextSecondary,
-                    selectedTextColor = MaterialTheme.kbPrimary,
-                    unselectedTextColor = MaterialTheme.kbTextSecondary,
-                    indicatorColor = MaterialTheme.kbPrimary.copy(alpha = 0.1f)
+                    selectedIconColor = activeColor,
+                    unselectedIconColor = inactiveColor,
+                    selectedTextColor = activeColor,
+                    unselectedTextColor = inactiveColor,
+                    indicatorColor = activeColor.copy(alpha = 0.1f)
                 )
             )
         }

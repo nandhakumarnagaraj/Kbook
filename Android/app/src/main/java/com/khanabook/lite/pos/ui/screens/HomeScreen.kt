@@ -33,16 +33,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
 import com.khanabook.lite.pos.ui.designsystem.*
-import com.khanabook.lite.pos.ui.theme.kbBgCard
-import com.khanabook.lite.pos.ui.theme.kbSecondary
-import com.khanabook.lite.pos.ui.theme.kbTertiary
-import com.khanabook.lite.pos.ui.theme.kbTextPrimary
-import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.ui.draw.blur
@@ -50,11 +46,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import kotlin.math.abs
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.khanabook.lite.pos.R
-
 
 @Composable
 fun HomeScreen(
@@ -67,6 +63,12 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
 ) {
+    // reason: senior mobile UI designer token system to separate layers and ensure WCAG AA contrast.
+    val pageBg = if (globalIsDark) KbMidnightBase else Color(0xFFFAF7F4) // ⚠ override: warm off-white page background
+    val textPrimaryColor = if (globalIsDark) TextLight else Color(0xFF1A1A1A) // ⚠ override: high contrast primary text
+    val textSecondaryColor = if (globalIsDark) TextGold else Color(0xFF7A7068) // ⚠ override: greeting color
+    val textMutedColor = if (globalIsDark) TextGold.copy(alpha = 0.7f) else Color(0xFF6B6258) // ⚠ override: section label color
+
     val stats by viewModel.todayStats.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
     val unsyncedCount by viewModel.unsyncedCount.collectAsState()
@@ -77,7 +79,6 @@ fun HomeScreen(
     val dismissedAlerts = remember { mutableListOf<String>() }
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
-    val isWideScreen = !layout.isCompact
 
     val statsReady by viewModel.statsReady.collectAsState()
 
@@ -115,27 +116,24 @@ fun HomeScreen(
     )
     val exitSpec = fadeOut(spring(stiffness = Spring.StiffnessMediumLow))
 
-    val bgModifier = if (globalIsDark) {
-        Modifier.background(KbMidnightBase)
-    } else {
-        Modifier.background(MaterialTheme.kbBgGradient)
-    }
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .then(bgModifier)
+            .background(pageBg) // reason: Layer 1 - warm off-white page background
     ) {
-        // Stitch "Midnight Harvest" mesh gradient accent layers
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(KbMeshGradientSaffron)
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(KbMeshGradientAmber)
-        )
+        // reason: Keep the mesh gradient accents only in dark mode to preserve visual clarity in light mode.
+        if (globalIsDark) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(KbMeshGradientSaffron)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(KbMeshGradientAmber)
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -143,9 +141,7 @@ fun HomeScreen(
                 .padding(spacing.medium),
             verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
-            // Equal flex space at the top — pairs with the bottom flex spacer
-            // so the content block stays vertically centred and the top/bottom
-            // breathing room is the same on tall screens.
+            // reason: Equal flex space at top/bottom for vertical centering on tall screens.
             Spacer(modifier = Modifier.weight(1f, fill = true))
 
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
@@ -157,7 +153,6 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(spacing.small),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Brand logo
                         Image(
                             painter = painterResource(id = R.drawable.ic_khanabook_logo),
                             contentDescription = "KhanaBook",
@@ -167,15 +162,21 @@ fun HomeScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = greeting,
-                                color = MaterialTheme.kbTextSecondary,
-                                style = MaterialTheme.typography.labelMedium,
+                                color = textSecondaryColor,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontSize = 13.sp, // reason: Greeting typography 13sp regular
+                                    fontWeight = FontWeight.Normal
+                                ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = shopName,
-                                color = MaterialTheme.kbTextPrimary,
-                                style = MaterialTheme.typography.headlineSmall,
+                                color = textPrimaryColor,
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontSize = 20.sp, // reason: Screen title typography 20sp bold
+                                    fontWeight = FontWeight.Bold
+                                ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -185,7 +186,7 @@ fun HomeScreen(
                         }
                     }
 
-                    // Compliance warning banners — shown only when un-dismissed alerts exist
+                    // Compliance warning banners
                     val visibleAlerts = complianceAlerts.filter { it.label !in dismissedAlerts }
                     if (visibleAlerts.isNotEmpty()) {
                         Column(
@@ -207,41 +208,44 @@ fun HomeScreen(
                 if (!statsReady) {
                     SkeletonCard(modifier = Modifier.fillMaxWidth())
                 } else {
-                    // Stitch Glassmorphism stat card with inner border
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(1.dp, KbGlassBorder, RoundedCornerShape(18.dp)),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = KbGlassSurface),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    // reason: Summary card container matching #F5F0EB fill, #E0D8D0 border, and 0dp elevation.
+                    val summaryCardBg = if (globalIsDark) MaterialTheme.kbBgCard.copy(alpha = 0.5f) else Color(0xFFF5F0EB)
+                    val summaryCardBorder = if (globalIsDark) BorderGold.copy(alpha = 0.2f) else Color(0xFFE0D8D0)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, summaryCardBorder, RoundedCornerShape(18.dp)),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = summaryCardBg),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(spacing.medium)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(spacing.medium)
-                            ) {
-                                Text(
-                                    text = "Today's Summary",
-                                    color = MaterialTheme.kbTertiary,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
+                            Text(
+                                text = "Today's Summary",
+                                color = textMutedColor,
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontSize = 12.sp, // reason: Section label typography 12sp medium
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.6.sp
                                 )
-                                Spacer(modifier = Modifier.height(spacing.small))
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                                    verticalArrangement = Arrangement.spacedBy(spacing.small),
-                                    maxItemsInEachRow = 3
-                                ) {
-                                    val statMod = Modifier.weight(1f)
-                                    StatItem("Orders", stats.orderCount.toString(), statMod)
-                                    StatItem("Revenue", CurrencyUtils.formatPriceCompact(stats.revenue), statMod)
-                                    StatItem("Customers", stats.customerCount.toString(), statMod)
-                                    if (stats.orderCount > 0 || stats.kdsPendingCount > 0) {
-                                        StatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), statMod)
-                                        StatItem("Cancelled", stats.cancelledCount.toString(), statMod)
-                                        StatItem("KDS Pending", stats.kdsPendingCount.toString(), statMod)
-                                    }
+                            )
+                            Spacer(modifier = Modifier.height(spacing.small))
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                                verticalArrangement = Arrangement.spacedBy(spacing.small),
+                                maxItemsInEachRow = 3
+                            ) {
+                                val statMod = Modifier.weight(1f)
+                                SummaryStatItem("Orders", stats.orderCount.toString(), textPrimaryColor, textMutedColor, statMod)
+                                SummaryStatItem("Revenue", CurrencyUtils.formatPriceCompact(stats.revenue), textPrimaryColor, textMutedColor, statMod)
+                                SummaryStatItem("Customers", stats.customerCount.toString(), textPrimaryColor, textMutedColor, statMod)
+                                if (stats.orderCount > 0 || stats.kdsPendingCount > 0) {
+                                    SummaryStatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), textPrimaryColor, textMutedColor, statMod)
+                                    SummaryStatItem("Cancelled", stats.cancelledCount.toString(), textPrimaryColor, textMutedColor, statMod)
+                                    SummaryStatItem("KDS Pending", stats.kdsPendingCount.toString(), textPrimaryColor, textMutedColor, statMod)
                                 }
                             }
                         }
@@ -251,26 +255,27 @@ fun HomeScreen(
 
             AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
                 Box(contentAlignment = Alignment.Center) {
-                    // Stitch "Saffron Glow Zone" — radial mesh gradient behind primary CTA
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.9f)
-                            .height(130.dp)
-                            .background(KbSaffronGlowStrong)
-                    )
+                    if (globalIsDark) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                                .height(130.dp)
+                                .background(KbSaffronGlowStrong)
+                        )
+                    }
                     
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .scale(newBillScale)
+                            .shadow(4.dp, shape = RoundedCornerShape(18.dp)) // reason: Subtle shadow elevation of 4dp as specified
                             .border(
-                                width = 2.dp,
-                                color = KbBrandSaffronLight.copy(alpha = 0.6f),
+                                width = 1.dp,
+                                color = KbBrandSaffronLight.copy(alpha = 0.4f),
                                 shape = RoundedCornerShape(18.dp)
                             ),
                         shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
                     ) {
                         Box(
                             modifier = Modifier
@@ -294,13 +299,18 @@ fun HomeScreen(
                                     Text(
                                         text = "Create New Bill",
                                         color = Color.White,
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        fontWeight = FontWeight.Bold
+                                        style = MaterialTheme.typography.headlineSmall.copy(
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
                                     )
                                     Text(
                                         text = "Start taking orders",
                                         color = Color.White.copy(alpha = 0.7f),
-                                        style = MaterialTheme.typography.labelMedium,
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Normal
+                                        ),
                                         modifier = Modifier.padding(top = spacing.extraSmall)
                                     )
                                 }
@@ -317,7 +327,6 @@ fun HomeScreen(
             }
 
             AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
-                // Online Orders card with pulsing Saffron glow
                 val infiniteTransition = rememberInfiniteTransition(label = "badge_pulse")
                 val pulseAlpha by infiniteTransition.animateFloat(
                     initialValue = 0.05f,
@@ -344,15 +353,11 @@ fun HomeScreen(
                     
                     HomeActionCard(
                         text = "Online Orders",
-                        icon = Icons.Default.ShoppingCart,
-                        backgroundColor = MaterialTheme.kbBgCard,
-                        modifier = Modifier.fillMaxWidth(),
                         onClick = onMarketplaceOrders,
                         badgeCount = marketplacePendingCount
                     )
                 }
             }
-
 
             AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
                 Column(
@@ -366,14 +371,14 @@ fun HomeScreen(
                         HomeActionGridCard(
                             text = "Find Bill",
                             icon = Icons.Default.Search,
-                            backgroundColor = MaterialTheme.kbBgCard,
+                            isPrimary = true, // reason: Primary tier action gets green left-border accent
                             modifier = Modifier.weight(1f),
                             onClick = onSearchBill
                         )
                         HomeActionGridCard(
                             text = "Reprint KDS",
                             icon = Icons.Default.Restaurant,
-                            backgroundColor = MaterialTheme.kbBgCard,
+                            isPrimary = false, // reason: Secondary tier action
                             modifier = Modifier.weight(1f),
                             onClick = onReprintKds
                         )
@@ -385,14 +390,14 @@ fun HomeScreen(
                         HomeActionGridCard(
                             text = "Order Status",
                             icon = Icons.Default.Info,
-                            backgroundColor = MaterialTheme.kbBgCard,
+                            isPrimary = true, // reason: Primary tier action gets green left-border accent
                             modifier = Modifier.weight(1f),
                             onClick = onOrderStatus
                         )
                         HomeActionGridCard(
                             text = "Call Customers",
                             icon = Icons.Default.Call,
-                            backgroundColor = MaterialTheme.kbBgCard,
+                            isPrimary = false, // reason: Secondary tier action
                             modifier = Modifier.weight(1f),
                             onClick = onCallCustomer
                         )
@@ -400,10 +405,46 @@ fun HomeScreen(
                 }
             }
 
-            // Mirror of the top flex spacer — keeps top and bottom whitespace
-            // equal so the content block looks vertically centred.
             Spacer(modifier = Modifier.weight(1f, fill = true))
         }
+    }
+}
+
+@Composable
+fun SummaryStatItem(
+    label: String,
+    value: String,
+    valueColor: Color,
+    labelColor: Color,
+    modifier: Modifier = Modifier
+) {
+    // reason: Custom summary stat item to support sentence case, 20sp bold values, and 11sp medium labels as per designer specification.
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            color = valueColor,
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = label, // reason: Sentence case (e.g. "Orders", "Avg order")
+            color = labelColor,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 0.8.sp
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
 
@@ -413,6 +454,8 @@ fun SyncStatusHeader(
     unsyncedCount: Int,
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 ) {
+    // reason: Cloud synced status badge following design spec: #E6F4EE bg, #0F6E56 text/icon, #B0DBC9 border, RoundedCornerShape(20dp).
+    // ⚠ override: Specific background and border colors overriding the default M3 secondary colors for cleaner badge aesthetics.
     val isOnline = connectionStatus == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
@@ -420,12 +463,7 @@ fun SyncStatusHeader(
     val isSessionValid = currentUser != null
     val shouldShowSync = isOnline && isSessionValid && unsyncedCount > 0
 
-    // ── Animate ONLY when there is actually something pending to sync ──────────
-    // Previously, rememberInfiniteTransition() was always composed, running
-    // rotation + pulse on every frame even when fully synced — wasting battery.
-    // Now both values are static 0f when idle.
     val rotation: Float
-    val pulseAlpha: Float
     if (shouldShowSync) {
         val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
         rotation = infiniteTransition.animateFloat(
@@ -437,46 +475,27 @@ fun SyncStatusHeader(
             ),
             label = "rotation"
         ).value
-        pulseAlpha = infiniteTransition.animateFloat(
-            initialValue = 0.1f,
-            targetValue = 0.3f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1000, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "pulse"
-        ).value
     } else {
         rotation = 0f
-        pulseAlpha = 0.15f
     }
 
-    val containerColor = when {
-        !isOnline -> DangerRed
-        !isSessionValid -> WarningYellow
-        unsyncedCount > 0 -> MaterialTheme.kbSecondary   // amber for syncing
-        else -> MaterialTheme.kbTertiary                  // blue for synced
+    val (bgColor, textColor, borderColor) = when {
+        !isOnline -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), Color(0xFFFFCDD2))
+        !isSessionValid -> Triple(Color(0xFFFFFDE7), Color(0xFFF57F17), Color(0xFFFFF9C4))
+        unsyncedCount > 0 -> Triple(Color(0xFFFFF3E0), Color(0xFFE65100), Color(0xFFFFE0B2))
+        else -> Triple(Color(0xFFE6F4EE), Color(0xFF0F6E56), Color(0xFFB0DBC9)) // ⚠ override: Cloud Synced spec
     }
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp)) // ⚠ override: 20dp pill shape
+            .background(bgColor)
+            .border(1.dp, borderColor, RoundedCornerShape(20.dp))
     ) {
-        // Subtle glow effect behind the pill when syncing
-        if (unsyncedCount > 0 && isOnline && isSessionValid) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .blur(8.dp)
-                    .background(containerColor.copy(alpha = pulseAlpha))
-            )
-        }
-
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .background(containerColor.copy(alpha = if (unsyncedCount > 0) pulseAlpha else 0.15f))
                 .padding(horizontal = spacing.smallMedium, vertical = spacing.small - spacing.hairline)
         ) {
             Icon(
@@ -487,7 +506,7 @@ fun SyncStatusHeader(
                     else -> Icons.Default.CloudDone
                 },
                 contentDescription = null,
-                tint = containerColor,
+                tint = textColor,
                 modifier = Modifier
                     .size(iconSize.small)
                     .then(
@@ -499,7 +518,6 @@ fun SyncStatusHeader(
             
             Spacer(modifier = Modifier.width(spacing.small))
             
-            // Animated countdown text
             AnimatedContent(
                 targetState = when {
                     !isOnline -> "Offline"
@@ -512,26 +530,14 @@ fun SyncStatusHeader(
                 },
                 label = "sync_text"
             ) { targetText ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (unsyncedCount > 0 && isOnline && isSessionValid) {
-                        Text(
-                            text = "Syncing... ",
-                            color = TextLight,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                    Text(
-                        text = targetText,
-                        color = if (unsyncedCount > 0 || !isOnline || !isSessionValid) containerColor else TextLight,
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            shadow = if (unsyncedCount > 0) androidx.compose.ui.graphics.Shadow(
-                                color = containerColor.copy(alpha = 0.5f),
-                                blurRadius = 4f
-                            ) else null
-                        )
+                Text(
+                    text = targetText,
+                    color = textColor,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
                     )
-                }
+                )
             }
         }
     }
@@ -540,19 +546,25 @@ fun SyncStatusHeader(
 @Composable
 fun HomeActionCard(
     text: String,
-    icon: ImageVector,
-    backgroundColor: Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
     badgeCount: Int = 0
 ) {
+    // reason: Styled to match flat white card style (#FFFFFF, 1dp #E8E2DA border, 15sp semibold label).
+    // ⚠ override: Custom text size of 15sp and accent color of #1B6B4A for consistency with primary actions.
     val spacing = KhanaBookTheme.spacing
-    val iconSize = KhanaBookTheme.iconSize
-    KhanaBookCard(
-        modifier = modifier,
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        shape = RoundedCornerShape(12.dp)
+    val cardBg = Color.White
+    val cardBorderColor = Color(0xFFE8E2DA)
+    val accentColor = Color(0xFF1B6B4A) // Accent / icon green
+    
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .border(1.dp, cardBorderColor, RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
@@ -566,17 +578,20 @@ fun HomeActionCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(
-                    imageVector = icon,
+                    imageVector = Icons.Default.ShoppingCart,
                     contentDescription = null,
-                    tint = MaterialTheme.kbSecondary,
-                    modifier = Modifier.size(iconSize.medium)
+                    tint = accentColor,
+                    modifier = Modifier.size(28.dp) // reason: Specified target icon size
                 )
-                Spacer(modifier = Modifier.width(spacing.small))
+                Spacer(modifier = Modifier.width(spacing.medium))
                 Column {
                     Text(
                         text = text,
-                        color = TextLight,
-                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF1A1A1A),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 15.sp, // reason: Body/button label 15sp semi-bold
+                            fontWeight = FontWeight.SemiBold
+                        ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -608,8 +623,8 @@ fun HomeActionCard(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = MaterialTheme.kbSecondary,
-                    modifier = Modifier.size(iconSize.small)
+                    tint = accentColor,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -620,66 +635,91 @@ fun HomeActionCard(
 fun HomeActionGridCard(
     text: String,
     icon: ImageVector,
-    backgroundColor: Color,
+    isPrimary: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
     badgeCount: Int = 0
 ) {
+    // reason: Grid cards supporting hierarchy: primary actions have left border accent, secondary do not.
+    // ⚠ override: Card uses explicit custom colors (#FAF7F4 layer separation, #E8E2DA border, and #1B6B4A icons).
     val spacing = KhanaBookTheme.spacing
-    val iconSize = KhanaBookTheme.iconSize
-    KhanaBookCard(
-        modifier = modifier,
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        shape = RoundedCornerShape(12.dp)
+    val cardBg = Color.White
+    val cardBorderColor = Color(0xFFE8E2DA)
+    val accentColor = Color(0xFF1B6B4A) // Accent / icon green
+    val textColor = if (isPrimary) Color(0xFF1A1A1A) else Color(0xFF4A4540)
+    
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .border(1.dp, cardBorderColor, RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(spacing.medium),
-            contentAlignment = Alignment.Center
+                .height(IntrinsicSize.Min), // reason: Required to let left border expand to cover the card height
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.kbSecondary,
-                    modifier = Modifier.size(iconSize.large)
-                )
-                Spacer(modifier = Modifier.height(spacing.small))
-                Text(
-                    text = text,
-                    color = TextLight,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
-                )
-            }
-            if (badgeCount > 0) {
+            if (isPrimary) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .size(24.dp)
-                        .background(DangerRed, CircleShape),
-                    contentAlignment = Alignment.Center
+                        .width(3.dp)
+                        .fillMaxHeight()
+                        .background(accentColor) // reason: left border accent 3dp for primary tier
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = spacing.medium)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = badgeCount.toString(),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(28.dp) // reason: Specified target icon size
                     )
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    Text(
+                        text = text,
+                        color = textColor,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 15.sp, // reason: Body/button label 15sp semi-bold
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                if (badgeCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(end = spacing.small)
+                            .size(24.dp)
+                            .background(DangerRed, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = badgeCount.toString(),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
                 }
             }
         }
     }
 }
-
-// ─── Compliance Warning Banner ─────────────────────────────────────────────
 
 @Composable
 fun ComplianceBanner(
@@ -687,44 +727,21 @@ fun ComplianceBanner(
     onDismiss: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    // reason: Redesigned warning alerts with high contrast background and text to satisfy WCAG AA on off-white.
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
 
-    val bannerBg: Color
-    val textColor: Color
-    val alertIcon: ImageVector
-    val contentDesc: String
-    val status: String
-    when (alert.urgency) {
-        HomeViewModel.ComplianceAlert.Urgency.EXPIRED  -> {
-            bannerBg    = DangerRed.copy(alpha = 0.18f)
-            textColor   = DangerRed
-            alertIcon   = Icons.Default.GppBad
-            contentDesc = "Expired"
-            status      = "EXPIRED"
-        }
-        HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> {
-            bannerBg    = DangerRed.copy(alpha = 0.12f)
-            textColor   = DangerRed
-            alertIcon   = Icons.Default.Warning
-            contentDesc = "Critical warning"
-            status      = "${alert.daysLeft}d left"
-        }
-        HomeViewModel.ComplianceAlert.Urgency.HIGH     -> {
-            bannerBg    = WarningYellow.copy(alpha = 0.12f)
-            textColor   = WarningYellow
-            alertIcon   = Icons.Default.WarningAmber
-            contentDesc = "High priority warning"
-            status      = "${alert.daysLeft}d left"
-        }
-        HomeViewModel.ComplianceAlert.Urgency.MEDIUM   -> {
-            bannerBg    = MaterialTheme.kbSecondary.copy(alpha = 0.10f)
-            textColor   = MaterialTheme.kbSecondary
-            alertIcon   = Icons.Default.Info
-            contentDesc = "Info"
-            status      = "${alert.daysLeft}d left"
-        }
+    val result = when (alert.urgency) {
+        HomeViewModel.ComplianceAlert.Urgency.EXPIRED  -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), Icons.Default.GppBad) to ("Expired" to "EXPIRED")
+        HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), Icons.Default.Warning) to ("Critical warning" to "${alert.daysLeft}d left")
+        HomeViewModel.ComplianceAlert.Urgency.HIGH     -> Triple(Color(0xFFFFF3E0), Color(0xFFE65100), Icons.Default.WarningAmber) to ("High priority warning" to "${alert.daysLeft}d left")
+        HomeViewModel.ComplianceAlert.Urgency.MEDIUM   -> Triple(Color(0xFFE8F5E9), Color(0xFF2E7D32), Icons.Default.Info) to ("Info" to "${alert.daysLeft}d left")
     }
+    val bannerBg = result.first.first
+    val textColor = result.first.second
+    val alertIcon = result.first.third
+    val contentDesc = result.second.first
+    val status = result.second.second
 
     val message = when (alert.urgency) {
         HomeViewModel.ComplianceAlert.Urgency.EXPIRED  -> "${alert.label} has expired! Renew immediately."
@@ -774,7 +791,7 @@ fun ComplianceBanner(
             if (onDismiss != null) {
                 IconButton(
                     onClick = onDismiss,
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(48.dp) // reason: Standard 48dp minimum tap target
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
