@@ -64,20 +64,20 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(spacing.large),
+                .padding(spacing.medium),
             verticalAlignment = Alignment.CenterVertically
         ) {
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(52.dp)
                     .background(KbBrandSaffron, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = displayName.take(1).uppercase(), color = DarkBrown1, style = MaterialTheme.typography.headlineSmall)
+                Text(text = displayName.take(1).uppercase(), color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
             }
             Spacer(modifier = Modifier.size(spacing.medium))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = displayName, color = TextLight, style = MaterialTheme.typography.titleLarge)
+                Text(text = displayName, color = TextLight, style = MaterialTheme.typography.titleMedium)
                 if (displayPhone.isNotBlank()) {
                     Text(text = displayPhone, color = TextGold, style = MaterialTheme.typography.bodySmall)
                 }
@@ -103,7 +103,7 @@ internal fun SettingsItem(icon: ImageVector, text: String, onClick: () -> Unit) 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(spacing.medium),
+                .padding(spacing.smallMedium),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -149,7 +149,7 @@ internal fun SettingsToggleItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(spacing.medium),
+                .padding(spacing.smallMedium),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
