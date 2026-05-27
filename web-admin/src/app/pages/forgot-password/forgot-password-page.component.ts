@@ -318,6 +318,7 @@ const API_BASE_URL = environment.apiBaseUrl;
       letter-spacing: -0.5px;
       color: #fff;
       margin: 0;
+      line-height: 1;
     }
 
     .showcase-hero {

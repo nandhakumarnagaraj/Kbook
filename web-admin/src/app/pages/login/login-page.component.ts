@@ -271,11 +271,13 @@ declare const google: GlobalGoogle | undefined;
       object-fit: contain;
     }
 
-    .brand-name {
+    .brand-header h1 {
       font-size: 1.5rem;
       font-weight: 800;
       letter-spacing: -0.5px;
       color: #fff;
+      margin: 0;
+      line-height: 1;
     }
 
     .showcase-hero {
