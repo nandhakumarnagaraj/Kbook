@@ -252,7 +252,7 @@ fun PrinterConfigView(
                 Text("Print Options", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium)
                 PrinterOptionRow("Mask Customer Phone", maskPhone) { maskPhone = it }
             }
-            Spacer(modifier = Modifier.height(spacing.large))
+            Spacer(modifier = Modifier.height(spacing.medium))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(spacing.small),
@@ -288,16 +288,16 @@ fun PrinterConfigView(
                             )
                         }
                     },
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier.weight(1f).height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Green800),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = RoundedCornerShape(24.dp)
                 ) { Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium) }
                 OutlinedButton(
                     onClick = onBack,
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier.weight(1f).height(48.dp),
                     border = BorderStroke(1.dp, MaterialTheme.kbSecondary.copy(alpha = 0.7f)),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbSecondary),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = RoundedCornerShape(24.dp)
                 ) {
                     Text("Back", style = MaterialTheme.typography.titleMedium)
                 }
@@ -392,7 +392,7 @@ private fun PrinterTargetCard(
         modifier = Modifier
             .fillMaxWidth()
             .border(1.dp, BorderGold.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-            .padding(spacing.medium)
+            .padding(spacing.smallMedium)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
             Row(

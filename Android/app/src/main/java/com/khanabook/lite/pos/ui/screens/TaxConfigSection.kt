@@ -243,7 +243,7 @@ fun TaxConfigView(
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
-            Spacer(modifier = Modifier.height(spacing.extraLarge))
+            Spacer(modifier = Modifier.height(spacing.medium))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(spacing.small)
@@ -260,17 +260,17 @@ fun TaxConfigView(
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }
                     },
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier.weight(1f).height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(24.dp),
                     enabled = isSaveEnabled
                 ) { Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium) }
                 OutlinedButton(
                     onClick = onBack,
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier.weight(1f).height(48.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbPrimary.copy(alpha = 0.7f)),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbPrimary),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = RoundedCornerShape(24.dp)
                 ) {
                     Text("Back", style = MaterialTheme.typography.titleMedium)
                 }

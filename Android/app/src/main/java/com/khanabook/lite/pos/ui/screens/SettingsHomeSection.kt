@@ -56,7 +56,7 @@ fun SettingsHomeSection(
         ) {
             Spacer(modifier = Modifier.height(spacing.small))
             ProfileCard(currentUser, profile, lastSyncTimestamp)
-            Spacer(modifier = Modifier.height(spacing.medium))
+            Spacer(modifier = Modifier.height(spacing.small))
 
             if (isWideScreen) {
                 Row(horizontalArrangement = Arrangement.spacedBy(spacing.medium)) {
@@ -116,18 +116,18 @@ fun SettingsHomeSection(
                 }
             }
 
-            Spacer(modifier = Modifier.height(spacing.medium))
+            Spacer(modifier = Modifier.height(spacing.small))
 
             KhanaBookCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = spacing.small),
+                    .padding(vertical = spacing.extraSmall),
                 colors = CardDefaults.cardColors(containerColor = CardBG),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
                 LogoutSection(logoutViewModel)
             }
-            Spacer(modifier = Modifier.height(spacing.extraLarge))
+            Spacer(modifier = Modifier.height(spacing.large))
         }
     }
 }

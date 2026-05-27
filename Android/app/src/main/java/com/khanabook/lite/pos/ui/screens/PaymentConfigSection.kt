@@ -132,7 +132,7 @@ fun PaymentConfigView(
             PlatformToggle("Zomato Integration", zomatoEnabled) { openWebDashboard("marketplace/zomato") }
             PlatformToggle("Swiggy Integration", swiggyEnabled) { openWebDashboard("marketplace/swiggy") }
 
-            Spacer(modifier = Modifier.height(spacing.extraLarge))
+            Spacer(modifier = Modifier.height(spacing.medium))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
                 Button(
                     onClick = {
@@ -154,15 +154,15 @@ fun PaymentConfigView(
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }
                     },
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier.weight(1f).height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = RoundedCornerShape(24.dp)
                 ) { Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium) }
                 OutlinedButton(
                     onClick = onBack,
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier.weight(1f).height(48.dp),
                     border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = RoundedCornerShape(24.dp)
                 ) { Text("Back") }
             }
         }

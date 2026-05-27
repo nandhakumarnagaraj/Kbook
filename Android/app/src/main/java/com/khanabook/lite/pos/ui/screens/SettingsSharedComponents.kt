@@ -59,25 +59,25 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(spacing.medium),
+                .padding(spacing.smallMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(44.dp)
                     .background(KbBrandSaffron, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = displayName.take(1).uppercase(), color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
+                Text(text = displayName.take(1).uppercase(), color = DarkBrown1, style = MaterialTheme.typography.titleSmall)
             }
-            Spacer(modifier = Modifier.size(spacing.medium))
+            Spacer(modifier = Modifier.size(spacing.smallMedium))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = displayName, color = TextLight, style = MaterialTheme.typography.titleMedium)
+                Text(text = displayName, color = TextLight, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold))
                 if (displayPhone.isNotBlank()) {
                     Text(text = displayPhone, color = TextGold, style = MaterialTheme.typography.bodySmall)
                 }
@@ -90,40 +90,39 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
 @Composable
 internal fun SettingsItem(icon: ImageVector, text: String, onClick: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
-    val iconSize = KhanaBookTheme.iconSize
     
     // Premium Glassmorphism Settings Item
     KhanaBookGlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = spacing.small - spacing.hairline),
+            .padding(vertical = spacing.extraSmall),
         onClick = onClick,
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(10.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(spacing.smallMedium),
+                .padding(horizontal = spacing.medium, vertical = spacing.small),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .background(KbBrandSaffron.copy(alpha = 0.12f), RoundedCornerShape(10.dp)),
+                        .size(32.dp)
+                        .background(KbBrandSaffron.copy(alpha = 0.12f), RoundedCornerShape(8.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(iconSize.small))
+                    Icon(icon, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(16.dp))
                 }
-                Spacer(modifier = Modifier.size(spacing.medium))
-                Text(text, color = TextLight, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
+                Spacer(modifier = Modifier.size(spacing.smallMedium))
+                Text(text, color = TextLight, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
             }
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight, 
                 null, 
                 tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
-                modifier = Modifier.size(iconSize.small)
+                modifier = Modifier.size(16.dp)
             )
         }
     }
@@ -142,21 +141,21 @@ internal fun SettingsToggleItem(
     KhanaBookCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = spacing.small - spacing.hairline),
+            .padding(vertical = spacing.extraSmall),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(10.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(spacing.smallMedium),
+                .padding(horizontal = spacing.medium, vertical = spacing.small),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(iconSize.medium))
-                Spacer(modifier = Modifier.size(spacing.medium))
-                Text(text, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.size(spacing.smallMedium))
+                Text(text, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
             }
             KhanaBookSwitch(
                 checked = checked,
@@ -173,11 +172,11 @@ fun ConfigCard(content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = spacing.medium),
+            .padding(bottom = spacing.smallMedium),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
     ) {
-        Column(modifier = Modifier.padding(spacing.large)) { content() }
+        Column(modifier = Modifier.padding(spacing.medium)) { content() }
     }
 }

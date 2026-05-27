@@ -123,31 +123,31 @@ fun SettingsListView(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = spacing.medium, vertical = spacing.medium),
+            .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
     ) {
         SettingsGroupLabel("Security")
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(spacing.extraSmall))
         SettingsItem(
             icon = Icons.Outlined.Lock,
             text = "App Lock",
             onClick = { onSelectItem("app_lock") }
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(spacing.extraSmall))
         SettingsItem(
             icon = Icons.Outlined.Password,
             text = "Change Password",
             onClick = { onSelectItem("change_password") }
         )
 
-        Spacer(modifier = Modifier.height(spacing.large))
+        Spacer(modifier = Modifier.height(spacing.medium))
         SettingsGroupLabel("Appearance")
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(spacing.extraSmall))
         SettingsItem(
             icon = Icons.Outlined.TextIncrease,
             text = "Display",
             onClick = { onSelectItem("ui_scale") }
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(spacing.extraSmall))
         val context = LocalContext.current
         SettingsToggleItem(
             icon = Icons.Outlined.DarkMode,
@@ -164,15 +164,15 @@ fun SettingsListView(
             }
         )
 
-        Spacer(modifier = Modifier.height(spacing.large))
+        Spacer(modifier = Modifier.height(spacing.medium))
         SettingsGroupLabel("About")
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(spacing.extraSmall))
         SettingsItem(
             icon = Icons.AutoMirrored.Outlined.HelpOutline,
             text = "Help & Support",
             onClick = { onSelectItem("help_support") }
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(spacing.extraSmall))
         SettingsItem(
             icon = Icons.Outlined.Info,
             text = "About App",
@@ -219,22 +219,22 @@ fun AppLockView(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = spacing.large, vertical = spacing.large),
-        verticalArrangement = Arrangement.spacedBy(spacing.large)
+            .padding(horizontal = spacing.medium, vertical = spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(10.dp)
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(spacing.large),
+                modifier = Modifier.fillMaxWidth().padding(spacing.medium),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(96.dp)
+                        .size(72.dp)
                         .background(
                             if (isEnabled) SuccessGreen.copy(alpha = 0.15f) else MaterialTheme.kbOutlineSubtle.copy(alpha = 0.1f),
                             CircleShape
@@ -250,7 +250,7 @@ fun AppLockView(
                         Icons.Outlined.Lock,
                         contentDescription = null,
                         tint = if (isEnabled) SuccessGreen else MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(36.dp)
                     )
                 }
                 Text(
@@ -422,8 +422,8 @@ fun ChangePasswordView(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = spacing.large, vertical = spacing.large),
-            verticalArrangement = Arrangement.spacedBy(spacing.large)
+                .padding(horizontal = spacing.medium, vertical = spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
             CpStepIndicator(currentStep = step, totalSteps = 3)
 
@@ -536,7 +536,7 @@ fun ChangePasswordView(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .padding(horizontal = spacing.large, vertical = spacing.medium),
+                .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
             horizontalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
             if (step > 1) {
@@ -656,18 +656,18 @@ fun HelpSupportView() {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = spacing.large, vertical = spacing.large),
-        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+            .padding(horizontal = spacing.medium, vertical = spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = spacing.medium),
+                .padding(vertical = spacing.smallMedium),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(108.dp)
+                    .size(80.dp)
                     .background(MaterialTheme.kbSecondary.copy(alpha = 0.12f), CircleShape)
                     .border(2.dp, MaterialTheme.kbSecondary.copy(alpha = 0.3f), CircleShape),
                 contentAlignment = Alignment.Center
@@ -676,7 +676,7 @@ fun HelpSupportView() {
                     Icons.AutoMirrored.Outlined.Chat,
                     contentDescription = null,
                     tint = MaterialTheme.kbSecondary,
-                    modifier = Modifier.size(58.dp)
+                    modifier = Modifier.size(40.dp)
                 )
             }
         }
@@ -781,13 +781,13 @@ fun AboutAppView() {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = spacing.large, vertical = spacing.extraLarge),
+            .padding(horizontal = spacing.medium, vertical = spacing.large),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(spacing.large)
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
         Box(
             modifier = Modifier
-                .size(184.dp)
+                .size(140.dp)
                 .background(MaterialTheme.kbSecondary.copy(alpha = 0.12f), CircleShape)
                 .border(2.dp, MaterialTheme.kbSecondary.copy(alpha = 0.3f), CircleShape)
                 .clip(CircleShape),
@@ -820,7 +820,7 @@ fun AboutAppView() {
 
         HorizontalDivider(
             color = BorderGold.copy(alpha = 0.2f),
-            modifier = Modifier.padding(horizontal = spacing.large)
+            modifier = Modifier.padding(horizontal = spacing.medium)
         )
 
         Text(
@@ -831,7 +831,7 @@ fun AboutAppView() {
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(spacing.large))
+        Spacer(modifier = Modifier.height(spacing.medium))
 
         Text(
             "© $currentYear KhanaBook. All rights reserved.",

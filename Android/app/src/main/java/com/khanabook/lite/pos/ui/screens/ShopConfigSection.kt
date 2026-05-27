@@ -459,14 +459,14 @@ fun ShopConfigView(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp)
+                        .height(48.dp)
                         .graphicsLayer {
                             scaleX = saveButtonScale
                             scaleY = saveButtonScale
                             alpha = saveButtonAlpha
                         },
                     colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(24.dp),
                     enabled = !saveProfileLoading
                 ) {
                     if (saveProfileLoading) {
@@ -479,10 +479,10 @@ fun ShopConfigView(
                     onClick = { onBack() },
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp),
+                        .height(48.dp),
                     border = BorderStroke(1.dp, MaterialTheme.kbSecondary.copy(alpha = 0.7f)),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbSecondary),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = RoundedCornerShape(24.dp)
                 ) {
                     Text("Back", style = MaterialTheme.typography.titleMedium)
                 }

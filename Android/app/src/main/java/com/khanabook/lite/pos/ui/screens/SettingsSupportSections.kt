@@ -232,19 +232,19 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth().padding(spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
+        verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
     ) {
         Text("Account Session", color = TextLight, style = MaterialTheme.typography.titleMedium)
         Button(
             onClick = { if (!isLoading) showConfirmDialog = true },
             enabled = !isLoading,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
+            modifier = Modifier.fillMaxWidth().height(40.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = DangerRed,
                 disabledContainerColor = DangerRed.copy(alpha = 0.4f)
             ),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(8.dp)
         ) {
             Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(iconSize.small))
             Spacer(modifier = Modifier.width(spacing.small))
