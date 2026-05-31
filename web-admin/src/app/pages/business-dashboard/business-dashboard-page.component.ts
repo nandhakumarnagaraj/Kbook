@@ -573,6 +573,12 @@ Chart.register(...registerables);
       .header-row { flex-direction: column; gap: 16px; }
       .quick-actions-bar { grid-template-columns: repeat(2, 1fr); }
     }
+
+    @media (max-width: 600px) {
+      .page-container { padding: 16px; }
+      .page-title { font-size: 1.5rem; }
+      .stats-grid { gap: 8px; }
+    }
   `]
 })
 export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy {

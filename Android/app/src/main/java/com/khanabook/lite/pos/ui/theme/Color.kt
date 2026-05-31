@@ -27,8 +27,11 @@ val KbSaffron950 = Color(0xFF331200)  // on-primary-fixed
 
 // DESIGN.md brand colors
 val KbBrandSaffron = Color(0xFFC85A00)
+
 val KbBrandSaffronLight = Color(0xFFE8832A)
+
 val KbBrandSaffronDark = Color(0xFF994500)
+
 val KbBrandSaffronAndroid = Color(0xFFD97706)
 
 // Pure neutral gray scale

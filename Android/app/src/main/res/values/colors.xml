@@ -86,8 +86,8 @@
     <color name="kb_black_alpha_90">#E6000000</color>
 
     <!-- ── Splash / system chrome ────────────────────────────── -->
-    <color name="splash_bg">#060604</color>
-    <color name="splash_bg_light">#FFFBFF</color>
+    <color name="splash_bg">#FFFFFF</color>
+    <color name="splash_bg_light">#FFFFFF</color>
 
     <!-- ── Dark theme surface tokens ────────────────────────── -->
     <color name="kb_dark_bg">#060604</color>

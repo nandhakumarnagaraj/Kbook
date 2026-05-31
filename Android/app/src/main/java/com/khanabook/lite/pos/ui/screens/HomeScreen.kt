@@ -8,8 +8,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -254,21 +252,13 @@ fun HomeScreen(
                                     Spacer(Modifier.height(spacing.medium))
                                 }
                             } else {
-                                FlowRow(
+                                Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                                    verticalArrangement = Arrangement.spacedBy(spacing.small),
-                                    maxItemsInEachRow = 3
+                                    horizontalArrangement = Arrangement.SpaceEvenly
                                 ) {
-                                    val statMod = Modifier.weight(1f)
-                                    SummaryStatItem("Orders", stats.orderCount.toString(), textPrimaryColor, textMutedColor, statMod)
-                                    SummaryStatItem("Revenue", CurrencyUtils.formatPriceCompact(stats.revenue), textPrimaryColor, textMutedColor, statMod)
-                                    SummaryStatItem("Customers", stats.customerCount.toString(), textPrimaryColor, textMutedColor, statMod)
-                                    if (stats.orderCount > 0 || stats.kdsPendingCount > 0) {
-                                        SummaryStatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), textPrimaryColor, textMutedColor, statMod)
-                                        SummaryStatItem("Cancelled", stats.cancelledCount.toString(), textPrimaryColor, textMutedColor, statMod)
-                                        SummaryStatItem("KDS Pending", stats.kdsPendingCount.toString(), textPrimaryColor, textMutedColor, statMod)
-                                    }
+                                    SummaryStatItem("Orders", stats.orderCount.toString(), textPrimaryColor, textMutedColor, Modifier.weight(1f))
+                                    SummaryStatItem("Revenue", CurrencyUtils.formatPriceCompact(stats.revenue), textPrimaryColor, textMutedColor, Modifier.weight(1f))
+                                    SummaryStatItem("Customers", stats.customerCount.toString(), textPrimaryColor, textMutedColor, Modifier.weight(1f))
                                 }
                             }
                         }

@@ -86,7 +86,7 @@
         <item name="android:windowBackground">@drawable/launch_screen_background</item>
         <item name="android:windowSplashScreenBackground">@color/splash_bg</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
-        <item name="android:windowSplashScreenIconBackgroundColor">@color/kb_brand_saffron_android</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#FFFFFF</item>
     </style>
 
 </resources>

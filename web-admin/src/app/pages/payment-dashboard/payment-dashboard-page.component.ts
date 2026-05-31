@@ -299,6 +299,14 @@ interface AnomalyAlert {
     .no-data { padding: 32px; text-align: center; color: var(--muted); font-size: 0.85rem; }
 
     @media (max-width: 960px) { .main-grid { grid-template-columns: 1fr; } }
+
+    @media (max-width: 600px) {
+      .page-container { padding: 16px; }
+      .page-title { font-size: 1.35rem; }
+      .chart-wrapper { height: 180px; }
+      ::ng-deep .stat-card .mat-mdc-card-title { font-size: 1rem; }
+      .header-controls { flex-wrap: wrap; gap: 8px; }
+    }
   `]
 })
 export class PaymentDashboardPageComponent implements AfterViewInit {

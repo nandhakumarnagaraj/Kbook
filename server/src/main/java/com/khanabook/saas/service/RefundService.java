@@ -55,7 +55,7 @@ public class RefundService {
         if (!bill.getRestaurantId().equals(restaurantId)) {
             throw new BusinessRuleException("Order does not belong to this business");
         }
-        if (bill.getGatewayTxnId() == null || !"paid".equalsIgnoreCase(bill.getPaymentStatus()) && !"success".equalsIgnoreCase(bill.getPaymentStatus())) {
+        if (bill.getGatewayTxnId() == null || !"paid".equalsIgnoreCase(bill.getPaymentStatus()) && !"success".equalsIgnoreCase(bill.getPaymentStatus()) && !"partially_refunded".equalsIgnoreCase(bill.getPaymentStatus())) {
             throw new BusinessRuleException("Bill is not eligible for refund");
         }
         BigDecimal existingRefund = bill.getRefundAmount() != null ? bill.getRefundAmount() : BigDecimal.ZERO;

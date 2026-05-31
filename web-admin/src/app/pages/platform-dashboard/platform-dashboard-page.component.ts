@@ -675,7 +675,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     }
 
     @media (max-width: 960px) {
-      .main-grid { grid-template-columns: 1fr; }
+      .main-grid { grid-template-columns: 1fr; gap: 16px; }
+    }
+
+    @media (max-width: 600px) {
+      .page-container { padding: 16px; }
+      .page-title { font-size: 1.5rem; }
+      .stats-grid { gap: 8px; }
+      .health-metrics { padding: 16px 0; }
+      .health-metrics .m-val { font-size: 1.25rem; }
+      .action-grid { gap: 12px; }
+      .action-item { padding: 16px; }
     }
   `]
 })
