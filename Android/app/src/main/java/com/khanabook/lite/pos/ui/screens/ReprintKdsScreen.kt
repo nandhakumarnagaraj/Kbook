@@ -175,13 +175,13 @@ fun ReprintKdsScreen(
                     Icon(
                         Icons.Default.Search,
                         contentDescription = null,
-                        tint = DarkBrown1,
+                        tint = Color.White,
                         modifier = Modifier.size(iconSize.small)
                     )
                     Spacer(modifier = Modifier.width(spacing.small))
                     Text(
                         "Search Order",
-                        color = DarkBrown1,
+                        color = Color.White,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }
@@ -226,13 +226,13 @@ fun ReprintKdsScreen(
                     Icon(
                         Icons.Default.Search,
                         contentDescription = null,
-                        tint = DarkBrown1,
+                        tint = Color.White,
                         modifier = Modifier.size(iconSize.small)
                     )
                     Spacer(modifier = Modifier.width(spacing.small))
                     Text(
                         "Search Order",
-                        color = DarkBrown1,
+                        color = Color.White,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }

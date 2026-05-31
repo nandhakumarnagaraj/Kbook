@@ -17,6 +17,10 @@ public interface AuthService {
 
 	AuthResponse googleLogin(com.khanabook.saas.controller.AuthController.GoogleLoginRequest request);
 
+	AuthResponse refreshAccessToken(String refreshToken, String clientIp);
+
+	void revokeRefreshToken(String refreshToken);
+
 	void requestSignupOtp(String phoneNumber);
 
 	void requestPasswordResetOtp(String phoneNumber);

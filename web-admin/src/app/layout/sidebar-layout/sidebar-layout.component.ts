@@ -161,12 +161,17 @@ type NavLink = { icon: string; label: string; path: string };
     .brand-info {
       display: flex;
       flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
     }
 
     .brand-name {
       font-weight: 700;
       font-size: 1.1rem;
       color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .brand-sub {
@@ -446,7 +451,10 @@ export class SidebarLayoutComponent {
         { icon: 'payments', label: 'Payment Dashboard', path: '/admin/payment-dashboard' },
         { icon: 'receipt_long', label: 'Transactions', path: '/admin/transactions' },
         { icon: 'account_balance_wallet', label: 'Settlements', path: '/admin/settlements' },
-        { icon: 'percent', label: 'Commission', path: '/admin/commission' }
+        { icon: 'percent', label: 'Commission', path: '/admin/commission' },
+        { icon: 'health_and_safety', label: 'Webhook Health', path: '/admin/webhook-health' },
+        { icon: 'alt_route', label: 'Payment Routing', path: '/admin/payment-routing' },
+        { icon: 'code', label: 'Developer Portal', path: '/admin/developer-portal' }
       ];
     }
 
@@ -456,7 +464,15 @@ export class SidebarLayoutComponent {
       { icon: 'store', label: 'Marketplace Setup', path: '/business/marketplace-setup' },
       { icon: 'restaurant_menu', label: 'Menu', path: '/business/menu' },
       { icon: 'people', label: 'Staff', path: '/business/staff' },
-      { icon: 'settings', label: 'Settings', path: '/business/settings' }
+      { icon: 'settings', label: 'Settings', path: '/business/settings' },
+      { icon: 'undo', label: 'Refunds', path: '/business/refunds' },
+      { icon: 'flag', label: 'Onboarding', path: '/business/onboarding' },
+      { icon: 'bolt', label: 'Instant Settlements', path: '/business/settlements' },
+      { icon: 'receipt', label: 'Tax Compliance', path: '/business/tax' },
+      { icon: 'gavel', label: 'Chargebacks', path: '/business/chargebacks' },
+      { icon: 'account_balance', label: 'Financing', path: '/business/financing' },
+      { icon: 'hub', label: 'Unified Commerce', path: '/business/commerce' },
+      { icon: 'people_alt', label: 'Customer Insights', path: '/business/customers' }
     ];
   });
 

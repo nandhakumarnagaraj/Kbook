@@ -297,7 +297,16 @@ export class SettlementReportsPageComponent implements OnInit {
     this.loadError.set('');
     this.api.getSettlements().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
-        this.settlements.set(data);
+        // Map AdminSettlement → local Settlement UI shape
+        const mapped: Settlement[] = data.map(s => ({
+          restaurantId: s.restaurantId,
+          shopName: s.shopName ?? 'Unknown',
+          totalSettled: s.amount,
+          totalCommission: 0,   // not returned by this endpoint — shown as N/A
+          orderCount: 0,        // not returned by this endpoint — shown as N/A
+          lastSettlementDate: s.createdAt
+        }));
+        this.settlements.set(mapped);
         this.loaded.set(true);
       },
       error: (err) => {

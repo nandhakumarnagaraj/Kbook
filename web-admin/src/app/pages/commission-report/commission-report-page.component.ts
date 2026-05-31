@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, inject, signal, ViewChild, AfterViewInit } from '@angular/core';
 import { AdminApiService } from '../../core/services/admin-api.service';
+import { CommissionReport } from '../../core/models/api.models';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { formatCurrency } from '../../shared/formatters';
 import { MatCardModule } from '@angular/material/card';
@@ -194,7 +195,7 @@ export class CommissionReportPageComponent implements AfterViewInit {
     this.loaded.set(false);
     this.loadError.set('');
     this.api.getCommissionReport().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (data: any) => {
+      next: (data) => {
         this.processData(data);
         this.loaded.set(true);
       },
@@ -205,13 +206,15 @@ export class CommissionReportPageComponent implements AfterViewInit {
     });
   }
 
-  private processData(data: any[]): void {
-    const rows: CommissionRow[] = data.map((item: any) => ({
-      restaurantName: item.restaurantName ?? item.shopName ?? 'Unknown',
-      totalRevenue: item.totalRevenue ?? 0,
+  private processData(data: CommissionReport[]): void {
+    const rows: CommissionRow[] = data.map((item) => ({
+      // CommissionReport fields: restaurantId, shopName, totalTransactions,
+      // totalAmount, commissionRate, commissionEarned, period
+      restaurantName: item.shopName ?? `Restaurant #${item.restaurantId}`,
+      totalRevenue: item.totalAmount ?? 0,
       commissionEarned: item.commissionEarned ?? 0,
-      effectiveRate: item.effectiveRate ?? 0,
-      orderCount: item.orderCount ?? 0
+      effectiveRate: item.commissionRate ?? 0,
+      orderCount: item.totalTransactions ?? 0
     }));
 
     const totalCommission = rows.reduce((s, r) => s + r.commissionEarned, 0);

@@ -28,6 +28,7 @@ public class EasebuzzPaymentService {
     private final EasebuzzWebhookEventRepository webhookEventRepo;
     private final SubMerchantService subMerchantService;
     private final com.khanabook.saas.config.EasebuzzProperties props;
+    private final ChargebackPreventionService chargebackService;
 
     @Transactional
     public Map<String, Object> createOrder(Long billId, Long restaurantId) {
@@ -42,6 +43,22 @@ public class EasebuzzPaymentService {
                     "error", "Bill is already paid. Payment retry is not allowed.",
                     "txnid", bill.getGatewayTxnId() != null ? bill.getGatewayTxnId() : ""
             );
+        }
+
+        Map<String, Object> fraudScore = chargebackService.scoreTransaction(billId);
+        String risk = (String) fraudScore.get("risk");
+        double score = ((Number) fraudScore.get("score")).doubleValue();
+        if ("critical".equals(risk) || score >= 60) {
+            log.warn("Payment blocked by fraud scoring billId={} score={} risk={}", billId, score, risk);
+            return Map.of(
+                    "status", "failure",
+                    "code", "FRAUD_RISK",
+                    "error", "Transaction flagged as high risk. Please contact support.",
+                    "fraudScore", fraudScore
+            );
+        }
+        if ("high".equals(risk)) {
+            log.warn("Payment flagged for review billId={} score={} risk={}", billId, score, risk);
         }
 
         // Build payment data from real bill

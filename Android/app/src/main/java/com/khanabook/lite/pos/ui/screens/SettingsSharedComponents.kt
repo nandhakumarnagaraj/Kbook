@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
@@ -73,7 +74,7 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
                     .background(KbBrandSaffron, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = displayName.take(1).uppercase(), color = DarkBrown1, style = MaterialTheme.typography.titleSmall)
+                Text(text = displayName.take(1).uppercase(), color = Color.White, style = MaterialTheme.typography.titleSmall)
             }
             Spacer(modifier = Modifier.size(spacing.smallMedium))
             Column(modifier = Modifier.weight(1f)) {

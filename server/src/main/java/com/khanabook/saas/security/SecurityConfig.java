@@ -112,7 +112,7 @@ public class SecurityConfig {
 				.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 						// Public auth endpoints (rate-limited separately)
-						.requestMatchers("/auth/login", "/auth/signup", "/auth/signup/**",
+						.requestMatchers("/auth/login", "/auth/refresh", "/auth/signup", "/auth/signup/**",
 								"/auth/google", "/auth/check-user",
 								"/auth/reset-password", "/auth/reset-password/request",
 								"/public/**",

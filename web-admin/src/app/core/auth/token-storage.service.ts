@@ -29,4 +29,8 @@ export class TokenStorageService {
   getToken(): string | null {
     return this.get()?.token ?? null;
   }
+
+  getRefreshToken(): string | null {
+    return this.get()?.refreshToken ?? null;
+  }
 }

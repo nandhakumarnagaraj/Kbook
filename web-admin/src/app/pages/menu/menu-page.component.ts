@@ -54,16 +54,14 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
   template: `
     <div class="page-container">
       <div class="header-row">
-        <div class="header-left">
-          <h1 class="page-title text-balance">Menu Catalog</h1>
-          <p class="page-subtitle">Manage your restaurant menu items, categories, and real-time availability.</p>
+        <div>
+          <h1 class="page-title">Menu Catalog</h1>
+          <p class="page-subtitle">{{ items.length }} items · {{ availableCount() }} available on App</p>
         </div>
-        <div class="header-actions">
-          <button mat-flat-button color="primary" (click)="loadMenu()">
-            <mat-icon>refresh</mat-icon>
-            Sync Menu
-          </button>
-        </div>
+        <button mat-flat-button color="primary" (click)="openAddDialog()" aria-label="Add new menu item">
+          <mat-icon>add</mat-icon>
+          Add Item
+        </button>
       </div>
 
       <div class="stats-grid" *ngIf="loaded">
@@ -207,15 +205,20 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
                  </button>
                  <mat-divider></mat-divider>
                  <!-- Mark Available/Unavailable toggles replace raw delete button -->
-                 <button mat-menu-item *ngIf="!item.available" (click)="setAvailability(item, true)">
-                   <mat-icon>check_circle</mat-icon>
-                   <span>Mark as Available</span>
-                 </button>
-                 <button mat-menu-item *ngIf="item.available" (click)="setAvailability(item, false)">
-                   <mat-icon>cancel</mat-icon>
-                   <span>Mark as Unavailable</span>
-                 </button>
-               </mat-menu>
+                  <button mat-menu-item *ngIf="!item.available" (click)="setAvailability(item, true)">
+                    <mat-icon>check_circle</mat-icon>
+                    <span>Mark as Available</span>
+                  </button>
+                  <button mat-menu-item *ngIf="item.available" (click)="setAvailability(item, false)">
+                    <mat-icon>cancel</mat-icon>
+                    <span>Mark as Unavailable</span>
+                  </button>
+                  <mat-divider></mat-divider>
+                  <button mat-menu-item (click)="deleteItem(item)" class="delete-action">
+                    <mat-icon color="warn">delete</mat-icon>
+                    <span class="delete-text">Delete Item</span>
+                  </button>
+                </mat-menu>
             </td>
           </ng-container>
 
@@ -236,6 +239,49 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
     </div>
 
     <!-- Dialog Templates -->
+    <ng-template #addDialog>
+      <h2 mat-dialog-title class="dialog-title">Add Menu Item</h2>
+      <mat-dialog-content class="dialog-content">
+        <form class="edit-form">
+          <div class="form-field-full">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Item Name</mat-label>
+              <input matInput [(ngModel)]="editItem.name" name="addName" required>
+            </mat-form-field>
+          </div>
+
+          <div class="form-field-full">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Description</mat-label>
+              <textarea matInput [(ngModel)]="editItem.description" name="addDesc" rows="3"></textarea>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row-2">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Base Price (₹)</mat-label>
+              <input matInput type="number" [(ngModel)]="editItem.basePrice" name="addPrice" required>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Food Type</mat-label>
+              <mat-select [(ngModel)]="editItem.foodType" name="addFoodType">
+                <mat-option value="VEG">Veg (Green)</mat-option>
+                <mat-option value="NON_VEG">Non-Veg (Red)</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </form>
+      </mat-dialog-content>
+      <mat-dialog-actions align="end" class="dialog-actions">
+        <button mat-button (click)="closeDialog()">Cancel</button>
+        <button mat-flat-button color="primary" [disabled]="savingItem || !editItem.name || !editItem.basePrice" (click)="createItem()">
+          <mat-spinner diameter="18" color="accent" *ngIf="savingItem" style="display:inline-block; margin-right:8px;"></mat-spinner>
+          <span>Add Item</span>
+        </button>
+      </mat-dialog-actions>
+    </ng-template>
+
     <ng-template #editDialog>
       <h2 mat-dialog-title class="dialog-title">Edit Menu Item</h2>
       <mat-dialog-content class="dialog-content">
@@ -243,26 +289,26 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
           <div class="form-field-full">
             <mat-form-field appearance="outline" class="w-100">
               <mat-label>Item Name</mat-label>
-              <input matInput [(ngModel)]="selectedItem.name" name="name" required>
+              <input matInput [(ngModel)]="editItem.name" name="name" required>
             </mat-form-field>
           </div>
 
           <div class="form-field-full">
             <mat-form-field appearance="outline" class="w-100">
               <mat-label>Description</mat-label>
-              <textarea matInput [(ngModel)]="selectedItem.description" name="description" rows="3"></textarea>
+              <textarea matInput [(ngModel)]="editItem.description" name="description" rows="3"></textarea>
             </mat-form-field>
           </div>
 
           <div class="form-row-2">
             <mat-form-field appearance="outline" class="w-100">
               <mat-label>Base Price (₹)</mat-label>
-              <input matInput type="number" [(ngModel)]="selectedItem.basePrice" name="basePrice" required>
+              <input matInput type="number" [(ngModel)]="editItem.basePrice" name="basePrice" required>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="w-100">
               <mat-label>Food Type</mat-label>
-              <mat-select [(ngModel)]="selectedItem.foodType" name="foodType">
+              <mat-select [(ngModel)]="editItem.foodType" name="foodType">
                 <mat-option value="VEG">Veg (Green)</mat-option>
                 <mat-option value="NON_VEG">Non-Veg (Red)</mat-option>
               </mat-select>
@@ -272,12 +318,12 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
           <div class="form-row-2">
             <mat-form-field appearance="outline" class="w-100">
               <mat-label>Category</mat-label>
-              <input matInput [value]="selectedItem.categoryName || 'General'" name="categoryName" readonly matTooltip="Category is synchronized from POS">
+              <input matInput [value]="editItem.categoryName || 'General'" name="categoryName" readonly matTooltip="Category is synchronized from POS">
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="w-100">
               <mat-label>Stock Level</mat-label>
-              <mat-select [(ngModel)]="selectedItem.stockStatus" name="stockStatus">
+              <mat-select [(ngModel)]="editItem.stockStatus" name="stockStatus">
                 <mat-option value="IN_STOCK">In Stock</mat-option>
                 <mat-option value="RUNNING_LOW">Running Low</mat-option>
                 <mat-option value="OUT_OF_STOCK">Out of Stock</mat-option>
@@ -299,10 +345,10 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
       <h2 mat-dialog-title class="dialog-title">Update Inventory</h2>
       <mat-dialog-content class="dialog-content">
         <div class="stock-dialog-body">
-          <p>Update inventory status for <strong>{{ selectedItem.name }}</strong></p>
+          <p>Update inventory status for <strong>{{ editItem.name }}</strong></p>
           <mat-form-field appearance="outline" class="w-100" style="margin-top: 12px;">
             <mat-label>Inventory Level</mat-label>
-            <mat-select [(ngModel)]="selectedItem.stockStatus" name="stockStatus">
+            <mat-select [(ngModel)]="editItem.stockStatus" name="stockStatus">
               <mat-option value="IN_STOCK">In Stock (Available)</mat-option>
               <mat-option value="RUNNING_LOW">Running Low</mat-option>
               <mat-option value="OUT_OF_STOCK">Out of Stock (Hidden/Disabled)</mat-option>
@@ -434,6 +480,7 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
     .status-toggle-wrap mat-slide-toggle { transform: scale(0.9); }
 
     .actions-cell { text-align: right; }
+    ::ng-deep .delete-action .delete-text { color: var(--error, #dc2626); }
 
     .empty-state-wrapper { padding: 48px 24px; }
 
@@ -460,6 +507,7 @@ export class MenuPageComponent implements AfterViewInit {
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild('addDialog') addDialogTemplate!: any;
   @ViewChild('editDialog') editDialogTemplate!: any;
   @ViewChild('stockDialog') stockDialogTemplate!: any;
 
@@ -473,7 +521,8 @@ export class MenuPageComponent implements AfterViewInit {
   stockFilter: string = 'ALL';
   availabilityFilter: string = 'ALL';
 
-  selectedItem: any = {};
+  editItem: any = {};
+  editingItemId: number | null = null;
   savingItem = false;
   dialogRef: any = null;
 
@@ -540,8 +589,18 @@ export class MenuPageComponent implements AfterViewInit {
     this.applyFilters();
   }
 
+  openAddDialog(): void {
+    this.editingItemId = null;
+    this.editItem = { name: '', description: '', basePrice: null, foodType: 'VEG' };
+    this.dialogRef = this.dialog.open(this.addDialogTemplate, {
+      width: '500px',
+      autoFocus: false
+    });
+  }
+
   openEditDialog(item: BusinessMenuItem): void {
-    this.selectedItem = { ...item };
+    this.editingItemId = item.menuItemId;
+    this.editItem = { ...item };
     this.dialogRef = this.dialog.open(this.editDialogTemplate, {
       width: '500px',
       autoFocus: false
@@ -549,7 +608,7 @@ export class MenuPageComponent implements AfterViewInit {
   }
 
   openStockDialog(item: BusinessMenuItem): void {
-    this.selectedItem = { ...item };
+    this.editItem = { ...item };
     this.dialogRef = this.dialog.open(this.stockDialogTemplate, {
       width: '400px',
       autoFocus: false
@@ -563,17 +622,39 @@ export class MenuPageComponent implements AfterViewInit {
     }
   }
 
+  createItem(): void {
+    this.savingItem = true;
+    const payload = {
+      name: this.editItem.name,
+      description: this.editItem.description || '',
+      basePrice: this.editItem.basePrice,
+      foodType: this.editItem.foodType || 'VEG'
+    };
+    this.api.createMenuItem(payload).subscribe({
+      next: () => {
+        this.snackBar.open('Menu item created successfully', 'Close', { duration: 3000 });
+        this.loadMenu();
+        this.closeDialog();
+        this.savingItem = false;
+      },
+      error: (err) => {
+        this.snackBar.open(err?.error?.error ?? err?.error?.message ?? 'Failed to create menu item', 'Close', { duration: 4000 });
+        this.savingItem = false;
+      }
+    });
+  }
+
   saveItem(): void {
     this.savingItem = true;
     const payload = {
-      name: this.selectedItem.name,
-      description: this.selectedItem.description,
-      basePrice: this.selectedItem.basePrice,
-      foodType: this.selectedItem.foodType,
-      stockStatus: this.selectedItem.stockStatus,
-      available: this.selectedItem.available
+      name: this.editItem.name,
+      description: this.editItem.description,
+      basePrice: this.editItem.basePrice,
+      foodType: this.editItem.foodType,
+      stockStatus: this.editItem.stockStatus,
+      available: this.editItem.available
     };
-    this.api.updateMenuItem(this.selectedItem.menuItemId, payload).subscribe({
+    this.api.updateMenuItem(this.editingItemId!, payload).subscribe({
       next: () => {
         this.snackBar.open('Menu item updated successfully', 'Close', { duration: 3000 });
         this.loadMenu();
@@ -583,6 +664,20 @@ export class MenuPageComponent implements AfterViewInit {
       error: (err) => {
         this.snackBar.open(err?.error?.error ?? err?.error?.message ?? 'Failed to update menu item', 'Close', { duration: 4000 });
         this.savingItem = false;
+      }
+    });
+  }
+
+  deleteItem(item: BusinessMenuItem): void {
+    const confirmed = confirm(`Delete "${item.name}"? This action cannot be undone.`);
+    if (!confirmed) return;
+    this.api.deleteMenuItem(item.menuItemId).subscribe({
+      next: () => {
+        this.snackBar.open('Menu item deleted', 'Close', { duration: 3000 });
+        this.loadMenu();
+      },
+      error: (err) => {
+        this.snackBar.open(err?.error?.error ?? err?.error?.message ?? 'Failed to delete menu item', 'Close', { duration: 4000 });
       }
     });
   }

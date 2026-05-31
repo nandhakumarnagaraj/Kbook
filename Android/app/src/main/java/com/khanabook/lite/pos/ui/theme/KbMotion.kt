@@ -157,22 +157,37 @@ fun Modifier.kbPressScale(
 /**
  * Shimmer loading skeleton placeholder.
  * Shows an animated pulsing background while content is loading.
+ *
+ * Light mode: warm pair #F0EAE4 / #E8E0D8 — visible on #FAF7F4 page and white cards.
+ * Dark mode:  surfaceVariant pulse — adapts to dark bg.
+ *
  * Usage: Box(Modifier.kbShimmer(isLoading = true))
  */
 fun Modifier.kbShimmer(isLoading: Boolean): Modifier = composed {
     if (!isLoading) return@composed this
+    val isDark = globalIsDark
     val transition = rememberInfiniteTransition(label = "kbShimmer")
     val alpha by transition.animateFloat(
-        initialValue = 0.3f, targetValue = 0.8f,
+        initialValue = 0.4f, targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
             animation = tween(800, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ), label = "kbShimmerAlpha"
     )
-    this.background(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha),
-        shape = RoundedCornerShape(8.dp)
-    )
+    if (isDark) {
+        this.background(
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha),
+            shape = RoundedCornerShape(8.dp)
+        )
+    } else {
+        // Light: interpolate between two warm off-white tones
+        val shimmerColor = androidx.compose.ui.graphics.lerp(
+            androidx.compose.ui.graphics.Color(0xFFF0EAE4),
+            androidx.compose.ui.graphics.Color(0xFFE8E0D8),
+            alpha
+        )
+        this.background(color = shimmerColor, shape = RoundedCornerShape(8.dp))
+    }
 }
 
 /**

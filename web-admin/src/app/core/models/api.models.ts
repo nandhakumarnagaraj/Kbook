@@ -282,3 +282,348 @@ export interface EasebuzzSubMerchantRequest {
   dcDeductionGtTwoThousand?: number;
 }
 
+
+// ── Pagination wrapper ────────────────────────────────────────────────────────
+export interface PagedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;   // current page (0-indexed)
+  size: number;
+  first: boolean;
+  last: boolean;
+}
+
+// ── Admin Transaction ─────────────────────────────────────────────────────────
+export type TransactionStatus = 'success' | 'pending' | 'failed' | 'refunded' | 'cancelled';
+
+export interface AdminTransaction {
+  id: number;
+  restaurantId: number;
+  restaurantName: string | null;
+  shopName: string | null;
+  txnId: string;
+  easebuzzTxnId: string | null;
+  amount: number;
+  status: TransactionStatus;
+  paymentMode: string;
+  gatewayTxnId: string | null;
+  refundAmount: number | null;
+  refundStatus: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// ── Admin Settlement ──────────────────────────────────────────────────────────
+export type SettlementStatus = 'pending' | 'processed' | 'failed' | 'on_hold';
+
+export interface AdminSettlement {
+  id: number;
+  restaurantId: number;
+  shopName: string | null;
+  subMerchantId: string | null;
+  amount: number;
+  settlementDate: string;
+  status: SettlementStatus;
+  utr: string | null;
+  bankAccount: string | null;
+  createdAt: number;
+}
+
+// ── Admin Commission ──────────────────────────────────────────────────────────
+export interface AdminCommission {
+  id: number;
+  restaurantId: number;
+  shopName: string | null;
+  commissionRate: number;
+  totalCollected: number;
+  pendingAmount: number;
+  updatedAt: number;
+}
+
+export interface CommissionReport {
+  restaurantId: number;
+  shopName: string | null;
+  totalTransactions: number;
+  totalAmount: number;
+  commissionRate: number;
+  commissionEarned: number;
+  period: string;
+}
+
+// ── Payment Dashboard ─────────────────────────────────────────────────────────
+export interface PaymentDashboard {
+  totalVolume: number;
+  totalTransactions: number;
+  successRate: number;
+  pendingSettlements: number;
+  totalCommissionEarned: number;
+  activeSubMerchants: number;
+  kycPendingCount: number;
+  recentTransactions: AdminTransaction[];
+}
+
+// ── Payment Metrics (Phase 1.1) ──────────────────────────────────────────────
+export interface PaymentMetricsOverview {
+  totalTransactions: number;
+  successfulTransactions: number;
+  failedTransactions: number;
+  overallSuccessRate: number;
+  todayTotal: number;
+  todaySuccess: number;
+  todayFailed: number;
+  todaySuccessRate: number;
+  lastHourTotal: number;
+  lastHourSuccess: number;
+  lastHourSuccessRate: number;
+  todayRevenue: number;
+  todayOrders: number;
+  byPaymentMethod: PaymentMethodMetric[];
+}
+
+export interface PaymentMethodMetric {
+  method: string;
+  total: number;
+  successful: number;
+  successRate: number;
+}
+
+export interface PaymentTrend {
+  timestamp: number;
+  total: number;
+  successful: number;
+  failed: number;
+  successRate: number;
+}
+
+export interface FailedTransaction {
+  id: number;
+  restaurantId: number;
+  shopName: string | null;
+  txnId: string;
+  easebuzzId: string | null;
+  amount: number | null;
+  status: string;
+  receivedAt: number;
+}
+
+export interface PaymentAnomaly {
+  type: string;
+  severity: string;
+  message: string;
+  restaurantId?: number;
+  shopName?: string;
+  yesterdayRate?: number;
+  todayRate?: number;
+  drop?: number;
+  totalTransactions?: number;
+  successRate?: number;
+}
+
+// ── Split Retrieve ────────────────────────────────────────────────────────────
+export interface SplitConfiguration {
+  label: string;
+  amount: number;
+  percentage: number | null;
+  status: string;
+}
+
+export interface SplitRetrieveResponse {
+  status: string;
+  merchant_request_id: string;
+  split_configuration: SplitConfiguration[];
+}
+
+// ── Payout ────────────────────────────────────────────────────────────────────
+export interface BeneficiaryDetails {
+  name: string;
+  accountNumber: string;
+  ifsc: string;
+  bankName: string;
+}
+
+export interface PayoutResponse {
+  status: string;
+  payoutId: string | null;
+  message: string;
+  amount: string;
+}
+
+// ── WIRE Platform ─────────────────────────────────────────────────────────────
+export interface WireWebhookConfig {
+  subMerchantId: string;
+  merchantEmail?: string;
+  eventType: string;
+  url: string;
+  intervalUnit: string;
+  intervalValue: number;
+  maxAttempts: number;
+}
+
+export interface WirePayoutWebhookConfig {
+  subMerchantId: string;
+  eventType: string;
+  url: string;
+  intervalUnit: string;
+  intervalValue: number;
+  maxAttempts: number;
+}
+
+export interface WireLookupResult {
+  subMerchantId: string | null;
+  businessName: string | null;
+  status: string | null;
+  kycStatus: string | null;
+  email: string | null;
+}
+
+export interface KycProfileUrlResponse {
+  status: string;
+  kyc_url: string | null;
+  sub_merchant_id: string;
+}
+
+// ── Refund Automation ────────────────────────────────────────────────────────
+export interface RefundReason {
+  code: string;
+  label: string;
+}
+
+export interface RefundSummary {
+  totalOrders: number;
+  refundedOrders: number;
+  totalRefundAmount: number;
+  totalRevenue: number;
+  refundRate: number;
+}
+
+// ── Webhook Health ───────────────────────────────────────────────────────────
+export interface WebhookHealth {
+  byStatus: Record<string, number>;
+  pendingRetries: number;
+  deadLetterCount: number;
+  totalJobs: number;
+}
+
+export interface DeadLetterJob {
+  id: number;
+  webhookType: string;
+  attemptCount: number;
+  lastError: string | null;
+  createdAt: number;
+}
+
+// ── Onboarding Progress ──────────────────────────────────────────────────────
+export interface OnboardingStep {
+  key: string;
+  label: string;
+  status: string;
+}
+
+export interface OnboardingProgress {
+  restaurantId: number;
+  shopName: string | null;
+  steps: OnboardingStep[];
+  totalSteps: number;
+  completedSteps: number;
+  isLive: boolean;
+  totalOrders: number;
+  totalRevenue: number;
+}
+
+// ── Instant Settlement ───────────────────────────────────────────────────────
+export interface SettlementEstimate {
+  restaurantId: number;
+  totalSettled: number;
+  fee: number;
+  netPayout: number;
+  feeRate: number;
+  minimumAmount: number;
+  eligible: boolean;
+}
+
+// ── Tax Compliance ───────────────────────────────────────────────────────────
+export interface TaxSummary {
+  restaurantId: number;
+  gstin: string | null;
+  taxRate: number;
+  monthRevenue: number;
+  monthTax: number;
+  yearRevenue: number;
+  yearTax: number;
+}
+
+export interface GstReport {
+  restaurantId: number;
+  shopName: string | null;
+  gstin: string | null;
+  period: string;
+  totalOrders: number;
+  taxableAmount: number;
+  totalCgst: number;
+  totalSgst: number;
+  totalTax: number;
+  totalRevenue: number;
+}
+
+// ── Chargeback ───────────────────────────────────────────────────────────────
+export interface ChargebackSummary {
+  restaurantId: number;
+  totalChargebacks: number;
+  unresolvedAmount: number;
+  byStatus: Record<string, number>;
+}
+
+export interface FraudScore {
+  score: number;
+  risk: string;
+  factors: string[];
+}
+
+// ── Financing ────────────────────────────────────────────────────────────────
+export interface CreditEligibility {
+  restaurantId: number;
+  threeMonthRevenue: number;
+  monthlyAverage: number;
+  estimatedCreditLimit: number;
+  dailyInterestRate: number;
+  totalTransactions: number;
+  eligible: boolean;
+}
+
+export interface LoanOption {
+  days: number;
+  requestedAmount: number;
+  interest: number;
+  totalRepayment: number;
+  dailyRate: number;
+}
+
+// ── Unified Commerce ─────────────────────────────────────────────────────────
+export interface UnifiedDashboard {
+  restaurantId: number;
+  today: { pos: number; swiggy: number; zomato: number; total: number };
+  todayRevenue: { pos: number; marketplace: number; total: number };
+  allTime: { pos: number; marketplace: number; total: number };
+  channelBreakdown: { channel: string; todayOrders: number; totalOrders: number }[];
+}
+
+// ── Customer Data Platform ───────────────────────────────────────────────────
+export interface CustomerInsights {
+  restaurantId: number;
+  totalCustomers: number;
+  repeatCustomers: number;
+  retentionRate: number;
+  averageLtv: number;
+  segments: Record<string, number>;
+  topCustomers: { displayName: string; totalOrders: number; totalSpend: number; segment: string; lastOrderAt: number }[];
+}
+
+// ── Developer Portal ─────────────────────────────────────────────────────────
+export interface ApiDocs {
+  version: string;
+  baseUrl: string;
+  endpoints: { group: string; endpoints: { method: string; path: string; description: string; auth: string }[] }[];
+  authentication: string;
+  rateLimits: Record<string, string>;
+}

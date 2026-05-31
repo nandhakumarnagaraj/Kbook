@@ -5,6 +5,8 @@ import com.khanabook.saas.repository.MarketplaceOrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class MarketplaceOrderService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "orderCounts", key = "#restaurantId")
     public Map<String, Long> getOrderCounts(Long restaurantId) {
         return Map.of(
             "pending", orderRepo.countByRestaurantIdAndOrderStatus(restaurantId, "pending"),
@@ -41,6 +44,7 @@ public class MarketplaceOrderService {
     }
 
     @Transactional
+    @CacheEvict(value = "orderCounts", key = "#restaurantId")
     public MarketplaceOrder acceptOrder(Long orderId, Long restaurantId) {
         MarketplaceOrder order = getOrder(orderId, restaurantId);
         if (!"pending".equals(order.getOrderStatus())) {
@@ -56,6 +60,7 @@ public class MarketplaceOrderService {
     }
 
     @Transactional
+    @CacheEvict(value = "orderCounts", key = "#restaurantId")
     public MarketplaceOrder rejectOrder(Long orderId, Long restaurantId, String reason) {
         MarketplaceOrder order = getOrder(orderId, restaurantId);
         if (!"pending".equals(order.getOrderStatus())) {
@@ -72,6 +77,7 @@ public class MarketplaceOrderService {
     }
 
     @Transactional
+    @CacheEvict(value = "orderCounts", key = "#restaurantId")
     public MarketplaceOrder markReady(Long orderId, Long restaurantId) {
         MarketplaceOrder order = getOrder(orderId, restaurantId);
         if (!"accepted".equals(order.getOrderStatus()) && !"preparing".equals(order.getOrderStatus())) {
@@ -87,6 +93,7 @@ public class MarketplaceOrderService {
     }
 
     @Transactional
+    @CacheEvict(value = "orderCounts", key = "#restaurantId")
     public MarketplaceOrder completeOrder(Long orderId, Long restaurantId) {
         MarketplaceOrder order = getOrder(orderId, restaurantId);
         long now = System.currentTimeMillis();

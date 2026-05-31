@@ -51,6 +51,78 @@ public class BusinessAdminController {
         return ResponseEntity.ok(businessReadService.getMenu(requireTenant()));
     }
 
+    @PostMapping("/menu")
+    @Transactional
+    public ResponseEntity<BusinessMenuListItemResponse> createMenuItem(
+            @RequestBody java.util.Map<String, Object> payload) {
+        Long tenantId = requireTenant();
+
+        String name = (String) payload.get("name");
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Item name is required");
+        }
+
+        MenuItem item = new MenuItem();
+        item.setRestaurantId(tenantId);
+
+        Long maxLocalId = menuItemRepository.findByRestaurantIdAndIsDeletedFalse(tenantId)
+                .stream()
+                .mapToLong(MenuItem::getLocalId)
+                .max()
+                .orElse(0L);
+        item.setLocalId(maxLocalId + 1);
+        item.setDeviceId("WEB_ADMIN");
+
+        item.setName(name);
+        Object priceObj = payload.get("basePrice");
+        if (priceObj instanceof Number) {
+            item.setBasePrice(new java.math.BigDecimal(priceObj.toString()));
+        } else if (priceObj instanceof String) {
+            item.setBasePrice(new java.math.BigDecimal((String) priceObj));
+        } else {
+            throw new IllegalArgumentException("Base price is required");
+        }
+
+        if (payload.containsKey("description")) {
+            item.setDescription((String) payload.get("description"));
+        }
+        if (payload.containsKey("foodType")) {
+            item.setFoodType((String) payload.get("foodType"));
+        }
+        if (payload.containsKey("categoryId") && payload.get("categoryId") != null) {
+            Object catId = payload.get("categoryId");
+            if (catId instanceof Number) {
+                item.setCategoryId(((Number) catId).longValue());
+                item.setServerCategoryId(((Number) catId).longValue());
+            }
+        } else {
+            item.setCategoryId(0L);
+        }
+
+        item.setIsAvailable(true);
+        item.setCurrentStock(java.math.BigDecimal.ZERO);
+        long now = System.currentTimeMillis();
+        item.setCreatedAt(now);
+        item.setUpdatedAt(now);
+        item.setServerUpdatedAt(now);
+        MenuItem saved = menuItemRepository.save(item);
+        return ResponseEntity.ok(toMenuListItem(saved));
+    }
+
+    @DeleteMapping("/menu/{itemId}")
+    @Transactional
+    public ResponseEntity<Void> deleteMenuItem(@PathVariable Long itemId) {
+        Long tenantId = requireTenant();
+        MenuItem item = menuItemRepository.findById(itemId)
+                .filter(existing -> java.util.Objects.equals(existing.getRestaurantId(), tenantId))
+                .orElseThrow(() -> new IllegalArgumentException("Menu item not found"));
+        item.setIsDeleted(true);
+        item.setUpdatedAt(System.currentTimeMillis());
+        item.setServerUpdatedAt(System.currentTimeMillis());
+        menuItemRepository.save(item);
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/menu/{itemId}")
     @Transactional
     public ResponseEntity<Void> updateMenuItem(
@@ -232,6 +304,22 @@ public class BusinessAdminController {
                 p.getShowBranding(),
                 p.getMaskCustomerPhone(),
                 p.getEasebuzzEnabled()
+        );
+    }
+
+    private static BusinessMenuListItemResponse toMenuListItem(MenuItem item) {
+        String categoryName = item.getCategory() != null ? item.getCategory().getName() : "General";
+        return new BusinessMenuListItemResponse(
+                item.getId(),
+                categoryName,
+                item.getName(),
+                item.getDescription(),
+                item.getFoodType(),
+                item.getBasePrice(),
+                item.getIsAvailable(),
+                item.getStockStatus().name(),
+                0,
+                item.getUpdatedAt()
         );
     }
 

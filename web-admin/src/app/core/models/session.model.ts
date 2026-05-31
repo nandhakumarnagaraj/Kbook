@@ -1,5 +1,7 @@
 export interface AuthSession {
   token: string;
+  refreshToken: string;
+  expiresIn: number;
   restaurantId: number | null;
   userName: string;
   loginId: string;

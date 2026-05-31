@@ -267,11 +267,11 @@ fun SearchScreen(
                         Icon(
                             Icons.Default.Search,
                             contentDescription = null,
-                            tint = DarkBrown1,
+                            tint = Color.White,
                             modifier = Modifier.size(iconSize.small)
                         )
                         Spacer(modifier = Modifier.width(spacing.small))
-                        Text("Search Order", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                        Text("Search Order", color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                     }
                 } else {
                     OutlinedTextField(
@@ -313,11 +313,11 @@ fun SearchScreen(
                         Icon(
                             Icons.Default.Search,
                             contentDescription = null,
-                            tint = DarkBrown1,
+                            tint = Color.White,
                             modifier = Modifier.size(iconSize.small)
                         )
                         Spacer(modifier = Modifier.width(spacing.small))
-                        Text("Search Order", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                        Text("Search Order", color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                     } // closes Button
               } // closes else
               } // closes header Column
@@ -463,7 +463,7 @@ fun SearchScreen(
                                     Column(modifier = Modifier.weight(1.3f)) {
                                         Text("Payment Mode", color = TextGold, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp))
                                         Surface(
-                                            color = DarkBrown1.copy(alpha = 0.5f),
+                                            color = DarkBrown2,
                                             shape = RoundedCornerShape(6.dp),
                                             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
                                         ) {
@@ -518,9 +518,9 @@ fun SearchScreen(
                                         colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Icon(Icons.Default.Receipt, null, tint = DarkBrown1, modifier = Modifier.size(iconSize.small))
+                                        Icon(Icons.Default.Receipt, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                                         Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                        Text("Print Receipt", color = DarkBrown1, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                                        Text("Print Receipt", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                     }
 
                                     val canRefund = (currentResult.bill.orderStatus.equals("completed", ignoreCase = true) ||

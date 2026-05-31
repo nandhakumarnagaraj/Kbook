@@ -3,6 +3,7 @@ import { Component, DestroyRef, OnInit, inject, signal, ViewChild, AfterViewInit
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
+import { AdminTransaction } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -17,15 +18,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-interface Transaction {
-  txnId: string;
-  restaurantId: number;
-  restaurantName: string;
-  amount: number;
-  status: string;
-  paymentMode: string;
-  createdAt: number;
-}
+// Use the shared AdminTransaction type — no local duplicate needed
+type Transaction = AdminTransaction;
 
 @Component({
   selector: 'app-transaction-monitor-page',

@@ -1,119 +1,248 @@
 import { Routes } from '@angular/router';
-import { LoginPageComponent } from './pages/login/login-page.component';
-import { ForgotPasswordPageComponent } from './pages/forgot-password/forgot-password-page.component';
 import { SidebarLayoutComponent } from './layout/sidebar-layout/sidebar-layout.component';
-import { PlatformDashboardPageComponent } from './pages/platform-dashboard/platform-dashboard-page.component';
-import { BusinessesPageComponent } from './pages/businesses/businesses-page.component';
-import { SubMerchantsPageComponent } from './pages/sub-merchants/sub-merchants-page.component';
-import { PaymentDashboardPageComponent } from './pages/payment-dashboard/payment-dashboard-page.component';
-import { CommissionReportPageComponent } from './pages/commission-report/commission-report-page.component';
-import { TransactionMonitorPageComponent } from './pages/transaction-monitor/transaction-monitor-page.component';
-import { SettlementReportsPageComponent } from './pages/settlement-reports/settlement-reports-page.component';
-import { CommissionConfigPageComponent } from './pages/commission-config/commission-config-page.component';
-import { BusinessDashboardPageComponent } from './pages/business-dashboard/business-dashboard-page.component';
-import { OrdersPageComponent } from './pages/orders/orders-page.component';
-import { MenuPageComponent } from './pages/menu/menu-page.component';
-import { StaffPageComponent } from './pages/staff/staff-page.component';
-import { LimitedAccessPageComponent } from './pages/limited-access/limited-access-page.component';
-import { MarketplaceSetupPageComponent } from './pages/marketplace-setup/marketplace-setup-page.component';
-import { RestaurantSettingsPageComponent } from './pages/restaurant-settings/restaurant-settings-page.component';
 import { authGuard, roleGuard } from './core/auth/role.guard';
 
+// All page components are lazy-loaded to keep the initial bundle small.
+// Only the shell (SidebarLayoutComponent) and auth pages are eagerly loaded
+// since they are needed immediately on first paint.
+
 export const routes: Routes = [
-  { path: 'login', component: LoginPageComponent },
-  { path: 'forgot-password', component: ForgotPasswordPageComponent },
-  { path: 'limited-access', canActivate: [authGuard], component: LimitedAccessPageComponent },
+  {
+    path: 'login',
+    loadComponent: () =>
+      import('./pages/login/login-page.component')
+        .then(m => m.LoginPageComponent)
+  },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./pages/forgot-password/forgot-password-page.component')
+        .then(m => m.ForgotPasswordPageComponent)
+  },
+  {
+    path: 'limited-access',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/limited-access/limited-access-page.component')
+        .then(m => m.LimitedAccessPageComponent)
+  },
   {
     path: '',
     component: SidebarLayoutComponent,
     canActivate: [authGuard],
     children: [
+
+      // ── Platform Admin routes ──────────────────────────────────
       {
         path: 'admin/dashboard',
-        component: PlatformDashboardPageComponent,
+        loadComponent: () =>
+          import('./pages/platform-dashboard/platform-dashboard-page.component')
+            .then(m => m.PlatformDashboardPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['KBOOK_ADMIN'], animation: 'adminDashboard' }
       },
       {
         path: 'admin/businesses',
-        component: BusinessesPageComponent,
+        loadComponent: () =>
+          import('./pages/businesses/businesses-page.component')
+            .then(m => m.BusinessesPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['KBOOK_ADMIN'], animation: 'adminBusinesses' }
       },
       {
         path: 'admin/sub-merchants',
-        component: SubMerchantsPageComponent,
+        loadComponent: () =>
+          import('./pages/sub-merchants/sub-merchants-page.component')
+            .then(m => m.SubMerchantsPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['KBOOK_ADMIN'], animation: 'adminSubMerchants' }
       },
       {
         path: 'admin/payment-dashboard',
-        component: PaymentDashboardPageComponent,
+        loadComponent: () =>
+          import('./pages/payment-dashboard/payment-dashboard-page.component')
+            .then(m => m.PaymentDashboardPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['KBOOK_ADMIN'], animation: 'adminPaymentDashboard' }
       },
       {
         path: 'admin/commission-report',
-        component: CommissionReportPageComponent,
+        loadComponent: () =>
+          import('./pages/commission-report/commission-report-page.component')
+            .then(m => m.CommissionReportPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['KBOOK_ADMIN'], animation: 'adminCommissionReport' }
       },
       {
         path: 'admin/transactions',
-        component: TransactionMonitorPageComponent,
+        loadComponent: () =>
+          import('./pages/transaction-monitor/transaction-monitor-page.component')
+            .then(m => m.TransactionMonitorPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['KBOOK_ADMIN'], animation: 'adminTransactions' }
       },
       {
         path: 'admin/settlements',
-        component: SettlementReportsPageComponent,
+        loadComponent: () =>
+          import('./pages/settlement-reports/settlement-reports-page.component')
+            .then(m => m.SettlementReportsPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['KBOOK_ADMIN'], animation: 'adminSettlements' }
       },
       {
         path: 'admin/commission',
-        component: CommissionConfigPageComponent,
+        loadComponent: () =>
+          import('./pages/commission-config/commission-config-page.component')
+            .then(m => m.CommissionConfigPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['KBOOK_ADMIN'], animation: 'adminCommission' }
       },
+
+      {
+        path: 'admin/webhook-health',
+        loadComponent: () =>
+          import('./pages/webhook-health/webhook-health-page.component')
+            .then(m => m.WebhookHealthPageComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'], animation: 'adminWebhookHealth' }
+      },
+      {
+        path: 'admin/payment-routing',
+        loadComponent: () =>
+          import('./pages/payment-routing/payment-routing-page.component')
+            .then(m => m.PaymentRoutingPageComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'], animation: 'adminPaymentRouting' }
+      },
+      {
+        path: 'admin/developer-portal',
+        loadComponent: () =>
+          import('./pages/developer-portal/developer-portal-page.component')
+            .then(m => m.DeveloperPortalPageComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'], animation: 'adminDeveloperPortal' }
+      },
+
+      // ── Restaurant Owner routes ────────────────────────────────
       {
         path: 'business/dashboard',
-        component: BusinessDashboardPageComponent,
+        loadComponent: () =>
+          import('./pages/business-dashboard/business-dashboard-page.component')
+            .then(m => m.BusinessDashboardPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['OWNER'], animation: 'businessDashboard' }
       },
       {
         path: 'business/orders',
-        component: OrdersPageComponent,
+        loadComponent: () =>
+          import('./pages/orders/orders-page.component')
+            .then(m => m.OrdersPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['OWNER'], animation: 'businessOrders' }
       },
       {
         path: 'business/marketplace-setup',
-        component: MarketplaceSetupPageComponent,
+        loadComponent: () =>
+          import('./pages/marketplace-setup/marketplace-setup-page.component')
+            .then(m => m.MarketplaceSetupPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['OWNER'], animation: 'businessMarketplace' }
       },
       {
         path: 'business/menu',
-        component: MenuPageComponent,
+        loadComponent: () =>
+          import('./pages/menu/menu-page.component')
+            .then(m => m.MenuPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['OWNER'], animation: 'businessMenu' }
       },
       {
         path: 'business/staff',
-        component: StaffPageComponent,
+        loadComponent: () =>
+          import('./pages/staff/staff-page.component')
+            .then(m => m.StaffPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['OWNER'], animation: 'businessStaff' }
       },
       {
         path: 'business/settings',
-        component: RestaurantSettingsPageComponent,
+        loadComponent: () =>
+          import('./pages/restaurant-settings/restaurant-settings-page.component')
+            .then(m => m.RestaurantSettingsPageComponent),
         canActivate: [roleGuard],
         data: { roles: ['OWNER'], animation: 'businessSettings' }
       },
+
+      {
+        path: 'business/refunds',
+        loadComponent: () =>
+          import('./pages/refund-automation/refund-automation-page.component')
+            .then(m => m.RefundAutomationPageComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'], animation: 'businessRefunds' }
+      },
+      {
+        path: 'business/onboarding',
+        loadComponent: () =>
+          import('./pages/onboarding-tracker/onboarding-tracker-page.component')
+            .then(m => m.OnboardingTrackerPageComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'], animation: 'businessOnboarding' }
+      },
+      {
+        path: 'business/settlements',
+        loadComponent: () =>
+          import('./pages/instant-settlements/instant-settlements-page.component')
+            .then(m => m.InstantSettlementsPageComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'], animation: 'businessSettlements' }
+      },
+      {
+        path: 'business/tax',
+        loadComponent: () =>
+          import('./pages/tax-compliance/tax-compliance-page.component')
+            .then(m => m.TaxCompliancePageComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'], animation: 'businessTax' }
+      },
+      {
+        path: 'business/chargebacks',
+        loadComponent: () =>
+          import('./pages/chargebacks/chargebacks-page.component')
+            .then(m => m.ChargebacksPageComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'], animation: 'businessChargebacks' }
+      },
+      {
+        path: 'business/financing',
+        loadComponent: () =>
+          import('./pages/financing/financing-page.component')
+            .then(m => m.FinancingPageComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'], animation: 'businessFinancing' }
+      },
+      {
+        path: 'business/commerce',
+        loadComponent: () =>
+          import('./pages/unified-commerce/unified-commerce-page.component')
+            .then(m => m.UnifiedCommercePageComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'], animation: 'businessCommerce' }
+      },
+      {
+        path: 'business/customers',
+        loadComponent: () =>
+          import('./pages/customer-cdp/customer-cdp-page.component')
+            .then(m => m.CustomerCdpPageComponent),
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'], animation: 'businessCustomers' }
+      },
+
+      // Default redirect
       { path: '', pathMatch: 'full', redirectTo: 'business/dashboard' }
     ]
   },
+
+  // Catch-all
   { path: '**', redirectTo: 'login' }
 ];

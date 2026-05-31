@@ -232,20 +232,43 @@ fun HomeScreen(
                                 )
                             )
                             Spacer(modifier = Modifier.height(spacing.small))
-                            FlowRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                                verticalArrangement = Arrangement.spacedBy(spacing.small),
-                                maxItemsInEachRow = 3
-                            ) {
-                                val statMod = Modifier.weight(1f)
-                                SummaryStatItem("Orders", stats.orderCount.toString(), textPrimaryColor, textMutedColor, statMod)
-                                SummaryStatItem("Revenue", CurrencyUtils.formatPriceCompact(stats.revenue), textPrimaryColor, textMutedColor, statMod)
-                                SummaryStatItem("Customers", stats.customerCount.toString(), textPrimaryColor, textMutedColor, statMod)
-                                if (stats.orderCount > 0 || stats.kdsPendingCount > 0) {
-                                    SummaryStatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), textPrimaryColor, textMutedColor, statMod)
-                                    SummaryStatItem("Cancelled", stats.cancelledCount.toString(), textPrimaryColor, textMutedColor, statMod)
-                                    SummaryStatItem("KDS Pending", stats.kdsPendingCount.toString(), textPrimaryColor, textMutedColor, statMod)
+                            if (stats.orderCount == 0) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Spacer(Modifier.height(spacing.medium))
+                                    Icon(
+                                        Icons.Default.RestaurantMenu,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.kbTextTertiary,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                    Spacer(Modifier.height(spacing.small))
+                                    Text(
+                                        "No orders yet today — ready when you are",
+                                        color = MaterialTheme.kbTextTertiary,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(Modifier.height(spacing.medium))
+                                }
+                            } else {
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                                    verticalArrangement = Arrangement.spacedBy(spacing.small),
+                                    maxItemsInEachRow = 3
+                                ) {
+                                    val statMod = Modifier.weight(1f)
+                                    SummaryStatItem("Orders", stats.orderCount.toString(), textPrimaryColor, textMutedColor, statMod)
+                                    SummaryStatItem("Revenue", CurrencyUtils.formatPriceCompact(stats.revenue), textPrimaryColor, textMutedColor, statMod)
+                                    SummaryStatItem("Customers", stats.customerCount.toString(), textPrimaryColor, textMutedColor, statMod)
+                                    if (stats.orderCount > 0 || stats.kdsPendingCount > 0) {
+                                        SummaryStatItem("Avg Order", CurrencyUtils.formatPriceCompact(stats.avgOrderValue), textPrimaryColor, textMutedColor, statMod)
+                                        SummaryStatItem("Cancelled", stats.cancelledCount.toString(), textPrimaryColor, textMutedColor, statMod)
+                                        SummaryStatItem("KDS Pending", stats.kdsPendingCount.toString(), textPrimaryColor, textMutedColor, statMod)
+                                    }
                                 }
                             }
                         }

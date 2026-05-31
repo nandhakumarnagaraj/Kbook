@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background-color:#ffffff;">
+        <tr>
+            <td style="background-color:#C85A00;padding:24px;text-align:center;">
+                <h1 style="color:#ffffff;margin:0;font-size:24px;">KhanaBook</h1>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:32px;">
+                <h2 style="color:#333;margin:0 0 16px;">Welcome to KhanaBook!</h2>
+                <p style="color:#666;line-height:1.6;">Hi <strong th:text="${ownerName}">Owner</strong>,</p>
+                <p style="color:#666;line-height:1.6;">Welcome aboard! Your business <strong th:text="${shopName}">Shop</strong> is now set up on KhanaBook.</p>
+                <div style="background-color:#f0f7ff;border-left:4px solid #C85A00;padding:16px;margin:24px 0;">
+                    <h3 style="color:#333;margin:0 0 8px;">Getting Started</h3>
+                    <ul style="color:#666;margin:0;padding-left:20px;">
+                        <li>Complete your business profile</li>
+                        <li>Set up your menu items</li>
+                        <li>Configure payment settings</li>
+                        <li>Start accepting orders!</li>
+                    </ul>
+                </div>
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+                    <tr>
+                        <td style="text-align:center;">
+                            <a th:href="${loginUrl}" style="display:inline-block;background-color:#C85A00;color:#ffffff;padding:12px 32px;text-decoration:none;border-radius:8px;font-weight:bold;">Go to Dashboard</a>
+                        </td>
+                    </tr>
+                </table>
+                <p style="color:#666;line-height:1.6;">Need help? Check out our <a th:href="${docsUrl}" style="color:#C85A00;">documentation</a> or contact our support team.</p>
+                <p style="color:#999;font-size:12px;margin-top:32px;">Questions? Contact us at <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}">support@khanabook.com</a></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="background-color:#f4f4f4;padding:16px;text-align:center;">
+                <p style="color:#999;font-size:11px;margin:0;">© 2026 KhanaBook. All rights reserved.</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

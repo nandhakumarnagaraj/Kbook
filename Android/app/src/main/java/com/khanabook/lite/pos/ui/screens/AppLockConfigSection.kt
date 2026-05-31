@@ -586,7 +586,7 @@ fun ChangePasswordView(
                 enabled = !isLoading
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(iconSize.small), strokeWidth = 2.dp, color = DarkBrown1)
+                    CircularProgressIndicator(modifier = Modifier.size(iconSize.small), strokeWidth = 2.dp, color = Color.White)
                 } else {
                     Text(
                         when (step) { 1 -> "Send OTP"; 2 -> "Next"; else -> "Set Password" },

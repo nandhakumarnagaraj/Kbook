@@ -74,6 +74,7 @@ import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.Brown500
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
+import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.DarkBrownSheet
 import com.khanabook.lite.pos.ui.theme.DangerRed
 import com.khanabook.lite.pos.ui.theme.Green800
@@ -442,7 +443,7 @@ private fun PrinterTargetCard(
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron, disabledContainerColor = KbBrandSaffron.copy(alpha = 0.35f))
                     ) {
-                        Text("Test Printer", color = DarkBrown1)
+                        Text("Test Printer", color = Color.White)
                     }
                 }
             }
@@ -463,7 +464,7 @@ fun DeviceRow(
     @Suppress("MissingPermission")
     val name = device.name ?: "Unknown"
     val border = if (isSelected) BorderStroke(2.dp, MaterialTheme.kbPrimary) else null
-    val backgroundColor = if (isSelected) DarkBrown1 else DarkBrown1.copy(alpha = 0.5f)
+    val backgroundColor = if (isSelected) DarkBrown1 else DarkBrown2
 
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),

@@ -1316,7 +1316,7 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
     const amount = prompt('Enter amount to settle:');
     if (!amount) return;
     this.api.onDemandSettlement(amount).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (res) => this.snackBar.open(`Initiated: ${res.msg}`, 'OK'),
+      next: (res) => this.snackBar.open(`Initiated: ${res.message}`, 'OK'),
       error: (err) => this.snackBar.open(err?.error?.error || 'Failed', 'OK')
     });
   }
@@ -1325,12 +1325,13 @@ export class SubMerchantsPageComponent implements OnInit, AfterViewInit {
     const amount = prompt('Enter amount for payout:');
     if (!amount) return;
     const beneficiary = {
-      beneficiary_name: 'Manual Payout',
-      beneficiary_account_number: '1234567890',
-      beneficiary_ifsc: 'HDFC0000123'
+      name: 'Manual Payout',
+      accountNumber: '1234567890',
+      ifsc: 'HDFC0000123',
+      bankName: 'HDFC Bank'
     };
     this.api.initiatePayout(amount, beneficiary).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (res) => this.snackBar.open(`Initiated: ${res.msg}`, 'OK'),
+      next: (res) => this.snackBar.open(`Initiated: ${res.message}`, 'OK'),
       error: (err) => this.snackBar.open(err?.error?.error || 'Failed', 'OK')
     });
   }

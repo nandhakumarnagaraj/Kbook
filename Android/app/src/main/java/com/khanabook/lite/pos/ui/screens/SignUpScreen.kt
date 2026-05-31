@@ -299,7 +299,7 @@ fun SignUpScreen(
                                     ) {
                                         Text(
                                                 "Send OTP",
-                                                color = DarkBrown1,
+                                                color = Color.White,
                                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                                         )
                                     }
@@ -507,7 +507,7 @@ fun SignUpScreen(
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isFormValid) KbBrandSaffron else TextMuted,
-                            contentColor = DarkBrown1
+                            contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(28.dp),
                         enabled = isFormValid
@@ -515,7 +515,7 @@ fun SignUpScreen(
                     if (isLoading && signUpStatus is AuthViewModel.SignUpResult.Loading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(iconSize.medium),
-                            color = DarkBrown1,
+                            color = Color.White,
                             strokeWidth = 3.dp
                         )
                     } else {
@@ -556,8 +556,8 @@ fun SignUpScreen(
 @Composable
 private fun outlinedTextFieldColors() =
         OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = DarkBrown1,
-                focusedContainerColor = DarkBrown2,
+                unfocusedContainerColor = DarkBrown2,
+                focusedContainerColor = DarkBrown2.copy(alpha = 0.7f),
                 unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
                 focusedBorderColor = MaterialTheme.kbPrimary,
                 cursorColor = MaterialTheme.kbPrimary,

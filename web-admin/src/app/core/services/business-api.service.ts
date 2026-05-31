@@ -54,6 +54,14 @@ export class BusinessApiService {
     return this.http.put<void>(`${API_BASE_URL}/business/menu/${itemId}/availability`, { available });
   }
 
+  createMenuItem(payload: any) {
+    return this.http.post<BusinessMenuItem>(`${API_BASE_URL}/business/menu`, payload);
+  }
+
+  deleteMenuItem(itemId: number) {
+    return this.http.delete<void>(`${API_BASE_URL}/business/menu/${itemId}`);
+  }
+
   getStaff() {
     return this.http.get<BusinessStaffItem[]>(`${API_BASE_URL}/business/staff`);
   }

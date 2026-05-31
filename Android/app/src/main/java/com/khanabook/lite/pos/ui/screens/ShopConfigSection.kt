@@ -339,7 +339,7 @@ fun ShopConfigView(
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
                             enabled = isPhoneValid && !isUserChecking && userExistsError == null
                         ) {
-                            Text("Send OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium)
+                            Text("Send OTP", color = Color.White, style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }

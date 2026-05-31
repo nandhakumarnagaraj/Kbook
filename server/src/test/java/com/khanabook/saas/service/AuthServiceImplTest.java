@@ -4,6 +4,8 @@ import com.khanabook.saas.controller.AuthController.*;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.entity.RefreshToken;
+import com.khanabook.saas.repository.RefreshTokenRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.service.PasswordResetOtpService;
@@ -29,6 +31,7 @@ class AuthServiceImplTest {
 
     @Mock private UserRepository userRepository;
     @Mock private RestaurantProfileRepository restaurantProfileRepository;
+    @Mock private RefreshTokenRepository refreshTokenRepository;
     @Mock private JwtUtility jwtUtility;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private PasswordResetOtpService passwordResetOtpService;
@@ -38,6 +41,7 @@ class AuthServiceImplTest {
 
     @BeforeEach
     void setup() {
+        ReflectionTestUtils.setField(authService, "accessTokenExpMs", 3600000L);
     }
 
     @Test
@@ -47,6 +51,7 @@ class AuthServiceImplTest {
         when(userRepository.findByLoginIdIgnoreCase("9876543210")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("pass123", "hashed")).thenReturn(true);
         when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("jwt-token");
+        when(refreshTokenRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         AuthResponse resp = authService.login(loginRequest("9876543210", "pass123"));
 
@@ -61,6 +66,8 @@ class AuthServiceImplTest {
         when(userRepository.findByWhatsappNumber("9876543210")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("pass123")).thenReturn("bcrypt-hash");
         when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("signup-token");
+        when(userRepository.saveAndFlush(any())).thenAnswer(i -> i.getArgument(0));
+        when(refreshTokenRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         doNothing().when(passwordResetOtpService).validateSignupOtpOrThrow("9876543210", "123456");
 
         SignupRequest req = new SignupRequest("9876543210", "Nandha", "pass123", "123456", "DEVICE_A");
@@ -74,7 +81,7 @@ class AuthServiceImplTest {
         assertThat(profileCaptor.getValue().getShopName()).contains("Nandha");
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
+        verify(userRepository).saveAndFlush(userCaptor.capture());
         User savedUser = userCaptor.getValue();
         assertThat(savedUser.getPasswordHash()).isEqualTo("bcrypt-hash");
         assertThat(savedUser.getIsActive()).isTrue();
@@ -87,6 +94,8 @@ class AuthServiceImplTest {
         when(userRepository.findByWhatsappNumber(anyString())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("hash");
         when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("t");
+        when(userRepository.saveAndFlush(any())).thenAnswer(i -> i.getArgument(0));
+        when(refreshTokenRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         doNothing().when(passwordResetOtpService).validateSignupOtpOrThrow(anyString(), eq("123456"));
 
         AuthResponse r1 = authService.signup(new SignupRequest("1111111111", "A", "p", "123456", "D1"));

@@ -323,8 +323,8 @@ fun CustomerInfoStep(
 
     LaunchedEffect(Unit) { billingViewModel?.loadRecentCustomers() }
 
-    val isWhatsappValid = whatsapp.isNotEmpty() && ValidationUtils.isValidPhone(whatsapp)
-    val isNextEnabled = isWhatsappValid
+    val isWhatsappValid = whatsapp.isEmpty() || ValidationUtils.isValidPhone(whatsapp)
+    val isNextEnabled = true
 
     Column(
             modifier =
@@ -397,7 +397,6 @@ fun CustomerInfoStep(
             Spacer(modifier = Modifier.height(spacing.medium))
         }
 
-        val showPhoneError = whatsapp.isNotEmpty() && !ValidationUtils.isValidPhone(whatsapp)
         KhanaBookInputField(
             value = whatsapp,
             onValueChange = {
@@ -405,18 +404,25 @@ fun CustomerInfoStep(
                 whatsapp = filtered
                 billingViewModel?.setCustomerInfo(name, filtered)
             },
-            label = "Customer WhatsApp Number *",
+            label = "Customer WhatsApp (optional)",
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = { Icon(Icons.Default.Phone, null, tint = VegGreen) },
-            isError = showPhoneError,
-            supportingText = {
-                if (showPhoneError) Text("Enter 10-digit number", color = DangerRed)
-            },
+            isError = false,
             keyboardOptions =
                 androidx.compose.foundation.text.KeyboardOptions(
                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
                 )
         )
+        TextButton(
+            onClick = { onNext("", "") },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                "Skip — Walk-in Customer",
+                color = MaterialTheme.kbTextSecondary,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
         Spacer(modifier = Modifier.height(spacing.medium))
         KhanaBookInputField(
             value = name,

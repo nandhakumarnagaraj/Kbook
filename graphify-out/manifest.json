@@ -1,0 +1,3272 @@
+{
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\create_test_user.ps1": {
+    "mtime": 1779195343.5507638,
+    "ast_hash": "93d0a67b2413a01813a16d096fe9a922",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\deploy-production.sh": {
+    "mtime": 1777885367.8283098,
+    "ast_hash": "1ba8eb89a407c36abc644b649eee2e96",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\deploy.sh": {
+    "mtime": 1776603123.8370886,
+    "ast_hash": "c12475502018b206e2fa41bbf0fdd120",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\KhanaBook-Easebuzz-API.postman_collection.json": {
+    "mtime": 1779195343.5497599,
+    "ast_hash": "a60e9b37b577c9f3687113581d59a743",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\skills-lock.json": {
+    "mtime": 1779819668.0666735,
+    "ast_hash": "e275a0a25cb6fc7756fc11cdd7902343",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\start-server-background.sh": {
+    "mtime": 1779390334.3352187,
+    "ast_hash": "ab5dd56f2202fc866eb4528476481578",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\sync.sh": {
+    "mtime": 1774460620.6364312,
+    "ast_hash": "9aed20656e38a7ed525c88e407934217",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\cleanup-deprecated.mjs": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "51208407b06e051bb6d8ceab244db39c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\command-metadata.json": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "b25ed9a4d6c24c83d5af46ec69b99a97",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\critique-storage.mjs": {
+    "mtime": 1779819666.8730245,
+    "ast_hash": "69825b7f6236350030e72dd7dd3212b7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\design-parser.mjs": {
+    "mtime": 1779819666.8730245,
+    "ast_hash": "df65268bfe73ad8202ca309c2da3805c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\detect-csp.mjs": {
+    "mtime": 1779819666.8730245,
+    "ast_hash": "0d3243060e66ba0d0a64684f9684ecc7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\detect.mjs": {
+    "mtime": 1779819666.8730245,
+    "ast_hash": "db2157bcff7ab1b222d68cf96cb8643c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\impeccable-paths.mjs": {
+    "mtime": 1779819666.8730245,
+    "ast_hash": "0e34c40e77c7a30eeabb1bac897f58a2",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\is-generated.mjs": {
+    "mtime": 1779819666.8730245,
+    "ast_hash": "81ada1894b5f562b0993fdff1756d82c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live-accept.mjs": {
+    "mtime": 1779819666.8761904,
+    "ast_hash": "feee297789fa52b5901e21bb354e8a4f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live-browser-session.js": {
+    "mtime": 1779819666.8761904,
+    "ast_hash": "e54c01fe1a8287f757161759beaab916",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live-browser.js": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "09d5959c4f68346ac3e032a1e16f8924",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live-complete.mjs": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "0ed6226feb3d80adf38f2098b6d7efd4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live-completion.mjs": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "c51f1de5c7aae5aa3f2c67f5d9875d3e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live-inject.mjs": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "01365c3718e920dbeee5eeb9159093fa",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live-poll.mjs": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "7b78710647b202a90d99852bdb7a5135",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live-resume.mjs": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "9187fc4ae434c0573b7c84c95b05f744",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live-server.mjs": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "2754268fc4579377e0d40d6a2e34679a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live-session-store.mjs": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "b0c628113419432d164204b18587d681",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live-status.mjs": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "f7f787396f44ef06c890f97c45d0ba75",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live-wrap.mjs": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "9612f1254ce763221690053592892110",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\live.mjs": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "073965c7d10925f8ad9651a336220ee8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\load-context.mjs": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "f96317a92230153a77069e4f81bd8e11",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\modern-screenshot.umd.js": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "c6afaf6ebceb162206f6a2e5b0ed653c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\scripts\\pin.mjs": {
+    "mtime": 1779819666.8772936,
+    "ast_hash": "59e1f8315c2083fb7997e5ff3edfcb57",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.vscode\\settings.json": {
+    "mtime": 1779884042.1936133,
+    "ast_hash": "685b4b288880cd7a24fff07493076fcf",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\build.gradle.kts": {
+    "mtime": 1773748083.5272524,
+    "ast_hash": "f756bb397a785185e98367e305b39c82",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\gradlew": {
+    "mtime": 1774445973.2414982,
+    "ast_hash": "4f7a8a3a765f6f751d47568dc3bb913f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\settings.gradle.kts": {
+    "mtime": 1773221967.0998611,
+    "ast_hash": "ccbc29a17b9695ec613a02cfbdc2a9eb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\.vscode\\settings.json": {
+    "mtime": 1773221967.577128,
+    "ast_hash": "aad9f443819fc42a1ce5f3729b858b68",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\build.gradle.kts": {
+    "mtime": 1779478007.2747383,
+    "ast_hash": "fdd4476841400aae80a6e3690ae1dd1a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\google-services.json": {
+    "mtime": 1779195343.4902062,
+    "ast_hash": "4cb9a4f561a6ae317db411a4f82f18b0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\18.json": {
+    "mtime": 1773345151.9606614,
+    "ast_hash": "98e8819655ffdfca2b47043c0c43cea4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\19.json": {
+    "mtime": 1773347014.8061888,
+    "ast_hash": "63b10886c7254c3822710ba9605078fd",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\20.json": {
+    "mtime": 1773404017.8129938,
+    "ast_hash": "5115df8a87dbed5dadd590ee0282a52a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\21.json": {
+    "mtime": 1773738662.264835,
+    "ast_hash": "f6923a44035d8fad40e56734d78380e7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\22.json": {
+    "mtime": 1774076763.326743,
+    "ast_hash": "0bc512a5bb9713603496f91c0eb51d8b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\23.json": {
+    "mtime": 1774082166.2812374,
+    "ast_hash": "b3651af3480eefe52cf4fe047f98a55b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\24.json": {
+    "mtime": 1774339832.574011,
+    "ast_hash": "b88ba5be01ffc1926a30934520e0184e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\25.json": {
+    "mtime": 1774357524.1964896,
+    "ast_hash": "222954d8acabc4ffc54cc0af11a5f264",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\26.json": {
+    "mtime": 1774370589.18897,
+    "ast_hash": "749bef698c454e85197987a07421e94d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\27.json": {
+    "mtime": 1774553288.9748406,
+    "ast_hash": "604c3c62d53155240ff60bb42d641f30",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\28.json": {
+    "mtime": 1774706867.7847927,
+    "ast_hash": "da82410ef4795b2109eab9cb91b6fe05",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\29.json": {
+    "mtime": 1774808098.209797,
+    "ast_hash": "c075aa8b768b6d9215e09a30212ba232",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\30.json": {
+    "mtime": 1774951195.5167434,
+    "ast_hash": "e5061150f614a75ff053feca10c78da3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\31.json": {
+    "mtime": 1774951195.5167434,
+    "ast_hash": "999f8f8101895ad15cbb375bab92881d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\32.json": {
+    "mtime": 1775455707.9758546,
+    "ast_hash": "618868488242dd610e72738b113247e5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\33.json": {
+    "mtime": 1775455707.9758546,
+    "ast_hash": "b3802a682f04c0a7376db1f9ce7b312c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\34.json": {
+    "mtime": 1775455707.9758546,
+    "ast_hash": "6844d6676dbfe6ca71b23da6b9c3ec13",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\35.json": {
+    "mtime": 1775904039.2785914,
+    "ast_hash": "bccac220f156304feb06edf361ef97cf",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\36.json": {
+    "mtime": 1776068255.4210498,
+    "ast_hash": "9ea3e17796e0aba2213dc79357dfcda4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\37.json": {
+    "mtime": 1776341384.874693,
+    "ast_hash": "21ef38d4fc50ab3055ec5fd2e418f98c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\38.json": {
+    "mtime": 1776603123.7691321,
+    "ast_hash": "8633e422dad9000587062a03bbe2446e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\39.json": {
+    "mtime": 1776603123.7788346,
+    "ast_hash": "f0109b33013f33f42cf8d2c40a71bd65",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\40.json": {
+    "mtime": 1777138848.0835834,
+    "ast_hash": "b06fb8bb842404ece5f3597c3c46faae",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\41.json": {
+    "mtime": 1777291323.0383081,
+    "ast_hash": "728171df215d526e657bf4a69cbb5ff9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\42.json": {
+    "mtime": 1777490508.156124,
+    "ast_hash": "a48dff8f86f20095d1e71ce55ad1eb70",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\schemas\\com.khanabook.lite.pos.data.local.AppDatabase\\43.json": {
+    "mtime": 1777566452.133327,
+    "ast_hash": "8cd74554648738f6e23731edac5ee0ae",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\BaseTest.kt": {
+    "mtime": 1778580762.5153365,
+    "ast_hash": "fff9bc6faf6a495c41d8a8d9691f6652",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\api\\MockApiServer.kt": {
+    "mtime": 1778580762.5153365,
+    "ast_hash": "c10aaf780b91506a603c19451a41cce7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\api\\ResponseFixtures.kt": {
+    "mtime": 1778580762.5153365,
+    "ast_hash": "39cfbae6c61e84be84a17eac908d1a10",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\flows\\MenuConfigUITest.kt": {
+    "mtime": 1778580762.5153365,
+    "ast_hash": "2d1be314307c82cf442e607f6589bb2b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\flows\\PartPaymentUITest.kt": {
+    "mtime": 1778580762.5153365,
+    "ast_hash": "cad732edfe2eca371870cdcc714bc5cd",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\robots\\BaseRobot.kt": {
+    "mtime": 1778580762.5153365,
+    "ast_hash": "e7449f0d0a7e210c081911df14e852b3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\robots\\HomeRobot.kt": {
+    "mtime": 1778580762.5219152,
+    "ast_hash": "892c9060b5a82b6ae04a01efd9e0f67f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\robots\\LoginRobot.kt": {
+    "mtime": 1778580762.5219152,
+    "ast_hash": "7b92294ac435f619a4aee3bf6f487068",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\robots\\NewBillRobot.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "73149d145d803c85f46bafeeceed6530",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\robots\\OrdersRobot.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "462e3f457e7d9b7ce62304e4642a6449",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\robots\\ReportsRobot.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "6170bb288b3a5de3da651fbdd17aa193",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\robots\\SettingsRobot.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "8954a3f9fc4374cba65d6aacd36592e5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\screens\\HomeScreenTest.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "64d3311ae5166729f75a3f4a1e63e127",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\screens\\LoginScreenTest.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "80d5c4ce2e7dbdb70105f8a518220425",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\screens\\MenuConfigurationScreenTest.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "d56dfe2bf55987b91845229a4ef64f8f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\screens\\MenuConfigurationTest.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "b5f56128b39ba6712316767b1ee1da49",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\screens\\NavigationFlowTest.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "b784b04cfb03acaf328bd4de6639190c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\screens\\NewBillScreenTest.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "3b0d7782239534b1a1d6ff71066d3e75",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\screens\\OfflineTest.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "f1a4b92d379c7305fbfb889b25dc34d0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\screens\\OrdersScreenTest.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "c32cd35b76953041a2983af8996b7a5b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\screens\\ReportsScreenTest.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "dc076be54d876799a81568adfc8c1eba",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\screens\\SecurityTest.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "35ee093dc7735467465b0167db6567ff",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\screens\\SettingsScreenTest.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "27c6575c76b07ef2202329c3b28dffcf",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\util\\HiltTestRunner.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "00348c1a611e2db772201038baf576b8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\androidTest\\java\\com\\khanabook\\lite\\pos\\test\\util\\TestData.kt": {
+    "mtime": 1778580762.5229197,
+    "ast_hash": "f427a27630177a75c94d67eacb48686e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\KhanaBookApplication.kt": {
+    "mtime": 1778844823.705465,
+    "ast_hash": "2a7b6e3f9194ee1ba5ef9b1dc15a952b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\AppDatabase.kt": {
+    "mtime": 1779712514.144113,
+    "ast_hash": "faeb8bbdc315f9dde2c6922adbc48a25",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\dao\\BillDao.kt": {
+    "mtime": 1779456696.5296395,
+    "ast_hash": "8579d1ae7fa00d825f0db25f5b87cdc8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\dao\\CategoryDao.kt": {
+    "mtime": 1778580762.5348716,
+    "ast_hash": "f719d81af0fdbfa46024da6143bcbed6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\dao\\InventoryDao.kt": {
+    "mtime": 1779456737.963331,
+    "ast_hash": "e1e91a6bf3b5da5a4d0cf9e658e3f3de",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\dao\\KitchenPrintQueueDao.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "da7ab324509b271d153dc677ab31788d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\dao\\MenuDao.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "b3bbc24e66debcf9e67ecd71a75918b3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\dao\\PrinterProfileDao.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "7e6c80a5866385dba3b2a1c0f0d60afa",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\dao\\RestaurantDao.kt": {
+    "mtime": 1779279048.0012536,
+    "ast_hash": "63ea8450c647afbc36e79a09d4db0f22",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\dao\\UserDao.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "6cce68740572f81699932d1bbe570215",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\entity\\BillEntity.kt": {
+    "mtime": 1779195343.4946887,
+    "ast_hash": "62d8f5f4b109ea333e854de3fa77f283",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\entity\\BillItemEntity.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "8e3e2ca4b4b8de1e0091fd93a31325c5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\entity\\BillPaymentEntity.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "25fa3cbab6530a2fa1061d03829e7eb7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\entity\\CategoryEntity.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "92e85c690b14767ca11ad615c52100aa",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\entity\\ItemVariantEntity.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "3643beb675a4d0cc309bac92b3942ed3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\entity\\KitchenPrintQueueEntity.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "ed65553cb1b923422a658b5ed758b2f8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\entity\\MenuItemEntity.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "0e77a2eaaf2d811dc9c8a2afc9c4fab5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\entity\\PrinterProfileEntity.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "10fc6cb613949c2a8caa989772999beb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\entity\\RestaurantProfileEntity.kt": {
+    "mtime": 1779712313.1656442,
+    "ast_hash": "7080a7e53a713a1024166c0d4fefe32e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\entity\\StockLogEntity.kt": {
+    "mtime": 1779477048.1833494,
+    "ast_hash": "5756095dfa77238453bf8898444d549c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\entity\\UserEntity.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "fe862d240bcab39351c1f1e8f35cd9d0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\relation\\BillWithItems.kt": {
+    "mtime": 1778580762.538788,
+    "ast_hash": "fee776b691f3050f447d281ef950c7a4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\local\\relation\\MenuWithVariants.kt": {
+    "mtime": 1778580762.5474792,
+    "ast_hash": "fa376182468b180d769ecdaf39b8ca17",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\ResetPasswordRequest.kt": {
+    "mtime": 1778580762.5479825,
+    "ast_hash": "7699bd34eb92c247a680c49642d638c3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\api\\AuthModels.kt": {
+    "mtime": 1778679226.504911,
+    "ast_hash": "a8631fab1067a88bf44be7bc497436b5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\api\\CounterResponse.kt": {
+    "mtime": 1778580762.5479825,
+    "ast_hash": "cd58fa937c865f93a88f7b56355aa44d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\api\\KhanaBookApi.kt": {
+    "mtime": 1779533257.0703373,
+    "ast_hash": "de2215620f89c79352898fd4b7ab1705",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\api\\MasterSyncResponse.kt": {
+    "mtime": 1779278118.013079,
+    "ast_hash": "87b44749e02263f6408eb0218d4987b1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\dto\\EasebuzzPaymentDtos.kt": {
+    "mtime": 1779449320.6568174,
+    "ast_hash": "3592ac73b64491f9c4c08907e9f1cfd3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\dto\\MarketplaceOrderDtos.kt": {
+    "mtime": 1779195343.50018,
+    "ast_hash": "646d17725960d6937b4e6c62b37b0f3b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\dto\\PushSyncResponse.kt": {
+    "mtime": 1778580762.5479825,
+    "ast_hash": "97d90abeb2ee9429e7f0edb47803fdff",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\dto\\StorefrontOrderDtos.kt": {
+    "mtime": 1778580762.5479825,
+    "ast_hash": "ea13b9f410ca9d72cc99c542ff318e5d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\dto\\SyncEntityMappers.kt": {
+    "mtime": 1779476999.66216,
+    "ast_hash": "c1722e72cb36c302dcde3df59eddd530",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\dto\\SyncRequestDtos.kt": {
+    "mtime": 1779456673.5984952,
+    "ast_hash": "cf4b98500add202c6f7e5d6af4d36c3a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\dto\\UpdateMobileOtpRequest.kt": {
+    "mtime": 1778580762.5479825,
+    "ast_hash": "1c53eb0ad6c201819be9c407235eb6b7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\dto\\UpdateMobileRequest.kt": {
+    "mtime": 1778580762.5479825,
+    "ast_hash": "0bd5e18f2dd3fe7cca2cd7c215088cdf",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\remote\\interceptor\\AuthInterceptor.kt": {
+    "mtime": 1778580762.5479825,
+    "ast_hash": "1b8db795a97b68703eb1069c5fb1280a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\repository\\BillRepository.kt": {
+    "mtime": 1779456703.868156,
+    "ast_hash": "7be55231bf9063d10a72216ee404d653",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\repository\\CategoryRepository.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "ec26ea2e4d9fdd855b64f4febb056119",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\repository\\EasebuzzPaymentRepository.kt": {
+    "mtime": 1779480090.8563619,
+    "ast_hash": "30741525e2739d5798a3ba22a7075d4a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\repository\\EasebuzzSdkPaymentRepository.kt": {
+    "mtime": 1779530431.9348826,
+    "ast_hash": "447b261c819708db90934764b959ce21",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\repository\\InventoryRepository.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "af0ed9aee35acca9bdd9e5006091dab8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\repository\\KitchenPrintQueueRepository.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "836fb9340668612f5811a08f3cba2a20",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\repository\\MarketplaceOrderRepository.kt": {
+    "mtime": 1779195343.5046983,
+    "ast_hash": "b3ea5034b2a35aa09a5fcd3db7e4c0e1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\repository\\MenuRepository.kt": {
+    "mtime": 1779535290.9846206,
+    "ast_hash": "fc6353e831d7541b92c0bfb6f6185584",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\repository\\PrinterProfileRepository.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "ce9e86caa0f5e54fee5872c31cae11ba",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\repository\\RestaurantRepository.kt": {
+    "mtime": 1779279056.4144077,
+    "ast_hash": "bcbc9f47fa0019dcc3bdee0ae2c87dcd",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\repository\\StorefrontOrderRepository.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "d991ff4247941a8dae2ab50716a29e9c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\data\\repository\\UserRepository.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "a6d896af610678aaab12b38a7dc3c1c9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\di\\DatabaseModule.kt": {
+    "mtime": 1779712522.0167258,
+    "ast_hash": "147e9d01b2020e1af19f0f6535f68662",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\di\\NetworkModule.kt": {
+    "mtime": 1779195343.5070078,
+    "ast_hash": "40349a689ceeca040fcee5486ea95058",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\di\\SessionManagerEntryPoint.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "30d8a8d9c82139a6950b4f7bd79f9edb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\AuthManager.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "972dc8d9166e4384e164094a3ac58deb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\BillCalculator.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "7a6ad2ae9cb4ddd24dab6ff366594720",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\BluetoothPrinterManager.kt": {
+    "mtime": 1779709354.8968225,
+    "ast_hash": "f52b07e16b8112b6c2c0de244f66f45f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\InventoryConsumptionManager.kt": {
+    "mtime": 1779456712.9134772,
+    "ast_hash": "23e404a46e3fe8452cca9b605b168e63",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\InvoicePDFGenerator.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "93a4f5080d233c47851e36e38e7ecc1c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\KitchenPrintQueueManager.kt": {
+    "mtime": 1779711212.7435026,
+    "ast_hash": "87ea88927ede8409f91aa81d2984c86d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\KitchenTicketFormatter.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "a314227c0b129dabc22032edd6d5e789",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\MasterSyncProcessor.kt": {
+    "mtime": 1779476930.854117,
+    "ast_hash": "617b82f28634a6ebbd1a537207e6728a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\OrderIdManager.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "7bc5ab53c98cadf18075edc5f986a8e1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\PaymentGatewayHelper.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "1e88e840521dc2b120a5b1ba1c007073",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\PaymentModeManager.kt": {
+    "mtime": 1779195343.5083563,
+    "ast_hash": "f8f03eed1673d3e37148e239e099236e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\PaymentReturnManager.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "97821bbd77150d69369a1e7aa0b7e8e1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\PrintRouter.kt": {
+    "mtime": 1779709367.1430569,
+    "ast_hash": "eb977fe612dbeb6479aa1910651cd012",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\QrCodeManager.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "33cc600d72208725c94c5fe412d99593",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\ReportExporter.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "623bff0a409e225fd1434672e3917466",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\ReportGenerator.kt": {
+    "mtime": 1778580762.5546584,
+    "ast_hash": "226091fec5f5f483c3c118538d06406e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\SearchManager.kt": {
+    "mtime": 1778580762.570671,
+    "ast_hash": "99072e90a1eda7a825296a28b2330e76",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\SessionManager.kt": {
+    "mtime": 1778757136.754075,
+    "ast_hash": "c060cc08561b1a63e6899525b9c9b190",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\SyncManager.kt": {
+    "mtime": 1779443326.6418936,
+    "ast_hash": "7b7115e3b1c3557a100b7fb7a578de20",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\TrustedExternalAppReturn.kt": {
+    "mtime": 1778580762.570671,
+    "ast_hash": "d289f44857131ee8cb8f5573520eafbb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\model\\Enums.kt": {
+    "mtime": 1779195343.5095284,
+    "ast_hash": "b2be42207ab9a7491bdbbccf600a47ea",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\model\\PrinterRole.kt": {
+    "mtime": 1778580762.570671,
+    "ast_hash": "8134014d613ee6086ca85f51e67a301c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\model\\ReportModels.kt": {
+    "mtime": 1778580762.570671,
+    "ast_hash": "852b1c56acf22e301f206b1af1a62418",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\model\\SyncModels.kt": {
+    "mtime": 1778580762.574839,
+    "ast_hash": "6f67c6497a9970c1279b1e68cc19df85",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\AppAssetStore.kt": {
+    "mtime": 1778580762.574839,
+    "ast_hash": "6b8ff7c0ea46096e91b31af9dede1085",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\BackendErrorParser.kt": {
+    "mtime": 1778580762.574839,
+    "ast_hash": "0ca2eb4b47791968c07d669333f33dc0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\GlobalCrashHandler.kt": {
+    "mtime": 1778580762.574839,
+    "ast_hash": "39344069417e039494fed6000d006538",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\InvoiceFormatter.kt": {
+    "mtime": 1779710096.524405,
+    "ast_hash": "6f32a6dbf2375802d986b76366f38e9b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\KeystoreBackedPreferences.kt": {
+    "mtime": 1779191836.712811,
+    "ast_hash": "4b388395ff0248bfb39c54847cce24c0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\LegacyEncryptedPrefsMigration.kt": {
+    "mtime": 1778580762.574839,
+    "ast_hash": "a6d572eeff7d310b4488cdcf417bea2e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\MultipartUtils.kt": {
+    "mtime": 1778580762.574839,
+    "ast_hash": "38a4158f645ff03849413d1b6a561f3c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\NetworkMonitor.kt": {
+    "mtime": 1778580762.574839,
+    "ast_hash": "d90fa0a8fd407c91e652d448cc4adcf0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\OcrSpatialParser.kt": {
+    "mtime": 1778580762.574839,
+    "ast_hash": "4b0a3de410c24f75dad6873731f13e7a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\TextRecognitionHelper.kt": {
+    "mtime": 1778580762.574839,
+    "ast_hash": "775374e80b26fef241a5f0e3782443cc",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\UserMessageSanitizer.kt": {
+    "mtime": 1778776449.2801256,
+    "ast_hash": "c1294c2489ea04a7e1f86a12b97ce94f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\Utils.kt": {
+    "mtime": 1779709387.8574378,
+    "ast_hash": "faa16c641b3ff8d23eb274cac37b5b38",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\domain\\util\\ValidationUtils.kt": {
+    "mtime": 1779704940.382572,
+    "ast_hash": "3c72823643741a042fd6e2803123038d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\MainActivity.kt": {
+    "mtime": 1779886253.1525931,
+    "ast_hash": "3a8d79e1d85161f9a7d8612d6aa5d213",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\components\\CommonComponents.kt": {
+    "mtime": 1779887919.493726,
+    "ast_hash": "d8b30937a5f045dc0079248fca573360",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\KhanaBookCard.kt": {
+    "mtime": 1779883546.9707024,
+    "ast_hash": "9211ca3ed3665647078338ce75c69843",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\KhanaBookDialog.kt": {
+    "mtime": 1779891352.9184031,
+    "ast_hash": "6a589fe04deafa37c1d089c21e5ff412",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\KhanaBookInputField.kt": {
+    "mtime": 1779908387.876004,
+    "ast_hash": "b8e584937c6847698e2193596789b324",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\KhanaBookLargeDialog.kt": {
+    "mtime": 1779891352.9214664,
+    "ast_hash": "11ac4494d884f021fbee52b3b8b66047",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\KhanaBookLoadingOverlay.kt": {
+    "mtime": 1779891352.9351528,
+    "ast_hash": "0736f35455423a2959bb74fd3cdbea91",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\KhanaBookScreenScaffold.kt": {
+    "mtime": 1779891352.9245057,
+    "ast_hash": "ca8c58b2ceb48bafad4c744a037096aa",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\KhanaBookSelectionDialog.kt": {
+    "mtime": 1779890769.6011987,
+    "ast_hash": "7d5b8359765698abc34305f46c0fbfbc",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\KhanaBookSnackbar.kt": {
+    "mtime": 1779883641.845205,
+    "ast_hash": "a6013ab62be7ab79db687e3a62f8ac2f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\KhanaBookSwitch.kt": {
+    "mtime": 1779883661.2239616,
+    "ast_hash": "f42f00de920ac2bc30cbbb94b16a313f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\Shimmer.kt": {
+    "mtime": 1779886641.859852,
+    "ast_hash": "0e38544ccc88bdd197ead546e4f233a7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\StatItem.kt": {
+    "mtime": 1779891352.93211,
+    "ast_hash": "f4371d69df0bd36fe472d9c4c3a7a1fa",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\navigation\\NavigationItems.kt": {
+    "mtime": 1778580762.589237,
+    "ast_hash": "2845fd8e1d4767427d818526bb29d352",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\AppLockConfigSection.kt": {
+    "mtime": 1779908698.3581493,
+    "ast_hash": "10e0bda13f62d83f23993cc173873b28",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\AppLockScreen.kt": {
+    "mtime": 1779893265.664769,
+    "ast_hash": "6e916d5c5df6a1b4669f980348d5fc08",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\CallCustomerScreen.kt": {
+    "mtime": 1779893265.8982882,
+    "ast_hash": "d78170be518c6ea0a911da5e15dc0121",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\EasebuzzKycScreen.kt": {
+    "mtime": 1779893381.6294603,
+    "ast_hash": "66d6d24837a7eb506e2eb05dbc2b2da0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\EasebuzzPaymentScreen.kt": {
+    "mtime": 1779893381.7156656,
+    "ast_hash": "ede38067ba5e2c569bcacc2458200e46",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\HomeScreen.kt": {
+    "mtime": 1779909525.3336558,
+    "ast_hash": "134e87559a2c5431b1cec60136095c1a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\InitialSyncScreen.kt": {
+    "mtime": 1779893265.4049997,
+    "ast_hash": "4c758447a6a654991bee52986ad6b3fa",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\LoginScreen.kt": {
+    "mtime": 1779891424.3108313,
+    "ast_hash": "ecc60e1a31465c4947b38ed14bfda385",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\MainScreen.kt": {
+    "mtime": 1779909516.321944,
+    "ast_hash": "5a2279fc7df67b4cafb386aa64e9600f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\MarketplaceOrdersScreen.kt": {
+    "mtime": 1779891514.7882469,
+    "ast_hash": "b3ab18380ae7ced446c61ed5b92bd5e3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\MenuConfigurationScreen.kt": {
+    "mtime": 1779892083.1423845,
+    "ast_hash": "b511462d210e7f068be2586937c4c818",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\NewBillScreen.kt": {
+    "mtime": 1779892800.1952887,
+    "ast_hash": "29a0f2c28ba68de90ba96286a83c9020",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\OcrScannerScreen.kt": {
+    "mtime": 1779890769.6169822,
+    "ast_hash": "ce95774ac13efdfbebed69f30b1d5ebc",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\OrdersScreen.kt": {
+    "mtime": 1779892815.6694975,
+    "ast_hash": "6383ed301af8093136139ce078a58b91",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\PaymentConfigSection.kt": {
+    "mtime": 1779908688.7371764,
+    "ast_hash": "adbf838229fa3075897c21d7dbd46cad",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\PrinterConfigSection.kt": {
+    "mtime": 1779908692.4864874,
+    "ast_hash": "37940dbfc40caa192cf8c4ccf6ce8fba",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\ReportsScreen.kt": {
+    "mtime": 1779892310.5365787,
+    "ast_hash": "30fce95170ecc9f085192daa0f688cf1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\ReprintKdsScreen.kt": {
+    "mtime": 1779891752.1457202,
+    "ast_hash": "06ff72c8575c5c7c476e275fc116e4ce",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\SearchScreen.kt": {
+    "mtime": 1779891809.9602115,
+    "ast_hash": "165a12f59131f1d648388ceacf7b3d4f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\SettingsHomeSection.kt": {
+    "mtime": 1779907768.350069,
+    "ast_hash": "8b1b3d621dd94ee2c34e9b00d81a0592",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\SettingsScreen.kt": {
+    "mtime": 1779908929.9051728,
+    "ast_hash": "b92b74708a4cecd1bc2771fcdf1d9a73",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\SettingsSharedComponents.kt": {
+    "mtime": 1779907761.6933324,
+    "ast_hash": "d53dd84d2c0e161c6ef386b93ea0ecb7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\SettingsSupportSections.kt": {
+    "mtime": 1779907764.4722252,
+    "ast_hash": "d1d087d8a956f9f0f60ef9b6d703ecbe",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\ShopConfigSection.kt": {
+    "mtime": 1779908620.9004552,
+    "ast_hash": "f9a53bb8b83129884ab388b90177ee6e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\SignUpScreen.kt": {
+    "mtime": 1779892131.4666615,
+    "ast_hash": "cef6880ef58ac7d067b3ab542e4000aa",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\SplashScreen.kt": {
+    "mtime": 1779892482.0217113,
+    "ast_hash": "00886f98fbb377cf698b4c369bfacab9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\TaxConfigSection.kt": {
+    "mtime": 1779908694.8237078,
+    "ast_hash": "b33ce1c6e4c094be3c430290ad90476d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\theme\\AdaptiveUtils.kt": {
+    "mtime": 1779191855.0804756,
+    "ast_hash": "9e0394208466a0ba58b08c6565aba850",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\theme\\Color.kt": {
+    "mtime": 1779904301.3334403,
+    "ast_hash": "7c573c8c3ef3322bce19775f4eb9028d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\theme\\IconSize.kt": {
+    "mtime": 1778580762.6026413,
+    "ast_hash": "f2cbb54cbe82aeee5f7ecdea5a485bf8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\theme\\KbMotion.kt": {
+    "mtime": 1779863064.5214381,
+    "ast_hash": "fa2bef9a37bfdd15820674adfd8fb008",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\theme\\KbTokens.kt": {
+    "mtime": 1779866691.3264241,
+    "ast_hash": "b2f1ac2f73883026862b431169af5697",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\theme\\Responsive.kt": {
+    "mtime": 1778580762.6026413,
+    "ast_hash": "aa9968828c30bbcf2ac60bdf43e3cd2b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\theme\\Shape.kt": {
+    "mtime": 1779886234.559284,
+    "ast_hash": "e1dba4f0b88555e885ca2a959735d56f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\theme\\Spacing.kt": {
+    "mtime": 1778580762.6026413,
+    "ast_hash": "c120b2fbe885ca5991b752a6c69273b0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\theme\\Theme.kt": {
+    "mtime": 1779904312.8937576,
+    "ast_hash": "b20bb89c67ad50e62d7f9879ce5613bc",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\theme\\Type.kt": {
+    "mtime": 1779886446.3901234,
+    "ast_hash": "6feebe82610daa23f68bc2151e726882",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\AppLockViewModel.kt": {
+    "mtime": 1779191770.7025194,
+    "ast_hash": "d12d1c253ee0564b860cc9bea9ef2563",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\AuthViewModel.kt": {
+    "mtime": 1779438410.3787372,
+    "ast_hash": "e2442ca7078ddb06435e55551aec4bdf",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\BillingViewModel.kt": {
+    "mtime": 1779535690.9413614,
+    "ast_hash": "e5a88a42250afe7d8c0cbe930e2cf6e0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\HomeViewModel.kt": {
+    "mtime": 1779714433.664233,
+    "ast_hash": "7e66118b9192b212ea02548e830b34c1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\InitialSyncViewModel.kt": {
+    "mtime": 1778580762.6026413,
+    "ast_hash": "dabdd7c469f6c6daf190ffd961e64424",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\LogoutViewModel.kt": {
+    "mtime": 1778580762.6026413,
+    "ast_hash": "99a7e3be5844f817b34b6c46e0917ae6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\MenuViewModel.kt": {
+    "mtime": 1778580762.6026413,
+    "ast_hash": "2f0ae5b5dfa24fc2a11393a64c3e87bb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\ReportsViewModel.kt": {
+    "mtime": 1778580762.6026413,
+    "ast_hash": "f2e4f93aa39c2b29d61598a232d9fad4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\SearchViewModel.kt": {
+    "mtime": 1779480152.8498573,
+    "ast_hash": "fdb1641a3ee5ac9474adfa529cdde0a6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\SettingsViewModel.kt": {
+    "mtime": 1779709380.8652186,
+    "ast_hash": "c31e52de561dd791205208cf014e702e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\SplashViewModel.kt": {
+    "mtime": 1778580762.6026413,
+    "ast_hash": "58e18f59def9414b4e9ef7fe05e72c5c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\StorefrontOrdersViewModel.kt": {
+    "mtime": 1778580762.6026413,
+    "ast_hash": "aec1e38ae0cdb88ff9ecf1a14032225b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\UserManagementViewModel.kt": {
+    "mtime": 1778580762.6026413,
+    "ast_hash": "312f77d8d56ad6a022b895812bc99f5a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\worker\\MasterSyncWorker.kt": {
+    "mtime": 1779278056.9798622,
+    "ast_hash": "f457493203ebce62965275b65882cc5a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\raw\\anim_loading.json": {
+    "mtime": 1778580762.6513813,
+    "ast_hash": "7ba477554969827ae449d63d8d12b822",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\raw\\anim_scanning.json": {
+    "mtime": 1778580762.6513813,
+    "ast_hash": "ea205cfc4a841e0cfa7e460bb749b4b4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\raw\\anim_success.json": {
+    "mtime": 1778580762.6513813,
+    "ast_hash": "eec4814eb6015a9fcbf960b7efa71c9c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\raw\\anim_sync.json": {
+    "mtime": 1778580762.6513813,
+    "ast_hash": "72695490c9c14fd167da3c437b099a5c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\BillingLogicTest.kt": {
+    "mtime": 1778580762.6513813,
+    "ast_hash": "492c5317be5445608ddfaf9f6f81c235",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\BillRepositoryTest.kt": {
+    "mtime": 1778580762.6513813,
+    "ast_hash": "867f65a5c655cc2f8aaa2dcafb9bb3bf",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\ExampleUnitTest.kt": {
+    "mtime": 1778580762.6513813,
+    "ast_hash": "601b18441dd30e1c0909b2af1e0e53b7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\InventoryConsumptionTest.kt": {
+    "mtime": 1778580762.6513813,
+    "ast_hash": "a573a1a15d70a8b274cba4ffe92a72b0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\MenuLogicTest.kt": {
+    "mtime": 1778580762.6513813,
+    "ast_hash": "5277028b27bdf5136213ff8aed433068",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\OrderIdManagerTest.kt": {
+    "mtime": 1778580762.6513813,
+    "ast_hash": "f7427d069e7115e542979496421099f6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\PerformanceReproductionTest.kt": {
+    "mtime": 1778580762.6663945,
+    "ast_hash": "aaa550fb0b853185fec7b799e740540f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\RawMaterialLogicTest.kt": {
+    "mtime": 1778580762.6663945,
+    "ast_hash": "da71d1b71b9abe11cd2a628c5a5ba5dd",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\data\\remote\\dto\\SyncEntityMappersTest.kt": {
+    "mtime": 1778580762.6663945,
+    "ast_hash": "86841b6123ad96545723b8588587ae03",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\data\\remote\\interceptor\\AuthInterceptorTest.kt": {
+    "mtime": 1779709804.6567297,
+    "ast_hash": "60cabb141c26c3cc9d2eb99bc607d1a0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\BillCalculatorTest.kt": {
+    "mtime": 1778580762.6663945,
+    "ast_hash": "5a42bb678f3892b7e96296bb01e5a796",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\InvoiceFormatTest.kt": {
+    "mtime": 1778580762.6663945,
+    "ast_hash": "6a410528fece496b7661809a2dd9f63b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\KitchenPrintQueueManagerTest.kt": {
+    "mtime": 1779711218.500449,
+    "ast_hash": "5a8f95eef47b0cbce83eea4d3d7ce27d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\KitchenTicketFormatterTest.kt": {
+    "mtime": 1778580762.6663945,
+    "ast_hash": "2597b54ef72f38099fbf097f8e798a5a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\PrintRouterTest.kt": {
+    "mtime": 1779710489.1744852,
+    "ast_hash": "10a4607dd6c9bcdb049275a900fd656c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\SessionManagerTest.kt": {
+    "mtime": 1779710306.8509226,
+    "ast_hash": "142f4704a64ae88552b504fd14e1c01d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\domain\\manager\\SyncManagerTest.kt": {
+    "mtime": 1779711442.8506908,
+    "ast_hash": "3a892e202c4e2885102205c4caf0ceda",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\domain\\util\\CurrencyUtilsTest.kt": {
+    "mtime": 1778580762.6663945,
+    "ast_hash": "2f51f61979cd62c599946cecee46325f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\domain\\util\\InvoiceFormatterTest.kt": {
+    "mtime": 1779710100.1446378,
+    "ast_hash": "90c15fa1606bb9866df5c863ae191e34",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\domain\\util\\UserMessageSanitizerTest.kt": {
+    "mtime": 1778776719.3605204,
+    "ast_hash": "dfb15d1b54f8365e8b660373fba9905c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\domain\\util\\UtilsTest.kt": {
+    "mtime": 1778580762.6663945,
+    "ast_hash": "d75daecf8424b9b14b61517994063b66",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\AuthViewModelTest.kt": {
+    "mtime": 1778580762.6976845,
+    "ast_hash": "015bbdb11a1c02adbd6973b0884974f8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\HomeViewModelTest.kt": {
+    "mtime": 1779709646.7885096,
+    "ast_hash": "678d913becd4d4029bf2a2bc8bd03c77",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\test\\java\\com\\khanabook\\lite\\pos\\ui\\viewmodel\\MenuViewModelTest.kt": {
+    "mtime": 1778580762.7144625,
+    "ast_hash": "c02910a612c8ce8d8e66d9804b1e0538",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Include\\scripts\\groovy\\com\\katalon\\KatalonHelper.groovy": {
+    "mtime": 1779361456.643984,
+    "ast_hash": "f235803170904a54cf0fce76610087a5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Libs\\CustomKeywords.groovy": {
+    "mtime": 1773487979.8062248,
+    "ast_hash": "45ba0c342b2a57d39b6689599914f32c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Libs\\internal\\GlobalVariable.groovy": {
+    "mtime": 1777568227.1406922,
+    "ast_hash": "52bc7a3b0bc4dfcbe378ce7a933538b2",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Object Repository\\Application\\android.widget.TextView - App.rs": {
+    "mtime": 1773487957.247084,
+    "ast_hash": "5197b449d07747a4fc972326415d4532",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Object Repository\\Application\\android.widget.TextView - Graphics.rs": {
+    "mtime": 1773487957.255193,
+    "ast_hash": "b1faf5f6278cfef9d4cb037eda1f4679",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Object Repository\\Application\\App\\android.widget.TextView - Activity.rs": {
+    "mtime": 1773487957.2347035,
+    "ast_hash": "d8f39ac8143ec96595d344b563252741",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Object Repository\\Application\\App\\Activity\\android.widget.TextView - Custom Dialog.rs": {
+    "mtime": 1779361456.6490817,
+    "ast_hash": "5fe69d741797e8f845b48d94013b68f9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Object Repository\\Application\\App\\Activity\\Custom Dialog\\android.widget.TextView - Message.rs": {
+    "mtime": 1779361456.6480818,
+    "ast_hash": "cd004beb8e2af65352e91d32bf8e98b0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Object Repository\\Application\\Graphics\\android.widget.TextView - Xfermodes.rs": {
+    "mtime": 1773487957.2403576,
+    "ast_hash": "5366f05e01b09b80296cc78d76d6dd19",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Object Repository\\Web Browser\\btn_Login.rs": {
+    "mtime": 1773487957.2634373,
+    "ast_hash": "a9467bf78988dbec5d019921af4280e1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Object Repository\\Web Browser\\btn_MakeAppointment.rs": {
+    "mtime": 1773487957.2686222,
+    "ast_hash": "c809a437cdd2cec74b9f3f794e557d3f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Object Repository\\Web Browser\\txt_Username.rs": {
+    "mtime": 1773487957.2809553,
+    "ast_hash": "283d3d53c0aa2305b4bca987a520a179",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Reports\\Self-healing\\broken-test-objects-v2.json": {
+    "mtime": 1773487972.3813994,
+    "ast_hash": "fd70b42865cf5f118bab870c7d5a61dd",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Scripts\\Verify Correct Alarm Message\\Script1529986178839.groovy": {
+    "mtime": 1773487957.2989998,
+    "ast_hash": "e0db054782eb1cca415344aac6c7411f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Scripts\\Verify Last Items In List\\Script1529986164129.groovy": {
+    "mtime": 1773487957.3040006,
+    "ast_hash": "33bc78de1a4276301676a403c3d33c6e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Scripts\\Verify Login CURA System Successfully - Mobile Browsers\\Script1674800693527.groovy": {
+    "mtime": 1773487957.3092225,
+    "ast_hash": "86295f0950e19ba9e17762383dd238c4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Test Listeners\\TestListener.groovy": {
+    "mtime": 1773487957.3288336,
+    "ast_hash": "a6f419a58ce25bf3cc1e9f4cd4c33d5a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Test Suites\\Smoke Tests for API Demos App.groovy": {
+    "mtime": 1773487957.3349206,
+    "ast_hash": "d5acd02a90aa4773328b92f13662b23a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Test Suites\\Smoke Tests for API Demos App.ts": {
+    "mtime": 1773487957.3399203,
+    "ast_hash": "515b22ed803ba297c0073879b15cba04",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Test Suites\\Smoke Tests for Mobile Browsers.groovy": {
+    "mtime": 1773487957.3435142,
+    "ast_hash": "d5acd02a90aa4773328b92f13662b23a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Test Suites\\Smoke Tests for Mobile Browsers.ts": {
+    "mtime": 1773487957.3475776,
+    "ast_hash": "342f16bafd2f5644c808f5a3761bcd75",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Test Suites\\Smoke Tests for Mobile Testing.ts": {
+    "mtime": 1773487957.3505778,
+    "ast_hash": "404e4cdbdef8c2ef82b5bdac5529ca3f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\ops\\backup_postgres.sh": {
+    "mtime": 1777885367.8311884,
+    "ast_hash": "d6cace8ec3e5511f833a515d52d53ab3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\ops\\restore_postgres.sh": {
+    "mtime": 1777885367.8311884,
+    "ast_hash": "0bd81519d5765324b5acccd8efea5742",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\mvnw": {
+    "mtime": 1779195343.5558388,
+    "ast_hash": "a2a96102e44344e62ceb287667ebf497",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\reset_db.sql": {
+    "mtime": 1774808098.2542377,
+    "ast_hash": "a3506ed0328a904fa9a413c6de847fb1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\start-local.ps1": {
+    "mtime": 1778965475.762082,
+    "ast_hash": "8080f78aa2c554b4e1ca1502ea89c265",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\start_v2.sh": {
+    "mtime": 1777885367.8545372,
+    "ast_hash": "06a7fbde175938a2a8db98c8540b96af",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\absolute-verify.ps1": {
+    "mtime": 1779195343.5583239,
+    "ast_hash": "4e2f5e0c1df91a0ee4c7e25530b039b5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\cli-hands-on-test.ps1": {
+    "mtime": 1779195343.5593288,
+    "ast_hash": "27b8ee36920c961cbef2996de146455f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\debug-bill.ps1": {
+    "mtime": 1779195343.5605302,
+    "ast_hash": "914a81c7635a3e294dd1be17d2425ead",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\debug-payment.ps1": {
+    "mtime": 1779195343.561907,
+    "ast_hash": "4041405a42622738eb6acc067dbd0483",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\final-easebuzz-test.ps1": {
+    "mtime": 1779195343.561907,
+    "ast_hash": "aa2dffffbbb0b4ea3e8d3c80841a3453",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\final-verification.ps1": {
+    "mtime": 1779195343.5632577,
+    "ast_hash": "7f58ccb577af1d1f5c55ad17990e7232",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\hash-verify.ps1": {
+    "mtime": 1779195343.5646522,
+    "ast_hash": "2184b7628838f81a31a7b3f31712fc5a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\invoice_whatsapp_link.sql": {
+    "mtime": 1777652482.6386602,
+    "ast_hash": "f8e93993988013291015cbff3708b347",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\payment-test.ps1": {
+    "mtime": 1779195343.5646522,
+    "ast_hash": "c8b0da64b0a951524c8d8c663b79e451",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\raw-easebuzz-test.ps1": {
+    "mtime": 1779195343.5659554,
+    "ast_hash": "cbbbacbcef68a058dbddf68e9ddca974",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\reset_and_seed.sql": {
+    "mtime": 1779345855.696553,
+    "ast_hash": "e249772927a593af284cc283b1235612",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\sandbox-final-test.ps1": {
+    "mtime": 1779195343.567445,
+    "ast_hash": "5cb43de7373b25f710742d880b62939f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\sandbox-test-full.ps1": {
+    "mtime": 1779195343.568605,
+    "ast_hash": "7a5e143ff160890266e6310e44de33d1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\seed_owner.sh": {
+    "mtime": 1774951195.5624456,
+    "ast_hash": "74b8ad640a35690cf93174e15709e429",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\test-easebuzz-sandbox.sh": {
+    "mtime": 1779195343.568605,
+    "ast_hash": "e729c82ca004e34ab94a3d7664e36bf3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\scripts\\verify-record-16.ps1": {
+    "mtime": 1779195343.569975,
+    "ast_hash": "ba4a0956d627fe6e2d461a9c1483d0e1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\KhanaBookSaaSApplication.java": {
+    "mtime": 1779195343.5715008,
+    "ast_hash": "3092db831d081f1aa6274ca1b2417593",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\config\\AsyncConfig.java": {
+    "mtime": 1779362630.8943737,
+    "ast_hash": "7e8b9ef16af64329f13e777638e185c1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\config\\EasebuzzProperties.java": {
+    "mtime": 1779476864.5795362,
+    "ast_hash": "6aafca9d7ff3232d6b2c1429bdb6cbfa",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\config\\GoogleAuthConfig.java": {
+    "mtime": 1779195343.5742042,
+    "ast_hash": "a321a2fe5d88a73181c9b7e8a8f6db6c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\config\\JacksonConfig.java": {
+    "mtime": 1779195343.575219,
+    "ast_hash": "90eb12ec159fc83562434cda67a20871",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\config\\OpenApiConfig.java": {
+    "mtime": 1779195343.575219,
+    "ast_hash": "153bb46e7eaf9bce6e3cfe84b31e0b40",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\config\\WebMvcConfig.java": {
+    "mtime": 1779195343.5765493,
+    "ast_hash": "8df4111d8258b166bb6d8c24291e2026",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\AuthController.java": {
+    "mtime": 1779198451.4804828,
+    "ast_hash": "1b5a7b31854b1aee854b5fccb7aa42dc",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\BillController.java": {
+    "mtime": 1778580762.7418444,
+    "ast_hash": "ce0c7de414f92e5ddc5cb2e5b6daebd2",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\BillItemController.java": {
+    "mtime": 1778580762.7418444,
+    "ast_hash": "d184b31f3e7f4d1bd88ce30a4c931646",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\BillPaymentController.java": {
+    "mtime": 1778580762.7418444,
+    "ast_hash": "a2981e50e8bbabc69bc373c50a4ba0cd",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\CategoryController.java": {
+    "mtime": 1778580762.7418444,
+    "ast_hash": "6cdccdb83a29b9976a829d1f1a926729",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\GstFssaiController.java": {
+    "mtime": 1779195343.5774884,
+    "ast_hash": "5b4ea254ce7e7a9da5f96020ecb60310",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\InvoiceController.java": {
+    "mtime": 1779629304.3405557,
+    "ast_hash": "3738a5b98f5134b54e01d7926d5371b0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\ItemVariantController.java": {
+    "mtime": 1778580762.7418444,
+    "ast_hash": "4aed20593af75e531aa60f6dab546066",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\MarketplaceConfigController.java": {
+    "mtime": 1779704766.245226,
+    "ast_hash": "557a05cdfa4dbbee86c7e585c7d9b3cb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\MarketplaceOrderController.java": {
+    "mtime": 1779195343.5784907,
+    "ast_hash": "079695dbf48679eba2bd94de35ba6bfc",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\MarketplaceWebhookController.java": {
+    "mtime": 1779363709.8874333,
+    "ast_hash": "7cab856cd27000619da1c1f491129db0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\MasterSyncController.java": {
+    "mtime": 1779562225.458058,
+    "ast_hash": "5638989642392fe090ca2623c52ebe98",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\MenuExtractionController.java": {
+    "mtime": 1779363733.2351348,
+    "ast_hash": "a6f04fa2a53a9402996c81eba1a8f6bf",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\MenuItemController.java": {
+    "mtime": 1779787757.899481,
+    "ast_hash": "dcf1b314fa05fec15ae5d0f3cfe54919",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\PaymentController.java": {
+    "mtime": 1779530431.9406767,
+    "ast_hash": "d287a14e4fe2f424ef60eaed05ed529e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\RestaurantAssetController.java": {
+    "mtime": 1779371119.9257517,
+    "ast_hash": "03bc425741201f1c3a87c064aecef77d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\RestaurantProfileController.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "532b1d82a494751ea344a2d0d8a270f6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\StockLogController.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "8d916c5f83d544e764824ee350196e32",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\UpdateMobileOtpRequest.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "bf775d1b5b237344ab953dec6ff979e2",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\UpdateMobileRequest.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "d350ea0e82e47975f3c11e659bdbb14f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\controller\\UserController.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "fc4666ab53641b5a5436c175fd977ff5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\debug\\DebugNDJSONLogger.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "1e06f0a412ce4728dde15710635bc29c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\AuthProvider.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "f826cb06b2d3ddcc3c27c670c193fd81",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\Bill.java": {
+    "mtime": 1779195343.58225,
+    "ast_hash": "e09238dbb7e19e797fd719e104d8f891",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\BillItem.java": {
+    "mtime": 1779443570.0374012,
+    "ast_hash": "e4afdb224198ebd4e0e9571a40df95ca",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\BillPayment.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "cbc620720ebd79b1002c9e1403d9f8bd",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\Category.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "732d58829e973950a6fae3268d08c1a8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\EasebuzzPayout.java": {
+    "mtime": 1779195343.58225,
+    "ast_hash": "420e91dafb62f86b67c20e2e932a0064",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\EasebuzzSubMerchant.java": {
+    "mtime": 1779195343.5837092,
+    "ast_hash": "3434b4321004d9ee4632d57a7e014f8a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\EasebuzzSubMerchantWebhookEvent.java": {
+    "mtime": 1779195343.584974,
+    "ast_hash": "136add8b350adb6b37fa3c7c4d99d4d7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\EasebuzzWebhookEvent.java": {
+    "mtime": 1779195343.584974,
+    "ast_hash": "53c021a87e26d7ec2b07fa7a16c463d6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\ItemVariant.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "582e58449268368df51558e271d15a07",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\MarketplaceOrder.java": {
+    "mtime": 1779195343.584974,
+    "ast_hash": "5caf63c42a67e0f64792c3ba7f8964a6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\MarketplaceOrderItem.java": {
+    "mtime": 1779195343.5863638,
+    "ast_hash": "603a2e3c85ed1beb4f21acfc5b743753",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\MenuExtractionJob.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "83d487586ae7cd9b0366c95aefdeb924",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\MenuItem.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "7ad8c4a4aa84862eb828d5ae6a77c842",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\OtpRequest.java": {
+    "mtime": 1779195343.5863638,
+    "ast_hash": "0752030432cee993ebca71073f7cab9e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\RestaurantProfile.java": {
+    "mtime": 1779712102.770563,
+    "ast_hash": "752eef8c2d8abe0b1f2ef6acd39675ce",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\StockLog.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "4aa8892c5d6b62ba01c4e7e806f30dc1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\TokenBlocklist.java": {
+    "mtime": 1778865600.4422467,
+    "ast_hash": "a603161e97fd64d553912adab0faff2a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\User.java": {
+    "mtime": 1778965475.756205,
+    "ast_hash": "a196aa4e7ce655481efac3c5aeca2570",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\entity\\UserRole.java": {
+    "mtime": 1778580762.7454357,
+    "ast_hash": "20094dad2e7ff60626d61fc767eebe71",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\exception\\BusinessRuleException.java": {
+    "mtime": 1779363369.8568635,
+    "ast_hash": "e90f14546c5a93bf0296eaf00314c31c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\exception\\DuplicateMenuItemException.java": {
+    "mtime": 1779195343.5889373,
+    "ast_hash": "b20f596b2be98031ecaa3f3703c32034",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\exception\\EasebuzzApiException.java": {
+    "mtime": 1779363363.063505,
+    "ast_hash": "3c74108f042eaf1acc01e3db35819979",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\exception\\EntityNotFoundException.java": {
+    "mtime": 1779363355.4272244,
+    "ast_hash": "939bda96bc5b4d38eecb39ba81fa9ad3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\exception\\GlobalExceptionHandler.java": {
+    "mtime": 1779363397.770973,
+    "ast_hash": "b45828cd00518e4ccb04a9aa10ff47a7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\BillItemRepository.java": {
+    "mtime": 1778580762.7640624,
+    "ast_hash": "ef35b9bd2a9a90e9cabbadd457a0f195",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\BillPaymentRepository.java": {
+    "mtime": 1778580762.7640624,
+    "ast_hash": "8fed64991ec8ea45fbd3d60ec99dd34a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\BillRepository.java": {
+    "mtime": 1779195343.5889373,
+    "ast_hash": "6e6f84ca3e5937419b03e9ade04ca63a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\CategoryRepository.java": {
+    "mtime": 1778580762.765095,
+    "ast_hash": "febca7f3f9c3abea93bd46016b21d5eb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\EasebuzzPayoutRepository.java": {
+    "mtime": 1779195343.5899389,
+    "ast_hash": "ec1842f746c79ea87a3c0409d317bcb2",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\EasebuzzSubMerchantRepository.java": {
+    "mtime": 1779195343.5899389,
+    "ast_hash": "5c800e0c93746164e459d94a10ce0890",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\EasebuzzSubMerchantWebhookEventRepository.java": {
+    "mtime": 1779195343.5909393,
+    "ast_hash": "9f5adaed8b21852d8726543b199cc606",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\EasebuzzWebhookEventRepository.java": {
+    "mtime": 1779195343.5909393,
+    "ast_hash": "ebe1370005f3f72a50bce14d28c0e30a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\ItemVariantRepository.java": {
+    "mtime": 1778580762.765095,
+    "ast_hash": "d168a79c5ab47b448c1f38c015ae2e7f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\MarketplaceOrderRepository.java": {
+    "mtime": 1779195343.5919394,
+    "ast_hash": "7a72751c650e35aaafe41ae90ce01ef8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\MenuExtractionJobRepository.java": {
+    "mtime": 1779363746.8535423,
+    "ast_hash": "12f956a9d56b8d79ecfbc4d05875b7ff",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\MenuItemRepository.java": {
+    "mtime": 1779787715.320612,
+    "ast_hash": "90b6709f186aefb4b2ccac5210b93784",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\OtpRequestRepository.java": {
+    "mtime": 1778580762.765095,
+    "ast_hash": "d17618060675816116572809fc3f0963",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\RestaurantProfileRepository.java": {
+    "mtime": 1779392861.3993394,
+    "ast_hash": "faa3f07904e431b290dcb24d5040e829",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\StockLogRepository.java": {
+    "mtime": 1778580762.765095,
+    "ast_hash": "5ce2e8ad03f573021bd569f78a99f1b7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\TokenBlocklistRepository.java": {
+    "mtime": 1778580762.765095,
+    "ast_hash": "c71c7e8a58318b7a640234d64157e64d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\repository\\UserRepository.java": {
+    "mtime": 1778580762.765095,
+    "ast_hash": "5ab8517bd1f4ace8f19bcd58b3a6bf5c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\security\\AppVersionFilter.java": {
+    "mtime": 1779195343.593008,
+    "ast_hash": "3a9f453977204af36d818d6f4167239f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\security\\JwtRequestFilter.java": {
+    "mtime": 1779195343.5936415,
+    "ast_hash": "f90f0ec0093c44313099e574024203fd",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\security\\RateLimitingInterceptor.java": {
+    "mtime": 1779195343.5936415,
+    "ast_hash": "5d6cd9f01b664d9eb4109c2cc68f7538",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\security\\RequestIdFilter.java": {
+    "mtime": 1779195343.5956314,
+    "ast_hash": "c5d41f443f48baa92d6bcf0b4630e45d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\security\\RequestTimingFilter.java": {
+    "mtime": 1779195343.59664,
+    "ast_hash": "d0fcca445d11c8e2532579126b6ae4e4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\security\\SecurityConfig.java": {
+    "mtime": 1779282485.81616,
+    "ast_hash": "29c58f73364533e0e7ef0c18124db85d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\security\\TenantContext.java": {
+    "mtime": 1778580762.765095,
+    "ast_hash": "bd38340a576ff75ca279294b1a4c3f6f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\security\\TokenRevocationCache.java": {
+    "mtime": 1778580762.765095,
+    "ast_hash": "da976931f81e77620879c1208c1f099d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\security\\TokenRevocationCacheInitializer.java": {
+    "mtime": 1778580762.765095,
+    "ast_hash": "0bd871a8413fb6fde92ee42c5271f41f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\AssetStorageService.java": {
+    "mtime": 1779706560.6694665,
+    "ast_hash": "fb2c325d0337e27fd16ce72b266bb726",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\AuthService.java": {
+    "mtime": 1779195343.5980334,
+    "ast_hash": "2ded0662f1ffc7443413586e54d88333",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\BillItemService.java": {
+    "mtime": 1778580762.773034,
+    "ast_hash": "388c60c09cfbee76ab72832cf01d254a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\BillPaymentService.java": {
+    "mtime": 1778580762.773034,
+    "ast_hash": "a128a9a97f3fe6dab8f5d69cb23e5343",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\BillService.java": {
+    "mtime": 1778580762.773034,
+    "ast_hash": "995d27f3d84cea277bdd6711b425fa19",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\CategoryService.java": {
+    "mtime": 1778580762.773034,
+    "ast_hash": "f045723da0029a9f6afdd159fe2d5acd",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\ComplianceAlertService.java": {
+    "mtime": 1779712213.7947745,
+    "ast_hash": "20ad14d5459ddc31fc357a6fe9ab12a9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\EasebuzzApiClient.java": {
+    "mtime": 1779530431.941732,
+    "ast_hash": "d19ec7d305e646f842184758b9e241ba",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\EasebuzzPaymentService.java": {
+    "mtime": 1779530431.941732,
+    "ast_hash": "18bbb4d4e71adf05416669cf168e1798",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\EasebuzzWebhookService.java": {
+    "mtime": 1779480721.0908775,
+    "ast_hash": "794bf8d07d65192761ee8c6160793b1b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\EasebuzzWireApiClient.java": {
+    "mtime": 1779199730.403933,
+    "ast_hash": "08a92752868b130f50c6deeb79f0f139",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\GstFssaiLookupService.java": {
+    "mtime": 1779712145.2487178,
+    "ast_hash": "3368d1daf55934831b5204de6dae3c72",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\ItemVariantService.java": {
+    "mtime": 1778580762.773034,
+    "ast_hash": "444c2c17b38e7aeaae8e572957d975d0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\LoginRateLimiter.java": {
+    "mtime": 1779198507.447533,
+    "ast_hash": "25e806859cb273bb20fdb50526775151",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\MarketplaceOrderService.java": {
+    "mtime": 1779781152.2592256,
+    "ast_hash": "98682064d604e688a628b8b5b0994d13",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\MenuExtractionWorker.java": {
+    "mtime": 1779787797.6300414,
+    "ast_hash": "d0394855447d595104718252720cdc36",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\MenuItemService.java": {
+    "mtime": 1779787728.5068014,
+    "ast_hash": "8231fe600305a682ff459860ce1305d8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\OtpRateLimiter.java": {
+    "mtime": 1779198516.9353645,
+    "ast_hash": "25a65efc8e3a63c799154fcc121e3cc8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\PasswordResetOtpService.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "ab6a272882661b7086c7a3f49d64fbcb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\PostSplitService.java": {
+    "mtime": 1779363326.9810047,
+    "ast_hash": "eb2ea023c7fdfb2a5beb393759152134",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\RestaurantProfileService.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "ca70f61a154bf0e85a12f74e126b5cb7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\StockLogService.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "10efc63a4d09876df8b7558ffb232fd4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\SubMerchantService.java": {
+    "mtime": 1779475599.3064656,
+    "ast_hash": "3dc36417d9dfdb95695a2acc76b388d1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\TokenBlocklistCleanupService.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "05348fb84baefe4217620fe0cdce9fcc",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\UserService.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "157ede25ce047c7919b254cf208ab48b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\impl\\AuthServiceImpl.java": {
+    "mtime": 1779708495.7973332,
+    "ast_hash": "0e2171d6a903c5586aa75401f0ab3c8e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\impl\\BillItemServiceImpl.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "64e8112942d250f52954994919c63f88",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\impl\\BillPaymentServiceImpl.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "f10761637b1f6134211b00bcb56b959a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\impl\\BillServiceImpl.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "49a65d5383d2f9113fbb41a5583280c0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\impl\\CategoryServiceImpl.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "c19aae8f25db653753bc05269cc22f57",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\impl\\ItemVariantServiceImpl.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "ff99d4d3677aecb0ab93a4d2ab953fe8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\impl\\MenuItemServiceImpl.java": {
+    "mtime": 1779787741.9159076,
+    "ast_hash": "811d87cdbb8992d2ce3e02135c754dda",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\impl\\RestaurantProfileServiceImpl.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "8eab34f594ca6a65d9c3032dcac3dd21",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\impl\\StockLogServiceImpl.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "59f0c86932e09e6450dd7b48998575ce",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\service\\impl\\UserServiceImpl.java": {
+    "mtime": 1779708055.5560732,
+    "ast_hash": "83fa64cceaabdde049b3d51b3955e5ef",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\dto\\PushSyncResponse.java": {
+    "mtime": 1778580762.7776177,
+    "ast_hash": "cbf56877c45e0010fdbf4f4ea58c58ea",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\dto\\payload\\BillDTO.java": {
+    "mtime": 1779195343.608829,
+    "ast_hash": "203668e3a1c795dd9476046d34cb1bfb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\dto\\payload\\BillItemDTO.java": {
+    "mtime": 1779450151.4982123,
+    "ast_hash": "191d3e51ea5c4bc7f30832c507add1dc",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\dto\\payload\\BillPaymentDTO.java": {
+    "mtime": 1779195343.6109495,
+    "ast_hash": "f5ef4ab2983373e363f6132463d3a412",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\dto\\payload\\CategoryDTO.java": {
+    "mtime": 1779195343.611965,
+    "ast_hash": "9ffac7c4375fab7cdcebee1e84ece172",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\dto\\payload\\ItemVariantDTO.java": {
+    "mtime": 1779195343.6129694,
+    "ast_hash": "2979419af4adfc35094a62c4697d7d42",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\dto\\payload\\MasterSyncResponseDTO.java": {
+    "mtime": 1779278083.9023547,
+    "ast_hash": "2a026564106d94a041cb306c710f5c4d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\dto\\payload\\MenuItemDTO.java": {
+    "mtime": 1779195343.6129694,
+    "ast_hash": "19682f59cd65858ff25ef1f36a5a0a65",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\dto\\payload\\RestaurantProfileDTO.java": {
+    "mtime": 1779712109.9584265,
+    "ast_hash": "99167cc5665350c84b2c37a931fb3232",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\dto\\payload\\StockLogDTO.java": {
+    "mtime": 1779195343.6143796,
+    "ast_hash": "e4ec3ce39ae138f31213752133ed084f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\dto\\payload\\SyncMapper.java": {
+    "mtime": 1779712135.628247,
+    "ast_hash": "c62fa51620e4450ce1c44ec1f60ddf3b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\dto\\payload\\UserDTO.java": {
+    "mtime": 1779195343.6154165,
+    "ast_hash": "a229ba1b45d674b3563c55d12391def5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\entity\\BaseSyncEntity.java": {
+    "mtime": 1779195343.6166713,
+    "ast_hash": "dd2412b6f9d372a3e368ee19556c0851",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\repository\\SyncRepository.java": {
+    "mtime": 1778580762.7871938,
+    "ast_hash": "fbb626786923b25fe2e4e51eb812ff4b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\sync\\service\\GenericSyncService.java": {
+    "mtime": 1779444794.0266094,
+    "ast_hash": "c43af72e7dfbed2944b62ed8037adc79",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\util\\DbCheck.java": {
+    "mtime": 1779373292.4375494,
+    "ast_hash": "6283bc8a27745cfe789489c59e8f06f5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\util\\QuickDbCheck.java": {
+    "mtime": 1779372031.5188403,
+    "ast_hash": "417a12f115c18e0eb466546cae4fbebf",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\utility\\JwtUtility.java": {
+    "mtime": 1778580762.7936497,
+    "ast_hash": "5119a55dbb8d35fc7185116810a26916",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\controller\\AdminCommissionController.java": {
+    "mtime": 1779195343.617692,
+    "ast_hash": "fd0a8d4c693950e0816b829c8dca3269",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\controller\\AdminDashboardController.java": {
+    "mtime": 1778703308.1288462,
+    "ast_hash": "098fd5b0539d739edecaa92901af512e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\controller\\AdminReportsController.java": {
+    "mtime": 1779195343.6191587,
+    "ast_hash": "254efc65221b1c13eece553f192e70c6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\controller\\AdminSettlementController.java": {
+    "mtime": 1779195343.6191587,
+    "ast_hash": "e9c3b7dab54a8bbb2ca60f831d5af620",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\controller\\AdminSubMerchantController.java": {
+    "mtime": 1779438866.0018268,
+    "ast_hash": "c824a870ba366909e959992ec6cc4b36",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\controller\\AdminTransactionController.java": {
+    "mtime": 1779195343.620321,
+    "ast_hash": "cfc7a95fa0575cf94c675ff3ec842193",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\controller\\BusinessAdminController.java": {
+    "mtime": 1779785351.828992,
+    "ast_hash": "29184a4a4f18ae636bc46ed5e4d57cf7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\controller\\RestaurantPaymentConfigController.java": {
+    "mtime": 1779438931.5561895,
+    "ast_hash": "5327156b39fc9b3524b6ba317960f322",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\AdminAuditEventResponse.java": {
+    "mtime": 1778703308.130855,
+    "ast_hash": "003464dbae2915d02a841df7c518a95c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\AdminBusinessDetailResponse.java": {
+    "mtime": 1779366185.458041,
+    "ast_hash": "e2f944ddaec7763767dcfac0d15e43b6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\AdminBusinessListItemResponse.java": {
+    "mtime": 1778703308.1331646,
+    "ast_hash": "f993e5fa6e7641eb12a05b98230b0898",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\AdminDashboardSummaryResponse.java": {
+    "mtime": 1778703308.1351705,
+    "ast_hash": "06feebce6fd709058d33d5487bc6e782",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\AdminMarketplaceWebhookEventResponse.java": {
+    "mtime": 1778703308.1351705,
+    "ast_hash": "a1fcb373263cbb571644f32d1ce5e532",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\AdminSettlementResponse.java": {
+    "mtime": 1779195343.6231418,
+    "ast_hash": "ace8728311c5548cf6d374f60bae7d55",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\AdminSubMerchantWebhookEventResponse.java": {
+    "mtime": 1778703308.1371784,
+    "ast_hash": "60cc881702c96a6b95bcee16aad1d0d0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\AdminTransactionResponse.java": {
+    "mtime": 1779195343.6241417,
+    "ast_hash": "6817af6750baf0e1d700c64cf1e038b5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\BusinessDashboardResponse.java": {
+    "mtime": 1778703308.1371784,
+    "ast_hash": "5c0ccfaf6df7556db19ad110f871f43e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\BusinessMarketplaceSetupResponse.java": {
+    "mtime": 1778703308.1391847,
+    "ast_hash": "5189cf53a5b02a6e2c70c066b2905f8e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\BusinessMenuListItemResponse.java": {
+    "mtime": 1778703308.1391847,
+    "ast_hash": "8eefa50d8630fe655967269c1c939417",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\BusinessOrderListItemResponse.java": {
+    "mtime": 1778703308.1412015,
+    "ast_hash": "4a8a8a628919355cb27dcc41f7918383",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\BusinessProfileResponse.java": {
+    "mtime": 1779712152.2159255,
+    "ast_hash": "5ca8f8692dfe2ab23390319656873f28",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\BusinessStaffListItemResponse.java": {
+    "mtime": 1778703308.143259,
+    "ast_hash": "2bf40b0d50af5a0dbfed2f4d89741362",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\RefundBillRequest.java": {
+    "mtime": 1778703308.143259,
+    "ast_hash": "6c31574267490fcb07eeb5ef9cd8eb28",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\UpdateBusinessIntegrationsRequest.java": {
+    "mtime": 1778703308.143259,
+    "ast_hash": "8413166452eff99ca50b68de16a25ae2",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\dto\\UpdateBusinessProfileRequest.java": {
+    "mtime": 1779712158.265716,
+    "ast_hash": "3852cee12a16285a93328515fbc17b8c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\service\\AdminReadService.java": {
+    "mtime": 1779392836.457803,
+    "ast_hash": "aeb5b83dbbc219c51efd57f51610aa3a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\webadmin\\service\\BusinessReadService.java": {
+    "mtime": 1779195343.6254961,
+    "ast_hash": "7a3465c91c8d66de62de58dd86ea7d50",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V10__add_missing_performance_indexes.sql": {
+    "mtime": 1778580762.8007877,
+    "ast_hash": "8fd1e63895fe109ef60333ec77c5c82c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V11__fix_date_column_and_salt_constraint.sql": {
+    "mtime": 1778580762.8007877,
+    "ast_hash": "f3475f4c79e165e8a35ca520c71e6f86",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V12__collapse_legacy_user_roles.sql": {
+    "mtime": 1778580762.8007877,
+    "ast_hash": "6fe426dcc305fd17a5a702fa5832b79c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V13__add_bill_refund_amount.sql": {
+    "mtime": 1778580762.8007877,
+    "ast_hash": "b89b8e8e3baa88dbc76b65c44694e72e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V14__add_payment_refund_tracking.sql": {
+    "mtime": 1778580762.8007877,
+    "ast_hash": "a1e44657b7d574c9f6d54171671af230",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V15__add_easebuzz_payment_mode.sql": {
+    "mtime": 1778580762.8007877,
+    "ast_hash": "2a6399fd258e9200561db5a297c4e2b5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V16__backfill_easebuzz_payment_mode.sql": {
+    "mtime": 1778580762.8007877,
+    "ast_hash": "2e8402e03a6ef05488e96ae36ca3e5ca",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V17__add_refund_gateway_observability.sql": {
+    "mtime": 1778580762.806243,
+    "ast_hash": "0c332a632d319b4ff2230f569562606a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V18__add_asset_urls_and_invoice_footer.sql": {
+    "mtime": 1778580762.806243,
+    "ast_hash": "095eb503b186f29ce21726f43543955f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V1__init_schema.sql": {
+    "mtime": 1778580762.806243,
+    "ast_hash": "c182001af7d5701cacc221e33c58f457",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V20__add_restaurant_marketplace_fields.sql": {
+    "mtime": 1778580762.806243,
+    "ast_hash": "0b25a6a47fca48c3cdf8e4c6aeb1505b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V21__add_marketplace_integration_fields.sql": {
+    "mtime": 1778580762.806243,
+    "ast_hash": "159eac469fdbe71aaa6caf1a972a89a3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V22__create_easebuzz_sub_merchant.sql": {
+    "mtime": 1779195343.628943,
+    "ast_hash": "49200f8548fb4fc02ec8174ed78493b4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V23__create_easebuzz_sub_merchant_webhook_event.sql": {
+    "mtime": 1779195343.6299446,
+    "ast_hash": "ef67be532d4c0a8f5f8e8f179871f431",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V24__add_easebuzz_enabled_and_settlement_fields.sql": {
+    "mtime": 1779195343.6310525,
+    "ast_hash": "72f5f82b36c31e4624ed2e84196eca8e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V25__add_marketplace_order_status_fields.sql": {
+    "mtime": 1779195343.6310525,
+    "ast_hash": "57ae6886f3c47bccf4204f34772e57e7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V26__fix_easebuzz_sub_merchant_restaurant_fk.sql": {
+    "mtime": 1779195343.6325202,
+    "ast_hash": "2ef427d8c8e27c78e5f31a725852c14e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V27__make_menu_item_id_nullable.sql": {
+    "mtime": 1779443568.0747888,
+    "ast_hash": "95e2e4d99d0c1625c05242f8aae8f8f5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V28__add_restaurant_profile_compliance_expiry_dates.sql": {
+    "mtime": 1779712096.7246745,
+    "ast_hash": "418fa3102407e7bed832511b6580c440",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V2__add_kitchen_printer_to_restaurant_profile.sql": {
+    "mtime": 1778580762.806243,
+    "ast_hash": "93e24889706642fe665e909f21f0dc2f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V3__tenant_scoped_sync_fk_hardening.sql": {
+    "mtime": 1778580762.8094282,
+    "ast_hash": "cfbe7a91778b09ddd6e005fdc743d877",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V4__identity_uniqueness_hardening.sql": {
+    "mtime": 1778580762.8094282,
+    "ast_hash": "fb41a61683cc275ad9e9aa2dc551220e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V5__menu_item_name_uniqueness.sql": {
+    "mtime": 1778580762.8094282,
+    "ast_hash": "ab65d7e21ddb14dc730a54168e46a53b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V6__add_easebuzz_payment_gateway.sql": {
+    "mtime": 1778580762.8094282,
+    "ast_hash": "9ac9abc0651491c843c2e81edaf8c8cf",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V7__add_backend_owned_payments.sql": {
+    "mtime": 1778580762.8114765,
+    "ast_hash": "40ec4136366cc8a113f2699f3ee86804",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\db\\migration\\V8__add_storefront_customer_orders.sql": {
+    "mtime": 1778580762.8114765,
+    "ast_hash": "88a65161eb093515ccd6cf6b2ea88ba7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\BaseIntegrationTest.java": {
+    "mtime": 1779195343.6335225,
+    "ast_hash": "e9da473edc41bf9e4827a43267dd641e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\StockRecalculationIntegrationTest.java": {
+    "mtime": 1778580762.8114765,
+    "ast_hash": "83f7670aaf6a55307a94a4a47afa3130",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\SyncRepositoryIntegrationTest.java": {
+    "mtime": 1778580762.8114765,
+    "ast_hash": "05fae74ac74e034e73b88d0f8128fe0d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\SystemTest.java": {
+    "mtime": 1779286261.0369673,
+    "ast_hash": "da0d1f16ffad2467e11eace29e7dc4b9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\controller\\MarketplaceConfigControllerTest.java": {
+    "mtime": 1779286425.6238801,
+    "ast_hash": "992907c514f93e68e6c181e7ead35fbe",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\controller\\MarketplaceWebhookControllerTest.java": {
+    "mtime": 1779363872.8175948,
+    "ast_hash": "fba790bb13ecc3b35bba6766dfc4b0db",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\security\\JwtRequestFilterTest.java": {
+    "mtime": 1778580762.8114765,
+    "ast_hash": "0c3b823d042cb9fc2c116e6fbc0af0b9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\security\\SpringRoleTest.java": {
+    "mtime": 1778580762.8114765,
+    "ast_hash": "f963b695788d7fd6604208310c8a4069",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\service\\AuthServiceImplTest.java": {
+    "mtime": 1778580762.8114765,
+    "ast_hash": "96dbf400a1e7dd151d955c272680960d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\service\\BillDependencyResolutionTest.java": {
+    "mtime": 1778580762.8114765,
+    "ast_hash": "8e5ffaa117fcac5a6038a941df5d7dea",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\service\\BillServiceImplTest.java": {
+    "mtime": 1778580762.8198366,
+    "ast_hash": "c1876a944c6b433abcbbc61d69482dc0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\service\\BillServiceTest.java": {
+    "mtime": 1778580762.8198366,
+    "ast_hash": "9f9db676a31ea22c898fccd221a5a387",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\service\\EasebuzzIntegrationTest.java": {
+    "mtime": 1779363662.7891839,
+    "ast_hash": "448ecab4da4d72547ec4a3c923751127",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\service\\EasebuzzNewFeaturesTest.java": {
+    "mtime": 1779195343.6358743,
+    "ast_hash": "535303c7fb84b1bd565f8a3fe54dd32e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\service\\EasebuzzWebhookTest.java": {
+    "mtime": 1779200397.2338943,
+    "ast_hash": "0e0587e8b45bb347a09b75007dde87bb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\service\\ItemVariantServiceImplTest.java": {
+    "mtime": 1778580762.8198366,
+    "ast_hash": "e683ce777ffdabeed6501766815c6ee2",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\service\\MarketplaceOrderServiceTest.java": {
+    "mtime": 1779200658.095624,
+    "ast_hash": "6e6aa4df28a1987ae2080dc550c07f6c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\service\\MenuItemServiceImplTest.java": {
+    "mtime": 1778580762.8198366,
+    "ast_hash": "b11164ae032ec7c355900ce4ca87ea99",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\service\\StockLogServiceImplTest.java": {
+    "mtime": 1778580762.8198366,
+    "ast_hash": "8790e7a859e50d9690755b1d6479de39",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\utility\\JwtUtilityTest.java": {
+    "mtime": 1778580762.8198366,
+    "ast_hash": "6c71db4f24b90f21ad53d51ac0691efa",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\test\\java\\com\\khanabook\\saas\\webadmin\\WebAdminControllerTest.java": {
+    "mtime": 1779785161.9783547,
+    "ast_hash": "96f8a9de1d689ab759d1a8d1d149029e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\angular.json": {
+    "mtime": 1779304959.9386258,
+    "ast_hash": "504d896003e8b1068cede7ff21a030e6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\tsconfig.app.json": {
+    "mtime": 1777195337.0653841,
+    "ast_hash": "04b4273d3bbe314bfe639d37f6bfd10e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\tsconfig.json": {
+    "mtime": 1777195337.0386503,
+    "ast_hash": "02ce9a35563d6b3e6513d419295b4ad1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\tsconfig.spec.json": {
+    "mtime": 1777195337.0908394,
+    "ast_hash": "b23855d1932fe236f55c2a02c9517329",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\main.ts": {
+    "mtime": 1777195337.2102723,
+    "ast_hash": "e4048b06a099a029affcc1ed3301c44c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\app.component.ts": {
+    "mtime": 1779800309.059814,
+    "ast_hash": "0f40fbfd99410e111f7d269ea7490fd1",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\app.config.ts": {
+    "mtime": 1779304968.914638,
+    "ast_hash": "cc3dc6b26fcca18521ac32a81a97255e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\app.routes.ts": {
+    "mtime": 1779800323.4062383,
+    "ast_hash": "d64ae94412c8e5ad866524da486dc867",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\core\\auth\\auth.service.ts": {
+    "mtime": 1778580762.8253963,
+    "ast_hash": "d0a68d7cf625a63aa6bb9cf895128d9d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\core\\auth\\jwt.interceptor.ts": {
+    "mtime": 1778580762.8253963,
+    "ast_hash": "64f9ed7b8b5e6de561d6effba1b99c19",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\core\\auth\\role.guard.ts": {
+    "mtime": 1778580762.826544,
+    "ast_hash": "98d61f4d5caec796ae252d1349bfbd6e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\core\\components\\api-state.component.ts": {
+    "mtime": 1778580762.826544,
+    "ast_hash": "443024c7e056cc4fef9ec23bb2446ed3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\core\\models\\api.models.ts": {
+    "mtime": 1779781164.152631,
+    "ast_hash": "69d590fc878d8bfbf9a609dd24ec4009",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\core\\models\\session.model.ts": {
+    "mtime": 1778580762.826544,
+    "ast_hash": "ae8a4558406ca42ec3e5cb3a1a423508",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\core\\services\\admin-api.service.ts": {
+    "mtime": 1779199763.518755,
+    "ast_hash": "e288c41753a464664117372567e194c9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\core\\services\\business-api.service.ts": {
+    "mtime": 1779781778.2285085,
+    "ast_hash": "79fd3d14fed7b18f1249cc3208688aa3",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\core\\services\\theme.service.ts": {
+    "mtime": 1779304992.9592314,
+    "ast_hash": "4bc46751d7f015f1738f3addb3dae628",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\layout\\sidebar-layout\\sidebar-layout.component.ts": {
+    "mtime": 1779857742.5312254,
+    "ast_hash": "5596f0b2cab30c03cc418d57e248b95f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\business-dashboard\\business-dashboard-page.component.ts": {
+    "mtime": 1779857800.0938282,
+    "ast_hash": "ea4dce6556df9ca5fb5455921e925d35",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\businesses\\businesses-page.component.ts": {
+    "mtime": 1779796938.9517562,
+    "ast_hash": "7347ca339608b38b56d7c32844a31041",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\commission-config\\commission-config-page.component.ts": {
+    "mtime": 1779877433.0295918,
+    "ast_hash": "3b139c5df073aee8e4ba079b75c27357",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\commission-report\\commission-report-page.component.ts": {
+    "mtime": 1779305321.324922,
+    "ast_hash": "e78c3698b1c44ff72ac3263fa1729038",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\limited-access\\limited-access-page.component.ts": {
+    "mtime": 1779336182.7223556,
+    "ast_hash": "c0c0cf48c6a22afc07df26b36346dd1d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\login\\login-page.component.ts": {
+    "mtime": 1779906772.585842,
+    "ast_hash": "01bf8c0c4a43a0f4d5509826ce5f2ce5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\marketplace-setup\\marketplace-setup-page.component.ts": {
+    "mtime": 1779796907.9145143,
+    "ast_hash": "c2e77b35ac519dbd69cf25c63a2fbaf8",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\menu\\menu-page.component.ts": {
+    "mtime": 1779877791.4251018,
+    "ast_hash": "104025536ae255653a070f78a2e326a5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\orders\\orders-page.component.ts": {
+    "mtime": 1779877851.1252425,
+    "ast_hash": "10efee4ea05d48ff4eec25e99cd4adbf",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\payment-dashboard\\payment-dashboard-page.component.ts": {
+    "mtime": 1779797042.617463,
+    "ast_hash": "55f9ca49030f824060fa32a23fb9a5fe",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\platform-dashboard\\platform-dashboard-page.component.ts": {
+    "mtime": 1779857795.39674,
+    "ast_hash": "5d2cd2c05d56ad4e20a0cbb1947881fd",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\restaurant-settings\\restaurant-settings-page.component.ts": {
+    "mtime": 1779797059.664294,
+    "ast_hash": "d84f135bd13b079b6405a882723cd405",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\settlement-reports\\settlement-reports-page.component.ts": {
+    "mtime": 1779797059.7036443,
+    "ast_hash": "e747588c9d4ff6d8a96c25d01f632eff",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\staff\\staff-page.component.ts": {
+    "mtime": 1779877592.2685707,
+    "ast_hash": "51d936aed80a75c5699daf1f952617ec",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\sub-merchants\\sub-merchants-page.component.ts": {
+    "mtime": 1779857744.1864688,
+    "ast_hash": "66a2789612e91037bea01463e6081909",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\pages\\transaction-monitor\\transaction-monitor-page.component.ts": {
+    "mtime": 1779797059.7503192,
+    "ast_hash": "b7c778b52f09d89e9f40e06cd19fce8b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\shared\\breadcrumb.component.ts": {
+    "mtime": 1779803886.7851703,
+    "ast_hash": "a75b275c62b0641cc338b0f97f1fe582",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\shared\\empty-state.component.ts": {
+    "mtime": 1779794251.7674472,
+    "ast_hash": "3bf90d5939db36ba2d36e044f3fb42e9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\shared\\error-state.component.ts": {
+    "mtime": 1779800227.3949602,
+    "ast_hash": "a9bc5a242ee7380c96b0d54610b84814",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\shared\\formatters.ts": {
+    "mtime": 1779857807.2419374,
+    "ast_hash": "a209db10ef2b0a881011deaf415e7503",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\app\\shared\\skeleton.component.ts": {
+    "mtime": 1779794251.7863362,
+    "ast_hash": "250815f043b760d352dbc2779a49be1d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\environments\\environment.prod.ts": {
+    "mtime": 1779198593.340891,
+    "ast_hash": "57e7859609c7bc8fd4700b8767389443",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\environments\\environment.ts": {
+    "mtime": 1779474136.1625082,
+    "ast_hash": "313041f87503218331f2d77e3f2b411e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\AGENTS.md": {
+    "mtime": 1779890882.7080047,
+    "ast_hash": "50446c2140b04206585ba838c2308ff5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\AGENTS.md.md": {
+    "mtime": 1778578723.666002,
+    "ast_hash": "105bc203c8d671fd874ef4b08c584938",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\DESIGN.md": {
+    "mtime": 1779887754.8963277,
+    "ast_hash": "ef7f378e12cdfe0c6f11627ab1b52175",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\docker-compose.production.yml": {
+    "mtime": 1777885367.8298016,
+    "ast_hash": "6bf6d953ef6a481fe28c0d893cad8776",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\docker-compose.yml": {
+    "mtime": 1779479665.2913637,
+    "ast_hash": "6fb80e97c2482de0b7d7feaaf6f9284e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\easebuzz-architecture-for-review.txt": {
+    "mtime": 1779173060.780543,
+    "ast_hash": "dd05e03758e0c286e67f5dddd2a9488d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\easebuzz-complete-implementation-summary.txt": {
+    "mtime": 1779135224.6743865,
+    "ast_hash": "0a66468ce90807f5aefce1d40fa1fc6b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\easebuzz-live-test-plan.md": {
+    "mtime": 1779209155.903242,
+    "ast_hash": "61ca68e6ab3f032fd1ac7af10b21ba04",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\easebuzz-sandbox-support-email.md": {
+    "mtime": 1779391821.4835048,
+    "ast_hash": "a4d40537217aee6df09e550aaa9f3e73",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\easebuzz-status-to-manager.md": {
+    "mtime": 1779214980.690904,
+    "ast_hash": "357e11038d44fddd7aff539a08606752",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\easebuzz-submerchant-business-model.md": {
+    "mtime": 1779195343.5520246,
+    "ast_hash": "c59fd3b93b4fc70fde4e72e25f86ab7b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\PRODUCT.md": {
+    "mtime": 1779863338.314508,
+    "ast_hash": "c4762d415addb5d4f87250f48e21b253",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\README.md": {
+    "mtime": 1777885367.8283098,
+    "ast_hash": "bb021baa0eb7482a30f4eb028545b77e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\sub-merchant-apis.md": {
+    "mtime": 1779195343.6376283,
+    "ast_hash": "eb84bdce240fdf8902bc12d5cec49fae",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\rules\\graphify.md": {
+    "mtime": 1779819579.2051528,
+    "ast_hash": "a0e4d192b9e2e17256124dbfc8e24e6a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\emil-design-eng\\SKILL.md": {
+    "mtime": 1779819619.8292882,
+    "ast_hash": "1c9207b371c22bd1dc336b1349edeebf",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\SKILL.md": {
+    "mtime": 1779819666.8490205,
+    "ast_hash": "259cfd39515b1b390c02c811de7491f9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\agents\\impeccable-asset-producer.md": {
+    "mtime": 1779819666.8490205,
+    "ast_hash": "892906b3db9443e58267e77d4038a0fb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\adapt.md": {
+    "mtime": 1779819666.851801,
+    "ast_hash": "27c29f5a41c6104b89a5ac22d6476853",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\animate.md": {
+    "mtime": 1779819666.851801,
+    "ast_hash": "b62d806becc589f6e322568dbf1643ec",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\audit.md": {
+    "mtime": 1779819666.8533907,
+    "ast_hash": "bfa673574701e2910ca2b3473aa1c6ad",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\bolder.md": {
+    "mtime": 1779819666.8533907,
+    "ast_hash": "633d0f931184a8aac040a37ba0c2c0f6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\brand.md": {
+    "mtime": 1779819666.8533907,
+    "ast_hash": "74e97fbbaad8eba976b3fd29943f4424",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\clarify.md": {
+    "mtime": 1779819666.8533907,
+    "ast_hash": "9dc6a767d5bbd31e9117d36d06e1261e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\codex.md": {
+    "mtime": 1779819666.8553808,
+    "ast_hash": "c044e7cf44c58dea75e9c6a3413e8d70",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\cognitive-load.md": {
+    "mtime": 1779819666.8553808,
+    "ast_hash": "464d1b1b3566c74909fadcd2c13bc544",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\color-and-contrast.md": {
+    "mtime": 1779819666.8553808,
+    "ast_hash": "c51e5bca12b63f220ad15454852a8594",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\colorize.md": {
+    "mtime": 1779819666.8553808,
+    "ast_hash": "c9702b3f0c17fa6846747d369ad82699",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\craft.md": {
+    "mtime": 1779819666.8553808,
+    "ast_hash": "59729d8216df64493363d604df736563",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\critique.md": {
+    "mtime": 1779819666.8553808,
+    "ast_hash": "ccf66bd0f3b8fd0d11592290d078418e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\delight.md": {
+    "mtime": 1779819666.8553808,
+    "ast_hash": "c302379f6c88c20d4886636aaf5e6dde",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\distill.md": {
+    "mtime": 1779819666.8553808,
+    "ast_hash": "15b690d4b8f6bf9c8a0d5208f1f6f1fb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\document.md": {
+    "mtime": 1779819666.8553808,
+    "ast_hash": "8faba1b504418148860d159448194fc9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\extract.md": {
+    "mtime": 1779819666.8553808,
+    "ast_hash": "bcbed7005945d9de131f69985cbc5e6f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\harden.md": {
+    "mtime": 1779819666.8553808,
+    "ast_hash": "b8c6ce7f60733c8dab39b12c7957750b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\heuristics-scoring.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "f1606921268571e14591682483b595ef",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\interaction-design.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "ea39b98601f17b5a87f7de799b953000",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\layout.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "400e8cbbc0688d27d288f80c5b52314a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\live.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "443d531ec715bb64e48b660671e3ad78",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\motion-design.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "95de769ab6e30a4214a969ebb25ebe89",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\onboard.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "8def483b066f2c7fb906c313e3653c10",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\optimize.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "613f211310d45abd984d0bd610abc1fb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\overdrive.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "891190b0148e5156aa007ca5917a0bb4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\personas.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "3022b396ec3f0977be627875594bfa81",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\polish.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "5ba31783c05352cbda780abd9e12d969",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\product.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "c073e67bbcec51f31af4ba132730aca9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\quieter.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "9b34ed291f042b1dad31f66f487c4137",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\responsive-design.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "3a0e2834961edfe9d44cef19ffc84737",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\shape.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "aab83193a1a58010b1de9f67074b5915",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\spatial-design.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "28fd3d7f36c9ad72fdc5c3a90c7f5505",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\teach.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "ab273dd5cd15e248ebdf7f52671e3f81",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\typeset.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "3b4d239361890c9db44b5484d002f2d2",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\typography.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "841fa5dc3d8cf998ecb63b211b766c7c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\skills\\impeccable\\reference\\ux-writing.md": {
+    "mtime": 1779819666.8612995,
+    "ast_hash": "74e4aac960c114a7b8761210f80a8cc5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\.agents\\workflows\\graphify.md": {
+    "mtime": 1779819579.2063365,
+    "ast_hash": "84de69efd46ab0b8430393bd4188f8f2",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\ACCESSIBILITY_CHECKLIST.md": {
+    "mtime": 1774951195.5095959,
+    "ast_hash": "0fc6f538f240ac93b72ba5761b33c648",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\git_log_categories.txt": {
+    "mtime": 1775846230.2860065,
+    "ast_hash": "10314a12dcfb2e6582299b7429929cfd",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\history.txt": {
+    "mtime": 1775846429.3683386,
+    "ast_hash": "e23389ce969c743e43fcee8158396261",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\PLAYSTORE_RELEASE_CHECKLIST.md": {
+    "mtime": 1779195343.4890997,
+    "ast_hash": "90b28c5bf875c08612c5c2a95b946e83",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\.github\\workflows\\android-tests.yml": {
+    "mtime": 1774781547.4583135,
+    "ast_hash": "d121316be05f251ae8db85ca838dbef4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\README.md": {
+    "mtime": 1773487957.2912083,
+    "ast_hash": "5f7ccb95e3db07bd18ca72f65d423287",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\.github\\workflows\\auto-sync-production.yml": {
+    "mtime": 1773487957.1459987,
+    "ast_hash": "3e7e60063e23165fc140b45c1932f68a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\.github\\workflows\\auto-sync-qa.yml": {
+    "mtime": 1773487957.1492822,
+    "ast_hash": "1fe0357b4c7eeddc34eb4465a5c2b0ee",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\ops\\PRODUCTION_STACK.md": {
+    "mtime": 1779195343.553028,
+    "ast_hash": "51ada40006366f9d400dcf3ac8039d85",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\resources\\templates\\invoice.html": {
+    "mtime": 1779884042.1263845,
+    "ast_hash": "c19009e095b49c6fb127330787a40fb0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\public\\privacy-policy.html": {
+    "mtime": 1777656516.103645,
+    "ast_hash": "ff6b7c49ab4ff80aa2c7b9ae4df99c54",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\public\\privacy\\index.html": {
+    "mtime": 1778698078.0633605,
+    "ast_hash": "13bec1ae613bc7aadb7376f24592799b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\src\\index.html": {
+    "mtime": 1779794010.165599,
+    "ast_hash": "45fe5dc3ed8bf6697541b4ed8b482df9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\ic_launcher-playstore.png": {
+    "mtime": 1773221967.806055,
+    "ast_hash": "704e922b512c15b2915c1001284db6fc",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\drawable\\ic_khanabook_logo.png": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\drawable\\khanabook_logo.png": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher_foreground.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher_round.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher_foreground.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher_round.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher_foreground.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher_round.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher_foreground.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher_round.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher_foreground.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher_round.webp": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\thumbnail.png": {
+    "mtime": 1773487957.4595673,
+    "ast_hash": "c2a803b2a34de9077184308b5d4de036",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\thumbnail@2x.png": {
+    "mtime": 1773487957.4625714,
+    "ast_hash": "24dd314cf4fad8b8b573e2c68ee92dd5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\kbook\\Tutorials\\Figures\\_Execute a test case.png": {
+    "mtime": 1773487957.364759,
+    "ast_hash": "028f4e0374d17f3e417e9d18e87bf84e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\public\\khanabook_logo.png": {
+    "mtime": 1779903056.512144,
+    "ast_hash": "92842ec36f1e0daf5b9cc360b228e60e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\web-admin\\public\\khanabook_logo_header.png": {
+    "mtime": 1779903259.4112566,
+    "ast_hash": "84a76c2b8625b785c8508643192a4325",
+    "semantic_hash": ""
+  }
+}

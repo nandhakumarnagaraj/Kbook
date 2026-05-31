@@ -93,6 +93,21 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 ### In Progress
 - None currently
 
+### 2026-05-31 Session — Post-V2 Feature Enhancements & Critical Fixes
+- **RefreshToken Entity Type Fixed**: Changed `expiresAt` and `createdAt` from `Instant` to `Long` (epoch millis) in `RefreshToken.java` to match V29 migration's `BIGINT` columns. Updated `AuthServiceImpl.java` to use `System.currentTimeMillis()`.
+- **Missing Flyway Migrations Created**:
+  - V30__add_chargebacks.sql: chargebacks table with indexes on restaurant_id, status, bill_id
+  - V31__add_customer_profiles.sql: customer_profiles table with unique constraint on (restaurant_id, phone_hash)
+  - V32__add_webhook_retry_jobs.sql: webhook_retry_jobs table with indexes on status and next_attempt_at
+  - V33__add_customer_privacy_fields.sql: added opted_out and opted_out_at columns to customer_profiles
+- **WebhookRetryService Retry Execution**: Added `registerWebhookExecutor()` method for registering type-specific retry handlers. `processPendingRetries()` now actually executes retries via registered executors.
+- **InstantSettlementService Easebuzz Integration**: Now calls `SubMerchantService.initiateOnDemandSettlement()` for actual payout instead of returning stub status.
+- **PaymentRoutingService Enhanced**: Added actual routing logic with fallback mechanisms, bank/BIN-specific rules, payment method rate tracking, and `selectOptimalPaymentMethod()` endpoint for intelligent method selection based on success rates and amount.
+- **ChargebackPreventionService Velocity Checks**: Added 24-hour velocity window to detect multiple chargebacks per phone (max 3 per 24h). Enhanced scoring with very high-value threshold (50K), restaurant history analysis, and recommended actions (BLOCK_AND_REVIEW, MANUAL_REVIEW, ADDITIONAL_VERIFICATION, AUTO_APPROVE).
+- **CustomerDataService Privacy Compliance**: Added opt-out/opt-in, data deletion (GDPR/CCPA anonymization), and data export functionality. Customers with `opted_out=true` are excluded from insights and churn risk.
+- **TaxComplianceService CSV Export**: Added `generateGstReportCsv()` method for downloadable GST reports with line-item detail and summary section.
+- **Build & Tests**: Server compiles successfully, all 133 tests pass.
+
 ### 2026-05-19 Session — Sandbox Testing & Marketplace Webhooks
 - **All 36 tests passing**: MarketplaceWebhookControllerTest (9), MarketplaceOrderServiceTest (13), EasebuzzIntegrationTest (5), EasebuzzNewFeaturesTest (5), EasebuzzWebhookTest (4)
 - **MarketplaceWebhookController.processOrder()** rewritten to parse nested UrbanPiper payload format (`customer.name`, `order.details`, `order.store.merchant_ref_id`, `order.payment[0].option`) instead of flat payload
@@ -146,7 +161,8 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 12. ~~Fix web-admin subscription leaks — add `takeUntilDestroyed()` to 45 `.subscribe()` calls~~ ✅ Committed
 13. ~~Commit pending code review fixes & tests~~ ✅ Committed (`e2855a9`)
 14. ~~Typed exceptions + webhook HMAC auth + txnid fix + sync hasMore fix~~ ✅ Committed (`05683fc`)
-15. Update `sub-merchant-password-reset` flow when Easebuzz ops enables it (blocked)
+15. ~~Post-V2 Feature Enhancements~~ ✅ Done (payment routing, chargeback velocity, privacy compliance, CSV export, webhook retry execution)
+16. Update `sub-merchant-password-reset` flow when Easebuzz ops enables it (blocked)
 
 ## Critical Context
 - Backend base path: `/api/v2` (dev)
@@ -160,7 +176,7 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
 - Angular Emulated ViewEncapsulation adds `_ngcontent-xxx` attribute selectors — global responsive overrides need `!important` when competing with component-level `.class` rules
 - KYC API is live-only — sandbox returns error, confirmed by Easebuzz support
 - Sub-merchant management APIs return 500/400 on sandbox — likely need manual feature enablement by Easebuzz Ops
-- All 36 tests passing: 9 marketplace controller + 13 marketplace service + 14 Easebuzz unit tests
+- All 133 tests passing
 - Web-admin has 45 raw `.subscribe()` calls with no cleanup — Angular 18 has `takeUntilDestroyed()` available
 
 ## Relevant Files

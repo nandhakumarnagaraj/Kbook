@@ -16,6 +16,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { AdminApiService } from '../../core/services/admin-api.service';
+import { AdminCommission } from '../../core/models/api.models';
 import { formatDate } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 
@@ -247,8 +248,17 @@ export class CommissionConfigPageComponent implements OnInit, AfterViewInit {
   loadCommissions(): void {
     this.loaded.set(false);
     this.api.getCommissions().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (data) => {
-        this.dataSource.data = data;
+      next: (data: AdminCommission[]) => {
+        // Map AdminCommission → local CommissionRecord UI shape
+        const records: CommissionRecord[] = data.map(c => ({
+          id: c.id,
+          subMerchantId: String(c.restaurantId),   // use restaurantId as display key
+          businessName: c.shopName ?? `Restaurant #${c.restaurantId}`,
+          status: 'ACTIVE',                         // AdminCommission has no status field
+          commissionRate: c.commissionRate,
+          updatedAt: c.updatedAt
+        }));
+        this.dataSource.data = records;
         this.loaded.set(true);
       },
       error: () => {

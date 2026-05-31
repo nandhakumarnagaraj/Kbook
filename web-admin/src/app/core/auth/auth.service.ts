@@ -44,8 +44,9 @@ export class AuthService {
 
   logout(): void {
     const token = this.tokenStorage.getToken();
+    const refreshToken = this.tokenStorage.getRefreshToken();
     if (token) {
-      this.http.post(`${API_BASE_URL}/auth/logout`, {}).subscribe({
+      this.http.post(`${API_BASE_URL}/auth/logout`, { refreshToken }).subscribe({
         error: (err) => console.warn('Logout revocation call failed', err)
       });
     }
