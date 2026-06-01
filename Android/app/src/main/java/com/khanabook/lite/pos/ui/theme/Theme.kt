@@ -21,57 +21,65 @@ import androidx.core.view.WindowCompat
 import com.khanabook.lite.pos.BuildConfig
 
 // ═══════════════════════════════════════════════════════════════
-// DARK SCHEME — Saffron 🟠 primary + Sage 🟢 secondary + Sky 🔵 tertiary
-// Near-black bg, warm brown cards, high-contrast text
+// DARK SCHEME — Premium Saffron 🟠 primary + dark neutral surfaces
+// #121212 bg, #1E1E1E cards, high-contrast text
 // ═══════════════════════════════════════════════════════════════
 private val DarkColorScheme = darkColorScheme(
-    primary            = KbBrandSaffronLight,   // #E8832A — bright saffron
-    primaryContainer   = KbBrandSaffronDark,    // #994500 dark saffron
+    primary            = Color(0xFFFB923C),     // bright saffron primary
+    primaryContainer   = Color(0xFF3B2415),     // dark saffron container
     onPrimary          = Color(0xFF1F1B18),
     onPrimaryContainer = KbSaffron100,
-    secondary          = KbGreenSec500,          // #4B9A6E sage green (brighter in dark)
-    secondaryContainer = KbGreenSec800,          // #1E4D32 dark sage container
-    onSecondary        = KbGreenSec100,        // #E3F2E9 light text → ~8:1 on #4B9A6E
-    onSecondaryContainer = KbGreenSec100,        // #E3F2E9 light text on dark container
-    tertiary           = Color(0xFF7FB8F0),     // cool sky blue accent
-    tertiaryContainer  = Color(0xFF1B3050),     // dark navy
+    secondary          = KbBrandSaffronDark,    // #D97706 deeper saffron
+    secondaryContainer = Color(0xFF2A1F0D),     // dark amber container
+    onSecondary        = KbSaffron100,
+    onSecondaryContainer = KbSaffron100,
+    tertiary           = Color(0xFF60A5FA),     // soft blue accent
+    tertiaryContainer  = Color(0xFF1B3050),
     onTertiary         = Color(0xFF0A1A30),
     onTertiaryContainer = Color(0xFFD5E8FF),
-    background         = Color(0xFF060604),     // near pitch black
-    surface            = Color(0xFF1C1810),     // warm dark brown card
-    surfaceVariant     = Color(0xFF241F14),     // elevated
-    onBackground       = Color(0xFFFBF9F6),     // warm off-white body text
-    onSurface          = Color(0xFFF3EDE2),     // card text
-    onSurfaceVariant   = Color(0xFFD6C8C0),     // muted text
+    background         = Color(0xFF121212),
+    surface            = Color(0xFF1E1E1E),
+    surfaceVariant     = Color(0xFF252525),
+    onBackground       = Color(0xFFF5F5F5),
+    onSurface          = Color(0xFFF5F5F5),
+    onSurfaceVariant   = Color(0xFFB3B3B3),
     outline            = Color(0x1AFFFFFF.toInt()),
     outlineVariant     = Color(0x0DFFFFFF.toInt()),
+    error              = Color(0xFFF87171),
+    onError            = Color(0xFF1A0000),
+    errorContainer     = Color(0xFF93000A),
+    onErrorContainer   = Color(0xFFFFDAD6),
 )
 
 // ═══════════════════════════════════════════════════════════════
-// LIGHT SCHEME — Warm off-white page + white cards + green secondary
-// Stitch: "White Space First" with visible card elevation
+// LIGHT SCHEME — Premium Saffron 🟠 primary + warm neutral surfaces
+// #FAF8F5 page, white cards, slate text
 // ═══════════════════════════════════════════════════════════════
 private val LightColorScheme = lightColorScheme(
-    primary            = KbBrandSaffronAndroid, // #D97706 saffron primary
-    primaryContainer   = KbSaffron100,          // #FFDBCA warm peach container
+    primary            = KbBrandSaffron,        // #F97316 saffron primary
+    primaryContainer   = Color(0xFFFFF0E6),     // warm peach container
     onPrimary          = Color.White,
-    onPrimaryContainer = KbSaffron950,          // #331200 deep brown
-    secondary          = KbGreenSec600,          // #3D7A5A warm sage green (no longer orange!)
-    secondaryContainer = KbGreenSec100,          // #E3F2E9 light sage container
-    onSecondary        = KbGreenSec950,        // #0A2E1A dark green → ~8:1 on #3D7A5A
-    onSecondaryContainer = KbGreenSec950,        // #0A2E1A deep green text on container
-    tertiary           = Color(0xFF1B5FA8),     // strong blue tertiary
-    tertiaryContainer  = Color(0xFFD5E8FF),     // light blue container
+    onPrimaryContainer = Color(0xFF3B1A00),     // deep brown
+    secondary          = KbBrandSaffronDark,    // #D97706 deeper saffron
+    secondaryContainer = Color(0xFFFFF0E6),
+    onSecondary        = Color.White,
+    onSecondaryContainer = Color(0xFF3B1A00),
+    tertiary           = Color(0xFF2563EB),     // strong blue
+    tertiaryContainer  = Color(0xFFD5E8FF),
     onTertiary         = Color.White,
     onTertiaryContainer = Color(0xFF001B3C),
-    background         = Color(0xFFFAF7F4),     // warm off-white page — visible depth against white cards
-    surface            = Color(0xFFFFFFFF),     // pure white cards — pop against warm bg
-    surfaceVariant     = Color(0xFFF0EBE6),     // slightly warmer elevated surface
-    onBackground       = Color(0xFF1A1510),     // near-black text
-    onSurface          = Color(0xFF1A1510),
-    onSurfaceVariant   = Color(0xFF5C4F42),     // readable muted
-    outline            = Color(0xFFD6CDBF),
-    outlineVariant     = Color(0xFFEBE3D6),
+    background         = Color(0xFFFAF8F5),     // warm off-white
+    surface            = Color(0xFFFFFFFF),     // white cards
+    surfaceVariant     = Color(0xFFF5F0EB),     // slightly warmer
+    onBackground       = Color(0xFF1F2937),     // slate-800
+    onSurface          = Color(0xFF1F2937),
+    onSurfaceVariant   = Color(0xFF6B7280),     // slate-500
+    outline            = Color(0xFFD1D5DB),     // gray-300
+    outlineVariant     = Color(0xFFE5E7EB),     // gray-200
+    error              = Color(0xFFDC2626),
+    onError            = Color.White,
+    errorContainer     = Color(0xFFFFE6E6),
+    onErrorContainer   = Color(0xFF7F0000),
 )
 
 object KhanaBookTheme {

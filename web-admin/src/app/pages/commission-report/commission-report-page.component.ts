@@ -151,18 +151,18 @@ interface CommissionSummary {
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 32px; }
     .stat-card { border-radius: 16px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
     .stat-icon { background: var(--brand-soft); color: var(--brand); width: 48px; height: 48px; line-height: 48px; text-align: center; border-radius: 12px; font-size: 24px; }
-    .commission .stat-icon { background: #dcfce7; color: #16a34a; }
-    .revenue .stat-icon { background: #e0f2fe; color: #0284c7; }
-    .rate .stat-icon { background: #f3e8ff; color: #9333ea; }
+    .commission .stat-icon { background: var(--success-bg); color: var(--success); }
+    .revenue .stat-icon { background: var(--info-bg); color: var(--info); }
+    .rate .stat-icon { background: var(--purple-soft); color: var(--purple); }
 
     .table-card { border-radius: 16px; border: none; }
     .table-container { margin-top: 16px; }
     table { width: 100%; }
 
     .rate-chip { padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
-    .rate-chip.good { background: #dcfce7; color: #16a34a; }
-    .rate-chip.warn { background: #fef3c7; color: #d97706; }
-    .rate-chip.danger { background: #fee2e2; color: #dc2626; }
+    .rate-chip.good { background: var(--success-bg); color: var(--success); }
+    .rate-chip.warn { background: var(--warn-bg); color: var(--warn); }
+    .rate-chip.danger { background: var(--danger-bg); color: var(--danger); }
 
     .loading-container, .error-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; color: var(--muted); gap: 16px; }
     .no-data { padding: 48px; text-align: center; color: var(--muted); }

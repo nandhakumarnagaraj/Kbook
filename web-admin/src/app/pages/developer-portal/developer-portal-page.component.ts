@@ -76,14 +76,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     ::ng-deep .stat-card .mat-mdc-card-title{font-size:1.25rem!important;font-weight:700!important;margin:0!important}
     ::ng-deep .stat-card .mat-mdc-card-subtitle{font-size:0.8rem!important;color:var(--muted)!important;margin-top:2px!important}
     .stat-icon{width:36px;height:36px;border-radius:8px;font-size:18px;display:flex;align-items:center;justify-content:center}
-    .green{background:#dcfce7;color:#16a34a}.amber{background:#fef3c7;color:#d97706}.blue{background:#e0f2fe;color:#0284c7}
+    .green{background:var(--success-bg);color:var(--success)}.amber{background:var(--warn-bg);color:var(--warn)}.blue{background:var(--info-bg);color:var(--info)}
     .docs-card,.events-card{border-radius:16px;border:none;box-shadow:0 4px 20px rgba(0,0,0,0.05);margin-bottom:24px}
     .api-table{width:100%;border-collapse:collapse}
     .api-table th{text-align:left;padding:8px 12px;font-size:0.7rem;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
     .api-table td{padding:8px 12px;font-size:0.85rem;border-bottom:1px solid var(--line)}
     .api-table .path{font-family:monospace;font-size:0.8rem}
     .method-badge{padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;color:white}
-    .method-badge.GET{background:#2563eb}.method-badge.POST{background:#16a34a}.method-badge.PUT{background:#d97706}.method-badge.DELETE{background:#dc2626}
+    .method-badge.GET{background:var(--accent)}.method-badge.POST{background:var(--success)}.method-badge.PUT{background:var(--warn)}.method-badge.DELETE{background:var(--danger)}
     .auth-badge{padding:2px 8px;border-radius:4px;font-size:0.7rem;background:var(--bg-elevated);color:var(--muted)}
     .event-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
     .event-item{padding:12px 16px;border-radius:10px;background:var(--bg-elevated)}

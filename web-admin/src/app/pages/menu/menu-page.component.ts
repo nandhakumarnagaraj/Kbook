@@ -398,9 +398,9 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
       transform: scale(1.1) rotate(6deg);
     }
     
-    .stat-icon.total { background: rgba(2, 132, 199, 0.12); color: #0284c7; }
-    .stat-icon.available { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
-    .stat-icon.low { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+    .stat-icon.total { background: rgba(2, 132, 199, 0.12); color: var(--info); }
+    .stat-icon.available { background: rgba(34, 197, 94, 0.12); color: var(--success); }
+    .stat-icon.low { background: rgba(245, 158, 11, 0.12); color: var(--warn); }
 
     .filter-card { 
       margin-bottom: 24px; 
@@ -457,8 +457,8 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
     .item-row:hover { background: var(--panel-hover) !important; }
 
     .item-cell { display: flex; align-items: center; gap: 12px; }
-    .item-avatar { width: 42px; height: 42px; border-radius: var(--radius-lg); background: rgba(239, 68, 68, 0.1); color: #be123c; display: flex; align-items: center; justify-content: center; }
-    .item-avatar.veg { background: rgba(34, 197, 94, 0.1); color: #15803d; }
+    .item-avatar { width: 42px; height: 42px; border-radius: var(--radius-lg); background: rgba(239, 68, 68, 0.1); color: var(--danger); display: flex; align-items: center; justify-content: center; }
+    .item-avatar.veg { background: rgba(34, 197, 94, 0.1); color: var(--success); }
     .item-avatar mat-icon { font-size: 22px; width: 22px; height: 22px; }
     
     .item-meta { display: flex; flex-direction: column; }
@@ -470,9 +470,9 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
     .price-cell { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
 
     .stock-status-chip { padding: 4px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stock-status-chip.success { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
-    .stock-status-chip.warn { background: rgba(245, 158, 11, 0.12); color: #d97706; }
-    .stock-status-chip.danger { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+    .stock-status-chip.success { background: rgba(34, 197, 94, 0.12); color: var(--success); }
+    .stock-status-chip.warn { background: rgba(245, 158, 11, 0.12); color: var(--warn); }
+    .stock-status-chip.danger { background: rgba(239, 68, 68, 0.12); color: var(--danger); }
 
     .status-toggle-wrap { display: flex; align-items: center; gap: 8px; }
     .status-label { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
@@ -480,7 +480,7 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
     .status-toggle-wrap mat-slide-toggle { transform: scale(0.9); }
 
     .actions-cell { text-align: right; }
-    ::ng-deep .delete-action .delete-text { color: var(--error, #dc2626); }
+    ::ng-deep .delete-action .delete-text { color: var(--danger); }
 
     .empty-state-wrapper { padding: 48px 24px; }
 

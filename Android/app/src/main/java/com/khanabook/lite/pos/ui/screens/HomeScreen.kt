@@ -4,6 +4,8 @@ package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -36,10 +38,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
+import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel.HomeStats
 import com.khanabook.lite.pos.ui.designsystem.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.border
@@ -61,11 +63,8 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
 ) {
-    // reason: senior mobile UI designer token system to separate layers and ensure WCAG AA contrast.
-    val pageBg = if (globalIsDark) KbMidnightBase else Color(0xFFFAF7F4) // ⚠ override: warm off-white page background
-    val textPrimaryColor = if (globalIsDark) TextLight else Color(0xFF1A1A1A) // ⚠ override: high contrast primary text
-    val textSecondaryColor = if (globalIsDark) TextGold else Color(0xFF7A7068) // ⚠ override: greeting color
-    val textMutedColor = if (globalIsDark) TextGold.copy(alpha = 0.7f) else Color(0xFF6B6258) // ⚠ override: section label color
+    val pageBg = KbMidnightBase
+    val spacing = KhanaBookTheme.spacing
 
     val stats by viewModel.todayStats.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
@@ -74,30 +73,17 @@ fun HomeScreen(
     val greeting = viewModel.greeting
     val marketplacePendingCount by viewModel.marketplacePendingCount.collectAsState()
     val complianceAlerts by viewModel.complianceAlerts.collectAsState()
-    val dismissedAlerts = remember { mutableListOf<String>() }
-    val spacing = KhanaBookTheme.spacing
-    val layout = KhanaBookTheme.layout
-
+    val dismissedAlerts: MutableList<String> = remember { mutableListOf() }
     val statsReady by viewModel.statsReady.collectAsState()
-
-    val newBillInteractionSource = remember { MutableInteractionSource() }
-    val isNewBillPressed by newBillInteractionSource.collectIsPressedAsState()
-    val newBillScale by animateFloatAsState(
-        targetValue = if (isNewBillPressed) 0.96f else 1f,
-        label = "new_bill_scale"
-    )
 
     var headerVisible by remember { mutableStateOf(false) }
     var statsVisible by remember { mutableStateOf(false) }
-    var primaryVisible by remember { mutableStateOf(false) }
     var actionsVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         headerVisible = true
         delay(80)
         statsVisible = true
-        delay(80)
-        primaryVisible = true
         delay(80)
         actionsVisible = true
     }
@@ -108,88 +94,77 @@ fun HomeScreen(
         }
     }
 
-    val enterSpec = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) + slideInVertically(
-        initialOffsetY = { it / 6 },
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)
-    )
-    val exitSpec = fadeOut(spring(stiffness = Spring.StiffnessMediumLow))
+    val enterSpec: EnterTransition = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
+        slideInVertically(spring(stiffness = Spring.StiffnessMediumLow)) { it / 2 }
+    val exitSpec: ExitTransition = fadeOut(spring(stiffness = Spring.StiffnessMediumLow))
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(pageBg) // reason: Layer 1 - warm off-white page background
+            .background(pageBg)
     ) {
-        // reason: Keep the mesh gradient accents only in dark mode to preserve visual clarity in light mode.
-        if (globalIsDark) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(KbMeshGradientSaffron)
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(KbMeshGradientAmber)
-            )
-        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // reason: Equal flex space at top/bottom for vertical centering on tall screens.
-            Spacer(modifier = Modifier.weight(1f, fill = true))
-
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                 Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = spacing.medium),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = KbBrandSaffron
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_khanabook_logo),
-                            contentDescription = "KhanaBook",
-                            modifier = Modifier.size(36.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = greeting,
-                                color = textSecondaryColor,
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontSize = 13.sp, // reason: Greeting typography 13sp regular
-                                    fontWeight = FontWeight.Normal
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = shopName,
-                                color = textPrimaryColor,
-                                style = MaterialTheme.typography.headlineSmall.copy(
-                                    fontSize = 20.sp, // reason: Screen title typography 20sp bold
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Box(modifier = Modifier.widthIn(max = 160.dp)) {
-                            SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
+                        Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 20.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = greeting,
+                                        color = Color.White.copy(alpha = KbOpacity.Muted),
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Normal
+                                        ),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = shopName,
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            fontSize = 22.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
+                                    Icon(
+                                        imageVector = Icons.Default.Notifications,
+                                        contentDescription = "Notifications",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
                         }
                     }
-
-                    // Compliance warning banners
                     val visibleAlerts = complianceAlerts.filter { it.label !in dismissedAlerts }
                     if (visibleAlerts.isNotEmpty()) {
                         Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(spacing.small)
+                            verticalArrangement = Arrangement.spacedBy(spacing.small),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
                         ) {
                             visibleAlerts.forEach { alert ->
                                 ComplianceBanner(
@@ -202,215 +177,184 @@ fun HomeScreen(
                 }
             }
 
+            AnimatedVisibility(
+                visible = statsVisible && connectionStatus == com.khanabook.lite.pos.domain.util.ConnectionStatus.Unavailable,
+                enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(tween(300)),
+                exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(tween(200))
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().height(40.dp),
+                    color = KbWarning.copy(alpha = 0.12f)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "You're offline — bills will sync when reconnected",
+                            color = KbWarning,
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
             AnimatedVisibility(visible = statsVisible, enter = enterSpec, exit = exitSpec) {
-                if (!statsReady) {
-                    SkeletonCard(modifier = Modifier.fillMaxWidth())
-                } else {
-                    // reason: Summary card container matching #F5F0EB fill, #E0D8D0 border, and 0dp elevation.
-                    val summaryCardBg = if (globalIsDark) MaterialTheme.kbBgCard.copy(alpha = 0.5f) else Color(0xFFF5F0EB)
-                    val summaryCardBorder = if (globalIsDark) BorderGold.copy(alpha = 0.2f) else Color(0xFFE0D8D0)
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, summaryCardBorder, RoundedCornerShape(18.dp)),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = summaryCardBg),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(spacing.medium)
-                        ) {
-                            Text(
-                                text = "Today's Summary",
-                                color = textMutedColor,
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontSize = 12.sp, // reason: Section label typography 12sp medium
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.6.sp
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(spacing.small))
-                            if (stats.orderCount == 0) {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Spacer(Modifier.height(spacing.medium))
-                                    Icon(
-                                        Icons.Default.RestaurantMenu,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.kbTextTertiary,
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                    Spacer(Modifier.height(spacing.small))
-                                    Text(
-                                        "No orders yet today — ready when you are",
-                                        color = MaterialTheme.kbTextTertiary,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(Modifier.height(spacing.medium))
-                                }
-                            } else {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceEvenly
-                                ) {
-                                    SummaryStatItem("Orders", stats.orderCount.toString(), textPrimaryColor, textMutedColor, Modifier.weight(1f))
-                                    SummaryStatItem("Revenue", CurrencyUtils.formatPriceCompact(stats.revenue), textPrimaryColor, textMutedColor, Modifier.weight(1f))
-                                    SummaryStatItem("Customers", stats.customerCount.toString(), textPrimaryColor, textMutedColor, Modifier.weight(1f))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (globalIsDark) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.9f)
-                                .height(130.dp)
-                                .background(KbSaffronGlowStrong)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Today's Summary",
+                        color = MaterialTheme.kbTextSecondary,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.6.sp
                         )
-                    }
-                    
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .scale(newBillScale)
-                            .shadow(4.dp, shape = RoundedCornerShape(18.dp)) // reason: Subtle shadow elevation of 4dp as specified
-                            .border(
-                                width = 1.dp,
-                                color = KbBrandSaffronLight.copy(alpha = 0.4f),
-                                shape = RoundedCornerShape(18.dp)
-                            ),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(KbMeshHeroGradient)
-                                .clickable(
-                                    interactionSource = newBillInteractionSource,
-                                    indication = ripple(bounded = true, color = Color.White),
-                                    onClick = { onNewBill() }
-                                )
-                                .padding(spacing.large)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(min = 120.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "Create New Bill",
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.headlineSmall.copy(
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    )
-                                    Text(
-                                        text = "Start taking orders",
-                                        color = Color.White.copy(alpha = 0.7f),
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Normal
-                                        ),
-                                        modifier = Modifier.padding(top = spacing.extraSmall)
-                                    )
-                                }
-                                Icon(
-                                    imageVector = Icons.Default.AddCircle,
-                                    contentDescription = "Create New Bill",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(spacing.huge)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
-                val infiniteTransition = rememberInfiniteTransition(label = "badge_pulse")
-                val pulseAlpha by infiniteTransition.animateFloat(
-                    initialValue = 0.05f,
-                    targetValue = 0.25f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(1200, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "alpha"
-                )
-
-                Box {
-                    if (marketplacePendingCount > 0) {
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .background(
-                                    Brush.radialGradient(
-                                        colors = listOf(KbBrandSaffron.copy(alpha = pulseAlpha), Color.Transparent)
-                                    )
-                                )
-                        )
-                    }
-                    
-                    HomeActionCard(
-                        text = "Online Orders",
-                        onClick = onMarketplaceOrders,
-                        badgeCount = marketplacePendingCount
                     )
+                    if (!statsReady || (stats.orderCount == 0 && stats.revenue == 0.0)) {
+                        TodaySummaryEmpty(onNewBill = onNewBill)
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            MetricCard(
+                                value = stats.orderCount.toString(),
+                                label = "Total Orders",
+                                badge = "today",
+                                modifier = Modifier.weight(1f)
+                            )
+                            MetricCard(
+                                value = CurrencyUtils.formatPriceCompact(stats.revenue),
+                                label = "Revenue",
+                                badge = "today",
+                                modifier = Modifier.weight(1f)
+                            )
+                            MetricCard(
+                                value = CurrencyUtils.formatPriceCompact(
+                                    if (stats.orderCount > 0) stats.revenue / stats.orderCount else 0.0
+                                ),
+                                label = "Avg Order",
+                                badge = "today",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
             }
 
             AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    Text(
+                        text = "Quick Actions",
+                        color = MaterialTheme.kbTextSecondary,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 0.6.sp
+                        )
+                    )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = onNewBill,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = KbShape.Medium,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = KbBrandSaffron
+                            )
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("New Bill", fontWeight = FontWeight.SemiBold)
+                        }
+                        OutlinedButton(
+                            onClick = onSearchBill,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = KbShape.Medium,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = KbBrandSaffron
+                            )
+                        ) {
+                            Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Orders", fontWeight = FontWeight.SemiBold)
+                        }
+                        OutlinedButton(
+                            onClick = onOrderStatus,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = KbShape.Medium,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = KbBrandSaffron
+                            )
+                        ) {
+                            Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Menu", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    if (marketplacePendingCount > 0) {
+                        HomeActionCard(
+                            text = "Online Orders",
+                            onClick = onMarketplaceOrders,
+                            badgeCount = marketplacePendingCount
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         HomeActionGridCard(
                             text = "Find Bill",
                             icon = Icons.Default.Search,
-                            isPrimary = true, // reason: Primary tier action gets green left-border accent
+                            isPrimary = true,
                             modifier = Modifier.weight(1f),
                             onClick = onSearchBill
                         )
                         HomeActionGridCard(
                             text = "Reprint KDS",
                             icon = Icons.Default.Restaurant,
-                            isPrimary = false, // reason: Secondary tier action
+                            isPrimary = false,
                             modifier = Modifier.weight(1f),
                             onClick = onReprintKds
                         )
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         HomeActionGridCard(
                             text = "Order Status",
                             icon = Icons.Default.Info,
-                            isPrimary = true, // reason: Primary tier action gets green left-border accent
+                            isPrimary = true,
                             modifier = Modifier.weight(1f),
                             onClick = onOrderStatus
                         )
                         HomeActionGridCard(
                             text = "Call Customers",
                             icon = Icons.Default.Call,
-                            isPrimary = false, // reason: Secondary tier action
+                            isPrimary = false,
                             modifier = Modifier.weight(1f),
                             onClick = onCallCustomer
                         )
@@ -418,8 +362,212 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f, fill = true))
+            Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+}
+
+@Composable
+private fun MetricCard(
+    value: String,
+    label: String,
+    badge: String? = null,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.kbOutlineSubtle,
+                shape = RoundedCornerShape(14.dp)
+            ),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                    .background(KbBrandSaffron)
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = value,
+                color = MaterialTheme.kbTextPrimary,
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFeatureSettings = "tnum"
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = label,
+                color = MaterialTheme.kbTextSecondary,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.5.sp
+                ),
+                maxLines = 1
+            )
+            if (badge != null) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = badge,
+                    color = KbBrandSaffron,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TodaySummaryContent(
+    stats: HomeStats,
+    textPrimaryColor: Color,
+    textMutedColor: Color
+) {
+    val spacing = KhanaBookTheme.spacing
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        StatColumn(
+            value = stats.orderCount.toString(),
+            label = "Orders",
+            subtitle = "today",
+            valueColor = textPrimaryColor,
+            labelColor = textMutedColor,
+            modifier = Modifier.weight(1f)
+        )
+        Box(
+            modifier = Modifier
+                .width(1.dp)
+                .height(48.dp)
+                .background(MaterialTheme.kbOutlineSubtle)
+        )
+        StatColumn(
+            value = CurrencyUtils.formatPriceCompact(stats.revenue),
+            label = "Revenue",
+            subtitle = "today",
+            valueColor = textPrimaryColor,
+            labelColor = textMutedColor,
+            modifier = Modifier.weight(1f)
+        )
+        Box(
+            modifier = Modifier
+                .width(1.dp)
+                .height(48.dp)
+                .background(MaterialTheme.kbOutlineSubtle)
+        )
+        StatColumn(
+            value = stats.customerCount.toString(),
+            label = "Customers",
+            subtitle = "today",
+            valueColor = textPrimaryColor,
+            labelColor = textMutedColor,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun StatColumn(
+    value: String,
+    label: String,
+    subtitle: String?,
+    valueColor: Color,
+    labelColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            color = valueColor,
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                fontFeatureSettings = "tnum"
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = label,
+            color = labelColor,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 0.8.sp
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                color = labelColor.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun TodaySummaryEmpty(onNewBill: () -> Unit) {
+    val spacing = KhanaBookTheme.spacing
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(spacing.small))
+        Icon(
+            Icons.Default.Receipt,
+            contentDescription = null,
+            tint = MaterialTheme.kbTextTertiary,
+            modifier = Modifier.size(32.dp)
+        )
+        Spacer(Modifier.height(spacing.small))
+        Text(
+            "No orders yet today",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.kbTextSecondary
+        )
+        Text(
+            "Start your first bill to see today's summary",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.kbTextTertiary
+        )
+        Spacer(Modifier.height(spacing.medium))
+        Button(
+            onClick = onNewBill,
+            modifier = Modifier.height(48.dp),
+            shape = KbShape.Medium,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.kbPrimary
+            )
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Create New Bill")
+        }
+        Spacer(Modifier.height(spacing.small))
     }
 }
 
@@ -431,7 +579,6 @@ fun SummaryStatItem(
     labelColor: Color,
     modifier: Modifier = Modifier
 ) {
-    // reason: Custom summary stat item to support sentence case, 20sp bold values, and 11sp medium labels as per designer specification.
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -447,7 +594,7 @@ fun SummaryStatItem(
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = label, // reason: Sentence case (e.g. "Orders", "Avg order")
+            text = label,
             color = labelColor,
             style = MaterialTheme.typography.labelSmall.copy(
                 fontSize = 11.sp,
@@ -467,8 +614,6 @@ fun SyncStatusHeader(
     unsyncedCount: Int,
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 ) {
-    // reason: Cloud synced status badge following design spec: #E6F4EE bg, #0F6E56 text/icon, #B0DBC9 border, RoundedCornerShape(20dp).
-    // ⚠ override: Specific background and border colors overriding the default M3 secondary colors for cleaner badge aesthetics.
     val isOnline = connectionStatus == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
@@ -493,16 +638,16 @@ fun SyncStatusHeader(
     }
 
     val (bgColor, textColor, borderColor) = when {
-        !isOnline -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), Color(0xFFFFCDD2))
-        !isSessionValid -> Triple(Color(0xFFFFFDE7), Color(0xFFF57F17), Color(0xFFFFF9C4))
-        unsyncedCount > 0 -> Triple(Color(0xFFFFF3E0), Color(0xFFE65100), Color(0xFFFFE0B2))
-        else -> Triple(Color(0xFFE6F4EE), Color(0xFF0F6E56), Color(0xFFB0DBC9)) // ⚠ override: Cloud Synced spec
+        !isOnline -> Triple(KbRedSubtle, KbError, KbError.copy(alpha = KbOpacity.StatusBorder))
+        !isSessionValid -> Triple(KbWarning.copy(alpha = KbOpacity.StatusBg), KbWarning, KbWarning.copy(alpha = KbOpacity.StatusBorder))
+        unsyncedCount > 0 -> Triple(KbBrandSaffron.copy(alpha = KbOpacity.StatusBg), KbWarning, KbBrandSaffron.copy(alpha = KbOpacity.StatusBorder))
+        else -> Triple(KbSuccess.copy(alpha = KbOpacity.StatusBg), KbSuccess, KbSuccess.copy(alpha = KbOpacity.StatusBorder))
     }
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .clip(RoundedCornerShape(20.dp)) // ⚠ override: 20dp pill shape
+            .clip(RoundedCornerShape(20.dp))
             .background(bgColor)
             .border(1.dp, borderColor, RoundedCornerShape(20.dp))
     ) {
@@ -528,9 +673,9 @@ fun SyncStatusHeader(
                         else Modifier
                     )
             )
-            
+
             Spacer(modifier = Modifier.width(spacing.small))
-            
+
             AnimatedContent(
                 targetState = when {
                     !isOnline -> "Offline"
@@ -563,13 +708,11 @@ fun HomeActionCard(
     onClick: () -> Unit,
     badgeCount: Int = 0
 ) {
-    // reason: Styled to match flat white card style (#FFFFFF, 1dp #E8E2DA border, 15sp semibold label).
-    // ⚠ override: Custom text size of 15sp and accent color of #1B6B4A for consistency with primary actions.
     val spacing = KhanaBookTheme.spacing
     val cardBg = Color.White
-    val cardBorderColor = Color(0xFFE8E2DA)
-    val accentColor = Color(0xFF1B6B4A) // Accent / icon green
-    
+    val cardBorderColor = MaterialTheme.kbOutlineSubtle
+    val accentColor = KbSuccess
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -594,15 +737,15 @@ fun HomeActionCard(
                     imageVector = Icons.Default.ShoppingCart,
                     contentDescription = null,
                     tint = accentColor,
-                    modifier = Modifier.size(28.dp) // reason: Specified target icon size
+                    modifier = Modifier.size(28.dp)
                 )
                 Spacer(modifier = Modifier.width(spacing.medium))
                 Column {
                     Text(
                         text = text,
-                        color = Color(0xFF1A1A1A),
+                        color = MaterialTheme.kbTextPrimary,
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 15.sp, // reason: Body/button label 15sp semi-bold
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold
                         ),
                         maxLines = 1,
@@ -653,14 +796,12 @@ fun HomeActionGridCard(
     onClick: () -> Unit,
     badgeCount: Int = 0
 ) {
-    // reason: Grid cards supporting hierarchy: primary actions have left border accent, secondary do not.
-    // ⚠ override: Card uses explicit custom colors (#FAF7F4 layer separation, #E8E2DA border, and #1B6B4A icons).
     val spacing = KhanaBookTheme.spacing
     val cardBg = Color.White
-    val cardBorderColor = Color(0xFFE8E2DA)
-    val accentColor = Color(0xFF1B6B4A) // Accent / icon green
-    val textColor = if (isPrimary) Color(0xFF1A1A1A) else Color(0xFF4A4540)
-    
+    val cardBorderColor = MaterialTheme.kbOutlineSubtle
+    val accentColor = KbSuccess
+    val textColor = if (isPrimary) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -673,7 +814,7 @@ fun HomeActionGridCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min), // reason: Required to let left border expand to cover the card height
+                .height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (isPrimary) {
@@ -681,7 +822,7 @@ fun HomeActionGridCard(
                     modifier = Modifier
                         .width(3.dp)
                         .fillMaxHeight()
-                        .background(accentColor) // reason: left border accent 3dp for primary tier
+                        .background(accentColor)
                 )
             }
             Box(
@@ -698,14 +839,14 @@ fun HomeActionGridCard(
                         imageVector = icon,
                         contentDescription = null,
                         tint = accentColor,
-                        modifier = Modifier.size(28.dp) // reason: Specified target icon size
+                        modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.height(spacing.small))
                     Text(
                         text = text,
                         color = textColor,
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 15.sp, // reason: Body/button label 15sp semi-bold
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold
                         ),
                         maxLines = 1,
@@ -740,15 +881,14 @@ fun ComplianceBanner(
     onDismiss: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    // reason: Redesigned warning alerts with high contrast background and text to satisfy WCAG AA on off-white.
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
 
     val result = when (alert.urgency) {
-        HomeViewModel.ComplianceAlert.Urgency.EXPIRED  -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), Icons.Default.GppBad) to ("Expired" to "EXPIRED")
-        HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), Icons.Default.Warning) to ("Critical warning" to "${alert.daysLeft}d left")
-        HomeViewModel.ComplianceAlert.Urgency.HIGH     -> Triple(Color(0xFFFFF3E0), Color(0xFFE65100), Icons.Default.WarningAmber) to ("High priority warning" to "${alert.daysLeft}d left")
-        HomeViewModel.ComplianceAlert.Urgency.MEDIUM   -> Triple(Color(0xFFE8F5E9), Color(0xFF2E7D32), Icons.Default.Info) to ("Info" to "${alert.daysLeft}d left")
+        HomeViewModel.ComplianceAlert.Urgency.EXPIRED  -> Triple(KbRedSubtle, KbError, Icons.Default.GppBad) to ("Expired" to "EXPIRED")
+        HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> Triple(KbRedSubtle, KbError, Icons.Default.Warning) to ("Critical warning" to "${alert.daysLeft}d left")
+        HomeViewModel.ComplianceAlert.Urgency.HIGH     -> Triple(KbWarning.copy(alpha = KbOpacity.StatusBg), KbWarning, Icons.Default.WarningAmber) to ("High priority warning" to "${alert.daysLeft}d left")
+        HomeViewModel.ComplianceAlert.Urgency.MEDIUM   -> Triple(KbSuccess.copy(alpha = KbOpacity.StatusBg), KbSuccess, Icons.Default.Info) to ("Info" to "${alert.daysLeft}d left")
     }
     val bannerBg = result.first.first
     val textColor = result.first.second
@@ -804,7 +944,7 @@ fun ComplianceBanner(
             if (onDismiss != null) {
                 IconButton(
                     onClick = onDismiss,
-                    modifier = Modifier.size(48.dp) // reason: Standard 48dp minimum tap target
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,

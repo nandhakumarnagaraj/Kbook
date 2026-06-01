@@ -20,6 +20,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatMenuModule } from '@angular/material/menu';
 import { Chart, registerables } from 'chart.js';
+import { DashboardShellComponent } from '../../shared/dashboard-shell.component';
 
 Chart.register(...registerables);
 
@@ -41,37 +42,36 @@ interface AnomalyAlert {
     MatCardModule, MatIconModule, MatDividerModule, MatProgressBarModule,
     MatTableModule, MatTooltipModule, MatProgressSpinnerModule, MatButtonModule,
     MatChipsModule, MatSelectModule, MatFormFieldModule, MatMenuModule,
+    DashboardShellComponent,
   ],
   template: `
-    <div class="page-container">
-      <div class="header-row">
-        <div class="header-left">
-          <h1 class="page-title">Payment Dashboard</h1>
-          <p class="page-subtitle">Real-time payment gateway analytics and transaction insights</p>
-        </div>
-        <div class="header-right">
-          <div class="header-controls">
-            <mat-form-field appearance="outline" subscriptSizing="dynamic">
-              <mat-select [value]="trendPeriod()" (selectionChange)="trendPeriod.set($event.value); rebuildTrendChart()">
-                <mat-option value="hourly">Hourly</mat-option>
-                <mat-option value="daily">Daily</mat-option>
-                <mat-option value="weekly">Weekly</mat-option>
-              </mat-select>
-            </mat-form-field>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic">
-              <mat-select [value]="trendDays()" (selectionChange)="trendDays.set($event.value); rebuildTrendChart()">
-                <mat-option [value]="1">1 Day</mat-option>
-                <mat-option [value]="7">7 Days</mat-option>
-                <mat-option [value]="30">30 Days</mat-option>
-              </mat-select>
-            </mat-form-field>
-            <div class="status-indicator">
-              <span class="dot pulse success"></span>
-              <span class="status-label">Operational</span>
-            </div>
+    <app-dashboard-shell
+      [title]="'Payment Dashboard'"
+      [subtitle]="'Real-time payment gateway analytics and transaction insights'"
+      [loading]="!data()"
+    >
+      <ng-container header-actions>
+        <div class="header-controls">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-select [value]="trendPeriod()" (selectionChange)="trendPeriod.set($event.value); rebuildTrendChart()">
+              <mat-option value="hourly">Hourly</mat-option>
+              <mat-option value="daily">Daily</mat-option>
+              <mat-option value="weekly">Weekly</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-select [value]="trendDays()" (selectionChange)="trendDays.set($event.value); rebuildTrendChart()">
+              <mat-option [value]="1">1 Day</mat-option>
+              <mat-option [value]="7">7 Days</mat-option>
+              <mat-option [value]="30">30 Days</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <div class="status-indicator">
+            <span class="dot pulse success"></span>
+            <span class="status-label">Operational</span>
           </div>
         </div>
-      </div>
+      </ng-container>
 
       <!-- Anomaly Alerts -->
       @if (anomalies()?.length) {
@@ -215,13 +215,8 @@ interface AnomalyAlert {
             </mat-card>
           </div>
         </div>
-      } @else {
-        <div class="loading-container">
-          <mat-spinner diameter="40"></mat-spinner>
-          <p>Loading payment analytics...</p>
-        </div>
       }
-    </div>
+    </app-dashboard-shell>
   `,
   styles: [`
     .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
@@ -237,17 +232,17 @@ interface AnomalyAlert {
 
     .status-indicator { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--bg-elevated); border-radius: 999px; border: 1px solid var(--line); }
     .dot { width: 8px; height: 8px; border-radius: 50%; }
-    .dot.success { background: #16a34a; box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1); }
+    .dot.success { background: var(--success); box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1); }
     .dot.pulse { animation: pulse 2s infinite; }
     @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(22, 163, 74, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); } 100% { box-shadow: 0 0 0 0px rgba(22, 163, 74, 0); } }
     .status-label { font-size: 0.85rem; font-weight: 600; color: var(--ink); }
 
     .alerts-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
     .alert-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; font-size: 0.85rem; font-weight: 500; }
-    .alert-item.critical { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-    .alert-item.warning { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
-    :root.dark-theme .alert-item.critical { background: #450a0a; color: #fca5a5; border-color: #7f1d1d; }
-    :root.dark-theme .alert-item.warning { background: #451a03; color: #fbbf24; border-color: #78350f; }
+    .alert-item.critical { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+    .alert-item.warning { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+    :root.dark-theme .alert-item.critical { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+    :root.dark-theme .alert-item.warning { background: #451a03; color: var(--warn); border-color: #78350f; }
 
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .stat-card { border-radius: 12px; border: none; box-shadow: 0 4px 16px rgba(0,0,0,0.05); }
@@ -257,19 +252,19 @@ interface AnomalyAlert {
     ::ng-deep .stat-card .mat-mdc-card-subtitle { font-size: 0.8rem !important; color: var(--muted) !important; margin-top: 2px !important; }
 
     .stat-icon { background: var(--brand-soft); color: var(--brand); width: 36px; height: 36px; line-height: 36px; text-align: center; border-radius: 8px; font-size: 18px; display: flex; align-items: center; justify-content: center; }
-    .transactions.stat-icon { background: #f3e8ff; color: #9333ea; }
-    .success-rate.stat-icon { background: #dcfce7; color: #16a34a; }
-    .revenue.stat-icon { background: #fef3c7; color: #d97706; }
-    .last-hour.stat-icon { background: #e0f2fe; color: #0284c7; }
+    .transactions.stat-icon { background: var(--purple-soft); color: var(--purple); }
+    .success-rate.stat-icon { background: var(--success-bg); color: var(--success); }
+    .revenue.stat-icon { background: var(--warn-bg); color: var(--warn); }
+    .last-hour.stat-icon { background: var(--info-bg); color: var(--info); }
 
     .stat-detail { margin-top: 6px; font-size: 0.8rem; color: var(--muted); display: flex; gap: 6px; align-items: center; }
-    .stat-detail .up { color: #16a34a; font-weight: 500; }
-    .stat-detail .down { color: #dc2626; font-weight: 500; }
+    .stat-detail .up { color: var(--success); font-weight: 500; }
+    .stat-detail .down { color: var(--danger); font-weight: 500; }
     .stat-detail .sep { color: var(--line); }
     .rate-bar { height: 6px; border-radius: 3px; margin-top: 4px; }
-    .rate-bar.good ::ng-deep .mat-mdc-progress-bar-fill { background: #16a34a !important; }
-    .rate-bar.warn ::ng-deep .mat-mdc-progress-bar-fill { background: #d97706 !important; }
-    .rate-bar.danger ::ng-deep .mat-mdc-progress-bar-fill { background: #dc2626 !important; }
+    .rate-bar.good ::ng-deep .mat-mdc-progress-bar-fill { background: var(--success) !important; }
+    .rate-bar.warn ::ng-deep .mat-mdc-progress-bar-fill { background: var(--warn) !important; }
+    .rate-bar.danger ::ng-deep .mat-mdc-progress-bar-fill { background: var(--danger) !important; }
 
     .main-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; }
 
@@ -281,15 +276,15 @@ interface AnomalyAlert {
     table { width: 100%; }
     .method-chip { padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: var(--brand-soft); color: var(--brand); text-transform: capitalize; }
     .rate-chip { padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
-    .rate-chip.good { background: #dcfce7; color: #16a34a; }
-    .rate-chip.warn { background: #fef3c7; color: #d97706; }
-    .rate-chip.danger { background: #fee2e2; color: #dc2626; }
+    .rate-chip.good { background: var(--success-bg); color: var(--success); }
+    .rate-chip.warn { background: var(--warn-bg); color: var(--warn); }
+    .rate-chip.danger { background: var(--danger-bg); color: var(--danger); }
 
     .failed-card { border-radius: 16px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
     .failed-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; max-height: 320px; overflow-y: auto; }
     .failed-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 8px; transition: background 0.15s; }
     .failed-item:hover { background: var(--bg-elevated); }
-    .failed-icon { color: #dc2626; font-size: 18px; width: 18px; height: 18px; }
+    .failed-icon { color: var(--danger); font-size: 18px; width: 18px; height: 18px; }
     .failed-body { flex: 1; min-width: 0; }
     .failed-txnid { font-size: 0.8rem; font-weight: 600; color: var(--ink); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .failed-meta { font-size: 0.7rem; color: var(--muted); }
@@ -306,6 +301,11 @@ interface AnomalyAlert {
       .chart-wrapper { height: 180px; }
       ::ng-deep .stat-card .mat-mdc-card-title { font-size: 1rem; }
       .header-controls { flex-wrap: wrap; gap: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .dot.pulse { animation: none !important; }
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
     }
   `]
 })
@@ -378,7 +378,7 @@ export class PaymentDashboardPageComponent implements AfterViewInit {
     if (!ctx) return;
 
     const computedStyle = getComputedStyle(document.documentElement);
-    const brand = computedStyle.getPropertyValue('--brand').trim() || '#C85A00';
+    const brand = computedStyle.getPropertyValue('--brand').trim() || '#F97316';
     const ink = computedStyle.getPropertyValue('--ink').trim() || '#1a1a2e';
     const muted = computedStyle.getPropertyValue('--muted').trim() || '#94a3b8';
     const line = computedStyle.getPropertyValue('--line').trim() || '#e2e8f0';

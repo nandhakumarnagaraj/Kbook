@@ -319,7 +319,7 @@ type OnlineView = 'table' | 'kanban';
                       <button mat-flat-button color="primary" *ngIf="order.orderStatus === 'PENDING'" (click)="acceptOrder(order)">Accept</button>
                       <button mat-button color="warn" *ngIf="order.orderStatus === 'PENDING'" (click)="startReject(order)">Reject</button>
                       <button mat-flat-button color="accent" *ngIf="order.orderStatus === 'ACCEPTED'" (click)="markReady(order)">Mark Ready</button>
-                      <button mat-flat-button color="success" *ngIf="order.orderStatus === 'READY'" (click)="completeOrder(order)" style="background-color: #16a34a; color: white;">Complete</button>
+                      <button mat-flat-button color="success" *ngIf="order.orderStatus === 'READY'" (click)="completeOrder(order)" style="background-color: var(--success); color: white;">Complete</button>
                     </div>
                   </td>
                 </ng-container>
@@ -488,7 +488,7 @@ type OnlineView = 'table' | 'kanban';
     ::ng-deep .filter-row .mat-mdc-form-field-subscript-wrapper { display: none; }
     
     .selection-banner { padding: 16px 24px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.15); border-radius: var(--radius-lg); margin-top: 12px; display: flex; align-items: center; gap: 16px; animation: slideIn 0.2s ease; }
-    .banner-text { font-weight: 700; color: #dc2626; }
+    .banner-text { font-weight: 700; color: var(--danger); }
 
     .table-container { 
       position: relative; 
@@ -530,19 +530,19 @@ type OnlineView = 'table' | 'kanban';
     .customer-cell .contact { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
 
     .status-badge { padding: 4px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    .status-badge.success { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
-    .status-badge.warn { background: rgba(245, 158, 11, 0.12); color: #d97706; }
-    .status-badge.danger { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
-    .status-badge.info { background: rgba(2, 132, 199, 0.12); color: #0284c7; }
+    .status-badge.success { background: rgba(34, 197, 94, 0.12); color: var(--success); }
+    .status-badge.warn { background: rgba(245, 158, 11, 0.12); color: var(--warn); }
+    .status-badge.danger { background: rgba(239, 68, 68, 0.12); color: var(--danger); }
+    .status-badge.info { background: rgba(2, 132, 199, 0.12); color: var(--info); }
 
     .payment-cell { display: flex; flex-direction: column; }
     .payment-cell .method { font-weight: 600; color: var(--ink); }
     .p-status { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
-    .p-status.refunded { color: #dc2626; font-weight: 700; }
+    .p-status.refunded { color: var(--danger); font-weight: 700; }
 
     .total-cell { display: flex; flex-direction: column; align-items: flex-end; }
     .total-cell .amount { font-weight: 700; font-size: 1rem; color: var(--ink); }
-    .refunded-amount { color: #dc2626; font-size: 0.75rem; font-weight: 700; margin-top: 2px; }
+    .refunded-amount { color: var(--danger); font-size: 0.75rem; font-weight: 700; margin-top: 2px; }
 
     .online-counts-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
     .status-box { 
@@ -562,16 +562,16 @@ type OnlineView = 'table' | 'kanban';
       box-shadow: var(--shadow-md); 
     }
     .status-box.active { background: var(--brand); border-color: var(--brand-light); }
-    .status-box.active .count, .status-box.active .label { color: #fff !important; }
+    .status-box.active .count, .status-box.active .label { color: var(--panel) !important; }
     
     .status-box .count { font-size: 1.4rem; font-weight: 800; line-height: 1; }
     .status-box .label { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; margin-top: 4px; opacity: 0.8; letter-spacing: 0.5px; }
     
-    .count.primary { color: #0284c7; }
-    .count.success { color: #16a34a; }
-    .count.warn { color: #d97706; }
+    .count.primary { color: var(--info); }
+    .count.success { color: var(--success); }
+    .count.warn { color: var(--warn); }
     .count.info { color: #0d9488; }
-    .count.danger { color: #dc2626; }
+    .count.danger { color: var(--danger); }
 
     .view-actions { display: flex; align-items: center; margin-bottom: 20px; gap: 16px; }
     .view-toggle { background: var(--bg); border: 1px solid var(--line); padding: 4px; border-radius: var(--radius-md); display: flex; }
@@ -579,8 +579,8 @@ type OnlineView = 'table' | 'kanban';
     .view-toggle button.selected { background: var(--panel); box-shadow: var(--shadow-sm); color: var(--brand); border: 1px solid var(--line); }
 
     .platform-badge { padding: 4px 12px; border-radius: 6px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; }
-    .platform-badge.swiggy { background: #fff7ed; color: #ea580c; border: 1px solid #fdba74; }
-    .platform-badge.zomato { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .platform-badge.swiggy { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+    .platform-badge.zomato { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
 
     .action-btn-row { display: flex; gap: 8px; }
 
@@ -606,12 +606,12 @@ type OnlineView = 'table' | 'kanban';
       margin-bottom: 4px; 
       letter-spacing: 0.5px;
     }
-    .col-header .dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
-    .col-header .dot.pending { background: #d97706; }
-    .col-header .dot.accepted { background: #0284c7; }
+    .col-header .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+    .col-header .dot.pending { background: var(--warn); }
+    .col-header .dot.accepted { background: var(--info); }
     .col-header .dot.ready { background: #0d9488; }
-    .col-header .dot.completed { background: #16a34a; }
-    .col-header .dot.rejected { background: #dc2626; }
+    .col-header .dot.completed { background: var(--success); }
+    .col-header .dot.rejected { background: var(--danger); }
     .col-header .badge { 
       margin-left: auto; 
       background: var(--brand-soft); 
@@ -637,12 +637,12 @@ type OnlineView = 'table' | 'kanban';
     }
     .k-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     .platform-mini { font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; border: 1px solid transparent; }
-    .platform-mini.swiggy { background: #fff7ed; color: #ea580c; border-color: #fdba74; }
-    .platform-mini.zomato { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+    .platform-mini.swiggy { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-border); }
+    .platform-mini.zomato { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
     .k-card-header .total { font-weight: 800; color: var(--ink); }
     .k-card-body .cust { font-weight: 700; margin-bottom: 4px; color: var(--ink); }
     .k-card-body .time { font-size: 0.7rem; color: var(--muted); }
-    .ready-info { margin-top: 8px; color: #10b981; font-weight: 700; font-size: 0.75rem; }
+    .ready-info { margin-top: 8px; color: var(--success); font-weight: 700; font-size: 0.75rem; }
 
     .full-width { width: 100%; margin-bottom: 16px; }
     .refund-summary { padding: 16px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-md); margin-bottom: 24px; }

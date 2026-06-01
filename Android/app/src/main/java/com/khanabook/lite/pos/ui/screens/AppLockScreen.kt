@@ -43,14 +43,17 @@ fun AppLockScreen(
     val showBiometric = remember { viewModel.hasBiometric(context) }
     val scrollState = rememberScrollState()
 
+    // Wrong PIN tracking
+    var wrongAttempts by remember { mutableIntStateOf(0) }
+
     // Shake animation on error
     val shakeOffset = remember { Animatable(0f) }
     LaunchedEffect(errorMessage) {
         if (errorMessage != null) {
-            repeat(4) {
-                shakeOffset.animateTo(8f, tween(50))
-                shakeOffset.animateTo(-8f, tween(50))
-            }
+            wrongAttempts++
+            shakeOffset.animateTo(10f, tween(50))
+            shakeOffset.animateTo(-10f, tween(50))
+            shakeOffset.animateTo(5f, tween(50))
             shakeOffset.animateTo(0f, tween(50))
         }
     }
@@ -176,6 +179,16 @@ fun AppLockScreen(
                             )
                     )
                 }
+            }
+
+            // Wrong attempts remaining
+            if (wrongAttempts > 0) {
+                Text(
+                    text = "${3 - (wrongAttempts % 3)} attempts remaining",
+                    color = MaterialTheme.kbTextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
             }
 
             // Error message

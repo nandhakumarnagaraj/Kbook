@@ -16,7 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -41,16 +40,10 @@ fun KhanaBookCard(
         label = "card_scale"
     )
 
-    // Border: 1dp warm outline — visible on both white cards and dark surfaces
-    // Light: #E0D8D0 at full opacity — clear card boundary on #FAF7F4 page
-    // Dark:  outlineVariant (0x0DFFFFFF) — subtle on dark bg
-    val borderColor = if (globalIsDark) MaterialTheme.kbOutlineSubtle
-                      else Color(0xFFE0D8D0)
+    val borderColor = MaterialTheme.kbOutlineSubtle
 
-    // Elevation: 1dp in light mode so cards cast a shadow against the warm bg
-    val effectiveElevation = if (!globalIsDark)
-        CardDefaults.cardElevation(defaultElevation = 1.dp)
-    else elevation
+    // Subtle card lift for depth — consistent across themes
+    val effectiveElevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
 
     Card(
         modifier = modifier

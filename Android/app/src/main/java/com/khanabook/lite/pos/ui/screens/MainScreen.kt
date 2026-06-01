@@ -89,9 +89,9 @@ fun MainScreen(
             }
             when (currentTab.label) {
                 "Home" -> HomeScreen(onNewBill, onSearchBill, onReprintKds, onOrderStatus, onCallCustomer, onMarketplaceOrders)
-                "Reports" -> ReportsScreen(onBack = backToHome)
                 "Orders" -> OrdersScreen(onBack = backToHome)
-                "Profile" -> SettingsScreen(
+                "Reports" -> ReportsScreen(onBack = backToHome)
+                "Settings" -> SettingsScreen(
                     onBack = backToHome,
                     navController = navController,
                     onScanClick = onScanClick,
@@ -141,15 +141,11 @@ fun AppBottomBar(
     currentSelectedIndex: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    // reason: Styled to match the designer specification (#FFFFFF background, #E0D8D0 top border 0.5dp, active #8B3A0F, inactive #756E66 for contrast)
-    // ⚠ override: Hardcoded color overrides applied to the NavigationBar for brand compliance.
-    val activeColor = Color(0xFF8B3A0F)
-    val inactiveColor = Color(0xFF756E66) // ⚠ override: Changed from #9E9890 to #756E66 to pass WCAG AA 4.5:1 contrast on #FAF7F4 / #FFFFFF
-    val borderColor = Color(0xFFE0D8D0)
-    
-    HorizontalDivider(color = borderColor, thickness = 0.5.dp)
+    val activeColor = KbBrandSaffron
+    val inactiveColor = MaterialTheme.kbTextDisabled
+
     NavigationBar(
-        containerColor = Color.White, // ⚠ override: pure white bottom nav
+        containerColor = Color.White,
         modifier = Modifier.navigationBarsPadding(),
         tonalElevation = 0.dp
     ) {
@@ -164,7 +160,7 @@ fun AppBottomBar(
                     unselectedIconColor = inactiveColor,
                     selectedTextColor = activeColor,
                     unselectedTextColor = inactiveColor,
-                    indicatorColor = activeColor.copy(alpha = 0.1f)
+                    indicatorColor = activeColor.copy(alpha = 0.12f)
                 )
             )
         }

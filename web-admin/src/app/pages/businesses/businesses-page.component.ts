@@ -428,9 +428,9 @@ interface LocalBusinessDetail extends AdminBusinessDetail {
       letter-spacing: 0.5px;
     }
 
-    .status-chip.active { background: #dcfce7; color: #16a34a; }
-    .status-chip.inactive { background: #f1f5f9; color: #64748b; }
-    .status-chip.suspended { background: #fee2e2; color: #dc2626; }
+    .status-chip.active { background: var(--success-bg); color: var(--success); }
+    .status-chip.inactive { background: var(--bg-elevated); color: var(--muted); }
+    .status-chip.suspended { background: var(--danger-bg); color: var(--danger); }
 
     .numeric-cell {
       font-weight: 600;
@@ -438,7 +438,7 @@ interface LocalBusinessDetail extends AdminBusinessDetail {
     }
 
     .count-badge {
-      background: #f1f5f9;
+      background: var(--bg-elevated);
       padding: 2px 8px;
       border-radius: 6px;
       min-width: 32px;
@@ -463,7 +463,7 @@ interface LocalBusinessDetail extends AdminBusinessDetail {
     .skeleton-shimmer {
       height: 20px;
       width: 100%;
-      background: #f1f5f9;
+      background: var(--bg-elevated);
       border-radius: 4px;
       position: relative;
       overflow: hidden;

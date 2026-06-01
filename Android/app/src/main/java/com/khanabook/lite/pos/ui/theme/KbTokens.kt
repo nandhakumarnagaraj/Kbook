@@ -93,6 +93,34 @@ object KbIconSize {
     val XXL: Dp = 64.dp  // splash logo
 }
 
+// ── Opacity (Semantic) ─────────────────────────────────────────
+object KbOpacity {
+    /** Disabled content / buttons */
+    const val Disabled = 0.38f
+    /** Secondary text, muted labels */
+    const val Muted = 0.72f
+    /** Dividers between sections */
+    const val Divider = 0.12f
+    /** Card borders, subtle outlines */
+    const val Border = 0.08f
+    /** Hover state tint */
+    const val Hover = 0.08f
+    /** Pressed / active state tint */
+    const val Pressed = 0.12f
+    /** Selected state background */
+    const val Selected = 0.16f
+    /** Focus ring */
+    const val Focus = 0.24f
+    /** Overlay behind modals */
+    const val Overlay = 0.45f
+    /** Dialog scrim */
+    const val Scrim = 0.60f
+    /** Status chip background (success / warning / error) */
+    const val StatusBg = 0.12f
+    /** Status chip border */
+    const val StatusBorder = 0.24f
+}
+
 // ── Elevation ─────────────────────────────────────────────────
 object KbElevation {
     val None:   Dp = 0.dp

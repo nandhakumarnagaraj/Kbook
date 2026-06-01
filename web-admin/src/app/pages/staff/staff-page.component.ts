@@ -216,7 +216,7 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
     }
     
     .stat-icon.total { background: var(--info-soft); color: var(--info); }
-    .stat-icon.active { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+    .stat-icon.active { background: rgba(16, 185, 129, 0.12); color: var(--success); }
     .stat-icon.admin { background: var(--purple-soft); color: var(--purple); }
 
     .filter-card { 
@@ -277,8 +277,8 @@ import { ErrorStateComponent } from '../../shared/error-state.component';
 
     .status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
     .status-chip mat-icon { font-size: 10px; width: 10px; height: 10px; }
-    .status-chip.active { background: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.2); }
-    .status-chip.inactive { background: rgba(239, 68, 68, 0.12); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
+    .status-chip.active { background: rgba(16, 185, 129, 0.12); color: var(--success); border-color: rgba(16, 185, 129, 0.2); }
+    .status-chip.inactive { background: rgba(239, 68, 68, 0.12); color: var(--danger); border-color: rgba(239, 68, 68, 0.2); }
 
     .empty-state-wrapper { padding: 48px 24px; }
     .tabular-nums { font-variant-numeric: tabular-nums; }

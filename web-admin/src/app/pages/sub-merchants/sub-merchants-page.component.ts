@@ -667,28 +667,28 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
       --border-hover: rgba(2, 132, 199, 0.3);
       background: linear-gradient(135deg, rgba(2, 132, 199, 0.03) 0%, var(--panel) 100%) !important;
     }
-    .stat-card.total .stat-icon { background: rgba(2, 132, 199, 0.1); color: #0284c7; }
+    .stat-card.total .stat-icon { background: rgba(2, 132, 199, 0.1); color: var(--info); }
     
     .stat-card.active { 
       --glow-color: rgba(22, 163, 74, 0.15); 
       --border-hover: rgba(22, 163, 74, 0.3);
       background: linear-gradient(135deg, rgba(22, 163, 74, 0.03) 0%, var(--panel) 100%) !important;
     }
-    .stat-card.active .stat-icon { background: rgba(22, 163, 74, 0.1); color: #16a34a; }
+    .stat-card.active .stat-icon { background: rgba(22, 163, 74, 0.1); color: var(--success); }
 
     .stat-card.pending { 
       --glow-color: rgba(217, 119, 6, 0.15); 
       --border-hover: rgba(217, 119, 6, 0.3);
       background: linear-gradient(135deg, rgba(217, 119, 6, 0.03) 0%, var(--panel) 100%) !important;
     }
-    .stat-card.pending .stat-icon { background: rgba(217, 119, 6, 0.1); color: #d97706; }
+    .stat-card.pending .stat-icon { background: rgba(217, 119, 6, 0.1); color: var(--warn); }
 
     .stat-card.rejected { 
       --glow-color: rgba(239, 68, 68, 0.15); 
       --border-hover: rgba(239, 68, 68, 0.3);
       background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, var(--panel) 100%) !important;
     }
-    .stat-card.rejected .stat-icon { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+    .stat-card.rejected .stat-icon { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
 
     /* Filters Layout */
     .filter-card { 
@@ -779,10 +779,10 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
       text-align: center;
       box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
-    .status-chip.success { background: rgba(22, 163, 74, 0.08); color: #16a34a; border: 1px solid rgba(22, 163, 74, 0.2); }
-    .status-chip.warn { background: rgba(217, 119, 6, 0.08); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.2); }
-    .status-chip.info { background: rgba(2, 132, 199, 0.08); color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.2); }
-    .status-chip.danger { background: rgba(239, 68, 68, 0.08); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
+    .status-chip.success { background: rgba(22, 163, 74, 0.08); color: var(--success); border: 1px solid var(--success-border); }
+    .status-chip.warn { background: rgba(217, 119, 6, 0.08); color: var(--warn); border: 1px solid var(--warn-border); }
+    .status-chip.info { background: rgba(2, 132, 199, 0.08); color: var(--info); border: 1px solid var(--info-border); }
+    .status-chip.danger { background: rgba(239, 68, 68, 0.08); color: var(--danger); border: 1px solid var(--danger-border); }
 
     /* Detail Dialog styles wrapper */
     ::ng-deep .sub-merchant-detail-dialog {
@@ -796,9 +796,9 @@ const BUSINESS_TYPES = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'PRIVATE_LIMITED',
         border-radius: var(--radius-lg); 
         margin: 16px 0; 
       }
-      .status-banner mat-icon { color: #16a34a; font-size: 32px; width: 32px; height: 32px; }
+      .status-banner mat-icon { color: var(--success); font-size: 32px; width: 32px; height: 32px; }
       .banner-text { display: flex; flex-direction: column; gap: 2px; }
-      .banner-text strong { font-weight: 700; color: #16a34a; font-size: 0.95rem; }
+      .banner-text strong { font-weight: 700; color: var(--success); font-size: 0.95rem; }
       .banner-text span { font-size: 0.8rem; color: var(--ink-secondary); }
 
       .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 0; }

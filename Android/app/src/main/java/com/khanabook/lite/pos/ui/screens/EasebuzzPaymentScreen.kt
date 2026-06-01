@@ -29,15 +29,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -63,6 +70,7 @@ import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -79,25 +87,7 @@ import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookGlassCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
-import com.khanabook.lite.pos.ui.theme.BorderGold
-import com.khanabook.lite.pos.ui.theme.BrandPurple
-import com.khanabook.lite.pos.ui.theme.CardBG
-import com.khanabook.lite.pos.ui.theme.DarkBrown1
-import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
-import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.KhanaShapes
-import com.khanabook.lite.pos.ui.theme.kbBgCard
-import com.khanabook.lite.pos.ui.theme.kbBgPrimary
-import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
-import com.khanabook.lite.pos.ui.theme.kbPrimary
-import com.khanabook.lite.pos.ui.theme.kbSecondary
-import com.khanabook.lite.pos.ui.theme.kbTertiary
-import com.khanabook.lite.pos.ui.theme.kbTextPrimary
-import com.khanabook.lite.pos.ui.theme.kbTextSecondary
-import com.khanabook.lite.pos.ui.theme.RichEspresso
-import com.khanabook.lite.pos.ui.theme.SuccessGreen
-import com.khanabook.lite.pos.ui.theme.TextLight
-import com.khanabook.lite.pos.ui.theme.TextMuted
+import com.khanabook.lite.pos.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -112,6 +102,10 @@ enum class PaymentScreenState {
     VERIFYING,
     SUCCESS,
     FAILED
+}
+
+private enum class PaymentMethod {
+    CASH, UPI_QR, CARD_SWIPE, EASEBUZZ_ONLINE
 }
 
 @Composable
@@ -139,6 +133,7 @@ fun EasebuzzPaymentScreen(
     var sdkAttempted by remember { mutableStateOf(false) }
     var sdkLaunched by remember { mutableStateOf(false) }
     var verificationStarted by remember { mutableStateOf(false) }
+    var selectedPaymentMethod by remember { mutableStateOf(PaymentMethod.UPI_QR) }
 
     // Scope that survives composition teardown — return verification must always run
     val sdkScope = remember { kotlinx.coroutines.MainScope() }
@@ -387,14 +382,14 @@ fun EasebuzzPaymentScreen(
                 Spacer(modifier = Modifier.width(spacing.medium))
                 Column {
                     Text(
-                        text = "Easebuzz Checkout",
+                        text = "Payment",
                         color = Color.White,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Secured session tunnel",
-                        color = TextMuted,
+                        text = "ORDER #KB-$billId",
+                        color = MaterialTheme.kbTextSecondary,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -423,17 +418,19 @@ fun EasebuzzPaymentScreen(
                         )
                     }
 
-                    // Right Column: Details list & actions
+                    // Right Column: Amount + Payment selection + Actions
                     Column(
                         modifier = Modifier
                             .weight(1.8f)
                             .verticalScroll(rememberScrollState())
                     ) {
-                        TransactionDetailsCard(
-                            restaurantId = restaurantId,
-                            billId = billId,
-                            amount = amount,
-                            payMode = payMode,
+                        AmountDisplay(amount = amount, spacing = spacing)
+
+                        Spacer(modifier = Modifier.height(spacing.medium))
+
+                        PaymentMethodGrid(
+                            selected = selectedPaymentMethod,
+                            onSelect = { selectedPaymentMethod = it },
                             spacing = spacing
                         )
 
@@ -448,6 +445,7 @@ fun EasebuzzPaymentScreen(
                             retryCount = retryCount,
                             errorMessage = errorMessage,
                             spacing = spacing,
+                            selectedPaymentMethod = selectedPaymentMethod,
                             launchSdk = { launchSdk() },
                             retryPayment = { scope.launch { retryPayment() } },
                             openFreshBrowserFlow = { scope.launch { openFreshBrowserFlow() } },
@@ -482,11 +480,13 @@ fun EasebuzzPaymentScreen(
 
                     Spacer(modifier = Modifier.height(spacing.small))
 
-                    TransactionDetailsCard(
-                        restaurantId = restaurantId,
-                        billId = billId,
-                        amount = amount,
-                        payMode = payMode,
+                    AmountDisplay(amount = amount, spacing = spacing)
+
+                    Spacer(modifier = Modifier.height(spacing.medium))
+
+                    PaymentMethodGrid(
+                        selected = selectedPaymentMethod,
+                        onSelect = { selectedPaymentMethod = it },
                         spacing = spacing
                     )
 
@@ -501,6 +501,7 @@ fun EasebuzzPaymentScreen(
                         retryCount = retryCount,
                         errorMessage = errorMessage,
                         spacing = spacing,
+                        selectedPaymentMethod = selectedPaymentMethod,
                         launchSdk = { launchSdk() },
                         retryPayment = { scope.launch { retryPayment() } },
                         openFreshBrowserFlow = { scope.launch { openFreshBrowserFlow() } },
@@ -515,66 +516,173 @@ fun EasebuzzPaymentScreen(
 }
 
 @Composable
-private fun TransactionDetailsCard(
-    restaurantId: Long,
-    billId: Long,
+private fun AmountDisplay(
     amount: BigDecimal,
-    payMode: String,
     spacing: com.khanabook.lite.pos.ui.theme.Spacing
 ) {
-    KhanaBookGlassCard(
-        modifier = Modifier.fillMaxWidth()
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier.padding(spacing.medium)
+        Text(
+            text = "Total Amount Due",
+            color = MaterialTheme.kbTextSecondary,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(modifier = Modifier.height(spacing.small))
+        Text(
+            text = "₹$amount",
+            color = MaterialTheme.kbTextPrimary,
+            style = MaterialTheme.typography.displayLarge,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(spacing.small))
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(KbSuccess.copy(alpha = 0.12f))
+                .border(1.dp, KbSuccess.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                .padding(horizontal = 14.dp, vertical = 5.dp)
         ) {
             Text(
-                text = "Secure Checkout Details",
-                color = MaterialTheme.kbSecondary,
-                style = MaterialTheme.typography.titleMedium,
+                text = "SECURE TERMINAL ACTIVE",
+                color = KbSuccess,
+                style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = spacing.small)
+                letterSpacing = 1.sp
             )
-
-            EasebuzzDetailRow(label = "Internal Bill Ref", value = "#$billId")
-            EasebuzzDivider()
-            EasebuzzDetailRow(label = "Amount Payable", value = "₹$amount")
-            EasebuzzDivider()
-            EasebuzzDetailRow(label = "Payment Gateway", value = "EASEBUZZ")
-            EasebuzzDivider()
-            
-            val modeLabel = if ("test" == payMode) "SANDBOX TUNNEL" else "LIVE PRODUCTION"
-            val modeColor = if ("test" == payMode) KbBrandSaffron else SuccessGreen
-            
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Security Context",
-                    color = MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(modeColor.copy(alpha = 0.12f))
-                        .border(1.dp, modeColor.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = modeLabel,
-                        color = modeColor,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-            }
         }
     }
+}
+
+@Composable
+private fun PaymentMethodGrid(
+    selected: PaymentMethod,
+    onSelect: (PaymentMethod) -> Unit,
+    spacing: com.khanabook.lite.pos.ui.theme.Spacing
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(spacing.small)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            PaymentMethodCard(
+                label = "Cash",
+                icon = Icons.Default.AttachMoney,
+                isSelected = selected == PaymentMethod.CASH,
+                onClick = { onSelect(PaymentMethod.CASH) },
+                modifier = Modifier.weight(1f)
+            )
+            PaymentMethodCard(
+                label = "UPI / QR",
+                icon = Icons.Default.Phone,
+                isSelected = selected == PaymentMethod.UPI_QR,
+                onClick = { onSelect(PaymentMethod.UPI_QR) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            PaymentMethodCard(
+                label = "Card Swipe",
+                icon = Icons.Default.CreditCard,
+                isSelected = selected == PaymentMethod.CARD_SWIPE,
+                onClick = { onSelect(PaymentMethod.CARD_SWIPE) },
+                modifier = Modifier.weight(1f)
+            )
+            PaymentMethodCard(
+                label = "Easebuzz Online",
+                icon = Icons.Default.Language,
+                isSelected = selected == PaymentMethod.EASEBUZZ_ONLINE,
+                onClick = { onSelect(PaymentMethod.EASEBUZZ_ONLINE) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PaymentMethodCard(
+    label: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val borderColor = if (isSelected) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
+    val bgColor = if (isSelected) KbBrandSaffron.copy(alpha = 0.08f) else Color.Transparent
+
+    Box(
+        modifier = modifier
+            .aspectRatio(1.5f)
+            .clip(KhanaShapes.medium)
+            .background(bgColor)
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = borderColor,
+                shape = KhanaShapes.medium
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (isSelected) KbBrandSaffron else MaterialTheme.kbTextSecondary,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = label,
+                color = if (isSelected) KbBrandSaffron else MaterialTheme.kbTextSecondary,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun EasebuzzDetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            color = TextMuted,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = value,
+            color = MaterialTheme.kbTextPrimary,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+private fun EasebuzzDivider() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(Color(0x1AFFFFFF))
+    )
 }
 
 
@@ -588,6 +696,7 @@ private fun ActionButtonsArea(
     retryCount: Int,
     errorMessage: String?,
     spacing: com.khanabook.lite.pos.ui.theme.Spacing,
+    selectedPaymentMethod: PaymentMethod,
     launchSdk: () -> Unit,
     retryPayment: () -> Unit,
     openFreshBrowserFlow: () -> Unit,
@@ -620,19 +729,38 @@ private fun ActionButtonsArea(
         }
 
         PaymentScreenState.READY -> {
-            Button(
-                onClick = launchSdk,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp), // Height = 52.dp
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
-                shape = KhanaShapes.medium // Shape = Button shape (12.dp)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Button(
+                    onClick = launchSdk,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
+                    shape = KhanaShapes.medium
+                ) {
+                    Text(
+                        text = "Process Payment",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                val methodLabel = when (selectedPaymentMethod) {
+                    PaymentMethod.CASH -> "Cash"
+                    PaymentMethod.UPI_QR -> "UPI / QR"
+                    PaymentMethod.CARD_SWIPE -> "Card Swipe"
+                    PaymentMethod.EASEBUZZ_ONLINE -> "Easebuzz Online"
+                }
                 Text(
-                    text = "Pay ₹$amount",
-                    color = Color.White, // Text = White
-                    fontSize = 14.sp, // 14sp
-                    fontWeight = FontWeight.Medium // FontWeight.Medium
+                    text = "Pay ₹$amount via $methodLabel",
+                    color = MaterialTheme.kbTextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -686,8 +814,8 @@ private fun ActionButtonsArea(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(SuccessGreen.copy(alpha = 0.1f))
-                    .border(1.dp, SuccessGreen.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                    .background(KbSuccess.copy(alpha = 0.1f))
+                    .border(1.dp, KbSuccess.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
                     .padding(spacing.medium)
             ) {
                 Row(
@@ -698,13 +826,13 @@ private fun ActionButtonsArea(
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = "Paid",
-                        tint = SuccessGreen,
+                        tint = KbSuccess,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(spacing.small))
                     Text(
                         text = "Transaction completed successfully!",
-                        color = SuccessGreen,
+                        color = KbSuccess,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -714,117 +842,39 @@ private fun ActionButtonsArea(
 
         PaymentScreenState.FAILED -> {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0x1AFF5252))
-                        .border(1.dp, Color(0x33FF5252), RoundedCornerShape(16.dp))
-                        .padding(spacing.medium)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.Top,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Error,
-                            contentDescription = "Error",
-                            tint = Color(0xFFFF5252),
-                            modifier = Modifier.size(24.dp)
+                    Icon(
+                        imageVector = Icons.Rounded.ErrorOutline,
+                        contentDescription = "Payment Failed",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    if (errorMessage != null) {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.bodyMedium
                         )
-                        Spacer(modifier = Modifier.width(spacing.small))
-                        Column {
-                            Text(
-                                text = "Payment Failed",
-                                color = Color(0xFFFF5252),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            if (errorMessage != null) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = errorMessage,
-                                    color = TextLight,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        }
                     }
-                }
-
-                Spacer(modifier = Modifier.height(spacing.medium))
-
-                if (com.khanabook.lite.pos.ui.theme.KhanaBookTheme.layout.isCompactForm) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(spacing.small)
+                    Button(
+                        onClick = retryPayment,
+                        modifier = Modifier.widthIn(min = 160.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = KbBrandSaffron.copy(alpha = 0.15f),
+                            contentColor = KbBrandSaffron
+                        )
                     ) {
-                        Button(
-                            onClick = retryPayment,
-                            modifier = Modifier.fillMaxWidth().height(52.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
-                            shape = KhanaShapes.medium
-                        ) {
-                            Text(
-                                text = "Retry Payment",
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-
-                        OutlinedButton(
-                            onClick = onBack,
-                            modifier = Modifier.fillMaxWidth().height(52.dp),
-                            border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = MaterialTheme.kbBgCard,
-                                contentColor = MaterialTheme.kbTextPrimary
-                            ),
-                            shape = KhanaShapes.medium
-                        ) {
-                            Text(
-                                text = "Cancel",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                        Text("Retry", fontWeight = FontWeight.SemiBold)
                     }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                    OutlinedButton(
+                        onClick = onBack,
+                        modifier = Modifier.widthIn(min = 160.dp)
                     ) {
-                        Button(
-                            onClick = retryPayment,
-                            modifier = Modifier.weight(1f).height(52.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
-                            shape = KhanaShapes.medium
-                        ) {
-                            Text(
-                                text = "Retry Payment",
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-
-                        OutlinedButton(
-                            onClick = onBack,
-                            modifier = Modifier.weight(1f).height(52.dp),
-                            border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = MaterialTheme.kbBgCard,
-                                contentColor = MaterialTheme.kbTextPrimary
-                            ),
-                            shape = KhanaShapes.medium
-                        ) {
-                            Text(
-                                text = "Cancel",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                        Text("Cancel", fontWeight = FontWeight.SemiBold)
                     }
                 }
 
@@ -907,8 +957,8 @@ private fun EasebuzzStatusGauge(
             val center = size.center
             val radius = size.minDimension / 2
             val glowColor = when (state) {
-                PaymentScreenState.SUCCESS -> SuccessGreen.copy(alpha = 0.2f)
-                PaymentScreenState.FAILED -> Color(0x33FF4444)
+                PaymentScreenState.SUCCESS -> KbSuccess.copy(alpha = 0.2f)
+                PaymentScreenState.FAILED -> KbBrandRed.copy(alpha = 0.2f)
                 else -> KbBrandSaffron.copy(alpha = 0.15f)
             }
             drawCircle(
@@ -949,8 +999,8 @@ private fun EasebuzzStatusGauge(
                 val endY = center.y + ((tickDistance - tickLength) * Math.sin(angleRadians)).toFloat()
                 
                 val tickColor = when (state) {
-                    PaymentScreenState.SUCCESS -> SuccessGreen.copy(alpha = 0.3f)
-                    PaymentScreenState.FAILED -> Color(0x66FF4444)
+                    PaymentScreenState.SUCCESS -> KbSuccess.copy(alpha = 0.3f)
+                    PaymentScreenState.FAILED -> KbBrandRed.copy(alpha = 0.4f)
                     else -> KbBrandSaffron.copy(alpha = 0.2f)
                 }
                 drawLine(
@@ -970,8 +1020,8 @@ private fun EasebuzzStatusGauge(
 
             // 3. Glowing Progress Arc
             val arcBrush = when (state) {
-                PaymentScreenState.SUCCESS -> Brush.sweepGradient(listOf(SuccessGreen, Color(0xFF00E676), SuccessGreen))
-                PaymentScreenState.FAILED -> Brush.sweepGradient(listOf(Color(0xFFFF4444), Color(0xFFEF4444), Color(0xFFFF4444)))
+                PaymentScreenState.SUCCESS -> Brush.sweepGradient(listOf(KbSuccess,                 KbSuccess, KbSuccess))
+                PaymentScreenState.FAILED -> Brush.sweepGradient(listOf(KbError, KbError, KbError))
                 else -> Brush.sweepGradient(listOf(KbBrandSaffron.copy(alpha = 0.4f), KbBrandSaffron, KbBrandSaffron.copy(alpha = 0.4f)))
             }
 
@@ -1005,13 +1055,13 @@ private fun EasebuzzStatusGauge(
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = "Success",
-                        tint = SuccessGreen,
+                        tint = KbSuccess,
                         modifier = Modifier.size(56.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "SECURE",
-                        color = SuccessGreen,
+                        color = KbSuccess,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 2.sp
@@ -1021,13 +1071,13 @@ private fun EasebuzzStatusGauge(
                     Icon(
                         imageVector = Icons.Default.Error,
                         contentDescription = "Failed",
-                        tint = Color(0xFFFF4444),
+                        tint = KbBrandRed,
                         modifier = Modifier.size(56.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "FAILED",
-                        color = Color(0xFFFF4444),
+                        color = KbBrandRed,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 2.sp
@@ -1043,7 +1093,7 @@ private fun EasebuzzStatusGauge(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "₹$amount",
-                        color = TextLight,
+                        color = MaterialTheme.kbTextPrimary,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Black
                     )
@@ -1064,38 +1114,4 @@ private fun EasebuzzStatusGauge(
             }
         }
     }
-}
-
-
-@Composable
-private fun EasebuzzDetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            color = TextMuted,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = value,
-            color = TextLight,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
-@Composable
-private fun EasebuzzDivider() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(1.dp)
-            .background(Color(0x1AFFFFFF))
-    )
 }

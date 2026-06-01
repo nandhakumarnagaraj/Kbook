@@ -93,18 +93,7 @@ import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
-import com.khanabook.lite.pos.ui.theme.BorderGold
-import com.khanabook.lite.pos.ui.theme.CardBG
-import com.khanabook.lite.pos.ui.theme.DarkBrown1
-import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
-import com.khanabook.lite.pos.ui.theme.kbPrimary
-import com.khanabook.lite.pos.ui.theme.kbSecondary
-import com.khanabook.lite.pos.ui.theme.kbTertiary
-import com.khanabook.lite.pos.ui.theme.kbTextPrimary
-import com.khanabook.lite.pos.ui.theme.kbTextSecondary
-import com.khanabook.lite.pos.ui.theme.SuccessGreen
-import com.khanabook.lite.pos.ui.theme.TextLight
+import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import java.time.Year
@@ -236,12 +225,12 @@ fun AppLockView(
                     modifier = Modifier
                         .size(72.dp)
                         .background(
-                            if (isEnabled) SuccessGreen.copy(alpha = 0.15f) else MaterialTheme.kbOutlineSubtle.copy(alpha = 0.1f),
+                            if (isEnabled) KbSuccess.copy(alpha = 0.15f) else MaterialTheme.kbOutlineSubtle.copy(alpha = 0.1f),
                             CircleShape
                         )
                         .border(
                             2.dp,
-                            if (isEnabled) SuccessGreen.copy(alpha = 0.4f) else BorderGold.copy(alpha = 0.3f),
+                            if (isEnabled) KbSuccess.copy(alpha = 0.4f) else MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f),
                             CircleShape
                         ),
                     contentAlignment = Alignment.Center
@@ -249,19 +238,19 @@ fun AppLockView(
                     Icon(
                         Icons.Outlined.Lock,
                         contentDescription = null,
-                        tint = if (isEnabled) SuccessGreen else MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
+                        tint = if (isEnabled) KbSuccess else MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
                         modifier = Modifier.size(36.dp)
                     )
                 }
                 Text(
                     "App Lock",
-                    color = TextLight,
+                    color = MaterialTheme.kbTextPrimary,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     if (isEnabled) "PIN lock is active" else "Disabled — anyone can open the app",
-                    color = if (isEnabled) SuccessGreen else MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
+                    color = if (isEnabled) KbSuccess else MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
@@ -271,7 +260,7 @@ fun AppLockView(
                         if (enable) viewModel.startEnablePin()
                         else viewModel.startDisablePin()
                     },
-                    checkedTrackColor = SuccessGreen
+                    checkedTrackColor = KbSuccess
                 )
             }
         }
@@ -283,11 +272,11 @@ fun AppLockView(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(modifier = Modifier.padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-                    Text("PIN Options", color = TextLight, style = MaterialTheme.typography.titleSmall)
+                    Text("PIN Options", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleSmall)
                     OutlinedButton(
                         onClick = { viewModel.startChangePin() },
                         modifier = Modifier.fillMaxWidth(),
-                        border = BorderStroke(1.dp, BorderGold),
+                        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(Icons.Outlined.Lock, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(iconSize.xsmall))
@@ -308,7 +297,7 @@ fun AppLockView(
         if (setupState is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Success) {
             Text(
                 (setupState as com.khanabook.lite.pos.ui.viewmodel.PinSetupState.Success).message,
-                color = SuccessGreen,
+                color = KbSuccess,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
@@ -318,7 +307,7 @@ fun AppLockView(
             is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.EnterNew -> {
                 Text(
                     "Set a new 4-digit PIN",
-                    color = TextLight,
+                    color = MaterialTheme.kbTextPrimary,
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
@@ -335,7 +324,7 @@ fun AppLockView(
             is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.ConfirmNew -> {
                 Text(
                     "Confirm your PIN",
-                    color = TextLight,
+                    color = MaterialTheme.kbTextPrimary,
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
@@ -352,7 +341,7 @@ fun AppLockView(
             is com.khanabook.lite.pos.ui.viewmodel.PinSetupState.EnterCurrent -> {
                 Text(
                     if (state.nextStep != null) "Enter current PIN to verify" else "Enter current PIN to disable",
-                    color = TextLight,
+                    color = MaterialTheme.kbTextPrimary,
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
@@ -432,7 +421,7 @@ fun ChangePasswordView(
                     2 -> "Enter the OTP"
                     else -> "Set a new password"
                 },
-                color = TextLight,
+                color = MaterialTheme.kbTextPrimary,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -547,7 +536,7 @@ fun ChangePasswordView(
                         step -= 1
                     },
                     modifier = Modifier.weight(1f).height(56.dp),
-                    border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.5f)),
+                    border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f)),
                     shape = RoundedCornerShape(28.dp),
                     enabled = !isLoading
                 ) {
@@ -609,7 +598,7 @@ private fun CpStepIndicator(currentStep: Int, totalSteps: Int) {
             val isCompleted = i < currentStep
             val isActive = i == currentStep
             val color = when {
-                isCompleted -> SuccessGreen
+                isCompleted -> KbSuccess
                 isActive -> MaterialTheme.kbPrimary
                 else -> MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f)
             }
@@ -628,20 +617,20 @@ private fun CpVerifiedBadge(icon: ImageVector, label: String, note: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(SuccessGreen.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+            .background(KbSuccess.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
+            Icon(icon, null, tint = KbSuccess, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text(label, color = TextLight, style = MaterialTheme.typography.bodySmall)
+            Text(label, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodySmall)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.CheckCircle, null, tint = SuccessGreen, modifier = Modifier.size(14.dp))
+            Icon(Icons.Outlined.CheckCircle, null, tint = KbSuccess, modifier = Modifier.size(14.dp))
             Spacer(modifier = Modifier.width(4.dp))
-            Text(note, color = SuccessGreen, style = MaterialTheme.typography.labelSmall)
+            Text(note, color = KbSuccess, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -689,7 +678,7 @@ fun HelpSupportView() {
         )
         Text(
             "Need help with KhanaBook POS? Reach out to our support team — we respond quickly.",
-            color = TextLight.copy(alpha = 0.85f),
+            color = MaterialTheme.kbTextPrimary.copy(alpha = 0.85f),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
@@ -705,7 +694,7 @@ fun HelpSupportView() {
                 } catch (_: Exception) {}
             },
             modifier = Modifier.fillMaxWidth().height(72.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366), contentColor = Color.White),
+            colors = ButtonDefaults.buttonColors(containerColor = KbWhatsAppGreen, contentColor = Color.White),
             shape = RoundedCornerShape(14.dp),
             contentPadding = PaddingValues(horizontal = spacing.medium)
         ) {
@@ -744,7 +733,7 @@ fun HelpSupportView() {
 
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
             shape = RoundedCornerShape(12.dp)
         ) {
             Row(
@@ -759,7 +748,7 @@ fun HelpSupportView() {
                 )
                 Spacer(modifier = Modifier.width(spacing.medium))
                 Column {
-                    Text("Support Hours", color = TextLight, style = MaterialTheme.typography.labelLarge)
+                    Text("Support Hours", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.labelLarge)
                     Text(
                         "Mon – Sat, 10 AM – 7 PM IST",
                         color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f),
@@ -818,13 +807,13 @@ fun AboutAppView() {
         }
 
         HorizontalDivider(
-            color = BorderGold.copy(alpha = 0.2f),
+            color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.2f),
             modifier = Modifier.padding(horizontal = spacing.medium)
         )
 
         Text(
             "A smart, offline-first POS solution built for restaurants and food businesses. Manage orders, track payments, and generate reports — all from your Android device.",
-            color = TextLight.copy(alpha = 0.85f),
+            color = MaterialTheme.kbTextPrimary.copy(alpha = 0.85f),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()

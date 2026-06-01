@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -377,12 +378,12 @@ fun CustomerInfoStep(
                         },
                         shape = RoundedCornerShape(20.dp),
                         color = DarkBrown2,
-                        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
+                        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.4f))
                     ) {
                         Column(modifier = Modifier.widthIn(max = 120.dp).padding(horizontal = spacing.medium, vertical = spacing.small)) {
                             Text(
                                 text = if (customerName.isNotBlank()) customerName else phone,
-                                color = TextLight,
+                                color = MaterialTheme.kbTextPrimary,
                                 style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -406,7 +407,7 @@ fun CustomerInfoStep(
             },
             label = "Customer WhatsApp (optional)",
             modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Phone, null, tint = VegGreen) },
+            leadingIcon = { Icon(Icons.Default.Phone, null, tint = KbSuccess) },
             isError = false,
             keyboardOptions =
                 androidx.compose.foundation.text.KeyboardOptions(
@@ -515,19 +516,42 @@ fun MenuSelectionStep(
     Row(modifier = Modifier.fillMaxSize()) {
         // Main Menu Area
         Column(modifier = Modifier.weight(if (isWideScreen) 0.65f else 1f).fillMaxHeight()) {
-            if (!hideHeader) {
-                Row(
-                        modifier = Modifier.fillMaxWidth().padding(spacing.medium),
-                        verticalAlignment = Alignment.CenterVertically
+            // ── Header with title and table/guest info ────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .padding(horizontal = spacing.medium, vertical = spacing.small),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.kbTextPrimary,
+                    modifier = Modifier.clickable(enabled = true) { onBack() }
+                )
+                Spacer(modifier = Modifier.width(spacing.small))
+                Text(
+                    "New Order",
+                    color = MaterialTheme.kbTextPrimary,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.kbBgCard,
+                    border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
                 ) {
-                    Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            null,
-                            tint = MaterialTheme.kbPrimary,
-                            modifier = Modifier.clickable { onBack() }
-                    )
-                    Spacer(modifier = Modifier.width(spacing.medium))
-                    Text("New Bill", color = MaterialTheme.kbPrimary, style = MaterialTheme.typography.titleLarge)
+                    Row(
+                        modifier = Modifier.padding(horizontal = spacing.small, vertical = spacing.extraSmall),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Tbl 1 · 4 Guests",
+                            color = MaterialTheme.kbTextPrimary,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
                 }
             }
 
@@ -542,7 +566,7 @@ fun MenuSelectionStep(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(WarningYellow.copy(alpha = 0.15f))
+                        .background(KbWarning.copy(alpha = 0.15f))
                         .padding(horizontal = spacing.medium, vertical = spacing.small),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(spacing.small)
@@ -550,12 +574,12 @@ fun MenuSelectionStep(
                     Icon(
                         imageVector = Icons.Default.CloudOff,
                         contentDescription = null,
-                        tint = WarningYellow,
+                        tint = KbWarning,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
                         text = "Offline — bill will sync when back online",
-                        color = WarningYellow,
+                        color = KbWarning,
                         style = MaterialTheme.typography.labelMedium
                     )
                 }
@@ -576,42 +600,35 @@ fun MenuSelectionStep(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium, vertical = spacing.small)
             )
 
+            // ── Category Chips ────────────────────────────────────────────────
             if (searchQuery.isBlank() && categories.isNotEmpty()) {
-                val selectedIndex =
-                        categories.indexOfFirst { it.id == selectedCategoryId }.coerceAtLeast(0)
-                ScrollableTabRow(
-                        selectedTabIndex = selectedIndex,
-                        containerColor = MaterialTheme.kbBgPrimary,
-                        contentColor = DarkBrown1,
-                        edgePadding = spacing.medium,
-                        divider = {},
-                        indicator = { tabPositions ->
-                            if (selectedIndex < tabPositions.size) {
-                                TabRowDefaults.SecondaryIndicator(
-                                        modifier =
-                                                Modifier.tabIndicatorOffset(
-                                                        tabPositions[selectedIndex]
-                                                ),
-                                        color = DarkBrown1
-                                )
-                            }
-                        }
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = spacing.small),
+                    contentPadding = PaddingValues(horizontal = spacing.medium),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {
-                    categories.forEach { category ->
-                        Tab(
-                                selected = category.id == selectedCategoryId,
-                                onClick = { menuViewModel.selectCategory(category.id) },
-                                text = {
-                                    Text(
-                                            category.name,
-                                            style = MaterialTheme.typography.labelMedium.copy(
-                                                fontWeight = if (category.id == selectedCategoryId) FontWeight.Bold else FontWeight.Medium
-                                            )
-                                    )
-                                },
-                                selectedContentColor = DarkBrown1,
-                                unselectedContentColor = DarkBrown1.copy(alpha = 0.7f)
-                        )
+                    items(categories, key = { it.id }) { category ->
+                        val isSelected = category.id == selectedCategoryId
+                        Surface(
+                            onClick = { menuViewModel.selectCategory(category.id) },
+                            shape = RoundedCornerShape(20.dp),
+                            color = if (isSelected) KbBrandSaffron else Color.Transparent,
+                            border = BorderStroke(
+                                1.dp,
+                                if (isSelected) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
+                            )
+                        ) {
+                            Text(
+                                category.name,
+                                modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small),
+                                color = if (isSelected) Color.White else MaterialTheme.kbTextSecondary,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            )
+                        }
                     }
                 }
             }
@@ -653,100 +670,86 @@ fun MenuSelectionStep(
                     val itemAvailable = item.isAvailable
 
                     Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (itemAvailable) MaterialTheme.kbBgCard else MaterialTheme.kbBgCard.copy(alpha = 0.5f)
-                            ),
-                            shape = RoundedCornerShape(12.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (itemAvailable) MaterialTheme.kbBgCard else MaterialTheme.kbBgCard.copy(alpha = 0.5f)
+                        ),
+                        shape = KbShape.Medium
                     ) {
                         if (variants.isEmpty()) {
                             val cartItem =
-                                    cartItems.find { it.item.id == item.id && it.variant == null }
+                                cartItems.find { it.item.id == item.id && it.variant == null }
                             Row(
-                                    modifier = Modifier.padding(spacing.smallMedium),
-                                    verticalAlignment = Alignment.CenterVertically
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = spacing.small, vertical = spacing.smallMedium),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                FoodTypeIcon(item.foodType)
-                                Spacer(modifier = Modifier.width(spacing.smallMedium))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                            item.name,
-                                            color = if (itemAvailable) TextLight else TextLight.copy(alpha = 0.4f),
-                                            style = MaterialTheme.typography.titleSmall
+                                        item.name,
+                                        color = if (itemAvailable) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary.copy(alpha = KbOpacity.Disabled),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                     if (itemAvailable) {
-                                        Text("₹${item.basePrice}", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.bodySmall)
+                                        Text(
+                                            text = CurrencyUtils.formatPrice(item.basePrice),
+                                            color = KbBrandSaffron,
+                                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                                        )
                                     } else {
-                                        Text("Unavailable", color = ErrorPink.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            "Unavailable",
+                                            color = KbBrandRed.copy(alpha = KbOpacity.Muted),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
                                     }
                                 }
                                 if (itemAvailable) {
                                     QuantitySelector(
-                                            quantity = cartItem?.quantity ?: 0,
-                                            onAdd = { billingViewModel.addToCart(item) },
-                                            onRemove = { billingViewModel.removeFromCart(item) }
+                                        quantity = cartItem?.quantity ?: 0,
+                                        onAdd = { billingViewModel.addToCart(item) },
+                                        onRemove = { billingViewModel.removeFromCart(item) }
                                     )
                                 }
                             }
                         } else {
                             Column(modifier = Modifier.fillMaxWidth().padding(spacing.smallMedium)) {
-                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    FoodTypeIcon(item.foodType)
-                                    Spacer(modifier = Modifier.width(spacing.smallMedium))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                                item.name,
-                                                color = if (itemAvailable) TextLight else TextLight.copy(alpha = 0.4f),
-                                                style = MaterialTheme.typography.titleSmall,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                            item.name,
+                                            color = if (itemAvailable) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary.copy(alpha = KbOpacity.Disabled),
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
-                                        if (!itemAvailable) {
-                                            Text("Unavailable", color = ErrorPink.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                        } else {
+                                        if (itemAvailable) {
                                             Text(
-                                                    "${variants.size} Variants",
-                                                    color = MaterialTheme.kbSecondary,
-                                                    style = MaterialTheme.typography.labelSmall
+                                                "${variants.size} variants",
+                                                color = MaterialTheme.kbTextSecondary,
+                                                style = MaterialTheme.typography.labelSmall
                                             )
+                                        } else {
+                                            Text("Unavailable", color = KbBrandRed.copy(alpha = KbOpacity.Muted), style = MaterialTheme.typography.labelSmall)
                                         }
                                     }
-                                }
-                                if (itemAvailable) {
-                                    Spacer(modifier = Modifier.height(spacing.small))
-                                    HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
-                                    Spacer(modifier = Modifier.height(spacing.small))
-                                    variants.forEach { variant ->
-                                        val variantAvailable = variant.isAvailable
-                                        val variantCartItem =
-                                                cartItems.find {
-                                                    it.item.id == item.id && it.variant?.id == variant.id
-                                                }
-                                        Row(
-                                                modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),
-                                                verticalAlignment = Alignment.CenterVertically
+                                    if (itemAvailable) {
+                                        OutlinedButton(
+                                            onClick = { showVariantPicker = true },
+                                            modifier = Modifier.height(36.dp),
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = KbBrandSaffron),
+                                            border = BorderStroke(1.dp, KbBrandSaffron),
+                                            contentPadding = PaddingValues(horizontal = spacing.smallMedium)
                                         ) {
-                                            Text(
-                                                    variant.variantName,
-                                                    color = if (variantAvailable) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary.copy(alpha = 0.35f),
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    modifier = Modifier.weight(1f)
-                                            )
-                                            if (variantAvailable) {
-                                                Text(
-                                                        CurrencyUtils.formatPrice(variant.price),
-                                                        color = MaterialTheme.kbSecondary,
-                                                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                                        modifier = Modifier.padding(end = spacing.smallMedium)
-                                                )
-                                                QuantitySelector(
-                                                        quantity = variantCartItem?.quantity ?: 0,
-                                                        onAdd = { billingViewModel.addToCart(item, variant) },
-                                                        onRemove = { billingViewModel.removeFromCart(item, variant) }
-                                                )
-                                            } else {
-                                                Text("Unavailable", color = ErrorPink.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
-                                            }
+                                            Text("+", fontWeight = FontWeight.Bold)
                                         }
                                     }
                                 }
@@ -756,13 +759,13 @@ fun MenuSelectionStep(
 
                     if (showVariantPicker) {
                         VariantPickerDialog(
-                                itemName = item.name,
-                                variants = variants,
-                                onDismiss = { showVariantPicker = false },
-                                onSelect = { variant ->
-                                    billingViewModel.addToCart(item, variant)
-                                    showVariantPicker = false
-                                }
+                            itemName = item.name,
+                            variants = variants,
+                            onDismiss = { showVariantPicker = false },
+                            onSelect = { variant ->
+                                billingViewModel.addToCart(item, variant)
+                                showVariantPicker = false
+                            }
                         )
                     }
                 }
@@ -773,44 +776,137 @@ fun MenuSelectionStep(
             }
 
             if (!isWideScreen) {
-                // Bottom Floating Cart Card for Phones - Redesigned with Glassmorphism
-                KhanaBookGlassCard(
+                // ── Bottom Cart Panel ─────────────────────────────────────────
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = spacing.medium, vertical = spacing.small),
-                    shape = RoundedCornerShape(20.dp)
+                    shape = KbShape.Medium,
+                    color = MaterialTheme.kbBgCard,
+                    tonalElevation = KbElevation.Medium
                 ) {
-                    Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(spacing.smallMedium),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
+                    Column(modifier = Modifier.padding(spacing.smallMedium)) {
+                        // Cart items list (scrollable with max height)
+                        if (cartItems.isNotEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 200.dp)
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                            ) {
+                                cartItems.forEach { cartItem ->
+                                    val itemUnitPrice = (cartItem.variant?.price ?: cartItem.item.basePrice).toDoubleOrNull() ?: 0.0
+                                    val lineTotal = itemUnitPrice * cartItem.quantity
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = spacing.hairline),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                cartItem.item.name,
+                                                color = MaterialTheme.kbTextPrimary,
+                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (cartItem.variant != null) {
+                                                Text(
+                                                    cartItem.variant.variantName,
+                                                    color = MaterialTheme.kbTextSecondary,
+                                                    style = MaterialTheme.typography.labelSmall
+                                                )
+                                            }
+                                        }
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                                        ) {
+                                            IconButton(
+                                                onClick = {
+                                                    if (cartItem.variant != null) {
+                                                        billingViewModel.removeFromCart(cartItem.item, cartItem.variant)
+                                                    } else {
+                                                        billingViewModel.removeFromCart(cartItem.item)
+                                                    }
+                                                },
+                                                modifier = Modifier.size(32.dp),
+                                                colors = IconButtonDefaults.iconButtonColors(contentColor = KbBrandSaffron)
+                                            ) {
+                                                Icon(Icons.Default.Remove, contentDescription = "Remove", modifier = Modifier.size(18.dp))
+                                            }
+                                            Text(
+                                                "${cartItem.quantity}",
+                                                color = MaterialTheme.kbTextPrimary,
+                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                            IconButton(
+                                                onClick = {
+                                                    if (cartItem.variant != null) {
+                                                        billingViewModel.addToCart(cartItem.item, cartItem.variant)
+                                                    } else {
+                                                        billingViewModel.addToCart(cartItem.item)
+                                                    }
+                                                },
+                                                modifier = Modifier.size(32.dp),
+                                                colors = IconButtonDefaults.iconButtonColors(contentColor = KbBrandSaffron)
+                                            ) {
+                                                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(18.dp))
+                                            }
+                                            Text(
+                                                CurrencyUtils.formatPrice(lineTotal),
+                                                color = MaterialTheme.kbTextPrimary,
+                                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                                                modifier = Modifier.widthIn(min = 56.dp),
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.End
+                                            )
+                                        }
+                                    }
+                                    HorizontalDivider(
+                                        color = MaterialTheme.kbOutlineSubtle,
+                                        thickness = spacing.hairline
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(spacing.small))
+                        }
+
+                        // Total row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                    "$derivedItemCount Items Added",
-                                    color = MaterialTheme.kbTextSecondary,
-                                    style = MaterialTheme.typography.labelSmall
+                                "Total",
+                                color = MaterialTheme.kbTextPrimary,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                    CurrencyUtils.formatPrice(total),
-                                    color = MaterialTheme.kbSecondary,
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
+                                CurrencyUtils.formatPrice(total),
+                                color = KbBrandSaffron,
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
                             )
                         }
+                        Spacer(modifier = Modifier.height(spacing.small))
                         Button(
-                                onClick = onProceedToPayment,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.smallMedium),
-                        enabled = derivedItemCount > 0
-                ) {
-                    Text(
-                            "Place Order",
-                            color = Color.White,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
+                            onClick = onProceedToPayment,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(KbButtonSize.HeightLarge),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = KbBrandSaffron,
+                                disabledContainerColor = KbBrandSaffron.copy(alpha = KbOpacity.Disabled)
+                            ),
+                            shape = KbShape.Small,
+                            enabled = derivedItemCount > 0
+                        ) {
+                            Text(
+                                "Place Order",
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                     }
@@ -851,7 +947,7 @@ fun MenuSelectionStep(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(cartItem.item.name, color = TextLight, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(cartItem.item.name, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         if (cartItem.variant != null) {
                                             Text(cartItem.variant.variantName, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         }
@@ -861,7 +957,7 @@ fun MenuSelectionStep(
                                     }
                                     Text(
                                         "${cartItem.quantity} x ${CurrencyUtils.formatPrice(cartItem.variant?.price ?: cartItem.item.basePrice)}",
-                                        color = TextLight,
+                                        color = MaterialTheme.kbTextPrimary,
                                         style = MaterialTheme.typography.bodySmall,
                                         maxLines = 1
                                     )
@@ -874,7 +970,7 @@ fun MenuSelectionStep(
                                         )
                                     }
                                 }
-                                HorizontalDivider(color = BorderGold.copy(alpha = 0.1f))
+                                HorizontalDivider(color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.1f))
                             }
                             if (showNoteDialog) {
                                 CartItemNoteDialog(
@@ -895,7 +991,7 @@ fun MenuSelectionStep(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-                        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f))
+                        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f))
                     ) {
                         Column(modifier = Modifier.padding(spacing.medium)) {
                             Row(
@@ -1157,7 +1253,7 @@ fun PaymentStep(
                         !isAmountValid -> "Enter a valid UPI split amount"
                         else -> "Add items before scanning UPI QR"
                     },
-                    color = DangerRed,
+                    color = KbError,
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(top = spacing.extraSmall)
                 )
@@ -1211,7 +1307,7 @@ fun PaymentStep(
             Spacer(modifier = Modifier.height(spacing.medium))
             Text(
                 "Complete Payment",
-                color = TextLight,
+                color = MaterialTheme.kbTextPrimary,
                 style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.height(spacing.large))
@@ -1227,9 +1323,9 @@ fun PaymentStep(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = spacing.small),
-                colors = CardDefaults.cardColors(containerColor = CardBG),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
                 shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f))
+                border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f))
             ) {
                 Column(modifier = Modifier.padding(spacing.medium)) {
                     Row(
@@ -1260,7 +1356,7 @@ fun PaymentStep(
                             Modifier.fillMaxWidth()
                                     .height(56.dp)
                                     .background(BrownSelected, RoundedCornerShape(8.dp))
-                                    .border(1.dp, BorderGold)
+                                    .border(1.dp, MaterialTheme.kbOutlineSubtle)
                                     .clickable { expanded = true }
                                     .padding(horizontal = spacing.medium),
                     contentAlignment = Alignment.CenterStart
@@ -1280,7 +1376,7 @@ fun PaymentStep(
                 ) {
                     enabledModes.forEach { mode ->
                         DropdownMenuItem(
-                                text = { Text(mode.displayLabel, color = TextLight) },
+                                text = { Text(mode.displayLabel, color = MaterialTheme.kbTextPrimary) },
                                 onClick = {
                                     selectedMode = mode
                                     expanded = false
@@ -1350,7 +1446,7 @@ fun PaymentStep(
                 if (!isAmountValid) {
                     Text(
                             "Sum must equal ${CurrencyUtils.formatPrice(summary.total)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
-                            color = DangerRed,
+                            color = KbError,
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(top = spacing.extraSmall).align(Alignment.Start)
                     )
@@ -1369,7 +1465,7 @@ fun PaymentStep(
             if (isOnline != com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) {
                 Text(
                     "Internet connection required for online payment.",
-                    color = DangerRed,
+                    color = KbError,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(bottom = spacing.medium)
                 )
@@ -1424,7 +1520,7 @@ fun PaymentStep(
                         .height(56.dp),
                     colors =
                             ButtonDefaults.buttonColors(
-                                    containerColor = if (isAmountValid) SuccessGreen else Color.Gray
+                                    containerColor = if (isAmountValid) KbSuccess else Color.Gray
                             ),
                     shape = RoundedCornerShape(12.dp),
                     enabled = isAmountValid
@@ -1456,7 +1552,7 @@ fun PaymentStep(
         ) {
             Text(
                 "Payment Failed / Cancelled",
-                color = DangerRed,
+                color = KbError,
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -1486,14 +1582,14 @@ fun FailedStep(
         Box(
             modifier = Modifier
                 .size(KhanaBookTheme.iconSize.hero)
-                .background(DangerRed.copy(alpha = 0.12f), CircleShape)
-                .border(2.dp, DangerRed.copy(alpha = 0.4f), CircleShape),
+                .background(KbError.copy(alpha = 0.12f), CircleShape)
+                .border(2.dp, KbError.copy(alpha = 0.4f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.Close,
                 contentDescription = "Payment Failed",
-                tint = DangerRed,
+                tint = KbError,
                 modifier = Modifier.size(KhanaBookTheme.iconSize.avatar)
             )
         }
@@ -1502,7 +1598,7 @@ fun FailedStep(
 
         Text(
             "Payment Failed / Cancelled",
-            color = DangerRed,
+            color = KbError,
             style = MaterialTheme.typography.headlineSmall
         )
 
@@ -1510,7 +1606,7 @@ fun FailedStep(
 
         Text(
             "Order #$orderDisplay · ₹${"%.2f".format(totalAmount)}",
-            color = TextGold,
+            color = MaterialTheme.kbPrimary,
             style = MaterialTheme.typography.bodyLarge
         )
 
@@ -1518,7 +1614,7 @@ fun FailedStep(
 
         Text(
             "The payment was not completed. The order has been recorded as failed.",
-            color = TextLight.copy(alpha = 0.7f),
+            color = MaterialTheme.kbTextPrimary.copy(alpha = 0.7f),
             style = MaterialTheme.typography.bodySmall,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             modifier = Modifier.padding(horizontal = spacing.small)
@@ -1530,7 +1626,7 @@ fun FailedStep(
         OutlinedButton(
             onClick = onNewBill,
             modifier = Modifier.fillMaxWidth().height(56.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
             shape = RoundedCornerShape(12.dp)
         ) {
             Icon(Icons.Default.Home, null, tint = MaterialTheme.kbSecondary)
@@ -1594,7 +1690,7 @@ fun SuccessStep(
         PaymentSuccessBadge()
         Text(
                 "Payment Successful!",
-                color = TextLight,
+                color = MaterialTheme.kbTextPrimary,
                 style = MaterialTheme.typography.headlineSmall
         )
 
@@ -1684,7 +1780,7 @@ fun SuccessStep(
         OutlinedButton(
                 onClick = onDone,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
                 shape = RoundedCornerShape(12.dp)
         ) {                        Text("Back to Home", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.titleMedium) }
     }
@@ -1708,13 +1804,13 @@ private fun PaymentSuccessBadge() {
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(end = 48.dp, top = 52.dp),
-            color = SuccessGreen
+            color = KbSuccess
         )
         SuccessSpark(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(start = 66.dp, bottom = 38.dp),
-            color = SuccessGreen.copy(alpha = 0.9f)
+            color = KbSuccess.copy(alpha = 0.9f)
         )
         SuccessSpark(
             modifier = Modifier
@@ -1725,12 +1821,12 @@ private fun PaymentSuccessBadge() {
         Surface(
             modifier = Modifier.size(132.dp),
             shape = CircleShape,
-            color = SuccessGreen.copy(alpha = 0.16f)
+            color = KbSuccess.copy(alpha = 0.16f)
         ) {}
         Surface(
             modifier = Modifier.size(104.dp),
             shape = CircleShape,
-            color = SuccessGreen
+            color = KbSuccess
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
@@ -1806,7 +1902,7 @@ fun VariantPickerDialog(
 @Composable
 fun FoodTypeIcon(type: String) {
     val isVeg = type == "veg"
-    val color = if (isVeg) VegGreen else NonVegRed
+    val color = if (isVeg) KbSuccess else NonVegRed
     // Content description tells screen readers whether the item is veg or non-veg
     // so the distinction is not conveyed by colour alone.
     // Shape differentiation: veg → circle, non-veg → rounded square (diamond-like indicator)
@@ -1833,17 +1929,7 @@ fun FoodTypeIcon(type: String) {
 @Composable
 fun BillStepper(currentStep: Int) {
     val spacing = KhanaBookTheme.spacing
-    val resultLabel = when (currentStep) {
-        4 -> "Success"
-        5 -> "Failed"
-        else -> "Result"
-    }
-    val resultIcon = when (currentStep) {
-        4 -> Icons.Default.CheckCircle
-        5 -> Icons.Default.Cancel
-        else -> Icons.Default.Flag
-    }
-    val resultStepActive = currentStep >= 4
+    val doneActive = currentStep >= 4
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1879,16 +1965,16 @@ fun BillStepper(currentStep: Int) {
             showStartConnector = true,
             startConnectorCompleted = currentStep > 2,
             showEndConnector = true,
-            endConnectorCompleted = resultStepActive,
+            endConnectorCompleted = doneActive,
             modifier = Modifier.weight(1f)
         )
         StepItem(
-            icon = resultIcon,
-            label = resultLabel,
-            isActive = resultStepActive,
+            icon = Icons.Default.CheckCircle,
+            label = "Done",
+            isActive = doneActive,
             isCompleted = currentStep == 4,
             showStartConnector = true,
-            startConnectorCompleted = resultStepActive,
+            startConnectorCompleted = doneActive,
             modifier = Modifier.weight(1f)
         )
     }
@@ -1906,9 +1992,9 @@ fun StepItem(
     showEndConnector: Boolean = false,
     endConnectorCompleted: Boolean = false
 ) {
-    val color = if (isActive) MaterialTheme.kbPrimary else Color.Gray.copy(alpha = 0.4f)
+    val color = if (isActive) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
     val containerColor = if (isActive) KbBrandSaffron.copy(alpha = 0.15f) else Color.Transparent
-    val borderColor = if (isActive) KbBrandSaffron else Color.Gray.copy(alpha = 0.3f)
+    val borderColor = if (isActive) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
 
     // Spring-animated scale so step dots pop in when activated
     val scale by animateFloatAsState(
@@ -1971,7 +2057,7 @@ fun StepItem(
                         modifier = Modifier
                             .size(14.dp)
                             .align(Alignment.BottomEnd)
-                            .background(VegGreen, CircleShape),
+                            .background(KbBrandSaffron, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(10.dp))

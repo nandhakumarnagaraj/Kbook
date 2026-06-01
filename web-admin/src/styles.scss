@@ -34,92 +34,142 @@ $dark-theme: mat.m2-define-dark-theme((
 .dark-theme {
   @include mat.all-component-colors($dark-theme);
   
-  --bg: #17130F;
-  --bg-elevated: #211A14;
-  --panel: #211A14;
-  --panel-hover: #2E1F0D;
-  --surface: #332A22;
-  --surface-hover: #3E332A;
-  --ink: #F7F3EE;
-  --ink-secondary: #C1B7AD;
-  --muted: #B0A496;
-  --line: rgba(247, 243, 238, 0.08);
-  --line-strong: rgba(247, 243, 238, 0.16);
-  --brand-soft: rgba(191, 85, 0, 0.1);
-  --brand-glow: rgba(191, 85, 0, 0.2);
-  
+  --bg: #121212;
+  --bg-elevated: #1E1E1E;
+  --panel: #252525;
+  --panel-hover: #333333;
+  --surface: #333333;
+  --surface-hover: #404040;
+  --ink: #F5F5F5;
+  --ink-secondary: #B3B3B3;
+  --muted: #9CA3AF;
+  --line: rgba(245, 245, 245, 0.08);
+  --line-strong: rgba(245, 245, 245, 0.16);
+  --brand: #FB923C;
+  --brand-light: #F97316;
+  --brand-dark: #D97706;
+  --brand-soft: rgba(251, 146, 60, 0.1);
+  --brand-glow: rgba(251, 146, 60, 0.2);
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
 
-  /* DESIGN.md Saffron variables - Dark theme */
-  --brand-saffron: #C85A00;
-  --brand-saffron-light: #E8832A;
-  --brand-saffron-dark: #994500;
-  --brand-saffron-android: #D97706;
-  --warm-cream-bg: #17130F;
-  --white-panel: #211A14;
-  --warm-tan-surface: #332A22;
-  --warm-tan-hover: #3E332A;
-  --warm-orange-hover: #2E1F0D;
-  --deep-brown-ink: #F7F3EE;
-  --warm-brown-secondary: #C1B7AD;
-  --warm-muted: #B0A496;
+  --success: #4ADE80;
+  --success-soft: rgba(74, 222, 128, 0.12);
+  --danger: #F87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --warn: #FBBF24;
+  --warn-soft: rgba(251, 191, 36, 0.12);
+  --accent: #3B82F6;
+  --accent-light: #60A5FA;
+  --accent-soft: rgba(59, 130, 246, 0.12);
+  --info: #3B82F6;
+  --info-soft: rgba(59, 130, 246, 0.12);
+  --purple: #A78BFA;
+  --purple-soft: rgba(167, 139, 250, 0.12);
+
+  /* Premium Saffron palette - Dark theme */
+  --brand-saffron: #FB923C;
+  --brand-saffron-light: #F97316;
+  --brand-saffron-dark: #D97706;
+  --brand-saffron-android: #F97316;
+
+  /* Opacity tokens */
+  --opacity-disabled: 0.38;
+  --opacity-muted: 0.72;
+  --opacity-divider: 0.12;
+  --opacity-border: 0.08;
+  --opacity-hover: 0.08;
+  --opacity-pressed: 0.12;
+  --opacity-selected: 0.16;
+  --opacity-focus: 0.20;
+  --opacity-overlay: 0.45;
+  --opacity-scrim: 0.60;
+  --opacity-status-bg: 0.12;
+  --opacity-status-border: 0.24;
+
+  /* Status chip backgrounds at 12% / 24% of brand colors */
+  --success-bg: rgba(74, 222, 128, 0.12);
+  --success-border: rgba(74, 222, 128, 0.24);
+  --danger-bg: rgba(248, 113, 113, 0.12);
+  --danger-border: rgba(248, 113, 113, 0.24);
+  --warn-bg: rgba(251, 191, 36, 0.12);
+  --warn-border: rgba(251, 191, 36, 0.24);
+  --info-bg: rgba(59, 130, 246, 0.12);
+  --info-border: rgba(59, 130, 246, 0.24);
 }
 
 :root {
-  --bg: #fff8f6;
-  --bg-elevated: #ffffff;
-  --panel: #fff1eb;
-  --panel-hover: #ffeae0;
-  --surface: #fae4da;
-  --surface-hover: #f4ded4;
+  --bg: #FAF8F5;
+  --bg-elevated: #FFFFFF;
+  --panel: #FFF0E6;
+  --panel-hover: #FFE4D6;
+  --surface: #FFF7F0;
+  --surface-hover: #FFEEE2;
   
-  --ink: #241913;
-  --ink-secondary: #574237;
-  --muted: #8b7265;
+  --ink: #1F2937;
+  --ink-secondary: #6B7280;
+  --muted: #9CA3AF;
   
-  --line: rgba(36, 25, 19, 0.08);
-  --line-strong: rgba(36, 25, 19, 0.16);
+  --line: rgba(31, 41, 55, 0.08);
+  --line-strong: rgba(31, 41, 55, 0.16);
   
-  --brand: #984300;
-  --brand-light: #bf5500;
-  --brand-dark: #773300;
-  --brand-soft: rgba(152, 67, 0, 0.08);
-  --brand-glow: rgba(152, 67, 0, 0.16);
-  
-  --accent: #005baf;
-  --accent-light: #0074db;
-  --accent-soft: rgba(0, 91, 175, 0.08);
-  
-  --danger: #ba1a1a;
-  --danger-soft: rgba(186, 26, 26, 0.08);
-  --warn: #D97706;
-  --warn-soft: rgba(217, 119, 6, 0.08);
-  --info: #005baf;
-  --info-soft: rgba(0, 91, 175, 0.08);
-  --purple: #7c5cdb;
-  --purple-soft: rgba(124, 92, 219, 0.1);
+  --brand: #F97316;
+  --brand-light: #FB923C;
+  --brand-dark: #D97706;
+  --brand-soft: rgba(249, 115, 22, 0.08);
+  --brand-glow: rgba(249, 115, 22, 0.16);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 
-  /* DESIGN.md Saffron variables - Light theme */
-  --brand-saffron: #C85A00;
-  --brand-saffron-light: #E8832A;
-  --brand-saffron-dark: #994500;
-  --brand-saffron-android: #D97706;
-  --warm-cream-bg: #F7F3EE;
-  --white-panel: #FFFFFF;
-  --warm-tan-surface: #EAE3DC;
-  --warm-tan-hover: #DDD5CC;
-  --warm-orange-hover: #FDF0E6;
-  --deep-brown-ink: #17130F;
-  --warm-brown-secondary: #5C5248;
-  --warm-muted: #6E6257;
+  --success: #16A34A;
+  --success-soft: rgba(22, 163, 74, 0.08);
+  --danger: #DC2626;
+  --danger-soft: rgba(220, 38, 38, 0.08);
+  --warn: #F59E0B;
+  --warn-soft: rgba(245, 158, 11, 0.08);
+  --accent: #2563EB;
+  --accent-light: #60A5FA;
+  --accent-soft: rgba(37, 99, 235, 0.08);
+  --info: #2563EB;
+  --info-soft: rgba(37, 99, 235, 0.08);
+  --purple: #7C5CDB;
+  --purple-soft: rgba(124, 92, 219, 0.1);
+
+  /* Premium Saffron palette - Light theme */
+  --brand-saffron: #F97316;
+  --brand-saffron-light: #FB923C;
+  --brand-saffron-dark: #D97706;
+  --brand-saffron-android: #F97316;
+
+  /* Opacity tokens */
+  --opacity-disabled: 0.38;
+  --opacity-muted: 0.72;
+  --opacity-divider: 0.12;
+  --opacity-border: 0.08;
+  --opacity-hover: 0.08;
+  --opacity-pressed: 0.12;
+  --opacity-selected: 0.16;
+  --opacity-focus: 0.24;
+  --opacity-overlay: 0.32;
+  --opacity-scrim: 0.45;
+  --opacity-status-bg: 0.12;
+  --opacity-status-border: 0.24;
+
+  /* Status chip backgrounds at 12% / 24% of brand colors */
+  --success-bg: rgba(22, 163, 74, 0.12);
+  --success-border: rgba(22, 163, 74, 0.24);
+  --danger-bg: rgba(220, 38, 38, 0.12);
+  --danger-border: rgba(220, 38, 38, 0.24);
+  --warn-bg: rgba(245, 158, 11, 0.12);
+  --warn-border: rgba(245, 158, 11, 0.24);
+  --info-bg: rgba(37, 99, 235, 0.12);
+  --info-border: rgba(37, 99, 235, 0.24);
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -396,37 +446,37 @@ h1, h2, h3, h4, p { margin-top: 0; }
 
 /* 2. Stat Cards styling */
 .card-stat {
-  background-color: var(--white-panel) !important;
-  border-radius: var(--radius-xl) !important; /* 18px */
+  background-color: var(--panel) !important;
+  border-radius: var(--radius-xl) !important;
   padding: 16px !important;
   border: 1px solid var(--line) !important;
   box-shadow: var(--shadow-sm) !important;
-  background: linear-gradient(135deg, rgba(200, 90, 0, 0.03) 0%, var(--white-panel) 100%) !important;
+  background: linear-gradient(135deg, var(--brand-soft) 0%, var(--panel) 100%) !important;
 }
 .dark-theme .card-stat {
-  background-color: var(--white-panel) !important; /* Maps to dark-panel under dark mode */
-  background: linear-gradient(135deg, rgba(200, 90, 0, 0.05) 0%, var(--white-panel) 100%) !important;
+  background-color: var(--panel) !important;
+  background: linear-gradient(135deg, var(--brand-soft) 0%, var(--panel) 100%) !important;
 }
 
 /* Deep override for stats card in pages */
 ::ng-deep .mat-mdc-card.stat-card,
 .mat-mdc-card.stat-card {
-  background-color: var(--white-panel) !important;
-  border-radius: var(--radius-xl) !important; /* 18px */
+  background-color: var(--panel) !important;
+  border-radius: var(--radius-xl) !important;
   border: 1px solid var(--line) !important;
   box-shadow: var(--shadow-sm) !important;
-  background: linear-gradient(135deg, rgba(200, 90, 0, 0.03) 0%, var(--white-panel) 100%) !important;
+  background: linear-gradient(135deg, var(--brand-soft) 0%, var(--panel) 100%) !important;
 }
 .dark-theme ::ng-deep .mat-mdc-card.stat-card,
 .dark-theme .mat-mdc-card.stat-card {
-  background-color: var(--white-panel) !important;
-  background: linear-gradient(135deg, rgba(200, 90, 0, 0.05) 0%, var(--white-panel) 100%) !important;
+  background-color: var(--panel) !important;
+  background: linear-gradient(135deg, var(--brand-soft) 0%, var(--panel) 100%) !important;
 }
 
 /* 3. Input field styling */
 .input-field {
-  background-color: var(--white-panel) !important;
-  border-radius: var(--radius-sm) !important; /* 6px */
+  background-color: var(--panel) !important;
+  border-radius: var(--radius-sm) !important;
   padding: 0 12px 0 38px !important;
   height: 48px !important;
   border: 1px solid var(--line) !important;
@@ -440,9 +490,9 @@ h1, h2, h3, h4, p { margin-top: 0; }
 
 /* Deep override for Material outline form fields for consistency */
 ::ng-deep .mat-mdc-form-field-appearance-outline .mat-mdc-text-field-wrapper {
-  border-radius: var(--radius-sm) !important; /* 6px */
+  border-radius: var(--radius-sm) !important;
   height: 48px !important;
-  background-color: var(--white-panel) !important;
+  background-color: var(--panel) !important;
 }
 ::ng-deep .mat-mdc-form-field-appearance-outline.mat-focused .mdc-notched-outline__leading,
 ::ng-deep .mat-mdc-form-field-appearance-outline.mat-focused .mdc-notched-outline__notch,
@@ -451,40 +501,39 @@ h1, h2, h3, h4, p { margin-top: 0; }
   border-width: 2px !important;
 }
 
-/* 4. Status chips styling */
+/* 4. Status chips styling — using theme-aware CSS variables */
 .status-chip-active {
-  background-color: rgba(16, 185, 129, 0.12) !important;
-  color: #16A34A !important;
-  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  background-color: var(--success-bg) !important;
+  color: var(--success) !important;
+  border: 1px solid var(--success-border) !important;
 }
 .status-chip-pending {
-  background-color: rgba(245, 158, 11, 0.12) !important;
-  color: #D97706 !important;
-  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+  background-color: var(--warn-bg) !important;
+  color: var(--warn) !important;
+  border: 1px solid var(--warn-border) !important;
 }
 .status-chip-rejected {
-  background-color: rgba(239, 68, 68, 0.12) !important;
-  color: #EF4444 !important;
-  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  background-color: var(--danger-bg) !important;
+  color: var(--danger) !important;
+  border: 1px solid var(--danger-border) !important;
 }
 
-/* Deep override for custom status chips on list pages */
 .status-chip.success,
 .status-chip.active {
-  background-color: rgba(16, 185, 129, 0.12) !important;
-  color: #16A34A !important;
-  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+  background-color: var(--success-bg) !important;
+  color: var(--success) !important;
+  border: 1px solid var(--success-border) !important;
 }
 .status-chip.warn,
 .status-chip.pending {
-  background-color: rgba(245, 158, 11, 0.12) !important;
-  color: #D97706 !important;
-  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+  background-color: var(--warn-bg) !important;
+  color: var(--warn) !important;
+  border: 1px solid var(--warn-border) !important;
 }
 .status-chip.danger,
 .status-chip.rejected,
 .status-chip.suspended {
-  background-color: rgba(239, 68, 68, 0.12) !important;
-  color: #EF4444 !important;
-  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  background-color: var(--danger-bg) !important;
+  color: var(--danger) !important;
+  border: 1px solid var(--danger-border) !important;
 }

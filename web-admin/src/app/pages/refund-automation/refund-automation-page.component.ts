@@ -75,8 +75,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     ::ng-deep .stat-card .mat-mdc-card-title{font-size:1.25rem!important;font-weight:700!important;margin:0!important}
     ::ng-deep .stat-card .mat-mdc-card-subtitle{font-size:0.8rem!important;color:var(--muted)!important;margin-top:2px!important}
     .stat-icon{background:var(--brand-soft);color:var(--brand);width:36px;height:36px;border-radius:8px;font-size:18px;display:flex;align-items:center;justify-content:center}
-    .orders.stat-icon{background:#f3e8ff;color:#9333ea}.refunded.stat-icon{background:#fee2e2;color:#dc2626}
-    .amount.stat-icon{background:#fef3c7;color:#d97706}.rate.stat-icon{background:#e0f2fe;color:#0284c7}
+    .orders.stat-icon{background:var(--purple-soft);color:var(--purple)}.refunded.stat-icon{background:var(--danger-bg);color:var(--danger)}
+    .amount.stat-icon{background:var(--warn-bg);color:var(--warn)}.rate.stat-icon{background:var(--info-bg);color:var(--info)}
     .table-card{border-radius:16px;border:none;box-shadow:0 4px 20px rgba(0,0,0,0.05)}
     table{width:100%}.no-data{padding:32px;text-align:center;color:var(--muted)}
     .loading{display:flex;justify-content:center;padding:60px}

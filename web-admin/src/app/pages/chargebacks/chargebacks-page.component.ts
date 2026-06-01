@@ -45,7 +45,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     ::ng-deep .stat-card .mat-mdc-card-title{font-size:1.25rem!important;font-weight:700!important;margin:0!important}
     ::ng-deep .stat-card .mat-mdc-card-subtitle{font-size:0.8rem!important;color:var(--muted)!important;margin-top:2px!important}
     .stat-icon{width:36px;height:36px;border-radius:8px;font-size:18px;display:flex;align-items:center;justify-content:center}
-    .red{background:#fee2e2;color:#dc2626}.amber{background:#fef3c7;color:#d97706}
+    .red{background:var(--danger-bg);color:var(--danger)}.amber{background:var(--warn-bg);color:var(--warn)}
     .status-card{border-radius:16px;border:none;box-shadow:0 4px 20px rgba(0,0,0,0.05)}
     .status-grid{display:flex;gap:16px;flex-wrap:wrap}
     .status-item{padding:12px 20px;border-radius:10px;background:var(--bg-elevated);text-align:center}

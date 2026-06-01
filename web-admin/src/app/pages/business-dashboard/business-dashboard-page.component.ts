@@ -22,6 +22,7 @@ import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { SkeletonComponent } from '../../shared/skeleton.component';
 import { Chart, registerables } from 'chart.js';
+import { DashboardShellComponent } from '../../shared/dashboard-shell.component';
 
 Chart.register(...registerables);
 
@@ -45,59 +46,55 @@ Chart.register(...registerables);
     MatMenuModule,
     MatFormFieldModule,
     EmptyStateComponent,
-    SkeletonComponent
+    SkeletonComponent,
+    DashboardShellComponent
   ],
   template: `
-    <div class="page-container">
-      <ng-container *ngIf="vm() as data; else loading">
-        <div class="header-row">
+    <app-dashboard-shell
+      [title]="(vm()?.shopName || 'Business Dashboard')"
+      [subtitle]="liveDate()"
+      [loading]="!vm()"
+      (retry)="refresh()"
+    >
+      <ng-container header-actions>
+        <mat-form-field appearance="outline" class="poll-field">
+          <mat-label>Auto-refresh</mat-label>
+          <mat-select [value]="pollIntervalMs()" (selectionChange)="setPollInterval($event.value)">
+            <mat-option [value]="0">Off</mat-option>
+            <mat-option [value]="15000">15s</mat-option>
+            <mat-option [value]="30000">30s</mat-option>
+            <mat-option [value]="60000">60s</mat-option>
+          </mat-select>
+        </mat-form-field>
+        
+        <button mat-icon-button (click)="refresh()" matTooltip="Refresh now" aria-label="Refresh dashboard data">
+          <mat-icon [class.spinning]="refreshing">refresh</mat-icon>
+        </button>
+      </ng-container>
 
-          <!-- Compliance expiry banner -->
-          <div class="compliance-banner expired" *ngIf="fssaiExpired()">
-            <mat-icon aria-hidden="true">error</mat-icon>
-            FSSAI License has EXPIRED — renew immediately to stay compliant.
-            <a routerLink="/business/settings">Go to Settings →</a>
-          </div>
-          <div class="compliance-banner expiring" *ngIf="!fssaiExpired() && fssaiExpiringSoon()">
-            <mat-icon aria-hidden="true">warning</mat-icon>
-            FSSAI License expiring soon.
-            <a routerLink="/business/settings">Go to Settings →</a>
-          </div>
-          <div class="compliance-banner expired" *ngIf="!fssaiExpired() && gstExpired()">
-            <mat-icon aria-hidden="true">error</mat-icon>
-            GST Registration has EXPIRED — renew immediately to stay compliant.
-            <a routerLink="/business/settings">Go to Settings →</a>
-          </div>
-          <div class="compliance-banner expiring" *ngIf="!fssaiExpired() && !gstExpired() && gstExpiringSoon()">
-            <mat-icon aria-hidden="true">warning</mat-icon>
-            GST Registration expiring soon.
-            <a routerLink="/business/settings">Go to Settings →</a>
-          </div>
+      <!-- Compliance expiry banner -->
+      <div class="compliance-banner expired" *ngIf="fssaiExpired()">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        FSSAI License has EXPIRED — renew immediately to stay compliant.
+        <a routerLink="/business/settings">Go to Settings →</a>
+      </div>
+      <div class="compliance-banner expiring" *ngIf="!fssaiExpired() && fssaiExpiringSoon()">
+        <mat-icon aria-hidden="true">warning</mat-icon>
+        FSSAI License expiring soon.
+        <a routerLink="/business/settings">Go to Settings →</a>
+      </div>
+      <div class="compliance-banner expired" *ngIf="!fssaiExpired() && gstExpired()">
+        <mat-icon aria-hidden="true">error</mat-icon>
+        GST Registration has EXPIRED — renew immediately to stay compliant.
+        <a routerLink="/business/settings">Go to Settings →</a>
+      </div>
+      <div class="compliance-banner expiring" *ngIf="!fssaiExpired() && !gstExpired() && gstExpiringSoon()">
+        <mat-icon aria-hidden="true">warning</mat-icon>
+        GST Registration expiring soon.
+        <a routerLink="/business/settings">Go to Settings →</a>
+      </div>
 
-          <div class="header-left">
-            <div class="live-status">
-              <span class="live-dot"></span>
-              <span class="live-text">Live Console</span>
-            </div>
-            <h1 class="page-title text-balance">{{ data.shopName || 'Business Dashboard' }}</h1>
-            <p class="page-subtitle">{{ liveDate() }}</p>
-          </div>
-          <div class="header-actions">
-            <mat-form-field appearance="outline" class="poll-field">
-              <mat-label>Auto-refresh</mat-label>
-              <mat-select [value]="pollIntervalMs()" (selectionChange)="setPollInterval($event.value)">
-                <mat-option [value]="0">Off</mat-option>
-                <mat-option [value]="15000">15s</mat-option>
-                <mat-option [value]="30000">30s</mat-option>
-                <mat-option [value]="60000">60s</mat-option>
-              </mat-select>
-            </mat-form-field>
-            
-            <button mat-icon-button (click)="refresh()" matTooltip="Refresh now" aria-label="Refresh dashboard data">
-              <mat-icon [class.spinning]="refreshing">refresh</mat-icon>
-            </button>
-          </div>
-        </div>
+      <ng-container *ngIf="vm() as data">
 
         <div class="stats-grid">
           <mat-card class="stat-card revenue clickable" routerLink="/business/orders">
@@ -279,34 +276,7 @@ Chart.register(...registerables);
           </mat-card>
         </div>
       </ng-container>
-
-      <ng-template #loading>
-        <div class="skeleton-container animate-fade-in-up">
-          <div class="header-row" style="margin-bottom: 28px;">
-            <div class="header-left">
-              <app-skeleton width="250px" height="32px" style="margin-bottom: 8px; display: block;"></app-skeleton>
-              <app-skeleton width="150px" height="16px"></app-skeleton>
-            </div>
-          </div>
-
-          <div class="stats-grid">
-            <app-skeleton height="110px" variant="card" *ngFor="let i of [1,2,3,4]"></app-skeleton>
-          </div>
-
-          <div class="main-grid">
-            <div class="grid-left" style="display: flex; flex-direction: column; gap: 32px;">
-              <app-skeleton height="380px" variant="card"></app-skeleton>
-              <app-skeleton height="250px" variant="card"></app-skeleton>
-            </div>
-            <div class="grid-right" style="display: flex; flex-direction: column; gap: 32px;">
-              <app-skeleton height="300px" variant="card"></app-skeleton>
-              <app-skeleton height="330px" variant="card"></app-skeleton>
-            </div>
-          </div>
-        </div>
-      </ng-template>
-
-    </div>
+    </app-dashboard-shell>
   `,
   styles: [`
     .page-container { padding: 24px; max-width: 1400px; margin: 0 auto; position: relative; }
@@ -316,8 +286,8 @@ Chart.register(...registerables);
     .header-actions { display: flex; align-items: center; gap: 16px; }
     
     .live-status { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; }
-    .live-text { font-size: 0.75rem; font-weight: 800; color: #10b981; text-transform: uppercase; letter-spacing: 1px; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+    .live-text { font-size: 0.75rem; font-weight: 800; color: var(--success); text-transform: uppercase; letter-spacing: 1px; }
     @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
 
     .poll-field { width: 150px; }
@@ -380,36 +350,36 @@ Chart.register(...registerables);
       border-color: rgba(22, 163, 74, 0.12) !important; 
       background: linear-gradient(135deg, rgba(22, 163, 74, 0.04) 0%, var(--panel) 100%);
     }
-    .revenue .stat-icon { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
+    .revenue .stat-icon { background: rgba(34, 197, 94, 0.12); color: var(--success); }
     .revenue:hover { border-color: rgba(34, 197, 94, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(34, 197, 94, 0.2) !important; }
     
     .orders { 
       border-color: rgba(217, 119, 6, 0.12) !important;
       background: linear-gradient(135deg, rgba(217, 119, 6, 0.04) 0%, var(--panel) 100%);
     }
-    .orders .stat-icon { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+    .orders .stat-icon { background: rgba(245, 158, 11, 0.12); color: var(--warn); }
     .orders:hover { border-color: rgba(245, 158, 11, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(245, 158, 11, 0.2) !important; }
 
     .avg-value { 
       border-color: rgba(2, 132, 199, 0.12) !important;
       background: linear-gradient(135deg, rgba(2, 132, 199, 0.04) 0%, var(--panel) 100%);
     }
-    .avg-value .stat-icon { background: rgba(14, 165, 233, 0.12); color: #0284c7; }
+    .avg-value .stat-icon { background: rgba(14, 165, 233, 0.12); color: var(--info); }
     .avg-value:hover { border-color: rgba(14, 165, 233, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(14, 165, 233, 0.2) !important; }
 
     .online { 
       border-color: rgba(147, 51, 234, 0.12) !important;
       background: linear-gradient(135deg, rgba(147, 51, 234, 0.04) 0%, var(--panel) 100%);
     }
-    .online .stat-icon { background: rgba(168, 85, 247, 0.12); color: #9333ea; }
+    .online .stat-icon { background: rgba(168, 85, 247, 0.12); color: var(--purple); }
     .online:hover { border-color: rgba(168, 85, 247, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(168, 85, 247, 0.2) !important; }
 
     .trend-badge { position: absolute; top: 16px; right: 16px; display: flex; align-items: center; gap: 2px; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; }
-    .trend-badge.up { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
-    .trend-badge.down { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+    .trend-badge.up { background: rgba(34, 197, 94, 0.12); color: var(--success); }
+    .trend-badge.down { background: rgba(239, 68, 68, 0.12); color: var(--danger); }
     .trend-badge mat-icon { font-size: 12px; width: 12px; height: 12px; }
     
-    .online-status { position: absolute; top: 16px; right: 16px; font-size: 0.7rem; font-weight: 700; color: #dc2626; background: rgba(239, 68, 68, 0.12); padding: 3px 10px; border-radius: 999px; }
+    .online-status { position: absolute; top: 16px; right: 16px; font-size: 0.7rem; font-weight: 700; color: var(--danger); background: rgba(239, 68, 68, 0.12); padding: 3px 10px; border-radius: 999px; }
 
     .main-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 32px; margin-bottom: 32px; }
     .grid-left, .grid-right { display: flex; flex-direction: column; gap: 32px; }
@@ -440,9 +410,9 @@ Chart.register(...registerables);
       border-color: var(--brand-soft); 
       background: var(--panel-hover); 
     }
-    .order-item.paid-row { border-left: 4px solid #16a34a !important; }
-    .order-item.pending-row { border-left: 4px solid #d97706 !important; }
-    .order-item.refunded-row { border-left: 4px solid #dc2626 !important; }
+    .order-item.paid-row { border-left: 4px solid var(--success) !important; }
+    .order-item.pending-row { border-left: 4px solid var(--warn) !important; }
+    .order-item.refunded-row { border-left: 4px solid var(--danger) !important; }
 
     .order-info { flex: 1; }
     .order-code { font-weight: 700; color: var(--ink); font-size: 0.95rem; }
@@ -450,8 +420,8 @@ Chart.register(...registerables);
     .order-status { margin: 0 16px; }
     .order-amount { font-weight: 700; color: var(--ink); font-size: 0.95rem; font-variant-numeric: tabular-nums; }
 
-    .status-chip { padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; background: #f1f5f9; color: #64748b; letter-spacing: 0.5px; }
-    .status-chip.success { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
+    .status-chip { padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; background: var(--bg-elevated); color: var(--muted); letter-spacing: 0.5px; }
+    .status-chip.success { background: rgba(34, 197, 94, 0.12); color: var(--success); }
 
     .setup-card { border-radius: var(--radius-xl); border: 1px solid var(--line); box-shadow: var(--shadow-md); background: var(--panel); }
     .setup-card .mat-mdc-card-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
@@ -471,7 +441,7 @@ Chart.register(...registerables);
     }
     .check-item:hover { background: var(--bg); }
     .check-item.done { opacity: 1; color: var(--ink); border-color: rgba(34, 197, 94, 0.1); background: rgba(34, 197, 94, 0.02); }
-    .check-item.done mat-icon { color: #16a34a; }
+    .check-item.done mat-icon { color: var(--success); }
     .check-info { flex: 1; }
     .check-label { font-weight: 700; font-size: 0.9rem; }
     .check-detail { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
@@ -498,8 +468,8 @@ Chart.register(...registerables);
       transform: scale(1.02);
       border-color: rgba(239, 68, 68, 0.3);
     }
-    .stock-status { font-weight: 800; font-size: 0.7rem; color: #dc2626; letter-spacing: 0.5px; }
-    .stock-status.critical { color: #be123c; text-decoration: none; font-weight: 900; }
+    .stock-status { font-weight: 800; font-size: 0.7rem; color: var(--danger); letter-spacing: 0.5px; }
+    .stock-status.critical { color: var(--danger); text-decoration: none; font-weight: 900; }
 
     .quick-actions-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; }
     .action-card { 
@@ -527,11 +497,11 @@ Chart.register(...registerables);
       transform: translateY(-8px) scale(1.04) !important; 
       box-shadow: 0 16px 32px rgba(199, 115, 47, 0.25) !important; 
       background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%) !important; 
-      color: #fff !important; 
+      color: var(--panel) !important; 
       border-color: var(--brand-light) !important;
     }
     .action-card mat-icon { font-size: 32px; width: 32px; height: 32px; color: var(--brand); transition: transform 0.3s ease, color 0.3s ease; }
-    .action-card:hover mat-icon { transform: scale(1.15); color: #fff !important; }
+    .action-card:hover mat-icon { transform: scale(1.15); color: var(--panel) !important; }
     .action-label { font-weight: 700; font-size: 0.95rem; }
 
     .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100px; color: var(--muted); }
@@ -556,8 +526,8 @@ Chart.register(...registerables);
 
     /* Compliance banner */
     .compliance-banner { display: flex; align-items: center; gap: 10px; padding: 12px 20px; margin-bottom: 16px; border-radius: var(--radius-lg); font-size: 0.9rem; font-weight: 700; }
-    .compliance-banner.expired { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #dc2626; }
-    .compliance-banner.expiring { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #d97706; }
+    .compliance-banner.expired { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger); }
+    .compliance-banner.expiring { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--warn); }
     .compliance-banner a { color: inherit; font-weight: 700; text-decoration: underline; margin-left: auto; }
 
     .spinning { animation: rotate 1s linear infinite; }
@@ -578,6 +548,11 @@ Chart.register(...registerables);
       .page-container { padding: 16px; }
       .page-title { font-size: 1.5rem; }
       .stats-grid { gap: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .live-dot { animation: none !important; }
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
     }
   `]
 })
@@ -846,12 +821,12 @@ export class BusinessDashboardPageComponent implements AfterViewInit, OnDestroy 
     if (!ctx) return;
 
     const computedStyle = getComputedStyle(document.documentElement);
-    const brandColor = computedStyle.getPropertyValue('--brand').trim() || '#C85A00';
-    const brandLight = computedStyle.getPropertyValue('--brand-light').trim() || '#E8832A';
-    const mutedColor = computedStyle.getPropertyValue('--muted').trim() || '#64748b';
-    const lineColor = computedStyle.getPropertyValue('--line').trim() || 'rgba(100, 116, 139, 0.1)';
-    const inkColor = computedStyle.getPropertyValue('--ink').trim() || '#17130F';
-    const panelColor = computedStyle.getPropertyValue('--panel').trim() || '#ffffff';
+    const brandColor = computedStyle.getPropertyValue('--brand').trim() || '#F97316';
+    const brandLight = computedStyle.getPropertyValue('--brand-light').trim() || '#FB923C';
+    const mutedColor = computedStyle.getPropertyValue('--muted').trim() || '#9CA3AF';
+    const lineColor = computedStyle.getPropertyValue('--line').trim() || 'rgba(31, 41, 55, 0.08)';
+    const inkColor = computedStyle.getPropertyValue('--ink').trim() || '#1F2937';
+    const panelColor = computedStyle.getPropertyValue('--panel').trim() || '#FFF0E6';
 
     this.chartInstance = new Chart(ctx, {
       type: 'bar',

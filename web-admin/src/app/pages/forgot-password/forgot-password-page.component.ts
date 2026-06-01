@@ -222,7 +222,7 @@ const API_BASE_URL = environment.apiBaseUrl;
       height: 100dvh;
       width: 100vw;
       display: flex;
-      background: #f8fafc;
+      background: var(--bg);
       overflow: hidden;
       position: relative;
     }
@@ -243,7 +243,7 @@ const API_BASE_URL = environment.apiBaseUrl;
       flex-direction: column;
       justify-content: space-between;
       padding: 48px;
-      color: #fff;
+      color: var(--panel);
     }
 
     @media (max-width: 960px) {
@@ -316,7 +316,7 @@ const API_BASE_URL = environment.apiBaseUrl;
       font-size: 2rem;
       font-weight: 800;
       letter-spacing: -0.5px;
-      color: #fff;
+      color: var(--panel);
       margin: 0;
       line-height: 1;
     }
@@ -332,13 +332,13 @@ const API_BASE_URL = environment.apiBaseUrl;
       line-height: 1.15;
       margin: 0 0 16px;
       letter-spacing: -1px;
-      color: #f8fafc;
+      color: var(--bg);
     }
 
     .hero-sub {
       font-size: 1.1rem;
       line-height: 1.6;
-      color: #94a3b8;
+      color: var(--muted);
       margin: 0;
     }
 
@@ -375,19 +375,19 @@ const API_BASE_URL = environment.apiBaseUrl;
       height: 40px;
       background: rgba(199, 115, 47, 0.12);
       border-radius: 10px;
-      color: #f0a24c;
+      color: var(--brand);
     }
 
     .feature-details h3 {
       font-size: 0.95rem;
       font-weight: 700;
       margin: 0 0 4px;
-      color: #f8fafc;
+      color: var(--bg);
     }
 
     .feature-details p {
       font-size: 0.85rem;
-      color: #94a3b8;
+      color: var(--muted);
       margin: 0;
       line-height: 1.4;
     }
@@ -395,7 +395,7 @@ const API_BASE_URL = environment.apiBaseUrl;
     /* Right Form Section */
     .form-section {
       flex: 0.8;
-      background: #f8fafc;
+      background: var(--bg);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -436,7 +436,7 @@ const API_BASE_URL = environment.apiBaseUrl;
     .form-orb-2 {
       width: 450px;
       height: 450px;
-      background: #10b981;
+      background: var(--success);
       bottom: -150px;
       left: -150px;
     }
@@ -468,7 +468,7 @@ const API_BASE_URL = environment.apiBaseUrl;
       height: 120px;
       width: 120px;
       object-fit: contain;
-      background: #ffffff;
+      background: var(--panel);
       padding: 4px;
       border-radius: 20px;
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -537,7 +537,7 @@ const API_BASE_URL = environment.apiBaseUrl;
       font-size: 0.9rem;
       font-family: inherit;
       color: var(--ink);
-      background: #ffffff;
+      background: var(--panel);
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
       box-sizing: border-box;
     }
@@ -628,13 +628,13 @@ const API_BASE_URL = environment.apiBaseUrl;
       color: var(--muted);
     }
 
-    .strength-label span.weak { color: #ef4444; }
-    .strength-label span.medium { color: #f59e0b; }
-    .strength-label span.strong { color: #10b981; }
+    .strength-label span.weak { color: var(--danger); }
+    .strength-label span.medium { color: var(--warn); }
+    .strength-label span.strong { color: var(--success); }
 
     .error-box {
-      background: #fee2e2;
-      color: #b91c1c;
+      background: var(--danger-bg);
+      color: var(--danger);
       padding: 10px 14px;
       border-radius: 8px;
       display: flex;
@@ -642,13 +642,13 @@ const API_BASE_URL = environment.apiBaseUrl;
       gap: 8px;
       font-size: 0.8rem;
       font-weight: 600;
-      border: 1px solid #fecaca;
+      border: 1px solid var(--danger-border);
       text-align: left;
     }
 
     .success-box {
-      background: #dcfce7;
-      color: #15803d;
+      background: var(--success-bg);
+      color: var(--success);
       padding: 10px 14px;
       border-radius: 8px;
       display: flex;
@@ -656,7 +656,7 @@ const API_BASE_URL = environment.apiBaseUrl;
       gap: 8px;
       font-size: 0.8rem;
       font-weight: 600;
-      border: 1px solid #bbf7d0;
+      border: 1px solid var(--success-border);
       text-align: left;
     }
 
@@ -695,18 +695,18 @@ const API_BASE_URL = environment.apiBaseUrl;
 
     @media (max-width: 960px) {
       .login-shell {
-        background: #f8fafc;
+        background: var(--bg);
       }
       .login-card {
         border-radius: 16px;
-        background: rgba(255, 255, 255, 0.9);
+        background: var(--panel);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
       }
     }
 
     @media (max-width: 480px) {
       .login-shell {
-        background: #ffffff;
+        background: var(--panel);
       }
       .login-card {
         border: none;

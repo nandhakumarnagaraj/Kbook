@@ -1,13 +1,18 @@
 # KhanaBook v2 — Agent Context
 
 ## Goal
-Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC, brand logo, responsive UI fixes) for the v2 development branch.
+Complete Android Compose UI rebuild to match 20 Stitch-generated design mockups using Premium Saffron palette + semantic opacity tokens.
 
 ## Constraints & Preferences
 - Easebuzz API hash sequences must exactly match official Stoplight docs
 - Sub-merchant lifecycle managed exclusively via admin web UI
 - All changes go to `v2` branch (not `main` which is v1 production)
 - KhanaBook brand logo from Android `drawable` used in web admin
+- Android: use existing KhanaBookTheme tokens + KbOpacity, maintain dark/light mode support
+- POS environments: 95–100% opaque cards, 8–16% tinted backgrounds, no glassmorphism
+- Android target: API 26–36, mobile (small/medium/large) + tablet (small/medium/large)
+- Premium Saffron palette: brand `#F97316`, bg `#FAF8F5` light / `#121212` dark, ink `#1F2937`/`#F5F5F5`
+- All Stitch designs use Premium Saffron design system (saffron primary, Plus Jakarta Sans headlines, Inter body, ROUND_TWELVE)
 
 ## Progress
 ### Done
@@ -89,6 +94,30 @@ Complete the Easebuzz payment gateway integration (sub-merchant split APIs, KYC,
   - Android POS: Integrated tactile haptic feedback (`LocalHapticFeedback` and `HapticFeedbackType.LongPress`) on quantity selectors in `NewBillScreen.kt` cart update flow.
 - **Stitch MCP Setup**: Initialized authentication configuration using Stitch API Key and created a non-interactive, automated environment configuration.
 - **Android Theme Token Migration & Compilation Fixes**: Migrated all hardcoded color references across 50+ Android files to use theme-aware `MaterialTheme.kb*` extension properties (kbPrimary, kbSecondary, kbTextPrimary, kbTextSecondary, kbOutlineSuble, kbBgCard, etc.). Fixed missing imports in KhanaBookSelectionDialog.kt (kbTextSecondary), OcrScannerScreen.kt (MaterialTheme), and 5 other files. Added `KhanaBookGlassCard` composable with saffron gradient border. Android `compileDebugKotlin` passes with BUILD SUCCESSFUL.
+
+### 2026-06-01 Session — Android Compose UI Rebuild to Match 20 Stitch Designs
+- **Stitch Project Created**: `KhanaBook Android POS` (ID 893109375385564766) with Premium Saffron design system
+- **20 Stitch Design Mockups Generated**: Splash, Login, Sign Up (3 steps + OTP), Initial Sync, Home Dashboard, Orders List, New Bill (2 variants), Menu Config (2 variants), Payment, Settings, Shop Config, Printer Config, Tax Config, KYC Verification, Marketplace Orders, Reports Overview, Main Navigation, Plate Logo
+- **10 Android Compose Screens Rebuilt**:
+  - `HomeScreen.kt` — saffron header strip (greeting + bell), 3 MetricCards (Orders/Revenue/Avg Order) with saffron top border + shadow, Quick Actions row (New Bill filled, Orders outlined, Menu outlined), grid action cards
+  - `MainScreen.kt` — bottom nav tabs Home/Orders/Menu/Settings with `KbBrandSaffron` active indicator
+  - `NavigationItems.kt` — tabs updated from Home/Reports/Orders/Profile → Home/Orders/Menu/Settings
+  - `NewBillScreen.kt` — "New Order #1042" header, horizontal category chips (saffron active), compact menu cards, bottom cart panel with qty controls + grand total + "Place Order" saffron button
+  - `OrdersScreen.kt` — filter chips, search bar, order cards with Order#/name/items/time/status chip using `KbOpacity.StatusBg`/`StatusBorder`
+  - `MenuConfigurationScreen.kt` — header, category chips, item cards (toggle/edit), FAB
+  - `EasebuzzPaymentScreen.kt` — large ₹ amount display, 2×2 payment method grid (Cash/UPI-QR/Card/Easebuzz), Process Payment button
+  - `SplashScreen.kt` — full `KbBrandSaffron` bg, 80dp white logo, 32sp "KhanaBook", 14sp tagline, white spinner
+  - `LoginScreen.kt` — white bg, saffron strip with logo + "KhanaBook", phone +91 prefix, password, forgot password, Continue saffron button, Google sign-in, Sign Up link
+  - `SignUpScreen.kt` — white bg, saffron strip with step indicator (Phone→OTP→Profile dots), phone input, Send OTP saffron button
+- **4 More Screens Rebuilt** (round 2):
+  - `OtpVerificationScreen.kt` — new screen with 6-digit OTP input boxes, resend countdown, saffron "Verify OTP" button, "Change number?" link
+  - `InitialSyncScreen.kt` — TopAppBar with logo + spinning sync icon, 75% circular progress arc, 4 sync steps (Downloading menu/orders → Configuring → Ready) with checkmarks/spinner/pending states
+  - `EasebuzzKycScreen.kt` — "KYC Verification" header, 4-step horizontal stepper (Identity → Address → Bank → Submit) with green/saffron/gray, dashed document upload area, "Next" saffron button
+  - `MarketplaceOrdersScreen.kt` — platform filter chips (All/Zomato#E23744/Swiggy#FC8019), order cards with platform badge + items + amount + status chip + Accept/Reject buttons
+  - `ReportsScreen.kt` — "Reports" header, date range selector, 2×2 stat cards (Sales/Orders/Avg/Cancel rate), 7-day bar chart card, popular items list
+- **Web Admin Hex Cleanup**: ~175 raw hex colors replaced with CSS vars across 26 component files
+- **CSS Status Chip Vars**: Added `--success/bg/border`, `--danger/bg/border`, `--warn/bg/border`, `--info/bg/border` in both themes in `styles.scss`
+- **APK Version 2 built & deployed**: `assembleDebug` → installed on device ZA222J5KT7
 
 ### In Progress
 - None currently

@@ -18,6 +18,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { DashboardShellComponent } from '../../shared/dashboard-shell.component';
 
 @Component({
   selector: 'app-platform-dashboard-page',
@@ -36,38 +37,32 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     MatDividerModule,
     MatFormFieldModule,
     MatListModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    DashboardShellComponent
   ],
   template: `
-    <div class="page-container">
-      <ng-container *ngIf="summary() as data; else loading">
-        
-        <div class="header-row">
-          <div class="header-left">
-            <div class="live-status">
-              <span class="live-dot"></span>
-              <span class="live-text">Live Platform Data</span>
-            </div>
-            <div class="title-container">
-              <h1 class="page-title text-balance">Platform Overview</h1>
-              <p class="page-subtitle">{{ liveDate() }}</p>
-            </div>
-          </div>
-          <div class="header-right">
-            <mat-form-field appearance="outline" class="poll-field">
-              <mat-label>Auto Refresh</mat-label>
-              <mat-select [value]="pollIntervalMs()" (selectionChange)="setPollInterval($event.value)">
-                <mat-option [value]="0">Off</mat-option>
-                <mat-option [value]="15000">15s</mat-option>
-                <mat-option [value]="30000">30s</mat-option>
-                <mat-option [value]="60000">60s</mat-option>
-              </mat-select>
-            </mat-form-field>
-            <button mat-icon-button (click)="refresh()" [disabled]="refreshing" matTooltip="Refresh Now" aria-label="Refresh dashboard">
-              <mat-icon [class.spinning]="refreshing">refresh</mat-icon>
-            </button>
-          </div>
-        </div>
+    <app-dashboard-shell
+      [title]="'Platform Overview'"
+      [subtitle]="liveDate()"
+      [loading]="!summary()"
+      (retry)="refresh()"
+    >
+      <ng-container header-actions>
+        <mat-form-field appearance="outline" class="poll-field">
+          <mat-label>Auto Refresh</mat-label>
+          <mat-select [value]="pollIntervalMs()" (selectionChange)="setPollInterval($event.value)">
+            <mat-option [value]="0">Off</mat-option>
+            <mat-option [value]="15000">15s</mat-option>
+            <mat-option [value]="30000">30s</mat-option>
+            <mat-option [value]="60000">60s</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <button mat-icon-button (click)="refresh()" [disabled]="refreshing" matTooltip="Refresh Now" aria-label="Refresh dashboard">
+          <mat-icon [class.spinning]="refreshing">refresh</mat-icon>
+        </button>
+      </ng-container>
+
+      <ng-container *ngIf="summary() as data">
 
         <div class="stats-grid animate-fade-in-up">
           <mat-card class="stat-card businesses clickable" routerLink="/admin/businesses">
@@ -228,22 +223,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         </div>
 
       </ng-container>
-
-      <ng-template #loading>
-        <div class="skeleton-container">
-          <div class="header-row">
-            <div class="skeleton-title"></div>
-          </div>
-          <div class="stats-grid">
-            <div class="skeleton-card" *ngFor="let i of [1,2,3,4]"></div>
-          </div>
-          <div class="main-grid">
-            <div class="skeleton-card large"></div>
-            <div class="skeleton-card medium"></div>
-          </div>
-        </div>
-      </ng-template>
-    </div>
+    </app-dashboard-shell>
   `,
   styles: [`
     .page-container {
@@ -308,7 +288,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #10b981;
+      background: var(--success);
       box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
       animation: pulse 2s infinite;
     }
@@ -322,7 +302,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     .live-text {
       font-size: 0.75rem;
       font-weight: 800;
-      color: #10b981;
+      color: var(--success);
       text-transform: uppercase;
       letter-spacing: 1px;
     }
@@ -442,28 +422,28 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       border-color: rgba(2, 132, 199, 0.12) !important;
       background: linear-gradient(135deg, rgba(2, 132, 199, 0.04) 0%, var(--panel) 100%);
     }
-    .businesses .stat-icon { background: rgba(14, 165, 233, 0.12); color: #0284c7; }
+    .businesses .stat-icon { background: rgba(14, 165, 233, 0.12); color: var(--info); }
     .businesses:hover { border-color: rgba(14, 165, 233, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(14, 165, 233, 0.2) !important; }
 
     .revenue { 
       border-color: rgba(217, 119, 6, 0.12) !important;
       background: linear-gradient(135deg, rgba(217, 119, 6, 0.04) 0%, var(--panel) 100%);
     }
-    .revenue .stat-icon { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+    .revenue .stat-icon { background: rgba(245, 158, 11, 0.12); color: var(--warn); }
     .revenue:hover { border-color: rgba(245, 158, 11, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(245, 158, 11, 0.2) !important; }
 
     .orders { 
       border-color: rgba(22, 163, 74, 0.12) !important;
       background: linear-gradient(135deg, rgba(22, 163, 74, 0.04) 0%, var(--panel) 100%);
     }
-    .orders .stat-icon { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
+    .orders .stat-icon { background: rgba(34, 197, 94, 0.12); color: var(--success); }
     .orders:hover { border-color: rgba(34, 197, 94, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(34, 197, 94, 0.2) !important; }
 
     .staff { 
       border-color: rgba(147, 51, 234, 0.12) !important;
       background: linear-gradient(135deg, rgba(147, 51, 234, 0.04) 0%, var(--panel) 100%);
     }
-    .staff .stat-icon { background: rgba(168, 85, 247, 0.12); color: #9333ea; }
+    .staff .stat-icon { background: rgba(168, 85, 247, 0.12); color: var(--purple); }
     .staff:hover { border-color: rgba(168, 85, 247, 0.3) !important; box-shadow: 0 12px 28px -8px rgba(168, 85, 247, 0.2) !important; }
 
     .stat-footer {
@@ -516,9 +496,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     .bar {
       transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .bar.active { background: linear-gradient(90deg, #10b981, #059669); }
-    .bar.pending { background: linear-gradient(90deg, #fbbf24, #d97706); }
-    .bar.rejected { background: linear-gradient(90deg, #ef4444, #dc2626); }
+    .bar.active { background: linear-gradient(90deg, var(--success), var(--success)); }
+    .bar.pending { background: linear-gradient(90deg, var(--warn), var(--warn)); }
+    .bar.rejected { background: linear-gradient(90deg, var(--danger), var(--danger)); }
 
     .action-grid {
       display: grid;
@@ -612,13 +592,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       letter-spacing: 0.5px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
       background: rgba(239, 68, 68, 0.12);
-      color: #ef4444;
+      color: var(--danger);
       border: 1px solid rgba(239, 68, 68, 0.2);
     }
 
     .health-badge.good {
       background: rgba(16, 185, 129, 0.12);
-      color: #10b981;
+      color: var(--success);
       border: 1px solid rgba(16, 185, 129, 0.2);
     }
 

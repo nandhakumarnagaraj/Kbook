@@ -159,7 +159,7 @@ type Transaction = AdminTransaction;
     .filter-field { width: 200px; }
     .spacer { flex: 1; }
 
-    .table-container { position: relative; background: white; border-radius: 8px; overflow: hidden; }
+    .table-container { position: relative; background: var(--panel); border-radius: 8px; overflow: hidden; }
     .loading-shade { position: absolute; top: 0; left: 0; bottom: 56px; right: 0; background: rgba(255, 255, 255, 0.7); z-index: 1; display: flex; align-items: center; justify-content: center; }
     table { width: 100%; }
 
@@ -168,11 +168,11 @@ type Transaction = AdminTransaction;
     .sub-text { font-size: 0.75rem; color: var(--muted); }
 
     .status-chip { padding: 4px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    .status-chip.success { background: #dcfce7; color: #16a34a; }
-    .status-chip.warn { background: #fef3c7; color: #d97706; }
-    .status-chip.danger { background: #fee2e2; color: #dc2626; }
+    .status-chip.success { background: var(--success-bg); color: var(--success); }
+    .status-chip.warn { background: var(--warn-bg); color: var(--warn); }
+    .status-chip.danger { background: var(--danger-bg); color: var(--danger); }
 
-    code { font-family: monospace; font-size: 0.85rem; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+    code { font-family: monospace; font-size: 0.85rem; background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; }
 
     @media (max-width: 768px) { .filter-row { flex-direction: column; align-items: stretch; } .filter-field { width: 100%; } }
   `]

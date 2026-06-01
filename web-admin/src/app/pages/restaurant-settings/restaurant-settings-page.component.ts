@@ -369,7 +369,7 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
 
     /* Logo Uploader styling */
     .logo-section { display: flex; align-items: center; gap: 20px; margin-bottom: 24px; padding: 12px; background: var(--bg); border: 1px dashed var(--line); border-radius: var(--radius-lg); }
-    .logo-preview-container { width: 80px; height: 80px; border-radius: var(--radius-md); overflow: hidden; background: #ffffff; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; position: relative; }
+    .logo-preview-container { width: 80px; height: 80px; border-radius: var(--radius-md); overflow: hidden; background: var(--panel); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; position: relative; }
     .logo-preview { width: 100%; height: 100%; object-fit: cover; }
     .logo-placeholder { color: var(--muted); display: flex; align-items: center; justify-content: center; }
     .logo-placeholder mat-icon { font-size: 40px; width: 40px; height: 40px; }
@@ -395,8 +395,8 @@ import { UpdateBusinessProfileRequest } from '../../core/models/api.models';
     .fetch-both-btn { width: 100%; height: 48px; font-weight: 700; border-radius: var(--radius-md); border: 1px solid var(--line); }
     
     .expiry-notice { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: var(--muted); margin-top: 4px; margin-bottom: 12px; padding: 6px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; width: fit-content; }
-    .expiry-notice.expiring { color: #f59e0b; background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3); }
-    .expiry-notice.expired { color: #ef4444; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.3); }
+    .expiry-notice.expiring { color: var(--warn); background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3); }
+    .expiry-notice.expired { color: var(--danger); background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.3); }
     .expiry-notice mat-icon { font-size: 16px; width: 16px; height: 16px; }
 
     /* Lookup modal styling */

@@ -46,7 +46,7 @@ import { RouterModule } from '@angular/router';
       align-items: center;
       justify-content: center;
       padding: 24px;
-      background: #f8fafc;
+      background: var(--bg);
     }
 
     .limited-card {
@@ -58,8 +58,8 @@ import { RouterModule } from '@angular/router';
     }
 
     .warn-icon {
-      background: #fef3c7;
-      color: #d97706;
+      background: var(--warn-bg);
+      color: var(--warn);
       width: 44px;
       height: 44px;
       line-height: 44px;
@@ -94,8 +94,8 @@ import { RouterModule } from '@angular/router';
       text-transform: uppercase;
     }
 
-    .tag.role { background: #fee2e2; color: #dc2626; }
-    .tag.action { background: #f1f5f9; color: #475569; }
+    .tag.role { background: var(--danger-bg); color: var(--danger); }
+    .tag.action { background: var(--bg-elevated); color: var(--muted); }
   `]
 })
 export class LimitedAccessPageComponent {}

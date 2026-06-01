@@ -25,14 +25,23 @@ val KbSaffron800 = Color(0xFF5C2500)
 val KbSaffron900 = Color(0xFF4A1D00)
 val KbSaffron950 = Color(0xFF331200)  // on-primary-fixed
 
-// DESIGN.md brand colors
-val KbBrandSaffron = Color(0xFFC85A00)
+// Premium Saffron palette — primary brand colors
+val KbBrandSaffron = Color(0xFFF97316)
 
-val KbBrandSaffronLight = Color(0xFFE8832A)
+val KbBrandSaffronLight = Color(0xFFFB923C)
 
-val KbBrandSaffronDark = Color(0xFF994500)
+val KbBrandSaffronDark = Color(0xFFD97706)
 
-val KbBrandSaffronAndroid = Color(0xFFD97706)
+val KbBrandSaffronAndroid = Color(0xFFF97316)
+
+val KbBrandAmber = Color(0xFFF59E0B)
+val KbBrandGreen = Color(0xFF16A34A)
+val KbBrandRed = Color(0xFFDC2626)
+
+// Semantic aliases
+val KbSuccess = KbBrandGreen
+val KbWarning = KbBrandAmber
+val KbError = KbBrandRed
 
 // Pure neutral gray scale
 val KbGray50  = Color(0xFFF8F9FA)
@@ -162,13 +171,13 @@ val MaterialTheme.kbBgGradient: Brush
 // Glassmorphism, mesh gradients, midnight harvest palette
 // ═══════════════════════════════════════════════════════════════
 
-// ── Midnight Harvest Depth Layers (Stitch Nocturne) ──────────
+// ── Midnight Harvest Depth Layers (Premium Saffron) ──────────
 val KbMidnightBase: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF0A0A0A) else Color(0xFFF5F0EB)
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF121212) else Color(0xFFFAF8F5)
 val KbMidnightSurface: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF1A1614) else Color(0xFFFDF8F4)
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
 val KbMidnightOverlay: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xE61A1614.toInt()) else Color(0xE6FFFFFF.toInt())
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xE61E1E1E.toInt()) else Color(0xE6FFFFFF.toInt())
 
 // ── Glassmorphism Surfaces ────────────────────────────────────
 val KbGlassSurface: Color
@@ -238,48 +247,39 @@ val KbFocusGlow: Color
 // ═══════════════════════════════════════════════════════════════
 
 val DarkBrown1: Color
-    get() = if (globalIsDark) Color(0xFF211A14) else Color(0xFFFFF8F6)
+    get() = if (globalIsDark) Color(0xFF1E1E1E) else Color(0xFFFAF8F5)
 val DarkBrown2: Color
-    get() = if (globalIsDark) Color(0xFF332A22) else Color(0xFFEADDD4)
+    get() = if (globalIsDark) Color(0xFF252525) else Color(0xFFF5F0EB)
 val PrimaryGold: Color
-    get() = if (globalIsDark) KbBrandSaffronLight else KbBrandSaffronAndroid
+    get() = if (globalIsDark) Color(0xFFFB923C) else KbBrandSaffron
 val LightGold: Color
-    get() = if (globalIsDark) KbBrandSaffronLight else KbBrandSaffron
+    get() = if (globalIsDark) Color(0xFFFB923C) else KbBrandSaffronLight
 val TextGold: Color
-    // Dark:  KbBrandSaffronLight #E8832A on #211A14 → 5.1:1 ✅ AA
-    // Light: #7A3300 on #FFF1EB  → 6.2:1 ✅ AA  (was #C85A00 = 3.2:1 ✗)
-    get() = if (globalIsDark) KbBrandSaffronLight else Color(0xFF7A3300)
+    get() = if (globalIsDark) KbBrandSaffronLight else KbBrandSaffronDark
 val TextLight: Color
-    get() = if (globalIsDark) Color(0xFFF7F3EE) else Color(0xFF241913)
+    get() = if (globalIsDark) Color(0xFFF5F5F5) else Color(0xFF1F2937)
 val TextMuted: Color
-    // Dark:  #C1B7AD on #211A14 → 5.4:1 ✅
-    // Light: #5C3A1E on #FFF1EB → 5.9:1 ✅  (was #574237 = 4.8:1 borderline)
-    get() = if (globalIsDark) Color(0xFFC1B7AD) else Color(0xFF5C3A1E)
+    get() = if (globalIsDark) Color(0xFFB3B3B3) else Color(0xFF6B7280)
 val CardBG: Color
-    // Dark:  #211A14 — warm dark brown card
-    // Light: #FFFFFF — pure white card (pops against #F8F6F3 page background)
-    get() = if (globalIsDark) Color(0xFF211A14) else Color(0xFFFFFFFF)
+    get() = if (globalIsDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
 val BorderGold: Color
-    // Dark:  saffron at 15% — subtle on dark
-    // Light: saffron at 35% — visible on white  (was 25% — nearly invisible)
-    get() = if (globalIsDark) KbBrandSaffronLight.copy(alpha = 0.15f) else KbBrandSaffronAndroid.copy(alpha = 0.35f)
+    get() = if (globalIsDark) KbBrandSaffronLight.copy(alpha = 0.2f) else KbBrandSaffron.copy(alpha = 0.3f)
 val ParchmentBG: Color
     get() = if (globalIsDark) KbSaffron950 else KbSaffron100
 val BrownSelected: Color
     get() = if (globalIsDark) KbSaffron900 else KbSaffron200
 val BrandPurple: Color
-    get() = if (globalIsDark) KbSaffron400 else KbSaffron600
+    get() = if (globalIsDark) Color(0xFFA78BFA) else Color(0xFF7C5CDB)
 val BrandPurpleDim: Color
-    get() = if (globalIsDark) KbSaffron300 else KbSaffron400
+    get() = if (globalIsDark) Color(0xFF8B5CF6) else Color(0xFF6D4FD1)
 val Brown500: Color
-    get() = if (globalIsDark) Color(0xFF332A22) else Color(0xFFE8D5C8)
+    get() = if (globalIsDark) Color(0xFF333333) else Color(0xFFE5E7EB)
 val DarkBrownSheet: Color
-    get() = if (globalIsDark) Color(0xFF211A14) else Color(0xFFF4DED4)
+    get() = if (globalIsDark) Color(0xFF1E1E1E) else Color(0xFFFFF0E6)
 val RichEspresso: Color
-    get() = if (globalIsDark) Color(0xFF17130F) else Color(0xFFF8F6F3)
+    get() = if (globalIsDark) Color(0xFF121212) else Color(0xFFFAF8F5)
 val BottomNavBG: Color
-    // Light: match the page background exactly so nav bar blends in
-    get() = if (globalIsDark) Color(0xFF17130F) else Color(0xFFF8F6F3)
+    get() = if (globalIsDark) Color(0xFF121212) else Color(0xFFFAF8F5)
 
 // Semantic status
 val VegGreen      = KbGreen

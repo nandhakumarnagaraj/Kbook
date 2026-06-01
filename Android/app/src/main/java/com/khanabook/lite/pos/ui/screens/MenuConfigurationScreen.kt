@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -188,27 +189,18 @@ fun MenuConfigurationScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = when (ocrUiState.configMode) {
-                                "manual" -> "Manual Entry"
-                                else -> "Menu Configuration"
-                            },
-                            color = MaterialTheme.kbSecondary,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        if (ocrUiState.configMode == "manual") {
-                            Text(
-                                text = "${categories.size} categories",
-                                color = TextGold.copy(alpha = 0.6f),
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-                    }
+                    Text(
+                        text = when (ocrUiState.configMode) {
+                            "manual" -> "Menu"
+                            else -> "Menu Configuration"
+                        },
+                        color = MaterialTheme.kbTextPrimary,
+                        style = MaterialTheme.typography.titleLarge
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = { onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.kbSecondary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.kbTextSecondary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.kbBgPrimary)
@@ -349,12 +341,12 @@ fun ReviewDetectedItemsScreen(
                                 )
                                 Text(
                                     "${drafts.size} items found · $selectedCount selected",
-                                    color = TextGold.copy(alpha = 0.7f),
+                                    color = MaterialTheme.kbPrimary.copy(alpha = 0.7f),
                                     fontSize = 12.sp
                                 )
                             }
                             IconButton(onClick = onDismiss) {
-                                Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = TextGold)
+                                Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.kbPrimary)
                             }
                         }
 
@@ -365,9 +357,9 @@ fun ReviewDetectedItemsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP))
-                            Text("Item Name", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, modifier = Modifier.weight(1f))
+                            Text("Item Name", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f), fontSize = 11.sp, modifier = Modifier.weight(1f))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Price", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH))
+                            Text("Price", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f), fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH))
                             Spacer(modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
                         }
                     }
@@ -399,7 +391,7 @@ fun ReviewDetectedItemsScreen(
                             )
                             .border(
                                 1.5.dp,
-                                if (allInCategorySelected) MaterialTheme.kbPrimary else TextGold.copy(alpha = 0.5f),
+                                if (allInCategorySelected) MaterialTheme.kbPrimary else MaterialTheme.kbPrimary.copy(alpha = 0.5f),
                                                 RoundedCornerShape(6.dp)
                                             )
                                             .clickable {
@@ -452,7 +444,7 @@ fun ReviewDetectedItemsScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         color = DarkBrown2,
-                        border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f))
+                        border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f))
                     ) {
                         Row(
                             modifier = Modifier
@@ -464,8 +456,8 @@ fun ReviewDetectedItemsScreen(
                         ) {
                             OutlinedButton(
                                 onClick = { showDiscardConfirm = true },
-                                border = BorderStroke(1.5.dp, NonVegRed.copy(alpha = 0.6f)),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = NonVegRed),
+                                border = BorderStroke(1.5.dp, KbError.copy(alpha = 0.6f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = KbError),
                                 modifier = Modifier.weight(1f).height(56.dp),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
@@ -539,7 +531,7 @@ internal fun ReviewDetectedItemsOverlay(
                 .testTag(MenuConfigurationTags.reviewOverlaySheet),
             color = DarkBrown1,
             shape = RoundedCornerShape(28.dp),
-            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
+            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.25f))
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Box(
@@ -571,7 +563,7 @@ internal fun ReviewDetectedItemsOverlay(
                         )
                         Text(
                             "${drafts.size} items found · $selectedCount selected",
-                            color = TextGold.copy(alpha = 0.7f),
+                            color = MaterialTheme.kbPrimary.copy(alpha = 0.7f),
                             fontSize = 12.sp
                         )
                     }
@@ -580,7 +572,7 @@ internal fun ReviewDetectedItemsOverlay(
                         showDiscardConfirm = false
                         onDismiss()
                     }, modifier = Modifier.testTag(MenuConfigurationTags.reviewOverlayClose)) {
-                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = TextGold)
+                        Icon(Icons.Default.Close, contentDescription = "Dismiss", tint = MaterialTheme.kbPrimary)
                     }
                 }
 
@@ -594,13 +586,13 @@ internal fun ReviewDetectedItemsOverlay(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Spacer(modifier = Modifier.width(ReviewSheetLayout.CHECKBOX_WIDTH + ReviewSheetLayout.CHECKBOX_GAP))
-                    Text("Type", color = TextGold.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
+                    Text("Type", color = MaterialTheme.kbPrimary.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.width(ReviewSheetLayout.FOOD_ICON_WIDTH))
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("Item Name", color = TextGold.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.weight(1f))
+                    Text("Item Name", color = MaterialTheme.kbPrimary.copy(alpha = 0.5f), fontSize = 10.sp, modifier = Modifier.weight(1f))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         "Price",
-                        color = TextGold.copy(alpha = 0.5f),
+                        color = MaterialTheme.kbPrimary.copy(alpha = 0.5f),
                         fontSize = 10.sp,
                         textAlign = TextAlign.End,
                         modifier = Modifier.width(ReviewSheetLayout.PRICE_WIDTH)
@@ -634,7 +626,7 @@ internal fun ReviewDetectedItemsOverlay(
                                     )
                                     .border(
                                         1.5.dp,
-                                        if (allInCategorySelected) MaterialTheme.kbPrimary else TextGold.copy(alpha = 0.5f),
+                                        if (allInCategorySelected) MaterialTheme.kbPrimary else MaterialTheme.kbPrimary.copy(alpha = 0.5f),
                                             RoundedCornerShape(6.dp)
                                         )
                                         .clickable {
@@ -689,7 +681,7 @@ internal fun ReviewDetectedItemsOverlay(
                         title = "Discard Items?",
                         message = "All ${drafts.size} detected items will be discarded.",
                         primaryLabel = "Discard",
-                        primaryColor = NonVegRed,
+                        primaryColor = KbError,
                         secondaryLabel = "Keep Editing",
                         secondaryColor = MaterialTheme.kbTertiary,
                         onPrimaryClick = {
@@ -703,7 +695,7 @@ internal fun ReviewDetectedItemsOverlay(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = DarkBrown2,
-                    border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f))
+                    border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f))
                 ) {
                     Row(
                         modifier = Modifier
@@ -717,8 +709,8 @@ internal fun ReviewDetectedItemsOverlay(
                                 onDismissOverwritePrompt()
                                 showDiscardConfirm = true
                             },
-                            border = BorderStroke(1.5.dp, NonVegRed.copy(alpha = 0.6f)),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = NonVegRed),
+                            border = BorderStroke(1.5.dp, KbError.copy(alpha = 0.6f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = KbError),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(56.dp)
@@ -792,7 +784,7 @@ private fun InlineDecisionBar(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = DarkBrown1.copy(alpha = 0.96f),
-        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
+        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.25f))
     ) {
         Column(
             modifier = Modifier
@@ -831,7 +823,7 @@ private fun InlineDecisionBar(
                         onClick = onTertiaryClick,
                         modifier = if (tertiaryTag != null) Modifier.testTag(tertiaryTag) else Modifier
                     ) {
-                        Text(tertiaryLabel, color = TextGold)
+                        Text(tertiaryLabel, color = MaterialTheme.kbPrimary)
                     }
                 }
             }
@@ -853,7 +845,7 @@ private fun ConflictResolutionDialog(
         Button(
             onClick = onOverwriteAll,
             colors = ButtonDefaults.buttonColors(
-                containerColor = NonVegRed,
+                containerColor = KbError,
                 contentColor = Color.White
             ),
             modifier = Modifier
@@ -878,8 +870,8 @@ private fun ConflictResolutionDialog(
         }
         OutlinedButton(
             onClick = onCancel,
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
-            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbPrimary),
+            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.45f)),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
@@ -916,7 +908,7 @@ fun DraftItemRow(
             .background(bgColor)
             .border(
                 width = 0.5.dp,
-                color = if (draft.isSelected) BorderGold else BorderGold.copy(alpha = 0.15f),
+                color = if (draft.isSelected) MaterialTheme.kbOutlineSubtle else MaterialTheme.kbOutlineSubtle.copy(alpha = 0.15f),
                 shape = RoundedCornerShape(12.dp)
             )
             .clickable { onToggleSelection() }
@@ -935,7 +927,7 @@ fun DraftItemRow(
                     )
                     .border(
                         1.2.dp,
-                        if (draft.isSelected) MaterialTheme.kbPrimary else TextGold.copy(alpha = 0.4f),
+                        if (draft.isSelected) MaterialTheme.kbPrimary else MaterialTheme.kbPrimary.copy(alpha = 0.4f),
                         RoundedCornerShape(6.dp)
                     ),
                 contentAlignment = Alignment.Center
@@ -962,14 +954,14 @@ fun DraftItemRow(
                 Box(
                     modifier = Modifier
                         .size(14.dp)
-                        .border(1.dp, if (draft.foodType == "veg") VegGreen else NonVegRed, RoundedCornerShape(2.dp))
+                        .border(1.dp, if (draft.foodType == "veg") VegGreen else KbError, RoundedCornerShape(2.dp))
                         .padding(2.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
                             .size(6.dp)
-                            .background(if (draft.foodType == "veg") VegGreen else NonVegRed, CircleShape)
+                            .background(if (draft.foodType == "veg") VegGreen else KbError, CircleShape)
                     )
                 }
             }
@@ -1069,7 +1061,7 @@ fun DraftItemRow(
                                 )
                                 .border(
                                     1.dp,
-                                    if (variant.isSelected) MaterialTheme.kbPrimary else TextGold.copy(alpha = 0.4f),
+                                    if (variant.isSelected) MaterialTheme.kbPrimary else MaterialTheme.kbPrimary.copy(alpha = 0.4f),
                                     RoundedCornerShape(5.dp)
                                 )
                                 .clickable {
@@ -1099,7 +1091,7 @@ fun DraftItemRow(
                                 onUpdateDraft(draft.copy(variants = newVariants))
                             },
                             textStyle = TextStyle(
-                                color = if (variant.isSelected) TextGold.copy(alpha = 0.8f) else TextGold.copy(alpha = 0.3f),
+                                color = if (variant.isSelected) MaterialTheme.kbPrimary.copy(alpha = 0.8f) else MaterialTheme.kbPrimary.copy(alpha = 0.3f),
                                 fontSize = 12.sp,
                                 textDecoration = if (!variant.isSelected) TextDecoration.LineThrough else null
                             ),
@@ -1176,7 +1168,7 @@ fun ModeSelectionView(
                 modifier = Modifier.weight(1f)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Categories", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.labelMedium)
+                    Text("Categories", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f), style = MaterialTheme.typography.labelMedium)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("$totalCategoriesCount", color = KbBrandSaffron, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
                 }
@@ -1185,7 +1177,7 @@ fun ModeSelectionView(
                 modifier = Modifier.weight(1f)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Total Items", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.labelMedium)
+                    Text("Total Items", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f), style = MaterialTheme.typography.labelMedium)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("$totalItemsCount", color = KbBrandSaffron, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
                 }
@@ -1221,7 +1213,7 @@ fun ModeSelectionView(
                     Spacer(modifier = Modifier.width(spacing.medium))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Manual Entry", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("Add, view & edit items one by one", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
+                        Text("Add, view & edit items one by one", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
@@ -1284,7 +1276,7 @@ fun ModeSelectionView(
                                 Text("MAGICAL", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.Black)
                             }
                         }
-                        Text("Extract from camera, gallery, or PDF", color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
+                        Text("Extract from camera, gallery, or PDF", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
@@ -1433,181 +1425,165 @@ fun ManualMenuView(
             }
         }
 
-    Column(modifier = Modifier.fillMaxSize().testTag(MenuConfigurationTags.manualMenuRoot)) {
-        LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items(categories) { category ->
-                val isSelected = category.id == selectedCategoryId
-                Surface(
-                    onClick = { onCategorySelect(category.id) },
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (isSelected) MaterialTheme.kbPrimary else MaterialTheme.kbBgCard,
-                    border = BorderStroke(1.dp, if (isSelected) MaterialTheme.kbPrimary else BorderGold.copy(alpha = 0.3f)),
-                    contentColor = if (isSelected) DarkBrown1 else TextLight
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                            .combinedClickable(
-                                onClick = { onCategorySelect(category.id) },
-                                onLongClick = { showEditCategoryDialog = category }
-                            ),
-                        verticalAlignment = Alignment.CenterVertically
+    Box(modifier = Modifier.fillMaxSize().testTag(MenuConfigurationTags.manualMenuRoot)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = KhanaBookTheme.spacing.screenContentPadding, vertical = KhanaBookTheme.spacing.small),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items(categories) { category ->
+                    val isSelected = category.id == selectedCategoryId
+                    Surface(
+                        onClick = { onCategorySelect(category.id) },
+                        shape = KbShape.Medium,
+                        color = if (isSelected) KbBrandSaffron else CardBG,
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
+                        ),
+                        contentColor = if (isSelected) Color.White else MaterialTheme.kbTextPrimary
                     ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = KhanaBookTheme.spacing.smallMedium, vertical = KhanaBookTheme.spacing.small)
+                                .combinedClickable(
+                                    onClick = { onCategorySelect(category.id) },
+                                    onLongClick = { showEditCategoryDialog = category }
+                                ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (isSelected && visibleMenuItems.isNotEmpty()) "${category.name} (${visibleMenuItems.size})" else category.name,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                            if (isSelected) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "Edit Category",
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clickable { showEditCategoryDialog = category },
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
+                item {
+                    TextButton(
+                        onClick = { showAddCategoryDialog = true },
+                        modifier = Modifier.testTag(MenuConfigurationTags.addCategoryButton),
+                        colors = ButtonDefaults.textButtonColors(contentColor = KbBrandSaffron)
+                    ) {
+                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add Category", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            if (categories.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(KhanaBookTheme.spacing.extraLarge)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(KhanaBookTheme.iconSize.heroCircle)
+                                .background(KbBrandSaffron.copy(alpha = 0.1f), CircleShape)
+                                .border(1.dp, KbBrandSaffron.copy(alpha = 0.3f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Add, null, tint = KbBrandSaffron, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
+                        }
+                        Spacer(                            modifier = Modifier.height(KhanaBookTheme.spacing.smallMedium))
                         Text(
-                            text = if (isSelected && visibleMenuItems.isNotEmpty()) "${category.name} (${visibleMenuItems.size})" else category.name,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            "No categories yet",
+                            color = MaterialTheme.kbTextPrimary,
+                            style = MaterialTheme.typography.titleMedium
                         )
-                        if (isSelected) {
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = "Edit Category",
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Tap + above to create your first category,\nthen add your menu items.",
+                            color = MaterialTheme.kbTextTertiary,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = KhanaBookTheme.spacing.screenContentPadding),
+                    verticalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.small),
+                    contentPadding = PaddingValues(top = KhanaBookTheme.spacing.small, bottom = spacing.bottomListPadding)
+                ) {
+                    if (visibleMenuItems.isEmpty()) {
+                        item {
+                            Box(
                                 modifier = Modifier
-                                    .size(14.dp)
-                                    .clickable { showEditCategoryDialog = category },
-                                tint = DarkBrown1
+                                    .fillMaxWidth()
+                                    .padding(vertical = 48.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.small)
+                                ) {
+                                    Text(
+                                        "No items in this category",
+                                        color = MaterialTheme.kbTextSecondary,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        "Tap + to add your first item.",
+                                        color = MaterialTheme.kbTextTertiary,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        items(
+                            items = visibleMenuItems,
+                            key = { it.menuItem.id }
+                        ) { itemWithVariants ->
+                            MenuItemRow(
+                                itemWithVariants = itemWithVariants,
+                                onToggleAvailability = onToggleAvailability,
+                                onEditClick = { showEditItemDialog = it }
                             )
                         }
                     }
                 }
             }
-            item {
-                IconButton(
-                    onClick = { showAddCategoryDialog = true },
-                    modifier = Modifier.testTag(MenuConfigurationTags.addCategoryButton)
-                ) {
-                    Icon(Icons.Default.Add, null, tint = MaterialTheme.kbSecondary)
-                }
-            }
         }
 
-        if (categories.isEmpty()) {
-            Box(
+        if (selectedCategoryId != null) {
+            FloatingActionButton(
+                onClick = { showAddItemDialog = true },
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
+                    .align(Alignment.BottomEnd)
+                    .padding(KhanaBookTheme.spacing.medium)
+                    .testTag(MenuConfigurationTags.addItemButton),
+                containerColor = KbBrandSaffron,
+                contentColor = Color.White,
+                shape = KbShape.ExtraLarge
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(32.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(KhanaBookTheme.iconSize.heroCircle)
-                            .background(MaterialTheme.kbSecondary.copy(alpha = 0.1f), CircleShape)
-                            .border(1.dp, MaterialTheme.kbSecondary.copy(alpha = 0.3f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Add, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
-                    }
-                    Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.medium))
-                    Text(
-                        "No categories yet",
-                        color = TextLight,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "Tap + above to create your first category,\nthen add your menu items.",
-                        color = TextGold.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(top = 8.dp, bottom = spacing.bottomListPadding)
-            ) {
-                if (visibleMenuItems.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 48.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    "No items in this category",
-                                    color = TextLight,
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                                Text(
-                                    "Tap \"Add New Item\" below to get started.",
-                                    color = TextGold.copy(alpha = 0.5f),
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    items(
-                        items = visibleMenuItems,
-                        key = { it.menuItem.id }
-                    ) { itemWithVariants ->
-                        MenuItemRow(
-                            itemWithVariants = itemWithVariants,
-                            onToggleAvailability = onToggleAvailability,
-                            onEditClick = { showEditItemDialog = it }
-                        )
-                    }
-                }
-
-            }
-            
-            // Fixed Footer Button
-            Surface(
-                color = MaterialTheme.kbBgPrimary, // Match background to merge seamlessly
-                shadowElevation = 8.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        "Tap to edit  •  Toggle switch to enable / disable",
-                        color = TextGold.copy(alpha = 0.35f),
-                        style = MaterialTheme.typography.labelSmall,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(spacing.small))
-                    Button(
-                        onClick = { showAddItemDialog = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag(MenuConfigurationTags.addItemButton),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = KbBrandSaffron,
-                            contentColor = DarkBrown1
-                        ),
-                        enabled = selectedCategoryId != null,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.Add, null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Add New Item", fontWeight = FontWeight.Bold)
-                    }
-                }
+                Icon(Icons.Default.Add, "Add Item")
             }
         }
     }
@@ -1619,7 +1595,7 @@ fun ManualMenuView(
             message = "An item with this name already exists in this category. Do you want to overwrite/update the existing item?"
         ) {
             TextButton(onClick = { pendingOverwrite = null }) {
-                Text("Cancel", color = TextGold)
+                Text("Cancel", color = MaterialTheme.kbPrimary)
             }
             TextButton(
                 onClick = {
@@ -1714,6 +1690,16 @@ fun MenuItemRow(
 ) {
     val item = itemWithVariants.menuItem
     val variants = itemWithVariants.variants
+    val priceText = if (variants.isNotEmpty()) {
+        "₹${variants.minOf { it.price.toDoubleOrNull() ?: 0.0 }.toInt()}+"
+    } else {
+        "₹${item.basePrice.toDoubleOrNull()?.toInt() ?: item.basePrice}"
+    }
+    val descriptionText = if (variants.isNotEmpty()) {
+        "${variants.size} variants available"
+    } else {
+        item.description?.takeIf { it.isNotBlank() } ?: item.name
+    }
 
     Card(
         modifier = Modifier
@@ -1722,52 +1708,70 @@ fun MenuItemRow(
                 onClick = { onEditClick(itemWithVariants) },
                 onLongClick = { onEditClick(itemWithVariants) }
             ),
+        shape = KbShape.Medium,
         colors = CardDefaults.cardColors(
-            containerColor = if (item.isAvailable) MaterialTheme.kbBgCard else MaterialTheme.kbBgCard.copy(alpha = 0.5f)
+            containerColor = if (item.isAvailable) CardBG else CardBG.copy(alpha = 0.5f)
         ),
         border = BorderStroke(
             0.5.dp,
-            if (item.isAvailable) BorderGold.copy(alpha = 0.2f) else BorderGold.copy(alpha = 0.1f)
+            if (item.isAvailable) MaterialTheme.kbOutlineSubtle else MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f)
         )
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(KhanaBookTheme.spacing.medium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Default.Circle,
-                contentDescription = null,
-                tint = if (item.foodType == "veg") VegGreen else NonVegRed,
-                modifier = Modifier.size(12.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.name,
-                    color = if (item.isAvailable) TextLight else TextLight.copy(alpha = 0.5f),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                if (variants.isNotEmpty()) {
-                    Text(
-                        text = "${variants.size} variants • Starts from ₹${variants.minOf { it.price.toDoubleOrNull() ?: 0.0 }.toInt()}",
-                        color = TextGold.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.labelSmall
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Circle,
+                        contentDescription = null,
+                        tint = if (item.foodType == "veg") KbSuccess else KbBrandRed,
+                        modifier = Modifier.size(10.dp)
                     )
-                } else {
+                    Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.small))
                     Text(
-                        text = "₹${item.basePrice.toDoubleOrNull()?.toInt() ?: item.basePrice}",
-                        color = TextGold.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.bodySmall
+                        text = item.name,
+                        color = if (item.isAvailable) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextPrimary.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = priceText,
+                    color = KbBrandSaffron,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = descriptionText,
+                    color = MaterialTheme.kbTextTertiary,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
+            Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.small))
             KhanaBookSwitch(
                 checked = item.isAvailable,
                 onCheckedChange = { onToggleAvailability(item.id, it) },
-                checkedTrackColor = MaterialTheme.kbPrimary,
-                checkedThumbColor = BrownSelected
+                checkedTrackColor = KbSuccess,
+                checkedThumbColor = Color.White
             )
+            IconButton(
+                onClick = { onEditClick(itemWithVariants) },
+                modifier = Modifier.size(KbButtonSize.HeightIcon)
+            ) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Edit ${item.name}",
+                    tint = MaterialTheme.kbTextSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }
@@ -1788,10 +1792,10 @@ fun CategoryEditDialog(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Category Name", color = TextGold) },
+                label = { Text("Category Name", color = MaterialTheme.kbPrimary) },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.kbPrimary,
-                    unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                    unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
                     focusedTextColor = TextLight,
                     unfocusedTextColor = TextLight
                 ),
@@ -1803,7 +1807,7 @@ fun CategoryEditDialog(
         TextButton(
             onClick = onDismiss
         ) {
-            Text("Cancel", color = TextGold)
+            Text("Cancel", color = MaterialTheme.kbPrimary)
         }
         TextButton(
             onClick = { if (name.isNotBlank()) onConfirm(name) },
@@ -1859,11 +1863,11 @@ fun ItemEditDialog(
                         name = it
                         if (nameError != null) nameError = null
                     },
-                    label = { Text("Item Name", color = TextGold) },
+                    label = { Text("Item Name", color = MaterialTheme.kbPrimary) },
                     isError = nameError != null,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.kbPrimary,
-                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
                         focusedTextColor = TextLight,
                         unfocusedTextColor = TextLight
                     ),
@@ -1882,12 +1886,12 @@ fun ItemEditDialog(
                             price = it
                             if (priceError != null) priceError = null
                         },
-                        label = { Text("Base Price (₹)", color = TextGold) },
+                        label = { Text("Base Price (₹)", color = MaterialTheme.kbPrimary) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         isError = priceError != null,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.kbPrimary,
-                            unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                            unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
                             focusedTextColor = TextLight,
                             unfocusedTextColor = TextLight
                         ),
@@ -1917,13 +1921,13 @@ fun ItemEditDialog(
                         RadioButton(
                             selected = foodType == "non-veg",
                             onClick = { foodType = "non-veg" },
-                            colors = RadioButtonDefaults.colors(selectedColor = NonVegRed)
+                            colors = RadioButtonDefaults.colors(selectedColor = KbError)
                         )
                         Text("Non-Veg", color = TextLight)
                     }
                 }
 
-                HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+                HorizontalDivider(color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.2f))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1975,7 +1979,7 @@ fun ItemEditDialog(
                                 updated.removeAt(index)
                             }
                         }) {
-                            Icon(Icons.Default.Delete, null, tint = NonVegRed.copy(alpha = 0.7f), modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+                            Icon(Icons.Default.Delete, null, tint = KbError.copy(alpha = 0.7f), modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                         }
                     }
                 }
@@ -1991,7 +1995,7 @@ fun ItemEditDialog(
         }
     ) {
         TextButton(onClick = onDismiss) {
-            Text("Cancel", color = TextGold)
+            Text("Cancel", color = MaterialTheme.kbPrimary)
         }
         TextButton(
             onClick = {
@@ -2042,7 +2046,7 @@ fun ItemEditDialog(
             },
         ) {
             TextButton(onClick = { showAddVariantDialog = false }) {
-                Text("Cancel", color = TextGold)
+                Text("Cancel", color = MaterialTheme.kbPrimary)
             }
             TextButton(onClick = {
                 val parsedVariantPrice = newVPrice.toDoubleOrNull()

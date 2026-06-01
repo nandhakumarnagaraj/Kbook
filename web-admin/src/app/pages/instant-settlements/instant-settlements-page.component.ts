@@ -56,7 +56,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     ::ng-deep .stat-card .mat-mdc-card-title{font-size:1.25rem!important;font-weight:700!important;margin:0!important}
     ::ng-deep .stat-card .mat-mdc-card-subtitle{font-size:0.8rem!important;color:var(--muted)!important;margin-top:2px!important}
     .stat-icon{width:36px;height:36px;border-radius:8px;font-size:18px;display:flex;align-items:center;justify-content:center}
-    .green{background:#dcfce7;color:#16a34a}.amber{background:#fef3c7;color:#d97706}.blue{background:#e0f2fe;color:#0284c7}.red{background:#fee2e2;color:#dc2626}
+    .green{background:var(--success-bg);color:var(--success)}.amber{background:var(--warn-bg);color:var(--warn)}.blue{background:var(--info-bg);color:var(--info)}.red{background:var(--danger-bg);color:var(--danger)}
     .form-card{border-radius:16px;border:none;box-shadow:0 4px 20px rgba(0,0,0,0.05)}.full-width{width:100%}
     .fee-breakdown{display:flex;flex-direction:column;gap:8px;margin:16px 0;padding:16px;border-radius:12px;background:var(--bg-elevated);font-size:0.9rem}
     .fee-breakdown div{display:flex;justify-content:space-between}.net{font-weight:700;font-size:1.1rem;border-top:1px solid var(--line);padding-top:8px}

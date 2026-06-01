@@ -23,13 +23,14 @@ import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.TextLight
+import com.khanabook.lite.pos.ui.theme.KbBrandSaffronDark
 import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 
 data class SelectionDialogOption<T>(
     val value: T,
     val title: String,
     val subtitle: String? = null,
-    val selectedAccent: Color = Color(0xFFD97706), // KbBrandSaffronAndroid — brand primary
+    val selectedAccent: Color = KbBrandSaffronDark,
     val onSelect: (() -> Unit)? = null
 )
 

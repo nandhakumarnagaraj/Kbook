@@ -192,10 +192,10 @@ interface Settlement {
       font-size: 22px;
     }
 
-    .settled { background: #e0f2fe; color: #0284c7; }
-    .commission { background: #fef3c7; color: #d97706; }
-    .orders { background: #dcfce7; color: #16a34a; }
-    .restaurants { background: #f3e8ff; color: #9333ea; }
+    .settled { background: var(--info-bg); color: var(--info); }
+    .commission { background: var(--warn-bg); color: var(--warn); }
+    .orders { background: var(--success-bg); color: var(--success); }
+    .restaurants { background: var(--purple-soft); color: var(--purple); }
 
     .card-grid {
       display: grid;
