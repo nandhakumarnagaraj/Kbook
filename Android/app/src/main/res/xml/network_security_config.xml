@@ -30,7 +30,7 @@
             <certificates src="system" />
         </trust-anchors>
         <pin-set expiration="2028-06-04">
-            <!-- Primary pin — leaf cert SHA-256 SPKI (stable with --reuse-key) -->
+            <!-- Primary pin — leaf cert SHA-256 SPKI (stable with reuse-key) -->
             <pin digest="SHA-256">tJ3FwThWtNjSo05B9h3v8/XuIltRPdwkOxXbTrvVqZ4=</pin>
             <!-- Backup pin 1 — LE ECDSA intermediate YE1 -->
             <pin digest="SHA-256">brzvtCELCIZUo4sD/qPX0ccRtPsd3DY6RfmxpOU9oB4=</pin>
