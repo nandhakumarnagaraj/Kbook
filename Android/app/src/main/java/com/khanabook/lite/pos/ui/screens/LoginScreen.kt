@@ -140,7 +140,6 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
         ) {
             // Header: Midnight Purple Gradient Area
             Box(
@@ -228,13 +227,14 @@ fun LoginScreen(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f, fill = false),
+                    .weight(1f),
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
                 color = Color.White
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                         .padding(horizontal = 24.dp, vertical = 32.dp)
                 ) {
                     Text(
@@ -295,6 +295,10 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = TextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            disabledTextColor = Color(0xFF64748B),
+                            errorTextColor = Color(0xFFDC2626),
                             focusedContainerColor = Color(0xFFF5F3FF),
                             unfocusedContainerColor = Color(0xFFF5F3FF),
                             disabledContainerColor = Color(0xFFF5F3FF),
@@ -350,6 +354,10 @@ fun LoginScreen(
                             .focusRequester(passwordFocusRequester),
                         shape = RoundedCornerShape(12.dp),
                         colors = TextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            disabledTextColor = Color(0xFF64748B),
+                            errorTextColor = Color(0xFFDC2626),
                             focusedContainerColor = Color(0xFFF5F3FF),
                             unfocusedContainerColor = Color(0xFFF5F3FF),
                             disabledContainerColor = Color(0xFFF5F3FF),
