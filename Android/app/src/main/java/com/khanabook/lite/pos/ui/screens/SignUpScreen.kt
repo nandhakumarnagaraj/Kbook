@@ -361,26 +361,17 @@ fun SignUpScreen(
                             } else if (!otpSent || otpTimer == 0) {
                                 Button(
                                     onClick = {
-                                        if (!isPhoneValid) {
-                                            coroutineScope.launch {
-                                                snackbarHostState.showSnackbar("Please enter a valid 10-digit number")
-                                            }
-                                        } else if (userExistsError != null) {
-                                            coroutineScope.launch {
-                                                snackbarHostState.showSnackbar(userExistsError ?: "Phone number already registered")
-                                            }
-                                        } else {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            viewModel.sendOtp(phoneNumber)
-                                        }
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.sendOtp(phoneNumber)
                                     },
                                     modifier = Modifier.padding(end = 4.dp).height(36.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFF97316)
+                                        containerColor = Color(0xFFF97316),
+                                        disabledContainerColor = Color(0xFFCBD5E1)
                                     ),
                                     shape = RoundedCornerShape(18.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp),
-                                    enabled = !isLoading && !isUserChecking
+                                    enabled = isPhoneValid && !isLoading && !isUserChecking && userExistsError == null
                                 ) {
                                     Text(
                                         "Send OTP",

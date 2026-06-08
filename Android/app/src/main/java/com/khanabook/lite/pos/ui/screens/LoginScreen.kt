@@ -369,7 +369,7 @@ fun LoginScreen(
                         fontWeight = FontWeight.Bold
                     )
 
-                    Spacer(modifier = Modifier.height(28.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     val loginErrorMessage = (loginStatus as? AuthViewModel.LoginResult.Error)?.message
                     if (loginErrorMessage != null) {
@@ -411,7 +411,7 @@ fun LoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     // "or continue with" divider
                     Row(
