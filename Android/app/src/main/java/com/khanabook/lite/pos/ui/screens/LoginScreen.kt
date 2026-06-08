@@ -159,16 +159,16 @@ fun LoginScreen(
                 ) {
                     // White card containing Logo
                     Card(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        modifier = Modifier.size(80.dp),
+                        modifier = Modifier.size(100.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Image(
                                 painter = painterResource(id = R.drawable.ic_khanabook_logo),
                                 contentDescription = "KhanaBook logo",
-                                modifier = Modifier.size(52.dp)
+                                modifier = Modifier.size(68.dp)
                             )
                         }
                     }
@@ -178,48 +178,18 @@ fun LoginScreen(
                     Text(
                         text = "KhanaBook",
                         color = Color.White,
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 32.sp),
                         textAlign = TextAlign.Center
                     )
                     
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     
                     Text(
                         text = "Restaurant POS & Management",
                         color = Color(0xFFA78BFA), // Lavender text
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
                         textAlign = TextAlign.Center
                     )
-                    
-                    Spacer(modifier = Modifier.height(18.dp))
-                    
-                    // Page indicator lines
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Orange indicator
-                        Box(
-                            modifier = Modifier
-                                .width(24.dp)
-                                .height(3.dp)
-                                .background(Color(0xFFF97316), RoundedCornerShape(1.5.dp))
-                        )
-                        // Purple indicator
-                        Box(
-                            modifier = Modifier
-                                .width(12.dp)
-                                .height(3.dp)
-                                .background(Color(0xFF7C3AED).copy(alpha = 0.5f), RoundedCornerShape(1.5.dp))
-                        )
-                        // Dark indicator
-                        Box(
-                            modifier = Modifier
-                                .width(6.dp)
-                                .height(3.dp)
-                                .background(Color(0xFF4C1D95).copy(alpha = 0.4f), RoundedCornerShape(1.5.dp))
-                        )
-                    }
                 }
             }
 
