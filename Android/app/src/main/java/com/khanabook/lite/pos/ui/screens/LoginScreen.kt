@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -134,252 +135,404 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFF0F081D))
     ) {
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
         ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = KbBrandSaffron
+            // Header: Midnight Purple Gradient Area
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(290.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_khanabook_logo),
-                        contentDescription = "KhanaBook logo",
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    // White card containing Logo
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        modifier = Modifier.size(80.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_khanabook_logo),
+                                contentDescription = "KhanaBook logo",
+                                modifier = Modifier.size(52.dp)
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
                     Text(
                         text = "KhanaBook",
                         color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center
                     )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = "Restaurant POS & Management",
+                        color = Color(0xFFA78BFA), // Lavender text
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(18.dp))
+                    
+                    // Page indicator lines
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Orange indicator
+                        Box(
+                            modifier = Modifier
+                                .width(24.dp)
+                                .height(3.dp)
+                                .background(Color(0xFFF97316), RoundedCornerShape(1.5.dp))
+                        )
+                        // Purple indicator
+                        Box(
+                            modifier = Modifier
+                                .width(12.dp)
+                                .height(3.dp)
+                                .background(Color(0xFF7C3AED).copy(alpha = 0.5f), RoundedCornerShape(1.5.dp))
+                        )
+                        // Dark indicator
+                        Box(
+                            modifier = Modifier
+                                .width(6.dp)
+                                .height(3.dp)
+                                .background(Color(0xFF4C1D95).copy(alpha = 0.4f), RoundedCornerShape(1.5.dp))
+                        )
+                    }
                 }
             }
 
-            Column(
+            // White Sheet Container containing the form
+            Surface(
                 modifier = Modifier
-                    .weight(1f)
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .weight(1f, fill = false),
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                color = Color.White
             ) {
-                OutlinedTextField(
-                    value = loginId,
-                    onValueChange = {
-                        val updatedLoginId = it.trim()
-                        loginId = updatedLoginId
-                        if (ValidationUtils.isValidPhone(updatedLoginId)) {
-                            runCatching { passwordFocusRequester.requestFocus() }
-                        }
-                    },
-                    label = { Text("Phone Number") },
-                    placeholder = { Text("Enter your phone number") },
-                    leadingIcon = {
-                        Text(
-                            text = "+91",
-                            color = MaterialTheme.kbTextPrimary,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(start = 12.dp)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = KbShape.Medium,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = KbBrandSaffron,
-                        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle,
-                        cursorColor = KbBrandSaffron,
-                        focusedLabelColor = KbBrandSaffron
-                    ),
-                    singleLine = true,
-                    isError = (loginId.isNotEmpty() && !ValidationUtils.isValidPhone(loginId)) || (loginId.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
-                    supportingText = {
-                        if (loginId.isNotEmpty() && !ValidationUtils.isValidPhone(loginId)) {
-                            Text("Enter a valid 10-digit phone number", color = KbError, style = MaterialTheme.typography.labelSmall)
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Phone,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { runCatching { passwordFocusRequester.requestFocus() } }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 32.dp)
+                ) {
+                    Text(
+                        text = "Welcome back",
+                        color = Color(0xFF0F172A),
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
                     )
-                )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = "Sign in to your restaurant account",
+                        color = Color(0xFF64748B),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    
+                    Spacer(modifier = Modifier.height(28.dp))
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Password") },
-                    placeholder = { Text("Enter your password") },
-                    trailingIcon = {
-                        Icon(
-                            imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = "Toggle Password",
-                            tint = MaterialTheme.kbTextSecondary,
-                            modifier = Modifier.clickable { showPassword = !showPassword }
+                    // PHONE NUMBER field
+                    Text(
+                        text = "PHONE NUMBER",
+                        color = Color(0xFF334155),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    TextField(
+                        value = loginId,
+                        onValueChange = {
+                            val updatedLoginId = it.trim()
+                            loginId = updatedLoginId
+                            if (ValidationUtils.isValidPhone(updatedLoginId)) {
+                                runCatching { passwordFocusRequester.requestFocus() }
+                            }
+                        },
+                        placeholder = { Text("Enter phone number", color = Color(0xFF94A3B8)) },
+                        leadingIcon = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(start = 16.dp, end = 8.dp)
+                            ) {
+                                Text(
+                                    text = "+91",
+                                    color = Color(0xFF475569),
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .height(20.dp)
+                                        .background(Color(0xFFCBD5E1))
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F3FF),
+                            unfocusedContainerColor = Color(0xFFF5F3FF),
+                            disabledContainerColor = Color(0xFFF5F3FF),
+                            errorContainerColor = Color(0xFFFFF1F2),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                            errorIndicatorColor = Color.Transparent,
+                            cursorColor = Color(0xFFF97316)
+                        ),
+                        singleLine = true,
+                        isError = (loginId.isNotEmpty() && !ValidationUtils.isValidPhone(loginId)) || (loginId.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
+                        supportingText = {
+                            if (loginId.isNotEmpty() && !ValidationUtils.isValidPhone(loginId)) {
+                                Text("Enter a valid 10-digit phone number", color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Phone,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { runCatching { passwordFocusRequester.requestFocus() } }
                         )
-                    },
-                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth().focusRequester(passwordFocusRequester),
-                    shape = KbShape.Medium,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = KbBrandSaffron,
-                        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle,
-                        cursorColor = KbBrandSaffron,
-                        focusedLabelColor = KbBrandSaffron
-                    ),
-                    singleLine = true,
-                    isError = password.isBlank() && loginStatus is AuthViewModel.LoginResult.Error,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            val isLoadingStatus = loginStatus is AuthViewModel.LoginResult.Loading
-                            val isLoginEnabledAction = loginId.isNotBlank() && password.isNotBlank() && !isLoadingStatus
-                            if (isLoginEnabledAction) {
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // PASSWORD field
+                    Text(
+                        text = "PASSWORD",
+                        color = Color(0xFF334155),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    TextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        placeholder = { Text("........", color = Color(0xFF94A3B8)) },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = "Toggle Password",
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.clickable { showPassword = !showPassword }
+                            )
+                        },
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(passwordFocusRequester),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F3FF),
+                            unfocusedContainerColor = Color(0xFFF5F3FF),
+                            disabledContainerColor = Color(0xFFF5F3FF),
+                            errorContainerColor = Color(0xFFFFF1F2),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                            errorIndicatorColor = Color.Transparent,
+                            cursorColor = Color(0xFFF97316)
+                        ),
+                        singleLine = true,
+                        isError = password.isBlank() && loginStatus is AuthViewModel.LoginResult.Error,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                val isLoadingStatus = loginStatus is AuthViewModel.LoginResult.Loading
+                                val isLoginEnabledAction = loginId.isNotBlank() && password.isNotBlank() && !isLoadingStatus
+                                if (isLoginEnabledAction) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.login(loginId, password)
+                                }
+                                focusManager.clearFocus()
+                            }
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Forgot Password?",
+                        color = Color(0xFFF97316),
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .clickable { showForgotDialog = true },
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(28.dp))
+
+                    val loginErrorMessage = (loginStatus as? AuthViewModel.LoginResult.Error)?.message
+                    if (loginErrorMessage != null) {
+                        Text(
+                            text = loginErrorMessage,
+                            color = Color(0xFFDC2626),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = 12.dp).fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    val isLoginEnabled = loginId.isNotBlank() && password.isNotBlank() && !isLoading
+                    Button(
+                        onClick = {
+                            if (isLoginEnabled) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 viewModel.login(loginId, password)
                             }
-                            focusManager.clearFocus()
-                        }
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Forgot Password?",
-                    color = KbBrandSaffron,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .clickable { showForgotDialog = true },
-                    fontWeight = FontWeight.Medium
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                val loginErrorMessage = (loginStatus as? AuthViewModel.LoginResult.Error)?.message
-                if (loginErrorMessage != null) {
-                    Text(
-                        text = loginErrorMessage,
-                        color = KbError,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 12.dp).fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                val isLoginEnabled = loginId.isNotBlank() && password.isNotBlank() && !isLoading
-                Button(
-                    onClick = {
-                        if (isLoginEnabled) {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.login(loginId, password)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(KbButtonSize.HeightLarge),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isLoginEnabled) KbBrandSaffron else MaterialTheme.kbTextDisabled,
-                        contentColor = Color.White
-                    ),
-                    shape = KbShape.Medium,
-                    enabled = isLoginEnabled
-                ) {
-                    if (isLoading && !isGoogleLogin) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text("Continue", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "or continue with",
-                    color = MaterialTheme.kbTextSecondary,
-                    style = MaterialTheme.typography.labelMedium
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Surface(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clickable(enabled = !isLoading) {
-                            isGoogleLogin = true
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            googleSignInClient.signOut().addOnCompleteListener {
-                                googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                            }
                         },
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
-                ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        if (isLoading && isGoogleLogin) {
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isLoginEnabled) Color(0xFFEA580C) else Color(0xFFCBD5E1),
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = isLoginEnabled
+                    ) {
+                        if (isLoading && !isGoogleLogin) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                color = KbBrandSaffron,
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text(
-                                text = "G",
-                                color = KbBrandSaffron,
-                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-                            )
+                            Text("Continue", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "New to KhanaBook? ",
-                        color = MaterialTheme.kbTextSecondary,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "Sign Up",
-                        color = KbBrandSaffron,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.clickable { onSignUpClick() }
-                    )
+                    // "or continue with" divider
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(1.dp)
+                                .background(Color(0xFFE2E8F0))
+                        )
+                        Text(
+                            text = "or continue with",
+                            color = Color(0xFF94A3B8),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(1.dp)
+                                .background(Color(0xFFE2E8F0))
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Sign in with Google Outlined Button
+                    OutlinedButton(
+                        onClick = {
+                            if (!isLoading) {
+                                isGoogleLogin = true
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                googleSignInClient.signOut().addOnCompleteListener {
+                                    googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E293B)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            if (isLoading && isGoogleLogin) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color(0xFFEA580C),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_google_logo),
+                                    contentDescription = "Google Logo",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Sign in with Google",
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "New to KhanaBook? ",
+                            color = Color(0xFF64748B),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Sign Up",
+                            color = Color(0xFF7C3AED),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.clickable { onSignUpClick() }
+                        )
+                    }
                 }
             }
         }
 
         KhanaBookSnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
         )
 
         KhanaBookLoadingOverlay(
