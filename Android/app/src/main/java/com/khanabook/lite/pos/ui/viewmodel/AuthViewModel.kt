@@ -260,27 +260,27 @@ constructor(
         }
     }
 
-    fun signUp(name: String, phoneNumber: String, otp: String, password: String) {
+    fun signUp(shopName: String, ownerName: String, phoneNumber: String, otp: String, password: String) {
         viewModelScope.launch {
             _signUpFieldErrors.value = emptyMap()
             _signUpStatus.value = SignUpResult.Loading
             try {
 
-                val result = userRepository.remoteSignup(name, phoneNumber, otp, password)
+                val result = userRepository.remoteSignup(ownerName, phoneNumber, otp, password)
                 result.onSuccess {
                     
                     val currentProfile = restaurantRepository.getProfile()
                     val updatedProfile =
                             if (currentProfile != null) {
                                 currentProfile.copy(
-                                        shopName = name,
+                                        shopName = shopName,
                                         whatsappNumber = phoneNumber,
                                         upiMobile = phoneNumber
                                 )
                             } else {
                                 RestaurantProfileEntity(
                                         id = 1,
-                                        shopName = name,
+                                        shopName = shopName,
                                         shopAddress = "",
                                         whatsappNumber = phoneNumber,
                                         upiMobile = phoneNumber,
