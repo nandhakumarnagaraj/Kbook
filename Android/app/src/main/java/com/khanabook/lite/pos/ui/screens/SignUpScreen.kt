@@ -598,7 +598,16 @@ fun SignUpScreen(
 
                     Spacer(modifier = Modifier.height(14.dp)) // Reduced Spacing before the CTA button
 
+                    val isFormFilled = shopName.isNotBlank() &&
+                            ownerName.isNotBlank() &&
+                            phoneNumber.isNotBlank() &&
+                            otpSent &&
+                            otp.isNotBlank() &&
+                            newPassword.isNotBlank() &&
+                            agreedToTerms
+
                     val isFormValid = isShopNameValid && isOwnerNameValid && isPhoneValid && isPasswordValid && agreedToTerms && otpSent && otp.length == 6 && !isLoading && userExistsError == null
+
                     Button(
                         onClick = {
                             if (isFormValid) {
@@ -610,17 +619,32 @@ fun SignUpScreen(
                                     otp = otp,
                                     password = newPassword
                                 )
+                            } else {
+                                val errorMsg = when {
+                                    !isShopNameValid -> "Shop name must be at least 2 characters"
+                                    !isOwnerNameValid -> "Owner name must be at least 2 characters"
+                                    !isPhoneValid -> "Please enter a valid 10-digit WhatsApp number"
+                                    userExistsError != null -> userExistsError ?: "WhatsApp number already registered"
+                                    otp.length != 6 -> "Please enter a valid 6-digit OTP"
+                                    !isPasswordValid -> "Password must be at least 8 characters with uppercase, digit & symbol"
+                                    else -> "Please correct the highlighted errors"
+                                }
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar(errorMsg)
+                                }
                             }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFormValid) Color(0xFFF97316) else Color(0xFFCBD5E1),
-                            contentColor = Color.White
+                            containerColor = if (isFormFilled) Color(0xFFF97316) else Color(0xFFCBD5E1),
+                            contentColor = Color.White,
+                            disabledContainerColor = Color(0xFFCBD5E1),
+                            disabledContentColor = Color.White.copy(alpha = 0.6f)
                         ),
                         shape = RoundedCornerShape(16.dp),
-                        enabled = isFormValid
+                        enabled = isFormFilled
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
