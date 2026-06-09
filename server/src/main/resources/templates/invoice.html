@@ -255,7 +255,7 @@ html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
     <img th:if="${logoUrl != null and !logoUrl.isEmpty()}"
          class="logo"
          th:src="${logoUrl}"
-         th:alt="${shopName} logo"
+         th:alt="${shopName + ' logo'}"
          onerror="this.style.display='none'">
     <h1 class="tenant-name" th:text="${shopName}">Restaurant Name</h1>
     <p class="outlet-name" th:text="${address != null and !address.isEmpty() ? address : 'Main Outlet'}">Main Outlet</p>
