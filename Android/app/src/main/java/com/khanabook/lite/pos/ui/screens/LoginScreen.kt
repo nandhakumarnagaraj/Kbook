@@ -575,6 +575,7 @@ fun LoginScreen(
                 onDismiss = {
                     showForgotDialog = false
                     viewModel.clearResetStatus()
+                    viewModel.clearLoginUserCheck()
                 },
                 onSuccess = { message ->
                     coroutineScope.launch { snackbarHostState.showSnackbar(message) }
@@ -607,8 +608,20 @@ fun ForgotPasswordDialog(
     val resetFieldErrors by viewModel.resetPasswordFieldErrors.collectAsState()
     val isResetLoading = resetStatus is AuthViewModel.ResetPasswordResult.Loading
 
+    val isUserChecking by viewModel.isLoginUserChecking.collectAsState()
+    val userExistsError by viewModel.loginUserCheckError.collectAsState()
+
     fun fieldError(vararg keys: String): String? = keys.firstNotNullOfOrNull { key ->
         resetFieldErrors[key]?.takeIf { it.isNotBlank() }
+    }
+
+    LaunchedEffect(phone) {
+        val digits = phone.filter { it.isDigit() }
+        if (digits.length == 10) {
+            viewModel.checkUserExistsForLogin(digits)
+        } else {
+            viewModel.clearLoginUserCheck()
+        }
     }
 
     LaunchedEffect(resetStatus) {
@@ -623,6 +636,8 @@ fun ForgotPasswordDialog(
             }
             is AuthViewModel.ResetPasswordResult.Success -> {
                 onSuccess(context.getString(R.string.toast_password_reset))
+                // Perform auto login using the phone and the newPassword that were just set!
+                viewModel.login(phone, newPassword)
                 onDismiss()
             }
             else -> {}
@@ -650,7 +665,7 @@ fun ForgotPasswordDialog(
                         )
                     )
             ) {
-                // Back Button & Logo Row
+                // Back Button Row
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -669,23 +684,6 @@ fun ForgotPasswordDialog(
                             contentDescription = "Back",
                             tint = Color.White
                         )
-                    }
-
-                    Card(
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        modifier = Modifier
-                            .size(36.dp)
-                            .align(Alignment.Center),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_khanabook_logo),
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
                     }
                 }
 
@@ -798,6 +796,27 @@ fun ForgotPasswordDialog(
                                     )
                                 }
                             },
+                            trailingIcon = {
+                                when {
+                                    isUserChecking -> CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = Color(0xFFF97316)
+                                    )
+                                    userExistsError != null -> Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = null,
+                                        tint = Color(0xFFDC2626),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    phone.length == 10 && !isUserChecking -> Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = Color(0xFF22C55E),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = TextFieldDefaults.colors(
@@ -811,11 +830,12 @@ fun ForgotPasswordDialog(
                                 cursorColor = Color(0xFFF97316)
                             ),
                             singleLine = true,
-                            isError = phone.isNotEmpty() && !isPhoneValid || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
+                            isError = phone.isNotEmpty() && !isPhoneValid || userExistsError != null || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
                             supportingText = {
                                 val err = fieldError("phoneNumber", "loginId", "whatsappNumber")
                                 when {
                                     err != null -> Text(err, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                                    userExistsError != null -> Text(userExistsError!!, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                                     phone.isNotEmpty() && !isPhoneValid -> Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
                                 }
                             },
@@ -900,7 +920,7 @@ fun ForgotPasswordDialog(
                         // "Send OTP" Button
                         OutlinedButton(
                             onClick = {
-                                if (isPhoneValid && !isResetLoading) {
+                                if (isPhoneValid && !isResetLoading && !isUserChecking && userExistsError == null) {
                                     viewModel.sendOtp(phone, "reset")
                                 }
                             },
@@ -909,8 +929,8 @@ fun ForgotPasswordDialog(
                                 .height(52.dp),
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF7C3AED)),
-                            border = BorderStroke(1.5.dp, if (isPhoneValid && !isResetLoading) Color(0xFF7C3AED) else Color(0xFFE2E8F0)),
-                            enabled = isPhoneValid && !isResetLoading && (step == 1 || resendTimer == 0)
+                            border = BorderStroke(1.5.dp, if (isPhoneValid && !isResetLoading && !isUserChecking && userExistsError == null) Color(0xFF7C3AED) else Color(0xFFE2E8F0)),
+                            enabled = isPhoneValid && !isResetLoading && !isUserChecking && userExistsError == null && (step == 1 || resendTimer == 0)
                         ) {
                             if (isResetLoading && step == 1) {
                                 CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFF7C3AED), strokeWidth = 2.dp)
