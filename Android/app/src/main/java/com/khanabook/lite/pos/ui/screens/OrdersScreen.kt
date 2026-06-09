@@ -221,97 +221,114 @@ fun OrdersScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.kbBgGradient)
+            .background(RichEspresso)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = spacing.small)
         ) {
-            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.medium, vertical = spacing.small),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.kbTextSecondary)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Brush.verticalGradient(listOf(Color(0xFF1A1040), Color(0xFF0F0A1F))))
+                    .padding(bottom = spacing.medium)
+            ) {
+                AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = spacing.medium, vertical = spacing.small),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White
+                            )
+                        }
+                        Text(
+                            text = "Orders",
+                            modifier = Modifier.align(Alignment.Center),
+                            color = Color.White,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        IconButton(onClick = { /* Focus search if needed */ }, modifier = Modifier.align(Alignment.CenterEnd)) {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = Color.White
+                            )
+                        }
                     }
-                    Text(
-                        text = "Orders",
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MaterialTheme.kbTextPrimary,
-                        style = MaterialTheme.typography.headlineMedium
-                    )
                 }
-            }
 
-            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
-                Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.medium),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                    ) {
-                        OrderFilterChip(
-                            label = "POS Orders",
-                            isSelected = selectedSource == "POS",
-                            onClick = { selectedSource = "POS" },
-                            modifier = Modifier.weight(1f)
-                        )
-                        OrderFilterChip(
-                            label = "Online Orders",
-                            isSelected = selectedSource == "ONLINE",
-                            onClick = {
-                                val hasOnlineSetup = profile?.let {
-                                    it.easebuzzEnabled || it.zomatoEnabled || it.swiggyEnabled || it.ownWebsiteEnabled
-                                } == true
-                                if (hasOnlineSetup) {
-                                    selectedSource = "ONLINE"
-                                } else {
-                                    scope.launch {
-                                        KhanaToast.show("Complete online setup in Payment Configuration first", ToastKind.Warning)
-                                    }
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
-
-                    KhanaBookGlassCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.medium),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
+                AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+                    Column {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(spacing.small),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                                .padding(horizontal = spacing.medium),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.small)
                         ) {
-                            listOf("Daily", "Weekly", "Monthly", "Custom").forEach { title ->
-                                OrderFilterChip(
-                                    label = title,
-                                    isSelected = timeFilter == title,
-                                    onClick = {
-                                        if (title == "Custom") {
-                                            showDateRangePicker = true
-                                        } else {
-                                            viewModel.setTimeFilter(title)
+                            OrderFilterChip(
+                                label = "POS Orders",
+                                isSelected = selectedSource == "POS",
+                                onClick = { selectedSource = "POS" },
+                                modifier = Modifier.weight(1f)
+                            )
+                            OrderFilterChip(
+                                label = "Online Orders",
+                                isSelected = selectedSource == "ONLINE",
+                                onClick = {
+                                    val hasOnlineSetup = profile?.let {
+                                        it.easebuzzEnabled || it.zomatoEnabled || it.swiggyEnabled || it.ownWebsiteEnabled
+                                    } == true
+                                    if (hasOnlineSetup) {
+                                        selectedSource = "ONLINE"
+                                    } else {
+                                        scope.launch {
+                                            KhanaToast.show("Complete online setup in Payment Configuration first", ToastKind.Warning)
                                         }
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(spacing.medium))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing.medium)
+                                .background(Color(0xFF0E0822).copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                                .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)), RoundedCornerShape(10.dp))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(4.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                listOf("Daily", "Weekly", "Monthly", "Custom").forEach { title ->
+                                    OrderFilterChip(
+                                        label = title,
+                                        isSelected = timeFilter == title,
+                                        onClick = {
+                                            if (title == "Custom") {
+                                                showDateRangePicker = true
+                                            } else {
+                                                viewModel.setTimeFilter(title)
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
                 }
             }
 
@@ -524,88 +541,62 @@ private fun OrderCard(
                 onClick = onClick,
                 onLongClick = onLongClick
             ),
-        shape = KbShape.Medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isCancelled) 0.dp else 1.dp)
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(spacing.medium)
                 .then(
                     if (isCancelled) Modifier.graphicsLayer { alpha = KbOpacity.Muted } else Modifier
-                )
+                ),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = "#KB-${row.dailyNo}",
-                    color = MaterialTheme.kbTextPrimary,
+                    color = Color(0xFF1F2937),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                OrderStatusChip(row.orderStatus)
-            }
-
-            Spacer(modifier = Modifier.height(spacing.extraSmall))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 Text(
-                    text = row.payMode.displayLabel,
-                    color = MaterialTheme.kbTextSecondary,
+                    text = "${row.payMode.displayLabel} · INV${row.lifetimeNo}",
+                    color = Color(0xFF6B7280),
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     text = CurrencyUtils.formatPrice(row.salesAmount),
-                    color = MaterialTheme.kbTextPrimary,
+                    color = Color(0xFFF97316),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     maxLines = 1
                 )
-            }
-
-            Spacer(modifier = Modifier.height(spacing.extraSmall))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = "INV${row.lifetimeNo}",
-                        color = MaterialTheme.kbTextTertiary,
+                        text = timeAgo(row.salesDate),
+                        color = Color(0xFF6B7280),
                         style = MaterialTheme.typography.bodySmall
                     )
+                    OrderStatusChip(row.orderStatus)
                 }
-                Text(
-                    text = timeAgo(row.salesDate),
-                    color = MaterialTheme.kbTextTertiary,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-            if (isCancelled && row.cancelReason.isNotBlank()) {
-                Spacer(modifier = Modifier.height(spacing.extraSmall))
-                Text(
-                    text = row.cancelReason,
-                    color = MaterialTheme.kbTextTertiary,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
         }
     }
@@ -673,22 +664,24 @@ private fun OrderCardSkeleton() {
 
 @Composable
 private fun OrderStatusChip(status: OrderStatus) {
+    if (status == OrderStatus.DRAFT) return
+
     val (label, color) = when (status) {
-        OrderStatus.DRAFT -> "NEW" to Color(0xFF0284C7)
-        OrderStatus.COMPLETED -> "COMPLETED" to MaterialTheme.kbTextTertiary
-        OrderStatus.CANCELLED -> "CANCELLED" to KbBrandRed
+        OrderStatus.COMPLETED -> "COMPLETED" to Color(0xFF7C3AED)
+        OrderStatus.CANCELLED -> "CANCELLED" to Color(0xFFDC2626)
+        else -> "ACTIVE" to Color(0xFF0284C7)
     }
 
     Surface(
-        shape = KbShape.ExtraLarge,
-        color = color.copy(alpha = KbOpacity.StatusBg),
-        border = BorderStroke(1.dp, color.copy(alpha = KbOpacity.StatusBorder))
+        shape = RoundedCornerShape(999.dp),
+        color = color.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.25f))
     ) {
         Text(
             text = label,
             color = color,
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             maxLines = 1
         )
     }
@@ -716,20 +709,20 @@ fun PeriodTabs(selectedFilter: String, onTabSelected: (String) -> Unit) {
 @Composable
 fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     val containerColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.kbPrimary else Color.Transparent,
+        targetValue = if (isSelected) Color(0xFFF97316) else Color.Transparent,
         animationSpec = tween(200),
         label = "chip_container"
     )
     val contentColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.kbTextOnBrand else MaterialTheme.kbTextPrimary,
+        targetValue = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
         animationSpec = tween(200),
         label = "chip_content"
     )
-    val borderColor = if (isSelected) MaterialTheme.kbPrimary else MaterialTheme.kbSecondary.copy(alpha = 0.4f)
+    val borderColor = if (isSelected) Color(0xFFF97316) else Color.White.copy(alpha = 0.15f)
     Surface(
         onClick = onClick,
         modifier = modifier.height(36.dp),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(18.dp),
         color = containerColor,
         border = if (isSelected) null else BorderStroke(1.dp, borderColor),
         contentColor = contentColor,
@@ -1600,5 +1593,16 @@ private fun storefrontNextStatuses(currentStatus: String): List<String> {
         "PREPARING" -> listOf("READY", "CANCELLED")
         "READY" -> listOf("COMPLETED", "CANCELLED")
         else -> emptyList()
+    }
+}
+
+@Composable
+private fun DetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+        Text(value, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
     }
 }

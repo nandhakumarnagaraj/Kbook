@@ -3,6 +3,8 @@ package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -1022,185 +1024,270 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
 }
 
 @Composable
+private fun OrderStatusChip(status: OrderStatus) {
+    if (status == OrderStatus.DRAFT) return
+
+    val (label, color) = when (status) {
+        OrderStatus.COMPLETED -> "COMPLETED" to Color(0xFF7C3AED)
+        OrderStatus.CANCELLED -> "CANCELLED" to Color(0xFFDC2626)
+        else -> "ACTIVE" to Color(0xFF0284C7)
+    }
+
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = color.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.25f))
+    ) {
+        Text(
+            text = label,
+            color = color,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun DetailRowLight(label: String, value: String, isStatus: Boolean = false, status: OrderStatus = OrderStatus.DRAFT) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = label, color = Color(0xFF6B7280), style = MaterialTheme.typography.bodyMedium)
+        if (isStatus) {
+            OrderStatusChip(status)
+        } else {
+            Text(text = value, color = Color(0xFF1F2937), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+        }
+    }
+}
+
+@Composable
 fun OrderDetailsDialog(
     billWithItems: BillWithItems?,
     profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onPrintKds: ((BillWithItems) -> Unit)? = null,
+    onPrintReceipt: ((BillWithItems) -> Unit)? = null
 ) {
     val spacing = KhanaBookTheme.spacing
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        KhanaBookCard(
-            modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .widthIn(max = 900.dp)
-                .padding(spacing.medium),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-            shape = RoundedCornerShape(16.dp)
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = RichEspresso
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(spacing.medium)
-                    .fillMaxWidth()
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Dark purple gradient header
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Brush.verticalGradient(listOf(Color(0xFF1A1040), Color(0xFF0F0A1F))))
+                        .padding(horizontal = 16.dp, vertical = 20.dp)
                 ) {
-                    Text(
-                        text = "Order Details",
-                        color = MaterialTheme.kbSecondary,
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.align(Alignment.CenterEnd)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.kbSecondary)
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        }
+                        Text(
+                            text = "Order Detail",
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                        if (billWithItems != null) {
+                            val statusValue = OrderStatus.fromDbValue(billWithItems.bill.orderStatus)
+                            OrderStatusChip(statusValue)
+                        } else {
+                            Box(modifier = Modifier.size(40.dp))
+                        }
+                    }
+
+                    if (billWithItems != null) {
+                        val bill = billWithItems.bill
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "#KB-${bill.dailyOrderDisplay.split("-").last()}",
+                            color = Color.White,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "INV${bill.lifetimeOrderId} · ${PaymentMode.fromDbValue(bill.paymentMode).displayLabel}",
+                            color = Color.White.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = CurrencyUtils.formatPrice(bill.totalAmount),
+                                color = Color.White,
+                                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 32.sp)
+                            )
+                            Text(
+                                text = DateUtils.formatDisplay(bill.createdAt),
+                                color = Color.White.copy(alpha = 0.5f),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
 
-                HorizontalDivider(color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f), thickness = 1.dp)
-                Spacer(modifier = Modifier.height(spacing.medium))
-
-                if (billWithItems == null) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        ShimmerBox(height = 14.dp, modifier = Modifier.fillMaxWidth(0.5f))
-                        Spacer(modifier = Modifier.height(spacing.small))
-                        ShimmerBox(height = 14.dp, modifier = Modifier.fillMaxWidth(0.4f))
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                        ShimmerBox(height = 12.dp, modifier = Modifier.fillMaxWidth(0.3f))
-                        Spacer(modifier = Modifier.height(spacing.small))
-                        repeat(3) {
-                            SkeletonListItem()
-                            Spacer(modifier = Modifier.height(spacing.extraSmall))
+                // Scrollable White/Light background Content area
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(RichEspresso)
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    if (billWithItems == null) {
+                        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = Color(0xFFF97316))
                         }
-                        Spacer(modifier = Modifier.height(spacing.smallMedium))
-                        ShimmerBox(height = 20.dp, modifier = Modifier.fillMaxWidth(0.5f))
-                    }
-                } else {
-                    val bill = billWithItems.bill
-                    val items = billWithItems.items
-
-                    DetailRow("Order No:", "#${bill.dailyOrderDisplay.split("-").last()}")
-                    Spacer(modifier = Modifier.height(spacing.small))
-                    val invoiceLabel = if (profile?.gstEnabled == true) "Tax Invoice No:" else "Invoice No:"
-                    DetailRow(invoiceLabel, "INV${bill.lifetimeOrderId}")
-                    Spacer(modifier = Modifier.height(spacing.small))
-                    DetailRow("Date:", DateUtils.formatDisplay(bill.createdAt))
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
-                    Text("Items:", color = MaterialTheme.kbPrimary, style = MaterialTheme.typography.titleSmall)
-                    Spacer(modifier = Modifier.height(spacing.small))
-
-                    if (items.isEmpty()) {
-                        Text(
-                            text = "No items found in this order.",
-                            color = MaterialTheme.kbTextPrimary.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(vertical = spacing.medium).align(Alignment.CenterHorizontally)
-                        )
                     } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 40.dp, max = 200.dp)
+                        val bill = billWithItems.bill
+                        val items = billWithItems.items
+
+                        // ORDER ITEMS Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(max = 200.dp),
-                                verticalArrangement = Arrangement.spacedBy(spacing.small)
-                            ) {
-                                items(items) { item ->
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    "ORDER ITEMS",
+                                    color = Color(0xFFF97316),
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                items.forEach { item ->
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Text(
-                                            text = "${item.itemName} x${item.quantity}",
-                                            color = MaterialTheme.kbTextPrimary.copy(alpha = 0.9f),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            modifier = Modifier.weight(1f).padding(end = spacing.small)
+                                            text = "${item.quantity}×  ${item.itemName}",
+                                            color = Color(0xFF1F2937),
+                                            style = MaterialTheme.typography.bodyMedium
                                         )
                                         Text(
                                             text = CurrencyUtils.formatPrice(item.itemTotal),
-                                            color = MaterialTheme.kbTextPrimary,
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                            textAlign = TextAlign.End
+                                            color = Color(0xFF1F2937),
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                                         )
                                     }
                                 }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+                                HorizontalDivider(color = Color(0xFFE5E7EB), thickness = 1.dp)
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                val subtotalVal = bill.subtotal.toDoubleOrNull() ?: 0.0
+                                val totalVal = bill.totalAmount.toDoubleOrNull() ?: 0.0
+                                val taxVal = totalVal - subtotalVal
+
+                                DetailRowLight("Subtotal", CurrencyUtils.formatPrice(bill.subtotal))
+                                if (taxVal > 0) {
+                                    val taxPct = bill.gstPercentage.toDoubleOrNull() ?: 0.0
+                                    val taxLabel = if (taxPct > 0) "Tax (${taxPct.toInt()}%)" else "Tax"
+                                    DetailRowLight(taxLabel, CurrencyUtils.formatPrice(taxVal.toString()))
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        "Total",
+                                        color = Color(0xFF1F2937),
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        CurrencyUtils.formatPrice(bill.totalAmount),
+                                        color = Color(0xFFF97316),
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // PAYMENT DETAILS Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    "PAYMENT DETAILS",
+                                    color = Color(0xFFF97316),
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                DetailRowLight("Method", PaymentMode.fromDbValue(bill.paymentMode).displayLabel)
+                                DetailRowLight("Transaction ID", "INV${bill.lifetimeOrderId}")
+                                DetailRowLight("Time", DateUtils.formatDisplay(bill.createdAt))
+
+                                val statusValue = OrderStatus.fromDbValue(bill.orderStatus)
+                                val statusText = when (statusValue) {
+                                    OrderStatus.DRAFT -> "Pending"
+                                    else -> statusValue.name.lowercase().replaceFirstChar { it.uppercase() }
+                                }
+                                DetailRowLight("Status", statusText, isStatus = true, status = statusValue)
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(spacing.medium))
-                    HorizontalDivider(color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f), thickness = 0.5.dp)
-                    Spacer(modifier = Modifier.height(spacing.medium))
-                    DetailRow("Payment Mode:", PaymentMode.fromDbValue(bill.paymentMode).displayLabel)
-                    Spacer(modifier = Modifier.height(spacing.small))
-                    DetailRow("Total Amount:", CurrencyUtils.formatPrice(bill.totalAmount), MaterialTheme.kbSecondary, FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(spacing.medium))
-
-                    val statusValue = OrderStatus.fromDbValue(bill.orderStatus)
-                    val statusText = when (statusValue) {
-                        OrderStatus.DRAFT -> "Pending"
-                        else -> statusValue.name.lowercase().replaceFirstChar { it.uppercase() }
-                    }
-                    val statusColor = when (statusValue) {
-                        OrderStatus.COMPLETED -> VegGreen
-                        OrderStatus.CANCELLED -> ZomatoRed
-                        else -> MaterialTheme.kbPrimary
-                    }
-
-                    DetailRow("Status:", statusText, statusColor)
-                    if (statusValue == OrderStatus.CANCELLED && bill.cancelReason.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(spacing.small))
-                        DetailRow("Cancel Reason:", bill.cancelReason, ZomatoRed, FontWeight.Bold)
-                    }
-                    Spacer(modifier = Modifier.height(spacing.medium))
                 }
 
-                Spacer(modifier = Modifier.height(spacing.large))
-
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Close", color = MaterialTheme.kbTextOnBrand, style = MaterialTheme.typography.titleMedium)
+                // Bottom Buttons row
+                if (billWithItems != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { onPrintKds?.invoke(billWithItems) },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            border = BorderStroke(1.dp, Color(0xFF7C3AED)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Reprint KOT", color = Color(0xFF7C3AED), style = MaterialTheme.typography.titleMedium)
+                        }
+                        Button(
+                            onClick = { onPrintReceipt?.invoke(billWithItems) },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Reprint Bill", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun DetailRow(label: String, value: String, valueColor: Color = MaterialTheme.kbTextPrimary, fontWeight: FontWeight = FontWeight.Normal) {
-    val spacing = KhanaBookTheme.spacing
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            color = MaterialTheme.kbPrimary,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-            modifier = Modifier.padding(end = spacing.small)
-        )
-        Text(
-            text = value,
-            color = valueColor,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = fontWeight),
-            textAlign = TextAlign.End,
-            modifier = Modifier.weight(1f)
-        )
     }
 }
 

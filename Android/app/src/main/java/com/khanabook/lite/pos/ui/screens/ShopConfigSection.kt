@@ -335,8 +335,8 @@ fun ShopConfigView(
                     Box(
                         modifier = Modifier
                             .size(KhanaBookTheme.iconSize.hero)
-                            .background(Color.White)
-                            .border(1.dp, Color.LightGray),
+                            .background(MaterialTheme.kbBgCard)
+                            .border(1.dp, MaterialTheme.kbOutlineSubtle),
                         contentAlignment = Alignment.Center
                     ) {
                         val logoModel = logoUrl?.takeIf { it.isNotBlank() }

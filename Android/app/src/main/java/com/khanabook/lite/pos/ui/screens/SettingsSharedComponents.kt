@@ -57,73 +57,113 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
         } else "Not synced yet"
     }
 
-    KhanaBookCard(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-        shape = RoundedCornerShape(12.dp)
+    // Inline profile — no card, matches mockup with avatar + info + green sync dot
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.medium, vertical = spacing.medium),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        // Large circle avatar
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(spacing.smallMedium),
-            verticalAlignment = Alignment.CenterVertically
+                .size(56.dp)
+                .background(KbBrandSaffron, CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            androidx.compose.foundation.layout.Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(KbBrandSaffron, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = displayName.take(1).uppercase(), color = Color.White, style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = displayName.take(1).uppercase(),
+                color = Color.White,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+            )
+        }
+        Spacer(modifier = Modifier.size(spacing.medium))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = displayName,
+                color = TextLight,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+            if (displayPhone.isNotBlank()) {
+                Text(
+                    text = displayPhone,
+                    color = BrandPurple.copy(alpha = 0.85f),
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
-            Spacer(modifier = Modifier.size(spacing.smallMedium))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = displayName, color = TextLight, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold))
-                if (displayPhone.isNotBlank()) {
-                    Text(text = displayPhone, color = TextGold, style = MaterialTheme.typography.bodySmall)
-                }
-                Text(text = syncLabel, color = TextGold.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall)
+            // Sync indicator with green dot
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(KbSuccess, CircleShape)
+                )
+                Text(
+                    text = syncLabel,
+                    color = KbSuccess.copy(alpha = 0.75f),
+                    style = MaterialTheme.typography.labelSmall
+                )
             }
         }
     }
 }
 
 @Composable
-internal fun SettingsItem(icon: ImageVector, text: String, onClick: () -> Unit) {
+internal fun SettingsItem(icon: ImageVector, text: String, subtitle: String? = null, iconBg: Color = KbBrandSaffron.copy(alpha = 0.12f), iconTint: Color = MaterialTheme.kbSecondary, onClick: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
-    
-    // Premium Glassmorphism Settings Item
+
+    // Premium Glassmorphism Settings Item with optional subtitle
     KhanaBookGlassCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = spacing.extraSmall),
         onClick = onClick,
-        shape = RoundedCornerShape(10.dp)
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = spacing.medium, vertical = spacing.small),
+                .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                // Circular icon container with soft color bg
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .background(KbBrandSaffron.copy(alpha = 0.12f), RoundedCornerShape(8.dp)),
+                        .size(40.dp)
+                        .background(iconBg, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(16.dp))
+                    Icon(icon, null, tint = iconTint, modifier = Modifier.size(20.dp))
                 }
-                Spacer(modifier = Modifier.size(spacing.smallMedium))
-                Text(text, color = TextLight, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+                Spacer(modifier = Modifier.size(spacing.medium))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text,
+                        color = TextLight,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            subtitle,
+                            color = TextGold.copy(alpha = 0.65f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
             Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight, 
-                null, 
-                tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
-                modifier = Modifier.size(16.dp)
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                null,
+                tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
+                modifier = Modifier.size(18.dp)
             )
         }
     }
@@ -134,34 +174,59 @@ internal fun SettingsItem(icon: ImageVector, text: String, onClick: () -> Unit) 
 internal fun SettingsToggleItem(
     icon: ImageVector,
     text: String,
+    subtitle: String? = null,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
-    val iconSize = KhanaBookTheme.iconSize
-    KhanaBookCard(
+
+    // Glassmorphism toggle item with optional subtitle
+    KhanaBookGlassCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = spacing.extraSmall),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(10.dp)
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = spacing.medium, vertical = spacing.small),
+                .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.size(spacing.smallMedium))
-                Text(text, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                // Circular icon container
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(MaterialTheme.kbPrimary.copy(alpha = 0.12f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(20.dp))
+                }
+                Spacer(modifier = Modifier.size(spacing.medium))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text,
+                        color = TextLight,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            subtitle,
+                            color = TextGold.copy(alpha = 0.65f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
             KhanaBookSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                checkedTrackColor = MaterialTheme.colorScheme.primary
+                checkedTrackColor = MaterialTheme.kbPrimary
             )
         }
     }

@@ -14,12 +14,17 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -54,6 +59,7 @@ fun SettingsScreen(
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     var section by rememberSaveable { mutableStateOf("menu") }
+    var helpSearchQuery by remember { mutableStateOf("") }
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val isWideScreen = !layout.isCompact
@@ -131,7 +137,67 @@ fun SettingsScreen(
                 }
             },
             titleStyleCompact = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
-            titleStyleExpanded = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall
+            titleStyleExpanded = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
+            headerContent = {
+                if (section == "help_support") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFF2C2448))
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = Color(0xFF9E8EBF),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        BasicTextField(
+                            value = helpSearchQuery,
+                            onValueChange = { helpSearchQuery = it },
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                            cursorBrush = SolidColor(Color(0xFFF97316)),
+                            singleLine = true,
+                            decorationBox = { inner ->
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    if (helpSearchQuery.isEmpty()) {
+                                        Text(
+                                            "Search help articles...",
+                                            color = Color(0xFF7C6B9F),
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                    inner()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                } else if (section == "change_password") {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(Color(0xFF2C2448), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
         ) {
             Box(modifier = Modifier.weight(1f)) {
                 // Re-read timestamp each time we return to the settings home (section changes back to "menu")
@@ -218,7 +284,7 @@ fun SettingsScreen(
                         ChangePasswordView(onBack = { section = "security" })
                     }
                     "help_support" -> {
-                        HelpSupportView()
+                        HelpSupportView(helpSearchQuery)
                     }
                     "about_app" -> {
                         AboutAppView()

@@ -11,6 +11,7 @@ import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import com.khanabook.lite.pos.data.remote.ResetPasswordRequest
 import com.khanabook.lite.pos.data.remote.PasswordResetOtpRequest
+import com.khanabook.lite.pos.data.remote.ChangePasswordRequest
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.dto.UpdateMobileOtpRequest
 import com.khanabook.lite.pos.data.remote.dto.UpdateMobileRequest
@@ -283,6 +284,15 @@ class UserRepository(
         val request = ResetPasswordRequest(phoneNumber, otp, newPasswordPlain)
         try {
             api.resetPassword(request)
+        } catch (e: Exception) {
+            throw mapBackendException(e)
+        }
+    }
+
+    suspend fun remoteChangePassword(currentPasswordPlain: String, newPasswordPlain: String) {
+        val request = ChangePasswordRequest(currentPasswordPlain, newPasswordPlain)
+        try {
+            api.changePassword(request)
         } catch (e: Exception) {
             throw mapBackendException(e)
         }

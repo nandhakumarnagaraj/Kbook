@@ -378,6 +378,31 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
+    public void changePassword(String username, String currentPassword, String newPassword) {
+        User user = findUserByLoginId(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Incorrect current password.");
+        }
+
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("New password cannot be the same as the old password.");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setTokenInvalidatedAt(System.currentTimeMillis());
+        user.setUpdatedAt(System.currentTimeMillis());
+        user.setServerUpdatedAt(System.currentTimeMillis());
+        user.setDeviceId("server");
+        userRepository.save(user);
+
+        refreshTokenRepository.revokeAllForUser(user.getId());
+        log.info("Password changed via settings for user: {} — all refresh tokens revoked", username);
+    }
+
+    @Override
     public boolean checkUserExists(String phoneNumber) {
         return findUserByLoginId(phoneNumber).isPresent();
     }

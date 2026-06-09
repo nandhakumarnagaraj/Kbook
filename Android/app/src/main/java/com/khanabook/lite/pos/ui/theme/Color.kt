@@ -162,7 +162,9 @@ val MaterialTheme.kbOutlineBold: Color
     @Composable @ReadOnlyComposable get() = colorScheme.outline
 
 val MaterialTheme.kbBgGradient: Brush
-    @Composable @ReadOnlyComposable get() = Brush.verticalGradient(
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Brush.verticalGradient(
+        listOf(Color(0xFF1E1035), Color(0xFF0F081D))
+    ) else Brush.verticalGradient(
         listOf(colorScheme.background, colorScheme.surface, colorScheme.surfaceVariant)
     )
 
@@ -173,11 +175,25 @@ val MaterialTheme.kbBgGradient: Brush
 
 // ── Midnight Harvest Depth Layers (Premium Saffron) ──────────
 val KbMidnightBase: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF121212) else Color(0xFFFAF8F5)
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF0F081D) else Color(0xFFFAF8F5)
 val KbMidnightSurface: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF1A1230) else Color(0xFFFFFFFF)
 val KbMidnightOverlay: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xE61E1E1E.toInt()) else Color(0xE6FFFFFF.toInt())
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xCC0F081D.toInt()) else Color(0xE6FFFFFF.toInt())
+
+// ── Premium Midnight Purple Gradient ─────────────────────────
+val KbMidnightGradient: Brush
+    @Composable @ReadOnlyComposable get() = Brush.verticalGradient(
+        colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
+    )
+val KbPurpleGradient: Brush
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) KbMidnightGradient else Brush.verticalGradient(
+        colors = listOf(Color(0xFFFAF8F5), Color(0xFFF5F0EB))
+    )
+
+// ── Premium Lavender Accent ──────────────────────────────────
+val KbLavender: Color = Color(0xFFA78BFA)
+val KbPurpleAccent: Color = Color(0xFF7C3AED)
 
 // ── Glassmorphism Surfaces ────────────────────────────────────
 val KbGlassSurface: Color
@@ -234,9 +250,9 @@ val KbSaffronGlowStrong: Brush
 
 // ── Zebra Stripe Pattern (Stitch list clarity) ────────────────
 val KbZebraOdd: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF14110F) else Color(0xFFF5F0EB)
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF151030) else Color(0xFFF5F0EB)
 val KbZebraEven: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF1A1614) else Color.White
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF1C1440) else Color.White
 
 // ── Focus Glow (input borders, active states) ─────────────────
 val KbFocusGlow: Color
@@ -247,23 +263,23 @@ val KbFocusGlow: Color
 // ═══════════════════════════════════════════════════════════════
 
 val DarkBrown1: Color
-    get() = if (globalIsDark) Color(0xFF1E1E1E) else Color(0xFFFAF8F5)
+    get() = if (globalIsDark) Color(0xFF1A1230) else Color(0xFFFAF8F5)
 val DarkBrown2: Color
-    get() = if (globalIsDark) Color(0xFF252525) else Color(0xFFF5F0EB)
+    get() = if (globalIsDark) Color(0xFF231A3D) else Color(0xFFF5F0EB)
 val PrimaryGold: Color
     get() = if (globalIsDark) Color(0xFFFB923C) else KbBrandSaffron
 val LightGold: Color
     get() = if (globalIsDark) Color(0xFFFB923C) else KbBrandSaffronLight
 val TextGold: Color
-    get() = if (globalIsDark) KbBrandSaffronLight else KbBrandSaffronDark
+    get() = if (globalIsDark) KbLavender else KbBrandSaffronDark
 val TextLight: Color
     get() = if (globalIsDark) Color(0xFFF5F5F5) else Color(0xFF1F2937)
 val TextMuted: Color
-    get() = if (globalIsDark) Color(0xFFB3B3B3) else Color(0xFF6B7280)
+    get() = if (globalIsDark) Color(0xFFB8B0CC) else Color(0xFF6B7280)
 val CardBG: Color
-    get() = if (globalIsDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+    get() = if (globalIsDark) Color(0xFF1A1230) else Color(0xFFFFFFFF)
 val BorderGold: Color
-    get() = if (globalIsDark) KbBrandSaffronLight.copy(alpha = 0.2f) else KbBrandSaffron.copy(alpha = 0.3f)
+    get() = if (globalIsDark) Color(0xFF2E2545).copy(alpha = 0.7f) else Color(0xFFD1D5DB)
 val ParchmentBG: Color
     get() = if (globalIsDark) KbSaffron950 else KbSaffron100
 val BrownSelected: Color
@@ -275,7 +291,7 @@ val BrandPurpleDim: Color
 val Brown500: Color
     get() = if (globalIsDark) Color(0xFF333333) else Color(0xFFE5E7EB)
 val DarkBrownSheet: Color
-    get() = if (globalIsDark) Color(0xFF1E1E1E) else Color(0xFFFFF0E6)
+    get() = if (globalIsDark) Color(0xFF1A1230) else Color(0xFFFFF0E6)
 val RichEspresso: Color
     get() = if (globalIsDark) Color(0xFF121212) else Color(0xFFFAF8F5)
 val BottomNavBG: Color

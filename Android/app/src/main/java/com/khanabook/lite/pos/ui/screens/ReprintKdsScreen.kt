@@ -89,7 +89,7 @@ fun ReprintKdsScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.kbBgPrimary.copy(alpha = 0.6f))
+                    .background(Color.Transparent)
                     .padding(horizontal = spacing.medium, vertical = spacing.medium)
             ) {
                 Row(

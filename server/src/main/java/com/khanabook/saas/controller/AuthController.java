@@ -119,6 +119,15 @@ public class AuthController {
 		return ResponseEntity.ok().build();
 	}
 
+	@PostMapping("/change-password")
+	public ResponseEntity<Void> changePassword(
+			java.security.Principal principal,
+			@Valid @RequestBody ChangePasswordRequest request
+	) {
+		authService.changePassword(principal.getName(), request.getCurrentPassword(), request.getNewPassword());
+		return ResponseEntity.ok().build();
+	}
+
 	@PostMapping("/refresh")
 	public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request, HttpServletRequest httpReq) {
 		String ip = getClientIp(httpReq);
@@ -293,5 +302,17 @@ public class AuthController {
 		private String userEmail;
 		private String whatsappNumber;
 		private String role;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
+	public static class ChangePasswordRequest {
+		@NotBlank(message = "Current password is required")
+		private String currentPassword;
+
+		@NotBlank(message = "New password is required")
+		@Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")
+		private String newPassword;
 	}
 }

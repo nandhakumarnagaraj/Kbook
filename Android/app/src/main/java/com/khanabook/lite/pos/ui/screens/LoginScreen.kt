@@ -67,8 +67,10 @@ fun LoginScreen(
     var isGoogleLogin by remember { mutableStateOf(false) }
 
     val loginStatus by viewModel.loginStatus.collectAsState()
+    val isLoginUserChecking by viewModel.isLoginUserChecking.collectAsState()
+    val loginUserCheckError by viewModel.loginUserCheckError.collectAsState()
     val isLoading = loginStatus is AuthViewModel.LoginResult.Loading
-    val isLoginIdValid = ValidationUtils.isValidPhone(loginId) || ValidationUtils.isValidEmail(loginId)
+    val isLoginIdValid = ValidationUtils.isValidPhone(loginId)
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
 
@@ -112,6 +114,15 @@ fun LoginScreen(
     val iconSize = KhanaBookTheme.iconSize
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(loginId) {
+        val digits = loginId.filter { it.isDigit() }
+        if (digits.length == 10) {
+            viewModel.checkUserExistsForLogin(digits)
+        } else {
+            viewModel.clearLoginUserCheck()
+        }
+    }
 
     LaunchedEffect(loginStatus) {
         when (val s = loginStatus) {
@@ -235,11 +246,8 @@ fun LoginScreen(
                     TextField(
                         value = loginId,
                         onValueChange = {
-                            val updatedLoginId = it.trim()
-                            loginId = updatedLoginId
-                            if (ValidationUtils.isValidPhone(updatedLoginId)) {
-                                runCatching { passwordFocusRequester.requestFocus() }
-                            }
+                            val filtered = it.filter { ch -> ch.isDigit() }.take(10)
+                            loginId = filtered
                         },
                         placeholder = { Text("Enter phone number", color = Color(0xFF94A3B8)) },
                         leadingIcon = {
@@ -262,6 +270,27 @@ fun LoginScreen(
                                 )
                             }
                         },
+                        trailingIcon = {
+                            when {
+                                isLoginUserChecking -> CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color(0xFFF97316)
+                                )
+                                loginUserCheckError != null -> Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = null,
+                                    tint = Color(0xFFDC2626),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                loginId.length == 10 && !isLoginUserChecking -> Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF22C55E),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = TextFieldDefaults.colors(
@@ -280,10 +309,15 @@ fun LoginScreen(
                             cursorColor = Color(0xFFF97316)
                         ),
                         singleLine = true,
-                        isError = (loginId.isNotEmpty() && !ValidationUtils.isValidPhone(loginId)) || (loginId.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
+                        isError = (loginId.isNotEmpty() && !ValidationUtils.isValidPhone(loginId))
+                            || loginUserCheckError != null
+                            || (loginId.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
                         supportingText = {
-                            if (loginId.isNotEmpty() && !ValidationUtils.isValidPhone(loginId)) {
-                                Text("Enter a valid 10-digit phone number", color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                            when {
+                                loginUserCheckError != null ->
+                                    Text(loginUserCheckError!!, color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                                loginId.isNotEmpty() && !ValidationUtils.isValidPhone(loginId) ->
+                                    Text("Enter a valid 10-digit phone number", color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
                             }
                         },
                         keyboardOptions = KeyboardOptions(
@@ -346,9 +380,10 @@ fun LoginScreen(
                         ),
                         keyboardActions = KeyboardActions(
                             onDone = {
-                                val isLoadingStatus = loginStatus is AuthViewModel.LoginResult.Loading
-                                val isLoginEnabledAction = loginId.isNotBlank() && password.isNotBlank() && !isLoadingStatus
-                                if (isLoginEnabledAction) {
+                                val canLogin = isLoginIdValid && password.isNotBlank()
+                                    && loginUserCheckError == null && !isLoginUserChecking
+                                    && loginStatus !is AuthViewModel.LoginResult.Loading
+                                if (canLogin) {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     viewModel.login(loginId, password)
                                 }
@@ -382,7 +417,10 @@ fun LoginScreen(
                         )
                     }
 
-                    val isLoginEnabled = loginId.isNotBlank() && password.isNotBlank() && !isLoading
+                    // Form-filled state drives button color (same as signup page)
+                    val isFormFilled = isLoginIdValid && password.isNotBlank() && loginUserCheckError == null
+                    val isLoginEnabled = isFormFilled && !isLoading && !isLoginUserChecking
+
                     Button(
                         onClick = {
                             if (isLoginEnabled) {
@@ -394,11 +432,13 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(52.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isLoginEnabled) Color(0xFFEA580C) else Color(0xFFCBD5E1),
-                            contentColor = Color.White
+                            containerColor = if (isFormFilled) Color(0xFFF97316) else Color(0xFFCBD5E1),
+                            contentColor = Color.White,
+                            disabledContainerColor = Color(0xFFCBD5E1),
+                            disabledContentColor = Color.White.copy(alpha = 0.6f)
                         ),
-                        shape = RoundedCornerShape(12.dp),
-                        enabled = isLoginEnabled
+                        shape = RoundedCornerShape(16.dp),
+                        enabled = isFormFilled
                     ) {
                         if (isLoading && !isGoogleLogin) {
                             CircularProgressIndicator(

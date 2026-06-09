@@ -21,30 +21,30 @@ import androidx.core.view.WindowCompat
 import com.khanabook.lite.pos.BuildConfig
 
 // ═══════════════════════════════════════════════════════════════
-// DARK SCHEME — Premium Saffron 🟠 primary + dark neutral surfaces
-// #121212 bg, #1E1E1E cards, high-contrast text
+// DARK SCHEME — Premium Midnight Purple 🟣 + Saffron 🟠 primary
+// #0F081D bg, #1A1230 cards, lavender accents, high-contrast text
 // ═══════════════════════════════════════════════════════════════
 private val DarkColorScheme = darkColorScheme(
-    primary            = Color(0xFFFB923C),     // bright saffron primary
-    primaryContainer   = Color(0xFF3B2415),     // dark saffron container
-    onPrimary          = Color(0xFF1F1B18),
+    primary            = Color(0xFFF97316),     // saffron brand primary
+    primaryContainer   = Color(0xFF2D1B0E),     // dark saffron container
+    onPrimary          = Color.White,
     onPrimaryContainer = KbSaffron100,
-    secondary          = KbBrandSaffronDark,    // #D97706 deeper saffron
-    secondaryContainer = Color(0xFF2A1F0D),     // dark amber container
-    onSecondary        = KbSaffron100,
-    onSecondaryContainer = KbSaffron100,
+    secondary          = Color(0xFFA78BFA),     // lavender accent
+    secondaryContainer = Color(0xFF1E1240),     // dark purple container
+    onSecondary        = Color.White,
+    onSecondaryContainer = Color(0xFFE0D5FF),
     tertiary           = Color(0xFF60A5FA),     // soft blue accent
-    tertiaryContainer  = Color(0xFF1B3050),
-    onTertiary         = Color(0xFF0A1A30),
+    tertiaryContainer  = Color(0xFF0F1D35),
+    onTertiary         = Color.White,
     onTertiaryContainer = Color(0xFFD5E8FF),
-    background         = Color(0xFF121212),
-    surface            = Color(0xFF1E1E1E),
-    surfaceVariant     = Color(0xFF252525),
-    onBackground       = Color(0xFFF5F5F5),
+    background         = Color(0xFF0F081D),     // midnight purple base
+    surface            = Color(0xFF1A1230),     // purple-tinted card surface
+    surfaceVariant     = Color(0xFF231A3D),     // lighter purple variant
+    onBackground       = Color(0xFFF5F5F5),     // near-white primary text
     onSurface          = Color(0xFFF5F5F5),
-    onSurfaceVariant   = Color(0xFFB3B3B3),
-    outline            = Color(0x1AFFFFFF.toInt()),
-    outlineVariant     = Color(0x0DFFFFFF.toInt()),
+    onSurfaceVariant   = Color(0xFFB8B0CC),     // muted lavender secondary
+    outline            = Color(0xFF2E2545),      // subtle purple border
+    outlineVariant     = Color(0xFF1E1635),      // very subtle purple border
     error              = Color(0xFFF87171),
     onError            = Color(0xFF1A0000),
     errorContainer     = Color(0xFF93000A),

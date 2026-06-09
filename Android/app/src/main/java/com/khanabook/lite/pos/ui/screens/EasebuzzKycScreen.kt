@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -133,10 +134,15 @@ fun EasebuzzKycScreen(
         )
     }
 
+    // Midnight purple gradient background — matches Login/SignUp/Splash
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.kbBgGradient)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
+                )
+            )
     ) {
         Column(
             modifier = Modifier
@@ -154,13 +160,13 @@ fun EasebuzzKycScreen(
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = MaterialTheme.kbTextSecondary
+                        tint = Color.White.copy(alpha = 0.7f)
                     )
                 }
                 Text(
                     text = "KYC Verification",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.kbSecondary,
+                    color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -170,7 +176,7 @@ fun EasebuzzKycScreen(
             Text(
                 text = "Complete your KYC to start receiving payments",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.kbTextSecondary
+                color = Color(0xFFA78BFA)
             )
 
             Spacer(modifier = Modifier.height(spacing.mediumLarge))

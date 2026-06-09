@@ -15,3 +15,10 @@ data class PasswordResetOtpRequest(
     @SerializedName("phoneNumber")
     val phoneNumber: String
 )
+
+data class ChangePasswordRequest(
+    @SerializedName("currentPassword")
+    val currentPassword: String,
+    @SerializedName("newPassword")
+    val newPassword: String
+)

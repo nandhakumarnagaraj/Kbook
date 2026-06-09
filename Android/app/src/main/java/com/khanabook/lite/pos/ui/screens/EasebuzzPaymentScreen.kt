@@ -349,18 +349,22 @@ fun EasebuzzPaymentScreen(
         }
     }
 
-    // Main dark theme viewport with horizontal & vertical gradient
+    // Midnight purple gradient background — matches Login/SignUp/Splash
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.kbBgPrimary)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
+                )
+            )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(layout.contentPadding)
         ) {
-            // Header Bar
+            // Purple gradient header bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -389,7 +393,7 @@ fun EasebuzzPaymentScreen(
                     )
                     Text(
                         text = "ORDER #KB-$billId",
-                        color = MaterialTheme.kbTextSecondary,
+                        color = Color(0xFFA78BFA),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }

@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.designsystem
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -7,21 +9,27 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.kbSecondary
-import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 
 @Composable
 fun KhanaBookScreenScaffold(
@@ -31,39 +39,86 @@ fun KhanaBookScreenScaffold(
     titleStyleCompact: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineSmall,
     titleStyleExpanded: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineMedium,
     headerTrailing: @Composable (() -> Unit)? = null,
+    headerContent: @Composable (ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Row(
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F081D))
+    ) {
+        // Gradient Purple Header
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(spacing.medium),
-            verticalAlignment = Alignment.CenterVertically
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
+                    )
+                )
+                .padding(top = 16.dp, bottom = 12.dp)
         ) {
-            if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.kbTextSecondary)
-                }
-            } else {
-                Spacer(modifier = Modifier.width(spacing.huge))
-            }
-            Text(
-                text = title,
-                modifier = Modifier.weight(1f),
-                color = MaterialTheme.kbSecondary,
-                style = if (layout.isCompact) titleStyleCompact else titleStyleExpanded,
-                textAlign = TextAlign.Center
-            )
-            Box(
-                modifier = Modifier.width(spacing.huge),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.medium),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                headerTrailing?.invoke()
+                if (onBack != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color(0xFF2C2448), CircleShape)
+                            .clickable { onBack() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                } else {
+                    Spacer(modifier = Modifier.width(36.dp))
+                }
+
+                Text(
+                    text = title,
+                    modifier = Modifier.weight(1f),
+                    color = Color.White,
+                    style = (if (layout.isCompact) titleStyleCompact else titleStyleExpanded).copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    textAlign = TextAlign.Center
+                )
+
+                Box(
+                    modifier = Modifier.width(36.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    headerTrailing?.invoke()
+                }
+            }
+
+            if (headerContent != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                headerContent()
             }
         }
-        content()
+
+        // White/Surface Sheet Overlay (rounded top corners)
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                content()
+            }
+        }
     }
 }

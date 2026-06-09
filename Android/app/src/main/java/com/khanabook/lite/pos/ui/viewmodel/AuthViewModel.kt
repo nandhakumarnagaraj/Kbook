@@ -57,6 +57,11 @@ constructor(
     private val _resetPasswordFieldErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     val resetPasswordFieldErrors: StateFlow<Map<String, String>> = _resetPasswordFieldErrors
 
+    private val _changePasswordStatus = MutableStateFlow<ChangePasswordResult?>(null)
+    val changePasswordStatus: StateFlow<ChangePasswordResult?> = _changePasswordStatus
+    private val _changePasswordFieldErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+    val changePasswordFieldErrors: StateFlow<Map<String, String>> = _changePasswordFieldErrors
+
     private val _otpVerificationStatus = MutableStateFlow<OtpVerificationResult?>(null)
     val otpVerificationStatus: StateFlow<OtpVerificationResult?> = _otpVerificationStatus
     private val _otpFieldErrors = MutableStateFlow<Map<String, String>>(emptyMap())
@@ -68,9 +73,9 @@ constructor(
     private val _userExistsError = MutableStateFlow<String?>(null)
     val userExistsError: StateFlow<String?> = _userExistsError
 
+    // ── Signup: error when account ALREADY exists ─────────────────────────
     fun checkUserExists(phoneNumber: String) {
         if (!phoneNumber.matches(Regex("^\\d{10}$"))) return
-        
         viewModelScope.launch {
             _isUserChecking.value = true
             _userExistsError.value = null
@@ -80,7 +85,6 @@ constructor(
                     _userExistsError.value = "An account with this number already exists."
                 }
             } catch (e: Exception) {
-                // Silently fail or log, don't block user if check fails
                 Log.e(TAG, "User check failed", e)
             } finally {
                 _isUserChecking.value = false
@@ -91,6 +95,38 @@ constructor(
     fun clearUserCheck() {
         _userExistsError.value = null
         _isUserChecking.value = false
+    }
+
+    // ── Login: error when account does NOT exist ──────────────────────────
+    private val _isLoginUserChecking = MutableStateFlow(false)
+    val isLoginUserChecking: StateFlow<Boolean> = _isLoginUserChecking
+
+    private val _loginUserCheckError = MutableStateFlow<String?>(null)
+    val loginUserCheckError: StateFlow<String?> = _loginUserCheckError
+
+    /** Returns true if the account exists (login can proceed), false if not. */
+    fun checkUserExistsForLogin(phoneNumber: String) {
+        if (!phoneNumber.matches(Regex("^\\d{10}$"))) return
+        viewModelScope.launch {
+            _isLoginUserChecking.value = true
+            _loginUserCheckError.value = null
+            try {
+                val exists = userRepository.checkUserExistsRemotely(phoneNumber)
+                if (!exists) {
+                    _loginUserCheckError.value = "No account found with this number."
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Login user check failed", e)
+                // Silently fail — don't block login if check fails
+            } finally {
+                _isLoginUserChecking.value = false
+            }
+        }
+    }
+
+    fun clearLoginUserCheck() {
+        _loginUserCheckError.value = null
+        _isLoginUserChecking.value = false
     }
 
     fun login(loginId: String, password: String) {
@@ -348,6 +384,27 @@ constructor(
         _loginStatus.value = null
         _signUpStatus.value = null
         _resetPasswordStatus.value = null
+        _changePasswordStatus.value = null
+    }
+
+    fun changePassword(currentPassword: String, newPassword: String) {
+        viewModelScope.launch {
+            _changePasswordStatus.value = ChangePasswordResult.Loading
+            _changePasswordFieldErrors.value = emptyMap()
+            try {
+                userRepository.remoteChangePassword(currentPassword, newPassword)
+                _changePasswordStatus.value = ChangePasswordResult.Success
+            } catch (e: java.lang.Exception) {
+                val sanitized = UserMessageSanitizer.sanitizeWithDetails(e, "Failed to change password")
+                _changePasswordFieldErrors.value = sanitized.fieldErrors
+                _changePasswordStatus.value = ChangePasswordResult.Error(sanitized.message)
+            }
+        }
+    }
+
+    fun clearChangePasswordStatus() {
+        _changePasswordStatus.value = null
+        _changePasswordFieldErrors.value = emptyMap()
     }
 
 
@@ -432,6 +489,12 @@ constructor(
         
         object OtpSent : ResetPasswordResult()
         data class Error(val message: String) : ResetPasswordResult()
+    }
+
+    sealed class ChangePasswordResult {
+        object Loading : ChangePasswordResult()
+        object Success : ChangePasswordResult()
+        data class Error(val message: String) : ChangePasswordResult()
     }
 
     sealed class OtpVerificationResult {

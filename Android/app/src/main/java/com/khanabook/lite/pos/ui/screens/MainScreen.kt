@@ -145,7 +145,7 @@ fun AppBottomBar(
     val inactiveColor = MaterialTheme.kbTextDisabled
 
     NavigationBar(
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         modifier = Modifier.navigationBarsPadding(),
         tonalElevation = 0.dp
     ) {

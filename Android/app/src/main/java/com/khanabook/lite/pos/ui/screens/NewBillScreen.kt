@@ -49,6 +49,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.R
@@ -195,32 +197,70 @@ fun NewBillScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.kbBgPrimary,
+        containerColor = Color(0xFF0F081D),
         snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
         topBar = {
-            Column(modifier = Modifier.background(MaterialTheme.kbBgPrimary)) {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            "New Bill",
-                            color = MaterialTheme.kbTextPrimary,
-                            style = MaterialTheme.typography.titleLarge
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
                         )
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            enabled = !paymentFlowLocked,
-                            onClick = {
-                                if (paymentFlowLocked) return@IconButton
+                    )
+                    .padding(top = 16.dp, bottom = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium, vertical = spacing.small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color(0xFF2C2448), CircleShape)
+                            .clickable(enabled = !paymentFlowLocked) {
+                                if (paymentFlowLocked) return@clickable
                                 if (step == 1) onBack() else if (step == 2) step = 1 else if (step == 3) step = 2 else onBack()
-                            }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(Color.White, CircleShape)
+                                .padding(4.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.kbSecondary)
+                            Image(
+                                painter = painterResource(id = R.drawable.khanabook_logo),
+                                contentDescription = "Logo",
+                                modifier = Modifier.fillMaxSize()
+                            )
                         }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.kbBgPrimary)
-                )
-                
+                        Text(
+                            text = "New Bill",
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.width(36.dp))
+                }
+                Spacer(modifier = Modifier.height(12.dp))
                 BillStepper(currentStep = step)
             }
         }
@@ -357,9 +397,9 @@ fun CustomerInfoStep(
 
         if (recentCustomers.isNotEmpty()) {
             Text(
-                "Recent Customers",
+                "RECENT CUSTOMERS",
                 color = MaterialTheme.kbTertiary,
-                style = MaterialTheme.typography.labelMedium
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
             )
             Spacer(modifier = Modifier.height(spacing.extraSmall))
             Row(
@@ -377,19 +417,25 @@ fun CustomerInfoStep(
                             name = customerName
                         },
                         shape = RoundedCornerShape(20.dp),
-                        color = DarkBrown2,
-                        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.4f))
+                        color = Color(0xFFF5F3FF),
+                        border = BorderStroke(1.dp, Color(0xFFD8B4FE))
                     ) {
                         Column(modifier = Modifier.widthIn(max = 120.dp).padding(horizontal = spacing.medium, vertical = spacing.small)) {
                             Text(
                                 text = if (customerName.isNotBlank()) customerName else phone,
-                                color = MaterialTheme.kbTextPrimary,
+                                color = Color(0xFF1E1B4B),
                                 style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             if (customerName.isNotBlank()) {
-                                Text(phone, color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(
+                                    phone,
+                                    color = Color(0xFF5B21B6).copy(alpha = 0.8f),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
@@ -398,60 +444,81 @@ fun CustomerInfoStep(
             Spacer(modifier = Modifier.height(spacing.medium))
         }
 
-        KhanaBookInputField(
-            value = whatsapp,
-            onValueChange = {
-                val filtered = it.filter { ch -> ch.isDigit() }.take(10)
-                whatsapp = filtered
-                billingViewModel?.setCustomerInfo(name, filtered)
-            },
-            label = "Customer WhatsApp (optional)",
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Phone, null, tint = KbSuccess) },
-            isError = false,
-            keyboardOptions =
-                androidx.compose.foundation.text.KeyboardOptions(
-                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
+            Text(
+                "CUSTOMER WHATSAPP (OPTIONAL)",
+                color = MaterialTheme.kbTertiary,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+            )
+            KhanaBookInputField(
+                value = whatsapp,
+                onValueChange = {
+                    val filtered = it.filter { ch -> ch.isDigit() }.take(10)
+                    whatsapp = filtered
+                    billingViewModel?.setCustomerInfo(name, filtered)
+                },
+                placeholder = "Enter WhatsApp number",
+                label = "",
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = { Icon(Icons.Default.Phone, null, tint = KbSuccess) },
+                isError = false,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = KeyboardType.Phone
                 )
-        )
+            )
+        }
+
         TextButton(
             onClick = { onNext("", "") },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 "Skip — Walk-in Customer",
-                color = MaterialTheme.kbTextSecondary,
-                style = MaterialTheme.typography.bodyMedium
+                color = MaterialTheme.kbSecondary,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
             )
         }
-        Spacer(modifier = Modifier.height(spacing.medium))
-        KhanaBookInputField(
-            value = name,
-            onValueChange = {
-                name = it
-                billingViewModel?.setCustomerInfo(it, whatsapp)
-            },
-            label = "Customer Name (optional)",
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.kbSecondary) }
-        )
+
+        Spacer(modifier = Modifier.height(spacing.small))
+
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
+            Text(
+                "CUSTOMER NAME (OPTIONAL)",
+                color = MaterialTheme.kbTertiary,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+            )
+            KhanaBookInputField(
+                value = name,
+                onValueChange = {
+                    name = it
+                    billingViewModel?.setCustomerInfo(it, whatsapp)
+                },
+                placeholder = "Enter customer name",
+                label = "",
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.kbSecondary) }
+            )
+        }
 
         Spacer(modifier = Modifier.height(spacing.huge))
         Button(
             onClick = { if (isNextEnabled) onNext(name, whatsapp) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),                    colors =
-                            ButtonDefaults.buttonColors(
-                                    containerColor = if (isNextEnabled) MaterialTheme.kbPrimary else Color.Gray
-                            ),
-            shape = RoundedCornerShape(12.dp),
+                .height(48.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isNextEnabled) KbBrandSaffron else Color(0xFFCBD5E1),
+                contentColor = Color.White,
+                disabledContainerColor = Color(0xFFCBD5E1),
+                disabledContentColor = Color.White.copy(alpha = 0.6f)
+            ),
+            shape = RoundedCornerShape(10.dp),
             enabled = isNextEnabled
         ) {
             Text(
-                    "Continue",
-                    color = if (isNextEnabled) DarkBrown1 else Color.LightGray,
-                    style = MaterialTheme.typography.titleMedium
+                "Continue",
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
         }
     }
@@ -517,13 +584,13 @@ fun MenuSelectionStep(
         // Main Menu Area
         Column(modifier = Modifier.weight(if (isWideScreen) 0.65f else 1f).fillMaxHeight()) {
             // ── Header with title and table/guest info ────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(horizontal = spacing.medium, vertical = spacing.small),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.kbBgPrimary)
+                        .padding(horizontal = spacing.medium, vertical = spacing.small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
@@ -537,22 +604,6 @@ fun MenuSelectionStep(
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.kbBgCard,
-                    border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = spacing.small, vertical = spacing.extraSmall),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "Tbl 1 · 4 Guests",
-                            color = MaterialTheme.kbTextPrimary,
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    }
-                }
             }
 
             // ── Offline sync banner ───────────────────────────────────────────
@@ -873,16 +924,16 @@ fun MenuSelectionStep(
                             Spacer(modifier = Modifier.height(spacing.small))
                         }
 
-                        // Total row
+                        // Items count + total row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "Total",
-                                color = MaterialTheme.kbTextPrimary,
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                "${derivedItemCount} items",
+                                color = MaterialTheme.kbTextSecondary,
+                                style = MaterialTheme.typography.bodyMedium
                             )
                             Text(
                                 CurrencyUtils.formatPrice(total),
@@ -904,7 +955,7 @@ fun MenuSelectionStep(
                             enabled = derivedItemCount > 0
                         ) {
                             Text(
-                                "Place Order",
+                                if (derivedItemCount > 0) "Place Order — ${CurrencyUtils.formatPrice(total)}" else "Place Order",
                                 color = Color.White,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
@@ -1992,9 +2043,11 @@ fun StepItem(
     showEndConnector: Boolean = false,
     endConnectorCompleted: Boolean = false
 ) {
-    val color = if (isActive) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
-    val containerColor = if (isActive) KbBrandSaffron.copy(alpha = 0.15f) else Color.Transparent
-    val borderColor = if (isActive) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
+    val activeColor = Color.White
+    val inactiveColor = Color(0xFF7C6B9F)
+    val color = if (isActive) activeColor else inactiveColor
+    val containerColor = if (isActive) KbBrandSaffron else Color(0xFF2C2448)
+    val borderColor = if (isActive) KbBrandSaffron else Color(0xFF453A68)
 
     // Spring-animated scale so step dots pop in when activated
     val scale by animateFloatAsState(
@@ -2015,12 +2068,9 @@ fun StepItem(
                     modifier = Modifier
                         .align(Alignment.CenterStart)
                         .fillMaxWidth(0.5f)
-                        .height(1.5.dp)
+                        .height(2.dp)
                         .background(
-                            if (startConnectorCompleted)
-                                Brush.horizontalGradient(listOf(Color.Gray.copy(alpha = 0.3f), KbBrandSaffron))
-                            else
-                                Brush.horizontalGradient(listOf(Color.Gray.copy(alpha = 0.2f), Color.Gray.copy(alpha = 0.2f)))
+                            if (startConnectorCompleted) KbBrandSaffron else Color(0xFF2C2448)
                         )
                 )
             }
@@ -2029,12 +2079,9 @@ fun StepItem(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .fillMaxWidth(0.5f)
-                        .height(1.5.dp)
+                        .height(2.dp)
                         .background(
-                            if (endConnectorCompleted)
-                                Brush.horizontalGradient(listOf(KbBrandSaffron, Color.Gray.copy(alpha = 0.3f)))
-                            else
-                                Brush.horizontalGradient(listOf(Color.Gray.copy(alpha = 0.2f), Color.Gray.copy(alpha = 0.2f)))
+                            if (endConnectorCompleted) KbBrandSaffron else Color(0xFF2C2448)
                         )
                 )
             }
@@ -2049,7 +2096,7 @@ fun StepItem(
                 Icon(
                     icon,
                     contentDescription = null,
-                    tint = color,
+                    tint = if (isActive) Color.White else inactiveColor,
                     modifier = Modifier.size(18.dp)
                 )
                 if (isCompleted) {
@@ -2057,7 +2104,8 @@ fun StepItem(
                         modifier = Modifier
                             .size(14.dp)
                             .align(Alignment.BottomEnd)
-                            .background(KbBrandSaffron, CircleShape),
+                            .background(KbBrandSaffron, CircleShape)
+                            .border(1.dp, Color.White, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(10.dp))
@@ -2065,11 +2113,12 @@ fun StepItem(
                 }
             }
         }
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             label,
             color = color,
             style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 9.sp,
+                fontSize = 11.sp,
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
             )
         )

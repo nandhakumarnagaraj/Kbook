@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -20,26 +19,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
-import com.airbnb.lottie.compose.animateLottieCompositionAsState
-import com.airbnb.lottie.compose.rememberLottieComposition
-import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.InitialSyncState
 import com.khanabook.lite.pos.ui.viewmodel.InitialSyncViewModel
 
 private enum class SyncStepState { COMPLETED, IN_PROGRESS, PENDING }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InitialSyncScreen(
     onSyncCompleteNavigateToMain: () -> Unit,
@@ -68,71 +62,27 @@ fun InitialSyncScreen(
         label = "rotation"
     )
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Storefront,
-                            contentDescription = "KhanaBook",
-                            modifier = Modifier.size(24.dp),
-                            tint = KbBrandSaffron
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "KhanaBook",
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.kbTextPrimary,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                },
-                actions = {
-                    if (syncState is InitialSyncState.Syncing || syncState is InitialSyncState.Idle) {
-                        Icon(
-                            imageVector = Icons.Default.Sync,
-                            contentDescription = "Syncing",
-                            modifier = Modifier
-                                .size(22.dp)
-                                .rotate(syncRotation),
-                            tint = KbBrandSaffron
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = MaterialTheme.kbTextPrimary
+    // Midnight purple gradient background — matches Login/SignUp/Splash
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
                 )
             )
-        },
-        containerColor = Color.White
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when (val state = syncState) {
-                is InitialSyncState.Syncing, InitialSyncState.Idle -> {
-                    SyncContent(syncRotation, spacing)
-                }
-                is InitialSyncState.SessionExpired -> {
-                    SessionExpiredContent(onNavigateToLogin, spacing)
-                }
-                is InitialSyncState.Error -> {
-                    ErrorContent(state.message, { viewModel.startInitialSync() }, spacing)
-                }
-                is InitialSyncState.Success -> {
-                    SuccessContent(spacing)
-                }
-            }
+    ) {
+        when (val state = syncState) {
+            is InitialSyncState.Syncing, InitialSyncState.Idle -> SyncContentPurple(syncRotation, spacing)
+            is InitialSyncState.SessionExpired -> SessionExpiredContentPurple(onNavigateToLogin, spacing)
+            is InitialSyncState.Error -> ErrorContentPurple(state.message, { viewModel.startInitialSync() }, spacing)
+            is InitialSyncState.Success -> SuccessContentPurple(spacing)
         }
     }
 }
 
 @Composable
-private fun SyncContent(syncRotation: Float, spacing: Spacing) {
+private fun SyncContentPurple(syncRotation: Float, spacing: Spacing) {
     val progress by animateFloatAsState(
         targetValue = 0.75f,
         animationSpec = tween(1500, easing = LinearEasing),
@@ -147,18 +97,19 @@ private fun SyncContent(syncRotation: Float, spacing: Spacing) {
     ) {
         Spacer(modifier = Modifier.height(spacing.huge))
 
+        // Circular progress arc — saffron on dark
         Box(contentAlignment = Alignment.Center) {
             Canvas(modifier = Modifier.size(180.dp)) {
                 val strokeWidth = 10.dp.toPx()
                 drawArc(
-                    color = KbGray200,
+                    color = Color(0xFF2A2040),
                     startAngle = -90f,
                     sweepAngle = 360f,
                     useCenter = false,
                     style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                 )
                 drawArc(
-                    color = KbBrandSaffron,
+                    color = Color(0xFFF97316),
                     startAngle = -90f,
                     sweepAngle = 360f * progress,
                     useCenter = false,
@@ -169,7 +120,7 @@ private fun SyncContent(syncRotation: Float, spacing: Spacing) {
                 "${(progress * 100).toInt()}%",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = KbBrandSaffron
+                    color = Color(0xFFF97316)
                 )
             )
         }
@@ -181,33 +132,33 @@ private fun SyncContent(syncRotation: Float, spacing: Spacing) {
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.SemiBold
             ),
-            color = MaterialTheme.kbTextPrimary,
+            color = Color.White,
             textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(spacing.extraLarge))
 
-        SyncStepItem("Downloading menu", SyncStepState.COMPLETED, syncRotation)
+        SyncStepItemPurple("Downloading menu", SyncStepState.COMPLETED, syncRotation)
         Spacer(modifier = Modifier.height(spacing.medium))
-        SyncStepItem("Downloading orders", SyncStepState.COMPLETED, syncRotation)
+        SyncStepItemPurple("Downloading orders", SyncStepState.COMPLETED, syncRotation)
         Spacer(modifier = Modifier.height(spacing.medium))
-        SyncStepItem("Configuring payments", SyncStepState.IN_PROGRESS, syncRotation)
+        SyncStepItemPurple("Configuring payments", SyncStepState.IN_PROGRESS, syncRotation)
         Spacer(modifier = Modifier.height(spacing.medium))
-        SyncStepItem("Ready to serve", SyncStepState.PENDING, syncRotation)
+        SyncStepItemPurple("Ready to serve", SyncStepState.PENDING, syncRotation)
 
         Spacer(modifier = Modifier.weight(1f))
 
         Text(
             "Syncing payment configuration...",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.kbTextTertiary,
+            color = Color(0xFFA78BFA).copy(alpha = 0.7f),
             modifier = Modifier.padding(bottom = spacing.extraLarge)
         )
     }
 }
 
 @Composable
-private fun SyncStepItem(text: String, state: SyncStepState, syncRotation: Float) {
+private fun SyncStepItemPurple(text: String, state: SyncStepState, syncRotation: Float) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         when (state) {
             SyncStepState.COMPLETED -> {
@@ -215,7 +166,7 @@ private fun SyncStepItem(text: String, state: SyncStepState, syncRotation: Float
                     modifier = Modifier
                         .size(24.dp)
                         .clip(CircleShape)
-                        .background(KbSuccess),
+                        .background(Color(0xFF22C55E)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -233,14 +184,14 @@ private fun SyncStepItem(text: String, state: SyncStepState, syncRotation: Float
                     modifier = Modifier
                         .size(24.dp)
                         .rotate(syncRotation),
-                    tint = KbBrandSaffron
+                    tint = Color(0xFFF97316)
                 )
             }
             SyncStepState.PENDING -> {
                 Box(
                     modifier = Modifier
                         .size(24.dp)
-                        .border(2.dp, KbGray300, CircleShape)
+                        .border(2.dp, Color(0xFF4A4458), CircleShape)
                 )
             }
         }
@@ -249,16 +200,16 @@ private fun SyncStepItem(text: String, state: SyncStepState, syncRotation: Float
             text,
             style = MaterialTheme.typography.bodyLarge,
             color = when (state) {
-                SyncStepState.COMPLETED -> MaterialTheme.kbTextPrimary
-                SyncStepState.IN_PROGRESS -> KbBrandSaffron
-                SyncStepState.PENDING -> MaterialTheme.kbTextTertiary
+                SyncStepState.COMPLETED -> Color.White
+                SyncStepState.IN_PROGRESS -> Color(0xFFF97316)
+                SyncStepState.PENDING -> Color(0xFFA78BFA).copy(alpha = 0.6f)
             }
         )
     }
 }
 
 @Composable
-private fun SessionExpiredContent(onNavigateToLogin: () -> Unit, spacing: Spacing) {
+private fun SessionExpiredContentPurple(onNavigateToLogin: () -> Unit, spacing: Spacing) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -269,21 +220,21 @@ private fun SessionExpiredContent(onNavigateToLogin: () -> Unit, spacing: Spacin
         Icon(
             imageVector = Icons.Default.Warning,
             contentDescription = "Session Expired",
-            tint = KbError,
+            tint = Color(0xFFDC2626),
             modifier = Modifier.size(64.dp)
         )
         Spacer(modifier = Modifier.height(spacing.large))
         Text(
             "Session expired. Please login again.",
-            color = KbError,
+            color = Color(0xFFDC2626),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(spacing.extraLarge))
         Button(
             onClick = { onNavigateToLogin() },
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
-            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
+            shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
             Text(
@@ -296,7 +247,7 @@ private fun SessionExpiredContent(onNavigateToLogin: () -> Unit, spacing: Spacin
 }
 
 @Composable
-private fun ErrorContent(message: String, onRetry: () -> Unit, spacing: Spacing) {
+private fun ErrorContentPurple(message: String, onRetry: () -> Unit, spacing: Spacing) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -307,21 +258,21 @@ private fun ErrorContent(message: String, onRetry: () -> Unit, spacing: Spacing)
         Icon(
             imageVector = Icons.Default.Warning,
             contentDescription = "Sync Error",
-            tint = KbError,
+            tint = Color(0xFFDC2626),
             modifier = Modifier.size(64.dp)
         )
         Spacer(modifier = Modifier.height(spacing.large))
         Text(
             message,
-            color = KbError,
+            color = Color(0xFFDC2626),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(spacing.extraLarge))
         Button(
             onClick = { onRetry() },
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
-            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
+            shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
             Text(
@@ -334,7 +285,7 @@ private fun ErrorContent(message: String, onRetry: () -> Unit, spacing: Spacing)
 }
 
 @Composable
-private fun SuccessContent(spacing: Spacing) {
+private fun SuccessContentPurple(spacing: Spacing) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -342,26 +293,35 @@ private fun SuccessContent(spacing: Spacing) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        val composition by rememberLottieComposition(
-            LottieCompositionSpec.RawRes(R.raw.anim_success)
-        )
-        val lottieProgress by animateLottieCompositionAsState(
-            composition = composition,
-            iterations = 1
-        )
-
-        LottieAnimation(
-            composition = composition,
-            progress = { lottieProgress },
-            modifier = Modifier.size(100.dp)
-        )
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF22C55E).copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = "Success",
+                tint = Color(0xFF22C55E),
+                modifier = Modifier.size(56.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(spacing.medium))
 
         Text(
             "Setup Complete!",
-            color = KbSuccess,
+            color = Color(0xFF22C55E),
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+        )
+
+        Spacer(modifier = Modifier.height(spacing.small))
+
+        Text(
+            "Your restaurant is ready to serve",
+            color = Color(0xFFA78BFA),
+            style = MaterialTheme.typography.bodyMedium
         )
     }
 }

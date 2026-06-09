@@ -709,7 +709,7 @@ fun HomeActionCard(
     badgeCount: Int = 0
 ) {
     val spacing = KhanaBookTheme.spacing
-    val cardBg = Color.White
+    val cardBg = CardBG
     val cardBorderColor = MaterialTheme.kbOutlineSubtle
     val accentColor = KbSuccess
 
@@ -797,7 +797,7 @@ fun HomeActionGridCard(
     badgeCount: Int = 0
 ) {
     val spacing = KhanaBookTheme.spacing
-    val cardBg = Color.White
+    val cardBg = CardBG
     val cardBorderColor = MaterialTheme.kbOutlineSubtle
     val accentColor = KbSuccess
     val textColor = if (isPrimary) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary

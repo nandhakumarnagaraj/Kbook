@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.data.remote.api
 
 import com.khanabook.lite.pos.data.remote.ResetPasswordRequest
 import com.khanabook.lite.pos.data.remote.PasswordResetOtpRequest
+import com.khanabook.lite.pos.data.remote.ChangePasswordRequest
 import com.khanabook.lite.pos.data.remote.dto.*
 import okhttp3.MultipartBody
 import retrofit2.http.Body
@@ -38,6 +39,9 @@ interface KhanaBookApi {
 
         @POST("api/v2/auth/reset-password/request")
         suspend fun requestPasswordResetOtp(@Body request: PasswordResetOtpRequest)
+
+        @POST("api/v2/auth/change-password")
+        suspend fun changePassword(@Body request: ChangePasswordRequest)
 
         @GET("api/v2/auth/check-user")
         suspend fun checkUser(@Query("phoneNumber") phoneNumber: String): Boolean

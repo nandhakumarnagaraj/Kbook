@@ -94,7 +94,7 @@ fun CallCustomerScreen(
                         },
                         colors =
                                 TopAppBarDefaults.centerAlignedTopAppBarColors(
-                                        containerColor = MaterialTheme.kbBgCard
+                                        containerColor = Color.Transparent
                                 )
                 )
             }

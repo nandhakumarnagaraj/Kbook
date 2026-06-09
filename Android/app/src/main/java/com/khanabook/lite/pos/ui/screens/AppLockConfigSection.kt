@@ -87,6 +87,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.BuildConfig
@@ -114,26 +115,29 @@ fun SettingsListView(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
     ) {
-        SettingsGroupLabel("Security")
+        SettingsGroupLabel("SECURITY")
         Spacer(modifier = Modifier.height(spacing.extraSmall))
         SettingsItem(
             icon = Icons.Outlined.Lock,
             text = "App Lock",
+            subtitle = "PIN & biometric protection",
             onClick = { onSelectItem("app_lock") }
         )
         Spacer(modifier = Modifier.height(spacing.extraSmall))
         SettingsItem(
             icon = Icons.Outlined.Password,
             text = "Change Password",
+            subtitle = "Update your login password",
             onClick = { onSelectItem("change_password") }
         )
 
         Spacer(modifier = Modifier.height(spacing.medium))
-        SettingsGroupLabel("Appearance")
+        SettingsGroupLabel("APPEARANCE")
         Spacer(modifier = Modifier.height(spacing.extraSmall))
         SettingsItem(
             icon = Icons.Outlined.TextIncrease,
             text = "Display",
+            subtitle = "Font size & layout density",
             onClick = { onSelectItem("ui_scale") }
         )
         Spacer(modifier = Modifier.height(spacing.extraSmall))
@@ -141,6 +145,7 @@ fun SettingsListView(
         SettingsToggleItem(
             icon = Icons.Outlined.DarkMode,
             text = "Dark Mode",
+            subtitle = "Switch to dark interface",
             checked = globalIsDark,
             onCheckedChange = { isDark ->
                 globalIsDark = isDark
@@ -154,17 +159,19 @@ fun SettingsListView(
         )
 
         Spacer(modifier = Modifier.height(spacing.medium))
-        SettingsGroupLabel("About")
+        SettingsGroupLabel("ABOUT")
         Spacer(modifier = Modifier.height(spacing.extraSmall))
         SettingsItem(
             icon = Icons.AutoMirrored.Outlined.HelpOutline,
             text = "Help & Support",
+            subtitle = "FAQs & contact support",
             onClick = { onSelectItem("help_support") }
         )
         Spacer(modifier = Modifier.height(spacing.extraSmall))
         SettingsItem(
             icon = Icons.Outlined.Info,
             text = "About App",
+            subtitle = "Version ${BuildConfig.VERSION_NAME} · Licenses",
             onClick = { onSelectItem("about_app") }
         )
     }
@@ -174,10 +181,11 @@ fun SettingsListView(
 private fun SettingsGroupLabel(text: String) {
     val spacing = KhanaBookTheme.spacing
     Text(
-        text = text.uppercase(),
-        color = MaterialTheme.kbSecondary.copy(alpha = 0.7f),
+        text = text,
+        color = MaterialTheme.kbSecondary,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.Bold,
+        letterSpacing = 1.sp,
         modifier = Modifier.padding(horizontal = spacing.small, vertical = spacing.extraSmall)
     )
 }
@@ -367,40 +375,42 @@ fun ChangePasswordView(
 ) {
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
-    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
-    val initialPhone = currentUser?.phoneNumber ?: currentUser?.whatsappNumber ?: ""
-    val resetStatus by authViewModel.resetPasswordStatus.collectAsStateWithLifecycle()
+    val changeStatus by authViewModel.changePasswordStatus.collectAsStateWithLifecycle()
+    val fieldErrors by authViewModel.changePasswordFieldErrors.collectAsStateWithLifecycle()
 
-    var step by remember { mutableStateOf(1) }
-    var phone by remember { mutableStateOf(initialPhone) }
-    var otp by remember { mutableStateOf("") }
+    var currentPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var showPassword by remember { mutableStateOf(false) }
-    var localError by remember { mutableStateOf<String?>(null) }
 
-    val isLoading = resetStatus is AuthViewModel.ResetPasswordResult.Loading
+    var showCurrentPassword by remember { mutableStateOf(false) }
+    var showNewPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
+
+    var localError by remember { mutableStateOf<String?>(null) }
+    val isLoading = changeStatus is AuthViewModel.ChangePasswordResult.Loading
 
     LaunchedEffect(Unit) {
-        authViewModel.clearResetStatus()
+        authViewModel.clearChangePasswordStatus()
     }
 
-    LaunchedEffect(resetStatus) {
-        when (resetStatus) {
-            is AuthViewModel.ResetPasswordResult.OtpSent -> {
-                step = 2
-                localError = null
-            }
-            is AuthViewModel.ResetPasswordResult.Success -> {
-                authViewModel.clearResetStatus()
+    LaunchedEffect(changeStatus) {
+        when (changeStatus) {
+            is AuthViewModel.ChangePasswordResult.Success -> {
+                authViewModel.clearChangePasswordStatus()
                 onBack()
             }
-            is AuthViewModel.ResetPasswordResult.Error -> {
-                localError = (resetStatus as AuthViewModel.ResetPasswordResult.Error).message
+            is AuthViewModel.ChangePasswordResult.Error -> {
+                localError = (changeStatus as AuthViewModel.ChangePasswordResult.Error).message
             }
             else -> {}
         }
     }
+
+    // Validation checks
+    val isMinLengthMet = newPassword.length >= 6
+    val hasDigit = newPassword.any { it.isDigit() }
+    val doPasswordsMatch = newPassword.isNotEmpty() && newPassword == confirmPassword
+    val isFormValid = currentPassword.isNotBlank() && isMinLengthMet && hasDigit && doPasswordsMatch
 
     Column(
         modifier = Modifier
@@ -413,177 +423,218 @@ fun ChangePasswordView(
                 .padding(horizontal = spacing.medium, vertical = spacing.medium),
             verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
-            CpStepIndicator(currentStep = step, totalSteps = 3)
-
-            Text(
-                text = when (step) {
-                    1 -> "Verify your phone"
-                    2 -> "Enter the OTP"
-                    else -> "Set a new password"
-                },
-                color = MaterialTheme.kbTextPrimary,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            if (step >= 2) {
-                CpVerifiedBadge(icon = Icons.Outlined.Phone, label = phone, note = "Verified")
-            }
-            if (step >= 3) {
-                CpVerifiedBadge(icon = Icons.Outlined.Lock, label = "OTP Verified", note = "Confirmed")
-            }
-
-            if (step == 1) {
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it },
-                    label = { Text("Registered Phone Number", color = MaterialTheme.kbTextSecondary) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Outlined.Phone, null, tint = MaterialTheme.kbSecondary.copy(alpha = 0.7f)) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.kbPrimary,
-                        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-                        focusedTextColor = MaterialTheme.kbTextPrimary,
-                        unfocusedTextColor = MaterialTheme.kbTextPrimary
-                    ),
-                    modifier = Modifier.fillMaxWidth()
+            
+            // Current Password Section
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "CURRENT PASSWORD",
+                    color = MaterialTheme.kbTertiary,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                 )
-            }
-
-            if (step == 2) {
                 OutlinedTextField(
-                    value = otp,
-                    onValueChange = { if (it.length <= 6) otp = it },
-                    label = { Text("Enter OTP", color = MaterialTheme.kbTextSecondary) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.kbPrimary,
-                        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-                        focusedTextColor = MaterialTheme.kbTextPrimary,
-                        unfocusedTextColor = MaterialTheme.kbTextPrimary
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                TextButton(
-                    onClick = {
-                        localError = null
-                        authViewModel.sendOtp(phone.trim(), "reset")
-                    },
-                    enabled = !isLoading
-                ) {
-                    Text("Resend OTP", color = MaterialTheme.kbTertiary.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall)
-                }
-            }
-
-            if (step == 3) {
-                OutlinedTextField(
-                    value = newPassword,
-                    onValueChange = { newPassword = it },
-                    label = { Text("New Password", color = MaterialTheme.kbTextSecondary) },
-                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    value = currentPassword,
+                    onValueChange = { currentPassword = it },
+                    placeholder = { Text("Enter current password", color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f)) },
+                    visualTransformation = if (showCurrentPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        IconButton(onClick = { showPassword = !showPassword }) {
+                        IconButton(onClick = { showCurrentPassword = !showCurrentPassword }) {
                             Icon(
-                                if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,                                null, tint = MaterialTheme.kbSecondary.copy(alpha = 0.7f)
+                                imageVector = if (showCurrentPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                contentDescription = null,
+                                tint = MaterialTheme.kbSecondary.copy(alpha = 0.7f)
                             )
                         }
                     },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.kbPrimary,
-                            unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-                            focusedTextColor = MaterialTheme.kbTextPrimary,
-                            unfocusedTextColor = MaterialTheme.kbTextPrimary
+                        focusedBorderColor = MaterialTheme.kbPrimary,
+                        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
+                        focusedTextColor = MaterialTheme.kbTextPrimary,
+                        unfocusedTextColor = MaterialTheme.kbTextPrimary,
+                        focusedContainerColor = MaterialTheme.kbBgCard,
+                        unfocusedContainerColor = MaterialTheme.kbBgCard
                     ),
+                    isError = fieldErrors.containsKey("currentPassword"),
+                    supportingText = fieldErrors["currentPassword"]?.let {
+                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
+
+            // New Password Section
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "NEW PASSWORD",
+                    color = MaterialTheme.kbTertiary,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                )
                 OutlinedTextField(
-                    value = confirmPassword,
-                    onValueChange = { confirmPassword = it },
-                    label = { Text("Confirm New Password", color = MaterialTheme.kbTextSecondary) },
-                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    value = newPassword,
+                    onValueChange = { newPassword = it },
+                    placeholder = { Text("Enter new password", color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f)) },
+                    visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showNewPassword = !showNewPassword }) {
+                            Icon(
+                                imageVector = if (showNewPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                contentDescription = null,
+                                tint = MaterialTheme.kbSecondary.copy(alpha = 0.7f)
+                            )
+                        }
+                    },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.kbPrimary,
                         unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
                         focusedTextColor = MaterialTheme.kbTextPrimary,
-                        unfocusedTextColor = MaterialTheme.kbTextPrimary
+                        unfocusedTextColor = MaterialTheme.kbTextPrimary,
+                        focusedContainerColor = MaterialTheme.kbBgCard,
+                        unfocusedContainerColor = MaterialTheme.kbBgCard
+                    ),
+                    isError = fieldErrors.containsKey("newPassword"),
+                    supportingText = fieldErrors["newPassword"]?.let {
+                        { Text(it, color = MaterialTheme.colorScheme.error) }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // Confirm Password Section
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "CONFIRM NEW PASSWORD",
+                    color = MaterialTheme.kbTertiary,
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                )
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    placeholder = { Text("Confirm new password", color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f)) },
+                    visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
+                            Icon(
+                                imageVector = if (showConfirmPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                contentDescription = null,
+                                tint = MaterialTheme.kbSecondary.copy(alpha = 0.7f)
+                            )
+                        }
+                    },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.kbPrimary,
+                        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
+                        focusedTextColor = MaterialTheme.kbTextPrimary,
+                        unfocusedTextColor = MaterialTheme.kbTextPrimary,
+                        focusedContainerColor = MaterialTheme.kbBgCard,
+                        unfocusedContainerColor = MaterialTheme.kbBgCard
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
 
+            // Password Requirements Card
+            KhanaBookCard(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "PASSWORD REQUIREMENTS",
+                        color = MaterialTheme.kbTextPrimary,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                    
+                    RequirementRow(
+                        checked = isMinLengthMet,
+                        text = "At least 6 characters long"
+                    )
+                    RequirementRow(
+                        checked = hasDigit,
+                        text = "Contains at least one number"
+                    )
+                    RequirementRow(
+                        checked = doPasswordsMatch,
+                        text = "Passwords match"
+                    )
+                }
+            }
+
             localError?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
             }
         }
 
-        Row(
+        // Action Button Row at Bottom
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
-            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                .padding(spacing.medium)
         ) {
-            if (step > 1) {
-                OutlinedButton(
-                    onClick = {
-                        localError = null
-                        if (step == 3) { newPassword = ""; confirmPassword = "" }
-                        if (step == 2) { otp = "" }
-                        step -= 1
-                    },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(28.dp),
-                    enabled = !isLoading
-                ) {
-                    Text("Back", color = MaterialTheme.kbTextSecondary)
-                }
-            }
             Button(
                 onClick = {
-                    localError = null
-                    when (step) {
-                        1 -> {
-                            val trimmed = phone.trim()
-                            if (trimmed.length < 10) {
-                                localError = "Please enter a valid phone number."
-                            } else {
-                                authViewModel.sendOtp(trimmed, "reset")
-                            }
-                        }
-                        2 -> {
-                            if (otp.length < 4) {
-                                localError = "Please enter the OTP sent to your phone."
-                            } else {
-                                step = 3
-                            }
-                        }
-                        3 -> when {
-                            newPassword.length < 6 -> localError = "Password must be at least 6 characters."
-                            newPassword != confirmPassword -> localError = "Passwords do not match."
-                            else -> authViewModel.resetPassword(phone.trim(), otp, newPassword)
-                        }
+                    if (isFormValid) {
+                        localError = null
+                        authViewModel.changePassword(currentPassword.trim(), newPassword.trim())
                     }
                 },
-                modifier = Modifier.weight(2f).height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary, contentColor = Color.White),
-                shape = RoundedCornerShape(28.dp),
-                enabled = !isLoading
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isFormValid) Color(0xFF7C3AED) else Color(0xFFCBD5E1),
+                    contentColor = Color.White,
+                    disabledContainerColor = Color(0xFFCBD5E1),
+                    disabledContentColor = Color.White.copy(alpha = 0.6f)
+                ),
+                shape = RoundedCornerShape(16.dp),
+                enabled = isFormValid && !isLoading
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(iconSize.small), strokeWidth = 2.dp, color = Color.White)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(iconSize.small),
+                        strokeWidth = 2.dp,
+                        color = Color.White
+                    )
                 } else {
                     Text(
-                        when (step) { 1 -> "Send OTP"; 2 -> "Next"; else -> "Set Password" },
-                        fontWeight = FontWeight.Bold
+                        text = "Update Password",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RequirementRow(checked: Boolean, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.CheckCircle,
+            contentDescription = null,
+            tint = if (checked) Color(0xFF22C55E) else Color(0xFFCBD5E1),
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = text,
+            color = if (checked) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary.copy(alpha = 0.8f),
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
 
@@ -635,198 +686,3 @@ private fun CpVerifiedBadge(icon: ImageVector, label: String, note: String) {
     }
 }
 
-@Composable
-fun HelpSupportView() {
-    val context = LocalContext.current
-    val spacing = KhanaBookTheme.spacing
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = spacing.medium, vertical = spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = spacing.smallMedium),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .background(MaterialTheme.kbSecondary.copy(alpha = 0.12f), CircleShape)
-                    .border(2.dp, MaterialTheme.kbSecondary.copy(alpha = 0.3f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.Chat,
-                    contentDescription = null,
-                    tint = MaterialTheme.kbSecondary,
-                    modifier = Modifier.size(40.dp)
-                )
-            }
-        }
-
-        Text(            "We're here to help you succeed",
-                    color = MaterialTheme.kbSecondary,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Text(
-            "Need help with KhanaBook POS? Reach out to our support team — we respond quickly.",
-            color = MaterialTheme.kbTextPrimary.copy(alpha = 0.85f),
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(spacing.small))
-
-        Button(
-            onClick = {
-                val url = "https://wa.me/$SUPPORT_WHATSAPP?text=Hi%2C%20I%20need%20help%20with%20KhanaBook%20POS"
-                try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                } catch (_: Exception) {}
-            },
-            modifier = Modifier.fillMaxWidth().height(72.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = KbWhatsAppGreen, contentColor = Color.White),
-            shape = RoundedCornerShape(14.dp),
-            contentPadding = PaddingValues(horizontal = spacing.medium)
-        ) {
-            Icon(Icons.AutoMirrored.Outlined.Chat, null, modifier = Modifier.size(28.dp))
-            Spacer(modifier = Modifier.width(spacing.medium))
-            Column(horizontalAlignment = Alignment.Start) {
-                Text("Chat on WhatsApp", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
-                Text("Fastest reply", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.85f))
-            }
-        }
-
-        OutlinedButton(
-            onClick = {
-                val intent = Intent(Intent.ACTION_SENDTO).apply {
-                    data = Uri.parse("mailto:$SUPPORT_EMAIL")
-                    putExtra(Intent.EXTRA_SUBJECT, "KhanaBook POS Support")
-                }
-                try {
-                    context.startActivity(intent)
-                } catch (_: Exception) {}
-            },
-            modifier = Modifier.fillMaxWidth().height(72.dp),
-            border = BorderStroke(1.dp, MaterialTheme.kbTertiary.copy(alpha = 0.6f)),
-            shape = RoundedCornerShape(14.dp),
-            contentPadding = PaddingValues(horizontal = spacing.medium)
-        ) {
-            Icon(Icons.Outlined.Email, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(28.dp))
-            Spacer(modifier = Modifier.width(spacing.medium))
-            Column(horizontalAlignment = Alignment.Start, modifier = Modifier.weight(1f)) {
-                Text("Email Support", color = MaterialTheme.kbTertiary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
-                Text(SUPPORT_EMAIL, color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(spacing.small))
-
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(spacing.medium),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Outlined.Schedule,
-                    contentDescription = null,
-                    tint = MaterialTheme.kbSecondary.copy(alpha = 0.8f),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(spacing.medium))
-                Column {
-                    Text("Support Hours", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.labelLarge)
-                    Text(
-                        "Mon – Sat, 10 AM – 7 PM IST",
-                        color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun AboutAppView() {
-    val spacing = KhanaBookTheme.spacing
-    val currentYear = Year.now().value
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = spacing.medium, vertical = spacing.large),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(spacing.medium)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(140.dp)
-                .background(MaterialTheme.kbSecondary.copy(alpha = 0.12f), CircleShape)
-                .border(2.dp, MaterialTheme.kbSecondary.copy(alpha = 0.3f), CircleShape)
-                .clip(CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.khanabook_logo),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
-        ) {
-            Text(
-                "KhanaBook",
-                color = MaterialTheme.kbPrimary,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                "Version ${BuildConfig.VERSION_NAME}",
-                color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-
-        HorizontalDivider(
-            color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.2f),
-            modifier = Modifier.padding(horizontal = spacing.medium)
-        )
-
-        Text(
-            "A smart, offline-first POS solution built for restaurants and food businesses. Manage orders, track payments, and generate reports — all from your Android device.",
-            color = MaterialTheme.kbTextPrimary.copy(alpha = 0.85f),
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(spacing.medium))
-
-        Text(
-            "© $currentYear KhanaBook. All rights reserved.",
-            color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
-            style = MaterialTheme.typography.labelSmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
