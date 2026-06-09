@@ -1,7 +1,7 @@
 # Graph Report - KhanaBook  (2026-06-09)
 
 ## Corpus Check
-- 678 files · ~649,207 words
+- 678 files · ~649,220 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `358a5b62`
+- Built from commit: `48769b4f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -550,8 +550,8 @@ Cohesion: 0.09
 Nodes (25): EasebuzzSubMerchantWebhookEvent, EasebuzzSubMerchantRepository, EasebuzzSubMerchantWebhookEventRepository, EasebuzzSubMerchant, List, Long, Optional, String (+17 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.15
-Nodes (15): BigDecimal, Bill, BusinessDashboardResponse, BusinessMarketplaceSetupResponse, BusinessMenuListItemResponse, BusinessOrderListItemResponse, BusinessStaffListItemResponse, List (+7 more)
+Cohesion: 0.17
+Nodes (14): BigDecimal, Bill, BusinessDashboardResponse, BusinessMarketplaceSetupResponse, BusinessMenuListItemResponse, BusinessOrderListItemResponse, BusinessStaffListItemResponse, List (+6 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.09
@@ -574,8 +574,8 @@ Cohesion: 0.07
 Nodes (12): ChargebacksPageComponent, CustomerCdpPageComponent, FinancingPageComponent, InstantSettlementsPageComponent, OnboardingTrackerPageComponent, RefundAutomationPageComponent, Settlement, SettlementReportsPageComponent (+4 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.10
-Nodes (26): KhanaBookCardPreview(), KhanaBookGlassCard(), KhanaBookScreenScaffold(), AboutAppView(), AppLockView(), ChangePasswordView(), CpStepIndicator(), CpVerifiedBadge() (+18 more)
+Cohesion: 0.08
+Nodes (33): KhanaBookScreenScaffold(), AboutAppView(), AppLockView(), ChangePasswordView(), CpStepIndicator(), CpVerifiedBadge(), HelpSupportView(), RequirementRow() (+25 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.06
@@ -638,8 +638,8 @@ Cohesion: 0.09
 Nodes (3): EasebuzzSubMerchant, formatAge(), SubMerchantsPageComponent
 
 ### Community 28 - "Community 28"
-Cohesion: 0.15
-Nodes (23): KhanaBookInputField(), KhanaBookInputFieldPreview(), KhanaBookSelectionDialog(), KhanaBookSelectionDialogPreview(), SelectionDialogOption, RejectOrderDialog(), BillStepper(), CartItemNoteDialog() (+15 more)
+Cohesion: 0.20
+Nodes (16): ParchmentTextField(), BillStepper(), CartItemNoteDialog(), CustomerInfoStep(), FailedStep(), FoodTypeIcon(), formatAmountForSpeech(), loadShopLogoBlocking() (+8 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.08
@@ -850,8 +850,8 @@ Cohesion: 0.10
 Nodes (20): Clean Up, Code Quality, code:bash (slug=$(node {{scripts_path}}/critique-storage.mjs slug "<res), Color & Contrast, Content & Copy, Design System Discovery, Edge Cases & Error States, Final Verification (+12 more)
 
 ### Community 91 - "Community 91"
-Cohesion: 0.15
-Nodes (28): Date, KhanaBookCard(), ShimmerBox(), SkeletonCard(), SkeletonListItem(), SkeletonMenuScreen(), SkeletonReportScreen(), SkeletonTableRow() (+20 more)
+Cohesion: 0.14
+Nodes (30): Date, KhanaBookCard(), KhanaBookCardPreview(), KhanaBookGlassCard(), ShimmerBox(), SkeletonCard(), SkeletonListItem(), SkeletonMenuScreen() (+22 more)
 
 ### Community 92 - "Community 92"
 Cohesion: 0.23
@@ -966,8 +966,8 @@ Cohesion: 0.18
 Nodes (14): appendOriginToDirective(), buildTagBlock(), commentClose(), commentOpen(), CONFIG_PATH, __dirname, findCspMetaTags(), getAttr() (+6 more)
 
 ### Community 126 - "Community 126"
-Cohesion: 0.11
-Nodes (12): KhanaBookLargeDialog(), KhanaBookLargeDialogPreview(), MenuConfigurationScreenTest, IconSize, ResponsiveLayout, responsiveLayoutForWidth(), WindowWidthTier, Spacing (+4 more)
+Cohesion: 0.08
+Nodes (23): KhanaBookInputField(), KhanaBookInputFieldPreview(), KhanaBookLargeDialog(), KhanaBookLargeDialogPreview(), KhanaBookSelectionDialog(), KhanaBookSelectionDialogPreview(), SelectionDialogOption, ForgotPasswordDialog() (+15 more)
 
 ### Community 128 - "Community 128"
 Cohesion: 0.18
@@ -1062,8 +1062,8 @@ Cohesion: 0.28
 Nodes (4): Long, BeforeEach, Test, JwtUtilityTest
 
 ### Community 157 - "Community 157"
-Cohesion: 0.16
-Nodes (12): BusinessRuleException, BigDecimal, List, Long, Map, Object, String, Transactional (+4 more)
+Cohesion: 0.18
+Nodes (11): BigDecimal, List, Long, Map, Object, String, Transactional, BeforeEach (+3 more)
 
 ### Community 158 - "Community 158"
 Cohesion: 0.25
@@ -1198,8 +1198,8 @@ Cohesion: 0.17
 Nodes (11): Assess Current State, Code Simplification, Content Simplification, Document Removed Complexity, Information Architecture, Interaction Simplification, Layout Simplification, Plan Simplification (+3 more)
 
 ### Community 195 - "Community 195"
-Cohesion: 0.12
-Nodes (20): KhanaBookLoadingOverlay(), LoadingType, KhanaBookSnackbar(), KhanaBookSnackbarHost(), KhanaSnackbarVisuals, KhanaToast, KindStyle, styleFor() (+12 more)
+Cohesion: 0.13
+Nodes (17): KhanaBookLoadingOverlay(), LoadingType, KhanaBookSnackbar(), KhanaBookSnackbarHost(), KhanaSnackbarVisuals, KhanaToast, KindStyle, styleFor() (+9 more)
 
 ### Community 196 - "Community 196"
 Cohesion: 0.18
@@ -1210,8 +1210,8 @@ Cohesion: 0.26
 Nodes (9): applyEvent(), baseSnapshot(), COMPLETED_PHASES, getJournalPath(), getSnapshotPath(), rebuildSnapshotFromJournal(), safeSessionId(), toPendingEvent() (+1 more)
 
 ### Community 198 - "Community 198"
-Cohesion: 0.17
-Nodes (15): BillDTO, Class, BillController, SyncMapper, S, GetMapping, List, Long (+7 more)
+Cohesion: 0.26
+Nodes (9): BillDTO, BillController, GetMapping, List, Long, PostMapping, PushSyncResponse, ResponseEntity (+1 more)
 
 ### Community 199 - "Community 199"
 Cohesion: 0.26
@@ -1219,7 +1219,7 @@ Nodes (9): BillItemDTO, BillItemController, GetMapping, List, Long, PostMapping,
 
 ### Community 200 - "Community 200"
 Cohesion: 0.14
-Nodes (16): ParchmentTextField(), KhanaBookSwitch(), MenuItemRow(), PaymentConfigView(), PaymentToggle(), PlatformToggle(), ConnectedPrinterBanner(), DeviceRow() (+8 more)
+Nodes (15): KhanaBookSwitch(), MenuItemRow(), PaymentConfigView(), PaymentToggle(), PlatformToggle(), ConnectedPrinterBanner(), DeviceRow(), PrinterConfigView() (+7 more)
 
 ### Community 201 - "Community 201"
 Cohesion: 0.26
@@ -1818,7 +1818,7 @@ Cohesion: 0.14
 Nodes (3): UserEntity, AuthViewModelTest, UserManagementViewModel
 
 ### Community 388 - "Community 388"
-Cohesion: 0.50
+Cohesion: 0.67
 Nodes (3): adapt, argumentHint, description
 
 ### Community 391 - "Community 391"
@@ -1966,7 +1966,7 @@ Cohesion: 0.67
 Nodes (3): polish, argumentHint, description
 
 ### Community 433 - "Community 433"
-Cohesion: 0.67
+Cohesion: 0.50
 Nodes (3): quieter, argumentHint, description
 
 ### Community 434 - "Community 434"
@@ -2026,12 +2026,12 @@ Cohesion: 0.22
 Nodes (8): ChangePasswordResult, Loading, LoginErrorCode, LoginResult, OtpSent, OtpVerificationResult, ResetPasswordResult, SignUpResult
 
 ### Community 541 - "Community 541"
-Cohesion: 0.39
+Cohesion: 0.48
 Nodes (5): Long, Map, Object, String, UnifiedCommerceService
 
 ### Community 545 - "Community 545"
-Cohesion: 0.33
-Nodes (9): AboutAppView(), AboutInfoCard(), AboutInfoRow(), AboutLinkRow(), FaqItem, FaqRow(), HairlineDivider(), HelpSupportView() (+1 more)
+Cohesion: 0.42
+Nodes (6): Class, SyncMapper, S, List, SuppressWarnings, T
 
 ### Community 546 - "Community 546"
 Cohesion: 0.60
@@ -2058,8 +2058,8 @@ Cohesion: 0.39
 Nodes (6): BillItem, List, Long, PushSyncResponse, String, BillItemService
 
 ### Community 557 - "Community 557"
-Cohesion: 0.39
-Nodes (6): BigDecimal, Long, Map, Object, String, FinancingService
+Cohesion: 0.22
+Nodes (8): BusinessRuleException, BigDecimal, Long, Map, Object, String, FinancingService, ZoneId
 
 ### Community 559 - "Community 559"
 Cohesion: 0.47
@@ -2077,7 +2077,7 @@ Nodes (4): FoodType, OrderStatus, PaymentMode, PaymentStatus
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Date` connect `Community 91` to `Community 64`, `Community 545`, `Community 12`, `Community 108`, `Community 153`, `Community 63`?**
+- **Why does `Date` connect `Community 91` to `Community 64`, `Community 8`, `Community 12`, `Community 108`, `Community 153`, `Community 63`?**
   _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **Why does `PaymentMethod` connect `Community 107` to `Community 1`?**
   _High betweenness centrality (0.026) - this node is a cross-community bridge._
