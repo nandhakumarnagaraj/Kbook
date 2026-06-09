@@ -221,7 +221,9 @@ fun LoginScreen(
                     Text(
                         text = "Welcome back",
                         color = Color(0xFF0F172A),
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     
                     Spacer(modifier = Modifier.height(4.dp))
@@ -229,7 +231,9 @@ fun LoginScreen(
                     Text(
                         text = "Sign in to your restaurant account",
                         color = Color(0xFF64748B),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     
                     Spacer(modifier = Modifier.height(28.dp))
@@ -343,7 +347,7 @@ fun LoginScreen(
                     TextField(
                         value = password,
                         onValueChange = { password = it },
-                        placeholder = { Text("........", color = Color(0xFF94A3B8)) },
+                        placeholder = { Text("Enter password", color = Color(0xFF94A3B8)) },
                         trailingIcon = {
                             Icon(
                                 imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
