@@ -125,7 +125,7 @@ public class SecurityConfig {
 						.permitAll()
 
 						// API docs open for dev
-						.requestMatchers("/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
+						.requestMatchers("/admin/developer/docs/**", "/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
 						.permitAll()
 						// Actuator: health/readiness open, everything else authenticated
 						.requestMatchers("/actuator/health", "/actuator/health/**")

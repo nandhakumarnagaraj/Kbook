@@ -19,7 +19,7 @@ services:
 
   server:
     build:
-      context: ./server
+      context: /var/www/kbook.iadv.cloud.v1/server
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
