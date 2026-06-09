@@ -127,7 +127,6 @@ fun MainScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
                 .padding(bottom = if (showBottomBar && !isKeyboardOpen) padding.calculateBottomPadding() else 0.dp)
         ) {
             content(Modifier.fillMaxSize())

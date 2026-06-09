@@ -123,6 +123,7 @@ fun ReportsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(bottom = spacing.small)
         ) {
             

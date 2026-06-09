@@ -115,7 +115,11 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         color = KbBrandSaffron
                     ) {
-                        Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 20.dp)) {
+                        Column(
+                            modifier = Modifier
+                                .statusBarsPadding()
+                                .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 20.dp)
+                        ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,

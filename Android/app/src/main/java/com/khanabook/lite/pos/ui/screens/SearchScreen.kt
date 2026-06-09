@@ -152,51 +152,56 @@ fun SearchScreen(
         )
     }
 
-    Scaffold(
-        modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        title,
-                        color = MaterialTheme.kbSecondary,
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
-                            tint = MaterialTheme.kbSecondary
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.kbBgGradient)
+    ) {
+        Scaffold(
+            modifier = modifier,
+            containerColor = Color.Transparent,
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            title,
+                            color = MaterialTheme.kbSecondary,
+                            style = MaterialTheme.typography.titleLarge
                         )
-                    }
-                },
-                actions = {
-                    if (result != null) {
-                        IconButton(onClick = { viewModel.clearSearch() }) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "Clear",
-                            tint = MaterialTheme.kbSecondary
-                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = null,
+                                tint = MaterialTheme.kbSecondary
+                            )
                         }
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .consumeWindowInsets(padding)
-                .fillMaxSize()
-                .background(MaterialTheme.kbBgGradient)
-                .imePadding()
-                .padding(horizontal = spacing.medium, vertical = spacing.medium)
-        ) {
+                    },
+                    actions = {
+                        if (result != null) {
+                            IconButton(onClick = { viewModel.clearSearch() }) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = MaterialTheme.kbSecondary
+                            )
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
+                )
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .fillMaxSize()
+                    .imePadding()
+                    .padding(horizontal = spacing.medium, vertical = spacing.medium)
+            ) {
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
               Column(modifier = Modifier.wrapContentHeight()) {
                 TabRow(
@@ -592,11 +597,12 @@ fun SearchScreen(
                         }
                     }
                 }
-              } // end inner Column
-              } // end AnimatedVisibility body
-         }
-     }
- }
+            }
+        }
+    }
+}
+}
+}
 
 @Composable
 private fun outlinedSearchFieldColors() =

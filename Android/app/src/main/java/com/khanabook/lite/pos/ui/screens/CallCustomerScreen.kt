@@ -65,8 +65,14 @@ fun CallCustomerScreen(
         bodyVisible = true
     }
 
-    Scaffold(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.kbBgGradient)
+    ) {
+        Scaffold(
             modifier = modifier,
+            containerColor = Color.Transparent,
             topBar = {
                 CenterAlignedTopAppBar(
                         title = {
@@ -98,16 +104,15 @@ fun CallCustomerScreen(
                                 )
                 )
             }
-    ) { padding ->
-        Column(
+        ) { padding ->
+            Column(
                 modifier =
                         Modifier.padding(padding)
                                 .consumeWindowInsets(padding)
                                 .fillMaxSize()
-                                .background(MaterialTheme.kbBgGradient)
                                 .imePadding()
                                 .padding(spacing.large)
-        ) {
+            ) {
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
               Column {
             TabRow(
@@ -328,6 +333,7 @@ fun CallCustomerScreen(
             } // end AnimatedVisibility body
         }
     }
+}
 }
 
 @Composable

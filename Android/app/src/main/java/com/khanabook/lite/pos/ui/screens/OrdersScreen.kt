@@ -232,6 +232,7 @@ fun OrdersScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Brush.verticalGradient(listOf(Color(0xFF1A1040), Color(0xFF0F0A1F))))
+                    .statusBarsPadding()
                     .padding(bottom = spacing.medium)
             ) {
                 AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {

@@ -92,6 +92,7 @@ private fun SyncContentPurple(syncRotation: Float, spacing: Spacing) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .padding(horizontal = spacing.medium),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -213,6 +214,7 @@ private fun SessionExpiredContentPurple(onNavigateToLogin: () -> Unit, spacing: 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .padding(horizontal = spacing.medium),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -251,6 +253,7 @@ private fun ErrorContentPurple(message: String, onRetry: () -> Unit, spacing: Sp
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .padding(horizontal = spacing.medium),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -289,6 +292,7 @@ private fun SuccessContentPurple(spacing: Spacing) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .padding(horizontal = spacing.medium),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

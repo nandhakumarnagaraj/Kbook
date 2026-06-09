@@ -208,7 +208,8 @@ fun NewBillScreen(
                             colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
                         )
                     )
-                    .padding(top = 16.dp, bottom = 12.dp)
+                    .statusBarsPadding()
+                    .padding(top = 8.dp, bottom = 12.dp)
             ) {
                 Row(
                     modifier = Modifier

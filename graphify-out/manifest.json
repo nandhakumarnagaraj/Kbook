@@ -925,8 +925,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\KhanaBookScreenScaffold.kt": {
-    "mtime": 1780996277.8532562,
-    "ast_hash": "87a87ed3fc4ec87a3ad3a81544abe23b",
+    "mtime": 1781001736.2525573,
+    "ast_hash": "c617169e190d2e28a37f66571512b3a1",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\KhanaBookSelectionDialog.kt": {
@@ -970,38 +970,38 @@
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\CallCustomerScreen.kt": {
-    "mtime": 1780950925.7527301,
-    "ast_hash": "75dbd49a65a3380645c5788fdc692809",
+    "mtime": 1781003530.9839656,
+    "ast_hash": "bc26096eef0e05132c5b9eea55cd3449",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\EasebuzzKycScreen.kt": {
-    "mtime": 1780950120.1545472,
-    "ast_hash": "4e96c2bd67fcba329a6db31016aee7f2",
+    "mtime": 1781003549.9857967,
+    "ast_hash": "44222b64d6e9c9342516ff15e7fc4cdf",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\EasebuzzPaymentScreen.kt": {
-    "mtime": 1780950083.8699532,
-    "ast_hash": "20f04d48f0d79efe0bcaa539ba0b987b",
+    "mtime": 1781003563.0527325,
+    "ast_hash": "92b7affbe72b723aac5df1b171dc0b2d",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\HomeScreen.kt": {
-    "mtime": 1780950911.1331792,
-    "ast_hash": "6b4d6a13172b1827b9cea403360b2a76",
+    "mtime": 1781003512.3729239,
+    "ast_hash": "bac3f7fc3d14d1b71ee2648f4a8f2b40",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\InitialSyncScreen.kt": {
-    "mtime": 1780950307.606989,
-    "ast_hash": "4cc976ccbcce0ad8428cc60bd8a76ba8",
+    "mtime": 1781003571.5123372,
+    "ast_hash": "79b56d526118edab912ebee280b52aae",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\LoginScreen.kt": {
-    "mtime": 1780997667.2568023,
-    "ast_hash": "3781d0b2af061a3f78f740df8fb90db4",
+    "mtime": 1781000294.9842172,
+    "ast_hash": "f570ef06c7b4dbafc4bb2b4e1e80c391",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\MainScreen.kt": {
-    "mtime": 1780951501.4258652,
-    "ast_hash": "7472e8386cd690f619687858402b3125",
+    "mtime": 1781003505.85478,
+    "ast_hash": "8e8f35cd52369f9f70bddd60e1ad2622",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\MarketplaceOrdersScreen.kt": {
@@ -1015,8 +1015,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\NewBillScreen.kt": {
-    "mtime": 1780996195.5171993,
-    "ast_hash": "25dd9c6db6b3de30a12e609e30a1167f",
+    "mtime": 1781001744.6522117,
+    "ast_hash": "a7089f43a21c98de6606d4575925327b",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\OcrScannerScreen.kt": {
@@ -1025,8 +1025,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\OrdersScreen.kt": {
-    "mtime": 1780995391.3509285,
-    "ast_hash": "77966db3a6396d917961178db3e55d6f",
+    "mtime": 1781003516.1279314,
+    "ast_hash": "c0bff81edf2ce2b1270c8d320116fd50",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\PaymentConfigSection.kt": {
@@ -1040,8 +1040,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\ReportsScreen.kt": {
-    "mtime": 1780995388.6907244,
-    "ast_hash": "fc83cf228150ec2efebcbfd23326b530",
+    "mtime": 1781003519.1010113,
+    "ast_hash": "57e4cb1d90982d6bfe5db98bd44598db",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\ReprintKdsScreen.kt": {
@@ -1050,8 +1050,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\SearchScreen.kt": {
-    "mtime": 1780950925.7414973,
-    "ast_hash": "87f70e2f6de4a463ed12d194d4638cca",
+    "mtime": 1781003691.983516,
+    "ast_hash": "d809927d5f1a36683cba54a71745cbec",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\SettingsHomeSection.kt": {
@@ -1080,8 +1080,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\SignUpScreen.kt": {
-    "mtime": 1780944671.6411028,
-    "ast_hash": "146bf4ce20c078dd4dbfcd718d14aa9f",
+    "mtime": 1780998369.2995293,
+    "ast_hash": "7f7c6bedb293c2319c6a6c02c9757cdc",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\screens\\SplashScreen.kt": {
@@ -1955,8 +1955,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\security\\SecurityConfig.java": {
-    "mtime": 1780944673.150699,
-    "ast_hash": "b1b6dae1b59c62cd6c92985156eb42a9",
+    "mtime": 1781001652.7107234,
+    "ast_hash": "10adbd8caeb8ce93e2496b657d0b8512",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\server\\src\\main\\java\\com\\khanabook\\saas\\security\\TenantContext.java": {
@@ -2825,8 +2825,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\docker-compose.production.yml": {
-    "mtime": 1780944672.2767186,
-    "ast_hash": "a98ddc3f3ef57912f9d0d103e732e13c",
+    "mtime": 1781001652.7087226,
+    "ast_hash": "556dccf7b16d5cf489925ddb8746207b",
     "semantic_hash": ""
   },
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\docker-compose.yml": {
@@ -3597,6 +3597,11 @@
   "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\website\\khanabook_logo_header.png": {
     "mtime": 1780944673.4062014,
     "ast_hash": "866cbaa88694916a0a539725fc1bbbe0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\nandh\\Desktop\\Khanabook -backups\\KhanaBook\\Android\\app\\src\\main\\java\\com\\khanabook\\lite\\pos\\ui\\designsystem\\ScrollbarModifier.kt": {
+    "mtime": 1780998348.1978567,
+    "ast_hash": "cfdc95ffab8aaf5db6db68d2f0b7ad7f",
     "semantic_hash": ""
   }
 }

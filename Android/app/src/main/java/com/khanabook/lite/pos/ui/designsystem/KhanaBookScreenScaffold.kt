@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,7 +60,8 @@ fun KhanaBookScreenScaffold(
                         colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
                     )
                 )
-                .padding(top = 16.dp, bottom = 12.dp)
+                .statusBarsPadding()
+                .padding(top = 8.dp, bottom = 12.dp)
         ) {
             Row(
                 modifier = Modifier
