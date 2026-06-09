@@ -50,6 +50,7 @@ import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
 import com.khanabook.lite.pos.ui.designsystem.LoadingType
+import com.khanabook.lite.pos.ui.designsystem.verticalScrollbar
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -146,11 +147,11 @@ fun SignUpScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header Zone: Dark Purple Gradient
+            // Header: Midnight Purple Gradient Area
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp)
+                    .height(290.dp)
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
@@ -177,21 +178,21 @@ fun SignUpScreen(
                             )
                         }
                     }
-
+                    
                     Spacer(modifier = Modifier.height(16.dp))
-
+                    
                     Text(
-                        text = "Create Account",
+                        text = "KhanaBook",
                         color = Color.White,
                         style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 32.sp),
                         textAlign = TextAlign.Center
                     )
-
+                    
                     Spacer(modifier = Modifier.height(6.dp))
-
+                    
                     Text(
-                        text = "Set up your restaurant in minutes",
-                        color = Color(0xFFA78BFA), // Lavender/purple subtitle
+                        text = "Restaurant POS & Management",
+                        color = Color(0xFFA78BFA), // Lavender text
                         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
                         textAlign = TextAlign.Center
                     )
@@ -206,12 +207,33 @@ fun SignUpScreen(
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
                 color = Color.White
             ) {
+                val scrollState = rememberScrollState()
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp, vertical = 24.dp)
+                        .verticalScroll(scrollState)
+                        .verticalScrollbar(scrollState)
+                        .padding(horizontal = 24.dp, vertical = 32.dp)
                 ) {
+                    Text(
+                        text = "Create Account",
+                        color = Color(0xFF0F172A),
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = "Set up your restaurant in minutes",
+                        color = Color(0xFF64748B),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Spacer(modifier = Modifier.height(28.dp))
                     // RESTAURANT NAME
                     Text(
                         text = "RESTAURANT NAME",
@@ -505,7 +527,7 @@ fun SignUpScreen(
                     TextField(
                         value = newPassword,
                         onValueChange = { newPassword = it },
-                        placeholder = { Text("........", color = Color(0xFF94A3B8)) },
+                        placeholder = { Text("Enter password", color = Color(0xFF94A3B8)) },
                         trailingIcon = {
                             Icon(
                                 imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
