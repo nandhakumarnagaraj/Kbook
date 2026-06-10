@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -45,6 +48,91 @@ import com.khanabook.lite.pos.ui.theme.kbBgCard
 import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
 import com.khanabook.lite.pos.ui.theme.kbSecondary
 import java.text.SimpleDateFormat
+
+/**
+ * A single grouped card that wraps multiple [SettingsGroupItem] rows separated by [HorizontalDivider].
+ * All items in one section (e.g., CONFIGURATION) share this one card, matching the design mockup.
+ */
+@Composable
+fun SettingsGroupCard(
+    modifier: Modifier = Modifier,
+    items: List<Triple<ImageVector, String, String>>,  // icon, title, subtitle
+    onItemClick: (Int) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
+    ) {
+        Column {
+            items.forEachIndexed { index, (icon, title, subtitle) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(
+                            when (index) {
+                                0 -> RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
+                                items.lastIndex -> RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
+                                else -> RoundedCornerShape(0.dp)
+                            }
+                        )
+                        .clickable { onItemClick(index) }
+                        .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        // Icon container
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(KbBrandSaffron.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = MaterialTheme.kbSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.size(spacing.medium))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = title,
+                                color = MaterialTheme.kbTextPrimary,
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
+                            )
+                            Text(
+                                text = subtitle,
+                                color = MaterialTheme.kbTextSecondary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                if (index < items.lastIndex) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 68.dp), // align with text, skip icon
+                        thickness = 0.5.dp,
+                        color = MaterialTheme.kbOutlineSubtle
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTimestamp: Long = 0L) {

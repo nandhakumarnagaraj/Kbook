@@ -21,8 +21,8 @@ class HomeRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
     private val searchTabMatcher = hasText("Search", substring = true)
         .or(hasContentDescription("Search"))
 
-    private val settingsTabMatcher = hasText("Settings", substring = true)
-        .or(hasContentDescription("Settings"))
+    private val settingsTabMatcher = hasText("Profile", substring = true)
+        .or(hasContentDescription("Profile"))
 
     private val dashboardMatcher = hasText("Dashboard", substring = true)
         .or(hasText("Home"))

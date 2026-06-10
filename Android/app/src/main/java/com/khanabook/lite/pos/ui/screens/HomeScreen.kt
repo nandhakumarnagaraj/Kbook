@@ -111,9 +111,10 @@ fun HomeScreen(
         ) {
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                 Column {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = KbBrandSaffron
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
                     ) {
                         Column(
                             modifier = Modifier

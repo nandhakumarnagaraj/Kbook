@@ -3,11 +3,7 @@ package com.khanabook.lite.pos.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,7 +32,6 @@ import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.kbSecondary
 import com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
 
@@ -61,62 +56,52 @@ fun SettingsHomeSection(
                 .padding(horizontal = spacing.medium)
                 .verticalScroll(rememberScrollState())
         ) {
-            // ── Inline Profile Card (no card background) ──────────────────────
+            // ── Inline Profile Card ────────────────────────────────────────────
             ProfileCard(currentUser, profile, lastSyncTimestamp)
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            // ── Section: CONFIGURATION ────────────────────────────────────────
+            // ── Section: CONFIGURATION ─────────────────────────────────────────
             SectionLabel("CONFIGURATION")
             Spacer(modifier = Modifier.height(spacing.extraSmall))
 
-            SettingsItem(
-                icon = Icons.Outlined.Store,
-                text = "Restaurant Configuration",
-                subtitle = "Shop name, address & branding",
-                onClick = { onSectionSelected("shop") }
-            )
-            SettingsItem(
-                icon = Icons.AutoMirrored.Outlined.ReceiptLong,
-                text = "Menu Configuration",
-                subtitle = "Items, categories & pricing",
-                onClick = { onSectionSelected("menu_config") }
-            )
-            SettingsItem(
-                icon = Icons.Outlined.CreditCard,
-                text = "Payment Configuration",
-                subtitle = "UPI, cards & online payments",
-                onClick = { onSectionSelected("payment") }
-            )
-            SettingsItem(
-                icon = Icons.Outlined.Print,
-                text = "Printer Configuration",
-                subtitle = "Bluetooth & thermal printer",
-                onClick = { onSectionSelected("printer") }
-            )
-            SettingsItem(
-                icon = Icons.Outlined.Percent,
-                text = "Tax Configuration",
-                subtitle = "GST, FSSAI & tax settings",
-                onClick = { onSectionSelected("tax") }
+            SettingsGroupCard(
+                items = listOf(
+                    Triple(Icons.Outlined.Store,          "Restaurant Configuration", "Shop name, address & branding"),
+                    Triple(Icons.AutoMirrored.Outlined.ReceiptLong, "Menu Configuration",  "Items, categories & pricing"),
+                    Triple(Icons.Outlined.CreditCard,     "Payment Configuration",  "UPI, cards & online payments"),
+                    Triple(Icons.Outlined.Print,          "Printer Configuration",  "Bluetooth & thermal printer"),
+                    Triple(Icons.Outlined.Percent,        "Tax Configuration",      "GST, FSSAI & tax settings"),
+                ),
+                onItemClick = { index ->
+                    val dest = when (index) {
+                        0 -> "shop"
+                        1 -> "menu_config"
+                        2 -> "payment"
+                        3 -> "printer"
+                        4 -> "tax"
+                        else -> "menu"
+                    }
+                    onSectionSelected(dest)
+                }
             )
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            // ── Section: PREFERENCES ──────────────────────────────────────────
+            // ── Section: PREFERENCES ───────────────────────────────────────────
             SectionLabel("PREFERENCES")
             Spacer(modifier = Modifier.height(spacing.extraSmall))
 
-            SettingsItem(
-                icon = Icons.Outlined.Tune,
-                text = "Settings",
-                subtitle = "Display, security & dark mode",
-                onClick = { onSectionSelected("security") }
+            SettingsGroupCard(
+                items = listOf(
+                    Triple(Icons.Outlined.Tune, "Settings", "Display, security & dark mode"),
+                ),
+                onItemClick = { onSectionSelected("security") }
             )
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            // ── Section: ACCOUNT SESSION ──────────────────────────────────────
+            // ── Section: ACCOUNT SESSION ───────────────────────────────────────
             SectionLabel("ACCOUNT SESSION")
             Spacer(modifier = Modifier.height(spacing.extraSmall))
 

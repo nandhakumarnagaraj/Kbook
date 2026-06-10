@@ -61,7 +61,7 @@ class HomeScreenTest : BaseTest() {
     fun TC_NAV_007_HomeScreen_TabNavigation_SettingsTab() {
         homeRobot.tapSettingsTab()
         
-        composeTestRule.onNode(hasText("Settings")).assertIsDisplayed()
+        composeTestRule.onNode(hasText("Profile")).assertIsDisplayed()
     }
 
     @Test

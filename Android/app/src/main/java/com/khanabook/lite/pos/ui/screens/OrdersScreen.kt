@@ -231,7 +231,7 @@ fun OrdersScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color(0xFF1A1040), Color(0xFF0F0A1F))))
+                    .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
                     .statusBarsPadding()
                     .padding(bottom = spacing.medium)
             ) {
@@ -255,18 +255,12 @@ fun OrdersScreen(
                             color = Color.White,
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
                         )
-                        IconButton(onClick = { /* Focus search if needed */ }, modifier = Modifier.align(Alignment.CenterEnd)) {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = Color.White
-                            )
-                        }
                     }
                 }
 
                 AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                     Column {
+                        Spacer(modifier = Modifier.height(spacing.small))
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -535,6 +529,13 @@ private fun OrderCard(
     val spacing = KhanaBookTheme.spacing
     val isCancelled = row.orderStatus == OrderStatus.CANCELLED
 
+    // Accent bar color per status — matches screenshot
+    val accentColor = when (row.orderStatus) {
+        OrderStatus.COMPLETED -> Color(0xFF16A34A)  // green
+        OrderStatus.CANCELLED -> Color(0xFFDC2626)  // red
+        else                  -> Color(0xFF6366F1)  // indigo/active
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -550,53 +551,65 @@ private fun OrderCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(spacing.medium)
                 .then(
                     if (isCancelled) Modifier.graphicsLayer { alpha = KbOpacity.Muted } else Modifier
-                ),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                )
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+            // Left accent stripe
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height(72.dp)
+                    .background(accentColor)
+            )
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(spacing.medium),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "#KB-${row.dailyNo}",
-                    color = Color(0xFF1F2937),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = "${row.payMode.displayLabel} · INV${row.lifetimeNo}",
-                    color = Color(0xFF6B7280),
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = CurrencyUtils.formatPrice(row.salesAmount),
-                    color = Color(0xFFF97316),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = timeAgo(row.salesDate),
-                        color = Color(0xFF6B7280),
-                        style = MaterialTheme.typography.bodySmall
+                        text = "#KB-${row.dailyNo}",
+                        color = Color(0xFF1F2937),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    OrderStatusChip(row.orderStatus)
+                    Text(
+                        text = "${row.payMode.displayLabel} · INV${row.lifetimeNo}",
+                        color = Color(0xFF6B7280),
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = CurrencyUtils.formatPrice(row.salesAmount),
+                        color = Color(0xFFF97316),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = timeAgo(row.salesDate),
+                            color = Color(0xFF6B7280),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        OrderStatusChip(row.orderStatus)
+                    }
                 }
             }
         }
@@ -668,15 +681,15 @@ private fun OrderStatusChip(status: OrderStatus) {
     if (status == OrderStatus.DRAFT) return
 
     val (label, color) = when (status) {
-        OrderStatus.COMPLETED -> "COMPLETED" to Color(0xFF7C3AED)
-        OrderStatus.CANCELLED -> "CANCELLED" to Color(0xFFDC2626)
-        else -> "ACTIVE" to Color(0xFF0284C7)
+        OrderStatus.COMPLETED -> "COMPLETED" to Color(0xFF16A34A)  // green
+        OrderStatus.CANCELLED -> "CANCELLED" to Color(0xFFDC2626)  // red
+        else                  -> "ACTIVE"    to Color(0xFF6366F1)  // indigo
     }
 
     Surface(
         shape = RoundedCornerShape(999.dp),
-        color = color.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.25f))
+        color = color.copy(alpha = 0.10f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.30f))
     ) {
         Text(
             text = label,

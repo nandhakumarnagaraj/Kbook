@@ -91,7 +91,7 @@ fun MainScreen(
                 "Home" -> HomeScreen(onNewBill, onSearchBill, onReprintKds, onOrderStatus, onCallCustomer, onMarketplaceOrders)
                 "Orders" -> OrdersScreen(onBack = backToHome)
                 "Reports" -> ReportsScreen(onBack = backToHome)
-                "Settings" -> SettingsScreen(
+                "Profile" -> SettingsScreen(
                     onBack = backToHome,
                     navController = navController,
                     onScanClick = onScanClick,

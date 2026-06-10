@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
@@ -108,6 +109,13 @@ fun SettingsListView(
     onSelectItem: (String) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
+    val context = LocalContext.current
+    var isSoundBoxEnabled by remember {
+        mutableStateOf(
+            context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
+                .getBoolean("is_sound_box_enabled", true)
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -132,7 +140,7 @@ fun SettingsListView(
         )
 
         Spacer(modifier = Modifier.height(spacing.medium))
-        SettingsGroupLabel("APPEARANCE")
+        SettingsGroupLabel("PREFERENCES")
         Spacer(modifier = Modifier.height(spacing.extraSmall))
         SettingsItem(
             icon = Icons.Outlined.TextIncrease,
@@ -141,7 +149,6 @@ fun SettingsListView(
             onClick = { onSelectItem("ui_scale") }
         )
         Spacer(modifier = Modifier.height(spacing.extraSmall))
-        val context = LocalContext.current
         SettingsToggleItem(
             icon = Icons.Outlined.DarkMode,
             text = "Dark Mode",
@@ -155,6 +162,20 @@ fun SettingsListView(
                     if (isDark) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
                     else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
                 )
+            }
+        )
+        Spacer(modifier = Modifier.height(spacing.extraSmall))
+        SettingsToggleItem(
+            icon = Icons.Default.Notifications,
+            text = "Payment Sound Box",
+            subtitle = "Announce received payment amounts",
+            checked = isSoundBoxEnabled,
+            onCheckedChange = { enabled ->
+                isSoundBoxEnabled = enabled
+                context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("is_sound_box_enabled", enabled)
+                    .apply()
             }
         )
 

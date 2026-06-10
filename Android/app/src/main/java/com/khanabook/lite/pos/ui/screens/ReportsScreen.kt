@@ -123,44 +123,50 @@ fun ReportsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
                 .padding(bottom = spacing.small)
         ) {
-            
-            AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(spacing.medium),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.kbSecondary
-                        )
-                    }
-                    Text(
-                        text = "Reports",
-                        modifier = Modifier.weight(1f),
-                        color = MaterialTheme.kbSecondary,
-                        style = MaterialTheme.typography.headlineMedium,
-                        textAlign = TextAlign.Center
-                    )
-                    Surface(
-                        onClick = { showDateRangePicker = true },
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.kbBgCard,
-                        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                    .statusBarsPadding()
+                    .padding(bottom = spacing.medium)
+            ) {
+                AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = spacing.medium, vertical = spacing.small),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White
+                            )
+                        }
                         Text(
-                            text = timeFilter,
-                            color = MaterialTheme.kbPrimary,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            text = "Reports",
+                            modifier = Modifier.weight(1f),
+                            color = Color.White,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                            textAlign = TextAlign.Center
                         )
+                        Surface(
+                            onClick = { showDateRangePicker = true },
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color.White.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
+                        ) {
+                            Text(
+                                text = timeFilter,
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -1076,18 +1082,24 @@ fun OrderDetailsDialog(
     val spacing = KhanaBookTheme.spacing
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = RichEspresso
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
                 // Dark purple gradient header
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Brush.verticalGradient(listOf(Color(0xFF1A1040), Color(0xFF0F0A1F))))
+                        .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                        .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 20.dp)
                 ) {
                     Row(
@@ -1258,33 +1270,33 @@ fun OrderDetailsDialog(
                                 DetailRowLight("Status", statusText, isStatus = true, status = statusValue)
                             }
                         }
-                    }
-                }
 
-                // Bottom Buttons row
-                if (billWithItems != null) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { onPrintKds?.invoke(billWithItems) },
-                            modifier = Modifier.weight(1f).height(48.dp),
-                            border = BorderStroke(1.dp, Color(0xFF7C3AED)),
-                            shape = RoundedCornerShape(10.dp)
+                        // ── Action Buttons (inside scroll — always visible, never clipped) ──
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Text("Reprint KOT", color = Color(0xFF7C3AED), style = MaterialTheme.typography.titleMedium)
+                            OutlinedButton(
+                                onClick = { onPrintKds?.invoke(billWithItems) },
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                border = BorderStroke(1.dp, Color(0xFF7C3AED)),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Reprint KOT", color = Color(0xFF7C3AED), style = MaterialTheme.typography.titleMedium)
+                            }
+                            Button(
+                                onClick = { onPrintReceipt?.invoke(billWithItems) },
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Reprint Bill", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                            }
                         }
-                        Button(
-                            onClick = { onPrintReceipt?.invoke(billWithItems) },
-                            modifier = Modifier.weight(1f).height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Text("Reprint Bill", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                        }
+                        Spacer(modifier = Modifier.height(64.dp))
                     }
                 }
             }
