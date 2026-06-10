@@ -152,7 +152,7 @@ fun SignUpScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(290.dp)
+                    .height(270.dp)
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
@@ -198,7 +198,7 @@ fun SignUpScreen(
                         textAlign = TextAlign.Center
                     )
                     
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
