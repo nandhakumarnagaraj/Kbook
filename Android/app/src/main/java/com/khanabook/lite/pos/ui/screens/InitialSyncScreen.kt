@@ -150,7 +150,7 @@ private fun SyncContentPurple(syncRotation: Float, spacing: Spacing) {
         Text(
             "Syncing payment configuration...",
             style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFFA78BFA).copy(alpha = 0.7f),
+            color = KbLavender.copy(alpha = 0.7f),
             modifier = Modifier.padding(bottom = spacing.extraLarge)
         )
     }
@@ -201,7 +201,7 @@ private fun SyncStepItemPurple(text: String, state: SyncStepState, syncRotation:
             color = when (state) {
                 SyncStepState.COMPLETED -> Color.White
                 SyncStepState.IN_PROGRESS -> KbBrandSaffron
-                SyncStepState.PENDING -> Color(0xFFA78BFA).copy(alpha = 0.6f)
+                SyncStepState.PENDING -> KbLavender.copy(alpha = 0.6f)
             }
         )
     }
@@ -321,8 +321,7 @@ private fun SuccessContentPurple(spacing: Spacing) {
         Spacer(modifier = Modifier.height(spacing.small))
 
         Text(
-            "Your restaurant is ready to serve",
-            color = Color(0xFFA78BFA),
+            "Your restaurant is ready to serve", color = KbLavender,
             style = MaterialTheme.typography.bodyMedium
         )
     }

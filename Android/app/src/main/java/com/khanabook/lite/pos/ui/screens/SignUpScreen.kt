@@ -52,7 +52,7 @@ import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
 import com.khanabook.lite.pos.ui.designsystem.LoadingType
 import com.khanabook.lite.pos.ui.designsystem.verticalScrollbar
-import com.khanabook.lite.pos.ui.theme.kbHeaderGradient
+import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -194,7 +194,7 @@ fun SignUpScreen(
                     
                     Text(
                         text = "Restaurant POS & Management",
-                        color = Color(0xFFA78BFA), /
+                        color = KbLavender,
                         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
                         textAlign = TextAlign.Center
                     )
@@ -287,7 +287,7 @@ fun SignUpScreen(
                             focusedTextColor = Color(0xFF0F172A),
                             unfocusedTextColor = Color(0xFF0F172A),
                             disabledTextColor = Color(0xFF64748B),
-                            errorTextColor = Color(0xFFDC2626),
+                            errorTextColor = KbError,
                             focusedContainerColor = Color(0xFFF5F3FF),
                             unfocusedContainerColor = Color(0xFFF5F3FF),
                             disabledContainerColor = Color(0xFFF5F3FF),
@@ -296,16 +296,16 @@ fun SignUpScreen(
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
                             errorIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFFF97316)
+                            cursorColor = KbBrandSaffron
                         ),
                         singleLine = true,
                         isError = (shopName.isNotEmpty() && !isShopNameValid) || fieldError("name", "shopName") != null,
                         supportingText = {
                             val err = fieldError("name", "shopName")
                             if (err != null) {
-                                Text(err, color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                                Text(err, color = KbError, style = MaterialTheme.typography.labelSmall)
                             } else if (shopName.isNotEmpty() && !isShopNameValid) {
-                                Text("Shop name must be at least 2 characters", color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                                Text("Shop name must be at least 2 characters", color = KbError, style = MaterialTheme.typography.labelSmall)
                             }
                         },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -362,7 +362,7 @@ fun SignUpScreen(
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
                                     strokeWidth = 2.dp,
-                                    color = Color(0xFFF97316)
+                                    color = KbBrandSaffron
                                 )
                             } else if (!otpSent || otpTimer == 0) {
                                 Button(
@@ -373,7 +373,7 @@ fun SignUpScreen(
                                     },
                                     modifier = Modifier.padding(end = 4.dp).height(36.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFF97316),
+                                        containerColor = KbBrandSaffron,
                                         disabledContainerColor = Color(0xFFCBD5E1)
                                     ),
                                     shape = RoundedCornerShape(18.dp),
@@ -389,7 +389,7 @@ fun SignUpScreen(
                             } else {
                                 Text(
                                     text = "Sent",
-                                    color = Color(0xFF22C55E),
+                                    color = KbWhatsAppGreen,
                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                     modifier = Modifier.padding(end = 16.dp)
                                 )
@@ -404,7 +404,7 @@ fun SignUpScreen(
                             focusedTextColor = Color(0xFF0F172A),
                             unfocusedTextColor = Color(0xFF0F172A),
                             disabledTextColor = Color(0xFF64748B),
-                            errorTextColor = Color(0xFFDC2626),
+                            errorTextColor = KbError,
                             focusedContainerColor = Color(0xFFF5F3FF),
                             unfocusedContainerColor = Color(0xFFF5F3FF),
                             disabledContainerColor = Color(0xFFF5F3FF),
@@ -413,18 +413,18 @@ fun SignUpScreen(
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
                             errorIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFFF97316)
+                            cursorColor = KbBrandSaffron
                         ),
                         singleLine = true,
                         isError = (phoneNumber.isNotEmpty() && !isPhoneValid) || userExistsError != null || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
                         supportingText = {
                             val backendFieldError = fieldError("phoneNumber", "loginId", "whatsappNumber")
                             if (backendFieldError != null) {
-                                Text(backendFieldError, color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                                Text(backendFieldError, color = KbError, style = MaterialTheme.typography.labelSmall)
                             } else if (userExistsError != null) {
-                                Text(userExistsError.orEmpty(), color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                                Text(userExistsError.orEmpty(), color = KbError, style = MaterialTheme.typography.labelSmall)
                             } else if (phoneNumber.isNotEmpty() && !isPhoneValid) {
-                                Text("Enter a valid 10-digit number", color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                                Text("Enter a valid 10-digit number", color = KbError, style = MaterialTheme.typography.labelSmall)
                             }
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
@@ -455,8 +455,7 @@ fun SignUpScreen(
                         if (otpError != null) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = otpError,
-                                color = Color(0xFFDC2626),
+                                text = otpError, color = KbError,
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -478,7 +477,7 @@ fun SignUpScreen(
                             
                             Text(
                                 text = resendText,
-                                color = if (otpTimer > 0) Color(0xFF94A3B8) else Color(0xFF7C3AED),
+                                color = if (otpTimer > 0) Color(0xFF94A3B8) else KbPurpleAccent,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 modifier = Modifier
                                     .clickable(enabled = otpTimer == 0 && !isLoading) {
@@ -487,8 +486,7 @@ fun SignUpScreen(
                             )
 
                             Text(
-                                text = "Change number?",
-                                color = Color(0xFFF97316),
+                                text = "Change number?", color = KbBrandSaffron,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 modifier = Modifier
                                     .clickable(enabled = !isLoading) { otpSent = false }
@@ -532,7 +530,7 @@ fun SignUpScreen(
                             focusedTextColor = Color(0xFF0F172A),
                             unfocusedTextColor = Color(0xFF0F172A),
                             disabledTextColor = Color(0xFF64748B),
-                            errorTextColor = Color(0xFFDC2626),
+                            errorTextColor = KbError,
                             focusedContainerColor = Color(0xFFF5F3FF),
                             unfocusedContainerColor = Color(0xFFF5F3FF),
                             disabledContainerColor = Color(0xFFF5F3FF),
@@ -541,16 +539,16 @@ fun SignUpScreen(
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
                             errorIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFFF97316)
+                            cursorColor = KbBrandSaffron
                         ),
                         singleLine = true,
                         isError = (newPassword.isNotEmpty() && !isPasswordValid) || fieldError("password") != null,
                         supportingText = {
                             val backendFieldError = fieldError("password")
                             if (backendFieldError != null) {
-                                Text(backendFieldError, color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                                Text(backendFieldError, color = KbError, style = MaterialTheme.typography.labelSmall)
                             } else if (newPassword.isNotEmpty() && !isPasswordValid) {
-                                Text("Min 8 chars, uppercase, digit & special character", color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                                Text("Min 8 chars, uppercase, digit & special character", color = KbError, style = MaterialTheme.typography.labelSmall)
                             }
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
@@ -590,7 +588,7 @@ fun SignUpScreen(
                             focusedTextColor = Color(0xFF0F172A),
                             unfocusedTextColor = Color(0xFF0F172A),
                             disabledTextColor = Color(0xFF64748B),
-                            errorTextColor = Color(0xFFDC2626),
+                            errorTextColor = KbError,
                             focusedContainerColor = Color(0xFFF5F3FF),
                             unfocusedContainerColor = Color(0xFFF5F3FF),
                             disabledContainerColor = Color(0xFFF5F3FF),
@@ -599,13 +597,13 @@ fun SignUpScreen(
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
                             errorIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFFF97316)
+                            cursorColor = KbBrandSaffron
                         ),
                         singleLine = true,
                         isError = confirmPassword.isNotEmpty() && confirmPassword != newPassword,
                         supportingText = {
                             if (confirmPassword.isNotEmpty() && confirmPassword != newPassword) {
-                                Text("Passwords do not match", color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                                Text("Passwords do not match", color = KbError, style = MaterialTheme.typography.labelSmall)
                             }
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
@@ -623,7 +621,7 @@ fun SignUpScreen(
                             checked = agreedToTerms,
                             onCheckedChange = { agreedToTerms = it },
                             colors = CheckboxDefaults.colors(
-                                checkedColor = Color(0xFF7C3AED),
+                                checkedColor = KbPurpleAccent,
                                 uncheckedColor = Color(0xFFCBD5E1),
                                 checkmarkColor = Color.White
                             )
@@ -633,13 +631,13 @@ fun SignUpScreen(
                         val annotatedString = buildAnnotatedString {
                             append("I agree to ")
                             pushStringAnnotation(tag = "URL", annotation = "https://khanabook.com/legal-privacy.html")
-                            withStyle(style = SpanStyle(color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)) {
+                            withStyle(style = SpanStyle(color = KbPurpleAccent, fontWeight = FontWeight.Bold)) {
                                 append("Terms")
                             }
                             pop()
                             append(" & ")
                             pushStringAnnotation(tag = "URL", annotation = "https://khanabook.com/legal-privacy.html")
-                            withStyle(style = SpanStyle(color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)) {
+                            withStyle(style = SpanStyle(color = KbPurpleAccent, fontWeight = FontWeight.Bold)) {
                                 append("Privacy Policy")
                             }
                             pop()
@@ -702,7 +700,7 @@ fun SignUpScreen(
                             .fillMaxWidth()
                             .height(52.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFormFilled) Color(0xFFF97316) else Color(0xFFCBD5E1),
+                            containerColor = if (isFormFilled) KbBrandSaffron else Color(0xFFCBD5E1),
                             contentColor = Color.White,
                             disabledContainerColor = Color(0xFFCBD5E1),
                             disabledContentColor = Color.White.copy(alpha = 0.6f)
@@ -738,7 +736,7 @@ fun SignUpScreen(
                         )
                         Text(
                             text = "Sign In",
-                            color = Color(0xFFF97316),
+                            color = KbBrandSaffron,
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.clickable { onLoginClick() }
                         )

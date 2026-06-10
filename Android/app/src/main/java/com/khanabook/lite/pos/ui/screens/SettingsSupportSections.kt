@@ -135,7 +135,7 @@ fun AboutAppView() {
 
                 Text(
                     "Restaurant POS & Management",
-                    color = Color(0xFFA78BFA),
+                    color = KbLavender,
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
                     textAlign = TextAlign.Center
                 )
@@ -149,8 +149,8 @@ fun AboutAppView() {
                 ) {
                     Box(
                         modifier = Modifier
-                            .background(Color(0xFF7C3AED).copy(alpha = 0.30f), RoundedCornerShape(50))
-                            .border(1.dp, Color(0xFF7C3AED).copy(alpha = 0.50f), RoundedCornerShape(50))
+                            .background(KbPurpleAccent.copy(alpha = 0.30f), RoundedCornerShape(50))
+                            .border(1.dp, KbPurpleAccent.copy(alpha = 0.50f), RoundedCornerShape(50))
                             .padding(horizontal = 14.dp, vertical = 5.dp)
                     ) {
                         Text(
@@ -370,8 +370,8 @@ fun HelpSupportView(searchQuery: String) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 SupportActionCard(
                     icon         = Icons.Default.ChatBubble,
-                    iconBg       = Color(0xFF7C3AED).copy(alpha = 0.18f),
-                    iconTint     = Color(0xFFA78BFA),
+                    iconBg       = KbPurpleAccent.copy(alpha = 0.18f),
+                    iconTint     = KbLavender,
                     title        = "Live Chat",
                     subtitle     = "Avg reply 5 min",
                     modifier     = Modifier.weight(1f),

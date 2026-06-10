@@ -116,7 +116,7 @@ fun SplashScreen(
 
                 Text(
                     text = "Restaurant POS & Management",
-                    color = Color(0xFFA78BFA), // Lavender — matches Login/SignUp
+                    color = KbLavender,
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
                     textAlign = TextAlign.Center
                 )
@@ -128,7 +128,7 @@ fun SplashScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 48.dp),
-            color = Color(0xFFF97316), // Saffron
+            color = KbBrandSaffron,
             strokeWidth = 3.dp
         )
     }

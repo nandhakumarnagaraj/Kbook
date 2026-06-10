@@ -545,7 +545,7 @@ private fun OrderCard(
             ),
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -574,15 +574,13 @@ private fun OrderCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "#KB-${row.dailyNo}",
-                        color = Color(0xFF1F2937),
+                        text = "#KB-${row.dailyNo}", color = MaterialTheme.kbTextPrimary,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${row.payMode.displayLabel} · INV${row.lifetimeNo}",
-                        color = Color(0xFF6B7280),
+                        text = "${row.payMode.displayLabel} · INV${row.lifetimeNo}", color = MaterialTheme.kbTextSecondary,
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

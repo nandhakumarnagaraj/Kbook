@@ -1062,11 +1062,11 @@ private fun DetailRowLight(label: String, value: String, isStatus: Boolean = fal
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, color = Color(0xFF6B7280), style = MaterialTheme.typography.bodyMedium)
+        Text(text = label, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
         if (isStatus) {
             OrderStatusChip(status)
         } else {
-            Text(text = value, color = Color(0xFF1F2937), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+            Text(text = value, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
         }
     }
 }
@@ -1180,7 +1180,7 @@ fun OrderDetailsDialog(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = Color.White),
-                            border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
@@ -1198,19 +1198,19 @@ fun OrderDetailsDialog(
                                     ) {
                                         Text(
                                             text = "${item.quantity}×  ${item.itemName}",
-                                            color = Color(0xFF1F2937),
+                                            color = MaterialTheme.kbTextPrimary,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                         Text(
                                             text = CurrencyUtils.formatPrice(item.itemTotal),
-                                            color = Color(0xFF1F2937),
+                                            color = MaterialTheme.kbTextPrimary,
                                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                                         )
                                     }
                                 }
 
                                 Spacer(modifier = Modifier.height(8.dp))
-                                HorizontalDivider(color = Color(0xFFE5E7EB), thickness = 1.dp)
+                                HorizontalDivider(color = MaterialTheme.kbOutlineSubtle, thickness = 1.dp)
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 val subtotalVal = bill.subtotal.toDoubleOrNull() ?: 0.0
@@ -1231,7 +1231,7 @@ fun OrderDetailsDialog(
                                 ) {
                                     Text(
                                         "Total",
-                                        color = Color(0xFF1F2937),
+                                        color = MaterialTheme.kbTextPrimary,
                                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                     )
                                     Text(
@@ -1249,7 +1249,7 @@ fun OrderDetailsDialog(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = Color.White),
-                            border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {

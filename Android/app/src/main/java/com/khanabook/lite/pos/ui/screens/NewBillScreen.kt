@@ -649,7 +649,7 @@ fun MenuSelectionStep(
                             Text(
                                 category.name,
                                 modifier = Modifier.padding(horizontal = spacing.medium, vertical = 6.dp),
-                                color = if (isSelected) Color.White else Color(0xFF6B7280),
+                                color = if (isSelected) Color.White else MaterialTheme.kbTextSecondary,
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )
@@ -708,7 +708,7 @@ fun MenuSelectionStep(
                                 containerColor = if (itemAvailable) Color.White else Color.White.copy(alpha = 0.7f)
                             ),
                             shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                         ) {
                             Row(
@@ -721,7 +721,7 @@ fun MenuSelectionStep(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         item.name,
-                                        color = if (itemAvailable) Color(0xFF1F2937) else Color(0xFF6B7280),
+                                        color = if (itemAvailable) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary,
                                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -1131,7 +1131,7 @@ fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
             // Count
             Text(
                 text = "$quantity",
-                color = Color(0xFF1F2937),
+                color = MaterialTheme.kbTextPrimary,
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.widthIn(min = 20.dp),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center

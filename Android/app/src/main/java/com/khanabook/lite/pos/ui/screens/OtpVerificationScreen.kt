@@ -46,10 +46,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.R
-import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
-import com.khanabook.lite.pos.ui.theme.KbError
-import com.khanabook.lite.pos.ui.theme.KbPurpleAccent
-import com.khanabook.lite.pos.ui.theme.kbHeaderGradient
+import com.khanabook.lite.pos.ui.theme.*
 
 // ── OTP Input Row (reusable 6-digit boxes) ───────────────────────────────────
 @Composable
@@ -181,7 +178,7 @@ fun PurpleGradientHeader(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = subtitle,
-                    color = Color(0xFFA78BFA),
+                    color = KbLavender,
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
                     textAlign = TextAlign.Center
                 )

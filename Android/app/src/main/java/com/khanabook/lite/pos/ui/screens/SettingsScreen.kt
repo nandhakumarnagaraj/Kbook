@@ -160,7 +160,7 @@ fun SettingsScreen(
                             value = helpSearchQuery,
                             onValueChange = { helpSearchQuery = it },
                             textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
-                            cursorBrush = SolidColor(Color(0xFFF97316)),
+                            cursorBrush = SolidColor(KbBrandSaffron),
                             singleLine = true,
                             decorationBox = { inner ->
                                 Box(modifier = Modifier.fillMaxWidth()) {
