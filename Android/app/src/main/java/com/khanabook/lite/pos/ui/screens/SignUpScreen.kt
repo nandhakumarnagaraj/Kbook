@@ -148,58 +148,67 @@ fun SignUpScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header: Midnight Purple Gradient Area
+            // Header: Midnight Purple Gradient Area (Toolbar Style)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(270.dp)
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
                         )
-                    ),
-                contentAlignment = Alignment.Center
+                    )
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    // White card containing Logo
-                    Card(
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        modifier = Modifier.size(100.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                    // Toolbar Row: Logo + KhanaBook + Subtitle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Image(
-                                painter = painterResource(id = R.drawable.khanabook_logo),
-                                contentDescription = "KhanaBook logo",
-                                modifier = Modifier.size(68.dp)
+                        // Small premium white rounded card for logo
+                        Card(
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            modifier = Modifier.size(40.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.khanabook_logo),
+                                    contentDescription = "KhanaBook logo",
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column {
+                            Text(
+                                text = "KhanaBook",
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp
+                                )
+                            )
+                            Text(
+                                text = "Restaurant POS & Management",
+                                color = Color(0xFFA78BFA),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Normal
+                                )
                             )
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Text(
-                        text = "KhanaBook",
-                        color = Color.White,
-                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 32.sp),
-                        textAlign = TextAlign.Center
-                    )
-                    
-                    Spacer(modifier = Modifier.height(6.dp))
-                    
-                    Text(
-                        text = "Restaurant POS & Management",
-                        color = Color(0xFFA78BFA), // Lavender text
-                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                        textAlign = TextAlign.Center
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Floating security status row
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
