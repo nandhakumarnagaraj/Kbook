@@ -30,7 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
+import com.khanabook.lite.pos.ui.theme.*
 
 @Composable
 fun KhanaBookScreenScaffold(
@@ -73,7 +73,7 @@ fun KhanaBookScreenScaffold(
                     Box(
                         modifier = Modifier
                             .size(36.dp)
-                            .background(Color(0xFF2C2448), CircleShape)
+                            .background(Color(0xFF1A1230), CircleShape)
                             .clickable { onBack() },
                         contentAlignment = Alignment.Center
                     ) {

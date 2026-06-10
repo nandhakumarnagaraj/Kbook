@@ -145,7 +145,7 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFF2C2448))
+                            .background(Color(0xFF1A1230))
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -185,7 +185,7 @@ fun SettingsScreen(
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .background(Color(0xFF2C2448), CircleShape),
+                                .background(Color(0xFF1A1230), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(

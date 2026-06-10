@@ -613,9 +613,9 @@ fun ChangePasswordView(
                     .fillMaxWidth()
                     .height(52.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isFormValid) KbPurpleAccent else Color(0xFFCBD5E1),
+                    containerColor = if (isFormValid) KbBrandSaffron else MaterialTheme.kbOutlineSubtle,
                     contentColor = Color.White,
-                    disabledContainerColor = Color(0xFFCBD5E1),
+                    disabledContainerColor = MaterialTheme.kbOutlineSubtle,
                     disabledContentColor = Color.White.copy(alpha = 0.6f)
                 ),
                 shape = RoundedCornerShape(16.dp),
@@ -648,7 +648,7 @@ private fun RequirementRow(checked: Boolean, text: String) {
         Icon(
             imageVector = Icons.Outlined.CheckCircle,
             contentDescription = null,
-            tint = if (checked) KbWhatsAppGreen else Color(0xFFCBD5E1),
+            tint = if (checked) KbSuccess else MaterialTheme.kbOutlineSubtle,
             modifier = Modifier.size(16.dp)
         )
         Text(

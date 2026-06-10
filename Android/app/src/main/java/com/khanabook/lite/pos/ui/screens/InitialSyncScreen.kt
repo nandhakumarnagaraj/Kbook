@@ -97,11 +97,12 @@ private fun SyncContentPurple(syncRotation: Float, spacing: Spacing) {
         Spacer(modifier = Modifier.height(spacing.huge))
 
         // Circular progress arc — saffron on dark
+        val trackColor = Color(0xFF1A1230)
         Box(contentAlignment = Alignment.Center) {
             Canvas(modifier = Modifier.size(180.dp)) {
                 val strokeWidth = 10.dp.toPx()
                 drawArc(
-                    color = Color(0xFF2A2040),
+                    color = trackColor,
                     startAngle = -90f,
                     sweepAngle = 360f,
                     useCenter = false,
@@ -190,7 +191,7 @@ private fun SyncStepItemPurple(text: String, state: SyncStepState, syncRotation:
                 Box(
                     modifier = Modifier
                         .size(24.dp)
-                        .border(2.dp, Color(0xFF4A4458), CircleShape)
+                        .border(2.dp, MaterialTheme.kbOutlineSubtle, CircleShape)
                 )
             }
         }
