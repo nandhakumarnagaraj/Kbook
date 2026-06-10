@@ -116,7 +116,7 @@ fun ParchmentTextField(
         modifier = modifier.fillMaxWidth(),
         trailingIcon = trailingIcon,
         isError = isError,
-        supportingText = supportingText?.let { { Text(it, color = DangerRed, style = MaterialTheme.typography.labelSmall) } },
+        supportingText = supportingText?.let { { Text(it, color = KbError, style = MaterialTheme.typography.labelSmall) } },
         singleLine = singleLine,
         keyboardOptions = keyboardOptions,
         enabled = enabled,

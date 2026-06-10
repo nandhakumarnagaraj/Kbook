@@ -877,7 +877,7 @@ fun PartPaymentCard(
         shape = RoundedCornerShape(8.dp)
     ) {
         Column(modifier = Modifier.padding(spacing.small)) {
-            Text("$label | ${CurrencyUtils.formatPrice(totalAmount)}", color = VegGreen, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+            Text("$label | ${CurrencyUtils.formatPrice(totalAmount)}", color = KbSuccess, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
             Spacer(modifier = Modifier.height(spacing.hairline))
             Text(
                 "${CurrencyUtils.formatPrice(part1Amount)} ($part1Label) + ${CurrencyUtils.formatPrice(part2Amount)} ($part2Label)",

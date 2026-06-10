@@ -872,8 +872,8 @@ private fun ConflictResolutionDialog(
         }
         OutlinedButton(
             onClick = onMergeAndSkip,
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = SuccessGreen),
-            border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.7f)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = KbSuccess),
+            border = BorderStroke(1.dp, KbSuccess.copy(alpha = 0.7f)),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp)
@@ -968,14 +968,14 @@ fun DraftItemRow(
                 Box(
                     modifier = Modifier
                         .size(14.dp)
-                        .border(1.dp, if (draft.foodType == "veg") VegGreen else KbError, RoundedCornerShape(2.dp))
+                        .border(1.dp, if (draft.foodType == "veg") KbSuccess else KbError, RoundedCornerShape(2.dp))
                         .padding(2.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
                             .size(6.dp)
-                            .background(if (draft.foodType == "veg") VegGreen else KbError, CircleShape)
+                            .background(if (draft.foodType == "veg") KbSuccess else KbError, CircleShape)
                     )
                 }
             }
@@ -1927,7 +1927,7 @@ fun ItemEditDialog(
                         RadioButton(
                             selected = foodType == "veg",
                             onClick = { foodType = "veg" },
-                            colors = RadioButtonDefaults.colors(selectedColor = VegGreen)
+                            colors = RadioButtonDefaults.colors(selectedColor = KbSuccess)
                         )
                         Text("Veg", color = MaterialTheme.kbTextPrimary)
                     }

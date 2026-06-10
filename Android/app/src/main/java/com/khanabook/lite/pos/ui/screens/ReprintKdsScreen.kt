@@ -169,7 +169,7 @@ fun ReprintKdsScreen(
                     colors = outlinedSearchFieldColors()
                 )
                 if (showDailyIdError) {
-                    Text("Please enter numbers only", color = DangerRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
+                    Text("Please enter numbers only", color = KbError, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
                 }
 
                 Spacer(modifier = Modifier.height(spacing.medium))
@@ -218,7 +218,7 @@ fun ReprintKdsScreen(
                     colors = outlinedSearchFieldColors()
                 )
                 if (showInvoiceError) {
-                    Text("Please enter numbers only", color = DangerRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
+                    Text("Please enter numbers only", color = KbError, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
                 }
 
                 Spacer(modifier = Modifier.height(spacing.medium))
@@ -321,12 +321,12 @@ private fun KdsBillCard(
                         )
                     }
                     Surface(
-                        color = DangerRed.copy(alpha = 0.15f),
+                        color = KbError.copy(alpha = 0.15f),
                         shape = CircleShape
                     ) {
                         Text(
                             text = "KDS PENDING",
-                            color = DangerRed,
+                            color = KbError,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)

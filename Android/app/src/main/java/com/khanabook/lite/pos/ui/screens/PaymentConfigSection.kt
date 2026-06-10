@@ -50,7 +50,7 @@ import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
 import com.khanabook.lite.pos.ui.theme.kbPrimary
 import com.khanabook.lite.pos.ui.theme.kbSecondary
 import com.khanabook.lite.pos.ui.theme.kbTextSecondary
-import com.khanabook.lite.pos.ui.theme.SuccessGreen
+import com.khanabook.lite.pos.ui.theme.KbSuccess
 import com.khanabook.lite.pos.ui.theme.SwiggyOrange
 import com.khanabook.lite.pos.ui.theme.ZomatoRed
 import androidx.compose.runtime.rememberCoroutineScope
@@ -153,7 +153,7 @@ fun PaymentConfigView(
                         )?.let { onSave(it) }
                     },
                     modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                    colors = ButtonDefaults.buttonColors(containerColor = KbSuccess),
                     shape = RoundedCornerShape(24.dp)
                 ) { Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium) }
                 OutlinedButton(
@@ -178,7 +178,7 @@ fun PaymentToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) ->
         KhanaBookSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            checkedTrackColor = SuccessGreen
+            checkedTrackColor = KbSuccess
         )
     }
 }
@@ -200,7 +200,7 @@ fun PlatformToggle(label: String, enabled: Boolean, onOpenDashboard: () -> Unit)
                 checked = enabled,
                 onCheckedChange = {},
                 enabled = false,
-                checkedTrackColor = SuccessGreen
+                checkedTrackColor = KbSuccess
             )
             Spacer(modifier = Modifier.size(spacing.small))
             Icon(

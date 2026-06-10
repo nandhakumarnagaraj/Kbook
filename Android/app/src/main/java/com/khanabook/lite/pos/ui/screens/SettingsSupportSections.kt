@@ -737,7 +737,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                 if (isPinEnabled) { appLockViewModel.clearPin(); showPinDialog = true }
                 else viewModel.forceLogoutDespiteWarning()
             }) {
-                Text(if (isPinEnabled) "Enter PIN" else "Logout Anyway", color = DangerRed)
+                Text(if (isPinEnabled) "Enter PIN" else "Logout Anyway", color = KbError)
             }
         }
     }
@@ -778,7 +778,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                 Text("Cancel", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelLarge)
             }
             TextButton(onClick = { showConfirmDialog = false; viewModel.initiateLogout() }) {
-                Text("Sign Out", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                Text("Sign Out", color = KbError, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
             }
         }
     }

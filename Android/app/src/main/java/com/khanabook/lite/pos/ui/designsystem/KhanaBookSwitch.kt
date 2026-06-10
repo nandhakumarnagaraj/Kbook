@@ -18,7 +18,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.ui.theme.KbGray300
 import com.khanabook.lite.pos.ui.theme.KbGray500
-import com.khanabook.lite.pos.ui.theme.VegGreen
+import com.khanabook.lite.pos.ui.theme.KbSuccess
 
 /**
  * KhanaBook custom switch.
@@ -35,7 +35,7 @@ fun KhanaBookSwitch(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    checkedTrackColor: Color = VegGreen,
+    checkedTrackColor: Color = KbSuccess,
     uncheckedTrackColor: Color = KbGray500,
     checkedThumbColor: Color = Color.White,
     uncheckedThumbColor: Color = KbGray300

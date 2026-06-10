@@ -387,7 +387,7 @@ fun SearchScreen(
                             Surface(
                                 color = if (currentResult.bill.paymentStatus == "success")
                                     KbSuccess.copy(alpha = 0.1f)
-                                else DangerRed.copy(alpha = 0.1f),
+                                else KbError.copy(alpha = 0.1f),
                                 shape = CircleShape
                             ) {
                                 Text(

@@ -759,7 +759,7 @@ fun HomeActionCard(
                     if (badgeCount > 0) {
                         Text(
                             text = "$badgeCount pending",
-                            color = WarningYellow,
+                            color = KbWarning,
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
@@ -771,7 +771,7 @@ fun HomeActionCard(
                         modifier = Modifier
                             .padding(end = spacing.small)
                             .size(28.dp)
-                            .background(DangerRed, CircleShape),
+                            .background(KbError, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -865,7 +865,7 @@ fun HomeActionGridCard(
                             .align(Alignment.TopEnd)
                             .padding(end = spacing.small)
                             .size(24.dp)
-                            .background(DangerRed, CircleShape),
+                            .background(KbError, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(

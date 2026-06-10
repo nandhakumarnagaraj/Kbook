@@ -20,7 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.khanabook.lite.pos.ui.theme.DangerRed
+import com.khanabook.lite.pos.ui.theme.KbError
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.theme.KhanaShapes
 import com.khanabook.lite.pos.ui.theme.kbOutlineBold
@@ -80,11 +80,11 @@ fun KhanaBookInputField(
         focusedBorderColor   = primary,
         unfocusedBorderColor = borderIdle,
         disabledBorderColor  = borderIdle.copy(alpha = 0.5f),
-        errorBorderColor     = DangerRed,
+        errorBorderColor     = KbError,
         focusedLabelColor   = primary,
         unfocusedLabelColor = textMuted,
         disabledLabelColor  = textDisabled,
-        errorLabelColor     = DangerRed,
+        errorLabelColor     = KbError,
         focusedTextColor   = textPrimary,
         unfocusedTextColor = textPrimary,
         disabledTextColor  = textDisabled,
@@ -93,11 +93,11 @@ fun KhanaBookInputField(
         focusedLeadingIconColor   = primary,
         unfocusedLeadingIconColor = textMuted,
         disabledLeadingIconColor  = textDisabled,
-        errorLeadingIconColor     = DangerRed,
+        errorLeadingIconColor     = KbError,
         focusedTrailingIconColor   = primary,
         unfocusedTrailingIconColor = textMuted,
         disabledTrailingIconColor  = textDisabled,
-        errorTrailingIconColor     = DangerRed
+        errorTrailingIconColor     = KbError
     )
 
     CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {

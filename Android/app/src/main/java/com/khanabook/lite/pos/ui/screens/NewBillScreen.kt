@@ -1964,7 +1964,7 @@ fun VariantPickerDialog(
 @Composable
 fun FoodTypeIcon(type: String) {
     val isVeg = type == "veg"
-    val color = if (isVeg) KbSuccess else NonVegRed
+    val color = if (isVeg) KbSuccess else KbError
     // Content description tells screen readers whether the item is veg or non-veg
     // so the distinction is not conveyed by colour alone.
     // Shape differentiation: veg → circle, non-veg → rounded square (diamond-like indicator)

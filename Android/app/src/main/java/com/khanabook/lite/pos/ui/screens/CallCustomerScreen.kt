@@ -311,7 +311,7 @@ fun CallCustomerScreen(
                                 },
                                 enabled = currentResult.bill.customerWhatsapp != null,
                                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                                colors = ButtonDefaults.buttonColors(containerColor = KbSuccess),
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
                         ) {
                             Icon(Icons.Default.Call, contentDescription = null, tint = Color.White)

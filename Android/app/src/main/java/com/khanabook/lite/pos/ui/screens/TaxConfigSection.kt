@@ -37,8 +37,7 @@ import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.SuccessGreen
-import com.khanabook.lite.pos.ui.theme.VegGreen
+import com.khanabook.lite.pos.ui.theme.KbSuccess
 import com.khanabook.lite.pos.ui.theme.kbPrimary
 import com.khanabook.lite.pos.ui.theme.kbSecondary
 
@@ -110,7 +109,7 @@ fun TaxConfigView(
                         onApplyLookup(result)
                         onClearLookup()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen)
+                    colors = ButtonDefaults.buttonColors(containerColor = KbSuccess)
                 ) { Text("Apply", color = Color.White) }
             },
             dismissButton = {
@@ -166,7 +165,7 @@ fun TaxConfigView(
                 KhanaBookSwitch(
                     checked = gstEnabled,
                     onCheckedChange = { gstEnabled = it },
-                    checkedTrackColor = VegGreen
+                    checkedTrackColor = KbSuccess
                 )
             }
             if (gstEnabled) {
@@ -258,7 +257,7 @@ fun TaxConfigView(
                         )?.let { onSave(it) }
                     },
                     modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                    colors = ButtonDefaults.buttonColors(containerColor = KbSuccess),
                     shape = RoundedCornerShape(24.dp),
                     enabled = isSaveEnabled
                 ) { Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium) }
