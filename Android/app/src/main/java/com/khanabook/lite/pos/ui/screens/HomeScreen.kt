@@ -205,164 +205,335 @@ fun HomeScreen(
                     }
                 }
             }
+            val isWideScreen = !KhanaBookTheme.layout.isCompact
 
-            AnimatedVisibility(visible = statsVisible, enter = enterSpec, exit = exitSpec) {
-                Column(
+            if (isWideScreen) {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Today's Summary",
-                        color = MaterialTheme.kbTextSecondary,
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 0.6.sp
+                    AnimatedVisibility(
+                        visible = statsVisible,
+                        enter = enterSpec,
+                        exit = exitSpec,
+                        modifier = Modifier.weight(1.2f)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                text = "Today's Summary",
+                                color = MaterialTheme.kbTextSecondary,
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.6.sp
+                                )
+                            )
+                            if (!statsReady || (stats.orderCount == 0 && stats.revenue == 0.0)) {
+                                TodaySummaryEmpty(onNewBill = onNewBill)
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    MetricCard(
+                                        value = stats.orderCount.toString(),
+                                        label = "Total Orders",
+                                        badge = "today",
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    MetricCard(
+                                        value = CurrencyUtils.formatPriceCompact(stats.revenue),
+                                        label = "Revenue",
+                                        badge = "today",
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    MetricCard(
+                                        value = CurrencyUtils.formatPriceCompact(
+                                            if (stats.orderCount > 0) stats.revenue / stats.orderCount else 0.0
+                                        ),
+                                        label = "Avg Order",
+                                        badge = "today",
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = actionsVisible,
+                        enter = enterSpec,
+                        exit = exitSpec,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(
+                                text = "Quick Actions",
+                                color = MaterialTheme.kbTextSecondary,
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.6.sp
+                                )
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Button(
+                                    onClick = onNewBill,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp),
+                                    shape = KbShape.Medium,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = KbBrandSaffron
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("New Bill", fontWeight = FontWeight.SemiBold)
+                                }
+                                OutlinedButton(
+                                    onClick = onSearchBill,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp),
+                                    shape = KbShape.Medium,
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = KbBrandSaffron
+                                    )
+                                ) {
+                                    Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Orders", fontWeight = FontWeight.SemiBold)
+                                }
+                                OutlinedButton(
+                                    onClick = onOrderStatus,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp),
+                                    shape = KbShape.Medium,
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = KbBrandSaffron
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Menu", fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+
+                            if (marketplacePendingCount > 0) {
+                                HomeActionCard(
+                                    text = "Online Orders",
+                                    onClick = onMarketplaceOrders,
+                                    badgeCount = marketplacePendingCount
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                HomeActionGridCard(
+                                    text = "Find Bill",
+                                    icon = Icons.Default.Search,
+                                    isPrimary = true,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = onSearchBill
+                                )
+                                HomeActionGridCard(
+                                    text = "Reprint KDS",
+                                    icon = Icons.Default.Restaurant,
+                                    isPrimary = false,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = onReprintKds
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                HomeActionGridCard(
+                                    text = "Order Status",
+                                    icon = Icons.Default.Info,
+                                    isPrimary = true,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = onOrderStatus
+                                )
+                                HomeActionGridCard(
+                                    text = "Call Customers",
+                                    icon = Icons.Default.Call,
+                                    isPrimary = false,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = onCallCustomer
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                AnimatedVisibility(visible = statsVisible, enter = enterSpec, exit = exitSpec) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Today's Summary",
+                            color = MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.6.sp
+                            )
                         )
-                    )
-                    if (!statsReady || (stats.orderCount == 0 && stats.revenue == 0.0)) {
-                        TodaySummaryEmpty(onNewBill = onNewBill)
-                    } else {
+                        if (!statsReady || (stats.orderCount == 0 && stats.revenue == 0.0)) {
+                            TodaySummaryEmpty(onNewBill = onNewBill)
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                MetricCard(
+                                    value = stats.orderCount.toString(),
+                                    label = "Total Orders",
+                                    badge = "today",
+                                    modifier = Modifier.weight(1f)
+                                )
+                                MetricCard(
+                                    value = CurrencyUtils.formatPriceCompact(stats.revenue),
+                                    label = "Revenue",
+                                    badge = "today",
+                                    modifier = Modifier.weight(1f)
+                                )
+                                MetricCard(
+                                    value = CurrencyUtils.formatPriceCompact(
+                                        if (stats.orderCount > 0) stats.revenue / stats.orderCount else 0.0
+                                    ),
+                                    label = "Avg Order",
+                                    badge = "today",
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Quick Actions",
+                            color = MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.6.sp
+                            )
+                        )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            MetricCard(
-                                value = stats.orderCount.toString(),
-                                label = "Total Orders",
-                                badge = "today",
-                                modifier = Modifier.weight(1f)
-                            )
-                            MetricCard(
-                                value = CurrencyUtils.formatPriceCompact(stats.revenue),
-                                label = "Revenue",
-                                badge = "today",
-                                modifier = Modifier.weight(1f)
-                            )
-                            MetricCard(
-                                value = CurrencyUtils.formatPriceCompact(
-                                    if (stats.orderCount > 0) stats.revenue / stats.orderCount else 0.0
-                                ),
-                                label = "Avg Order",
-                                badge = "today",
-                                modifier = Modifier.weight(1f)
-                            )
+                            Button(
+                                onClick = onNewBill,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = KbShape.Medium,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = KbBrandSaffron
+                                )
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("New Bill", fontWeight = FontWeight.SemiBold)
+                            }
+                            OutlinedButton(
+                                onClick = onSearchBill,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = KbShape.Medium,
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = KbBrandSaffron
+                                )
+                            ) {
+                                Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Orders", fontWeight = FontWeight.SemiBold)
+                            }
+                            OutlinedButton(
+                                onClick = onOrderStatus,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = KbShape.Medium,
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = KbBrandSaffron
+                                )
+                            ) {
+                                Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Menu", fontWeight = FontWeight.SemiBold)
+                            }
                         }
-                    }
-                }
-            }
 
-            AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Quick Actions",
-                        color = MaterialTheme.kbTextSecondary,
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 0.6.sp
-                        )
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Button(
-                            onClick = onNewBill,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
-                            shape = KbShape.Medium,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = KbBrandSaffron
+                        if (marketplacePendingCount > 0) {
+                            HomeActionCard(
+                                text = "Online Orders",
+                                onClick = onMarketplaceOrders,
+                                badgeCount = marketplacePendingCount
                             )
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("New Bill", fontWeight = FontWeight.SemiBold)
                         }
-                        OutlinedButton(
-                            onClick = onSearchBill,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
-                            shape = KbShape.Medium,
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = KbBrandSaffron
-                            )
-                        ) {
-                            Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Orders", fontWeight = FontWeight.SemiBold)
-                        }
-                        OutlinedButton(
-                            onClick = onOrderStatus,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
-                            shape = KbShape.Medium,
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = KbBrandSaffron
-                            )
-                        ) {
-                            Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Menu", fontWeight = FontWeight.SemiBold)
-                        }
-                    }
 
-                    if (marketplacePendingCount > 0) {
-                        HomeActionCard(
-                            text = "Online Orders",
-                            onClick = onMarketplaceOrders,
-                            badgeCount = marketplacePendingCount
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        HomeActionGridCard(
-                            text = "Find Bill",
-                            icon = Icons.Default.Search,
-                            isPrimary = true,
-                            modifier = Modifier.weight(1f),
-                            onClick = onSearchBill
-                        )
-                        HomeActionGridCard(
-                            text = "Reprint KDS",
-                            icon = Icons.Default.Restaurant,
-                            isPrimary = false,
-                            modifier = Modifier.weight(1f),
-                            onClick = onReprintKds
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        HomeActionGridCard(
-                            text = "Order Status",
-                            icon = Icons.Default.Info,
-                            isPrimary = true,
-                            modifier = Modifier.weight(1f),
-                            onClick = onOrderStatus
-                        )
-                        HomeActionGridCard(
-                            text = "Call Customers",
-                            icon = Icons.Default.Call,
-                            isPrimary = false,
-                            modifier = Modifier.weight(1f),
-                            onClick = onCallCustomer
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            HomeActionGridCard(
+                                text = "Find Bill",
+                                icon = Icons.Default.Search,
+                                isPrimary = true,
+                                modifier = Modifier.weight(1f),
+                                onClick = onSearchBill
+                            )
+                            HomeActionGridCard(
+                                text = "Reprint KDS",
+                                icon = Icons.Default.Restaurant,
+                                isPrimary = false,
+                                modifier = Modifier.weight(1f),
+                                onClick = onReprintKds
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            HomeActionGridCard(
+                                text = "Order Status",
+                                icon = Icons.Default.Info,
+                                isPrimary = true,
+                                modifier = Modifier.weight(1f),
+                                onClick = onOrderStatus
+                            )
+                            HomeActionGridCard(
+                                text = "Call Customers",
+                                icon = Icons.Default.Call,
+                                isPrimary = false,
+                                modifier = Modifier.weight(1f),
+                                onClick = onCallCustomer
+                            )
+                        }
                     }
                 }
             }

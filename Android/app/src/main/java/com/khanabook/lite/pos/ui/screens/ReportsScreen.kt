@@ -171,68 +171,140 @@ fun ReportsScreen(
                 }
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.medium),
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-            ) {
-                StatCard(
-                    label = "Total Sales",
-                    value = CurrencyUtils.formatPrice(totalSales),
-                    icon = Icons.Default.TrendingUp,
-                    iconTint = KbBrandSaffron,
-                    modifier = Modifier.weight(1f)
+            val isWideScreen = !KhanaBookTheme.layout.isCompact
+
+            if (isWideScreen) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                ) {
+                    // Left column: 2x2 stats grid + popular items
+                    Column(
+                        modifier = Modifier.weight(1.2f),
+                        verticalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                        ) {
+                            StatCard(
+                                label = "Total Sales",
+                                value = CurrencyUtils.formatPrice(totalSales),
+                                icon = Icons.Default.TrendingUp,
+                                iconTint = KbBrandSaffron,
+                                modifier = Modifier.weight(1f)
+                            )
+                            StatCard(
+                                label = "Order Count",
+                                value = "$orderCount",
+                                icon = Icons.Default.ShoppingCart,
+                                iconTint = KbBlue,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                        ) {
+                            StatCard(
+                                label = "Average Order",
+                                value = CurrencyUtils.formatPrice(avgOrder),
+                                icon = Icons.Default.Description,
+                                iconTint = KbSuccess,
+                                modifier = Modifier.weight(1f)
+                            )
+                            StatCard(
+                                label = "Cancel Rate",
+                                value = "%.1f%%".format(cancelRate),
+                                icon = Icons.Default.Close,
+                                iconTint = KbBrandRed,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        PopularItemsCard(
+                            orderLevelRows = orderLevelRows,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    // Right column: revenue chart card (taller on wide screens)
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        RevenueChartCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            chartHeight = 220.dp
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    StatCard(
+                        label = "Total Sales",
+                        value = CurrencyUtils.formatPrice(totalSales),
+                        icon = Icons.Default.TrendingUp,
+                        iconTint = KbBrandSaffron,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        label = "Order Count",
+                        value = "$orderCount",
+                        icon = Icons.Default.ShoppingCart,
+                        iconTint = KbBlue,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(spacing.small))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    StatCard(
+                        label = "Average Order",
+                        value = CurrencyUtils.formatPrice(avgOrder),
+                        icon = Icons.Default.Description,
+                        iconTint = KbSuccess,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        label = "Cancel Rate",
+                        value = "%.1f%%".format(cancelRate),
+                        icon = Icons.Default.Close,
+                        iconTint = KbBrandRed,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(spacing.small))
+
+                RevenueChartCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium)
                 )
-                StatCard(
-                    label = "Order Count",
-                    value = "$orderCount",
-                    icon = Icons.Default.ShoppingCart,
-                    iconTint = KbBlue,
-                    modifier = Modifier.weight(1f)
+
+                Spacer(modifier = Modifier.height(spacing.small))
+
+                PopularItemsCard(
+                    orderLevelRows = orderLevelRows,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium)
                 )
             }
-
-            Spacer(modifier = Modifier.height(spacing.small))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.medium),
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-            ) {
-                StatCard(
-                    label = "Average Order",
-                    value = CurrencyUtils.formatPrice(avgOrder),
-                    icon = Icons.Default.Description,
-                    iconTint = KbSuccess,
-                    modifier = Modifier.weight(1f)
-                )
-                StatCard(
-                    label = "Cancel Rate",
-                    value = "%.1f%%".format(cancelRate),
-                    icon = Icons.Default.Close,
-                    iconTint = KbBrandRed,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(spacing.small))
-
-            RevenueChartCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.medium)
-            )
-
-            Spacer(modifier = Modifier.height(spacing.small))
-
-            PopularItemsCard(
-                orderLevelRows = orderLevelRows,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = spacing.medium)
-            )
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -496,7 +568,8 @@ private fun StatCard(
 
 @Composable
 private fun RevenueChartCard(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    chartHeight: androidx.compose.ui.unit.Dp = 100.dp
 ) {
     val spacing = KhanaBookTheme.spacing
     val barData = remember {
@@ -533,7 +606,7 @@ private fun RevenueChartCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp),
+                    .height(chartHeight),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.Bottom
             ) {
@@ -545,7 +618,7 @@ private fun RevenueChartCard(
                         Box(
                             modifier = Modifier
                                 .width(16.dp)
-                                .height((80 * heightFraction).dp)
+                                .height((chartHeight.value * 0.8f * heightFraction).dp)
                                 .background(
                                     Brush.verticalGradient(
                                         listOf(KbBrandSaffron, KbBrandSaffron.copy(alpha = 0.3f))

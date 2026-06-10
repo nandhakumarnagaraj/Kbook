@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.background
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +36,17 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.navigation.NavController
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
+import com.khanabook.lite.pos.R
+
 @Composable
 fun MainScreen(
     initialTab: Int = 0,
@@ -58,6 +70,9 @@ fun MainScreen(
     }
     var showBottomBar by rememberSaveable { mutableStateOf(true) }
     val safeSelectedTabIndex = selectedTabIndex.coerceIn(0, (visibleTabs.lastIndex).coerceAtLeast(0))
+
+    val layout = KhanaBookTheme.layout
+    val isWideScreen = !layout.isCompact
 
     // Intercept back gesture to return to Home tab if not already there
     BackHandler(enabled = safeSelectedTabIndex != 0) {
@@ -106,16 +121,10 @@ fun MainScreen(
         }
     }
 
-    Scaffold(
-        // Opt out of automatic inset injection — safeDrawing can include gesture zones and
-        // display cutouts that exceed the bottomBar height on Android 16, causing double-counting.
-        // statusBarsPadding() on the content box and navigationBarsPadding() on the NavigationBar
-        // handle all insets explicitly instead.
-        contentWindowInsets = WindowInsets(0),
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
+    if (isWideScreen) {
+        Row(modifier = Modifier.fillMaxSize()) {
             if (showBottomBar) {
-                AppBottomBar(
+                AppNavigationRail(
                     visibleTabs = visibleTabs,
                     currentSelectedIndex = safeSelectedTabIndex,
                     onTabSelected = {
@@ -124,16 +133,92 @@ fun MainScreen(
                     }
                 )
             }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
+                content(Modifier.fillMaxSize())
+            }
         }
-    ) { padding ->
-        val density = LocalDensity.current
-        val isKeyboardOpen = WindowInsets.ime.getBottom(density) > 0
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = if (showBottomBar && !isKeyboardOpen) padding.calculateBottomPadding() else 0.dp)
-        ) {
-            content(Modifier.fillMaxSize())
+    } else {
+        Scaffold(
+            // Opt out of automatic inset injection — safeDrawing can include gesture zones and
+            // display cutouts that exceed the bottomBar height on Android 16, causing double-counting.
+            // statusBarsPadding() on the content box and navigationBarsPadding() on the NavigationBar
+            // handle all insets explicitly instead.
+            contentWindowInsets = WindowInsets(0),
+            containerColor = MaterialTheme.colorScheme.background,
+            bottomBar = {
+                if (showBottomBar) {
+                    AppBottomBar(
+                        visibleTabs = visibleTabs,
+                        currentSelectedIndex = safeSelectedTabIndex,
+                        onTabSelected = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            selectedTabIndex = it
+                        }
+                    )
+                }
+            }
+        ) { padding ->
+            val density = LocalDensity.current
+            val isKeyboardOpen = WindowInsets.ime.getBottom(density) > 0
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = if (showBottomBar && !isKeyboardOpen) padding.calculateBottomPadding() else 0.dp)
+            ) {
+                content(Modifier.fillMaxSize())
+            }
+        }
+    }
+}
+
+@Composable
+fun AppNavigationRail(
+    visibleTabs: List<TabItem>,
+    currentSelectedIndex: Int,
+    onTabSelected: (Int) -> Unit
+) {
+    val activeColor = KbBrandSaffron
+    val inactiveColor = MaterialTheme.kbTextDisabled
+
+    NavigationRail(
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.statusBarsPadding().navigationBarsPadding(),
+        header = {
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(Color.White, CircleShape)
+                    .padding(4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.khanabook_logo),
+                    contentDescription = "Logo",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    ) {
+        visibleTabs.forEachIndexed { index, item ->
+            NavigationRailItem(
+                selected = currentSelectedIndex == index,
+                onClick = { onTabSelected(index) },
+                icon = { Icon(item.icon, contentDescription = null) },
+                label = { Text(item.label, style = MaterialTheme.typography.labelSmall) },
+                colors = NavigationRailItemDefaults.colors(
+                    selectedIconColor = activeColor,
+                    unselectedIconColor = inactiveColor,
+                    selectedTextColor = activeColor,
+                    unselectedTextColor = inactiveColor,
+                    indicatorColor = activeColor.copy(alpha = 0.12f)
+                )
+            )
         }
     }
 }

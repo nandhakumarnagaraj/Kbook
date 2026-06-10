@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.model.OrderDetailRow
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
+import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.remote.dto.MerchantCustomerOrderDetailResponse
 import com.khanabook.lite.pos.data.remote.dto.MerchantCustomerOrderSummaryResponse
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
@@ -218,304 +219,644 @@ fun OrdersScreen(
         }
     }
 
+    val layout = KhanaBookTheme.layout
+    val isWideScreen = layout.isWideListDetail
+
+    // Auto-select first item on wide screen
+    LaunchedEffect(filteredRows, selectedSource) {
+        if (isWideScreen && selectedSource == "POS" && selectedBillId == null && filteredRows.isNotEmpty()) {
+            val firstRow = filteredRows.first()
+            selectedBillId = firstRow.billId
+            viewModel.loadBillDetails(firstRow.billId)
+        }
+    }
+    LaunchedEffect(onlineOrders, selectedSource) {
+        if (isWideScreen && selectedSource == "ONLINE" && onlineOrders.isNotEmpty() && selectedOnlineOrder == null) {
+            storefrontOrdersViewModel.loadOrder(onlineOrders.first().orderId)
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.kbBgPrimary)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = spacing.small)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.kbHeaderGradient)
-                    .statusBarsPadding()
-                    .padding(top = 8.dp, bottom = 12.dp)
-            ) {
-                AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
-                    Box(
+        if (isWideScreen) {
+            Row(modifier = Modifier.fillMaxSize()) {
+                // Left pane: List
+                Column(
+                    modifier = Modifier
+                        .weight(0.45f)
+                        .fillMaxHeight()
+                        .padding(bottom = spacing.small)
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = spacing.medium),
-                        contentAlignment = Alignment.CenterStart
+                            .background(MaterialTheme.kbHeaderGradient)
+                            .statusBarsPadding()
+                            .padding(top = 8.dp, bottom = 12.dp)
                     ) {
-                        IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = Color.White
-                            )
-                        }
-                        Text(
-                            text = "Orders",
-                            modifier = Modifier.align(Alignment.Center),
-                            color = Color.White,
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
-                }
-
-                AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
-                    Column {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = spacing.medium),
-                            horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                        ) {
-                            OrderFilterChip(
-                                label = "POS Orders",
-                                isSelected = selectedSource == "POS",
-                                onClick = { selectedSource = "POS" },
-                                modifier = Modifier.weight(1f)
-                            )
-                            OrderFilterChip(
-                                label = "Online Orders",
-                                isSelected = selectedSource == "ONLINE",
-                                onClick = {
-                                    val hasOnlineSetup = profile?.let {
-                                        it.easebuzzEnabled || it.zomatoEnabled || it.swiggyEnabled || it.ownWebsiteEnabled
-                                    } == true
-                                    if (hasOnlineSetup) {
-                                        selectedSource = "ONLINE"
-                                    } else {
-                                        scope.launch {
-                                            KhanaToast.show("Complete online setup in Payment Configuration first", ToastKind.Warning)
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(spacing.medium))
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = spacing.medium)
-                                .background(Color(0xFF0E0822).copy(alpha = 0.6f), RoundedCornerShape(10.dp))
-                                .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)), RoundedCornerShape(10.dp))
-                        ) {
-                            Row(
+                        AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(4.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly
+                                    .padding(horizontal = spacing.medium),
+                                contentAlignment = Alignment.CenterStart
                             ) {
-                                listOf("Daily", "Weekly", "Monthly", "Custom").forEach { title ->
+                                IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = Color.White
+                                    )
+                                }
+                                Text(
+                                    text = "Orders",
+                                    modifier = Modifier.align(Alignment.Center),
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+                        }
+
+                        AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+                            Column {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = spacing.medium),
+                                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                                ) {
                                     OrderFilterChip(
-                                        label = title,
-                                        isSelected = timeFilter == title,
+                                        label = "POS Orders",
+                                        isSelected = selectedSource == "POS",
+                                        onClick = { selectedSource = "POS" },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    OrderFilterChip(
+                                        label = "Online Orders",
+                                        isSelected = selectedSource == "ONLINE",
                                         onClick = {
-                                            if (title == "Custom") {
-                                                showDateRangePicker = true
+                                            val hasOnlineSetup = profile?.let {
+                                                it.easebuzzEnabled || it.zomatoEnabled || it.swiggyEnabled || it.ownWebsiteEnabled
+                                            } == true
+                                            if (hasOnlineSetup) {
+                                                selectedSource = "ONLINE"
                                             } else {
-                                                viewModel.setTimeFilter(title)
+                                                scope.launch {
+                                                    KhanaToast.show("Complete online setup in Payment Configuration first", ToastKind.Warning)
+                                                }
                                             }
                                         },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
-                            }
-                        }
-                    }
-                }
-            }
 
-            val isGstEnabled = profile?.gstEnabled == true
+                                Spacer(modifier = Modifier.height(spacing.medium))
 
-            if (selectedSource == "ONLINE") {
-                AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
-                    OnlineOrdersPane(
-                        orders = onlineOrders,
-                        isLoading = onlineLoading,
-                        isRefreshing = onlineRefreshing,
-                        error = onlineError,
-                        updatingOrderIds = onlineUpdatingOrderIds,
-                        onRefresh = { storefrontOrdersViewModel.loadOrders(forceRefresh = true) },
-                        onOrderClick = { storefrontOrdersViewModel.loadOrder(it) }
-                    )
-                }
-            } else if (isLoading) {
-                AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.medium)
-                    ) {
-                        Spacer(modifier = Modifier.height(spacing.small))
-                        repeat(6) {
-                            OrderCardSkeleton()
-                            Spacer(modifier = Modifier.height(spacing.small))
-                        }
-                    }
-                }
-            } else if (allRows.isEmpty()) {
-                AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.Description,
-                                contentDescription = null,
-                                tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.25f),
-                                modifier = Modifier.size(56.dp)
-                            )
-                            Spacer(Modifier.height(spacing.small))
-                            Text(
-                                "No orders in this period",
-                                color = MaterialTheme.kbTextSecondary.copy(alpha = 0.45f),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                }
-            } else {
-                AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        LazyRow(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = spacing.medium),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(horizontal = spacing.extraSmall)
-                        ) {
-                            val statuses = listOf("All", "Active", "Completed", "Cancelled")
-                            items(statuses) { status ->
-                                val isSelected = statusFilter == status
-                                Surface(
-                                    onClick = { statusFilter = status },
-                                    shape = KbShape.ExtraLarge,
-                                    color = if (isSelected) KbBrandSaffron
-                                            else MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-                                    border = if (isSelected) null
-                                            else BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = spacing.medium)
+                                        .background(Color(0xFF0E0822).copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)), RoundedCornerShape(10.dp))
                                 ) {
-                                    Text(
-                                        text = status,
-                                        color = if (isSelected) Color.White
-                                               else MaterialTheme.kbTextSecondary,
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                        ),
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(spacing.small))
-
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = spacing.medium),
-                            placeholder = {
-                                Text("Search orders...", color = MaterialTheme.kbTextTertiary)
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.kbTextTertiary)
-                            },
-                            singleLine = true,
-                            shape = KbShape.Small,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.kbPrimary,
-                                unfocusedBorderColor = MaterialTheme.kbOutlineSubtle,
-                                focusedTextColor = MaterialTheme.kbTextPrimary,
-                                unfocusedTextColor = MaterialTheme.kbTextPrimary,
-                                cursorColor = MaterialTheme.kbPrimary,
-                                focusedContainerColor = MaterialTheme.kbBgCard,
-                                unfocusedContainerColor = MaterialTheme.kbBgCard
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(spacing.small))
-
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(
-                                start = spacing.medium,
-                                end = spacing.medium,
-                                bottom = spacing.bottomListPadding
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(spacing.small)
-                        ) {
-                            items(filteredRows, key = { it.billId }) { row ->
-                                var showCancelDialog by remember { mutableStateOf(false) }
-                                var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
-
-                                OrderCard(
-                                    row = row,
-                                    onClick = {
-                                        selectedBillId = row.billId
-                                        viewModel.loadBillDetails(row.billId)
-                                    },
-                                    onLongClick = {
-                                        scope.launch {
-                                            viewModel.getOrderDetail(row.billId)?.let { detail ->
-                                                shareInvoiceViaWhatsAppLink(context, detail, profile)
-                                            }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(4.dp),
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
+                                        listOf("Daily", "Weekly", "Monthly", "Custom").forEach { title ->
+                                            OrderFilterChip(
+                                                label = title,
+                                                isSelected = timeFilter == title,
+                                                onClick = {
+                                                    if (title == "Custom") {
+                                                        showDateRangePicker = true
+                                                    } else {
+                                                        viewModel.setTimeFilter(title)
+                                                    }
+                                                },
+                                                modifier = Modifier.weight(1f)
+                                            )
                                         }
                                     }
-                                )
+                                }
+                            }
+                        }
+                    }
 
-                                if (showCancelDialog) {
-                                    CancelOrderDialog(
-                                        onDismiss = { showCancelDialog = false },
-                                        onConfirm = { reason ->
-                                            viewModel.cancelOrder(row.billId, reason)
-                                            showCancelDialog = false
-                                        }
+                    if (selectedSource == "ONLINE") {
+                        AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
+                            OnlineOrdersPane(
+                                orders = onlineOrders,
+                                isLoading = onlineLoading,
+                                isRefreshing = onlineRefreshing,
+                                error = onlineError,
+                                updatingOrderIds = onlineUpdatingOrderIds,
+                                onRefresh = { storefrontOrdersViewModel.loadOrders(forceRefresh = true) },
+                                onOrderClick = { storefrontOrdersViewModel.loadOrder(it) }
+                            )
+                        }
+                    } else if (isLoading) {
+                        AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = spacing.medium)
+                            ) {
+                                Spacer(modifier = Modifier.height(spacing.small))
+                                repeat(6) {
+                                    OrderCardSkeleton()
+                                    Spacer(modifier = Modifier.height(spacing.small))
+                                }
+                            }
+                        }
+                    } else if (allRows.isEmpty()) {
+                        AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().weight(1f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        Icons.Default.Description,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.25f),
+                                        modifier = Modifier.size(56.dp)
+                                    )
+                                    Spacer(Modifier.height(spacing.small))
+                                    Text(
+                                        "No orders in this period",
+                                        color = MaterialTheme.kbTextSecondary.copy(alpha = 0.45f),
+                                        style = MaterialTheme.typography.bodyMedium
                                     )
                                 }
+                            }
+                        }
+                    } else {
+                        AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                LazyRow(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = spacing.medium),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(horizontal = spacing.extraSmall)
+                                ) {
+                                    val statuses = listOf("All", "Active", "Completed", "Cancelled")
+                                    items(statuses) { status ->
+                                        val isSelected = statusFilter == status
+                                        Surface(
+                                            onClick = { statusFilter = status },
+                                            shape = KbShape.ExtraLarge,
+                                            color = if (isSelected) KbBrandSaffron
+                                                    else MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
+                                            border = if (isSelected) null
+                                                    else BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
+                                        ) {
+                                            Text(
+                                                text = status,
+                                                color = if (isSelected) Color.White
+                                                       else MaterialTheme.kbTextSecondary,
+                                                style = MaterialTheme.typography.labelMedium.copy(
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                                ),
+                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                            )
+                                        }
+                                    }
+                                }
 
-                                pendingPartMode?.let { mode ->
-                                    PartAmountDialog(
-                                        mode = mode,
-                                        totalAmount = row.salesAmount,
-                                        onDismiss = { pendingPartMode = null },
-                                        onConfirm = { p1, p2 ->
-                                            viewModel.updatePaymentMode(row.billId, mode.dbValue, p1, p2)
-                                            pendingPartMode = null
+                                Spacer(modifier = Modifier.height(spacing.small))
+
+                                OutlinedTextField(
+                                    value = searchQuery,
+                                    onValueChange = { searchQuery = it },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = spacing.medium),
+                                    placeholder = {
+                                        Text("Search orders...", color = MaterialTheme.kbTextTertiary)
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.kbTextTertiary)
+                                    },
+                                    singleLine = true,
+                                    shape = KbShape.Small,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.kbPrimary,
+                                        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle,
+                                        focusedTextColor = MaterialTheme.kbTextPrimary,
+                                        unfocusedTextColor = MaterialTheme.kbTextPrimary,
+                                        cursorColor = MaterialTheme.kbPrimary,
+                                        focusedContainerColor = MaterialTheme.kbBgCard,
+                                        unfocusedContainerColor = MaterialTheme.kbBgCard
+                                    )
+                                )
+
+                                Spacer(modifier = Modifier.height(spacing.small))
+
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(
+                                        start = spacing.medium,
+                                        end = spacing.medium,
+                                        bottom = spacing.bottomListPadding
+                                    ),
+                                    verticalArrangement = Arrangement.spacedBy(spacing.small)
+                                ) {
+                                    items(filteredRows, key = { it.billId }) { row ->
+                                        var showCancelDialog by remember { mutableStateOf(false) }
+                                        var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
+
+                                        OrderCard(
+                                            row = row,
+                                            isSelected = selectedBillId == row.billId,
+                                            onClick = {
+                                                selectedBillId = row.billId
+                                                viewModel.loadBillDetails(row.billId)
+                                            },
+                                            onLongClick = {
+                                                scope.launch {
+                                                    viewModel.getOrderDetail(row.billId)?.let { detail ->
+                                                        shareInvoiceViaWhatsAppLink(context, detail, profile)
+                                                    }
+                                                }
+                                            }
+                                        )
+
+                                        if (showCancelDialog) {
+                                            CancelOrderDialog(
+                                                onDismiss = { showCancelDialog = false },
+                                                onConfirm = { reason ->
+                                                    viewModel.cancelOrder(row.billId, reason)
+                                                    showCancelDialog = false
+                                                }
+                                            )
+                                        }
+
+                                        pendingPartMode?.let { mode ->
+                                            PartAmountDialog(
+                                                mode = mode,
+                                                totalAmount = row.salesAmount,
+                                                onDismiss = { pendingPartMode = null },
+                                                onConfirm = { p1, p2 ->
+                                                    viewModel.updatePaymentMode(row.billId, mode.dbValue, p1, p2)
+                                                    pendingPartMode = null
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Vertical Divider
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.kbOutlineSubtle)
+                )
+
+                // Right pane: Detail Content
+                Box(
+                    modifier = Modifier
+                        .weight(0.55f)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.kbBgCard)
+                ) {
+                    if (selectedSource == "POS") {
+                        if (selectedBillId != null && selectedBillDetails != null) {
+                            OrderDetailsPane(
+                                billWithItems = selectedBillDetails,
+                                profile = profile,
+                                onPrintKds = null,
+                                onPrintReceipt = null
+                            )
+                        } else {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("Select a POS order from the list", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                    } else {
+                        if (selectedOnlineOrder != null) {
+                            OnlineOrderDetailsPane(
+                                order = selectedOnlineOrder!!,
+                                isUpdating = onlineUpdatingOrderIds.contains(selectedOnlineOrder!!.orderId),
+                                onStatusUpdate = { nextStatus ->
+                                    storefrontOrdersViewModel.updateOrderStatus(selectedOnlineOrder!!.orderId, nextStatus)
+                                }
+                            )
+                        } else {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("Select an online order from the list", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Mobile Stacked Layout (unchanged)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = spacing.small)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.kbHeaderGradient)
+                        .statusBarsPadding()
+                        .padding(top = 8.dp, bottom = 12.dp)
+                ) {
+                    AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing.medium),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = Color.White
+                                )
+                            }
+                            Text(
+                                text = "Orders",
+                                modifier = Modifier.align(Alignment.Center),
+                                color = Color.White,
+                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
+                        Column {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = spacing.medium),
+                                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                            ) {
+                                OrderFilterChip(
+                                    label = "POS Orders",
+                                    isSelected = selectedSource == "POS",
+                                    onClick = { selectedSource = "POS" },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                OrderFilterChip(
+                                    label = "Online Orders",
+                                    isSelected = selectedSource == "ONLINE",
+                                    onClick = {
+                                        val hasOnlineSetup = profile?.let {
+                                            it.easebuzzEnabled || it.zomatoEnabled || it.swiggyEnabled || it.ownWebsiteEnabled
+                                        } == true
+                                        if (hasOnlineSetup) {
+                                            selectedSource = "ONLINE"
+                                        } else {
+                                            scope.launch {
+                                                KhanaToast.show("Complete online setup in Payment Configuration first", ToastKind.Warning)
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(spacing.medium))
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = spacing.medium)
+                                    .background(Color(0xFF0E0822).copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                                    .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)), RoundedCornerShape(10.dp))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(4.dp),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    listOf("Daily", "Weekly", "Monthly", "Custom").forEach { title ->
+                                        OrderFilterChip(
+                                            label = title,
+                                            isSelected = timeFilter == title,
+                                            onClick = {
+                                                if (title == "Custom") {
+                                                    showDateRangePicker = true
+                                                } else {
+                                                    viewModel.setTimeFilter(title)
+                                                }
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (selectedSource == "ONLINE") {
+                    AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
+                        OnlineOrdersPane(
+                            orders = onlineOrders,
+                            isLoading = onlineLoading,
+                            isRefreshing = onlineRefreshing,
+                            error = onlineError,
+                            updatingOrderIds = onlineUpdatingOrderIds,
+                            onRefresh = { storefrontOrdersViewModel.loadOrders(forceRefresh = true) },
+                            onOrderClick = { storefrontOrdersViewModel.loadOrder(it) }
+                        )
+                    }
+                } else if (isLoading) {
+                    AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing.medium)
+                        ) {
+                            Spacer(modifier = Modifier.height(spacing.small))
+                            repeat(6) {
+                                OrderCardSkeleton()
+                                Spacer(modifier = Modifier.height(spacing.small))
+                            }
+                        }
+                    }
+                } else if (allRows.isEmpty()) {
+                    AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    Icons.Default.Description,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.25f),
+                                    modifier = Modifier.size(56.dp)
+                                )
+                                Spacer(Modifier.height(spacing.small))
+                                Text(
+                                    "No orders in this period",
+                                    color = MaterialTheme.kbTextSecondary.copy(alpha = 0.45f),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            LazyRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = spacing.medium),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(horizontal = spacing.extraSmall)
+                            ) {
+                                val statuses = listOf("All", "Active", "Completed", "Cancelled")
+                                items(statuses) { status ->
+                                    val isSelected = statusFilter == status
+                                    Surface(
+                                        onClick = { statusFilter = status },
+                                        shape = KbShape.ExtraLarge,
+                                        color = if (isSelected) KbBrandSaffron
+                                                else MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
+                                        border = if (isSelected) null
+                                                else BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
+                                    ) {
+                                        Text(
+                                            text = status,
+                                            color = if (isSelected) Color.White
+                                                   else MaterialTheme.kbTextSecondary,
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                            ),
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(spacing.small))
+
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = spacing.medium),
+                                placeholder = {
+                                    Text("Search orders...", color = MaterialTheme.kbTextTertiary)
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.kbTextTertiary)
+                                },
+                                singleLine = true,
+                                shape = KbShape.Small,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.kbPrimary,
+                                    unfocusedBorderColor = MaterialTheme.kbOutlineSubtle,
+                                    focusedTextColor = MaterialTheme.kbTextPrimary,
+                                    unfocusedTextColor = MaterialTheme.kbTextPrimary,
+                                    cursorColor = MaterialTheme.kbPrimary,
+                                    focusedContainerColor = MaterialTheme.kbBgCard,
+                                    unfocusedContainerColor = MaterialTheme.kbBgCard
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.height(spacing.small))
+
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    start = spacing.medium,
+                                    end = spacing.medium,
+                                    bottom = spacing.bottomListPadding
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(spacing.small)
+                            ) {
+                                items(filteredRows, key = { it.billId }) { row ->
+                                    var showCancelDialog by remember { mutableStateOf(false) }
+                                    var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
+
+                                    OrderCard(
+                                        row = row,
+                                        isSelected = false,
+                                        onClick = {
+                                            selectedBillId = row.billId
+                                            viewModel.loadBillDetails(row.billId)
+                                        },
+                                        onLongClick = {
+                                            scope.launch {
+                                                viewModel.getOrderDetail(row.billId)?.let { detail ->
+                                                    shareInvoiceViaWhatsAppLink(context, detail, profile)
+                                                }
+                                            }
                                         }
                                     )
+
+                                    if (showCancelDialog) {
+                                        CancelOrderDialog(
+                                            onDismiss = { showCancelDialog = false },
+                                            onConfirm = { reason ->
+                                                viewModel.cancelOrder(row.billId, reason)
+                                                showCancelDialog = false
+                                            }
+                                        )
+                                    }
+
+                                    pendingPartMode?.let { mode ->
+                                        PartAmountDialog(
+                                            mode = mode,
+                                            totalAmount = row.salesAmount,
+                                            onDismiss = { pendingPartMode = null },
+                                            onConfirm = { p1, p2 ->
+                                                viewModel.updatePaymentMode(row.billId, mode.dbValue, p1, p2)
+                                                pendingPartMode = null
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
 
-        selectedBillId?.let {
-            OrderDetailsDialog(
-                billWithItems = selectedBillDetails,
-                profile = profile,
-                onDismiss = {
-                    selectedBillId = null
-                    viewModel.clearBillDetails()
-                }
-            )
-        }
+            selectedBillId?.let {
+                OrderDetailsDialog(
+                    billWithItems = selectedBillDetails,
+                    profile = profile,
+                    onDismiss = {
+                        selectedBillId = null
+                        viewModel.clearBillDetails()
+                    }
+                )
+            }
 
-        selectedOnlineOrder?.let { order ->
-            OnlineOrderDetailsDialog(
-                order = order,
-                isUpdating = onlineUpdatingOrderIds.contains(order.orderId),
-                onDismiss = { storefrontOrdersViewModel.clearSelectedOrder() },
-                onStatusUpdate = { nextStatus ->
-                    storefrontOrdersViewModel.updateOrderStatus(order.orderId, nextStatus)
-                }
-            )
+            selectedOnlineOrder?.let { order ->
+                OnlineOrderDetailsDialog(
+                    order = order,
+                    isUpdating = onlineUpdatingOrderIds.contains(order.orderId),
+                    onDismiss = { storefrontOrdersViewModel.clearSelectedOrder() },
+                    onStatusUpdate = { nextStatus ->
+                        storefrontOrdersViewModel.updateOrderStatus(order.orderId, nextStatus)
+                    }
+                )
+            }
         }
     }
 }
@@ -523,6 +864,7 @@ fun OrdersScreen(
 @Composable
 private fun OrderCard(
     row: OrderDetailRow,
+    isSelected: Boolean = false,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
@@ -544,8 +886,13 @@ private fun OrderCard(
                 onLongClick = onLongClick
             ),
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) KbBrandSaffron.copy(alpha = 0.08f) else Color.White
+        ),
+        border = BorderStroke(
+            width = if (isSelected) 1.5.dp else 1.dp,
+            color = if (isSelected) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -1617,5 +1964,291 @@ private fun DetailRow(label: String, value: String) {
     ) {
         Text(label, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
         Text(value, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
+    }
+}
+
+@Composable
+private fun DetailRowLight(label: String, value: String, isStatus: Boolean = false, status: OrderStatus = OrderStatus.DRAFT) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = label, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+        if (isStatus) {
+            OrderStatusChip(status)
+        } else {
+            Text(text = value, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+        }
+    }
+}
+
+@Composable
+private fun OrderDetailsPane(
+    billWithItems: BillWithItems?,
+    profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?,
+    onPrintKds: ((BillWithItems) -> Unit)?,
+    onPrintReceipt: ((BillWithItems) -> Unit)?
+) {
+    val spacing = KhanaBookTheme.spacing
+    if (billWithItems == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = KbBrandSaffron)
+        }
+        return
+    }
+
+    val bill = billWithItems.bill
+    val items = billWithItems.items
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.kbBgCard)
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "#KB-${bill.dailyOrderDisplay.split("-").last()}",
+                    color = MaterialTheme.kbTextPrimary,
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "INV${bill.lifetimeOrderId} · ${PaymentMode.fromDbValue(bill.paymentMode).displayLabel}",
+                    color = MaterialTheme.kbTextSecondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            OrderStatusChip(OrderStatus.fromDbValue(bill.orderStatus))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = CurrencyUtils.formatPrice(bill.totalAmount),
+            color = KbBrandSaffron,
+            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 36.sp)
+        )
+        Text(
+            text = DateUtils.formatDisplay(bill.createdAt),
+            color = MaterialTheme.kbTextTertiary,
+            style = MaterialTheme.typography.bodySmall
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ORDER ITEMS Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgPrimary),
+            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    "ORDER ITEMS",
+                    color = KbBrandSaffron,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                items.forEach { item ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "${item.quantity}×  ${item.itemName}",
+                            color = MaterialTheme.kbTextPrimary,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = CurrencyUtils.formatPrice(item.itemTotal),
+                            color = MaterialTheme.kbTextPrimary,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(color = MaterialTheme.kbOutlineSubtle, thickness = 1.dp)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val subtotalVal = bill.subtotal.toDoubleOrNull() ?: 0.0
+                val totalVal = bill.totalAmount.toDoubleOrNull() ?: 0.0
+                val taxVal = totalVal - subtotalVal
+
+                DetailRowLight("Subtotal", CurrencyUtils.formatPrice(bill.subtotal))
+                if (taxVal > 0) {
+                    val taxPct = bill.gstPercentage.toDoubleOrNull() ?: 0.0
+                    val taxLabel = if (taxPct > 0) "Tax (${taxPct.toInt()}%)" else "Tax"
+                    DetailRowLight(taxLabel, CurrencyUtils.formatPrice(taxVal.toString()))
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Total",
+                        color = MaterialTheme.kbTextPrimary,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        CurrencyUtils.formatPrice(bill.totalAmount),
+                        color = KbBrandSaffron,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // PAYMENT DETAILS Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgPrimary),
+            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    "PAYMENT DETAILS",
+                    color = KbBrandSaffron,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                DetailRowLight("Method", PaymentMode.fromDbValue(bill.paymentMode).displayLabel)
+                DetailRowLight("Transaction ID", "INV${bill.lifetimeOrderId}")
+                DetailRowLight("Time", DateUtils.formatDisplay(bill.createdAt))
+
+                val statusValue = OrderStatus.fromDbValue(bill.orderStatus)
+                val statusText = when (statusValue) {
+                    OrderStatus.DRAFT -> "Pending"
+                    else -> statusValue.name.lowercase().replaceFirstChar { it.uppercase() }
+                }
+                DetailRowLight("Status", statusText, isStatus = true, status = statusValue)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedButton(
+                onClick = { onPrintKds?.invoke(billWithItems) },
+                modifier = Modifier.weight(1f).height(48.dp),
+                border = BorderStroke(1.dp, KbPurpleAccent),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Reprint KOT", color = KbPurpleAccent, style = MaterialTheme.typography.titleMedium)
+            }
+            Button(
+                onClick = { onPrintReceipt?.invoke(billWithItems) },
+                modifier = Modifier.weight(1f).height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Reprint Bill", color = Color.White, style = MaterialTheme.typography.titleMedium)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OnlineOrderDetailsPane(
+    order: MerchantCustomerOrderDetailResponse,
+    isUpdating: Boolean,
+    onStatusUpdate: (String) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.kbBgCard)
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+    ) {
+        Column {
+            Text(
+                text = order.publicOrderCode,
+                color = KbBrandSaffron,
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+            )
+            Text(
+                order.customerName,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.kbTextPrimary
+            )
+        }
+
+        HorizontalDivider(color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.2f))
+
+        DetailRow("Status", order.orderStatus.replace("_", " "))
+        DetailRow("Payment", "${order.paymentMethod} \u2022 ${order.paymentStatus}")
+        DetailRow("Fulfillment", order.fulfillmentType.replace("_", " "))
+        order.customerPhone?.takeIf { it.isNotBlank() }?.let { DetailRow("Phone", it) }
+        order.customerNote?.takeIf { it.isNotBlank() }?.let { DetailRow("Note", it) }
+        DetailRow("Created", DateUtils.formatDisplay(order.createdAt))
+
+        HorizontalDivider(color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.2f))
+
+        Text(
+            "ORDER ITEMS",
+            color = KbBrandSaffron,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+        )
+
+        order.items.forEach { item ->
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "${item.quantity} x ${item.itemName}${item.variantName?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""}",
+                    color = MaterialTheme.kbTextPrimary,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    CurrencyUtils.formatPrice(item.lineTotal),
+                    color = KbBrandSaffron,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                item.specialInstruction?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, color = MaterialTheme.kbPrimary.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.2f))
+        DetailRow("Total", CurrencyUtils.formatPrice(order.totalAmount))
+
+        val nextStatuses = remember(order.orderStatus) { storefrontNextStatuses(order.orderStatus) }
+        if (nextStatuses.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Update status", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                nextStatuses.forEach { nextStatus ->
+                    AssistChip(
+                        onClick = { onStatusUpdate(nextStatus) },
+                        enabled = !isUpdating,
+                        label = { Text(nextStatus.replace("_", " ")) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = storefrontOrderStatusColor(nextStatus).copy(alpha = 0.18f),
+                            labelColor = MaterialTheme.kbTextPrimary
+                        )
+                    )
+                }
+            }
+        }
     }
 }
