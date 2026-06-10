@@ -46,6 +46,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
+import com.khanabook.lite.pos.ui.theme.KbError
+import com.khanabook.lite.pos.ui.theme.KbPurpleAccent
+import com.khanabook.lite.pos.ui.theme.kbHeaderGradient
 
 // ── OTP Input Row (reusable 6-digit boxes) ───────────────────────────────────
 @Composable
@@ -103,7 +107,7 @@ fun OtpInputRow(
                     ),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
-                    cursorBrush = SolidColor(Color(0xFFF97316)),
+                    cursorBrush = SolidColor(KbBrandSaffron),
                     decorationBox = { innerTextField ->
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -119,7 +123,7 @@ fun OtpInputRow(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .height(2.dp)
-                        .background(if (isFilled) Color(0xFFF97316) else Color(0xFFE2E8F0))
+                        .background(if (isFilled) KbBrandSaffron else Color(0xFFE2E8F0))
                 )
             }
         }
@@ -137,9 +141,7 @@ fun PurpleGradientHeader(
             .fillMaxWidth()
             .height(260.dp)
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
-                )
+                MaterialTheme.kbHeaderGradient
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -210,7 +212,7 @@ fun OtpVerificationHeader(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = Color(0xFFF97316)
+        color = KbBrandSaffron
     ) {
         Row(
             modifier = Modifier
@@ -278,7 +280,7 @@ fun OtpVerificationBody(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = errorMessage,
-                color = Color(0xFFDC2626),
+                color = KbError,
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -291,7 +293,7 @@ fun OtpVerificationBody(
                 .fillMaxWidth()
                 .height(52.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFF97316),
+                containerColor = KbBrandSaffron,
                 contentColor = Color.White,
                 disabledContainerColor = Color(0xFFCBD5E1),
                 disabledContentColor = Color.White.copy(alpha = 0.6f)
@@ -324,7 +326,7 @@ fun OtpVerificationBody(
         }
         Text(
             text = resendText,
-            color = if (resendTimerSeconds > 0) Color(0xFF94A3B8) else Color(0xFFF97316),
+            color = if (resendTimerSeconds > 0) Color(0xFF94A3B8) else KbBrandSaffron,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier
                 .clickable(enabled = resendTimerSeconds == 0 && !isLoading) { onResendClick() }
@@ -335,7 +337,7 @@ fun OtpVerificationBody(
 
         Text(
             text = "Change number?",
-            color = Color(0xFF7C3AED),
+            color = KbPurpleAccent,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier
                 .clickable(enabled = !isLoading) { onChangeNumberClick() }

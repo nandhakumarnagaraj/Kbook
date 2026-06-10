@@ -89,7 +89,7 @@ fun ReprintKdsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                    .background(MaterialTheme.kbHeaderGradient)
                     .statusBarsPadding()
                     .padding(top = 8.dp, bottom = 12.dp)
             ) {
@@ -159,8 +159,7 @@ fun ReprintKdsScreen(
                         } else {
                             showDailyIdError = true
                         }
-                    },
-                    label = { Text("Order No", color = TextGold) },
+                    }, label = { Text("Order No", color = MaterialTheme.kbSecondary) },
                     isError = showDailyIdError,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -208,8 +207,7 @@ fun ReprintKdsScreen(
                         } else {
                             showInvoiceError = true
                         }
-                    },
-                    label = { Text("Invoice No", color = TextGold) },
+                    }, label = { Text("Invoice No", color = MaterialTheme.kbSecondary) },
                     prefix = { Text("INV") },
                     isError = showInvoiceError,
                     modifier = Modifier
@@ -275,9 +273,9 @@ fun ReprintKdsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.SearchOff, null, tint = TextGold.copy(alpha = 0.3f), modifier = Modifier.size(64.dp))
+                            Icon(Icons.Default.SearchOff, null, tint = MaterialTheme.kbSecondary.copy(alpha = 0.3f), modifier = Modifier.size(64.dp))
                             Spacer(modifier = Modifier.height(spacing.medium))
-                            Text("No pending KDS found", color = TextGold.copy(alpha = 0.5f), style = MaterialTheme.typography.bodyMedium)
+                            Text("No pending KDS found", color = MaterialTheme.kbSecondary.copy(alpha = 0.5f), style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
@@ -300,7 +298,7 @@ private fun KdsBillCard(
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(spacing.medium)) {
@@ -318,7 +316,7 @@ private fun KdsBillCard(
                         )
                         Text(
                             text = "INV${bill.lifetimeOrderId}",
-                            color = TextLight,
+                            color = MaterialTheme.kbTextPrimary,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -336,8 +334,7 @@ private fun KdsBillCard(
                     }
                 }
                 HorizontalDivider(
-                    modifier = Modifier.padding(vertical = spacing.small),
-                    color = BorderGold.copy(alpha = 0.2f)
+                    modifier = Modifier.padding(vertical = spacing.small), color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.2f)
                 )
                 billWithItems.items.forEach { item ->
                     Row(
@@ -347,7 +344,7 @@ private fun KdsBillCard(
                     ) {
                         Text(
                             text = "${item.quantity}x ${item.itemName}",
-                            color = TextLight,
+                            color = MaterialTheme.kbTextPrimary,
                             style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -356,14 +353,13 @@ private fun KdsBillCard(
                     }
                 }
                 HorizontalDivider(
-                    modifier = Modifier.padding(vertical = spacing.small),
-                    color = BorderGold.copy(alpha = 0.2f)
+                    modifier = Modifier.padding(vertical = spacing.small), color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.2f)
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Total", color = TextLight, style = MaterialTheme.typography.titleMedium)
+                    Text("Total", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium)
                     Text(CurrencyUtils.formatPrice(bill.totalAmount), color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(spacing.medium))
@@ -373,9 +369,9 @@ private fun KdsBillCard(
                     colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Icon(Icons.Default.Print, null, tint = DarkBrown1, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+                    Icon(Icons.Default.Print, null, tint = MaterialTheme.kbTextPrimary, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Reprint KDS", color = DarkBrown1, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Reprint KDS", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -385,10 +381,8 @@ private fun KdsBillCard(
 @Composable
 private fun outlinedSearchFieldColors() =
     OutlinedTextFieldDefaults.colors(
-        focusedTextColor = TextLight,
-        unfocusedTextColor = TextLight,
-        focusedBorderColor = MaterialTheme.kbPrimary,
-        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-        focusedLabelColor = MaterialTheme.kbPrimary,
-        unfocusedLabelColor = TextGold
+        focusedTextColor = MaterialTheme.kbTextPrimary,
+        unfocusedTextColor = MaterialTheme.kbTextPrimary,
+        focusedBorderColor = MaterialTheme.kbPrimary, unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
+        focusedLabelColor = MaterialTheme.kbPrimary, unfocusedLabelColor = MaterialTheme.kbSecondary
     )

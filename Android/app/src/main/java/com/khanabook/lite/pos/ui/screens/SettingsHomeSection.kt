@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
-import com.khanabook.lite.pos.ui.theme.CardBG
+import com.khanabook.lite.pos.ui.theme.kbBgCard
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.kbSecondary
 import com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
@@ -109,7 +109,7 @@ fun SettingsHomeSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = spacing.extraSmall),
-                colors = CardDefaults.cardColors(containerColor = CardBG),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 LogoutSection(logoutViewModel)

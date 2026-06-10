@@ -161,6 +161,14 @@ val MaterialTheme.kbOutlineSubtle: Color
 val MaterialTheme.kbOutlineBold: Color
     @Composable @ReadOnlyComposable get() = colorScheme.outline
 
+/** 
+ * Unified header gradient — midnight purple (#1E1035 → #0F081D).
+ * Matches the KhanaBook logo's purple brand identity.
+ * Use this instead of inline Brush.verticalGradient declarations.
+ */
+val MaterialTheme.kbHeaderGradient: Brush
+    @Composable @ReadOnlyComposable get() = KbMidnightGradient
+
 val MaterialTheme.kbBgGradient: Brush
     @Composable @ReadOnlyComposable get() = if (globalIsDark) Brush.verticalGradient(
         listOf(Color(0xFF1E1035), Color(0xFF0F081D))
@@ -182,10 +190,9 @@ val KbMidnightOverlay: Color
     @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xCC0F081D.toInt()) else Color(0xE6FFFFFF.toInt())
 
 // ── Premium Midnight Purple Gradient ─────────────────────────
-val KbMidnightGradient: Brush
-    @Composable @ReadOnlyComposable get() = Brush.verticalGradient(
-        colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
-    )
+val KbMidnightGradient: Brush = Brush.verticalGradient(
+    colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
+)
 val KbPurpleGradient: Brush
     @Composable @ReadOnlyComposable get() = if (globalIsDark) KbMidnightGradient else Brush.verticalGradient(
         colors = listOf(Color(0xFFFAF8F5), Color(0xFFF5F0EB))
@@ -259,60 +266,20 @@ val KbFocusGlow: Color
     @Composable @ReadOnlyComposable get() = KbBrandSaffron.copy(alpha = 0.5f)
 
 // ═══════════════════════════════════════════════════════════════
-// LEGACY ALIASES — all mapped to teal + neutral grays
+// LEGACY ALIASES — kept for backward compat (still actively used)
 // ═══════════════════════════════════════════════════════════════
 
-val DarkBrown1: Color
-    get() = if (globalIsDark) Color(0xFF1A1230) else Color(0xFFFAF8F5)
-val DarkBrown2: Color
-    get() = if (globalIsDark) Color(0xFF231A3D) else Color(0xFFF5F0EB)
-val PrimaryGold: Color
-    get() = if (globalIsDark) Color(0xFFFB923C) else KbBrandSaffron
-val LightGold: Color
-    get() = if (globalIsDark) Color(0xFFFB923C) else KbBrandSaffronLight
-val TextGold: Color
-    get() = if (globalIsDark) KbLavender else KbBrandSaffronDark
-val TextLight: Color
-    get() = if (globalIsDark) Color(0xFFF5F5F5) else Color(0xFF1F2937)
-val TextMuted: Color
-    get() = if (globalIsDark) Color(0xFFB8B0CC) else Color(0xFF6B7280)
-val CardBG: Color
-    get() = if (globalIsDark) Color(0xFF1A1230) else Color(0xFFFFFFFF)
-val BorderGold: Color
-    get() = if (globalIsDark) Color(0xFF2E2545).copy(alpha = 0.7f) else Color(0xFFD1D5DB)
-val ParchmentBG: Color
-    get() = if (globalIsDark) KbSaffron950 else KbSaffron100
-val BrownSelected: Color
-    get() = if (globalIsDark) KbSaffron900 else KbSaffron200
-val BrandPurple: Color
-    get() = if (globalIsDark) Color(0xFFA78BFA) else Color(0xFF7C5CDB)
-val BrandPurpleDim: Color
-    get() = if (globalIsDark) Color(0xFF8B5CF6) else Color(0xFF6D4FD1)
-val Brown500: Color
-    get() = if (globalIsDark) Color(0xFF333333) else Color(0xFFE5E7EB)
-val DarkBrownSheet: Color
-    get() = if (globalIsDark) Color(0xFF1A1230) else Color(0xFFFFF0E6)
-val RichEspresso: Color
-    get() = if (globalIsDark) Color(0xFF121212) else Color(0xFFFAF8F5)
-val BottomNavBG: Color
-    get() = if (globalIsDark) Color(0xFF121212) else Color(0xFFFAF8F5)
-
-// Semantic status
 val VegGreen      = KbGreen
 val NonVegRed     = KbRed
 
-// Secondary green aliases for theme mapping
 val KbSecondaryGreen    = KbGreenSec600  // = #3D7A5A
 val KbSecondaryGreenDark = KbGreenSec500 // = #4B9A6E (brighter in dark)
 val SuccessGreen  = KbGreen
 val DangerRed     = KbRed
-val ErrorPink     = KbRed
 val WarningYellow = KbYellow
 val GreenReportBg = KbGreenSubtle.copy(alpha = 0.22f)
-val Green800      = KbGreen
 
 // Payment badges
 val ZomatoRed     = KbZomatoRed
 val SwiggyOrange  = KbSwiggyOrange
-val GoogleRed     = Color(0xFFEF4444)
 val WhatsAppGreen = KbWhatsAppGreen

@@ -128,7 +128,7 @@ fun ReportsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                    .background(MaterialTheme.kbHeaderGradient)
                     .statusBarsPadding()
                     .padding(top = 8.dp, bottom = 12.dp)
             ) {
@@ -680,7 +680,7 @@ fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, mo
         onClick = onClick,
         modifier = modifier.height(48.dp),
         shape = RoundedCornerShape(8.dp),
-        color = if (isSelected) BrownSelected.copy(alpha = 0.8f) else Color.Transparent,
+        color = if (isSelected) MaterialTheme.kbPrimaryBold.copy(alpha = 0.8f) else Color.Transparent,
         border = if (isSelected) BorderStroke(1.dp, MaterialTheme.kbPrimary) else BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f)),
         contentColor = if (isSelected) MaterialTheme.kbPrimary else MaterialTheme.kbPrimary.copy(alpha = 0.7f)
     ) {
@@ -981,8 +981,8 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
                     else -> statusValue.name.lowercase().replaceFirstChar { it.uppercase() }
                 }
                 val statusColor = when(statusValue) {
-                    OrderStatus.COMPLETED -> VegGreen
-                    OrderStatus.CANCELLED -> ZomatoRed
+                    OrderStatus.COMPLETED -> KbSuccess
+                    OrderStatus.CANCELLED -> KbError
                     else -> MaterialTheme.kbPrimary
                 }
                 Text(
@@ -1035,8 +1035,8 @@ private fun OrderStatusChip(status: OrderStatus) {
     if (status == OrderStatus.DRAFT) return
 
     val (label, color) = when (status) {
-        OrderStatus.COMPLETED -> "COMPLETED" to Color(0xFF7C3AED)
-        OrderStatus.CANCELLED -> "CANCELLED" to Color(0xFFDC2626)
+        OrderStatus.COMPLETED -> "COMPLETED" to KbPurpleAccent
+        OrderStatus.CANCELLED -> "CANCELLED" to KbError
         else -> "ACTIVE" to Color(0xFF0284C7)
     }
 
@@ -1089,7 +1089,7 @@ fun OrderDetailsDialog(
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = RichEspresso
+            color = MaterialTheme.kbBgPrimary
         ) {
             Column(
                 modifier = Modifier.fillMaxSize()
@@ -1098,7 +1098,7 @@ fun OrderDetailsDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                        .background(MaterialTheme.kbHeaderGradient)
                         .statusBarsPadding()
                         .padding(top = 8.dp, bottom = 12.dp)
                 ) {
@@ -1164,13 +1164,13 @@ fun OrderDetailsDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .background(RichEspresso)
+                        .background(MaterialTheme.kbBgPrimary)
                         .padding(16.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
                     if (billWithItems == null) {
                         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = Color(0xFFF97316))
+                            CircularProgressIndicator(color = KbBrandSaffron)
                         }
                     } else {
                         val bill = billWithItems.bill
@@ -1186,7 +1186,7 @@ fun OrderDetailsDialog(
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
                                     "ORDER ITEMS",
-                                    color = Color(0xFFF97316),
+                                    color = KbBrandSaffron,
                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -1236,7 +1236,7 @@ fun OrderDetailsDialog(
                                     )
                                     Text(
                                         CurrencyUtils.formatPrice(bill.totalAmount),
-                                        color = Color(0xFFF97316),
+                                        color = KbBrandSaffron,
                                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                     )
                                 }
@@ -1255,7 +1255,7 @@ fun OrderDetailsDialog(
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
                                     "PAYMENT DETAILS",
-                                    color = Color(0xFFF97316),
+                                    color = KbBrandSaffron,
                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -1284,15 +1284,15 @@ fun OrderDetailsDialog(
                             OutlinedButton(
                                 onClick = { onPrintKds?.invoke(billWithItems) },
                                 modifier = Modifier.weight(1f).height(48.dp),
-                                border = BorderStroke(1.dp, Color(0xFF7C3AED)),
+                                border = BorderStroke(1.dp, KbPurpleAccent),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
-                                Text("Reprint KOT", color = Color(0xFF7C3AED), style = MaterialTheme.typography.titleMedium)
+                                Text("Reprint KOT", color = KbPurpleAccent, style = MaterialTheme.typography.titleMedium)
                             }
                             Button(
                                 onClick = { onPrintReceipt?.invoke(billWithItems) },
                                 modifier = Modifier.weight(1f).height(48.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
+                                colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Text("Reprint Bill", color = Color.White, style = MaterialTheme.typography.titleMedium)

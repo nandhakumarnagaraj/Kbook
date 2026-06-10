@@ -76,7 +76,7 @@ fun KhanaDatePickerField(
                 }
             },
             colors = DatePickerDefaults.colors(
-                containerColor = DarkBrown2
+                containerColor = MaterialTheme.kbBgSecondary
             )
         ) {
             DatePicker(
@@ -84,11 +84,11 @@ fun KhanaDatePickerField(
                 colors = DatePickerDefaults.colors(
                     todayContentColor = MaterialTheme.kbSecondary,
                     selectedDayContainerColor = MaterialTheme.kbPrimary,
-                    selectedDayContentColor = DarkBrown1,
-                    titleContentColor = TextLight,
+                    selectedDayContentColor = MaterialTheme.kbTextPrimary,
+                    titleContentColor = MaterialTheme.kbTextPrimary,
                     headlineContentColor = MaterialTheme.kbPrimary,
                     weekdayContentColor = MaterialTheme.kbTextSecondary,
-                    dayContentColor = TextLight
+                    dayContentColor = MaterialTheme.kbTextPrimary
                 )
             )
         }

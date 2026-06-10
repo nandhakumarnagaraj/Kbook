@@ -221,7 +221,7 @@ fun OrdersScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(RichEspresso)
+            .background(MaterialTheme.kbBgPrimary)
     ) {
         Column(
             modifier = Modifier
@@ -231,7 +231,7 @@ fun OrdersScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                    .background(MaterialTheme.kbHeaderGradient)
                     .statusBarsPadding()
                     .padding(top = 8.dp, bottom = 12.dp)
             ) {
@@ -531,8 +531,8 @@ private fun OrderCard(
 
     // Accent bar color per status — matches screenshot
     val accentColor = when (row.orderStatus) {
-        OrderStatus.COMPLETED -> Color(0xFF16A34A)  // green
-        OrderStatus.CANCELLED -> Color(0xFFDC2626)  // red
+        OrderStatus.COMPLETED -> KbSuccess  // green
+        OrderStatus.CANCELLED -> KbError  // red
         else                  -> Color(0xFF6366F1)  // indigo/active
     }
 
@@ -595,7 +595,7 @@ private fun OrderCard(
                 ) {
                     Text(
                         text = CurrencyUtils.formatPrice(row.salesAmount),
-                        color = Color(0xFFF97316),
+                        color = KbBrandSaffron,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         maxLines = 1
                     )
@@ -681,8 +681,8 @@ private fun OrderStatusChip(status: OrderStatus) {
     if (status == OrderStatus.DRAFT) return
 
     val (label, color) = when (status) {
-        OrderStatus.COMPLETED -> "COMPLETED" to Color(0xFF16A34A)  // green
-        OrderStatus.CANCELLED -> "CANCELLED" to Color(0xFFDC2626)  // red
+        OrderStatus.COMPLETED -> "COMPLETED" to KbSuccess  // green
+        OrderStatus.CANCELLED -> "CANCELLED" to KbError  // red
         else                  -> "ACTIVE"    to Color(0xFF6366F1)  // indigo
     }
 
@@ -723,7 +723,7 @@ fun PeriodTabs(selectedFilter: String, onTabSelected: (String) -> Unit) {
 @Composable
 fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     val containerColor by animateColorAsState(
-        targetValue = if (isSelected) Color(0xFFF97316) else Color.Transparent,
+        targetValue = if (isSelected) KbBrandSaffron else Color.Transparent,
         animationSpec = tween(200),
         label = "chip_container"
     )
@@ -732,7 +732,7 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
         animationSpec = tween(200),
         label = "chip_content"
     )
-    val borderColor = if (isSelected) Color(0xFFF97316) else Color.White.copy(alpha = 0.15f)
+    val borderColor = if (isSelected) KbBrandSaffron else Color.White.copy(alpha = 0.15f)
     Surface(
         onClick = onClick,
         modifier = modifier.height(36.dp),
@@ -793,7 +793,7 @@ fun RowScope.TableCell(
     weight: Float,
     fontSize: androidx.compose.ui.unit.TextUnit = 11.sp,
     fontWeight: FontWeight = FontWeight.Normal,
-    color: Color = TextLight
+    color: Color = MaterialTheme.kbTextPrimary
 ) {
     Text(
         text = text,
@@ -850,12 +850,12 @@ fun OrderTableRow(
         ) {
             TableCell(
                 row.dailyNo, 0.9f,
-                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
+                color = if (isCancelled) MaterialTheme.kbTextPrimary.copy(alpha = 0.35f) else MaterialTheme.kbTextPrimary
             )
             TableCell(
                 "INV${row.lifetimeNo}", 1.7f,
                 fontWeight = FontWeight.Bold,
-                color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
+                color = if (isCancelled) MaterialTheme.kbTextPrimary.copy(alpha = 0.35f) else MaterialTheme.kbTextPrimary
             )
 
             Box(modifier = Modifier.weight(1.7f), contentAlignment = Alignment.Center) {
@@ -887,7 +887,7 @@ fun OrderTableRow(
                 ) {
                     enabledModes.forEach { mode ->
                         DropdownMenuItem(
-                            text = { Text(mode.displayLabel, color = TextLight, style = MaterialTheme.typography.bodySmall) },
+                            text = { Text(mode.displayLabel, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodySmall) },
                             onClick = { onPayModeChange(mode); payModeExpanded = false }
                         )
                     }
@@ -898,7 +898,7 @@ fun OrderTableRow(
                 val statusColor = when (row.orderStatus) {
                     OrderStatus.COMPLETED -> KbSuccess
                     OrderStatus.CANCELLED -> KbError
-                    else -> TextMuted
+                    else -> MaterialTheme.kbTextSecondary
                 }
                 Surface(
                     onClick = { if (canEdit) statusExpanded = true },
@@ -931,7 +931,7 @@ fun OrderTableRow(
                         modifier = Modifier.background(MaterialTheme.kbBgCard)
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Completed", color = TextLight, style = MaterialTheme.typography.bodySmall) },
+                            text = { Text("Completed", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodySmall) },
                             onClick = { onStatusChange(OrderStatus.COMPLETED.dbValue); statusExpanded = false }
                         )
                         DropdownMenuItem(
@@ -1029,7 +1029,7 @@ fun PartAmountDialog(
             Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
                 Text(
                     "Total: ${CurrencyUtils.formatPrice(totalAmount)}",
-                    color = TextLight,
+                    color = MaterialTheme.kbTextPrimary,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Row(
@@ -1045,8 +1045,8 @@ fun PartAmountDialog(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.kbPrimary,
                             unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-                            focusedTextColor = TextLight,
-                            unfocusedTextColor = TextLight
+                            focusedTextColor = MaterialTheme.kbTextPrimary,
+                            unfocusedTextColor = MaterialTheme.kbTextPrimary
                         ),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
@@ -1062,8 +1062,8 @@ fun PartAmountDialog(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.kbPrimary,
                             unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-                            focusedTextColor = TextLight,
-                            unfocusedTextColor = TextLight
+                            focusedTextColor = MaterialTheme.kbTextPrimary,
+                            unfocusedTextColor = MaterialTheme.kbTextPrimary
                         ),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
@@ -1103,14 +1103,15 @@ fun PartAmountDialog(
     }
 }
 
+@Composable
 private fun getPayModeColor(mode: PaymentMode): Color {
     return when (mode) {
         PaymentMode.CASH -> KbSuccess
-        PaymentMode.UPI -> Brown500
+        PaymentMode.UPI -> MaterialTheme.kbSecondary
         PaymentMode.POS -> KbBrandSaffron
         PaymentMode.ZOMATO -> KbSuccess
         PaymentMode.SWIGGY -> SwiggyOrange
-        else -> Brown500
+        else -> MaterialTheme.kbSecondary
     }
 }
 
@@ -1243,7 +1244,7 @@ private fun OnlineOrdersPane(
             ) {
                 Text(
                     text = it,
-                    color = TextLight,
+                    color = MaterialTheme.kbTextPrimary,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small)
                 )
@@ -1386,14 +1387,13 @@ private fun OnlineOrderTableRow(
                     var actionExpanded by remember { mutableStateOf(false) }
                     Box {
                         Surface(
-                            onClick = { actionExpanded = true },
-                            color = DarkBrown2,
+                            onClick = { actionExpanded = true }, color = MaterialTheme.kbBgSecondary,
                             shape = RoundedCornerShape(6.dp),
                             border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.4f))
                         ) {
                             Text(
                                 "Update",
-                                color = TextLight,
+                                color = MaterialTheme.kbTextPrimary,
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
@@ -1408,7 +1408,7 @@ private fun OnlineOrderTableRow(
                                     text = {
                                         Text(
                                             status.replace("_", " "),
-                                            color = if (status.equals("REJECTED", ignoreCase = true) || status.equals("CANCELLED", ignoreCase = true)) KbError else TextLight,
+                                            color = if (status.equals("REJECTED", ignoreCase = true) || status.equals("CANCELLED", ignoreCase = true)) KbError else MaterialTheme.kbTextPrimary,
                                             style = MaterialTheme.typography.bodySmall
                                         )
                                     },
@@ -1479,7 +1479,7 @@ private fun OnlineOrderTableRow(
             )
             Text(
                 CurrencyUtils.formatPrice(order.totalAmount),
-                color = TextLight,
+                color = MaterialTheme.kbTextPrimary,
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
             )
         }
@@ -1498,7 +1498,7 @@ private fun OnlineOrderDetailsDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.kbBgCard,
         titleContentColor = MaterialTheme.kbSecondary,
-        textContentColor = TextLight,
+        textContentColor = MaterialTheme.kbTextPrimary,
         title = {
             Column {
                 Text(order.publicOrderCode, color = MaterialTheme.kbPrimary)
@@ -1522,7 +1522,7 @@ private fun OnlineOrderDetailsDialog(
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             "${item.quantity} x ${item.itemName}${item.variantName?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""}",
-                            color = TextLight,
+                            color = MaterialTheme.kbTextPrimary,
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                         )
                         Text(
@@ -1548,7 +1548,7 @@ private fun OnlineOrderDetailsDialog(
                                 label = { Text(nextStatus.replace("_", " ")) },
                                 colors = AssistChipDefaults.assistChipColors(
                                     containerColor = storefrontOrderStatusColor(nextStatus).copy(alpha = 0.18f),
-                                    labelColor = TextLight
+                                    labelColor = MaterialTheme.kbTextPrimary
                                 )
                             )
                         }
@@ -1588,15 +1588,16 @@ private fun StatusBadge(
     }
 }
 
+@Composable
 private fun storefrontOrderStatusColor(status: String): Color {
     return when (status.uppercase(Locale.getDefault())) {
         "PENDING_CONFIRMATION" -> KbBrandSaffron
-        "ACCEPTED" -> Brown500
+        "ACCEPTED" -> KbWarning
         "PREPARING" -> SwiggyOrange
         "READY" -> KbSuccess
         "COMPLETED" -> KbSuccess
         "REJECTED", "CANCELLED" -> KbError
-        else -> TextMuted
+        else -> MaterialTheme.kbTextSecondary
     }
 }
 

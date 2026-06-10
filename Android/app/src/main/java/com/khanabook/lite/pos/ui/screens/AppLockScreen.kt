@@ -152,7 +152,7 @@ fun AppLockScreen(
 
             Text(
                 "Enter your PIN to continue",
-                color = TextLight,
+                color = MaterialTheme.kbTextPrimary,
                 style = MaterialTheme.typography.bodyLarge
             )
 
@@ -195,9 +195,7 @@ fun AppLockScreen(
             Box(modifier = Modifier.height(32.dp), contentAlignment = Alignment.Center) {
                 errorMessage?.let { message ->
                     Text(
-                        message,
-                        color = ErrorPink,
-                        style = MaterialTheme.typography.bodyMedium
+                        message, color = KbError, style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
@@ -269,7 +267,7 @@ fun PinNumpad(
                             Icon(
                                 Icons.AutoMirrored.Filled.Backspace,
                                 contentDescription = "Delete",
-                                tint = TextLight,
+                                tint = MaterialTheme.kbTextPrimary,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -279,7 +277,7 @@ fun PinNumpad(
                         }) {
                             Text(
                                 key,
-                                color = TextLight,
+                                color = MaterialTheme.kbTextPrimary,
                                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Normal)
                             )
                         }
@@ -337,7 +335,7 @@ fun InlinePinEntry(
             }
         }
         if (errorMessage != null) {
-            Text(errorMessage, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+            Text(errorMessage, color = KbError, style = MaterialTheme.typography.labelSmall)
         }
         PinNumpad(
             onDigit = onDigit,

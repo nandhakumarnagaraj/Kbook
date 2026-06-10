@@ -204,9 +204,7 @@ fun NewBillScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
-                        )
+                        MaterialTheme.kbHeaderGradient
                     )
                     .statusBarsPadding()
                     .padding(top = 8.dp, bottom = 12.dp)
@@ -538,7 +536,7 @@ fun OrderTypeButton(text: String, isSelected: Boolean, modifier: Modifier, onCli
         ) {
             Text(
                     text,
-                    color = if (isSelected) DarkBrown1 else MaterialTheme.kbTextSecondary,
+                    color = if (isSelected) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary,
                 style = if (isSelected) MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge
         )
     }
@@ -952,8 +950,7 @@ fun MenuSelectionStep(
             Surface(
                 modifier = Modifier
                     .weight(0.35f)
-                    .fillMaxHeight(),
-                color = DarkBrown2,
+                    .fillMaxHeight(), color = MaterialTheme.kbBgSecondary,
                 tonalElevation = 2.dp
             ) {
                 Column(modifier = Modifier.padding(spacing.medium)) {
@@ -1415,7 +1412,7 @@ fun PaymentStep(
                     modifier =
                             Modifier.fillMaxWidth()
                                     .height(56.dp)
-                                    .background(BrownSelected, RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.kbPrimaryBold, RoundedCornerShape(8.dp))
                                     .border(1.dp, MaterialTheme.kbOutlineSubtle)
                                     .clickable { expanded = true }
                                     .padding(horizontal = spacing.medium),
@@ -1827,16 +1824,16 @@ fun SuccessStep(
                 if (receiptPrinting) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(iconSize.small),
-                        color = DarkBrown1,
+                        color = MaterialTheme.kbTextPrimary,
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Icon(Icons.Default.Receipt, null, tint = DarkBrown1)
+                    Icon(Icons.Default.Receipt, null, tint = MaterialTheme.kbTextPrimary)
                 }
                 Spacer(modifier = Modifier.width(spacing.extraSmall))
                 Text(
                     if (receiptPrinting) "Preparing Invoice" else "Print Invoice",
-                    color = DarkBrown1,
+                    color = MaterialTheme.kbTextPrimary,
                     style = MaterialTheme.typography.titleMedium
                 )
             }

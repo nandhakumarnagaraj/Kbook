@@ -78,7 +78,7 @@ fun CallCustomerScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                        .background(MaterialTheme.kbHeaderGradient)
                         .statusBarsPadding()
                         .padding(top = 8.dp, bottom = 12.dp)
                 ) {
@@ -194,9 +194,9 @@ fun CallCustomerScreen(
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
                         enabled = dailyId.isNotEmpty()
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1, modifier = Modifier.size(iconSize.small))
+                    Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.kbTextPrimary, modifier = Modifier.size(iconSize.small))
                     Spacer(modifier = Modifier.width(spacing.small))
-                    Text("Search Customer", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                    Text("Search Customer", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 }
             } else {
                 OutlinedTextField(
@@ -253,7 +253,7 @@ fun CallCustomerScreen(
                 if (currentResult != null) {
                 KhanaBookCard(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = CardBG),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
                 ) {
                     Column(
@@ -280,7 +280,7 @@ fun CallCustomerScreen(
 
                         Text(
                                 text = currentResult.bill.customerName?.takeIf { it != "Walking Customer" } ?: "Guest",
-                                color = TextLight,
+                                color = MaterialTheme.kbTextPrimary,
                                 style = MaterialTheme.typography.headlineSmall
                         )
 
@@ -351,8 +351,8 @@ fun CallCustomerScreen(
 @Composable
 private fun outlinedSearchFieldColors() =
     OutlinedTextFieldDefaults.colors(
-        focusedTextColor = TextLight,
-        unfocusedTextColor = TextLight,
+        focusedTextColor = MaterialTheme.kbTextPrimary,
+        unfocusedTextColor = MaterialTheme.kbTextPrimary,
         focusedBorderColor = MaterialTheme.kbSecondary,
         unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
         focusedLabelColor = MaterialTheme.kbSecondary,

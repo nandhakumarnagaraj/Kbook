@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.khanabook.lite.pos.ui.theme.KbGray300
+import com.khanabook.lite.pos.ui.theme.KbGray500
 import com.khanabook.lite.pos.ui.theme.VegGreen
 
 /**
@@ -34,9 +36,9 @@ fun KhanaBookSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     checkedTrackColor: Color = VegGreen,
-    uncheckedTrackColor: Color = Color(0xFF5C5668),
+    uncheckedTrackColor: Color = KbGray500,
     checkedThumbColor: Color = Color.White,
-    uncheckedThumbColor: Color = Color(0xFFD6D1DE)
+    uncheckedThumbColor: Color = KbGray300
 ) {
     val trackColor by animateColorAsState(
         targetValue = if (checked) checkedTrackColor else uncheckedTrackColor,

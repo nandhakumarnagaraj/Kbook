@@ -72,15 +72,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
 import androidx.compose.runtime.collectAsState
-import com.khanabook.lite.pos.ui.theme.CardBG
-import com.khanabook.lite.pos.ui.theme.DarkBrown1
-import com.khanabook.lite.pos.ui.theme.DarkBrown2
-import com.khanabook.lite.pos.ui.theme.ErrorPink
-import com.khanabook.lite.pos.ui.theme.kbPrimary
-import com.khanabook.lite.pos.ui.theme.kbSecondary
-import com.khanabook.lite.pos.ui.theme.kbTextPrimary
-import com.khanabook.lite.pos.ui.theme.kbTextSecondary
-import com.khanabook.lite.pos.ui.theme.ParchmentBG
+import com.khanabook.lite.pos.ui.theme.*
 
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -176,7 +168,7 @@ fun OcrScannerScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                    .background(MaterialTheme.kbHeaderGradient)
                     .statusBarsPadding()
                     .padding(top = 8.dp, bottom = 12.dp)
             ) {
@@ -379,7 +371,7 @@ private fun ScanControls(
         contentAlignment = Alignment.BottomCenter
     ) {
         Card(
-            colors = CardDefaults.cardColors(containerColor = CardBG),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
             shape = RoundedCornerShape(18.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -397,8 +389,7 @@ private fun ScanControls(
                         !hasCapturedPhoto && returnBarcode -> "Point at a barcode or text to scan."
                         isProcessing -> processingLabel
                         else -> "Photo captured. Use this or retake."
-                    },
-                    color = ParchmentBG,
+                    }, color = MaterialTheme.kbPrimaryBold,
                     fontSize = 13.sp
                 )
 
@@ -415,8 +406,7 @@ private fun ScanControls(
                 if (errorMessage != null) {
                     androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(com.khanabook.lite.pos.ui.theme.KhanaBookTheme.spacing.small))
                     Text(
-                        text = errorMessage,
-                        color = ErrorPink,
+                        text = errorMessage, color = KbError,
                         fontSize = 13.sp
                     )
                 }
@@ -430,8 +420,7 @@ private fun ScanControls(
                         modifier = Modifier.fillMaxWidth(),
                         colors =
                             ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.kbPrimary,
-                                contentColor = DarkBrown1
+                                containerColor = MaterialTheme.kbPrimary, contentColor = MaterialTheme.kbTextOnBrand
                             )
                     ) {
                         Icon(Icons.Default.CameraAlt, contentDescription = null)
@@ -463,13 +452,12 @@ private fun ScanControls(
                             colors =
                                 ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.kbPrimary,
-                                    contentColor = DarkBrown1
+                                    contentColor = MaterialTheme.kbTextPrimary
                                 )
                         ) {
                             if (isProcessing) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    color = DarkBrown1,
+                                    modifier = Modifier.size(18.dp), color = MaterialTheme.kbTextPrimary,
                                     strokeWidth = 2.dp
                                 )
                                 Spacer(modifier = Modifier.size(8.dp))
@@ -503,7 +491,7 @@ fun PermissionDeniedContent(onRequestPermission: () -> Unit) {
             onClick = onRequestPermission,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary)
         ) {
-            Text("Grant Permission", color = DarkBrown1)
+            Text("Grant Permission", color = MaterialTheme.kbTextPrimary)
         }
         TextButton(
             onClick = {

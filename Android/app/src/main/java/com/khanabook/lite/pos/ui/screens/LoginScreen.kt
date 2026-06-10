@@ -164,9 +164,7 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
-                        )
+                        MaterialTheme.kbHeaderGradient
                     )
                     .statusBarsPadding()
                     .padding(vertical = 24.dp),
@@ -205,7 +203,7 @@ fun LoginScreen(
                     
                     Text(
                         text = "Restaurant POS & Management",
-                        color = Color(0xFFA78BFA), // Lavender text
+                        color = KbLavender, // Lavender text
                         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
                         textAlign = TextAlign.Center
                     )
@@ -313,18 +311,18 @@ fun LoginScreen(
                                 isLoginUserChecking -> CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
                                     strokeWidth = 2.dp,
-                                    color = Color(0xFFF97316)
+                                    color = KbBrandSaffron
                                 )
                                 loginUserCheckError != null -> Icon(
                                     Icons.Default.Close,
                                     contentDescription = null,
-                                    tint = Color(0xFFDC2626),
+                                    tint = KbError,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 loginId.length == 10 && !isLoginUserChecking -> Icon(
                                     Icons.Default.CheckCircle,
                                     contentDescription = null,
-                                    tint = Color(0xFF22C55E),
+                                    tint = KbWhatsAppGreen,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -335,7 +333,7 @@ fun LoginScreen(
                             focusedTextColor = Color(0xFF0F172A),
                             unfocusedTextColor = Color(0xFF0F172A),
                             disabledTextColor = Color(0xFF64748B),
-                            errorTextColor = Color(0xFFDC2626),
+                            errorTextColor = KbError,
                             focusedContainerColor = Color(0xFFF5F3FF),
                             unfocusedContainerColor = Color(0xFFF5F3FF),
                             disabledContainerColor = Color(0xFFF5F3FF),
@@ -344,7 +342,7 @@ fun LoginScreen(
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
                             errorIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFFF97316)
+                            cursorColor = KbBrandSaffron
                         ),
                         singleLine = true,
                         isError = (loginId.isNotEmpty() && !ValidationUtils.isValidPhone(loginId))
@@ -353,9 +351,9 @@ fun LoginScreen(
                         supportingText = {
                             when {
                                 loginUserCheckError != null ->
-                                    Text(loginUserCheckError!!, color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                                    Text(loginUserCheckError!!, color = KbError, style = MaterialTheme.typography.labelSmall)
                                 loginId.isNotEmpty() && !ValidationUtils.isValidPhone(loginId) ->
-                                    Text("Enter a valid 10-digit phone number", color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                                    Text("Enter a valid 10-digit phone number", color = KbError, style = MaterialTheme.typography.labelSmall)
                             }
                         },
                         keyboardOptions = KeyboardOptions(
@@ -400,7 +398,7 @@ fun LoginScreen(
                             focusedTextColor = Color(0xFF0F172A),
                             unfocusedTextColor = Color(0xFF0F172A),
                             disabledTextColor = Color(0xFF64748B),
-                            errorTextColor = Color(0xFFDC2626),
+                            errorTextColor = KbError,
                             focusedContainerColor = Color(0xFFF5F3FF),
                             unfocusedContainerColor = Color(0xFFF5F3FF),
                             disabledContainerColor = Color(0xFFF5F3FF),
@@ -409,7 +407,7 @@ fun LoginScreen(
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
                             errorIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFFF97316)
+                            cursorColor = KbBrandSaffron
                         ),
                         singleLine = true,
                         isError = password.isBlank() && loginStatus is AuthViewModel.LoginResult.Error,
@@ -435,7 +433,7 @@ fun LoginScreen(
 
                     Text(
                         text = "Forgot Password?",
-                        color = Color(0xFFF97316),
+                        color = KbBrandSaffron,
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier
                             .align(Alignment.End)
@@ -449,7 +447,7 @@ fun LoginScreen(
                     if (loginErrorMessage != null) {
                         Text(
                             text = loginErrorMessage,
-                            color = Color(0xFFDC2626),
+                            color = KbError,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(bottom = 12.dp).fillMaxWidth(),
                             textAlign = TextAlign.Center
@@ -471,7 +469,7 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(52.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFormFilled) Color(0xFFF97316) else Color(0xFFCBD5E1),
+                            containerColor = if (isFormFilled) KbBrandSaffron else Color(0xFFCBD5E1),
                             contentColor = Color.White,
                             disabledContainerColor = Color(0xFFCBD5E1),
                             disabledContentColor = Color.White.copy(alpha = 0.6f)
@@ -576,7 +574,7 @@ fun LoginScreen(
                         )
                         Text(
                             text = "Sign Up",
-                            color = Color(0xFF7C3AED),
+                            color = KbPurpleAccent,
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.clickable { onSignUpClick() }
                         )
@@ -688,9 +686,7 @@ fun ForgotPasswordDialog(
                     .fillMaxWidth()
                     .height(310.dp)
                     .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
-                        )
+                        MaterialTheme.kbHeaderGradient
                     )
             ) {
                 // Back Button Row
@@ -727,20 +723,20 @@ fun ForgotPasswordDialog(
                     Box(
                         modifier = Modifier
                             .size(90.dp)
-                            .background(Color(0xFFF97316).copy(alpha = 0.12f), CircleShape)
-                            .border(1.5.dp, Color(0xFFF97316).copy(alpha = 0.45f), CircleShape),
+                            .background(KbBrandSaffron.copy(alpha = 0.12f), CircleShape)
+                            .border(1.5.dp, KbBrandSaffron.copy(alpha = 0.45f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(66.dp)
-                                .background(Color(0xFFF97316).copy(alpha = 0.2f), CircleShape),
+                                .background(KbBrandSaffron.copy(alpha = 0.2f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = if (step == 3) Icons.Default.Lock else Icons.Default.Email,
                                 contentDescription = null,
-                                tint = Color(0xFFF97316),
+                                tint = KbBrandSaffron,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
@@ -763,7 +759,7 @@ fun ForgotPasswordDialog(
                             2 -> "Enter the 6-digit OTP sent to +91 $phone."
                             else -> "Create a new strong password for your account."
                         },
-                        color = Color(0xFFA78BFA),
+                        color = KbLavender,
                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 32.dp)
@@ -811,7 +807,7 @@ fun ForgotPasswordDialog(
                                 ) {
                                     Text(
                                         text = "+91",
-                                        color = Color(0xFF7C3AED),
+                                        color = KbPurpleAccent,
                                         fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.bodyLarge
                                     )
@@ -829,18 +825,18 @@ fun ForgotPasswordDialog(
                                     isUserChecking -> CircularProgressIndicator(
                                         modifier = Modifier.size(16.dp),
                                         strokeWidth = 2.dp,
-                                        color = Color(0xFFF97316)
+                                        color = KbBrandSaffron
                                     )
                                     userExistsError != null -> Icon(
                                         Icons.Default.Close,
                                         contentDescription = null,
-                                        tint = Color(0xFFDC2626),
+                                        tint = KbError,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     phone.length == 10 && !isUserChecking -> Icon(
                                         Icons.Default.CheckCircle,
                                         contentDescription = null,
-                                        tint = Color(0xFF22C55E),
+                                        tint = KbWhatsAppGreen,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -855,16 +851,16 @@ fun ForgotPasswordDialog(
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
                                 disabledIndicatorColor = Color.Transparent,
-                                cursorColor = Color(0xFFF97316)
+                                cursorColor = KbBrandSaffron
                             ),
                             singleLine = true,
                             isError = phone.isNotEmpty() && !isPhoneValid || userExistsError != null || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
                             supportingText = {
                                 val err = fieldError("phoneNumber", "loginId", "whatsappNumber")
                                 when {
-                                    err != null -> Text(err, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
-                                    userExistsError != null -> Text(userExistsError!!, color = ErrorPink, style = MaterialTheme.typography.labelSmall)
-                                    phone.isNotEmpty() && !isPhoneValid -> Text("Enter 10-digit number", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                                    err != null -> Text(err, color = KbError, style = MaterialTheme.typography.labelSmall)
+                                    userExistsError != null -> Text(userExistsError!!, color = KbError, style = MaterialTheme.typography.labelSmall)
+                                    phone.isNotEmpty() && !isPhoneValid -> Text("Enter 10-digit number", color = KbError, style = MaterialTheme.typography.labelSmall)
                                 }
                             },
                             keyboardOptions = KeyboardOptions(
@@ -903,7 +899,7 @@ fun ForgotPasswordDialog(
 
                             Text(
                                 text = timerText,
-                                color = if (resendTimer > 0) Color(0xFF94A3B8) else Color(0xFFF97316),
+                                color = if (resendTimer > 0) Color(0xFF94A3B8) else KbBrandSaffron,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 modifier = Modifier
                                     .align(Alignment.CenterHorizontally)
@@ -915,7 +911,7 @@ fun ForgotPasswordDialog(
                             val err = fieldError("otp")
                             if (err != null) {
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(err, color = ErrorPink, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.CenterHorizontally))
+                                Text(err, color = KbError, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.CenterHorizontally))
                             }
                         }
 
@@ -933,7 +929,7 @@ fun ForgotPasswordDialog(
                                     .fillMaxWidth()
                                     .height(52.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (otp.length == 6) Color(0xFFF97316) else Color(0xFFCBD5E1),
+                                    containerColor = if (otp.length == 6) KbBrandSaffron else Color(0xFFCBD5E1),
                                     contentColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(16.dp),
@@ -956,12 +952,12 @@ fun ForgotPasswordDialog(
                                 .fillMaxWidth()
                                 .height(52.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF7C3AED)),
-                            border = BorderStroke(1.5.dp, if (isPhoneValid && !isResetLoading && !isUserChecking && userExistsError == null) Color(0xFF7C3AED) else Color(0xFFE2E8F0)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = KbPurpleAccent),
+                            border = BorderStroke(1.5.dp, if (isPhoneValid && !isResetLoading && !isUserChecking && userExistsError == null) KbPurpleAccent else Color(0xFFE2E8F0)),
                             enabled = isPhoneValid && !isResetLoading && !isUserChecking && userExistsError == null && (step == 1 || resendTimer == 0)
                         ) {
                             if (isResetLoading && step == 1) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFF7C3AED), strokeWidth = 2.dp)
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = KbPurpleAccent, strokeWidth = 2.dp)
                             } else {
                                 Text(
                                     text = if (step == 2) "Resend OTP" else "Send OTP",
@@ -1001,12 +997,12 @@ fun ForgotPasswordDialog(
                                 unfocusedContainerColor = Color(0xFFF5F3FF),
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
-                                cursorColor = Color(0xFFF97316)
+                                cursorColor = KbBrandSaffron
                             ),
                             singleLine = true,
                             isError = fieldError("password") != null,
                             supportingText = {
-                                fieldError("password")?.let { Text(it, color = ErrorPink, style = MaterialTheme.typography.labelSmall) }
+                                fieldError("password")?.let { Text(it, color = KbError, style = MaterialTheme.typography.labelSmall) }
                             }
                         )
 
@@ -1045,12 +1041,12 @@ fun ForgotPasswordDialog(
                                 unfocusedContainerColor = Color(0xFFF5F3FF),
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
-                                cursorColor = Color(0xFFF97316)
+                                cursorColor = KbBrandSaffron
                             ),
                             singleLine = true,
                             isError = !passwordsMatch,
                             supportingText = {
-                                if (!passwordsMatch) Text("Passwords do not match", color = ErrorPink, style = MaterialTheme.typography.labelSmall)
+                                if (!passwordsMatch) Text("Passwords do not match", color = KbError, style = MaterialTheme.typography.labelSmall)
                             }
                         )
 
@@ -1068,7 +1064,7 @@ fun ForgotPasswordDialog(
                                 .fillMaxWidth()
                                 .height(52.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isResetEnabled) Color(0xFFF97316) else Color(0xFFCBD5E1),
+                                containerColor = if (isResetEnabled) KbBrandSaffron else Color(0xFFCBD5E1),
                                 contentColor = Color.White
                             ),
                             shape = RoundedCornerShape(16.dp),
@@ -1091,8 +1087,8 @@ fun ForgotPasswordDialog(
                                 .fillMaxWidth()
                                 .height(52.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF7C3AED)),
-                            border = BorderStroke(1.5.dp, Color(0xFF7C3AED))
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = KbPurpleAccent),
+                            border = BorderStroke(1.5.dp, KbPurpleAccent)
                         ) {
                             Text("Back", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
                         }
@@ -1102,8 +1098,7 @@ fun ForgotPasswordDialog(
                     if (resetErrorMessage != null) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = resetErrorMessage,
-                            color = ErrorPink,
+                            text = resetErrorMessage, color = KbError,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
@@ -1144,7 +1139,7 @@ private fun ForgotPasswordOtpInputRow(
                     .height(boxHeight)
                     .background(Color(0xFFF5F3FF), RoundedCornerShape(12.dp))
                     .then(
-                        if (isFilled) Modifier.border(1.5.dp, Color(0xFF7C3AED), RoundedCornerShape(12.dp))
+                        if (isFilled) Modifier.border(1.5.dp, KbPurpleAccent, RoundedCornerShape(12.dp))
                         else Modifier
                     ),
                 contentAlignment = Alignment.Center
@@ -1176,7 +1171,7 @@ private fun ForgotPasswordOtpInputRow(
                     ),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
-                    cursorBrush = SolidColor(Color(0xFFF97316)),
+                    cursorBrush = SolidColor(KbBrandSaffron),
                     decorationBox = { innerTextField ->
                         Box(
                             modifier = Modifier.fillMaxSize(),

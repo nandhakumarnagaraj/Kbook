@@ -114,7 +114,7 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                            .background(MaterialTheme.kbHeaderGradient)
                     ) {
                         Column(
                             modifier = Modifier
@@ -387,7 +387,7 @@ private fun MetricCard(
                 shape = RoundedCornerShape(14.dp)
             ),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBG),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -714,7 +714,7 @@ fun HomeActionCard(
     badgeCount: Int = 0
 ) {
     val spacing = KhanaBookTheme.spacing
-    val cardBg = CardBG
+    val cardBg = MaterialTheme.kbBgCard
     val cardBorderColor = MaterialTheme.kbOutlineSubtle
     val accentColor = KbSuccess
 
@@ -802,7 +802,7 @@ fun HomeActionGridCard(
     badgeCount: Int = 0
 ) {
     val spacing = KhanaBookTheme.spacing
-    val cardBg = CardBG
+    val cardBg = MaterialTheme.kbBgCard
     val cardBorderColor = MaterialTheme.kbOutlineSubtle
     val accentColor = KbSuccess
     val textColor = if (isPrimary) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary

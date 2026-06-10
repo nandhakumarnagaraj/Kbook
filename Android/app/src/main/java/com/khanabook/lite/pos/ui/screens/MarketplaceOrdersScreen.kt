@@ -157,7 +157,7 @@ fun MarketplaceOrdersScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                        .background(MaterialTheme.kbHeaderGradient)
                         .statusBarsPadding()
                         .padding(top = 8.dp, bottom = 12.dp)
                 ) {

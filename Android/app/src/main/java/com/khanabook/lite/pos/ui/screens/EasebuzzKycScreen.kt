@@ -61,10 +61,10 @@ import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.data.repository.EasebuzzPaymentRepository
 import com.khanabook.lite.pos.data.remote.dto.EasebuzzSubMerchantStatusResponse
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
-import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
 import com.khanabook.lite.pos.ui.theme.KbGray300
 import com.khanabook.lite.pos.ui.theme.KbGray500
+import com.khanabook.lite.pos.ui.theme.KbLavender
 import com.khanabook.lite.pos.ui.theme.KbOpacity
 import com.khanabook.lite.pos.ui.theme.KbShape
 import com.khanabook.lite.pos.ui.theme.KbSuccess
@@ -135,7 +135,6 @@ fun EasebuzzKycScreen(
         )
     }
 
-    // Midnight purple gradient background — matches Login/SignUp/Splash
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -180,7 +179,7 @@ fun EasebuzzKycScreen(
             Text(
                 text = "Complete your KYC to start receiving payments",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFFA78BFA)
+                color = KbLavender
             )
 
             Spacer(modifier = Modifier.height(spacing.mediumLarge))
@@ -274,7 +273,7 @@ fun EasebuzzKycScreen(
             } else if (errorMessage != null) {
                 KhanaBookCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = CardBG),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(modifier = Modifier.padding(spacing.large)) {

@@ -38,7 +38,6 @@ import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
-import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.VegGreen
 import com.khanabook.lite.pos.ui.theme.kbPrimary
 import com.khanabook.lite.pos.ui.theme.kbSecondary
@@ -85,7 +84,7 @@ fun TaxConfigView(
     lookupState.result?.let { result ->
         AlertDialog(
             onDismissRequest = onClearLookup,
-            title = { Text("Lookup Result", color = TextGold) },
+            title = { Text("Lookup Result", color = MaterialTheme.kbSecondary) },
             text = {
                 Column {
                     result.businessName?.let {
@@ -163,7 +162,7 @@ fun TaxConfigView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("GST Registered", color = TextGold, style = MaterialTheme.typography.bodyMedium)
+                Text("GST Registered", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.bodyMedium)
                 KhanaBookSwitch(
                     checked = gstEnabled,
                     onCheckedChange = { gstEnabled = it },
@@ -232,7 +231,7 @@ fun TaxConfigView(
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.kbSecondary, modifier = Modifier.height(24.dp))
                     Spacer(modifier = Modifier.width(spacing.small))
-                    Text("Looking up…", color = TextGold)
+                    Text("Looking up…", color = MaterialTheme.kbSecondary)
                 }
             }
 

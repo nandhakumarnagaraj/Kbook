@@ -190,7 +190,7 @@ fun MenuConfigurationScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                    .background(MaterialTheme.kbHeaderGradient)
                     .statusBarsPadding()
                     .padding(top = 8.dp, bottom = 12.dp)
             ) {
@@ -423,7 +423,7 @@ fun ReviewDetectedItemsScreen(
                                             Icon(
                                                 Icons.Default.Check,
                                                 contentDescription = null,
-                                                tint = DarkBrown1,
+                                                tint = MaterialTheme.kbTextPrimary,
                                                 modifier = Modifier.size(16.dp)
                                             )
                                         }
@@ -458,7 +458,7 @@ fun ReviewDetectedItemsScreen(
 
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        color = DarkBrown2,
+                        color = MaterialTheme.kbBgSecondary,
                         border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f))
                     ) {
                         Row(
@@ -483,7 +483,7 @@ fun ReviewDetectedItemsScreen(
                                 enabled = selectedCount > 0,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = KbBrandSaffron,
-                                    contentColor = DarkBrown1
+                                    contentColor = MaterialTheme.kbTextOnBrand
                                 ),
                                 modifier = Modifier.weight(2f).height(56.dp),
                                 shape = RoundedCornerShape(12.dp)
@@ -543,8 +543,7 @@ internal fun ReviewDetectedItemsOverlay(
                 .fillMaxHeight(0.96f)
                 .padding(bottom = 10.dp, top = 10.dp)
                 .imePadding()
-                .testTag(MenuConfigurationTags.reviewOverlaySheet),
-            color = DarkBrown1,
+                .testTag(MenuConfigurationTags.reviewOverlaySheet), color = MaterialTheme.kbTextPrimary,
             shape = RoundedCornerShape(28.dp),
             border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.25f))
         ) {
@@ -658,7 +657,7 @@ internal fun ReviewDetectedItemsOverlay(
                                         Icon(
                                             Icons.Default.Check,
                                             contentDescription = null,
-                                            tint = DarkBrown1,
+                                            tint = MaterialTheme.kbTextPrimary,
                                             modifier = Modifier.size(16.dp)
                                         )
                                     }
@@ -709,7 +708,7 @@ internal fun ReviewDetectedItemsOverlay(
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = DarkBrown2,
+                    color = MaterialTheme.kbBgSecondary,
                     border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f))
                 ) {
                     Row(
@@ -746,7 +745,7 @@ internal fun ReviewDetectedItemsOverlay(
                             },
                             enabled = selectedCount > 0,                                colors = ButtonDefaults.buttonColors(
                                     containerColor = KbBrandSaffron,
-                                    contentColor = DarkBrown1
+                                    contentColor = MaterialTheme.kbTextOnBrand
                                 ),
                                 modifier = Modifier
                                     .weight(2f)
@@ -798,7 +797,7 @@ private fun InlineDecisionBar(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = DarkBrown1.copy(alpha = 0.96f),
+        color = MaterialTheme.kbBgSecondary.copy(alpha = 0.96f),
         border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.25f))
     ) {
         Column(
@@ -808,7 +807,7 @@ private fun InlineDecisionBar(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(title, color = MaterialTheme.kbSecondary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
-            Text(message, color = TextLight, style = MaterialTheme.typography.bodySmall)
+            Text(message, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodySmall)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -816,7 +815,7 @@ private fun InlineDecisionBar(
             ) {
                 Button(
                     onClick = onPrimaryClick,
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = DarkBrown1),
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.kbTextOnBrand),
                     modifier = Modifier
                         .weight(1f)
                         .then(if (primaryTag != null) Modifier.testTag(primaryTag) else Modifier)
@@ -951,7 +950,7 @@ fun DraftItemRow(
                     Icon(
                         Icons.Default.Check,
                         contentDescription = null,
-                        tint = DarkBrown1,
+                        tint = MaterialTheme.kbTextPrimary,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -988,7 +987,7 @@ fun DraftItemRow(
                     value = draft.name,
                     onValueChange = { onUpdateDraft(draft.copy(name = it)) },
                     textStyle = TextStyle(
-                        color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.5f),
+                        color = if (draft.isSelected) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextPrimary.copy(alpha = 0.5f),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         textDecoration = if (!draft.isSelected) TextDecoration.LineThrough else null
@@ -1040,7 +1039,7 @@ fun DraftItemRow(
                             onUpdateDraft(draft.copy(price = p))
                         },
                         textStyle = TextStyle(
-                            color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
+                            color = if (draft.isSelected) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextPrimary.copy(alpha = 0.4f),
                             fontSize = 13.sp,
                             textAlign = TextAlign.End,
                             fontWeight = FontWeight.Bold
@@ -1090,7 +1089,7 @@ fun DraftItemRow(
                                 Icon(
                                     Icons.Default.Check,
                                     contentDescription = null,
-                                    tint = DarkBrown1,
+                                    tint = MaterialTheme.kbTextPrimary,
                                     modifier = Modifier.size(12.dp)
                                 )
                             }
@@ -1135,7 +1134,7 @@ fun DraftItemRow(
                                     onUpdateDraft(draft.copy(variants = newVariants))
                                 },
                                 textStyle = TextStyle(
-                                    color = if (variant.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
+                                    color = if (variant.isSelected) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextPrimary.copy(alpha = 0.4f),
                                     fontSize = 11.sp,
                                     textAlign = TextAlign.End
                                 ),
@@ -1203,7 +1202,7 @@ fun ModeSelectionView(
 
         Text(
             "Configure Menu",
-            color = TextLight,
+            color = MaterialTheme.kbTextPrimary,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
@@ -1227,7 +1226,7 @@ fun ModeSelectionView(
                     }
                     Spacer(modifier = Modifier.width(spacing.medium))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Manual Entry", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Manual Entry", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text("Add, view & edit items one by one", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
                     }
                 }
@@ -1285,7 +1284,7 @@ fun ModeSelectionView(
                     Spacer(modifier = Modifier.width(spacing.medium))
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Smart AI Import", color = TextLight, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("Smart AI Import", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(color = KbBrandSaffron, shape = RoundedCornerShape(4.dp)) {
                                 Text("MAGICAL", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.Black)
@@ -1365,7 +1364,7 @@ fun SmartAIOption(
         verticalArrangement = Arrangement.Center
     ) {
         Surface(
-            color = DarkBrown1,
+            color = MaterialTheme.kbTextPrimary,
             shape = CircleShape,
             modifier = Modifier.size(44.dp),
             border = BorderStroke(1.dp, MaterialTheme.kbSecondary.copy(alpha = 0.2f))
@@ -1375,7 +1374,7 @@ fun SmartAIOption(
         Spacer(modifier = Modifier.height(KhanaBookTheme.spacing.small))
         Text(
             label,
-            color = TextLight,
+            color = MaterialTheme.kbTextPrimary,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center
@@ -1454,7 +1453,7 @@ fun ManualMenuView(
                     Surface(
                         onClick = { onCategorySelect(category.id) },
                         shape = KbShape.Medium,
-                        color = if (isSelected) KbBrandSaffron else CardBG,
+                        color = if (isSelected) KbBrandSaffron else MaterialTheme.kbBgCard,
                         border = BorderStroke(
                             1.dp,
                             if (isSelected) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
@@ -1725,7 +1724,7 @@ fun MenuItemRow(
             ),
         shape = KbShape.Medium,
         colors = CardDefaults.cardColors(
-            containerColor = if (item.isAvailable) CardBG else CardBG.copy(alpha = 0.5f)
+            containerColor = if (item.isAvailable) MaterialTheme.kbBgCard else MaterialTheme.kbBgCard.copy(alpha = 0.5f)
         ),
         border = BorderStroke(
             0.5.dp,
@@ -1811,8 +1810,8 @@ fun CategoryEditDialog(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.kbPrimary,
                     unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-                    focusedTextColor = TextLight,
-                    unfocusedTextColor = TextLight
+                    focusedTextColor = MaterialTheme.kbTextPrimary,
+                    unfocusedTextColor = MaterialTheme.kbTextPrimary
                 ),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -1883,8 +1882,8 @@ fun ItemEditDialog(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.kbPrimary,
                         unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-                        focusedTextColor = TextLight,
-                        unfocusedTextColor = TextLight
+                        focusedTextColor = MaterialTheme.kbTextPrimary,
+                        unfocusedTextColor = MaterialTheme.kbTextPrimary
                     ),
                     modifier = Modifier.fillMaxWidth(),
                     supportingText = {
@@ -1907,8 +1906,8 @@ fun ItemEditDialog(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.kbPrimary,
                             unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-                            focusedTextColor = TextLight,
-                            unfocusedTextColor = TextLight
+                            focusedTextColor = MaterialTheme.kbTextPrimary,
+                            unfocusedTextColor = MaterialTheme.kbTextPrimary
                         ),
                         modifier = Modifier.fillMaxWidth(),
                         supportingText = {
@@ -1930,7 +1929,7 @@ fun ItemEditDialog(
                             onClick = { foodType = "veg" },
                             colors = RadioButtonDefaults.colors(selectedColor = VegGreen)
                         )
-                        Text("Veg", color = TextLight)
+                        Text("Veg", color = MaterialTheme.kbTextPrimary)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RadioButton(
@@ -1938,7 +1937,7 @@ fun ItemEditDialog(
                             onClick = { foodType = "non-veg" },
                             colors = RadioButtonDefaults.colors(selectedColor = KbError)
                         )
-                        Text("Non-Veg", color = TextLight)
+                        Text("Non-Veg", color = MaterialTheme.kbTextPrimary)
                     }
                 }
 
@@ -1971,7 +1970,7 @@ fun ItemEditDialog(
                             },
                             label = { Text("Name", fontSize = 10.sp) },
                             modifier = Modifier.weight(0.7f),
-                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
+                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = MaterialTheme.kbTextPrimary, unfocusedTextColor = MaterialTheme.kbTextPrimary)
                         )
                         OutlinedTextField(
                             value = if (variantDraft.price == 0.0) "" else variantDraft.price.toInt().toString(),
@@ -1987,7 +1986,7 @@ fun ItemEditDialog(
                             label = { Text("Price", fontSize = 10.sp) },
                             modifier = Modifier.weight(0.3f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
+                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = MaterialTheme.kbTextPrimary, unfocusedTextColor = MaterialTheme.kbTextPrimary)
                         )
                         IconButton(onClick = {
                             editableVariants = editableVariants.toMutableList().also { updated ->

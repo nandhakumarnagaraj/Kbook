@@ -52,6 +52,7 @@ import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
 import com.khanabook.lite.pos.ui.designsystem.LoadingType
 import com.khanabook.lite.pos.ui.designsystem.verticalScrollbar
+import com.khanabook.lite.pos.ui.theme.kbHeaderGradient
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -64,6 +65,7 @@ fun SignUpScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     var shopName by remember { mutableStateOf("") }
+    var ownerName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var otp by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
@@ -80,6 +82,7 @@ fun SignUpScreen(
     val passwordFocusRequester = remember { FocusRequester() }
 
     val isShopNameValid = ValidationUtils.isValidName(shopName)
+    val isOwnerNameValid = ValidationUtils.isValidName(ownerName)
     val isPhoneValid = ValidationUtils.isValidPhone(phoneNumber)
     val isPasswordValid = ValidationUtils.isValidPassword(newPassword)
 
@@ -152,9 +155,7 @@ fun SignUpScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
-                        )
+                        MaterialTheme.kbHeaderGradient
                     )
                     .statusBarsPadding()
                     .padding(vertical = 24.dp),
@@ -193,7 +194,7 @@ fun SignUpScreen(
                     
                     Text(
                         text = "Restaurant POS & Management",
-                        color = Color(0xFFA78BFA), // Lavender text
+                        color = Color(0xFFA78BFA), /
                         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
                         textAlign = TextAlign.Center
                     )

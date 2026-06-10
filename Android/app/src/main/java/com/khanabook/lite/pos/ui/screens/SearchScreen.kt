@@ -139,17 +139,17 @@ fun SearchScreen(
                         refundReason = ""
                     },
                     enabled = refundAmount.isNotBlank() && refundAmount.toDoubleOrNull() != null && refundAmount.toDouble() > 0,
-                    colors = ButtonDefaults.buttonColors(containerColor = DangerRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = KbError)
                 ) {
                     Text("Refund", color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRefundDialog = false }) {
-                    Text("Cancel", color = TextGold)
+                    Text("Cancel", color = MaterialTheme.kbSecondary)
                 }
             },
-            containerColor = CardBG
+            containerColor = MaterialTheme.kbBgCard
         )
     }
 
@@ -166,7 +166,7 @@ fun SearchScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                        .background(MaterialTheme.kbHeaderGradient)
                         .statusBarsPadding()
                         .padding(top = 8.dp, bottom = 12.dp)
                 ) {
@@ -348,7 +348,7 @@ fun SearchScreen(
                 if (currentResult != null) {
                     KhanaBookCard(
                     modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-                    colors = CardDefaults.cardColors(containerColor = CardBG),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(spacing.medium).wrapContentHeight()) {
@@ -359,25 +359,25 @@ fun SearchScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Phone, null, tint = TextGold, modifier = Modifier.size(iconSize.xsmall))
+                                Icon(Icons.Default.Phone, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(iconSize.xsmall))
                                 Spacer(modifier = Modifier.width(spacing.extraSmall))
                                 Text(
                                     currentResult.bill.customerWhatsapp ?: "N/A",
-                                    color = TextLight,
+                                    color = MaterialTheme.kbTextPrimary,
                                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
                             
-                            Text(" | ", color = BorderGold.copy(alpha = 0.3f))
+                            Text(" | ", color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f))
                             
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Event, null, tint = TextGold, modifier = Modifier.size(iconSize.xsmall))
+                                Icon(Icons.Default.Event, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(iconSize.xsmall))
                                 Spacer(modifier = Modifier.width(spacing.extraSmall))
                                 Text(
                                     DateUtils.formatDisplay(currentResult.bill.createdAt),
-                                    color = TextGold,
+                                    color = MaterialTheme.kbSecondary,
                                     style = MaterialTheme.typography.labelSmall
                                 )
                             }
@@ -386,13 +386,13 @@ fun SearchScreen(
 
                             Surface(
                                 color = if (currentResult.bill.paymentStatus == "success")
-                                    SuccessGreen.copy(alpha = 0.1f)
+                                    KbSuccess.copy(alpha = 0.1f)
                                 else DangerRed.copy(alpha = 0.1f),
                                 shape = CircleShape
                             ) {
                                 Text(
                                     currentResult.bill.paymentStatus.uppercase(),
-                                    color = if (currentResult.bill.paymentStatus == "success") SuccessGreen else DangerRed,
+                                    color = if (currentResult.bill.paymentStatus == "success") KbSuccess else KbError,
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
@@ -401,14 +401,14 @@ fun SearchScreen(
 
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = spacing.medium),
-                            color = BorderGold.copy(alpha = 0.2f)
+                            color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.2f)
                         )
 
                         
                         if (currentResult.items.isEmpty()) {
                             Text(
                                 text = "No items found in this order.",
-                                color = TextLight.copy(alpha = 0.5f),
+                                color = MaterialTheme.kbTextPrimary.copy(alpha = 0.5f),
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(vertical = spacing.medium).align(Alignment.CenterHorizontally)
                             )
@@ -430,13 +430,13 @@ fun SearchScreen(
                                         ) {
                                             Text(
                                                 "${item.itemName} x${item.quantity}",
-                                                color = TextLight,
+                                                color = MaterialTheme.kbTextPrimary,
                                                 style = MaterialTheme.typography.bodySmall,
                                                 modifier = Modifier.weight(1f)
                                             )
                                             Text(
                                                 CurrencyUtils.formatPrice(item.itemTotal),
-                                                color = TextLight,
+                                                color = MaterialTheme.kbTextPrimary,
                                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
                                             )
                                         }
@@ -447,7 +447,7 @@ fun SearchScreen(
 
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = spacing.medium),
-                            color = BorderGold.copy(alpha = 0.2f)
+                            color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.2f)
                         )
 
                         
@@ -477,25 +477,25 @@ fun SearchScreen(
                                     horizontalArrangement = Arrangement.spacedBy(spacing.medium)
                                 ) {
                                     Column(modifier = Modifier.weight(1.3f)) {
-                                        Text("Payment Mode", color = TextGold, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp))
+                                        Text("Payment Mode", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp))
                                         Surface(
-                                            color = DarkBrown2,
+                                            color = MaterialTheme.kbBgSecondary,
                                             shape = RoundedCornerShape(6.dp),
-                                            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
+                                            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.4f))
                                         ) {
                                             Text(
                                                 PaymentMode.fromDbValue(currentResult.bill.paymentMode).displayLabel,
-                                                color = TextLight,
+                                                color = MaterialTheme.kbTextPrimary,
                                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                                             )
                                         }
                                     }
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("Order ID", color = TextGold, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp))
+                                        Text("Order ID", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 4.dp))
                                         Text(
                                             "#${currentResult.bill.dailyOrderDisplay.split("-").last()}",
-                                            color = TextLight,
+                                            color = MaterialTheme.kbTextPrimary,
                                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                         )
                                     }
@@ -517,7 +517,7 @@ fun SearchScreen(
                                         },
                                         enabled = currentResult.items.isNotEmpty(),
                                         modifier = Modifier.fillMaxWidth().height(48.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                                        colors = ButtonDefaults.buttonColors(containerColor = KbWhatsAppGreen),
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
                                         Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
@@ -556,7 +556,7 @@ fun SearchScreen(
                                                     showRefundDialog = true
                                                 },
                                                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                                                colors = ButtonDefaults.buttonColors(containerColor = DangerRed),
+                                                colors = ButtonDefaults.buttonColors(containerColor = KbError),
                                                 shape = RoundedCornerShape(12.dp)
                                             ) {
                                                 Icon(Icons.Default.CreditCard, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
@@ -573,7 +573,7 @@ fun SearchScreen(
                                                 showRefundDialog = true
                                             },
                                             modifier = Modifier.fillMaxWidth().height(48.dp),
-                                            colors = ButtonDefaults.buttonColors(containerColor = WarningYellow),
+                                            colors = ButtonDefaults.buttonColors(containerColor = KbWarning),
                                             shape = RoundedCornerShape(12.dp)
                                         ) {
                                             Icon(Icons.Default.Replay, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
@@ -596,13 +596,13 @@ fun SearchScreen(
                             Icon(
                                 imageVector = if (hasSearched) Icons.Default.SearchOff else Icons.Default.Search,
                                 contentDescription = null,
-                                tint = TextGold.copy(alpha = 0.3f),
+                                tint = MaterialTheme.kbSecondary.copy(alpha = 0.3f),
                                 modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
                             )
                             Spacer(modifier = Modifier.height(spacing.medium))
                             Text(
                                 if (hasSearched) "No Order Found" else "Search for an order to view details",
-                                color = TextGold.copy(alpha = 0.5f),
+                                color = MaterialTheme.kbSecondary.copy(alpha = 0.5f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -618,10 +618,8 @@ fun SearchScreen(
 @Composable
 private fun outlinedSearchFieldColors() =
     OutlinedTextFieldDefaults.colors(
-        focusedTextColor = TextLight,
-        unfocusedTextColor = TextLight,
-        focusedBorderColor = MaterialTheme.kbPrimary,
-        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-        focusedLabelColor = MaterialTheme.kbPrimary,
-        unfocusedLabelColor = TextGold
+        focusedTextColor = MaterialTheme.kbTextPrimary,
+        unfocusedTextColor = MaterialTheme.kbTextPrimary,
+        focusedBorderColor = MaterialTheme.kbPrimary, unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
+        focusedLabelColor = MaterialTheme.kbPrimary, unfocusedLabelColor = MaterialTheme.kbSecondary
     )

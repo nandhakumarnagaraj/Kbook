@@ -94,9 +94,7 @@ fun AboutAppView() {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
-                    )
+                    MaterialTheme.kbHeaderGradient
                 )
                 .padding(vertical = 36.dp),
             contentAlignment = Alignment.Center
@@ -236,14 +234,14 @@ fun AboutAppView() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Made with ", color = TextMuted, style = MaterialTheme.typography.labelSmall)
+                Text("Made with ", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelSmall)
                 Text("❤️", style = MaterialTheme.typography.labelSmall)
-                Text(" for Indian restaurants", color = TextMuted, style = MaterialTheme.typography.labelSmall)
+                Text(" for Indian restaurants", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelSmall)
             }
             Spacer(Modifier.height(4.dp))
             Text(
                 "© 2026 Piquant Services Pvt. Ltd.",
-                color = TextMuted.copy(alpha = 0.6f),
+                color = MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
                 style = MaterialTheme.typography.labelSmall
             )
         }
@@ -259,8 +257,8 @@ private fun AboutInfoCard(content: @Composable ColumnScope.() -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(CardBG)
-            .border(1.dp, BorderGold, RoundedCornerShape(16.dp)),
+            .background(MaterialTheme.kbBgCard)
+            .border(1.dp, MaterialTheme.kbOutlineSubtle, RoundedCornerShape(16.dp)),
         content = content
     )
 }
@@ -269,7 +267,7 @@ private fun AboutInfoCard(content: @Composable ColumnScope.() -> Unit) {
 private fun AboutInfoRow(
     label: String,
     value: String,
-    valueColor: Color = TextLight,
+    valueColor: Color = MaterialTheme.kbTextPrimary,
     clickable: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
@@ -281,7 +279,7 @@ private fun AboutInfoRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = TextMuted, style = MaterialTheme.typography.bodyMedium)
+        Text(label, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
         Text(
             value,
             color = valueColor,
@@ -302,11 +300,11 @@ private fun AboutLinkRow(label: String, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = TextLight, style = MaterialTheme.typography.bodyMedium)
+        Text(label, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodyMedium)
         Icon(
             Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = TextMuted,
+            tint = MaterialTheme.kbTextSecondary,
             modifier = Modifier.size(18.dp)
         )
     }
@@ -316,8 +314,7 @@ private fun AboutLinkRow(label: String, onClick: () -> Unit) {
 private fun HairlineDivider() {
     HorizontalDivider(
         modifier = Modifier.padding(horizontal = 20.dp),
-        thickness = 0.5.dp,
-        color = BorderGold
+        thickness = 0.5.dp, color = MaterialTheme.kbOutlineSubtle
     )
 }
 
@@ -437,7 +434,7 @@ fun HelpSupportView(searchQuery: String) {
         // ── FAQ section ───────────────────────────────────────────────────────
         Text(
             "FREQUENTLY ASKED",
-            color = TextMuted,
+            color = MaterialTheme.kbTextSecondary,
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -449,8 +446,8 @@ fun HelpSupportView(searchQuery: String) {
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(CardBG)
-                .border(1.dp, BorderGold, RoundedCornerShape(16.dp))
+                .background(MaterialTheme.kbBgCard)
+                .border(1.dp, MaterialTheme.kbOutlineSubtle, RoundedCornerShape(16.dp))
         ) {
             filteredFaqs.forEachIndexed { index, faq ->
                 FaqRow(faq = faq)
@@ -467,7 +464,7 @@ fun HelpSupportView(searchQuery: String) {
                 ) {
                     Text(
                         "No results for \"$searchQuery\"",
-                        color = TextMuted,
+                        color = MaterialTheme.kbTextSecondary,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -509,12 +506,12 @@ fun HelpSupportView(searchQuery: String) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     "Rate KhanaBook",
-                    color = TextLight,
+                    color = MaterialTheme.kbTextPrimary,
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
                     "Help us improve with your feedback",
-                    color = TextMuted,
+                    color = MaterialTheme.kbTextSecondary,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -553,8 +550,8 @@ private fun SupportActionCard(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(CardBG)
-            .border(1.dp, BorderGold, RoundedCornerShape(16.dp))
+            .background(MaterialTheme.kbBgCard)
+            .border(1.dp, MaterialTheme.kbOutlineSubtle, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(16.dp)
     ) {
@@ -568,9 +565,9 @@ private fun SupportActionCard(
                 Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.height(10.dp))
-            Text(title, color = TextLight, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
+            Text(title, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
             Spacer(Modifier.height(2.dp))
-            Text(subtitle, color = TextMuted, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -600,7 +597,7 @@ private fun FaqRow(faq: FaqItem) {
         ) {
             Text(
                 faq.q,
-                color = TextLight,
+                color = MaterialTheme.kbTextPrimary,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                 modifier = Modifier.weight(1f)
             )
@@ -608,7 +605,7 @@ private fun FaqRow(faq: FaqItem) {
             Icon(
                 Icons.Default.ExpandMore,
                 contentDescription = null,
-                tint = TextMuted,
+                tint = MaterialTheme.kbTextSecondary,
                 modifier = Modifier
                     .size(18.dp)
                     .rotate(rotation)
@@ -617,7 +614,7 @@ private fun FaqRow(faq: FaqItem) {
         if (expanded) {
             Text(
                 faq.a,
-                color = TextMuted,
+                color = MaterialTheme.kbTextSecondary,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 14.dp)
             )
@@ -640,7 +637,7 @@ internal fun AppInfoSection() {
     ) {
         Text(
             "KBook v${BuildConfig.VERSION_NAME}",
-            color = TextGold.copy(alpha = 0.5f),
+            color = MaterialTheme.kbSecondary.copy(alpha = 0.5f),
             style = MaterialTheme.typography.labelSmall,
             textAlign = TextAlign.Center
         )
@@ -710,7 +707,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                         color = MaterialTheme.kbSecondary,
                         strokeWidth = 3.dp
                     )
-                    Text(loadingMessage, color = TextLight, style = MaterialTheme.typography.bodyMedium)
+                    Text(loadingMessage, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         ) {}
@@ -728,7 +725,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                         append("Your data is safe — it will stay on this device and sync automatically after you log back in.")
                         if (isPinEnabled) append("\n\nEnter your app PIN to continue.")
                     },
-                    color = TextLight,
+                    color = MaterialTheme.kbTextPrimary,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -753,7 +750,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
                     Text(
                         "Unsynced data will be removed from this device after sign out.",
-                        color = TextGold.copy(alpha = 0.8f),
+                        color = MaterialTheme.kbSecondary.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     InlinePinEntry(
@@ -790,7 +787,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
         modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
         verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
     ) {
-        Text("Account Session", color = TextLight, style = MaterialTheme.typography.titleMedium)
+        Text("Account Session", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium)
         Button(
             onClick = { if (!isLoading) showConfirmDialog = true },
             enabled = !isLoading,

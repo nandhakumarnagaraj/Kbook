@@ -355,9 +355,7 @@ fun EasebuzzPaymentScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
-                )
+                MaterialTheme.kbHeaderGradient
             )
     ) {
         Column(
@@ -399,7 +397,7 @@ fun EasebuzzPaymentScreen(
                         )
                         Text(
                             text = "ORDER #KB-$billId",
-                            color = Color(0xFFA78BFA),
+                            color = KbLavender,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -682,7 +680,7 @@ private fun EasebuzzDetailRow(label: String, value: String) {
     ) {
         Text(
             text = label,
-            color = TextMuted,
+            color = MaterialTheme.kbTextSecondary,
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
@@ -901,7 +899,7 @@ private fun ActionButtonsArea(
                     Spacer(modifier = Modifier.height(spacing.medium))
                     Text(
                         text = if (sdkAttempted) "Native payment failed — try paying via custom tabs browser" else "Alternative web payment flow available",
-                        color = TextMuted,
+                        color = MaterialTheme.kbTextSecondary,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().padding(bottom = spacing.small)

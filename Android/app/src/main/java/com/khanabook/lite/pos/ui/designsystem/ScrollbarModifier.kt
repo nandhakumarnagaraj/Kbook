@@ -9,11 +9,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
 
 fun Modifier.verticalScrollbar(
     scrollState: ScrollState,
     width: Dp = 6.dp,
-    color: Color = Color(0xFFF97316).copy(alpha = 0.5f) // Subtle premium saffron color
+    color: Color = KbBrandSaffron.copy(alpha = 0.5f) // Subtle premium saffron color
 ): Modifier = this.drawWithContent {
     drawContent()
     val viewportHeight = size.height

@@ -67,9 +67,7 @@ fun InitialSyncScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
-                )
+                MaterialTheme.kbHeaderGradient
             )
     ) {
         when (val state = syncState) {
@@ -110,7 +108,7 @@ private fun SyncContentPurple(syncRotation: Float, spacing: Spacing) {
                     style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                 )
                 drawArc(
-                    color = Color(0xFFF97316),
+                    color = KbBrandSaffron,
                     startAngle = -90f,
                     sweepAngle = 360f * progress,
                     useCenter = false,
@@ -121,7 +119,7 @@ private fun SyncContentPurple(syncRotation: Float, spacing: Spacing) {
                 "${(progress * 100).toInt()}%",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFF97316)
+                    color = KbBrandSaffron
                 )
             )
         }
@@ -167,7 +165,7 @@ private fun SyncStepItemPurple(text: String, state: SyncStepState, syncRotation:
                     modifier = Modifier
                         .size(24.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF22C55E)),
+                        .background(KbWhatsAppGreen),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -185,7 +183,7 @@ private fun SyncStepItemPurple(text: String, state: SyncStepState, syncRotation:
                     modifier = Modifier
                         .size(24.dp)
                         .rotate(syncRotation),
-                    tint = Color(0xFFF97316)
+                    tint = KbBrandSaffron
                 )
             }
             SyncStepState.PENDING -> {
@@ -202,7 +200,7 @@ private fun SyncStepItemPurple(text: String, state: SyncStepState, syncRotation:
             style = MaterialTheme.typography.bodyLarge,
             color = when (state) {
                 SyncStepState.COMPLETED -> Color.White
-                SyncStepState.IN_PROGRESS -> Color(0xFFF97316)
+                SyncStepState.IN_PROGRESS -> KbBrandSaffron
                 SyncStepState.PENDING -> Color(0xFFA78BFA).copy(alpha = 0.6f)
             }
         )
@@ -222,20 +220,20 @@ private fun SessionExpiredContentPurple(onNavigateToLogin: () -> Unit, spacing: 
         Icon(
             imageVector = Icons.Default.Warning,
             contentDescription = "Session Expired",
-            tint = Color(0xFFDC2626),
+            tint = KbError,
             modifier = Modifier.size(64.dp)
         )
         Spacer(modifier = Modifier.height(spacing.large))
         Text(
             "Session expired. Please login again.",
-            color = Color(0xFFDC2626),
+            color = KbError,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(spacing.extraLarge))
         Button(
             onClick = { onNavigateToLogin() },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
+            colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
@@ -261,20 +259,20 @@ private fun ErrorContentPurple(message: String, onRetry: () -> Unit, spacing: Sp
         Icon(
             imageVector = Icons.Default.Warning,
             contentDescription = "Sync Error",
-            tint = Color(0xFFDC2626),
+            tint = KbError,
             modifier = Modifier.size(64.dp)
         )
         Spacer(modifier = Modifier.height(spacing.large))
         Text(
             message,
-            color = Color(0xFFDC2626),
+            color = KbError,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(spacing.extraLarge))
         Button(
             onClick = { onRetry() },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
+            colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
@@ -301,13 +299,13 @@ private fun SuccessContentPurple(spacing: Spacing) {
             modifier = Modifier
                 .size(100.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF22C55E).copy(alpha = 0.15f)),
+                .background(KbWhatsAppGreen.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = "Success",
-                tint = Color(0xFF22C55E),
+                tint = KbWhatsAppGreen,
                 modifier = Modifier.size(56.dp)
             )
         }
@@ -316,7 +314,7 @@ private fun SuccessContentPurple(spacing: Spacing) {
 
         Text(
             "Setup Complete!",
-            color = Color(0xFF22C55E),
+            color = KbWhatsAppGreen,
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
         )
 

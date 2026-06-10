@@ -313,15 +313,15 @@ private fun DisplayScaleView(viewModel: SettingsViewModel) {
 
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardBG),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(spacing.large)) {
-                Text("UI Scale", color = TextLight, style = MaterialTheme.typography.titleMedium)
+                Text("UI Scale", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(spacing.extraSmall))
                 Text(
                     "Adjust the overall size of text and UI elements.",
-                    color = TextGold.copy(alpha = 0.7f),
+                    color = MaterialTheme.kbSecondary.copy(alpha = 0.7f),
                     style = MaterialTheme.typography.bodySmall
                 )
 
@@ -334,7 +334,7 @@ private fun DisplayScaleView(viewModel: SettingsViewModel) {
                     scaleLabels.forEachIndexed { i, label ->
                         Text(
                             text = label,
-                            color = if (i == sliderIndex) MaterialTheme.kbPrimary else TextGold.copy(alpha = 0.5f),
+                            color = if (i == sliderIndex) MaterialTheme.kbPrimary else MaterialTheme.kbSecondary.copy(alpha = 0.5f),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = if (i == sliderIndex) FontWeight.Bold else FontWeight.Normal
                         )
@@ -350,7 +350,7 @@ private fun DisplayScaleView(viewModel: SettingsViewModel) {
                     colors = SliderDefaults.colors(
                         thumbColor = MaterialTheme.kbPrimary,
                         activeTrackColor = MaterialTheme.kbPrimary,
-                        inactiveTrackColor = BorderGold.copy(alpha = 0.3f)
+                        inactiveTrackColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f)
                     )
                 )
 
@@ -358,20 +358,20 @@ private fun DisplayScaleView(viewModel: SettingsViewModel) {
 
                 Text(
                     text = "Preview",
-                    color = TextGold,
+                    color = MaterialTheme.kbSecondary,
                     style = MaterialTheme.typography.labelMedium
                 )
 
                 Spacer(modifier = Modifier.height(spacing.small))
 
                 KhanaBookCard(
-                    colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgSecondary),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Column(modifier = Modifier.padding(spacing.medium)) {
                         Text(
                             "Sample Item",
-                            color = TextLight,
+                            color = MaterialTheme.kbTextPrimary,
                             style = MaterialTheme.typography.titleMedium
                         )
                         Spacer(modifier = Modifier.height(spacing.hairline))
@@ -382,7 +382,7 @@ private fun DisplayScaleView(viewModel: SettingsViewModel) {
                         )
                         Text(
                             "This is how text and cards will appear at the selected scale.",
-                            color = TextGold.copy(alpha = 0.7f),
+                            color = MaterialTheme.kbSecondary.copy(alpha = 0.7f),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }

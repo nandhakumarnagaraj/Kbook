@@ -19,12 +19,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.TextLight
+import com.khanabook.lite.pos.ui.theme.kbTextPrimary
 import com.khanabook.lite.pos.ui.theme.KbBrandSaffronDark
 import com.khanabook.lite.pos.ui.theme.kbTextSecondary
+import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
 
 data class SelectionDialogOption<T>(
     val value: T,
@@ -72,7 +72,7 @@ fun <T> KhanaBookSelectionDialog(
                         shape = RoundedCornerShape(10.dp),
                         border = BorderStroke(
                             1.dp,
-                            if (isSelected) option.selectedAccent else BorderGold.copy(alpha = 0.3f)
+                            if (isSelected) option.selectedAccent else MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f)
                         )
                     ) {
                         Row(
@@ -84,7 +84,7 @@ fun <T> KhanaBookSelectionDialog(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = option.title,
-                                    color = if (isSelected) option.selectedAccent else TextLight,
+                                    color = if (isSelected) option.selectedAccent else MaterialTheme.kbTextPrimary,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                                 )

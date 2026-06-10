@@ -1,0 +1,8 @@
+{
+  "name": "replit",
+  "url": "https://replit.com",
+  "auth": {
+    "type": "bearer",
+    "token": "<YOUR_REPLIT_API_TOKEN>"
+  }
+}

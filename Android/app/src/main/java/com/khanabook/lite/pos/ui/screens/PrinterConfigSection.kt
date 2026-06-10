@@ -513,7 +513,7 @@ fun PrinterConfigView(
                 showBtSheet = false
             },
             sheetState = sheetState,
-            containerColor = DarkBrownSheet
+            containerColor = MaterialTheme.kbBgSecondary
         ) {
             Column(
                 modifier = Modifier
@@ -671,7 +671,7 @@ private fun PrinterTargetCard(
                     Text("80mm", color = MaterialTheme.kbPrimary)
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                    Button(onClick = onSelectPrinter, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Brown500)) {
+                    Button(onClick = onSelectPrinter, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbOutlineSubtle)) {
                         Text("Select Printer")
                     }
                     Button(
@@ -701,7 +701,7 @@ fun DeviceRow(
     @Suppress("MissingPermission")
     val name = device.name ?: "Unknown"
     val border = if (isSelected) BorderStroke(2.dp, MaterialTheme.kbPrimary) else null
-    val backgroundColor = if (isSelected) DarkBrown1 else DarkBrown2
+    val backgroundColor = if (isSelected) MaterialTheme.kbBgSecondary else MaterialTheme.kbOutlineSubtle
 
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),

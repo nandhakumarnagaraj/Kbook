@@ -36,17 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookGlassCard
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
-
-import com.khanabook.lite.pos.ui.theme.BorderGold
-import com.khanabook.lite.pos.ui.theme.CardBG
-import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
-import com.khanabook.lite.pos.ui.theme.TextGold
-import com.khanabook.lite.pos.ui.theme.TextLight
-import com.khanabook.lite.pos.ui.theme.kbBgCard
-import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
-import com.khanabook.lite.pos.ui.theme.kbSecondary
 import java.text.SimpleDateFormat
 
 /**
@@ -169,13 +159,13 @@ fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTi
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = displayName,
-                color = TextLight,
+                color = MaterialTheme.kbTextPrimary,
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
             )
             if (displayPhone.isNotBlank()) {
                 Text(
                     text = displayPhone,
-                    color = BrandPurple.copy(alpha = 0.85f),
+                    color = MaterialTheme.kbTertiary.copy(alpha = 0.85f),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -235,13 +225,13 @@ internal fun SettingsItem(icon: ImageVector, text: String, subtitle: String? = n
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text,
-                        color = TextLight,
+                        color = MaterialTheme.kbTextPrimary,
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
                     )
                     if (subtitle != null) {
                         Text(
                             subtitle,
-                            color = TextGold.copy(alpha = 0.65f),
+                            color = MaterialTheme.kbSecondary.copy(alpha = 0.65f),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -299,13 +289,13 @@ internal fun SettingsToggleItem(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text,
-                        color = TextLight,
+                        color = MaterialTheme.kbTextPrimary,
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
                     )
                     if (subtitle != null) {
                         Text(
                             subtitle,
-                            color = TextGold.copy(alpha = 0.65f),
+                            color = MaterialTheme.kbSecondary.copy(alpha = 0.65f),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }

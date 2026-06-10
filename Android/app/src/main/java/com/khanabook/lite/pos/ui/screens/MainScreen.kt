@@ -90,8 +90,12 @@ fun MainScreen(
             when (currentTab.label) {
                 "Home" -> HomeScreen(onNewBill, onSearchBill, onReprintKds, onOrderStatus, onCallCustomer, onMarketplaceOrders)
                 "Orders" -> OrdersScreen(onBack = backToHome)
-                "Reports" -> ReportsScreen(onBack = backToHome)
-                "Profile" -> SettingsScreen(
+                "Menu" -> MenuConfigurationScreen(
+                    navController = navController,
+                    onBackClick = backToHome,
+                    viewModel = menuViewModel
+                )
+                "Settings" -> SettingsScreen(
                     onBack = backToHome,
                     navController = navController,
                     onScanClick = onScanClick,

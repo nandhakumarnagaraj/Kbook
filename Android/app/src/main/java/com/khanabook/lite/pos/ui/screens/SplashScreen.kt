@@ -68,9 +68,7 @@ fun SplashScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
-                )
+                MaterialTheme.kbHeaderGradient
             )
             .windowInsetsPadding(WindowInsets.systemBars),
         contentAlignment = Alignment.Center
