@@ -1,7 +1,7 @@
 # Graph Report - KhanaBook  (2026-06-10)
 
 ## Corpus Check
-- 679 files · ~650,698 words
+- 679 files · ~650,688 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `b4ca153b`
+- Built from commit: `62177b62`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1355,8 +1355,8 @@ Cohesion: 0.47
 Nodes (6): GstFssaiController, GetMapping, Map, Object, ResponseEntity, String
 
 ### Community 243 - "Community 243"
-Cohesion: 0.29
-Nodes (7): HttpHeaders, LocalDate, RestaurantProfile, Scheduled, String, Transactional, ComplianceAlertService
+Cohesion: 0.22
+Nodes (8): HttpHeaders, RestaurantProfileRepository, LocalDate, RestaurantProfile, Scheduled, String, Transactional, ComplianceAlertService
 
 ### Community 244 - "Community 244"
 Cohesion: 0.31
@@ -1659,8 +1659,8 @@ Cohesion: 0.35
 Nodes (9): RefundController, GetMapping, List, Long, Map, Object, PostMapping, ResponseEntity (+1 more)
 
 ### Community 337 - "Community 337"
-Cohesion: 0.13
-Nodes (17): BusinessRuleException, BillServiceImpl, RestaurantProfileRepository, Bill, List, Long, PushSyncResponse, String (+9 more)
+Cohesion: 0.17
+Nodes (15): BillServiceImpl, Bill, List, Long, PushSyncResponse, String, Bill, List (+7 more)
 
 ### Community 338 - "Community 338"
 Cohesion: 0.29
@@ -2071,8 +2071,8 @@ Cohesion: 0.43
 Nodes (5): AppVersionFilter, FilterChain, HttpServletRequest, HttpServletResponse, Override
 
 ### Community 557 - "Community 557"
-Cohesion: 0.39
-Nodes (6): BigDecimal, Long, Map, Object, String, FinancingService
+Cohesion: 0.29
+Nodes (7): BusinessRuleException, BigDecimal, Long, Map, Object, String, FinancingService
 
 ### Community 559 - "Community 559"
 Cohesion: 0.43

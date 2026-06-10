@@ -64,10 +64,10 @@ fun SignUpScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     var shopName by remember { mutableStateOf("") }
-    var ownerName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var otp by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var agreedToTerms by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
 
@@ -80,7 +80,6 @@ fun SignUpScreen(
     val passwordFocusRequester = remember { FocusRequester() }
 
     val isShopNameValid = ValidationUtils.isValidName(shopName)
-    val isOwnerNameValid = ValidationUtils.isValidName(ownerName)
     val isPhoneValid = ValidationUtils.isValidPhone(phoneNumber)
     val isPasswordValid = ValidationUtils.isValidPassword(newPassword)
 
@@ -314,54 +313,7 @@ fun SignUpScreen(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    // OWNER NAME
-                    Text(
-                        text = "OWNER NAME",
-                        color = Color(0xFF334155),
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.12.em
-                        )
-                    )
 
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    TextField(
-                        value = ownerName,
-                        onValueChange = { ownerName = it },
-                        placeholder = { Text("Owner Name", color = Color(0xFF94A3B8)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .focusRequester(ownerFocusRequester),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF0F172A),
-                            unfocusedTextColor = Color(0xFF0F172A),
-                            disabledTextColor = Color(0xFF64748B),
-                            errorTextColor = Color(0xFFDC2626),
-                            focusedContainerColor = Color(0xFFF5F3FF),
-                            unfocusedContainerColor = Color(0xFFF5F3FF),
-                            disabledContainerColor = Color(0xFFF5F3FF),
-                            errorContainerColor = Color(0xFFFFF1F2),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            errorIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFFF97316)
-                        ),
-                        singleLine = true,
-                        isError = (ownerName.isNotEmpty() && !isOwnerNameValid),
-                        supportingText = {
-                            if (ownerName.isNotEmpty() && !isOwnerNameValid) {
-                                Text("Owner name too short", color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(onNext = { runCatching { phoneFocusRequester.requestFocus() } })
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
 
                     // WHATSAPP NUMBER (renamed and integrated Send OTP)
                     Text(
@@ -416,6 +368,7 @@ fun SignUpScreen(
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         viewModel.sendOtp(phoneNumber)
+                                        otpSent = true // force UI to show OTP field immediately
                                     },
                                     modifier = Modifier.padding(end = 4.dp).height(36.dp),
                                     colors = ButtonDefaults.buttonColors(
@@ -603,6 +556,61 @@ fun SignUpScreen(
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
                     )
 
+                    // CONFIRM PASSWORD
+                    Text(
+                        text = "CONFIRM PASSWORD",
+                        color = Color(0xFF334155),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.12.em
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    TextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        placeholder = { Text("Re‑enter password", color = Color(0xFF94A3B8)) },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = "Toggle Confirm Password",
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.clickable { showPassword = !showPassword }
+                            )
+                        },
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            disabledTextColor = Color(0xFF64748B),
+                            errorTextColor = Color(0xFFDC2626),
+                            focusedContainerColor = Color(0xFFF5F3FF),
+                            unfocusedContainerColor = Color(0xFFF5F3FF),
+                            disabledContainerColor = Color(0xFFF5F3FF),
+                            errorContainerColor = Color(0xFFFFF1F2),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                            errorIndicatorColor = Color.Transparent,
+                            cursorColor = Color(0xFFF97316)
+                        ),
+                        singleLine = true,
+                        isError = confirmPassword.isNotEmpty() && confirmPassword != newPassword,
+                        supportingText = {
+                            if (confirmPassword.isNotEmpty() && confirmPassword != newPassword) {
+                                Text("Passwords do not match", color = Color(0xFFDC2626), style = MaterialTheme.typography.labelSmall)
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+                    )
+
                     Spacer(modifier = Modifier.height(4.dp)) // Reduced gap above checkbox
 
                     // Terms and Conditions Checkbox
@@ -654,14 +662,14 @@ fun SignUpScreen(
                     Spacer(modifier = Modifier.height(14.dp)) // Reduced Spacing before the CTA button
 
                     val isFormFilled = shopName.isNotBlank() &&
-                            ownerName.isNotBlank() &&
                             phoneNumber.isNotBlank() &&
                             otpSent &&
                             otp.isNotBlank() &&
                             newPassword.isNotBlank() &&
+                            confirmPassword.isNotBlank() &&
                             agreedToTerms
 
-                    val isFormValid = isShopNameValid && isOwnerNameValid && isPhoneValid && isPasswordValid && agreedToTerms && otpSent && otp.length == 6 && !isLoading && userExistsError == null
+                    val isFormValid = isShopNameValid && isPhoneValid && isPasswordValid && (newPassword == confirmPassword) && agreedToTerms && otpSent && otp.length == 6 && !isLoading && userExistsError == null
 
                     Button(
                         onClick = {
