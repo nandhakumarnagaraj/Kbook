@@ -286,10 +286,7 @@ fun LoginScreen(
                     
                     TextField(
                         value = loginId,
-                        onValueChange = {
-                            val filtered = it.filter { ch -> ch.isDigit() }.take(10)
-                            loginId = filtered
-                        },
+                        onValueChange = { loginId = it.take(10) },
                         placeholder = { Text("Mobile Number", color = Color(0xFF94A3B8)) },
                         leadingIcon = {
                             Row(
@@ -332,7 +329,7 @@ fun LoginScreen(
                                 )
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = TextFieldDefaults.colors(
                             focusedTextColor = Color(0xFF0F172A),
@@ -396,7 +393,7 @@ fun LoginScreen(
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .height(52.dp)
                             .focusRequester(passwordFocusRequester),
                         shape = RoundedCornerShape(12.dp),
                         colors = TextFieldDefaults.colors(

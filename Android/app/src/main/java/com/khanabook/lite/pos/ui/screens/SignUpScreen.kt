@@ -281,7 +281,7 @@ fun SignUpScreen(
                         value = shopName,
                         onValueChange = { shopName = it },
                         placeholder = { Text("Restaurant Name", color = Color(0xFF94A3B8)) },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = TextFieldDefaults.colors(
                             focusedTextColor = Color(0xFF0F172A),
@@ -332,7 +332,7 @@ fun SignUpScreen(
                         placeholder = { Text("Owner Name", color = Color(0xFF94A3B8)) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .height(52.dp)
                             .focusRequester(ownerFocusRequester),
                         shape = RoundedCornerShape(14.dp),
                         colors = TextFieldDefaults.colors(
@@ -378,10 +378,9 @@ fun SignUpScreen(
                     TextField(
                         value = phoneNumber,
                         onValueChange = {
-                            val filtered = it.filter { ch -> ch.isDigit() }.take(10)
-                            phoneNumber = filtered
-                            if (filtered.length == 10) {
-                                viewModel.checkUserExists(filtered)
+                            phoneNumber = it.take(10)
+                            if (phoneNumber.length == 10) {
+                                viewModel.checkUserExists(phoneNumber)
                             }
                         },
                         placeholder = { Text("WhatsApp Number", color = Color(0xFF94A3B8)) },
@@ -444,7 +443,7 @@ fun SignUpScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .height(52.dp)
                             .focusRequester(phoneFocusRequester),
                         shape = RoundedCornerShape(14.dp),
                         colors = TextFieldDefaults.colors(
@@ -572,7 +571,7 @@ fun SignUpScreen(
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .height(52.dp)
                             .focusRequester(passwordFocusRequester),
                         shape = RoundedCornerShape(14.dp),
                         colors = TextFieldDefaults.colors(
