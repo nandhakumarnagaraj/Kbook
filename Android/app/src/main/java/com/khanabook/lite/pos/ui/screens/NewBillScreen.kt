@@ -214,7 +214,7 @@ fun NewBillScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = spacing.medium, vertical = spacing.small),
+                        .padding(horizontal = spacing.medium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(

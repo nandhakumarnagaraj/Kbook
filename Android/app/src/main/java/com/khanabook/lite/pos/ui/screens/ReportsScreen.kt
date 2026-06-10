@@ -130,13 +130,13 @@ fun ReportsScreen(
                     .fillMaxWidth()
                     .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
                     .statusBarsPadding()
-                    .padding(bottom = spacing.medium)
+                    .padding(top = 8.dp, bottom = 12.dp)
             ) {
                 AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = spacing.medium, vertical = spacing.small),
+                            .padding(horizontal = spacing.medium),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = onBack) {
@@ -1100,10 +1100,12 @@ fun OrderDetailsDialog(
                         .fillMaxWidth()
                         .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
                         .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 20.dp)
+                        .padding(top = 8.dp, bottom = 12.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {

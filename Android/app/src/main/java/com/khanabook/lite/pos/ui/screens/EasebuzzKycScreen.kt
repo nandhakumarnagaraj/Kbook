@@ -152,7 +152,7 @@ fun EasebuzzKycScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = spacing.medium)
         ) {
-            Spacer(modifier = Modifier.height(spacing.small))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -160,20 +160,22 @@ fun EasebuzzKycScreen(
             ) {
                 IconButton(onClick = onBack) {
                     Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White.copy(alpha = 0.7f)
+                        tint = Color.White
                     )
                 }
                 Text(
                     text = "KYC Verification",
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = Color.White,
-                    fontWeight = FontWeight.Bold
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
                 )
+                Spacer(modifier = Modifier.width(48.dp))
             }
 
-            Spacer(modifier = Modifier.height(spacing.small))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = "Complete your KYC to start receiving payments",

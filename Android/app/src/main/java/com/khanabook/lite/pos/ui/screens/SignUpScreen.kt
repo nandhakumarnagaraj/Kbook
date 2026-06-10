@@ -4,6 +4,7 @@ package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -196,6 +197,35 @@ fun SignUpScreen(
                         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
                         textAlign = TextAlign.Center
                     )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        listOf(
+                            "🔒 Secure Data",
+                            "⚡ Works Offline",
+                            "☁️ Auto Backup"
+                        ).forEach { badge ->
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color.White.copy(alpha = 0.08f),
+                                border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.15f))
+                            ) {
+                                Text(
+                                    text = badge,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

@@ -363,43 +363,55 @@ fun EasebuzzPaymentScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(layout.contentPadding)
         ) {
             // Purple gradient header bar
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = spacing.medium),
-                verticalAlignment = Alignment.CenterVertically
+                    .statusBarsPadding()
+                    .padding(top = 8.dp, bottom = 12.dp)
             ) {
-                IconButton(
-                    onClick = onBack,
+                Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0x11FFFFFF))
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
-                    )
-                }
-                Spacer(modifier = Modifier.width(spacing.medium))
-                Column {
-                    Text(
-                        text = "Payment",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "ORDER #KB-$billId",
-                        color = Color(0xFFA78BFA),
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0x11FFFFFF))
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(spacing.medium))
+                    Column {
+                        Text(
+                            text = "Payment",
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "ORDER #KB-$billId",
+                            color = Color(0xFFA78BFA),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             }
+
+            // Body
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = layout.contentPadding, end = layout.contentPadding, bottom = layout.contentPadding)
+            ) {
 
             // Responsive Layout Selection: Landscape/Tablet Split vs Portrait Column
             if (layout.isExpanded) {
@@ -516,6 +528,7 @@ fun EasebuzzPaymentScreen(
                         paymentRepository = paymentRepository
                     )
                 }
+            }
             }
         }
     }

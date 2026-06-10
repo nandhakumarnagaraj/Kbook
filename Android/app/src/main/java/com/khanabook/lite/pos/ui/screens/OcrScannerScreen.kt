@@ -26,6 +26,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -170,23 +173,34 @@ fun OcrScannerScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        if (returnBarcode) "Scan Barcode" else "Scan Menu",
-                        color = MaterialTheme.kbSecondary
-                    )
-                },
-                navigationIcon = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                    .statusBarsPadding()
+                    .padding(top = 8.dp, bottom = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = MaterialTheme.kbTextSecondary
+                            tint = Color.White
                         )
                     }
-                },
-                actions = {
+                    Text(
+                        text = if (returnBarcode) "Scan Barcode" else "Scan Menu",
+                        modifier = Modifier.weight(1f),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center
+                    )
+                    
                     // Gallery icon
                     IconButton(
                         onClick = {
@@ -197,7 +211,7 @@ fun OcrScannerScreen(
                         Icon(
                             Icons.Default.PhotoLibrary,
                             contentDescription = "Gallery",
-                            tint = MaterialTheme.kbTextSecondary
+                            tint = Color.White
                         )
                     }
                     
@@ -212,13 +226,14 @@ fun OcrScannerScreen(
                             Icon(
                                 Icons.Default.PictureAsPdf,
                                 contentDescription = "Upload PDF",
-                                tint = MaterialTheme.kbTextPrimary
+                                tint = Color.White
                             )
                         }
+                    } else {
+                        Spacer(modifier = Modifier.width(48.dp))
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBrown1)
-            )
+                }
+            }
         }
     ) { padding ->
         Box(

@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
@@ -74,35 +75,46 @@ fun CallCustomerScreen(
             modifier = modifier,
             containerColor = Color.Transparent,
             topBar = {
-                CenterAlignedTopAppBar(
-                        title = {
-                            Text("Call Customer", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleLarge)
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = onBack) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                        .statusBarsPadding()
+                        .padding(top = 8.dp, bottom = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = spacing.medium),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White
+                            )
+                        }
+                        Text(
+                            text = "Call Customer",
+                            modifier = Modifier.weight(1f),
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            textAlign = TextAlign.Center
+                        )
+                        if (result != null) {
+                            IconButton(onClick = { viewModel.clearSearch() }) {
                                 Icon(
-                                        Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.kbTextPrimary
+                                    Icons.Default.Close,
+                                    contentDescription = "Clear",
+                                    tint = Color.White
                                 )
                             }
-                        },
-                        actions = {
-                            if (result != null) {
-                                IconButton(onClick = { viewModel.clearSearch() }) {
-                                    Icon(
-                                            Icons.Default.Close,
-                                            contentDescription = "Clear",
-                                            tint = MaterialTheme.kbTextSecondary
-                                    )
-                                }
-                            }
-                        },
-                        colors =
-                                TopAppBarDefaults.centerAlignedTopAppBarColors(
-                                        containerColor = Color.Transparent
-                                )
-                )
+                        } else {
+                            Spacer(modifier = Modifier.width(48.dp))
+                        }
+                    }
+                }
             }
         ) { padding ->
             Column(

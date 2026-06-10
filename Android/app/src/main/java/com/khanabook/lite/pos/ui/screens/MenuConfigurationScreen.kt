@@ -187,24 +187,39 @@ fun MenuConfigurationScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Brush.verticalGradient(listOf(Color(0xFF1E1035), Color(0xFF0F081D))))
+                    .statusBarsPadding()
+                    .padding(top = 8.dp, bottom = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { onBack() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
                     Text(
                         text = when (ocrUiState.configMode) {
                             "manual" -> "Menu"
                             else -> "Menu Configuration"
                         },
-                        color = MaterialTheme.kbTextPrimary,
-                        style = MaterialTheme.typography.titleLarge
+                        modifier = Modifier.weight(1f),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.kbTextSecondary)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.kbBgPrimary)
-            )
+                    Spacer(modifier = Modifier.width(48.dp))
+                }
+            }
         },
         snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.kbBgPrimary,
