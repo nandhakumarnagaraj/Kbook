@@ -255,7 +255,7 @@ fun LoginScreen(
                         .padding(horizontal = 24.dp, vertical = 32.dp)
                 ) {
                     Text(
-                        text = "Welcome back",
+                        text = "Welcome Back",
                         color = Color(0xFF0F172A),
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
@@ -265,7 +265,7 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     
                     Text(
-                        text = "Sign in to your restaurant account",
+                        text = "Login to start billing",
                         color = Color(0xFF64748B),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
@@ -289,7 +289,7 @@ fun LoginScreen(
                             val filtered = it.filter { ch -> ch.isDigit() }.take(10)
                             loginId = filtered
                         },
-                        placeholder = { Text("Enter phone number", color = Color(0xFF94A3B8)) },
+                        placeholder = { Text("Mobile Number", color = Color(0xFF94A3B8)) },
                         leadingIcon = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -383,7 +383,7 @@ fun LoginScreen(
                     TextField(
                         value = password,
                         onValueChange = { password = it },
-                        placeholder = { Text("Enter password", color = Color(0xFF94A3B8)) },
+                        placeholder = { Text("Password", color = Color(0xFF94A3B8)) },
                         trailingIcon = {
                             Icon(
                                 imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
@@ -505,7 +505,7 @@ fun LoginScreen(
                                 .background(Color(0xFFE2E8F0))
                         )
                         Text(
-                            text = "or continue with",
+                            text = "Quick Login",
                             color = Color(0xFF94A3B8),
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(horizontal = 12.dp)
@@ -750,7 +750,7 @@ fun ForgotPasswordDialog(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = if (step == 3) "Reset Password" else "Forgot Password?",
+                        text = "Reset Password",
                         color = Color.White,
                         style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 28.sp),
                         textAlign = TextAlign.Center
@@ -760,7 +760,7 @@ fun ForgotPasswordDialog(
 
                     Text(
                         text = when (step) {
-                            1 -> "Enter your registered phone number. We'll send a 6-digit OTP to reset your password."
+                            1 -> "Enter mobile number to get OTP"
                             2 -> "Enter the 6-digit OTP sent to +91 $phone."
                             else -> "Create a new strong password for your account."
                         },

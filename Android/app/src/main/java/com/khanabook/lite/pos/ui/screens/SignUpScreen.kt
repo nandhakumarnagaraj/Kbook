@@ -246,7 +246,7 @@ fun SignUpScreen(
                         .padding(horizontal = 24.dp, vertical = 32.dp)
                 ) {
                     Text(
-                        text = "Create Account",
+                        text = "Create Your Restaurant",
                         color = Color(0xFF0F172A),
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
@@ -256,7 +256,7 @@ fun SignUpScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     
                     Text(
-                        text = "Set up your restaurant in minutes",
+                        text = "Start billing in 2 minutes",
                         color = Color(0xFF64748B),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
@@ -279,7 +279,7 @@ fun SignUpScreen(
                     TextField(
                         value = shopName,
                         onValueChange = { shopName = it },
-                        placeholder = { Text("e.g. BiryaniWale Anna", color = Color(0xFF94A3B8)) },
+                        placeholder = { Text("Restaurant Name", color = Color(0xFF94A3B8)) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
                         colors = TextFieldDefaults.colors(
@@ -328,7 +328,7 @@ fun SignUpScreen(
                     TextField(
                         value = ownerName,
                         onValueChange = { ownerName = it },
-                        placeholder = { Text("Your full name", color = Color(0xFF94A3B8)) },
+                        placeholder = { Text("Owner Name", color = Color(0xFF94A3B8)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(ownerFocusRequester),
@@ -382,7 +382,7 @@ fun SignUpScreen(
                                 viewModel.checkUserExists(filtered)
                             }
                         },
-                        placeholder = { Text("Enter your 10-digit number", color = Color(0xFF94A3B8)) },
+                        placeholder = { Text("WhatsApp Number", color = Color(0xFF94A3B8)) },
                         leadingIcon = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -619,13 +619,13 @@ fun SignUpScreen(
                         Spacer(modifier = Modifier.width(4.dp))
                         
                         val annotatedString = buildAnnotatedString {
-                            append("I agree to the ")
+                            append("I agree to ")
                             pushStringAnnotation(tag = "URL", annotation = "https://khanabook.com/legal-privacy.html")
                             withStyle(style = SpanStyle(color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)) {
-                                append("Terms of Service")
+                                append("Terms")
                             }
                             pop()
-                            append(" and ")
+                            append(" & ")
                             pushStringAnnotation(tag = "URL", annotation = "https://khanabook.com/legal-privacy.html")
                             withStyle(style = SpanStyle(color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)) {
                                 append("Privacy Policy")
