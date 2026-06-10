@@ -148,7 +148,7 @@ fun SignUpScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header: Midnight Purple Gradient Area (Toolbar Style)
+            // Header: Midnight Purple Gradient Area (Centered Logo Style)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -158,57 +158,49 @@ fun SignUpScreen(
                         )
                     )
                     .statusBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                    .padding(vertical = 24.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth()
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    // Toolbar Row: Logo + KhanaBook + Subtitle
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                    // White card containing Logo
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        modifier = Modifier.size(76.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
-                        // Small premium white rounded card for logo
-                        Card(
-                            shape = RoundedCornerShape(10.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            modifier = Modifier.size(40.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.khanabook_logo),
-                                    contentDescription = "KhanaBook logo",
-                                    modifier = Modifier.size(28.dp)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column {
-                            Text(
-                                text = "KhanaBook",
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp
-                                )
-                            )
-                            Text(
-                                text = "Restaurant POS & Management",
-                                color = Color(0xFFA78BFA),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Normal
-                                )
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Image(
+                                painter = painterResource(id = R.drawable.khanabook_logo),
+                                contentDescription = "KhanaBook logo",
+                                modifier = Modifier.size(48.dp)
                             )
                         }
                     }
-
+                    
                     Spacer(modifier = Modifier.height(12.dp))
-
-                    // Floating security status row
+                    
+                    Text(
+                        text = "KhanaBook",
+                        color = Color.White,
+                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 28.sp),
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = "Restaurant POS & Management",
+                        color = Color(0xFFA78BFA), // Lavender text
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -272,7 +264,7 @@ fun SignUpScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     
-                    Spacer(modifier = Modifier.height(28.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
                     // RESTAURANT NAME
                     Text(
                         text = "RESTAURANT NAME",
@@ -289,7 +281,7 @@ fun SignUpScreen(
                         value = shopName,
                         onValueChange = { shopName = it },
                         placeholder = { Text("Restaurant Name", color = Color(0xFF94A3B8)) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = TextFieldDefaults.colors(
                             focusedTextColor = Color(0xFF0F172A),
@@ -340,6 +332,7 @@ fun SignUpScreen(
                         placeholder = { Text("Owner Name", color = Color(0xFF94A3B8)) },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(48.dp)
                             .focusRequester(ownerFocusRequester),
                         shape = RoundedCornerShape(14.dp),
                         colors = TextFieldDefaults.colors(
@@ -451,6 +444,7 @@ fun SignUpScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(48.dp)
                             .focusRequester(phoneFocusRequester),
                         shape = RoundedCornerShape(14.dp),
                         colors = TextFieldDefaults.colors(
@@ -578,6 +572,7 @@ fun SignUpScreen(
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier
                             .fillMaxWidth()
+                            .height(48.dp)
                             .focusRequester(passwordFocusRequester),
                         shape = RoundedCornerShape(14.dp),
                         colors = TextFieldDefaults.colors(
