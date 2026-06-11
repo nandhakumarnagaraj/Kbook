@@ -145,21 +145,21 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFF1A1230))
+                            .background(MaterialTheme.kbBgSecondary)
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = null,
-                            tint = Color(0xFF9E8EBF),
+                            tint = MaterialTheme.kbTextSecondary,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         BasicTextField(
                             value = helpSearchQuery,
                             onValueChange = { helpSearchQuery = it },
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.kbTextPrimary),
                             cursorBrush = SolidColor(KbBrandSaffron),
                             singleLine = true,
                             decorationBox = { inner ->
@@ -167,7 +167,7 @@ fun SettingsScreen(
                                     if (helpSearchQuery.isEmpty()) {
                                         Text(
                                             "Search help articles...",
-                                            color = Color(0xFF7C6B9F),
+                                            color = MaterialTheme.kbTextTertiary,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                     }
@@ -185,13 +185,13 @@ fun SettingsScreen(
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .background(Color(0xFF1A1230), CircleShape),
+                                .background(MaterialTheme.kbBgSecondary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Lock,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = KbBrandSaffron,
                                 modifier = Modifier.size(24.dp)
                             )
                         }

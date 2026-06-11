@@ -1,16 +1,16 @@
 # Graph Report - KhanaBook  (2026-06-11)
 
 ## Corpus Check
-- 685 files · ~655,317 words
+- 685 files · ~655,327 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 7243 nodes · 12444 edges · 565 communities (443 shown, 122 thin omitted)
+- 7243 nodes · 12444 edges · 566 communities (444 shown, 122 thin omitted)
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 1352 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `66932c6d`
+- Built from commit: `900da52f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -520,6 +520,7 @@
 - [[_COMMUNITY_Community 560|Community 560]]
 - [[_COMMUNITY_Community 561|Community 561]]
 - [[_COMMUNITY_Community 562|Community 562]]
+- [[_COMMUNITY_Community 565|Community 565]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `AdminApiService` - 91 edges
@@ -545,7 +546,7 @@
 - `pollCli()` --calls--> `fetch`  [INFERRED]
   .agents/skills/impeccable/scripts/live-poll.mjs → mcp/replit/create-repl.js
 
-## Communities (565 total, 122 thin omitted)
+## Communities (566 total, 122 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -584,8 +585,8 @@ Cohesion: 0.07
 Nodes (43): KhanaBookCard(), KhanaBookCardPreview(), KhanaBookGlassCard(), KhanaBookScreenScaffold(), KhanaBookSwitch(), AboutAppView(), AppLockView(), ChangePasswordView() (+35 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.06
-Nodes (40): fetch, ACTIONS, annotLastPinClick, annotState, apply(), bufferToBase64(), buildAnnotationsForCapture(), buildPinElement() (+32 more)
+Cohesion: 0.09
+Nodes (22): fetch, buildAnnotationsForCapture(), buildPinElement(), captureAndEmit(), captureElementToBlob(), checkpointPayload(), collectFontCssText(), compileShader() (+14 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.07
@@ -712,8 +713,8 @@ Cohesion: 0.18
 Nodes (9): SyncRepositoryIntegrationTest, BeforeEach, Bill, BillItem, Category, Long, MenuItem, String (+1 more)
 
 ### Community 49 - "Community 49"
-Cohesion: 0.18
-Nodes (21): barPaletteForTheme(), buildDesignHeader(), connectSSE(), defangOutsideHandlers(), designPanelCss(), detectPageTheme(), fetchDesignSystem(), init() (+13 more)
+Cohesion: 0.14
+Nodes (25): barPaletteForTheme(), buildDesignHeader(), buildParamsPanel(), connectSSE(), defangOutsideHandlers(), designPanelCss(), detectPageTheme(), fetchDesignSystem() (+17 more)
 
 ### Community 52 - "Community 52"
 Cohesion: 0.07
@@ -772,8 +773,8 @@ Cohesion: 0.05
 Nodes (45): CacheEvict, RestaurantProfileServiceImpl, RestaurantProfileRepository, List, Long, Modifying, Object, Optional (+37 more)
 
 ### Community 68 - "Community 68"
-Cohesion: 0.11
-Nodes (27): buildCollapsible(), buildColorModels(), buildRadiiModels(), buildTypographyModels(), escapeHtml(), fontStack(), groupByKind(), highlightBold() (+19 more)
+Cohesion: 0.07
+Nodes (43): ACTIONS, annotLastPinClick, annotState, apply(), bufferToBase64(), buildCollapsible(), buildColorModels(), buildRadiiModels() (+35 more)
 
 ### Community 69 - "Community 69"
 Cohesion: 0.08
@@ -1116,16 +1117,16 @@ Cohesion: 0.15
 Nodes (3): CategoryEntity, ItemVariantEntity, MenuItemEntity
 
 ### Community 171 - "Community 171"
-Cohesion: 0.20
-Nodes (15): applyParamDefaults(), applyParamValue(), buildParamsPanel(), closedClipPath(), formatRangeValue(), getVisibleVariantEl(), hideParamsPanel(), openTunePopover() (+7 more)
+Cohesion: 0.23
+Nodes (13): applyParamDefaults(), applyParamValue(), closedClipPath(), getVisibleVariantEl(), hideParamsPanel(), openTunePopover(), parseVariantParams(), popoverDirection() (+5 more)
 
 ### Community 172 - "Community 172"
 Cohesion: 0.19
 Nodes (3): EasebuzzRefundRequest, RefundResult, SearchViewModel
 
 ### Community 174 - "Community 174"
-Cohesion: 0.12
-Nodes (16): 1. Read the screenshot (if present), 2. Wrap the element, 3. Load the action's reference, 5. Apply the freeform prompt (if present), 6. Write all variants in a single edit, 7. Parameters (composition-sized, 0–4 per variant), 8. Signal done, Aborting an in-flight session (+8 more)
+Cohesion: 0.15
+Nodes (13): 1. Read the screenshot (if present), 2. Wrap the element, 3. Load the action's reference, 5. Apply the freeform prompt (if present), 7. Parameters (composition-sized, 0–4 per variant), 8. Signal done, Aborting an in-flight session, code:bash (node {{scripts_path}}/live-poll.mjs --reply EVENT_ID error ") (+5 more)
 
 ### Community 175 - "Community 175"
 Cohesion: 0.15
@@ -1824,7 +1825,7 @@ Cohesion: 0.35
 Nodes (7): AdminReportsController, GetMapping, List, Map, Object, ResponseEntity, String
 
 ### Community 388 - "Community 388"
-Cohesion: 0.50
+Cohesion: 0.67
 Nodes (3): adapt, argumentHint, description
 
 ### Community 391 - "Community 391"
@@ -1896,7 +1897,7 @@ Cohesion: 0.50
 Nodes (3): ChangePasswordRequest, PasswordResetOtpRequest, ResetPasswordRequest
 
 ### Community 415 - "Community 415"
-Cohesion: 0.67
+Cohesion: 0.50
 Nodes (3): animate, argumentHint, description
 
 ### Community 416 - "Community 416"
@@ -2078,6 +2079,10 @@ Nodes (5): auth, token, type, name, url
 ### Community 562 - "Community 562"
 Cohesion: 0.47
 Nodes (4): ItemVariantRepository, Long, Modifying, Query
+
+### Community 565 - "Community 565"
+Cohesion: 0.67
+Nodes (3): 6. Write all variants in a single edit, code:html (<!-- Variants: insert below this line -->), code:tsx (<style data-impeccable-css="SESSION_ID">{`)
 
 ## Knowledge Gaps
 - **1715 isolated node(s):** `deploy-production.sh script`, `deploy.sh script`, `name`, `description`, `schema` (+1710 more)

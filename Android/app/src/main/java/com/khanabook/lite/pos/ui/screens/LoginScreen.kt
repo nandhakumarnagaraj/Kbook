@@ -153,7 +153,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F081D))
+            .background(MaterialTheme.kbBgPrimary)
     ) {
         Column(
             modifier = Modifier
@@ -203,7 +203,7 @@ fun LoginScreen(
                     
                     Text(
                         text = "Restaurant POS & Management",
-                        color = KbLavender, // Lavender text
+                        color = KbLavender, // Replaced by warm saffron peach
                         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
                         textAlign = TextAlign.Center
                     )
@@ -239,13 +239,13 @@ fun LoginScreen(
                 }
             }
 
-            // White Sheet Container containing the form
+            // Form Sheet Container
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                color = Color.White
+                color = MaterialTheme.kbBgCard
             ) {
                 Column(
                     modifier = Modifier
@@ -255,7 +255,7 @@ fun LoginScreen(
                 ) {
                     Text(
                         text = "Welcome Back",
-                        color = Color(0xFF0F172A),
+                        color = MaterialTheme.kbTextPrimary,
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
@@ -265,7 +265,7 @@ fun LoginScreen(
                     
                     Text(
                         text = "Login to start billing",
-                        color = Color(0xFF64748B),
+                        color = MaterialTheme.kbTextSecondary,
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
@@ -276,7 +276,7 @@ fun LoginScreen(
                     // PHONE NUMBER field
                     Text(
                         text = "PHONE NUMBER",
-                        color = Color(0xFF334155),
+                        color = MaterialTheme.kbTextSecondary,
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     
@@ -285,7 +285,7 @@ fun LoginScreen(
                     TextField(
                         value = loginId,
                         onValueChange = { loginId = it.take(10) },
-                        placeholder = { Text("Mobile Number", color = Color(0xFF94A3B8)) },
+                        placeholder = { Text("Mobile Number", color = MaterialTheme.kbTextTertiary) },
                         leadingIcon = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -293,7 +293,7 @@ fun LoginScreen(
                             ) {
                                 Text(
                                     text = "+91",
-                                    color = Color(0xFF475569),
+                                    color = MaterialTheme.kbTextPrimary,
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.bodyLarge
                                 )
@@ -302,7 +302,7 @@ fun LoginScreen(
                                     modifier = Modifier
                                         .width(1.dp)
                                         .height(20.dp)
-                                        .background(Color(0xFFCBD5E1))
+                                        .background(MaterialTheme.kbOutlineSubtle)
                                 )
                             }
                         },
@@ -330,14 +330,14 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF0F172A),
-                            unfocusedTextColor = Color(0xFF0F172A),
-                            disabledTextColor = Color(0xFF64748B),
+                            focusedTextColor = MaterialTheme.kbTextPrimary,
+                            unfocusedTextColor = MaterialTheme.kbTextPrimary,
+                            disabledTextColor = MaterialTheme.kbTextDisabled,
                             errorTextColor = KbError,
-                            focusedContainerColor = Color(0xFFF5F3FF),
-                            unfocusedContainerColor = Color(0xFFF5F3FF),
-                            disabledContainerColor = Color(0xFFF5F3FF),
-                            errorContainerColor = Color(0xFFFFF1F2),
+                            focusedContainerColor = MaterialTheme.kbBgSecondary,
+                            unfocusedContainerColor = MaterialTheme.kbBgSecondary,
+                            disabledContainerColor = MaterialTheme.kbBgSecondary,
+                            errorContainerColor = MaterialTheme.colorScheme.errorContainer,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
@@ -370,7 +370,7 @@ fun LoginScreen(
                     // PASSWORD field
                     Text(
                         text = "PASSWORD",
-                        color = Color(0xFF334155),
+                        color = MaterialTheme.kbTextSecondary,
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     
@@ -379,12 +379,12 @@ fun LoginScreen(
                     TextField(
                         value = password,
                         onValueChange = { password = it },
-                        placeholder = { Text("Password", color = Color(0xFF94A3B8)) },
+                        placeholder = { Text("Password", color = MaterialTheme.kbTextTertiary) },
                         trailingIcon = {
                             Icon(
                                 imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                 contentDescription = "Toggle Password",
-                                tint = Color(0xFF94A3B8),
+                                tint = MaterialTheme.kbTextTertiary,
                                 modifier = Modifier.clickable { showPassword = !showPassword }
                             )
                         },
@@ -395,14 +395,14 @@ fun LoginScreen(
                             .focusRequester(passwordFocusRequester),
                         shape = RoundedCornerShape(12.dp),
                         colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF0F172A),
-                            unfocusedTextColor = Color(0xFF0F172A),
-                            disabledTextColor = Color(0xFF64748B),
+                            focusedTextColor = MaterialTheme.kbTextPrimary,
+                            unfocusedTextColor = MaterialTheme.kbTextPrimary,
+                            disabledTextColor = MaterialTheme.kbTextDisabled,
                             errorTextColor = KbError,
-                            focusedContainerColor = Color(0xFFF5F3FF),
-                            unfocusedContainerColor = Color(0xFFF5F3FF),
-                            disabledContainerColor = Color(0xFFF5F3FF),
-                            errorContainerColor = Color(0xFFFFF1F2),
+                            focusedContainerColor = MaterialTheme.kbBgSecondary,
+                            unfocusedContainerColor = MaterialTheme.kbBgSecondary,
+                            disabledContainerColor = MaterialTheme.kbBgSecondary,
+                            errorContainerColor = MaterialTheme.colorScheme.errorContainer,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
@@ -469,10 +469,10 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(52.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFormFilled) KbBrandSaffron else Color(0xFFCBD5E1),
-                            contentColor = Color.White,
-                            disabledContainerColor = Color(0xFFCBD5E1),
-                            disabledContentColor = Color.White.copy(alpha = 0.6f)
+                            containerColor = if (isFormFilled) KbBrandSaffron else MaterialTheme.kbBgSecondary,
+                            contentColor = if (isFormFilled) Color.White else MaterialTheme.kbTextDisabled,
+                            disabledContainerColor = MaterialTheme.kbBgSecondary,
+                            disabledContentColor = MaterialTheme.kbTextDisabled
                         ),
                         shape = RoundedCornerShape(16.dp),
                         enabled = isFormFilled
@@ -499,11 +499,11 @@ fun LoginScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(1.dp)
-                                .background(Color(0xFFE2E8F0))
+                                .background(MaterialTheme.kbOutlineSubtle)
                         )
                         Text(
                             text = "Quick Login",
-                            color = Color(0xFF94A3B8),
+                            color = MaterialTheme.kbTextTertiary,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(horizontal = 12.dp)
                         )
@@ -511,7 +511,7 @@ fun LoginScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(1.dp)
-                                .background(Color(0xFFE2E8F0))
+                                .background(MaterialTheme.kbOutlineSubtle)
                         )
                     }
 
@@ -532,8 +532,8 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(52.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E293B)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbTextPrimary),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -569,7 +569,7 @@ fun LoginScreen(
                     ) {
                         Text(
                             text = "New to KhanaBook? ",
-                            color = Color(0xFF64748B),
+                            color = MaterialTheme.kbTextSecondary,
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
@@ -675,7 +675,7 @@ fun ForgotPasswordDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F081D))
+            .background(MaterialTheme.kbBgPrimary)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -767,13 +767,13 @@ fun ForgotPasswordDialog(
                 }
             }
 
-            // White Sheet Container containing the form
+            // Form Sheet Container
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                color = Color.White
+                color = MaterialTheme.kbBgCard
             ) {
                 Column(
                     modifier = Modifier
@@ -785,7 +785,7 @@ fun ForgotPasswordDialog(
                         // PHONE NUMBER field
                         Text(
                             text = "PHONE NUMBER",
-                            color = Color(0xFF334155),
+                            color = MaterialTheme.kbTextSecondary,
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                         )
 
@@ -799,7 +799,7 @@ fun ForgotPasswordDialog(
                                 }
                             },
                             readOnly = step == 2,
-                            placeholder = { Text("Registered Mobile Number", color = Color(0xFF94A3B8).copy(alpha = 0.6f)) },
+                            placeholder = { Text("Registered Mobile Number", color = MaterialTheme.kbTextTertiary.copy(alpha = 0.6f)) },
                             leadingIcon = {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -816,7 +816,7 @@ fun ForgotPasswordDialog(
                                         modifier = Modifier
                                             .width(1.dp)
                                             .height(20.dp)
-                                            .background(Color(0xFFCBD5E1))
+                                            .background(MaterialTheme.kbOutlineSubtle)
                                     )
                                 }
                             },
@@ -844,10 +844,10 @@ fun ForgotPasswordDialog(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = TextFieldDefaults.colors(
-                                focusedTextColor = Color(0xFF0F172A),
-                                unfocusedTextColor = Color(0xFF0F172A),
-                                focusedContainerColor = Color(0xFFF5F3FF),
-                                unfocusedContainerColor = Color(0xFFF5F3FF),
+                                focusedTextColor = MaterialTheme.kbTextPrimary,
+                                unfocusedTextColor = MaterialTheme.kbTextPrimary,
+                                focusedContainerColor = MaterialTheme.kbBgSecondary,
+                                unfocusedContainerColor = MaterialTheme.kbBgSecondary,
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
                                 disabledIndicatorColor = Color.Transparent,
@@ -875,7 +875,7 @@ fun ForgotPasswordDialog(
                             // OTP CODE label
                             Text(
                                 text = "OTP CODE",
-                                color = Color(0xFF334155),
+                                color = MaterialTheme.kbTextSecondary,
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                             )
 
@@ -899,7 +899,7 @@ fun ForgotPasswordDialog(
 
                             Text(
                                 text = timerText,
-                                color = if (resendTimer > 0) Color(0xFF94A3B8) else KbBrandSaffron,
+                                color = if (resendTimer > 0) MaterialTheme.kbTextTertiary else KbBrandSaffron,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 modifier = Modifier
                                     .align(Alignment.CenterHorizontally)
@@ -929,8 +929,8 @@ fun ForgotPasswordDialog(
                                     .fillMaxWidth()
                                     .height(52.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (otp.length == 6) KbBrandSaffron else Color(0xFFCBD5E1),
-                                    contentColor = Color.White
+                                    containerColor = if (otp.length == 6) KbBrandSaffron else MaterialTheme.kbBgSecondary,
+                                    contentColor = if (otp.length == 6) Color.White else MaterialTheme.kbTextDisabled
                                 ),
                                 shape = RoundedCornerShape(16.dp),
                                 enabled = otp.length == 6
@@ -953,7 +953,7 @@ fun ForgotPasswordDialog(
                                 .height(52.dp),
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = KbPurpleAccent),
-                            border = BorderStroke(1.5.dp, if (isPhoneValid && !isResetLoading && !isUserChecking && userExistsError == null) KbPurpleAccent else Color(0xFFE2E8F0)),
+                            border = BorderStroke(1.5.dp, if (isPhoneValid && !isResetLoading && !isUserChecking && userExistsError == null) KbPurpleAccent else MaterialTheme.kbOutlineSubtle),
                             enabled = isPhoneValid && !isResetLoading && !isUserChecking && userExistsError == null && (step == 1 || resendTimer == 0)
                         ) {
                             if (isResetLoading && step == 1) {
@@ -969,7 +969,7 @@ fun ForgotPasswordDialog(
                         // NEW PASSWORD field
                         Text(
                             text = "NEW PASSWORD",
-                            color = Color(0xFF334155),
+                            color = MaterialTheme.kbTextSecondary,
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                         )
 
@@ -978,12 +978,12 @@ fun ForgotPasswordDialog(
                         TextField(
                             value = newPassword,
                             onValueChange = { newPassword = it },
-                            placeholder = { Text("Enter new password", color = Color(0xFF94A3B8)) },
+                            placeholder = { Text("Enter new password", color = MaterialTheme.kbTextTertiary) },
                             trailingIcon = {
                                 Icon(
                                     imageVector = if (showNewPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                     contentDescription = null,
-                                    tint = Color(0xFF94A3B8),
+                                    tint = MaterialTheme.kbTextTertiary,
                                     modifier = Modifier.clickable { showNewPassword = !showNewPassword }
                                 )
                             },
@@ -991,10 +991,10 @@ fun ForgotPasswordDialog(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = TextFieldDefaults.colors(
-                                focusedTextColor = Color(0xFF0F172A),
-                                unfocusedTextColor = Color(0xFF0F172A),
-                                focusedContainerColor = Color(0xFFF5F3FF),
-                                unfocusedContainerColor = Color(0xFFF5F3FF),
+                                focusedTextColor = MaterialTheme.kbTextPrimary,
+                                unfocusedTextColor = MaterialTheme.kbTextPrimary,
+                                focusedContainerColor = MaterialTheme.kbBgSecondary,
+                                unfocusedContainerColor = MaterialTheme.kbBgSecondary,
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
                                 cursorColor = KbBrandSaffron
@@ -1011,7 +1011,7 @@ fun ForgotPasswordDialog(
                         // CONFIRM PASSWORD field
                         Text(
                             text = "CONFIRM PASSWORD",
-                            color = Color(0xFF334155),
+                            color = MaterialTheme.kbTextSecondary,
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                         )
 
@@ -1022,12 +1022,12 @@ fun ForgotPasswordDialog(
                         TextField(
                             value = confirmPassword,
                             onValueChange = { confirmPassword = it },
-                            placeholder = { Text("Repeat new password", color = Color(0xFF94A3B8)) },
+                            placeholder = { Text("Repeat new password", color = MaterialTheme.kbTextTertiary) },
                             trailingIcon = {
                                 Icon(
                                     imageVector = if (showConfirmPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                     contentDescription = null,
-                                    tint = Color(0xFF94A3B8),
+                                    tint = MaterialTheme.kbTextTertiary,
                                     modifier = Modifier.clickable { showConfirmPassword = !showConfirmPassword }
                                 )
                             },
@@ -1035,10 +1035,10 @@ fun ForgotPasswordDialog(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = TextFieldDefaults.colors(
-                                focusedTextColor = Color(0xFF0F172A),
-                                unfocusedTextColor = Color(0xFF0F172A),
-                                focusedContainerColor = Color(0xFFF5F3FF),
-                                unfocusedContainerColor = Color(0xFFF5F3FF),
+                                focusedTextColor = MaterialTheme.kbTextPrimary,
+                                unfocusedTextColor = MaterialTheme.kbTextPrimary,
+                                focusedContainerColor = MaterialTheme.kbBgSecondary,
+                                unfocusedContainerColor = MaterialTheme.kbBgSecondary,
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
                                 cursorColor = KbBrandSaffron
@@ -1064,8 +1064,8 @@ fun ForgotPasswordDialog(
                                 .fillMaxWidth()
                                 .height(52.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isResetEnabled) KbBrandSaffron else Color(0xFFCBD5E1),
-                                contentColor = Color.White
+                                containerColor = if (isResetEnabled) KbBrandSaffron else MaterialTheme.kbBgSecondary,
+                                contentColor = if (isResetEnabled) Color.White else MaterialTheme.kbTextDisabled
                             ),
                             shape = RoundedCornerShape(16.dp),
                             enabled = isResetEnabled

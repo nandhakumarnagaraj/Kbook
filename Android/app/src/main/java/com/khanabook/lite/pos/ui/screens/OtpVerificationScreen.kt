@@ -98,7 +98,7 @@ fun OtpInputRow(
                     modifier = Modifier.fillMaxSize().focusRequester(focusRequesters[i]),
                     textStyle = TextStyle(
                         textAlign = TextAlign.Center,
-                        color = Color(0xFF0F172A),
+                        color = MaterialTheme.kbTextPrimary,
                         fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                         fontWeight = FontWeight.Bold
                     ),
@@ -120,7 +120,7 @@ fun OtpInputRow(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .height(2.dp)
-                        .background(if (isFilled) KbBrandSaffron else Color(0xFFE2E8F0))
+                        .background(if (isFilled) KbBrandSaffron else MaterialTheme.kbOutlineSubtle)
                 )
             }
         }
@@ -196,7 +196,7 @@ fun PurpleFormSheet(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        color = Color.White
+        color = MaterialTheme.kbBgCard
     ) {
         content()
     }
@@ -254,7 +254,7 @@ fun OtpVerificationBody(
         Text(
             text = "Enter OTP",
             style = MaterialTheme.typography.headlineMedium,
-            color = Color(0xFF0F172A),
+            color = MaterialTheme.kbTextPrimary,
             fontWeight = FontWeight.Bold
         )
 
@@ -263,7 +263,7 @@ fun OtpVerificationBody(
         Text(
             text = "We've sent a 6-digit code to $phoneNumber",
             style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF64748B)
+            color = MaterialTheme.kbTextSecondary
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -292,8 +292,8 @@ fun OtpVerificationBody(
             colors = ButtonDefaults.buttonColors(
                 containerColor = KbBrandSaffron,
                 contentColor = Color.White,
-                disabledContainerColor = Color(0xFFCBD5E1),
-                disabledContentColor = Color.White.copy(alpha = 0.6f)
+                disabledContainerColor = MaterialTheme.kbBgSecondary,
+                disabledContentColor = MaterialTheme.kbTextDisabled
             ),
             shape = RoundedCornerShape(16.dp),
             enabled = otp.length == 6 && !isLoading
@@ -323,7 +323,7 @@ fun OtpVerificationBody(
         }
         Text(
             text = resendText,
-            color = if (resendTimerSeconds > 0) Color(0xFF94A3B8) else KbBrandSaffron,
+            color = if (resendTimerSeconds > 0) MaterialTheme.kbTextTertiary else KbBrandSaffron,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier
                 .clickable(enabled = resendTimerSeconds == 0 && !isLoading) { onResendClick() }
@@ -359,7 +359,7 @@ fun OtpVerificationScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF0F081D))
+            .background(MaterialTheme.kbBgPrimary)
     ) {
         // Midnight purple gradient header
         PurpleGradientHeader(

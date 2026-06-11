@@ -162,8 +162,8 @@ val MaterialTheme.kbOutlineBold: Color
     @Composable @ReadOnlyComposable get() = colorScheme.outline
 
 /** 
- * Unified header gradient — midnight purple (#1E1035 → #0F081D).
- * Matches the KhanaBook logo's purple brand identity.
+ * Unified header gradient — saffron-tinted earth gradient (#2E1708 → #121212).
+ * Matches the KhanaBook premium saffron culinary brand identity.
  * Use this instead of inline Brush.verticalGradient declarations.
  */
 val MaterialTheme.kbHeaderGradient: Brush
@@ -171,36 +171,36 @@ val MaterialTheme.kbHeaderGradient: Brush
 
 val MaterialTheme.kbBgGradient: Brush
     @Composable @ReadOnlyComposable get() = if (globalIsDark) Brush.verticalGradient(
-        listOf(Color(0xFF1E1035), Color(0xFF0F081D))
+        listOf(Color(0xFF2E1708), Color(0xFF121212))
     ) else Brush.verticalGradient(
         listOf(colorScheme.background, colorScheme.surface, colorScheme.surfaceVariant)
     )
 
 // ═══════════════════════════════════════════════════════════════
-// PREMIUM TOKENS — STITCH "NOCTURNE HOSPITALITY" INSPIRED
-// Glassmorphism, mesh gradients, midnight harvest palette
+// PREMIUM TOKENS — GROUNDED EARTH & SAFFRON
+// Glassmorphism, mesh gradients, warm harvest palette
 // ═══════════════════════════════════════════════════════════════
 
-// ── Midnight Harvest Depth Layers (Premium Saffron) ──────────
+// ── Grounded Earth Depth Layers (Premium Saffron) ──────────
 val KbMidnightBase: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF0F081D) else Color(0xFFFAF8F5)
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF121212) else Color(0xFFFAF8F5)
 val KbMidnightSurface: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF1A1230) else Color(0xFFFFFFFF)
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF1E1C1A) else Color(0xFFFFFFFF)
 val KbMidnightOverlay: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xCC0F081D.toInt()) else Color(0xE6FFFFFF.toInt())
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xCC121212.toInt()) else Color(0xE6FFFFFF.toInt())
 
-// ── Premium Midnight Purple Gradient ─────────────────────────
+// ── Premium Saffron-Earth Gradient ─────────────────────────
 val KbMidnightGradient: Brush = Brush.verticalGradient(
-    colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
+    colors = listOf(Color(0xFF2E1708), Color(0xFF121212))
 )
 val KbPurpleGradient: Brush
     @Composable @ReadOnlyComposable get() = if (globalIsDark) KbMidnightGradient else Brush.verticalGradient(
         colors = listOf(Color(0xFFFAF8F5), Color(0xFFF5F0EB))
     )
 
-// ── Premium Lavender Accent ──────────────────────────────────
-val KbLavender: Color = Color(0xFFA78BFA)
-val KbPurpleAccent: Color = Color(0xFF7C3AED)
+// ── Premium Lavender/Accent Replaced by Saffron/Gold ─────────
+val KbLavender: Color = Color(0xFFFB923C) // Warm peach secondary
+val KbPurpleAccent: Color = Color(0xFFF97316) // Brand saffron accent
 
 // ── Glassmorphism Surfaces ────────────────────────────────────
 val KbGlassSurface: Color
@@ -257,9 +257,9 @@ val KbSaffronGlowStrong: Brush
 
 // ── Zebra Stripe Pattern (Stitch list clarity) ────────────────
 val KbZebraOdd: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF151030) else Color(0xFFF5F0EB)
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF1D1B19) else Color(0xFFF5F0EB)
 val KbZebraEven: Color
-    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF1C1440) else Color.White
+    @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xFF151413) else Color.White
 
 // ── Focus Glow (input borders, active states) ─────────────────
 val KbFocusGlow: Color

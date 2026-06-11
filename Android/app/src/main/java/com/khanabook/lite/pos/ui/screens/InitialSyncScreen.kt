@@ -97,7 +97,7 @@ private fun SyncContentPurple(syncRotation: Float, spacing: Spacing) {
         Spacer(modifier = Modifier.height(spacing.huge))
 
         // Circular progress arc — saffron on dark
-        val trackColor = Color(0xFF1A1230)
+        val trackColor = MaterialTheme.kbBgSecondary
         Box(contentAlignment = Alignment.Center) {
             Canvas(modifier = Modifier.size(180.dp)) {
                 val strokeWidth = 10.dp.toPx()
@@ -151,7 +151,7 @@ private fun SyncContentPurple(syncRotation: Float, spacing: Spacing) {
         Text(
             "Syncing payment configuration...",
             style = MaterialTheme.typography.bodySmall,
-            color = KbLavender.copy(alpha = 0.7f),
+            color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f),
             modifier = Modifier.padding(bottom = spacing.extraLarge)
         )
     }
@@ -202,7 +202,7 @@ private fun SyncStepItemPurple(text: String, state: SyncStepState, syncRotation:
             color = when (state) {
                 SyncStepState.COMPLETED -> Color.White
                 SyncStepState.IN_PROGRESS -> KbBrandSaffron
-                SyncStepState.PENDING -> KbLavender.copy(alpha = 0.6f)
+                SyncStepState.PENDING -> MaterialTheme.kbTextSecondary.copy(alpha = 0.6f)
             }
         )
     }
@@ -322,7 +322,7 @@ private fun SuccessContentPurple(spacing: Spacing) {
         Spacer(modifier = Modifier.height(spacing.small))
 
         Text(
-            "Your restaurant is ready to serve", color = KbLavender,
+            "Your restaurant is ready to serve", color = MaterialTheme.kbTextSecondary,
             style = MaterialTheme.typography.bodyMedium
         )
     }

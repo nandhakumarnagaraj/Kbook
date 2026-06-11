@@ -49,17 +49,13 @@ fun KhanaBookScreenScaffold(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF0F081D))
+            .background(MaterialTheme.kbBgPrimary)
     ) {
-        // Gradient Purple Header
+        // Theme-aware Header
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFF1E1035), Color(0xFF0F081D))
-                    )
-                )
+                .background(MaterialTheme.kbHeaderGradient)
                 .statusBarsPadding()
                 .padding(top = 8.dp, bottom = 12.dp)
         ) {
@@ -73,7 +69,7 @@ fun KhanaBookScreenScaffold(
                     Box(
                         modifier = Modifier
                             .size(36.dp)
-                            .background(Color(0xFF1A1230), CircleShape)
+                            .background(Color.White.copy(alpha = 0.15f), CircleShape)
                             .clickable { onBack() },
                         contentAlignment = Alignment.Center
                     ) {

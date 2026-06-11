@@ -197,7 +197,7 @@ fun NewBillScreen(
     }
 
     Scaffold(
-        containerColor = Color(0xFF0F081D),
+        containerColor = MaterialTheme.kbBgPrimary,
         snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
         topBar = {
             Column(
@@ -218,7 +218,7 @@ fun NewBillScreen(
                     Box(
                         modifier = Modifier
                             .size(36.dp)
-                            .background(Color(0xFF2C2448), CircleShape)
+                            .background(MaterialTheme.kbBgSecondary, CircleShape)
                             .clickable(enabled = !paymentFlowLocked) {
                                 if (paymentFlowLocked) return@clickable
                                 if (step == 1) onBack() else if (step == 2) step = 1 else if (step == 3) step = 2 else onBack()
@@ -273,7 +273,7 @@ fun NewBillScreen(
             .fillMaxSize()
             .padding(paddingValues)
             .consumeWindowInsets(paddingValues)
-            .background(Color(0xFFF0EEF6))  // light lavender matching reference
+            .background(MaterialTheme.kbBgPrimary)
         ) {
             AnimatedContent(
                 targetState = step,
@@ -416,13 +416,13 @@ fun CustomerInfoStep(
                             name = customerName
                         },
                         shape = RoundedCornerShape(20.dp),
-                        color = Color(0xFFF5F3FF),
-                        border = BorderStroke(1.dp, Color(0xFFD8B4FE))
+                        color = MaterialTheme.kbBgCard,
+                        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
                     ) {
                         Column(modifier = Modifier.widthIn(max = 120.dp).padding(horizontal = spacing.medium, vertical = spacing.small)) {
                             Text(
                                 text = if (customerName.isNotBlank()) customerName else phone,
-                                color = Color(0xFF1E1B4B),
+                                color = MaterialTheme.kbTextPrimary,
                                 style = MaterialTheme.typography.labelMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -430,7 +430,7 @@ fun CustomerInfoStep(
                             if (customerName.isNotBlank()) {
                                 Text(
                                     phone,
-                                    color = Color(0xFF5B21B6).copy(alpha = 0.8f),
+                                    color = MaterialTheme.kbTextSecondary,
                                     style = MaterialTheme.typography.labelSmall,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -506,9 +506,9 @@ fun CustomerInfoStep(
                 .fillMaxWidth()
                 .height(48.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (isNextEnabled) KbBrandSaffron else Color(0xFFCBD5E1),
+                containerColor = if (isNextEnabled) KbBrandSaffron else MaterialTheme.kbBgSecondary,
                 contentColor = Color.White,
-                disabledContainerColor = Color(0xFFCBD5E1),
+                disabledContainerColor = MaterialTheme.kbBgSecondary,
                 disabledContentColor = Color.White.copy(alpha = 0.6f)
             ),
             shape = RoundedCornerShape(10.dp),
@@ -615,11 +615,11 @@ fun MenuSelectionStep(
                 onValueChange = { menuViewModel.setSearchQuery(it) },
                 label = "Search",
                 placeholder = "Search items...",
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = Color(0xFF9CA3AF)) },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.kbTextSecondary) },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
                         IconButton(onClick = { menuViewModel.setSearchQuery("") }) {
-                            Icon(Icons.Default.Close, null, tint = Color(0xFF9CA3AF))
+                            Icon(Icons.Default.Close, null, tint = MaterialTheme.kbTextSecondary)
                         }
                     }
                 },
@@ -640,10 +640,10 @@ fun MenuSelectionStep(
                         Surface(
                             onClick = { menuViewModel.selectCategory(category.id) },
                             shape = RoundedCornerShape(20.dp),
-                            color = if (isSelected) KbBrandSaffron else Color.White,
+                            color = if (isSelected) KbBrandSaffron else MaterialTheme.kbBgCard,
                             border = BorderStroke(
                                 1.5.dp,
-                                if (isSelected) KbBrandSaffron else Color(0xFFD1D5DB)
+                                if (isSelected) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
                             )
                         ) {
                             Text(
@@ -729,7 +729,7 @@ fun MenuSelectionStep(
                                     if (categoryName.isNotBlank()) {
                                         Text(
                                             categoryName,
-                                            color = Color(0xFF9CA3AF),
+                                            color = MaterialTheme.kbTextSecondary,
                                             style = MaterialTheme.typography.bodySmall
                                         )
                                     }
@@ -764,7 +764,7 @@ fun MenuSelectionStep(
                                         ) {
                                             Text(
                                                 "${variants.size} var.",
-                                                color = Color(0xFF9CA3AF),
+                                                color = MaterialTheme.kbTextSecondary,
                                                 style = MaterialTheme.typography.labelSmall
                                             )
                                             OutlinedButton(
@@ -1110,11 +1110,11 @@ fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Minus button — dark indigo/purple
+            // Minus button — dark warm saffron
             Box(
                 modifier = Modifier
                     .size(34.dp)
-                    .background(Color(0xFF312E81), RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.kbPrimaryBold, RoundedCornerShape(8.dp))
                     .clickable {
                         haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         onRemove()
@@ -2055,10 +2055,10 @@ fun StepItem(
     endConnectorCompleted: Boolean = false
 ) {
     val activeColor = Color.White
-    val inactiveColor = Color(0xFF7C6B9F)
+    val inactiveColor = MaterialTheme.kbTextSecondary
     val color = if (isActive) activeColor else inactiveColor
-    val containerColor = if (isActive) KbBrandSaffron else Color(0xFF2C2448)
-    val borderColor = if (isActive) KbBrandSaffron else Color(0xFF453A68)
+    val containerColor = if (isActive) KbBrandSaffron else MaterialTheme.kbBgSecondary
+    val borderColor = if (isActive) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
 
     // Spring-animated scale so step dots pop in when activated
     val scale by animateFloatAsState(
@@ -2081,7 +2081,7 @@ fun StepItem(
                         .fillMaxWidth(0.5f)
                         .height(2.dp)
                         .background(
-                            if (startConnectorCompleted) KbBrandSaffron else Color(0xFF2C2448)
+                            if (startConnectorCompleted) KbBrandSaffron else MaterialTheme.kbBgSecondary
                         )
                 )
             }
@@ -2092,7 +2092,7 @@ fun StepItem(
                         .fillMaxWidth(0.5f)
                         .height(2.dp)
                         .background(
-                            if (endConnectorCompleted) KbBrandSaffron else Color(0xFF2C2448)
+                            if (endConnectorCompleted) KbBrandSaffron else MaterialTheme.kbBgSecondary
                         )
                 )
             }

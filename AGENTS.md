@@ -96,8 +96,8 @@ Complete Android Compose UI rebuild to match 20 Stitch-generated design mockups 
 - **Android Theme Token Migration & Compilation Fixes**: Migrated all hardcoded color references across 50+ Android files to use theme-aware `MaterialTheme.kb*` extension properties (kbPrimary, kbSecondary, kbTextPrimary, kbTextSecondary, kbOutlineSuble, kbBgCard, etc.). Fixed missing imports in KhanaBookSelectionDialog.kt (kbTextSecondary), OcrScannerScreen.kt (MaterialTheme), and 5 other files. Added `KhanaBookGlassCard` composable with saffron gradient border. Android `compileDebugKotlin` passes with BUILD SUCCESSFUL.
 
 ### 2026-06-01 Session — Android Compose UI Rebuild to Match 20 Stitch Designs
-- **Stitch Project Created**: `KhanaBook Android POS` (ID 893109375385564766) with Premium Saffron design system
-- **20 Stitch Design Mockups Generated**: Splash, Login, Sign Up (3 steps + OTP), Initial Sync, Home Dashboard, Orders List, New Bill (2 variants), Menu Config (2 variants), Payment, Settings, Shop Config, Printer Config, Tax Config, KYC Verification, Marketplace Orders, Reports Overview, Main Navigation, Plate Logo
+- **Stitch Project Linkage**: Linked and verified active project `16315279777734818483` named `KhanaBook POS Design System` with the custom design system `assets/30a3dedd9fb342258a425c0c4d252c88` (Warm Hospitality POS).
+- **Stitch Design Mockups Generated**: Generated core visual screens (Home Dashboard, Login, Splash Screen, OTP Verification, Initial Sync, Orders List, New Bill, Menu Configuration, Easebuzz Payment, Settings list, Printer Config, Tax Config, KYC Verification, and Marketplace Orders) directly on the Stitch project `16315279777734818483` using the design system.
 - **10 Android Compose Screens Rebuilt**:
   - `HomeScreen.kt` — saffron header strip (greeting + bell), 3 MetricCards (Orders/Revenue/Avg Order) with saffron top border + shadow, Quick Actions row (New Bill filled, Orders outlined, Menu outlined), grid action cards
   - `MainScreen.kt` — bottom nav tabs Home/Orders/Menu/Settings with `KbBrandSaffron` active indicator
