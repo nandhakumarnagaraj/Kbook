@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.runtime.*
@@ -33,7 +35,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.em
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -91,9 +98,9 @@ fun SettingsScreen(
     }
 
     DisposableEffect(section) {
-        onBottomBarVisibilityChange(section != "menu_config")
+        onBottomBarVisibilityChange(section != "menu_config" && section != "ui_scale")
         onDispose {
-            if (section == "menu_config") {
+            if (section == "menu_config" || section == "ui_scale") {
                 onBottomBarVisibilityChange(true)
             }
         }
@@ -104,6 +111,14 @@ fun SettingsScreen(
             navController = navController,
             onBackClick = { section = "menu" },
             viewModel = menuViewModel
+        )
+        return
+    }
+
+    if (section == "ui_scale" && !isWideScreen) {
+        DisplaySettingsMobileScreen(
+            viewModel = viewModel,
+            onBack = { section = "menu" }
         )
         return
     }
@@ -120,7 +135,7 @@ fun SettingsScreen(
                 "payment" -> "Payment Configuration"
                 "printer" -> "Printer Configuration"
                 "tax" -> "Tax Configuration"
-                "ui_scale" -> "Display"
+                "ui_scale" -> "Display Settings"
                 "security" -> "Settings"
                 "app_lock" -> "App Lock"
                 "change_password" -> "Change Password"
@@ -297,7 +312,7 @@ fun SettingsScreen(
                                 )
                             }
                             "ui_scale" -> {
-                                DisplayScaleView(viewModel = viewModel)
+                                DisplayScaleView(viewModel = viewModel, onBack = { section = "menu" })
                             }
                             "security" -> {
                                 AppLockView()
@@ -389,7 +404,7 @@ fun SettingsScreen(
                             )
                         }
                         "ui_scale" -> {
-                            DisplayScaleView(viewModel = viewModel)
+                            DisplayScaleView(viewModel = viewModel, onBack = { section = "menu" })
                         }
                         "security" -> {
                             SettingsListView(onSelectItem = { section = it })
@@ -414,100 +429,428 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun DisplayScaleView(viewModel: SettingsViewModel) {
-    val spacing = KhanaBookTheme.spacing
-    val displayScale by viewModel.displayScaleState.collectAsStateWithLifecycle()
-    val scaleLabels = listOf("Small", "Default", "Large", "X-Large")
-    val scaleValues = listOf(0.85f, 1.0f, 1.15f, 1.3f)
-    val sliderIndex = scaleValues.indexOfFirst { it >= displayScale }.coerceAtLeast(0)
+private fun DensityGridIcon(densityType: String, isSelected: Boolean) {
+    val activeColor = if (globalIsDark) Color(0xFFA78BFA) else Color(0xFF6D28D9)
+    val inactiveColor = if (globalIsDark) Color(0xFF4B4855) else Color(0xFFD1D5DB)
+    val tint = if (isSelected) activeColor else inactiveColor
+    val spacing = when (densityType) {
+        "compact" -> 6.dp
+        "spacious" -> 2.dp
+        else -> 4.dp
+    }
+    val squareSize = when (densityType) {
+        "compact" -> 6.dp
+        "spacious" -> 14.dp
+        else -> 10.dp
+    }
+    
+    Box(
+        modifier = Modifier.size(36.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(spacing),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
+                Box(modifier = Modifier.size(squareSize).background(tint, RoundedCornerShape(2.dp)))
+                Box(modifier = Modifier.size(squareSize).background(tint, RoundedCornerShape(2.dp)))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
+                Box(modifier = Modifier.size(squareSize).background(tint, RoundedCornerShape(2.dp)))
+                Box(modifier = Modifier.size(squareSize).background(tint, RoundedCornerShape(2.dp)))
+            }
+        }
+    }
+}
 
+@Composable
+fun DisplaySettingsMobileScreen(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = spacing.medium)
-            .verticalScroll(rememberScrollState())
+            .background(if (globalIsDark) Color(0xFF121212) else Color(0xFFF3F0FA))
     ) {
-        Spacer(modifier = Modifier.height(spacing.medium))
-
-        KhanaBookCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-            shape = RoundedCornerShape(12.dp)
+        // Mockup Header: deep purple / midnight background
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(if (globalIsDark) Color(0xFF0F092E) else Color(0xFF1E144C))
+                .statusBarsPadding()
+                .padding(vertical = 16.dp, horizontal = 16.dp),
+            contentAlignment = Alignment.CenterStart
         ) {
-            Column(modifier = Modifier.padding(spacing.large)) {
-                Text("UI Scale", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(spacing.extraSmall))
-                Text(
-                    "Adjust the overall size of text and UI elements.",
-                    color = MaterialTheme.kbSecondary.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.bodySmall
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.White.copy(alpha = 0.12f), CircleShape)
+                    .clickable { onBack() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
                 )
+            }
+            
+            Text(
+                text = "Display Settings",
+                color = Color.White,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                ),
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
+        
+        // Content
+        DisplayScaleView(
+            viewModel = viewModel,
+            onBack = onBack,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        )
+    }
+}
 
-                Spacer(modifier = Modifier.height(spacing.large))
+@Composable
+private fun DisplayScaleView(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    
+    val currentScale by viewModel.displayScaleState.collectAsStateWithLifecycle()
+    val currentDensity by viewModel.layoutDensityState.collectAsStateWithLifecycle()
+    val currentShowAnimations by viewModel.showOrderAnimationsState.collectAsStateWithLifecycle()
+    val currentHaptic by viewModel.hapticFeedbackEnabledState.collectAsStateWithLifecycle()
+    val currentBold by viewModel.boldOrderNumbersState.collectAsStateWithLifecycle()
 
+    var scale by remember(currentScale) { mutableStateOf(currentScale) }
+    var density by remember(currentDensity) { mutableStateOf(currentDensity) }
+    var showAnimations by remember(currentShowAnimations) { mutableStateOf(currentShowAnimations) }
+    var haptic by remember(currentHaptic) { mutableStateOf(currentHaptic) }
+    var bold by remember(currentBold) { mutableStateOf(currentBold) }
+
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = spacing.medium)
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // SECTION 1: TEXT SIZE
+        Text(
+            text = "TEXT SIZE",
+            color = Color(0xFFF97316),
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            ),
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = if (globalIsDark) Color(0xFF1E1B24) else Color.White
+            ),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Text size selector buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    scaleLabels.forEachIndexed { i, label ->
-                        Text(
-                            text = label,
-                            color = if (i == sliderIndex) MaterialTheme.kbPrimary else MaterialTheme.kbSecondary.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (i == sliderIndex) FontWeight.Bold else FontWeight.Normal
-                        )
+                    val scaleLabels = listOf("Small", "Default", "Large", "XL")
+                    val scaleValues = listOf(0.85f, 1.0f, 1.15f, 1.3f)
+                    
+                    scaleValues.forEachIndexed { index, valScale ->
+                        val isSelected = scale == valScale
+                        Button(
+                            onClick = { scale = valScale },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(42.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isSelected) {
+                                    if (globalIsDark) Color(0xFFA78BFA) else Color(0xFF6D28D9)
+                                } else {
+                                    if (globalIsDark) Color(0xFF2E2B38) else Color(0xFFF5F3FF)
+                                },
+                                contentColor = if (isSelected) {
+                                    Color.White
+                                } else {
+                                    if (globalIsDark) Color(0xFF9CA3AF) else Color(0xFF6B7280)
+                                }
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(
+                                text = scaleLabels[index],
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                            )
+                        }
                     }
                 }
 
-                Slider(
-                    value = displayScale,
-                    onValueChange = { viewModel.updateDisplayScale(it) },
-                    valueRange = 0.80f..1.35f,
-                    steps = 0,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.kbPrimary,
-                        activeTrackColor = MaterialTheme.kbPrimary,
-                        inactiveTrackColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f)
-                    )
-                )
+                Spacer(modifier = Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(spacing.small))
-
-                Text(
-                    text = "Preview",
-                    color = MaterialTheme.kbSecondary,
-                    style = MaterialTheme.typography.labelMedium
-                )
-
-                Spacer(modifier = Modifier.height(spacing.small))
-
-                KhanaBookCard(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgSecondary),
-                    shape = RoundedCornerShape(8.dp)
+                // Preview Text Card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (globalIsDark) Color(0xFF25222E) else Color(0xFFF5F3FF))
+                        .padding(16.dp)
                 ) {
-                    Column(modifier = Modifier.padding(spacing.medium)) {
+                    Column {
                         Text(
-                            "Sample Item",
-                            color = MaterialTheme.kbTextPrimary,
-                            style = MaterialTheme.typography.titleMedium
+                            text = "Preview text",
+                            color = if (globalIsDark) Color(0xFF9CA3AF) else Color(0xFF6B7280),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                         )
-                        Spacer(modifier = Modifier.height(spacing.hairline))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            "₹ 100.00",
-                            color = MaterialTheme.kbSecondary,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Text(
-                            "This is how text and cards will appear at the selected scale.",
-                            color = MaterialTheme.kbSecondary.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.bodySmall
+                            text = buildAnnotatedString {
+                                withStyle(style = SpanStyle(fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal)) {
+                                    append("Order #KB-001")
+                                }
+                                append(" · Table 4 · ₹240.00")
+                            },
+                            color = if (globalIsDark) Color.White else Color(0xFF1F2937),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = (16 * scale).sp
+                            )
                         )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(spacing.extraLarge))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // SECTION 2: LAYOUT DENSITY
+        Text(
+            text = "LAYOUT DENSITY",
+            color = if (globalIsDark) Color(0xFFA78BFA) else Color(0xFF7C3AED),
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            ),
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            val densities = listOf("compact", "default", "spacious")
+            val densityLabels = listOf("Compact", "Default", "Spacious")
+            
+            densities.forEachIndexed { index, densityType ->
+                val isSelected = density == densityType
+                val activeThemeColor = if (globalIsDark) Color(0xFFA78BFA) else Color(0xFF6D28D9)
+                
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(108.dp)
+                        .clickable { density = densityType },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (globalIsDark) Color(0xFF1E1B24) else Color.White
+                    ),
+                    border = BorderStroke(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) activeThemeColor else if (globalIsDark) Color(0xFF2E2B38) else Color(0xFFE5E7EB)
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        DensityGridIcon(densityType = densityType, isSelected = isSelected)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = densityLabels[index],
+                            color = if (isSelected) activeThemeColor else if (globalIsDark) Color(0xFF9CA3AF) else Color(0xFF4B5563),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 13.sp
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // SECTION 3: OTHER OPTIONS
+        Text(
+            text = "OTHER OPTIONS",
+            color = Color(0xFF10B981),
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            ),
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = if (globalIsDark) Color(0xFF1E1B24) else Color.White
+            ),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                // Show Order Animations
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Show Order Animations",
+                            color = if (globalIsDark) Color.White else Color(0xFF1F2937),
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                        Text(
+                            "Smooth transitions & effects",
+                            color = if (globalIsDark) Color(0xFF9CA3AF) else Color(0xFF6B7280),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    KhanaBookSwitch(
+                        checked = showAnimations,
+                        onCheckedChange = { showAnimations = it },
+                        checkedTrackColor = KbBrandSaffron,
+                        uncheckedTrackColor = if (globalIsDark) Color(0xFF374151) else Color(0xFFE5E7EB)
+                    )
+                }
+
+                HorizontalDivider(color = if (globalIsDark) Color(0xFF2E2B38) else Color(0xFFF3F4F6))
+
+                // Haptic Feedback
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Haptic Feedback",
+                            color = if (globalIsDark) Color.White else Color(0xFF1F2937),
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                        Text(
+                            "Vibration on tap",
+                            color = if (globalIsDark) Color(0xFF9CA3AF) else Color(0xFF6B7280),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    KhanaBookSwitch(
+                        checked = haptic,
+                        onCheckedChange = { haptic = it },
+                        checkedTrackColor = KbBrandSaffron,
+                        uncheckedTrackColor = if (globalIsDark) Color(0xFF374151) else Color(0xFFE5E7EB)
+                    )
+                }
+
+                HorizontalDivider(color = if (globalIsDark) Color(0xFF2E2B38) else Color(0xFFF3F4F6))
+
+                // Bold Order Numbers
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Bold Order Numbers",
+                            color = if (globalIsDark) Color.White else Color(0xFF1F2937),
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                        Text(
+                            "Easier to scan quickly",
+                            color = if (globalIsDark) Color(0xFF9CA3AF) else Color(0xFF6B7280),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    KhanaBookSwitch(
+                        checked = bold,
+                        onCheckedChange = { bold = it },
+                        checkedTrackColor = KbBrandSaffron,
+                        uncheckedTrackColor = if (globalIsDark) Color(0xFF374151) else Color(0xFFE5E7EB)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        // CTA BUTTON: Apply Settings
+        Button(
+            onClick = {
+                viewModel.updateDisplayScale(scale)
+                viewModel.updateLayoutDensity(density)
+                viewModel.updateShowOrderAnimations(showAnimations)
+                viewModel.updateHapticFeedbackEnabled(haptic)
+                viewModel.updateBoldOrderNumbers(bold)
+                
+                coroutineScope.launch {
+                    KhanaToast.show("Settings applied successfully", ToastKind.Success)
+                }
+                onBack()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = KbBrandSaffron,
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(16.dp),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+        ) {
+            Text(
+                "Apply Settings",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(36.dp))
     }
 }
+
+

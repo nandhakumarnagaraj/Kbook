@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.ui.theme.*
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookPurpleBackground
 
 // ── OTP Input Row (reusable 6-digit boxes) ───────────────────────────────────
 @Composable
@@ -98,7 +100,7 @@ fun OtpInputRow(
                     modifier = Modifier.fillMaxSize().focusRequester(focusRequesters[i]),
                     textStyle = TextStyle(
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.kbTextPrimary,
+                        color = Color(0xFF1F2937),
                         fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                         fontWeight = FontWeight.Bold
                     ),
@@ -133,13 +135,12 @@ fun PurpleGradientHeader(
     title: String,
     subtitle: String? = null
 ) {
-    Box(
+    KhanaBookPurpleBackground(
         modifier = Modifier
             .fillMaxWidth()
             .height(260.dp)
-            .background(
-                MaterialTheme.kbHeaderGradient
-            ),
+            .statusBarsPadding()
+            .padding(vertical = 24.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -178,8 +179,8 @@ fun PurpleGradientHeader(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = subtitle,
-                    color = KbLavender,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+                    color = Color(0xFF7C6FCD), // Violet accent matching spec
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
                     textAlign = TextAlign.Center
                 )
             }
@@ -196,7 +197,7 @@ fun PurpleFormSheet(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        color = MaterialTheme.kbBgCard
+        color = Color(0xFFFFFFFF) // Pure white #FFFFFF
     ) {
         content()
     }
@@ -254,7 +255,7 @@ fun OtpVerificationBody(
         Text(
             text = "Enter OTP",
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.kbTextPrimary,
+            color = Color(0xFF1E293B),
             fontWeight = FontWeight.Bold
         )
 
@@ -263,7 +264,7 @@ fun OtpVerificationBody(
         Text(
             text = "We've sent a 6-digit code to $phoneNumber",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.kbTextSecondary
+            color = Color(0xFF4B5563)
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -292,10 +293,10 @@ fun OtpVerificationBody(
             colors = ButtonDefaults.buttonColors(
                 containerColor = KbBrandSaffron,
                 contentColor = Color.White,
-                disabledContainerColor = MaterialTheme.kbBgSecondary,
-                disabledContentColor = MaterialTheme.kbTextDisabled
+                disabledContainerColor = Color(0xFF9B9BAA), // Disabled grey #9B9BAA
+                disabledContentColor = Color.White
             ),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(14.dp), // Medium corner radius
             enabled = otp.length == 6 && !isLoading
         ) {
             if (isLoading) {
@@ -323,7 +324,7 @@ fun OtpVerificationBody(
         }
         Text(
             text = resendText,
-            color = if (resendTimerSeconds > 0) MaterialTheme.kbTextTertiary else KbBrandSaffron,
+            color = if (resendTimerSeconds > 0) Color(0xFF9CA3AF) else KbBrandSaffron,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier
                 .clickable(enabled = resendTimerSeconds == 0 && !isLoading) { onResendClick() }
@@ -334,7 +335,7 @@ fun OtpVerificationBody(
 
         Text(
             text = "Change number?",
-            color = KbPurpleAccent,
+            color = Color(0xFFE8A020), // Amber accent
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier
                 .clickable(enabled = !isLoading) { onChangeNumberClick() }

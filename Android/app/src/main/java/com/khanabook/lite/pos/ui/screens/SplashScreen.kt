@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.ui.theme.*
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookPurpleBackground
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SplashViewModel
 
@@ -64,12 +65,9 @@ fun SplashScreen(
     }
 
     // Midnight purple gradient background — matches Login/SignUp
-    Box(
+    KhanaBookPurpleBackground(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                MaterialTheme.kbHeaderGradient
-            )
             .windowInsetsPadding(WindowInsets.systemBars),
         contentAlignment = Alignment.Center
     ) {
@@ -116,8 +114,8 @@ fun SplashScreen(
 
                 Text(
                     text = "Restaurant POS & Management",
-                    color = KbLavender,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
+                    color = Color(0xFF7C6FCD), // Violet accent matching spec
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
                     textAlign = TextAlign.Center
                 )
             }

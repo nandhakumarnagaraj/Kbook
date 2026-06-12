@@ -25,14 +25,14 @@ val KbSaffron800 = Color(0xFF5C2500)
 val KbSaffron900 = Color(0xFF4A1D00)
 val KbSaffron950 = Color(0xFF331200)  // on-primary-fixed
 
-// Premium Saffron palette — primary brand colors
-val KbBrandSaffron = Color(0xFFF97316)
+// Premium Saffron palette — brand colors matching spec
+val KbBrandSaffron = Color(0xFFE8A020) // Saffron/amber #E8A020
 
-val KbBrandSaffronLight = Color(0xFFFB923C)
+val KbBrandSaffronLight = Color(0xFFF0BC60) // Lighter saffron #F0BC60
 
-val KbBrandSaffronDark = Color(0xFFD97706)
+val KbBrandSaffronDark = Color(0xFFB07010) // Darker saffron #B07010
 
-val KbBrandSaffronAndroid = Color(0xFFF97316)
+val KbBrandSaffronAndroid = Color(0xFFF97316) // Original brand orange
 
 val KbBrandAmber = Color(0xFFF59E0B)
 val KbBrandGreen = Color(0xFF16A34A)
@@ -189,18 +189,18 @@ val KbMidnightSurface: Color
 val KbMidnightOverlay: Color
     @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xCC121212.toInt()) else Color(0xE6FFFFFF.toInt())
 
-// ── Premium Saffron-Earth Gradient ─────────────────────────
+// ── Premium Saffron-Earth Gradient (Matching design spec #0E0A22 → #0D0820) ─────────
 val KbMidnightGradient: Brush = Brush.verticalGradient(
-    colors = listOf(Color(0xFF2E1708), Color(0xFF121212))
+    colors = listOf(Color(0xFF0E0A22), Color(0xFF0D0820))
 )
 val KbPurpleGradient: Brush
     @Composable @ReadOnlyComposable get() = if (globalIsDark) KbMidnightGradient else Brush.verticalGradient(
         colors = listOf(Color(0xFFFAF8F5), Color(0xFFF5F0EB))
     )
 
-// ── Premium Lavender/Accent Replaced by Saffron/Gold ─────────
-val KbLavender: Color = Color(0xFFFB923C) // Warm peach secondary
-val KbPurpleAccent: Color = Color(0xFFF97316) // Brand saffron accent
+// ── Premium tokens from design spec ─────────
+val KbLavender: Color = Color(0xFFECEDF6) // Lavender-grey input fill #ECEDF6
+val KbPurpleAccent: Color = Color(0xFFE8A020) // Amber accent for links
 
 // ── Glassmorphism Surfaces ────────────────────────────────────
 val KbGlassSurface: Color

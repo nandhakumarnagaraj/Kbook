@@ -1,0 +1,203 @@
+================================================================================
+                     KHANABOOK V2 - PROJECT OVERVIEW
+================================================================================
+
+KhanaBook is a restaurant Point-of-Sale (POS) and business management platform
+with integrated payment processing via Easebuzz. It consists of three main components:
+
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           KHANABOOK ECOSYSTEM                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐  │
+│  │   Android POS    │     │    Web Admin     │     │     Server       │  │
+│  │  (Jetpack Compose)│     │  (Angular 18)    │     │  (Spring Boot)   │  │
+│  │                  │     │                  │     │                  │  │
+│  │  New Bill Screen │────▶│  Dashboard       │◀───▶│  Payment APIs    │  │
+│  │  Orders Screen   │     │  Sub-Merchants   │     │  Webhooks        │  │
+│  │  Menu Config     │     │  Marketplace     │     │  Sync Services   │  │
+│  └──────────────────┘     └──────────────────┘     └──────────────────┘  │
+│          │                        │                         │            │
+│          │                        │                         ▼            │
+│        Easebuzz                HTTP API                 Easebuzz           │
+│         SDK                  /api/v2/*                   API             │
+│                                │                         │                │
+│                                ▼                         ▼                │
+│                    ┌────────────────────────────────────────────┐           │
+│                    │     Easebuzz Payment Gateway              │           │
+│                    │  (testpay.easebuzz.in)                │           │
+│                    └────────────────────────────────────────────┘           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+DATA FLOW DIAGRAM
+================================================================================
+
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│  Restaurant  │───▶│   Android    │───▶│   Server     │───▶│  Easebuzz    │
+│   Staff      │    │   POS App    │    │              │    │   Payment    │
+│              │◀───│              │◀───│              │◀───│    API       │
+│              │    │ (Offline/    │    │ (REST API)   │    │              │
+│              │    │  Sync)       │    │              │    │              │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+                                           │    │
+                                           ▼    ▼
+                                  ┌──────────────┐    ┌──────────────┐
+                                  │ Web Admin    │    │ Webhooks     │
+                                  │ (Management) │    │ (Callbacks)  │
+                                  └──────────────┘    └──────────────┘
+
+
+================================================================================
+KEY COMPONENTS BREAKDOWN
+================================================================================
+
+ANDROID POS APP (Jetpack Compose)
+─────────────────────────────────
+• Target: API 26-36 (mobile + tablet)
+• Screens implemented:
+  - HomeScreen.kt         → Dashboard with metrics (Orders/Revenue/Avg)
+  - NewBillScreen.kt      → Bill creation with menu items, cart, qty controls
+  - OrdersScreen.kt       → Order list with filter chips, status tracking
+  - MenuConfigurationScreen.kt → Category/item management
+  - EasebuzzPaymentScreen.kt   → Payment processing (Cash/UPI/Card/Easebuzz)
+  - SplashScreen.kt, LoginScreen.kt, SignUpScreen.kt
+  - OtpVerificationScreen.kt, InitialSyncScreen.kt
+  - EasebuzzKycScreen.kt, MarketplaceOrdersScreen.kt
+  - ReportsScreen.kt
+• Uses Premium Saffron design system (#F97316 primary)
+• Features: Offline mode, sync, printer integration, GST/FSSAI lookup
+
+WEB ADMIN DASHBOARD (Angular 18)
+────────────────────────────────
+• Platform Dashboard    → Business metrics, sub-merchant management
+• Business Dashboard    → Orders, menu, storefront management
+• Sub-Merchants Page  → CRUD with KYC aging column, action buttons
+• Marketplace Setup     → Zomato/Swiggy integration
+• Tax Compliance        → GST reports, CSV export
+• Login with brand logo, dark/light mode support
+
+SERVER (Spring Boot)
+────────────────────
+• Base Path: /api/v2
+• Key Services:
+  - EasebuzzApiClient.java (9+ payment APIs)
+  - SubMerchantService.java (KYC, split labels, payouts)
+  - PaymentRoutingService.java (intelligent routing)
+  - ChargebackPreventionService.java (velocity checks)
+  - CustomerDataService.java (privacy compliance)
+  - Webhook endpoints (UrbanPiper/Swiggy/Zomato)
+
+• Key Entities:
+  - EasebuzzSubMerchant (+branchName, splitLabel)
+  - Bill, BillItem, BillPayment
+  - CustomerProfile (with opt-out support)
+  - MarketplaceOrder (with integration status)
+
+
+================================================================================
+EASEBUZZ INTEGRATION MATRIX
+================================================================================
+
+┌────────────────────────┬──────────────────────────────────────────────────┐
+│      API ENDPOINT      │                    PURPOSE                         │
+├────────────────────────┼──────────────────────────────────────────────────┤
+│ /transaction/v2.1/*    │ Payment initiation, status retrieval, refund         │
+│ /merchant/v1/submerchant │ Sub-merchant creation & management               │
+│ /split/v1/create       │ One-time bank-to-label linkage                   │
+│ /post-split/v1/create  │ Per-transaction fund distribution                │
+│ /submerchant/v1/kyc    │ KYC access key generation (live-only)            │
+│ /payout/v2/*           │ Merchant payouts                               │
+└────────────────────────┴──────────────────────────────────────────────────┘
+
+
+================================================================================
+FUNCTIONAL MODULES OVERVIEW
+================================================================================
+
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│   PAYMENTS      │  │   MENU/SYNC     │  │  MARKETPLACE    │
+├─────────────────┤  ├─────────────────┤  ├─────────────────┤
+│                 │  │                 │  │                 │
+│ ┌─────────────┐ │  │ ┌─────────────┐ │  │ ┌─────────────┐ │
+│ │ Initiate    │ │  │ │ Category    │ │  │ │ Zomato      │ │
+│ │ Payment     │ │  │ │ Management  │ │  │ │ Integration │ │
+│ ├─────────────┤ │  │ ├─────────────┤ │  │ ├─────────────┤ │
+│ │ Refund      │ │  │ │ Item Mgmt   │ │  │ │ Swiggy      │ │
+│ ├─────────────┤ │  │ ├─────────────┤ │  │ │ Integration │ │
+│ │ Payout      │ │  │ │ OCR/Scan    │ │  │ │ Webhook     │ │
+│ ├─────────────┤ │  │ ├─────────────┤ │  │ ├─────────────┤ │
+│ │ Settlement  │ │  │ │ Import      │ │  │ │ Order Flow  │ │
+│ └─────────────┘ │  │ │ Export      │ │  │ │ Accept/     │ │
+│                 │  │ └─────────────┘ │  │ │ Reject      │ │
+│ ┌─────────────┐ │  │                 │  │ └─────────────┘ │
+│ │ Split       │ │  │ ┌─────────────┐ │  │                 │
+│ │ Labels      │ │  │ │ Master      │ │  │                 │
+│ └─────────────┘ │  │ │ Sync        │ │  │                 │
+│                 │  │ └─────────────┘ │  │                 │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
+
+
+================================================================================
+TECHNOLOGY STACK
+================================================================================
+
+┌─────────────────┬─────────────────────────────────────────────────────────┐
+│ Component       │ Technology                                              │
+├─────────────────┼─────────────────────────────────────────────────────────┤
+│ Android POS     │ Kotlin, Jetpack Compose, Material Design 3, Hilt DI   │
+│                 │ Target API 26-36, Offline-first, Room DB            │
+├─────────────────┼─────────────────────────────────────────────────────────┤
+│ Web Admin       │ Angular 18, TypeScript, SCSS, Tailwind-like CSS vars   │
+│                 │ Premium Saffron Design System, MatDialog               │
+├─────────────────┼─────────────────────────────────────────────────────────┤
+│ Server          │ Java 21, Spring Boot 3, Maven, Flyway Migrations     │
+│                 │ PostgreSQL, JPA, HMAC-SHA256 Security                 │
+├─────────────────┼─────────────────────────────────────────────────────────┤
+│ Payment Gateway │ Easebuzz (v2 APIs) - Pay.easebuzz.in                   │
+├─────────────────┼─────────────────────────────────────────────────────────┤
+│ CI/Tests        │ JUnit 5, MockWebServer, Espresso (Android)          │
+│                 │ All 133 tests passing                               │
+└─────────────────┴─────────────────────────────────────────────────────────┘
+
+
+================================================================================
+KEY STATISTICS (per AGENTS.md)
+================================================================================
+
+• 729 total files • 657,501 total words
+• 20 Stitch-generated design mockups with Premium Saffron palette
+• 15+ Easebuzz API integrations
+• 22 Sub-merchant endpoints documented
+• 133 backend unit tests (all passing)
+• v2 branch (not main) - active development line
+
+
+================================================================================
+DESIGN SYSTEM (Premium Saffron)
+================================================================================
+
+Brand Colors:
+  Primary:  #F97316 (Saffron)
+  Brand:    #C85A00 (Deeper Saffron)
+  Light BG: #FAF8F5
+  Dark BG:  #121212
+  Light Ink:#1F2937
+  Dark Ink: #F5F5F5
+
+Typography:
+  Headlines: Plus Jakarta Sans
+  Body: Inter
+  Shape: ROUND_TWELVE
+
+Opacity Tokens (POS environments):
+  Cards: 95-100% opaque (no glassmorphism)
+  Tinted backgrounds: 8-16% opacity
+
+
+================================================================================
+END
+================================================================================

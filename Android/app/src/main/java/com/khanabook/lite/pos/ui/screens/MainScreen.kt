@@ -103,7 +103,20 @@ fun MainScreen(
                 return@AnimatedContent
             }
             when (currentTab.label) {
-                "Home" -> HomeScreen(onNewBill, onSearchBill, onReprintKds, onOrderStatus, onCallCustomer, onMarketplaceOrders)
+                "Home" -> HomeScreen(
+                    onNewBill = onNewBill,
+                    onSearchBill = onSearchBill,
+                    onReprintKds = onReprintKds,
+                    onOrderStatus = onOrderStatus,
+                    onCallCustomer = onCallCustomer,
+                    onMarketplaceOrders = onMarketplaceOrders,
+                    onMenuClick = {
+                        val menuIndex = visibleTabs.indexOfFirst { it.label == "Menu" }
+                        if (menuIndex != -1) {
+                            selectedTabIndex = menuIndex
+                        }
+                    }
+                )
                 "Orders" -> OrdersScreen(onBack = backToHome)
                 "Menu" -> MenuConfigurationScreen(
                     navController = navController,

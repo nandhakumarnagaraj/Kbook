@@ -52,8 +52,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -64,7 +64,6 @@ import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
 import com.khanabook.lite.pos.ui.theme.KbGray300
 import com.khanabook.lite.pos.ui.theme.KbGray500
-import com.khanabook.lite.pos.ui.theme.KbLavender
 import com.khanabook.lite.pos.ui.theme.KbOpacity
 import com.khanabook.lite.pos.ui.theme.KbShape
 import com.khanabook.lite.pos.ui.theme.KbSuccess
@@ -138,7 +137,11 @@ fun EasebuzzKycScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.kbBgGradient)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF0E0A22), Color(0xFF0D0820))
+                )
+            )
     ) {
         Column(
             modifier = Modifier
@@ -175,7 +178,7 @@ fun EasebuzzKycScreen(
             Text(
                 text = "Complete your KYC to start receiving payments",
                 style = MaterialTheme.typography.bodyMedium,
-                color = KbLavender
+                color = Color(0xFF7C6FCD) // Violet accent matching spec
             )
 
             Spacer(modifier = Modifier.height(spacing.mediumLarge))

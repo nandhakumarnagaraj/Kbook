@@ -51,6 +51,14 @@ class MenuViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    val categoryItemCounts: StateFlow<Map<Long, Int>> = menuRepository.getAllItemsFlow()
+        .map { items ->
+            items.filter { !it.isDeleted }
+                .groupBy { it.categoryId }
+                .mapValues { it.value.size }
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
     val searchQuery = MutableStateFlow("")
 
     val searchResults: StateFlow<List<MenuWithVariants>> = searchQuery

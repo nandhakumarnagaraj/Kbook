@@ -121,6 +121,30 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().putFloat("display_scale", scale.coerceIn(0.8f, 1.3f)).apply()
     }
 
+    fun getLayoutDensity(): String = prefs.getString("layout_density", "default") ?: "default"
+
+    fun setLayoutDensity(density: String) {
+        prefs.edit().putString("layout_density", density).apply()
+    }
+
+    fun isShowOrderAnimations(): Boolean = prefs.getBoolean("show_order_animations", true)
+
+    fun setShowOrderAnimations(enabled: Boolean) {
+        prefs.edit().putBoolean("show_order_animations", enabled).apply()
+    }
+
+    fun isHapticFeedbackEnabled(): Boolean = prefs.getBoolean("haptic_feedback_enabled", true)
+
+    fun setHapticFeedbackEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("haptic_feedback_enabled", enabled).apply()
+    }
+
+    fun isBoldOrderNumbersEnabled(): Boolean = prefs.getBoolean("bold_order_numbers", false)
+
+    fun setBoldOrderNumbersEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("bold_order_numbers", enabled).apply()
+    }
+
     fun getPersistedLoginId(): String? = securePrefs.getString("persisted_login_id", null)
 
     fun savePersistedLoginId(loginId: String) {

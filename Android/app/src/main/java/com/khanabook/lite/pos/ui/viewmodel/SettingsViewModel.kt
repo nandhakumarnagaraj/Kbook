@@ -53,6 +53,42 @@ class SettingsViewModel @Inject constructor(
         sessionManager.setDisplayScale(scale)
     }
 
+    val layoutDensity = sessionManager.getLayoutDensity()
+    private val _layoutDensity = MutableStateFlow(layoutDensity)
+    val layoutDensityState: StateFlow<String> = _layoutDensity.asStateFlow()
+
+    fun updateLayoutDensity(density: String) {
+        _layoutDensity.value = density
+        sessionManager.setLayoutDensity(density)
+    }
+
+    val showOrderAnimations = sessionManager.isShowOrderAnimations()
+    private val _showOrderAnimations = MutableStateFlow(showOrderAnimations)
+    val showOrderAnimationsState: StateFlow<Boolean> = _showOrderAnimations.asStateFlow()
+
+    fun updateShowOrderAnimations(enabled: Boolean) {
+        _showOrderAnimations.value = enabled
+        sessionManager.setShowOrderAnimations(enabled)
+    }
+
+    val hapticFeedbackEnabled = sessionManager.isHapticFeedbackEnabled()
+    private val _hapticFeedbackEnabled = MutableStateFlow(hapticFeedbackEnabled)
+    val hapticFeedbackEnabledState: StateFlow<Boolean> = _hapticFeedbackEnabled.asStateFlow()
+
+    fun updateHapticFeedbackEnabled(enabled: Boolean) {
+        _hapticFeedbackEnabled.value = enabled
+        sessionManager.setHapticFeedbackEnabled(enabled)
+    }
+
+    val boldOrderNumbers = sessionManager.isBoldOrderNumbersEnabled()
+    private val _boldOrderNumbers = MutableStateFlow(boldOrderNumbers)
+    val boldOrderNumbersState: StateFlow<Boolean> = _boldOrderNumbers.asStateFlow()
+
+    fun updateBoldOrderNumbers(enabled: Boolean) {
+        _boldOrderNumbers.value = enabled
+        sessionManager.setBoldOrderNumbersEnabled(enabled)
+    }
+
     val profile: StateFlow<RestaurantProfileEntity?> = restaurantRepository.getProfileFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 

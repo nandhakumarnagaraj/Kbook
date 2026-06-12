@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -32,6 +33,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -187,37 +189,36 @@ fun MenuConfigurationScreen(
 
     Scaffold(
         topBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.kbHeaderGradient)
-                    .statusBarsPadding()
-                    .padding(top = 8.dp, bottom = 12.dp)
-            ) {
-                Row(
+            if (ocrUiState.configMode != "manual") {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .background(MaterialTheme.kbHeaderGradient)
+                        .statusBarsPadding()
+                        .padding(top = 8.dp, bottom = 12.dp)
                 ) {
-                    IconButton(onClick = { onBack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { onBack() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White
+                            )
+                        }
+                        Text(
+                            text = "Menu Configuration",
+                            modifier = Modifier.weight(1f),
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            textAlign = TextAlign.Center
                         )
+                        Spacer(modifier = Modifier.width(48.dp))
                     }
-                    Text(
-                        text = when (ocrUiState.configMode) {
-                            "manual" -> "Menu"
-                            else -> "Menu Configuration"
-                        },
-                        modifier = Modifier.weight(1f),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.width(48.dp))
                 }
             }
         },
@@ -243,30 +244,35 @@ fun MenuConfigurationScreen(
                 }
             } else {
                 AnimatedVisibility(visible = screenVisible, enter = enterSpec, exit = exitSpec) {
+                    val categoryItemCounts by viewModel.categoryItemCounts.collectAsState()
                     ManualMenuView(
-                    categories = categories,
-                    selectedCategoryId = selectedCategoryId,
-                    menuItems = menuItems,
-                    onCategorySelect = { viewModel.selectCategory(it) },
-                    onAddCategory = { viewModel.addCategory(it, true) },
-                    onUpdateCategory = { viewModel.updateCategory(it) },
-                    onAddItem = { name, price, type, variants ->
-                        selectedCategoryId?.let {
-                            if (variants.isEmpty()) {
-                                viewModel.addItem(it, name, price, type)
-                            } else {
-                                viewModel.addItemWithVariants(it, name, price, type, variants)
+                        categories = categories,
+                        categoryItemCounts = categoryItemCounts,
+                        totalItemsCount = totalItemsCount,
+                        selectedCategoryId = selectedCategoryId,
+                        menuItems = menuItems,
+                        onCategorySelect = { viewModel.selectCategory(it) },
+                        onAddCategory = { viewModel.addCategory(it, true) },
+                        onUpdateCategory = { viewModel.updateCategory(it) },
+                        onDeleteCategory = { viewModel.deleteCategory(it) },
+                        onAddItem = { name, price, type, variants ->
+                            selectedCategoryId?.let {
+                                if (variants.isEmpty()) {
+                                    viewModel.addItem(it, name, price, type)
+                                } else {
+                                    viewModel.addItemWithVariants(it, name, price, type, variants)
+                                }
                             }
-                        }
-                    },
-                    onUpdateItem = { viewModel.updateItem(it) },
-                    onToggleAvailability = { id, available -> viewModel.toggleItem(id, available) },
-                    onAddVariant = { itemId, name, price -> viewModel.addVariant(itemId, name, price) },
-                    onUpdateVariant = { viewModel.updateVariant(it) },
-                    onDeleteVariant = { viewModel.deleteVariant(it) }
-                )
-                } // close AnimatedVisibility
-            } // close else
+                        },
+                        onUpdateItem = { viewModel.updateItem(it) },
+                        onDeleteItem = { viewModel.deleteItem(it) },
+                        onToggleAvailability = { id, available -> viewModel.toggleItem(id, available) },
+                        onAddVariant = { itemId, name, price -> viewModel.addVariant(itemId, name, price) },
+                        onUpdateVariant = { viewModel.updateVariant(it) },
+                        onDeleteVariant = { viewModel.deleteVariant(it) }
+                    )
+                }
+            }
 
             KhanaBookLoadingOverlay(
                 visible = ocrUiState.isProcessing,
@@ -1394,21 +1400,25 @@ private data class EditableVariantDraft(
     val name: String,
     val price: Double
 )
-
 private fun normalizeMenuItemName(name: String): String =
     name.trim().replace(Regex("\\s+"), " ").lowercase(Locale.getDefault())
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ManualMenuView(
     categories: List<CategoryEntity>,
+    categoryItemCounts: Map<Long, Int>,
+    totalItemsCount: Int,
     selectedCategoryId: Long?,
     menuItems: List<MenuWithVariants>,
     onCategorySelect: (Long) -> Unit,
     onAddCategory: (String) -> Unit,
     onUpdateCategory: (CategoryEntity) -> Unit,
+    onDeleteCategory: (CategoryEntity) -> Unit,
     onAddItem: (String, Double, String, List<Pair<String, Double>>) -> Unit,
     onUpdateItem: (MenuItemEntity) -> Unit,
+    onDeleteItem: (MenuItemEntity) -> Unit,
     onToggleAvailability: (Long, Boolean) -> Unit,
     onAddVariant: (Long, String, Double) -> Unit,
     onUpdateVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit,
@@ -1421,7 +1431,16 @@ fun ManualMenuView(
     var showAddItemDialog by remember { mutableStateOf(false) }
     var showEditItemDialog by remember { mutableStateOf<MenuWithVariants?>(null) }
     var pendingOverwrite by remember { mutableStateOf<PendingManualItemOverwrite?>(null) }
-    val visibleMenuItems = menuItems
+
+    // local drill-down state
+    var activeCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    // Intercept back key to reset category drill-down
+    BackHandler(enabled = activeCategory != null) {
+        activeCategory = null
+        searchQuery = ""
+    }
 
     val applyItemDraftToExisting: (MenuWithVariants, String, Double, String, List<Pair<String, Double>>) -> Unit =
         { existingItem, updatedName, updatedPrice, updatedFoodType, updatedVariants ->
@@ -1441,161 +1460,365 @@ fun ManualMenuView(
 
     Box(modifier = Modifier.fillMaxSize().testTag(MenuConfigurationTags.manualMenuRoot)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            LazyRow(
+            
+            // Premium Header with Search pill
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = KhanaBookTheme.spacing.screenContentPadding, vertical = KhanaBookTheme.spacing.small),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .background(Brush.verticalGradient(
+                        colors = listOf(Color(0xFF1A1535), Color(0xFF130F29))
+                    ))
+                    .statusBarsPadding()
+                    .padding(bottom = 12.dp)
             ) {
-                items(categories) { category ->
-                    val isSelected = category.id == selectedCategoryId
-                    Surface(
-                        onClick = { onCategorySelect(category.id) },
-                        shape = KbShape.Medium,
-                        color = if (isSelected) KbBrandSaffron else MaterialTheme.kbBgCard,
-                        border = BorderStroke(
-                            1.dp,
-                            if (isSelected) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
-                        ),
-                        contentColor = if (isSelected) Color.White else MaterialTheme.kbTextPrimary
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(horizontal = KhanaBookTheme.spacing.smallMedium, vertical = KhanaBookTheme.spacing.small)
-                                .combinedClickable(
-                                    onClick = { onCategorySelect(category.id) },
-                                    onLongClick = { showEditCategoryDialog = category }
-                                ),
-                            verticalAlignment = Alignment.CenterVertically
+                        IconButton(
+                            onClick = {
+                                if (activeCategory != null) {
+                                    activeCategory = null
+                                    searchQuery = ""
+                                }
+                            }
                         ) {
-                            Text(
-                                text = if (isSelected && visibleMenuItems.isNotEmpty()) "${category.name} (${visibleMenuItems.size})" else category.name,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White
                             )
-                            if (isSelected) {
-                                Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        
+                        Text(
+                            text = activeCategory?.name ?: "Menu Configuration",
+                            modifier = Modifier.weight(1f),
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            textAlign = TextAlign.Center
+                        )
+                        
+                        // Add Button (+ icon)
+                        IconButton(
+                            onClick = {
+                                if (activeCategory == null) {
+                                    showAddCategoryDialog = true
+                                } else {
+                                    showAddItemDialog = true
+                                }
+                            }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(Color.White.copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = "Edit Category",
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .clickable { showEditCategoryDialog = category },
-                                    tint = Color.White
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Add",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
                     }
-                }
-                item {
-                    TextButton(
-                        onClick = { showAddCategoryDialog = true },
-                        modifier = Modifier.testTag(MenuConfigurationTags.addCategoryButton),
-                        colors = ButtonDefaults.textButtonColors(contentColor = KbBrandSaffron)
-                    ) {
-                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add Category", fontWeight = FontWeight.Bold)
-                    }
+
+                    // Search bar
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = {
+                            Text(
+                                text = if (activeCategory == null) "Search categories & items..." else "Search items...",
+                                color = Color.White.copy(alpha = 0.5f)
+                            )
+                        },
+                        leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.White.copy(alpha = 0.6f)) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, null, tint = Color.White)
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White.copy(alpha = 0.12f),
+                            unfocusedContainerColor = Color.White.copy(alpha = 0.08f),
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        singleLine = true
+                    )
                 }
             }
 
-            if (categories.isEmpty()) {
-                Box(
+            // Drill Down Screens
+            if (activeCategory == null) {
+                // LEVEL 1: Categories view
+                val filteredCategories = categories.filter {
+                    it.name.contains(searchQuery, ignoreCase = true)
+                }
+
+                Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
+                        .fillMaxSize()
+                        .background(MaterialTheme.kbBgPrimary)
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(KhanaBookTheme.spacing.extraLarge)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(KhanaBookTheme.iconSize.heroCircle)
-                                .background(KbBrandSaffron.copy(alpha = 0.1f), CircleShape)
-                                .border(1.dp, KbBrandSaffron.copy(alpha = 0.3f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Add, null, tint = KbBrandSaffron, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
-                        }
-                        Spacer(                            modifier = Modifier.height(KhanaBookTheme.spacing.smallMedium))
                         Text(
-                            "No categories yet",
-                            color = MaterialTheme.kbTextPrimary,
-                            style = MaterialTheme.typography.titleMedium
+                            text = "CATEGORIES",
+                            color = Color(0xFF7C3AED), // Muted Purple
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp,
+                                fontSize = 12.sp
+                            )
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Tap + above to create your first category,\nthen add your menu items.",
-                            color = MaterialTheme.kbTextTertiary,
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center
+                            text = "$totalItemsCount items total",
+                            color = MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(horizontal = KhanaBookTheme.spacing.screenContentPadding),
-                    verticalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.small),
-                    contentPadding = PaddingValues(top = KhanaBookTheme.spacing.small, bottom = spacing.bottomListPadding)
-                ) {
-                    if (visibleMenuItems.isEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 48.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(KhanaBookTheme.spacing.small)
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 80.dp)
+                    ) {
+                        if (filteredCategories.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 48.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        "No items in this category",
-                                        color = MaterialTheme.kbTextSecondary,
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                    Text(
-                                        "Tap + to add your first item.",
+                                        text = if (searchQuery.isEmpty()) "No categories yet. Tap + to add." else "No categories found",
                                         color = MaterialTheme.kbTextTertiary,
-                                        style = MaterialTheme.typography.bodySmall
+                                        style = MaterialTheme.typography.bodyMedium
                                     )
                                 }
                             }
+                        } else {
+                            itemsIndexed(
+                                items = filteredCategories,
+                                key = { _, category -> category.id }
+                            ) { index, category ->
+                                val itemCount = categoryItemCounts[category.id] ?: 0
+
+                                // Colored badge configuration
+                                val badgeColors = when (index % 5) {
+                                    0 -> Pair(Color(0xFFFFF7ED), Color(0xFFF97316)) // Orange
+                                    1 -> Pair(Color(0xFFF5F3FF), Color(0xFF8B5CF6)) // Purple
+                                    2 -> Pair(Color(0xFFECFDF5), Color(0xFF10B981)) // Green
+                                    3 -> Pair(Color(0xFFEFF6FF), Color(0xFF3B82F6)) // Blue
+                                    else -> Pair(Color(0xFFFEF2F2), Color(0xFFEF4444)) // Red
+                                }
+
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                        .shadow(1.dp, RoundedCornerShape(16.dp))
+                                        .combinedClickable(
+                                            onClick = {
+                                                onCategorySelect(category.id)
+                                                activeCategory = category
+                                            },
+                                            onLongClick = { showEditCategoryDialog = category }
+                                        ),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+                                    border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Gold food plate circle icon container
+                                        Box(
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .background(Color(0xFFFFF7ED), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Restaurant,
+                                                contentDescription = null,
+                                                tint = Color(0xFFD97706),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(16.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = category.name,
+                                                color = MaterialTheme.kbTextPrimary,
+                                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "$itemCount items",
+                                                color = MaterialTheme.kbTextSecondary,
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+
+                                        // Badge count pill
+                                        Box(
+                                            modifier = Modifier
+                                                .background(badgeColors.first, RoundedCornerShape(10.dp))
+                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = itemCount.toString(),
+                                                color = badgeColors.second,
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.kbTextTertiary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
-                    } else {
-                        items(
-                            items = visibleMenuItems,
-                            key = { it.menuItem.id }
-                        ) { itemWithVariants ->
-                            MenuItemRow(
-                                itemWithVariants = itemWithVariants,
-                                onToggleAvailability = onToggleAvailability,
-                                onEditClick = { showEditItemDialog = it }
+
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            // Outlined dashed-like button
+                            OutlinedButton(
+                                onClick = { showAddCategoryDialog = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp)
+                                    .padding(horizontal = 16.dp),
+                                border = BorderStroke(1.5.dp, Color(0xFFF97316)),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFF97316))
+                            ) {
+                                Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Add New Category", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            }
+                        }
+                    }
+                }
+            } else {
+                // LEVEL 2: Items view (inside activeCategory)
+                val filteredItems = menuItems.filter {
+                    it.menuItem.name.contains(searchQuery, ignoreCase = true)
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.kbBgPrimary)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "ITEMS IN ${activeCategory?.name?.uppercase()}",
+                            color = Color(0xFF7C3AED),
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp,
+                                fontSize = 12.sp
                             )
+                        )
+                        Text(
+                            text = "${filteredItems.size} items found",
+                            color = MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = 80.dp)
+                    ) {
+                        if (filteredItems.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 48.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (searchQuery.isEmpty()) "No items yet. Tap FAB (+) to add." else "No items found",
+                                        color = MaterialTheme.kbTextTertiary,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                        } else {
+                            items(
+                                items = filteredItems,
+                                key = { it.menuItem.id }
+                            ) { itemWithVariants ->
+                                MenuItemRow(
+                                    itemWithVariants = itemWithVariants,
+                                    onToggleAvailability = onToggleAvailability,
+                                    onEditClick = { showEditItemDialog = it }
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        if (selectedCategoryId != null) {
+        // Float FAB to add item when viewing category details
+        if (activeCategory != null && selectedCategoryId != null) {
             FloatingActionButton(
                 onClick = { showAddItemDialog = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(KhanaBookTheme.spacing.medium)
-                    .testTag(MenuConfigurationTags.addItemButton),
-                containerColor = KbBrandSaffron,
+                    .padding(16.dp),
+                containerColor = Color(0xFFF97316),
                 contentColor = Color.White,
-                shape = KbShape.ExtraLarge
+                shape = CircleShape
             ) {
                 Icon(Icons.Default.Add, "Add Item")
             }
@@ -1660,7 +1883,7 @@ fun ManualMenuView(
             onDismiss = { showAddItemDialog = false },
             onConfirm = { name, price, type, draftVariants ->
                 val normalizedName = normalizeMenuItemName(name)
-                val existing = visibleMenuItems.firstOrNull {
+                val existing = menuItems.firstOrNull {
                     normalizeMenuItemName(it.menuItem.name) == normalizedName
                 }
                 if (existing != null) {
@@ -1737,12 +1960,20 @@ fun MenuItemRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Circle,
-                        contentDescription = null,
-                        tint = if (item.foodType == "veg") KbSuccess else KbBrandRed,
-                        modifier = Modifier.size(10.dp)
-                    )
+                    val indicatorColor = if (item.foodType == "veg") Color(0xFF10B981) else Color(0xFFEF4444)
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .border(1.dp, indicatorColor, RoundedCornerShape(2.dp))
+                            .padding(2.5.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(indicatorColor, CircleShape)
+                        )
+                    }
                     Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.small))
                     Text(
                         text = item.name,

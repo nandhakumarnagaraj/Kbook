@@ -11,20 +11,16 @@ import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.R
 
 // ═══════════════════════════════════════════════════════════════
-// KHANBOOK DLS — TYPOGRAPHY
+// KHANABOOK DLS — TYPOGRAPHY
 //
-// Font: Poppins (Google Fonts) — rounded, modern, food-friendly
-// Scale: Material 3-aligned with POS-specific roles added
+// Font: Plus Jakarta Sans (headlines) + Inter (body) — warm hospitality POS style
+// Scale: Material 3-aligned with tabular nums for financial data
 //
 // Role hierarchy:
 //   Display     → Bill totals, splash screen headers
-//   Headline    → Page titles, section headers (H1, H2)
-//   Title L/M   → Card headers, item names
-//   Title S     → Sub-section labels
-//   Body L      → Primary reading text
-//   Body M/S    → Secondary descriptions, table rows
-//   Label L     → Button text, badges, chips
-//   Label M/S   → Captions, timestamps, helper text
+//   Headline    → Page titles, section headers (H1, H2) — Plus Jakarta Sans
+//   Body L/M/S  → Primary reading text, tables — Inter with tabular nums
+//   Labels      → Button text, badges, chips
 // ═══════════════════════════════════════════════════════════════
 
 private val fontProvider = GoogleFont.Provider(
@@ -33,15 +29,22 @@ private val fontProvider = GoogleFont.Provider(
     certificates = R.array.com_google_android_gms_fonts_certs
 )
 
-private val PoppinsFont = GoogleFont("Poppins")
+private val PlusJakartaSansFont = GoogleFont("Plus Jakarta Sans")
+private val InterFont = GoogleFont("Inter")
 
 val AppFontFamily = FontFamily(
-    Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Light),
-    Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Normal),
-    Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Medium),
-    Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.SemiBold),
-    Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.Bold),
-    Font(googleFont = PoppinsFont, fontProvider = fontProvider, weight = FontWeight.ExtraBold),
+    Font(googleFont = PlusJakartaSansFont, fontProvider = fontProvider, weight = FontWeight.Light),
+    Font(googleFont = PlusJakartaSansFont, fontProvider = fontProvider, weight = FontWeight.Normal),
+    Font(googleFont = PlusJakartaSansFont, fontProvider = fontProvider, weight = FontWeight.Medium),
+    Font(googleFont = PlusJakartaSansFont, fontProvider = fontProvider, weight = FontWeight.SemiBold),
+    Font(googleFont = PlusJakartaSansFont, fontProvider = fontProvider, weight = FontWeight.Bold),
+    Font(googleFont = PlusJakartaSansFont, fontProvider = fontProvider, weight = FontWeight.ExtraBold),
+)
+
+val BodyFontFamily = FontFamily(
+    Font(googleFont = InterFont, fontProvider = fontProvider, weight = FontWeight.Normal),
+    Font(googleFont = InterFont, fontProvider = fontProvider, weight = FontWeight.Medium),
+    Font(googleFont = InterFont, fontProvider = fontProvider, weight = FontWeight.SemiBold),
 )
 
 private val BaseTypography = Typography(
@@ -119,27 +122,30 @@ private val BaseTypography = Typography(
     ),
 
     // ── Body ─────────────────────────────────────────────────────
-    // Reading content, descriptions, table rows
+    // Reading content, descriptions, table rows — Inter with tabular nums for currency
     bodyLarge = TextStyle(
-        fontFamily = AppFontFamily,
+        fontFamily = BodyFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
         lineHeight = 22.sp,
-        letterSpacing = 0.15.sp
+        letterSpacing = 0.15.sp,
+        fontFeatureSettings = "tnum"
     ),
     bodyMedium = TextStyle(
-        fontFamily = AppFontFamily,
+        fontFamily = BodyFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 13.sp,
         lineHeight = 18.sp,
-        letterSpacing = 0.25.sp
+        letterSpacing = 0.25.sp,
+        fontFeatureSettings = "tnum"
     ),
     bodySmall = TextStyle(
-        fontFamily = AppFontFamily,
+        fontFamily = BodyFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.4.sp
+        letterSpacing = 0.4.sp,
+        fontFeatureSettings = "tnum"
     ),
 
     // ── Labels ───────────────────────────────────────────────────

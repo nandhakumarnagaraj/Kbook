@@ -19,7 +19,12 @@ data class Spacing(
     val huge: Dp = 48.dp,
     val extraHuge: Dp = 64.dp,
     val screenContentPadding: Dp = 16.dp,
-    val bottomListPadding: Dp = 88.dp
+    val bottomListPadding: Dp = 88.dp,
+    // Responsive variants
+    val screenHorizontal: Dp = 16.dp,
+    val cardPadding: Dp = 16.dp,
+    val sectionGap: Dp = 12.dp,
+    val listItemVertical: Dp = 12.dp
 )
 
 val LocalSpacing = staticCompositionLocalOf { Spacing() }

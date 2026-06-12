@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.theme.*
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookPurpleBackground
 import com.khanabook.lite.pos.ui.viewmodel.InitialSyncState
 import com.khanabook.lite.pos.ui.viewmodel.InitialSyncViewModel
 
@@ -62,13 +63,8 @@ fun InitialSyncScreen(
         label = "rotation"
     )
 
-    // Midnight purple gradient background — matches Login/SignUp/Splash
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                MaterialTheme.kbHeaderGradient
-            )
+    KhanaBookPurpleBackground(
+        modifier = Modifier.fillMaxSize()
     ) {
         when (val state = syncState) {
             is InitialSyncState.Syncing, InitialSyncState.Idle -> SyncContentPurple(syncRotation, spacing)

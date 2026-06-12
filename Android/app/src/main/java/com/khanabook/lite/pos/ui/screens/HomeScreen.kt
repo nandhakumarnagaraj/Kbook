@@ -60,6 +60,7 @@ fun HomeScreen(
     onOrderStatus: () -> Unit,
     onCallCustomer: () -> Unit,
     onMarketplaceOrders: () -> Unit = {},
+    onMenuClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
 ) {
@@ -114,7 +115,9 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.kbHeaderGradient)
+                            .background(Brush.verticalGradient(
+                                colors = listOf(Color(0xFF1A1535), Color(0xFF130F29))
+                            ))
                     ) {
                         Column(
                             modifier = Modifier
@@ -123,16 +126,35 @@ fun HomeScreen(
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
+                                // White rounded brand logo box
+                                Card(
+                                    modifier = Modifier.size(56.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.ic_khanabook_logo),
+                                            contentDescription = "Logo",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Fit
+                                        )
+                                    }
+                                }
+
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = greeting,
-                                        color = Color.White.copy(alpha = KbOpacity.Muted),
+                                        color = Color(0xFFFDBA74), // Warm gold/orange greeting
                                         style = MaterialTheme.typography.labelMedium.copy(
                                             fontSize = 13.sp,
-                                            fontWeight = FontWeight.Normal
+                                            fontWeight = FontWeight.Medium
                                         ),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -148,17 +170,37 @@ fun HomeScreen(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
+
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
-                                    Icon(
-                                        imageVector = Icons.Default.Notifications,
-                                        contentDescription = "Notifications",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(24.dp)
-                                    )
+                                    
+                                    // Custom notification button matching mockup
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.Black.copy(alpha = 0.2f))
+                                            .clickable { /* Handle click */ },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Notifications,
+                                            contentDescription = "Notifications",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                        // Red badge dot
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .padding(top = 8.dp, end = 8.dp)
+                                                .size(8.dp)
+                                                .background(Color(0xFFEF4444), CircleShape)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -240,12 +282,14 @@ fun HomeScreen(
                                     MetricCard(
                                         value = stats.orderCount.toString(),
                                         label = "Total Orders",
+                                        accentColor = Color(0xFFF97316),
                                         badge = "today",
                                         modifier = Modifier.weight(1f)
                                     )
                                     MetricCard(
                                         value = CurrencyUtils.formatPriceCompact(stats.revenue),
                                         label = "Revenue",
+                                        accentColor = Color(0xFF8B5CF6),
                                         badge = "today",
                                         modifier = Modifier.weight(1f)
                                     )
@@ -254,6 +298,7 @@ fun HomeScreen(
                                             if (stats.orderCount > 0) stats.revenue / stats.orderCount else 0.0
                                         ),
                                         label = "Avg Order",
+                                        accentColor = Color(0xFF10B981),
                                         badge = "today",
                                         modifier = Modifier.weight(1f)
                                     )
@@ -282,47 +327,58 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
+                                // "New Bill" Saffron Filled Button
                                 Button(
                                     onClick = onNewBill,
                                     modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp),
+                                        .weight(1.2f)
+                                        .height(48.dp)
+                                        .shadow(2.dp, KbShape.Medium),
                                     shape = KbShape.Medium,
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = KbBrandSaffron
+                                        containerColor = Color(0xFFF97316)
                                     )
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(6.dp))
-                                    Text("New Bill", fontWeight = FontWeight.SemiBold)
+                                    Text("New Bill", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 }
-                                OutlinedButton(
+                                
+                                // "Orders" White/Card Button
+                                Button(
                                     onClick = onSearchBill,
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(48.dp),
+                                        .height(48.dp)
+                                        .border(1.dp, MaterialTheme.kbOutlineSubtle, KbShape.Medium)
+                                        .shadow(1.dp, KbShape.Medium),
                                     shape = KbShape.Medium,
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = KbBrandSaffron
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.kbBgCard,
+                                        contentColor = MaterialTheme.kbTextPrimary
                                     )
                                 ) {
-                                    Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF8B5CF6))
                                     Spacer(Modifier.width(6.dp))
-                                    Text("Orders", fontWeight = FontWeight.SemiBold)
+                                    Text("Orders", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 }
-                                OutlinedButton(
-                                    onClick = onOrderStatus,
+                                
+                                // "Menu" Light Saffron Outlined/Tinted Button
+                                Button(
+                                    onClick = onMenuClick,
                                     modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp),
+                                        .weight(1.1f)
+                                        .height(48.dp)
+                                        .border(1.dp, Color(0xFFF97316).copy(alpha = 0.5f), KbShape.Medium),
                                     shape = KbShape.Medium,
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = KbBrandSaffron
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFFFF7ED),
+                                        contentColor = Color(0xFFF97316)
                                     )
                                 ) {
-                                    Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFFF97316))
                                     Spacer(Modifier.width(6.dp))
-                                    Text("Menu", fontWeight = FontWeight.SemiBold)
+                                    Text("Menu", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 }
                             }
 
@@ -341,14 +397,18 @@ fun HomeScreen(
                                 HomeActionGridCard(
                                     text = "Find Bill",
                                     icon = Icons.Default.Search,
-                                    isPrimary = true,
+                                    borderColor = Color(0xFFC084FC),
+                                    iconColor = Color(0xFF8B5CF6),
+                                    iconBgColor = Color(0xFFF3E8FF),
                                     modifier = Modifier.weight(1f),
                                     onClick = onSearchBill
                                 )
                                 HomeActionGridCard(
                                     text = "Reprint KDS",
-                                    icon = Icons.Default.Restaurant,
-                                    isPrimary = false,
+                                    icon = Icons.Default.Print,
+                                    borderColor = Color(0xFF34D399),
+                                    iconColor = Color(0xFF10B981),
+                                    iconBgColor = Color(0xFFECFDF5),
                                     modifier = Modifier.weight(1f),
                                     onClick = onReprintKds
                                 )
@@ -359,15 +419,19 @@ fun HomeScreen(
                             ) {
                                 HomeActionGridCard(
                                     text = "Order Status",
-                                    icon = Icons.Default.Info,
-                                    isPrimary = true,
+                                    icon = Icons.Default.AccessTime,
+                                    borderColor = Color(0xFF60A5FA),
+                                    iconColor = Color(0xFF3B82F6),
+                                    iconBgColor = Color(0xFFEFF6FF),
                                     modifier = Modifier.weight(1f),
                                     onClick = onOrderStatus
                                 )
                                 HomeActionGridCard(
                                     text = "Call Customers",
                                     icon = Icons.Default.Call,
-                                    isPrimary = false,
+                                    borderColor = Color(0xFFF87171),
+                                    iconColor = Color(0xFFEF4444),
+                                    iconBgColor = Color(0xFFFEF2F2),
                                     modifier = Modifier.weight(1f),
                                     onClick = onCallCustomer
                                 )
@@ -402,12 +466,14 @@ fun HomeScreen(
                                 MetricCard(
                                     value = stats.orderCount.toString(),
                                     label = "Total Orders",
+                                    accentColor = Color(0xFFF97316),
                                     badge = "today",
                                     modifier = Modifier.weight(1f)
                                 )
                                 MetricCard(
                                     value = CurrencyUtils.formatPriceCompact(stats.revenue),
                                     label = "Revenue",
+                                    accentColor = Color(0xFF8B5CF6),
                                     badge = "today",
                                     modifier = Modifier.weight(1f)
                                 )
@@ -416,6 +482,7 @@ fun HomeScreen(
                                         if (stats.orderCount > 0) stats.revenue / stats.orderCount else 0.0
                                     ),
                                     label = "Avg Order",
+                                    accentColor = Color(0xFF10B981),
                                     badge = "today",
                                     modifier = Modifier.weight(1f)
                                 )
@@ -444,47 +511,58 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
+                            // "New Bill" Saffron Filled Button
                             Button(
                                 onClick = onNewBill,
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp),
+                                    .weight(1.2f)
+                                    .height(48.dp)
+                                    .shadow(2.dp, KbShape.Medium),
                                 shape = KbShape.Medium,
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = KbBrandSaffron
+                                    containerColor = Color(0xFFF97316)
                                 )
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text("New Bill", fontWeight = FontWeight.SemiBold)
+                                Text("New Bill", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
-                            OutlinedButton(
+                            
+                            // "Orders" White/Card Button
+                            Button(
                                 onClick = onSearchBill,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(48.dp),
+                                    .height(48.dp)
+                                    .border(1.dp, MaterialTheme.kbOutlineSubtle, KbShape.Medium)
+                                    .shadow(1.dp, KbShape.Medium),
                                 shape = KbShape.Medium,
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = KbBrandSaffron
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.kbBgCard,
+                                    contentColor = MaterialTheme.kbTextPrimary
                                 )
                             ) {
-                                Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF8B5CF6))
                                 Spacer(Modifier.width(6.dp))
-                                Text("Orders", fontWeight = FontWeight.SemiBold)
+                                Text("Orders", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
-                            OutlinedButton(
-                                onClick = onOrderStatus,
+                            
+                            // "Menu" Light Saffron Outlined/Tinted Button
+                            Button(
+                                onClick = onMenuClick,
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp),
+                                    .weight(1.1f)
+                                    .height(48.dp)
+                                    .border(1.dp, Color(0xFFF97316).copy(alpha = 0.5f), KbShape.Medium),
                                 shape = KbShape.Medium,
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = KbBrandSaffron
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFFF7ED),
+                                    contentColor = Color(0xFFF97316)
                                 )
                             ) {
-                                Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFFF97316))
                                 Spacer(Modifier.width(6.dp))
-                                Text("Menu", fontWeight = FontWeight.SemiBold)
+                                Text("Menu", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
                         }
 
@@ -503,14 +581,18 @@ fun HomeScreen(
                             HomeActionGridCard(
                                 text = "Find Bill",
                                 icon = Icons.Default.Search,
-                                isPrimary = true,
+                                borderColor = Color(0xFFC084FC),
+                                iconColor = Color(0xFF8B5CF6),
+                                iconBgColor = Color(0xFFF3E8FF),
                                 modifier = Modifier.weight(1f),
                                 onClick = onSearchBill
                             )
                             HomeActionGridCard(
                                 text = "Reprint KDS",
-                                icon = Icons.Default.Restaurant,
-                                isPrimary = false,
+                                icon = Icons.Default.Print,
+                                borderColor = Color(0xFF34D399),
+                                iconColor = Color(0xFF10B981),
+                                iconBgColor = Color(0xFFECFDF5),
                                 modifier = Modifier.weight(1f),
                                 onClick = onReprintKds
                             )
@@ -521,15 +603,19 @@ fun HomeScreen(
                         ) {
                             HomeActionGridCard(
                                 text = "Order Status",
-                                icon = Icons.Default.Info,
-                                isPrimary = true,
+                                icon = Icons.Default.AccessTime,
+                                borderColor = Color(0xFF60A5FA),
+                                iconColor = Color(0xFF3B82F6),
+                                iconBgColor = Color(0xFFEFF6FF),
                                 modifier = Modifier.weight(1f),
                                 onClick = onOrderStatus
                             )
                             HomeActionGridCard(
                                 text = "Call Customers",
                                 icon = Icons.Default.Call,
-                                isPrimary = false,
+                                borderColor = Color(0xFFF87171),
+                                iconColor = Color(0xFFEF4444),
+                                iconBgColor = Color(0xFFFEF2F2),
                                 modifier = Modifier.weight(1f),
                                 onClick = onCallCustomer
                             )
@@ -537,6 +623,8 @@ fun HomeScreen(
                     }
                 }
             }
+
+            RestaurantStatusBanner(stats = stats, lastOrderTime = stats.lastOrderTime)
 
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -547,37 +635,36 @@ fun HomeScreen(
 private fun MetricCard(
     value: String,
     label: String,
+    accentColor: Color,
     badge: String? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.kbOutlineSubtle,
-                shape = RoundedCornerShape(14.dp)
+            .shadow(
+                elevation = 4.dp,
+                shape = RoundedCornerShape(16.dp),
+                clip = false
             ),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(bottom = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                    .background(KbBrandSaffron)
+                    .height(4.dp)
+                    .background(accentColor)
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(16.dp))
             Text(
                 text = value,
                 color = MaterialTheme.kbTextPrimary,
                 style = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = 22.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     fontFeatureSettings = "tnum"
                 ),
@@ -589,18 +676,18 @@ private fun MetricCard(
                 text = label,
                 color = MaterialTheme.kbTextSecondary,
                 style = MaterialTheme.typography.labelMedium.copy(
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 0.5.sp
                 ),
                 maxLines = 1
             )
             if (badge != null) {
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
                     text = badge,
-                    color = KbBrandSaffron,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                    color = accentColor,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 )
             }
         }
@@ -813,12 +900,13 @@ fun SyncStatusHeader(
         rotation = 0f
     }
 
-    val (bgColor, textColor, borderColor) = when {
-        !isOnline -> Triple(KbRedSubtle, KbError, KbError.copy(alpha = KbOpacity.StatusBorder))
-        !isSessionValid -> Triple(KbWarning.copy(alpha = KbOpacity.StatusBg), KbWarning, KbWarning.copy(alpha = KbOpacity.StatusBorder))
-        unsyncedCount > 0 -> Triple(KbBrandSaffron.copy(alpha = KbOpacity.StatusBg), KbWarning, KbBrandSaffron.copy(alpha = KbOpacity.StatusBorder))
-        else -> Triple(KbSuccess.copy(alpha = KbOpacity.StatusBg), KbSuccess, KbSuccess.copy(alpha = KbOpacity.StatusBorder))
+    val (textColor, borderColor) = when {
+        !isOnline -> Pair(KbError, KbError)
+        !isSessionValid -> Pair(KbWarning, KbWarning)
+        unsyncedCount > 0 -> Pair(KbBrandSaffron, KbBrandSaffron)
+        else -> Pair(Color(0xFF10B981), Color(0xFF10B981))
     }
+    val bgColor = Color(0xFF1B1A3F)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -967,86 +1055,123 @@ fun HomeActionCard(
 fun HomeActionGridCard(
     text: String,
     icon: ImageVector,
-    isPrimary: Boolean,
+    borderColor: Color,
+    iconColor: Color,
+    iconBgColor: Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
     badgeCount: Int = 0
 ) {
     val spacing = KhanaBookTheme.spacing
     val cardBg = MaterialTheme.kbBgCard
-    val cardBorderColor = MaterialTheme.kbOutlineSubtle
-    val accentColor = KbSuccess
-    val textColor = if (isPrimary) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .border(1.dp, cardBorderColor, RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .border(1.5.dp, borderColor, RoundedCornerShape(16.dp))
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(16.dp),
+                clip = false
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = spacing.medium)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(iconBgColor, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(spacing.smallMedium))
+            Text(
+                text = text,
+                color = MaterialTheme.kbTextPrimary,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun RestaurantStatusBanner(
+    stats: HomeStats,
+    lastOrderTime: String?
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .border(1.dp, MaterialTheme.kbOutlineSubtle, RoundedCornerShape(16.dp))
+            .shadow(2.dp, RoundedCornerShape(16.dp), clip = false),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isPrimary) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(20.dp)
+                    .background(Color(0xFFE6F4EA), CircleShape)
+            ) {
                 Box(
                     modifier = Modifier
-                        .width(3.dp)
-                        .fillMaxHeight()
-                        .background(accentColor)
+                        .size(10.dp)
+                        .background(Color(0xFF137333), CircleShape)
                 )
             }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = spacing.medium)
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = accentColor,
-                        modifier = Modifier.size(28.dp)
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Restaurant is Open",
+                    color = MaterialTheme.kbTextPrimary,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
                     )
-                    Spacer(modifier = Modifier.height(spacing.small))
-                    Text(
-                        text = text,
-                        color = textColor,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center
-                    )
-                }
-                if (badgeCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(end = spacing.small)
-                            .size(24.dp)
-                            .background(KbError, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = badgeCount.toString(),
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
-                }
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                val orderSuffix = if (stats.orderCount == 1) "order" else "orders"
+                val ordersText = "${stats.orderCount} $orderSuffix placed today"
+                val lastTimeText = lastOrderTime?.let { " • Last at $it" } ?: ""
+                Text(
+                    text = "$ordersText$lastTimeText",
+                    color = MaterialTheme.kbTextSecondary,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp)
+                )
             }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.kbTextTertiary,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }

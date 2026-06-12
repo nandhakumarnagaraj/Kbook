@@ -52,6 +52,7 @@ import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
 import com.khanabook.lite.pos.ui.designsystem.LoadingType
 import com.khanabook.lite.pos.ui.designsystem.verticalScrollbar
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookPurpleBackground
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
@@ -142,21 +143,17 @@ fun SignUpScreen(
         signUpFieldErrors[key]?.takeIf { it.isNotBlank() }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.kbBgPrimary)
+    KhanaBookPurpleBackground(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopStart
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header: Midnight Purple Gradient Area (Centered Logo Style)
-            Box(
+            // Header: Midnight Purple Gradient Area with decorative blobs
+            KhanaBookPurpleBackground(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        MaterialTheme.kbHeaderGradient
-                    )
                     .statusBarsPadding()
                     .padding(vertical = 24.dp),
                 contentAlignment = Alignment.Center
@@ -248,7 +245,7 @@ fun SignUpScreen(
                 ) {
                     Text(
                         text = "Create Your Restaurant",
-                        color = MaterialTheme.kbTextPrimary,
+                        color = Color(0xFF1E293B),
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
@@ -258,7 +255,7 @@ fun SignUpScreen(
                     
                     Text(
                         text = "Start billing in 2 minutes",
-                        color = MaterialTheme.kbTextSecondary,
+                        color = Color(0xFF4B5563),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
@@ -268,7 +265,7 @@ fun SignUpScreen(
                     // RESTAURANT NAME
                     Text(
                         text = "RESTAURANT NAME",
-                        color = MaterialTheme.kbTextSecondary,
+                        color = Color(0xFF2D2D4E),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.12.em
@@ -280,17 +277,18 @@ fun SignUpScreen(
                     TextField(
                         value = shopName,
                         onValueChange = { shopName = it },
-                        placeholder = { Text("Restaurant Name", color = MaterialTheme.kbTextTertiary) },
+                        placeholder = { Text("Restaurant Name", color = Color(0xFF71718D)) },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(14.dp),
+                        textStyle = TextStyle(color = Color(0xFF1F2937), fontSize = 16.sp),
                         colors = TextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.kbTextPrimary,
-                            unfocusedTextColor = MaterialTheme.kbTextPrimary,
-                            disabledTextColor = MaterialTheme.kbTextDisabled,
+                            focusedTextColor = Color(0xFF1F2937),
+                            unfocusedTextColor = Color(0xFF1F2937),
+                            disabledTextColor = Color(0xFF9CA3AF),
                             errorTextColor = KbError,
-                            focusedContainerColor = MaterialTheme.kbBgSecondary,
-                            unfocusedContainerColor = MaterialTheme.kbBgSecondary,
-                            disabledContainerColor = MaterialTheme.kbBgSecondary,
+                            focusedContainerColor = Color(0xFFECEDF6),
+                            unfocusedContainerColor = Color(0xFFECEDF6),
+                            disabledContainerColor = Color(0xFFECEDF6),
                             errorContainerColor = MaterialTheme.colorScheme.errorContainer,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
@@ -314,12 +312,10 @@ fun SignUpScreen(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-
-
                     // WHATSAPP NUMBER (renamed and integrated Send OTP)
                     Text(
                         text = "WHATSAPP NUMBER",
-                        color = MaterialTheme.kbTextSecondary,
+                        color = Color(0xFF2D2D4E),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.12.em
@@ -336,7 +332,7 @@ fun SignUpScreen(
                                 viewModel.checkUserExists(phoneNumber)
                             }
                         },
-                        placeholder = { Text("WhatsApp Number", color = MaterialTheme.kbTextTertiary) },
+                        placeholder = { Text("WhatsApp Number", color = Color(0xFF71718D)) },
                         leadingIcon = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -344,7 +340,7 @@ fun SignUpScreen(
                             ) {
                                     Text(
                                         text = "+91",
-                                        color = MaterialTheme.kbTextPrimary,
+                                        color = Color(0xFF5B4FCF),
                                         fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.bodyLarge
                                     )
@@ -374,7 +370,7 @@ fun SignUpScreen(
                                     modifier = Modifier.padding(end = 4.dp).height(36.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = KbBrandSaffron,
-                                        disabledContainerColor = MaterialTheme.kbBgSecondary
+                                        disabledContainerColor = Color(0xFFECEDF6)
                                     ),
                                     shape = RoundedCornerShape(18.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp),
@@ -400,14 +396,15 @@ fun SignUpScreen(
                             .height(52.dp)
                             .focusRequester(phoneFocusRequester),
                         shape = RoundedCornerShape(14.dp),
+                        textStyle = TextStyle(color = Color(0xFF1F2937), fontSize = 16.sp),
                         colors = TextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.kbTextPrimary,
-                            unfocusedTextColor = MaterialTheme.kbTextPrimary,
-                            disabledTextColor = MaterialTheme.kbTextDisabled,
+                            focusedTextColor = Color(0xFF1F2937),
+                            unfocusedTextColor = Color(0xFF1F2937),
+                            disabledTextColor = Color(0xFF9CA3AF),
                             errorTextColor = KbError,
-                            focusedContainerColor = MaterialTheme.kbBgSecondary,
-                            unfocusedContainerColor = MaterialTheme.kbBgSecondary,
-                            disabledContainerColor = MaterialTheme.kbBgSecondary,
+                            focusedContainerColor = Color(0xFFECEDF6),
+                            unfocusedContainerColor = Color(0xFFECEDF6),
+                            disabledContainerColor = Color(0xFFECEDF6),
                             errorContainerColor = MaterialTheme.colorScheme.errorContainer,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
@@ -437,7 +434,7 @@ fun SignUpScreen(
 
                         Text(
                             text = "ENTER OTP",
-                            color = MaterialTheme.kbTextSecondary,
+                            color = Color(0xFF2D2D4E),
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.12.em
@@ -499,7 +496,7 @@ fun SignUpScreen(
                     // PASSWORD
                     Text(
                         text = "PASSWORD",
-                        color = MaterialTheme.kbTextSecondary,
+                        color = Color(0xFF2D2D4E),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.12.em
@@ -511,12 +508,12 @@ fun SignUpScreen(
                     TextField(
                         value = newPassword,
                         onValueChange = { newPassword = it },
-                        placeholder = { Text("Enter password", color = MaterialTheme.kbTextTertiary) },
+                        placeholder = { Text("Enter password", color = Color(0xFF71718D)) },
                         trailingIcon = {
                             Icon(
                                 imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                 contentDescription = "Toggle Password",
-                                tint = MaterialTheme.kbTextTertiary,
+                                tint = Color(0xFF71718D),
                                 modifier = Modifier.clickable { showPassword = !showPassword }
                             )
                         },
@@ -526,14 +523,15 @@ fun SignUpScreen(
                             .height(52.dp)
                             .focusRequester(passwordFocusRequester),
                         shape = RoundedCornerShape(14.dp),
+                        textStyle = TextStyle(color = Color(0xFF1F2937), fontSize = 16.sp),
                         colors = TextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.kbTextPrimary,
-                            unfocusedTextColor = MaterialTheme.kbTextPrimary,
-                            disabledTextColor = MaterialTheme.kbTextDisabled,
+                            focusedTextColor = Color(0xFF1F2937),
+                            unfocusedTextColor = Color(0xFF1F2937),
+                            disabledTextColor = Color(0xFF9CA3AF),
                             errorTextColor = KbError,
-                            focusedContainerColor = MaterialTheme.kbBgSecondary,
-                            unfocusedContainerColor = MaterialTheme.kbBgSecondary,
-                            disabledContainerColor = MaterialTheme.kbBgSecondary,
+                            focusedContainerColor = Color(0xFFECEDF6),
+                            unfocusedContainerColor = Color(0xFFECEDF6),
+                            disabledContainerColor = Color(0xFFECEDF6),
                             errorContainerColor = MaterialTheme.colorScheme.errorContainer,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
@@ -558,7 +556,7 @@ fun SignUpScreen(
                     // CONFIRM PASSWORD
                     Text(
                         text = "CONFIRM PASSWORD",
-                        color = MaterialTheme.kbTextSecondary,
+                        color = Color(0xFF2D2D4E),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.12.em
@@ -570,12 +568,12 @@ fun SignUpScreen(
                     TextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        placeholder = { Text("Re‑enter password", color = MaterialTheme.kbTextTertiary) },
+                        placeholder = { Text("Re‑enter password", color = Color(0xFF71718D)) },
                         trailingIcon = {
                             Icon(
                                 imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                 contentDescription = "Toggle Confirm Password",
-                                tint = MaterialTheme.kbTextTertiary,
+                                tint = Color(0xFF71718D),
                                 modifier = Modifier.clickable { showPassword = !showPassword }
                             )
                         },
@@ -584,14 +582,15 @@ fun SignUpScreen(
                             .fillMaxWidth()
                             .height(52.dp),
                         shape = RoundedCornerShape(14.dp),
+                        textStyle = TextStyle(color = Color(0xFF1F2937), fontSize = 16.sp),
                         colors = TextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.kbTextPrimary,
-                            unfocusedTextColor = MaterialTheme.kbTextPrimary,
-                            disabledTextColor = MaterialTheme.kbTextDisabled,
+                            focusedTextColor = Color(0xFF1F2937),
+                            unfocusedTextColor = Color(0xFF1F2937),
+                            disabledTextColor = Color(0xFF9CA3AF),
                             errorTextColor = KbError,
-                            focusedContainerColor = MaterialTheme.kbBgSecondary,
-                            unfocusedContainerColor = MaterialTheme.kbBgSecondary,
-                            disabledContainerColor = MaterialTheme.kbBgSecondary,
+                            focusedContainerColor = Color(0xFFECEDF6),
+                            unfocusedContainerColor = Color(0xFFECEDF6),
+                            disabledContainerColor = Color(0xFFECEDF6),
                             errorContainerColor = MaterialTheme.colorScheme.errorContainer,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
@@ -646,7 +645,7 @@ fun SignUpScreen(
                         ClickableText(
                             text = annotatedString,
                             style = TextStyle(
-                                color = MaterialTheme.kbTextSecondary,
+                                color = Color(0xFF4B5563),
                                 fontSize = 14.sp
                             ),
                             onClick = { offset ->
@@ -731,7 +730,7 @@ fun SignUpScreen(
                     ) {
                         Text(
                             text = "Already have an account? ",
-                            color = MaterialTheme.kbTextSecondary,
+                            color = Color(0xFF4B5563),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(

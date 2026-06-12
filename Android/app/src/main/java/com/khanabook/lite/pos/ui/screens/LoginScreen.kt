@@ -159,13 +159,10 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            // Header: Midnight Purple Gradient Area (Centered Logo Style)
-            Box(
+            // Header: Midnight Purple Gradient Area with decorative blobs
+            KhanaBookPurpleBackground(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        MaterialTheme.kbHeaderGradient
-                    )
                     .statusBarsPadding()
                     .padding(vertical = 24.dp),
                 contentAlignment = Alignment.Center
@@ -276,7 +273,7 @@ fun LoginScreen(
                     // PHONE NUMBER field
                     Text(
                         text = "PHONE NUMBER",
-                        color = MaterialTheme.kbTextSecondary,
+                        color = Color(0xFF2D2D4E),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     
@@ -285,7 +282,7 @@ fun LoginScreen(
                     TextField(
                         value = loginId,
                         onValueChange = { loginId = it.take(10) },
-                        placeholder = { Text("Mobile Number", color = MaterialTheme.kbTextTertiary) },
+                        placeholder = { Text("Mobile Number", color = Color(0xFF71718D)) },
                         leadingIcon = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -293,7 +290,7 @@ fun LoginScreen(
                             ) {
                                 Text(
                                     text = "+91",
-                                    color = MaterialTheme.kbTextPrimary,
+                                    color = Color(0xFF5B4FCF),
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.bodyLarge
                                 )
@@ -329,14 +326,15 @@ fun LoginScreen(
                         },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(12.dp),
+                        textStyle = TextStyle(color = Color(0xFF1F2937), fontSize = 16.sp),
                         colors = TextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.kbTextPrimary,
-                            unfocusedTextColor = MaterialTheme.kbTextPrimary,
-                            disabledTextColor = MaterialTheme.kbTextDisabled,
+                            focusedTextColor = Color(0xFF1F2937),
+                            unfocusedTextColor = Color(0xFF1F2937),
+                            disabledTextColor = Color(0xFF9CA3AF),
                             errorTextColor = KbError,
-                            focusedContainerColor = MaterialTheme.kbBgSecondary,
-                            unfocusedContainerColor = MaterialTheme.kbBgSecondary,
-                            disabledContainerColor = MaterialTheme.kbBgSecondary,
+                            focusedContainerColor = Color(0xFFECEDF6),
+                            unfocusedContainerColor = Color(0xFFECEDF6),
+                            disabledContainerColor = Color(0xFFECEDF6),
                             errorContainerColor = MaterialTheme.colorScheme.errorContainer,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
@@ -370,7 +368,7 @@ fun LoginScreen(
                     // PASSWORD field
                     Text(
                         text = "PASSWORD",
-                        color = MaterialTheme.kbTextSecondary,
+                        color = Color(0xFF2D2D4E),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     
@@ -379,12 +377,12 @@ fun LoginScreen(
                     TextField(
                         value = password,
                         onValueChange = { password = it },
-                        placeholder = { Text("Password", color = MaterialTheme.kbTextTertiary) },
+                        placeholder = { Text("Password", color = Color(0xFF71718D)) },
                         trailingIcon = {
                             Icon(
                                 imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                 contentDescription = "Toggle Password",
-                                tint = MaterialTheme.kbTextTertiary,
+                                tint = Color(0xFF71718D),
                                 modifier = Modifier.clickable { showPassword = !showPassword }
                             )
                         },
@@ -394,14 +392,15 @@ fun LoginScreen(
                             .height(52.dp)
                             .focusRequester(passwordFocusRequester),
                         shape = RoundedCornerShape(12.dp),
+                        textStyle = TextStyle(color = Color(0xFF1F2937), fontSize = 16.sp),
                         colors = TextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.kbTextPrimary,
-                            unfocusedTextColor = MaterialTheme.kbTextPrimary,
-                            disabledTextColor = MaterialTheme.kbTextDisabled,
+                            focusedTextColor = Color(0xFF1F2937),
+                            unfocusedTextColor = Color(0xFF1F2937),
+                            disabledTextColor = Color(0xFF9CA3AF),
                             errorTextColor = KbError,
-                            focusedContainerColor = MaterialTheme.kbBgSecondary,
-                            unfocusedContainerColor = MaterialTheme.kbBgSecondary,
-                            disabledContainerColor = MaterialTheme.kbBgSecondary,
+                            focusedContainerColor = Color(0xFFECEDF6),
+                            unfocusedContainerColor = Color(0xFFECEDF6),
+                            disabledContainerColor = Color(0xFFECEDF6),
                             errorContainerColor = MaterialTheme.colorScheme.errorContainer,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
@@ -569,7 +568,7 @@ fun LoginScreen(
                     ) {
                         Text(
                             text = "New to KhanaBook? ",
-                            color = MaterialTheme.kbTextSecondary,
+                            color = Color(0xFF4B5563),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
@@ -680,14 +679,11 @@ fun ForgotPasswordDialog(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header: Midnight Purple Gradient Area
-            Box(
+            // Header: Midnight Purple Gradient Area with decorative blobs
+            KhanaBookPurpleBackground(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(310.dp)
-                    .background(
-                        MaterialTheme.kbHeaderGradient
-                    )
             ) {
                 // Back Button Row
                 Box(

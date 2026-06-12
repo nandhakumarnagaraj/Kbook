@@ -89,13 +89,25 @@ class HomeViewModel @Inject constructor(
                     val completedBills = bills.filter { it.orderStatus == "completed" || it.orderStatus == "paid" }
                     val totalRevenue = completedBills.sumOf { it.totalAmount.toDoubleOrNull() ?: 0.0 }
                     val cancelledCount = bills.count { it.orderStatus == "cancelled" }
+                    val lastBill = bills.maxByOrNull { it.createdAt }
+                    val lastTimeFormatted = lastBill?.let { bill ->
+                        try {
+                            val instant = java.time.Instant.ofEpochMilli(bill.createdAt)
+                            val localDateTime = java.time.LocalDateTime.ofInstant(instant, java.time.ZoneId.of("Asia/Kolkata"))
+                            val formatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a")
+                            localDateTime.format(formatter)
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
                     HomeStats(
                         orderCount = bills.size,
                         revenue = totalRevenue,
                         customerCount = completedBills.mapNotNull { it.customerWhatsapp }.distinct().size,
                         avgOrderValue = if (completedBills.isNotEmpty()) totalRevenue / completedBills.size else 0.0,
                         cancelledCount = cancelledCount,
-                        kdsPendingCount = kdsPendingCount
+                        kdsPendingCount = kdsPendingCount,
+                        lastOrderTime = lastTimeFormatted
                     )
                 }
         }
@@ -192,7 +204,8 @@ class HomeViewModel @Inject constructor(
         val customerCount: Int = 0,
         val avgOrderValue: Double = 0.0,
         val cancelledCount: Int = 0,
-        val kdsPendingCount: Int = 0
+        val kdsPendingCount: Int = 0,
+        val lastOrderTime: String? = null
     )
 
     /**
