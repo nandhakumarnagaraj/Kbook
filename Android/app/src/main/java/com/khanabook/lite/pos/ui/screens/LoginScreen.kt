@@ -141,17 +141,6 @@ fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val localContext = LocalContext.current
-    val window = (localContext as? android.app.Activity)?.window
-    val windowInsetsController = remember(window) {
-        window?.let { WindowCompat.getInsetsController(it, it.decorView) }
-    }
-
-    DisposableEffect(Unit) {
-        windowInsetsController?.hide(WindowInsetsCompat.Type.statusBars())
-        onDispose {
-            windowInsetsController?.show(WindowInsetsCompat.Type.statusBars())
-        }
-    }
 
     var loginId by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -657,18 +646,6 @@ fun ForgotPasswordDialog(
     onSuccess: (String) -> Unit = {}
 ) {
     val localContext = LocalContext.current
-    val window = (localContext as? android.app.Activity)?.window
-    val windowInsetsController = remember(window) {
-        window?.let { WindowCompat.getInsetsController(it, it.decorView) }
-    }
-
-    DisposableEffect(Unit) {
-        windowInsetsController?.hide(WindowInsetsCompat.Type.statusBars())
-        onDispose {
-            // Keep status bar hidden for LoginScreen
-            windowInsetsController?.hide(WindowInsetsCompat.Type.statusBars())
-        }
-    }
 
     var phone by remember { mutableStateOf("") }
     var otp by remember { mutableStateOf("") }

@@ -98,7 +98,8 @@ class MainActivity : FragmentActivity() {
         if (BuildConfig.DEBUG) logWindowAndResources("onCreate")
 
         val initialPrefs = getSharedPreferences("session_prefs", android.content.Context.MODE_PRIVATE)
-        globalIsDark = initialPrefs.getBoolean("is_dark_theme", true)
+        val isSystemDark = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        globalIsDark = initialPrefs.getBoolean("is_dark_theme", isSystemDark)
         androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
             if (globalIsDark) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
             else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
@@ -162,6 +163,19 @@ class MainActivity : FragmentActivity() {
                 // Root back handling (Double Back to Exit from Home)
                 val currentBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = currentBackStackEntry?.destination?.route
+
+                // Central status bar controller based on navigation route
+                val windowInsetsController = remember {
+                    WindowCompat.getInsetsController(window, window.decorView)
+                }
+                LaunchedEffect(currentRoute) {
+                    val routesWithHiddenStatusBar = listOf("splash", "login", "signup", "app_lock", "initial_sync")
+                    if (currentRoute in routesWithHiddenStatusBar) {
+                        windowInsetsController.hide(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+                    } else {
+                        windowInsetsController.show(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+                    }
+                }
 
                 LaunchedEffect(navController) {
                     PaymentReturnManager.latestEvent.collect { event ->

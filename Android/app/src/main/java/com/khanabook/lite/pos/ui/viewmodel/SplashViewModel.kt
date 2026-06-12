@@ -12,6 +12,7 @@ import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 @HiltViewModel
@@ -58,6 +59,7 @@ class SplashViewModel @Inject constructor(
             if (BuildConfig.DEBUG) {
                 Log.d(debugTag, "Splash → ${chosen::class.simpleName} tokenPresent=${token != null} syncDone=$isSyncCompleted")
             }
+            delay(1500) // Minimum display delay for smooth transition
             _state.value = chosen
         }
     }

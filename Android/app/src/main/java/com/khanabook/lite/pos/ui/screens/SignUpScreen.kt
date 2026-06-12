@@ -63,17 +63,6 @@ fun SignUpScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val window = (context as? android.app.Activity)?.window
-    val windowInsetsController = remember(window) {
-        window?.let { WindowCompat.getInsetsController(it, it.decorView) }
-    }
-
-    DisposableEffect(Unit) {
-        windowInsetsController?.hide(WindowInsetsCompat.Type.statusBars())
-        onDispose {
-            windowInsetsController?.show(WindowInsetsCompat.Type.statusBars())
-        }
-    }
 
     var shopName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
