@@ -2,14 +2,14 @@
 
 package com.khanabook.lite.pos.ui.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,13 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -41,10 +38,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.em
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.util.ValidationUtils
@@ -58,15 +56,26 @@ import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-
 @Composable
 fun SignUpScreen(
     onSignUpSuccess: () -> Unit,
     onLoginClick: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val window = (context as? android.app.Activity)?.window
+    val windowInsetsController = remember(window) {
+        window?.let { WindowCompat.getInsetsController(it, it.decorView) }
+    }
+
+    DisposableEffect(Unit) {
+        windowInsetsController?.hide(WindowInsetsCompat.Type.statusBars())
+        onDispose {
+            windowInsetsController?.show(WindowInsetsCompat.Type.statusBars())
+        }
+    }
+
     var shopName by remember { mutableStateOf("") }
-    var ownerName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var otp by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
@@ -76,14 +85,13 @@ fun SignUpScreen(
 
     val haptic = LocalHapticFeedback.current
     val focusManager = LocalFocusManager.current
-    val uriHandler = LocalUriHandler.current
     val coroutineScope = rememberCoroutineScope()
-    val ownerFocusRequester = remember { FocusRequester() }
+    
     val phoneFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
+    val confirmPasswordFocusRequester = remember { FocusRequester() }
 
     val isShopNameValid = ValidationUtils.isValidName(shopName)
-    val isOwnerNameValid = ValidationUtils.isValidName(ownerName)
     val isPhoneValid = ValidationUtils.isValidPhone(phoneNumber)
     val isPasswordValid = ValidationUtils.isValidPassword(newPassword)
 
@@ -99,8 +107,7 @@ fun SignUpScreen(
     val isLoading = signUpStatus is AuthViewModel.SignUpResult.Loading || loginStatus is AuthViewModel.LoginResult.Loading
 
     LaunchedEffect(signUpStatus) {
-        when (val status = signUpStatus) {
-            is AuthViewModel.SignUpResult.Loading -> {}
+        when (signUpStatus) {
             is AuthViewModel.SignUpResult.Success -> {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             }
@@ -143,97 +150,68 @@ fun SignUpScreen(
         signUpFieldErrors[key]?.takeIf { it.isNotBlank() }
     }
 
-    KhanaBookPurpleBackground(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.TopStart
+    BackHandler(onBack = onLoginClick)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.kbBgPrimary)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Header: Midnight Purple Gradient Area with decorative blobs
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Header matching Login screen
             KhanaBookPurpleBackground(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(vertical = 24.dp),
+                    .padding(vertical = 32.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // White card containing Logo
                     Card(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        modifier = Modifier.size(76.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        modifier = Modifier.size(100.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Image(
                                 painter = painterResource(id = R.drawable.khanabook_logo),
                                 contentDescription = "KhanaBook logo",
-                                modifier = Modifier.size(48.dp)
+                                modifier = Modifier.size(68.dp)
                             )
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     Text(
                         text = "KhanaBook",
                         color = Color.White,
                         style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 28.sp),
                         textAlign = TextAlign.Center
                     )
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
                     Text(
                         text = "Restaurant POS & Management",
-                        color = KbLavender,
+                        color = Color(0xFF8B7CD9),
                         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
                         textAlign = TextAlign.Center
                     )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        listOf(
-                            "🔒 Secure Data",
-                            "⚡ Works Offline",
-                            "☁️ Auto Backup"
-                        ).forEach { badge ->
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color.White.copy(alpha = 0.08f),
-                                border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.15f))
-                            ) {
-                                Text(
-                                    text = badge,
-                                    color = Color.White.copy(alpha = 0.85f),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-                    }
                 }
             }
 
-            // Form Sheet Container
+            // Surface Form Card
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                color = MaterialTheme.kbBgCard
+                color = Color.White
             ) {
                 val scrollState = rememberScrollState()
                 Column(
@@ -245,56 +223,57 @@ fun SignUpScreen(
                 ) {
                     Text(
                         text = "Create Your Restaurant",
-                        color = Color(0xFF1E293B),
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color(0xFF0F172A),
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
                     Text(
                         text = "Start billing in 2 minutes",
-                        color = Color(0xFF4B5563),
+                        color = Color(0xFF475569),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    
-                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
                     // RESTAURANT NAME
                     Text(
                         text = "RESTAURANT NAME",
-                        color = Color(0xFF2D2D4E),
+                        color = Color(0xFF475569),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.12.em
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     TextField(
                         value = shopName,
                         onValueChange = { shopName = it },
-                        placeholder = { Text("Restaurant Name", color = Color(0xFF71718D)) },
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        placeholder = { Text("Restaurant Name", color = Color(0xFF94A3B8), fontSize = 16.sp) },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(14.dp),
-                        textStyle = TextStyle(color = Color(0xFF1F2937), fontSize = 16.sp),
+                        textStyle = TextStyle(color = Color(0xFF1E293B), fontSize = 16.sp),
                         colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF1F2937),
-                            unfocusedTextColor = Color(0xFF1F2937),
-                            disabledTextColor = Color(0xFF9CA3AF),
+                            focusedTextColor = Color(0xFF1E293B),
+                            unfocusedTextColor = Color(0xFF1E293B),
+                            disabledTextColor = Color(0xFF94A3B8),
                             errorTextColor = KbError,
-                            focusedContainerColor = Color(0xFFECEDF6),
-                            unfocusedContainerColor = Color(0xFFECEDF6),
-                            disabledContainerColor = Color(0xFFECEDF6),
-                            errorContainerColor = MaterialTheme.colorScheme.errorContainer,
+                            focusedContainerColor = Color(0xFFF3F0FA),
+                            unfocusedContainerColor = Color(0xFFF3F0FA),
+                            disabledContainerColor = Color(0xFFF3F0FA),
+                            errorContainerColor = Color(0xFFFEE2E2),
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
                             errorIndicatorColor = Color.Transparent,
-                            cursorColor = KbBrandSaffron
+                            cursorColor = Color(0xFFF97316)
                         ),
                         singleLine = true,
                         isError = (shopName.isNotEmpty() && !isShopNameValid) || fieldError("name", "shopName") != null,
@@ -307,24 +286,24 @@ fun SignUpScreen(
                             }
                         },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(onNext = { runCatching { ownerFocusRequester.requestFocus() } })
+                        keyboardActions = KeyboardActions(onNext = { runCatching { phoneFocusRequester.requestFocus() } })
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
-                    // WHATSAPP NUMBER (renamed and integrated Send OTP)
+                    // WHATSAPP NUMBER
                     Text(
                         text = "WHATSAPP NUMBER",
-                        color = Color(0xFF2D2D4E),
+                        color = Color(0xFF475569),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.12.em
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    TextField(
+                    OnboardingPhoneInput(
                         value = phoneNumber,
                         onValueChange = {
                             phoneNumber = it.take(10)
@@ -332,27 +311,11 @@ fun SignUpScreen(
                                 viewModel.checkUserExists(phoneNumber)
                             }
                         },
-                        placeholder = { Text("WhatsApp Number", color = Color(0xFF71718D)) },
-                        leadingIcon = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(start = 16.dp, end = 8.dp)
-                            ) {
-                                    Text(
-                                        text = "+91",
-                                        color = Color(0xFF5B4FCF),
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .width(1.dp)
-                                            .height(20.dp)
-                                            .background(MaterialTheme.kbOutlineSubtle)
-                                    )
-                            }
-                        },
+                        placeholder = "WhatsApp Number",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(phoneFocusRequester),
+                        isError = (phoneNumber.isNotEmpty() && !isPhoneValid) || userExistsError != null || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
                         trailingIcon = {
                             if (isUserChecking) {
                                 CircularProgressIndicator(
@@ -365,12 +328,12 @@ fun SignUpScreen(
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         viewModel.sendOtp(phoneNumber)
-                                        otpSent = true // force UI to show OTP field immediately
+                                        otpSent = true
                                     },
-                                    modifier = Modifier.padding(end = 4.dp).height(36.dp),
+                                    modifier = Modifier.height(36.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = KbBrandSaffron,
-                                        disabledContainerColor = Color(0xFFECEDF6)
+                                        containerColor = Color(0xFFF97316),
+                                        disabledContainerColor = Color(0xFFCBD5E1)
                                     ),
                                     shape = RoundedCornerShape(18.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp),
@@ -386,62 +349,37 @@ fun SignUpScreen(
                                 Text(
                                     text = "Sent",
                                     color = KbWhatsAppGreen,
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    modifier = Modifier.padding(end = 16.dp)
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                                 )
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .focusRequester(phoneFocusRequester),
-                        shape = RoundedCornerShape(14.dp),
-                        textStyle = TextStyle(color = Color(0xFF1F2937), fontSize = 16.sp),
-                        colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF1F2937),
-                            unfocusedTextColor = Color(0xFF1F2937),
-                            disabledTextColor = Color(0xFF9CA3AF),
-                            errorTextColor = KbError,
-                            focusedContainerColor = Color(0xFFECEDF6),
-                            unfocusedContainerColor = Color(0xFFECEDF6),
-                            disabledContainerColor = Color(0xFFECEDF6),
-                            errorContainerColor = MaterialTheme.colorScheme.errorContainer,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            errorIndicatorColor = Color.Transparent,
-                            cursorColor = KbBrandSaffron
-                        ),
-                        singleLine = true,
-                        isError = (phoneNumber.isNotEmpty() && !isPhoneValid) || userExistsError != null || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
-                        supportingText = {
-                            val backendFieldError = fieldError("phoneNumber", "loginId", "whatsappNumber")
-                            if (backendFieldError != null) {
-                                Text(backendFieldError, color = KbError, style = MaterialTheme.typography.labelSmall)
-                            } else if (userExistsError != null) {
-                                Text(userExistsError.orEmpty(), color = KbError, style = MaterialTheme.typography.labelSmall)
-                            } else if (phoneNumber.isNotEmpty() && !isPhoneValid) {
-                                Text("Enter a valid 10-digit number", color = KbError, style = MaterialTheme.typography.labelSmall)
                             }
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { runCatching { passwordFocusRequester.requestFocus() } })
                     )
 
-                    // Conditional OTP Verification Field directly inline
+                    val phoneError = fieldError("phoneNumber", "loginId", "whatsappNumber") ?: userExistsError
+                    if (phoneError != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(phoneError, color = KbError, style = MaterialTheme.typography.labelSmall)
+                    } else if (phoneNumber.isNotEmpty() && !isPhoneValid) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Enter a valid 10-digit number", color = KbError, style = MaterialTheme.typography.labelSmall)
+                    }
+
+                    // Conditional OTP row inline
                     if (otpSent) {
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
                         Text(
                             text = "ENTER OTP",
-                            color = Color(0xFF2D2D4E),
+                            color = Color(0xFF475569),
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.12.em
                             )
                         )
 
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         OtpInputRow(
                             otp = otp,
@@ -457,7 +395,7 @@ fun SignUpScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -471,10 +409,10 @@ fun SignUpScreen(
                             } else {
                                 "Resend code"
                             }
-                            
+
                             Text(
                                 text = resendText,
-                                color = if (otpTimer > 0) MaterialTheme.kbTextTertiary else KbPurpleAccent,
+                                color = if (otpTimer > 0) Color(0xFF94A3B8) else Color(0xFF7C3AED),
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 modifier = Modifier
                                     .clickable(enabled = otpTimer == 0 && !isLoading) {
@@ -483,7 +421,7 @@ fun SignUpScreen(
                             )
 
                             Text(
-                                text = "Change number?", color = KbBrandSaffron,
+                                text = "Change number?", color = Color(0xFFF97316),
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 modifier = Modifier
                                     .clickable(enabled = !isLoading) { otpSent = false }
@@ -491,112 +429,117 @@ fun SignUpScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
                     // PASSWORD
                     Text(
                         text = "PASSWORD",
-                        color = Color(0xFF2D2D4E),
+                        color = Color(0xFF475569),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.12.em
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     TextField(
                         value = newPassword,
                         onValueChange = { newPassword = it },
-                        placeholder = { Text("Enter password", color = Color(0xFF71718D)) },
+                        placeholder = { Text("Enter password", color = Color(0xFF94A3B8), fontSize = 16.sp) },
                         trailingIcon = {
-                            Icon(
-                                imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = "Toggle Password",
-                                tint = Color(0xFF71718D),
-                                modifier = Modifier.clickable { showPassword = !showPassword }
-                            )
+                            IconButton(onClick = { showPassword = !showPassword }) {
+                                Icon(
+                                    imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = "Toggle Password",
+                                    tint = Color(0xFF94A3B8)
+                                )
+                            }
                         },
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp)
+                            .height(56.dp)
                             .focusRequester(passwordFocusRequester),
                         shape = RoundedCornerShape(14.dp),
-                        textStyle = TextStyle(color = Color(0xFF1F2937), fontSize = 16.sp),
+                        textStyle = TextStyle(color = Color(0xFF1E293B), fontSize = 16.sp),
                         colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF1F2937),
-                            unfocusedTextColor = Color(0xFF1F2937),
-                            disabledTextColor = Color(0xFF9CA3AF),
+                            focusedTextColor = Color(0xFF1E293B),
+                            unfocusedTextColor = Color(0xFF1E293B),
+                            disabledTextColor = Color(0xFF94A3B8),
                             errorTextColor = KbError,
-                            focusedContainerColor = Color(0xFFECEDF6),
-                            unfocusedContainerColor = Color(0xFFECEDF6),
-                            disabledContainerColor = Color(0xFFECEDF6),
-                            errorContainerColor = MaterialTheme.colorScheme.errorContainer,
+                            focusedContainerColor = Color(0xFFF3F0FA),
+                            unfocusedContainerColor = Color(0xFFF3F0FA),
+                            disabledContainerColor = Color(0xFFF3F0FA),
+                            errorContainerColor = Color(0xFFFEE2E2),
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
                             errorIndicatorColor = Color.Transparent,
-                            cursorColor = KbBrandSaffron
+                            cursorColor = Color(0xFFF97316)
                         ),
                         singleLine = true,
                         isError = (newPassword.isNotEmpty() && !isPasswordValid) || fieldError("password") != null,
                         supportingText = {
-                            val backendFieldError = fieldError("password")
-                            if (backendFieldError != null) {
-                                Text(backendFieldError, color = KbError, style = MaterialTheme.typography.labelSmall)
+                            val err = fieldError("password")
+                            if (err != null) {
+                                Text(err, color = KbError, style = MaterialTheme.typography.labelSmall)
                             } else if (newPassword.isNotEmpty() && !isPasswordValid) {
-                                Text("Min 8 chars, uppercase, digit & special character", color = KbError, style = MaterialTheme.typography.labelSmall)
+                                Text("Must be 8+ chars with uppercase, digit & symbol", color = KbError, style = MaterialTheme.typography.labelSmall)
                             }
                         },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(onNext = { runCatching { confirmPasswordFocusRequester.requestFocus() } })
                     )
+
+                    Spacer(modifier = Modifier.height(18.dp))
 
                     // CONFIRM PASSWORD
                     Text(
                         text = "CONFIRM PASSWORD",
-                        color = Color(0xFF2D2D4E),
+                        color = Color(0xFF475569),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.12.em
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     TextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        placeholder = { Text("Re‑enter password", color = Color(0xFF71718D)) },
+                        placeholder = { Text("Re‑enter password", color = Color(0xFF94A3B8), fontSize = 16.sp) },
                         trailingIcon = {
-                            Icon(
-                                imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                contentDescription = "Toggle Confirm Password",
-                                tint = Color(0xFF71718D),
-                                modifier = Modifier.clickable { showPassword = !showPassword }
-                            )
+                            IconButton(onClick = { showPassword = !showPassword }) {
+                                Icon(
+                                    imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = "Toggle Confirm Password",
+                                    tint = Color(0xFF94A3B8)
+                                )
+                            }
                         },
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
+                            .height(56.dp)
+                            .focusRequester(confirmPasswordFocusRequester),
                         shape = RoundedCornerShape(14.dp),
-                        textStyle = TextStyle(color = Color(0xFF1F2937), fontSize = 16.sp),
+                        textStyle = TextStyle(color = Color(0xFF1E293B), fontSize = 16.sp),
                         colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF1F2937),
-                            unfocusedTextColor = Color(0xFF1F2937),
-                            disabledTextColor = Color(0xFF9CA3AF),
+                            focusedTextColor = Color(0xFF1E293B),
+                            unfocusedTextColor = Color(0xFF1E293B),
+                            disabledTextColor = Color(0xFF94A3B8),
                             errorTextColor = KbError,
-                            focusedContainerColor = Color(0xFFECEDF6),
-                            unfocusedContainerColor = Color(0xFFECEDF6),
-                            disabledContainerColor = Color(0xFFECEDF6),
-                            errorContainerColor = MaterialTheme.colorScheme.errorContainer,
+                            focusedContainerColor = Color(0xFFF3F0FA),
+                            unfocusedContainerColor = Color(0xFFF3F0FA),
+                            disabledContainerColor = Color(0xFFF3F0FA),
+                            errorContainerColor = Color(0xFFFEE2E2),
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
                             errorIndicatorColor = Color.Transparent,
-                            cursorColor = KbBrandSaffron
+                            cursorColor = Color(0xFFF97316)
                         ),
                         singleLine = true,
                         isError = confirmPassword.isNotEmpty() && confirmPassword != newPassword,
@@ -609,55 +552,49 @@ fun SignUpScreen(
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp)) // Reduced gap above checkbox
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     // Terms and Conditions Checkbox
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
                             checked = agreedToTerms,
                             onCheckedChange = { agreedToTerms = it },
                             colors = CheckboxDefaults.colors(
-                                checkedColor = KbPurpleAccent,
+                                checkedColor = Color(0xFF7C3AED),
                                 uncheckedColor = MaterialTheme.kbOutlineSubtle,
                                 checkmarkColor = Color.White
                             )
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        
                         val annotatedString = buildAnnotatedString {
                             append("I agree to ")
                             pushStringAnnotation(tag = "URL", annotation = "https://khanabook.com/legal-privacy.html")
-                            withStyle(style = SpanStyle(color = KbPurpleAccent, fontWeight = FontWeight.Bold)) {
+                            withStyle(style = SpanStyle(color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)) {
                                 append("Terms")
                             }
                             pop()
                             append(" & ")
                             pushStringAnnotation(tag = "URL", annotation = "https://khanabook.com/legal-privacy.html")
-                            withStyle(style = SpanStyle(color = KbPurpleAccent, fontWeight = FontWeight.Bold)) {
+                            withStyle(style = SpanStyle(color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)) {
                                 append("Privacy Policy")
                             }
                             pop()
                         }
-
                         ClickableText(
                             text = annotatedString,
-                            style = TextStyle(
-                                color = Color(0xFF4B5563),
-                                fontSize = 14.sp
-                            ),
+                            style = TextStyle(color = Color(0xFF4B5563), fontSize = 14.sp),
                             onClick = { offset ->
                                 annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
-                                    .firstOrNull()?.let { annotation ->
-                                        uriHandler.openUri(annotation.item)
+                                    .firstOrNull()?.let {
+                                        // Handle terms/privacy web link open
                                     }
                             }
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp)) // Reduced Spacing before the CTA button
+                    Spacer(modifier = Modifier.height(18.dp))
 
                     val isFormFilled = shopName.isNotBlank() &&
                             phoneNumber.isNotBlank() &&
@@ -675,7 +612,7 @@ fun SignUpScreen(
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 viewModel.signUp(
                                     shopName = shopName,
-                                    ownerName = ownerName,
+                                    ownerName = shopName, // Map empty ownerName to shopName cleanly
                                     phoneNumber = phoneNumber,
                                     otp = otp,
                                     password = newPassword
@@ -683,11 +620,12 @@ fun SignUpScreen(
                             } else {
                                 val errorMsg = when {
                                     !isShopNameValid -> "Shop name must be at least 2 characters"
-                                    !isOwnerNameValid -> "Owner name must be at least 2 characters"
                                     !isPhoneValid -> "Please enter a valid 10-digit WhatsApp number"
                                     userExistsError != null -> userExistsError ?: "WhatsApp number already registered"
                                     otp.length != 6 -> "Please enter a valid 6-digit OTP"
                                     !isPasswordValid -> "Password must be at least 8 characters with uppercase, digit & symbol"
+                                    newPassword != confirmPassword -> "Passwords do not match"
+                                    !agreedToTerms -> "You must agree to the Terms & Privacy Policy"
                                     else -> "Please correct the highlighted errors"
                                 }
                                 coroutineScope.launch {
@@ -697,14 +635,14 @@ fun SignUpScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
+                            .height(56.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFormFilled) KbBrandSaffron else MaterialTheme.kbBgSecondary,
-                            contentColor = if (isFormFilled) Color.White else MaterialTheme.kbTextDisabled,
-                            disabledContainerColor = MaterialTheme.kbBgSecondary,
-                            disabledContentColor = MaterialTheme.kbTextDisabled
+                            containerColor = if (isFormFilled) Color(0xFFF97316) else Color(0xFFCBD5E1),
+                            contentColor = Color.White,
+                            disabledContainerColor = Color(0xFFCBD5E1),
+                            disabledContentColor = Color.White
                         ),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(14.dp),
                         enabled = isFormFilled
                     ) {
                         if (isLoading) {
@@ -735,7 +673,7 @@ fun SignUpScreen(
                         )
                         Text(
                             text = "Sign In",
-                            color = KbBrandSaffron,
+                            color = Color(0xFF7C3AED),
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.clickable { onLoginClick() }
                         )
@@ -757,5 +695,3 @@ fun SignUpScreen(
         )
     }
 }
-
-
