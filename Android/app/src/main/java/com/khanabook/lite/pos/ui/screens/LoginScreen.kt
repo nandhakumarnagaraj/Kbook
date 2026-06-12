@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.em
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -239,91 +240,105 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(vertical = 32.dp),
+                    .padding(vertical = 48.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // White card containing Logo
+                    // White card containing Logo - expanded and elevated
                     Card(
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        modifier = Modifier.size(100.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                        modifier = Modifier.size(110.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Image(
                                 painter = painterResource(id = R.drawable.ic_khanabook_logo),
                                 contentDescription = "KhanaBook logo",
-                                modifier = Modifier.size(68.dp)
+                                modifier = Modifier.size(72.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
                     Text(
                         text = "KhanaBook",
                         color = Color.White,
-                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 28.sp),
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 30.sp,
+                            letterSpacing = (-0.5).sp
+                        ),
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
                         text = "Restaurant POS & Management",
-                        color = Color(0xFF8B7CD9), // Midnight lavender tint
-                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
+                        color = Color(0xFFB4ACE8), // Soft lavender tint
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
                         textAlign = TextAlign.Center
                     )
                 }
             }
 
-            // White Sheet Container
+            // White Sheet Container - smoother rounded transition
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
                 color = Color.White
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp, vertical = 32.dp)
+                        .padding(horizontal = 24.dp, vertical = 36.dp)
                 ) {
                     Text(
                         text = "Welcome back",
                         color = Color(0xFF0F172A),
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp,
+                            letterSpacing = (-0.5).sp
+                        ),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
                         text = "Sign in to your restaurant account",
-                        color = Color(0xFF475569),
-                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF64748B), // Soft slate-500
+                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     // PHONE NUMBER
                     Text(
                         text = "PHONE NUMBER",
                         color = Color(0xFF475569),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.08.em
+                        )
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     OnboardingPhoneInput(
                         value = loginId,
@@ -370,20 +385,23 @@ fun LoginScreen(
                     )
 
                     if (loginUserCheckError != null) {
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(loginUserCheckError!!, color = KbError, style = MaterialTheme.typography.labelSmall)
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(22.dp))
 
                     // PASSWORD
                     Text(
                         text = "PASSWORD",
                         color = Color(0xFF475569),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.08.em
+                        )
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     TextField(
                         value = password,
@@ -460,7 +478,7 @@ fun LoginScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     val loginErrorMessage = (loginStatus as? AuthViewModel.LoginResult.Error)?.message
                     if (loginErrorMessage != null) {
@@ -487,12 +505,12 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(56.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFormFilled) Color(0xFFF97316) else Color(0xFFCBD5E1),
-                            contentColor = Color.White,
-                            disabledContainerColor = Color(0xFFCBD5E1),
-                            disabledContentColor = Color.White
+                            containerColor = if (isFormFilled) Color(0xFFF97316) else Color(0xFFE2E8F0),
+                            contentColor = if (isFormFilled) Color.White else Color(0xFF94A3B8),
+                            disabledContainerColor = Color(0xFFE2E8F0),
+                            disabledContentColor = Color(0xFF94A3B8)
                         ),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
                         enabled = isFormFilled
                     ) {
                         if (isLoading && !isGoogleLogin) {
@@ -506,7 +524,7 @@ fun LoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(28.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -516,23 +534,23 @@ fun LoginScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(1.dp)
-                                .background(MaterialTheme.kbOutlineSubtle)
+                                .background(Color(0xFFE2E8F0))
                         )
                         Text(
-                            text = stringResource(R.string.label_quick_login),
-                            color = MaterialTheme.kbTextTertiary,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(horizontal = 12.dp)
+                            text = "or continue with",
+                            color = Color(0xFF94A3B8),
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(1.dp)
-                                .background(MaterialTheme.kbOutlineSubtle)
+                                .background(Color(0xFFE2E8F0))
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(28.dp))
 
                     // Google Outlined Button
                     OutlinedButton(
@@ -548,12 +566,12 @@ fun LoginScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = Color.White,
                             contentColor = Color(0xFF0F172A)
                         ),
-                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1))
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -583,7 +601,7 @@ fun LoginScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(36.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -592,8 +610,8 @@ fun LoginScreen(
                     ) {
                         Text(
                             text = "New to KhanaBook? ",
-                            color = Color(0xFF4B5563),
-                            style = MaterialTheme.typography.bodyMedium
+                            color = Color(0xFF475569),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
                         )
                         Box(
                             modifier = Modifier
