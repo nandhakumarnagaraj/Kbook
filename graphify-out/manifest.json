@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "Android/app/build.gradle.kts": {
-    "mtime": 1780944671.9930527,
-    "ast_hash": "fdd4476841400aae80a6e3690ae1dd1a",
+    "mtime": 1781256894.887856,
+    "ast_hash": "b63ece2c67f987704c18cbdca406b2a5",
     "semantic_hash": ""
   },
   "Android/app/google-services.json": {
@@ -445,8 +445,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/KhanaBookApplication.kt": {
-    "mtime": 1778844823.705465,
-    "ast_hash": "2a7b6e3f9194ee1ba5ef9b1dc15a952b",
+    "mtime": 1781257081.3720472,
+    "ast_hash": "7b4ac539bbf0069d3dfe648769bb717a",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/data/local/AppDatabase.kt": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/MainActivity.kt": {
-    "mtime": 1780944672.0610116,
-    "ast_hash": "3a8d79e1d85161f9a7d8612d6aa5d213",
+    "mtime": 1781323923.3897235,
+    "ast_hash": "987e6997bd202ad6ec75c52c76e08ce8",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/components/CommonComponents.kt": {
@@ -925,8 +925,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/designsystem/KhanaBookScreenScaffold.kt": {
-    "mtime": 1781121720.296386,
-    "ast_hash": "5a5fe2c7015dcca33e2e7217e4d76c37",
+    "mtime": 1781347572.757931,
+    "ast_hash": "620cf441ad13a188c78501aa4e66a460",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/designsystem/KhanaBookSelectionDialog.kt": {
@@ -955,8 +955,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/navigation/NavigationItems.kt": {
-    "mtime": 1781110620.004493,
-    "ast_hash": "824c3c0c4b5481cc1a0a31cb85b5bd2f",
+    "mtime": 1781341218.2244277,
+    "ast_hash": "c06cfa44ec6a629ab5bba949b764c470",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/AppLockConfigSection.kt": {
@@ -970,23 +970,23 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/CallCustomerScreen.kt": {
-    "mtime": 1781116171.736493,
-    "ast_hash": "26f36d5f59de2b816c0454076a9f5c9e",
+    "mtime": 1781347683.2268744,
+    "ast_hash": "ed5ddaac7e98dd9cfbb937d56ba4253b",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/EasebuzzKycScreen.kt": {
-    "mtime": 1781202310.835592,
-    "ast_hash": "9dc17316bee18e108c1108533000256c",
+    "mtime": 1781347648.0666976,
+    "ast_hash": "f6bcf1be42cadc0333ccfb374ce8e4d4",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/EasebuzzPaymentScreen.kt": {
-    "mtime": 1781110540.4159114,
-    "ast_hash": "fdf8ae79f9967d949de429b444ae2a35",
+    "mtime": 1781347698.250839,
+    "ast_hash": "8933bb750e49ddf800d9b7c7d567815b",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/HomeScreen.kt": {
-    "mtime": 1781253281.740312,
-    "ast_hash": "216ea640ac3d327f1957442426fb30a2",
+    "mtime": 1781351696.203524,
+    "ast_hash": "4ac509620c597606e9ffdc7e435d891c",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/InitialSyncScreen.kt": {
@@ -995,103 +995,103 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/LoginScreen.kt": {
-    "mtime": 1781249003.0763028,
-    "ast_hash": "89a9e2bc99aefece97be6ef825404881",
+    "mtime": 1781331389.499383,
+    "ast_hash": "ff4d9b1cbb0c70135ab2c3277fd26a5a",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/MainScreen.kt": {
-    "mtime": 1781253285.587785,
-    "ast_hash": "0dc3bdc0cf9d376a5d43d679875a72b5",
+    "mtime": 1781349675.2759886,
+    "ast_hash": "65ddcf1d1884e07b65cc980a7a493016",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/MarketplaceOrdersScreen.kt": {
-    "mtime": 1781101673.2390366,
-    "ast_hash": "0ecd38048d28d1d30b7a7fc082acb28d",
+    "mtime": 1781347693.6756878,
+    "ast_hash": "8969c89fcaba9520715c4ba15f03dc44",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/MenuConfigurationScreen.kt": {
-    "mtime": 1781253486.3777323,
-    "ast_hash": "f11d7ec456a92bcb1f0921d168b5661a",
+    "mtime": 1781351703.167051,
+    "ast_hash": "7005768d948185a38eaa98d7bc5dc530",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/NewBillScreen.kt": {
-    "mtime": 1781151742.664973,
-    "ast_hash": "efb62835647ce69d3d5b2fe926a715b2",
+    "mtime": 1781347713.3772788,
+    "ast_hash": "71033d7670e4e7151627c1412ea13ad6",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/OcrScannerScreen.kt": {
-    "mtime": 1781113845.485028,
-    "ast_hash": "bb318b132585ce1b9d31fc1b855faa89",
+    "mtime": 1781347622.1866333,
+    "ast_hash": "d03f8c2c3959e887390d0a17b7e73186",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/OrdersScreen.kt": {
-    "mtime": 1781118514.5286062,
-    "ast_hash": "c53b273577f80451fc237382561719cb",
+    "mtime": 1781347605.5788984,
+    "ast_hash": "ce67d0f8c233ffc99cadea13c458ea74",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/PaymentConfigSection.kt": {
-    "mtime": 1781116205.3391576,
-    "ast_hash": "8381dfdee2bb4ce1516955953421fc94",
+    "mtime": 1781354018.190839,
+    "ast_hash": "bb6336ce41a306e63058e981c4639158",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/PrinterConfigSection.kt": {
-    "mtime": 1781113395.3170128,
-    "ast_hash": "77b873b4c2b1a610ecab602b4adb2ae2",
+    "mtime": 1781354744.8462512,
+    "ast_hash": "bd51a8d8726b72bed848bbd239e32827",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/ReportsScreen.kt": {
-    "mtime": 1781118373.1140418,
-    "ast_hash": "7510425e73b80bf0d9922ffc57a3cf34",
+    "mtime": 1781347670.548023,
+    "ast_hash": "68d10b376b6072015c868b43146b6518",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/ReprintKdsScreen.kt": {
-    "mtime": 1781116150.3768985,
-    "ast_hash": "780b5a405187aa76fbc36d76db0c4e42",
+    "mtime": 1781347675.7963161,
+    "ast_hash": "ded3b2091d8a9ae943c96c5fd083fc4f",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/SearchScreen.kt": {
-    "mtime": 1781116215.6259456,
-    "ast_hash": "eee7e35b38e4bef30d3fe9bd73bdfb9d",
+    "mtime": 1781347688.2755764,
+    "ast_hash": "522766eac854fabbab5c444f18a11c74",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/SettingsHomeSection.kt": {
-    "mtime": 1781110003.6791093,
-    "ast_hash": "2e30f6ca71912eed369a56f525777f2e",
+    "mtime": 1781348348.607035,
+    "ast_hash": "73a971bd47bbac56c61f21a2a53a3251",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/SettingsScreen.kt": {
-    "mtime": 1781253508.5612016,
-    "ast_hash": "1620d76ebddc4448a316b4baec94ed47",
+    "mtime": 1781349689.5744367,
+    "ast_hash": "e5ae3b89c5ad0f56399772d5ad12221c",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/SettingsSharedComponents.kt": {
-    "mtime": 1781114028.985229,
-    "ast_hash": "eddddf278570acfd00ac9e97b300481a",
+    "mtime": 1781345969.0219917,
+    "ast_hash": "df022f707f4fbfc6483015f5de85e411",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/SettingsSupportSections.kt": {
-    "mtime": 1781116160.530833,
-    "ast_hash": "1d41ad798b0a1a71f78e61b4f65b2fdb",
+    "mtime": 1781341218.2281356,
+    "ast_hash": "4f9e42a3093640248dea7fa354a26865",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/ShopConfigSection.kt": {
-    "mtime": 1780988067.9599326,
-    "ast_hash": "cb0a8442e4b035644a386284b1c8aaf2",
+    "mtime": 1781354651.2528222,
+    "ast_hash": "79761c202640e61ab35c05c593529707",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/SignUpScreen.kt": {
-    "mtime": 1781248994.553361,
-    "ast_hash": "ddff7d2bc54608de857191f53ac90bba",
+    "mtime": 1781331402.4079156,
+    "ast_hash": "c6fc7e7c18ffae6355401b87f5ae4ff9",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/SplashScreen.kt": {
-    "mtime": 1781248765.1357865,
-    "ast_hash": "6ebb94a4ba03320a959668190146cdaa",
+    "mtime": 1781333324.3671508,
+    "ast_hash": "f0f348db54475585527078cf28001dab",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/TaxConfigSection.kt": {
-    "mtime": 1781116296.1988769,
-    "ast_hash": "b938d0c0c91733085aa9de427481dc42",
+    "mtime": 1781354012.2627263,
+    "ast_hash": "d1667bff453e475f8d14374585108c42",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/theme/AdaptiveUtils.kt": {
@@ -1100,8 +1100,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/theme/Color.kt": {
-    "mtime": 1781202861.1282184,
-    "ast_hash": "a6d13166e8112de73a1b654cb61c1314",
+    "mtime": 1781351754.4487119,
+    "ast_hash": "cac3e8ae1e494ee237a358e5676290e2",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/theme/IconSize.kt": {
@@ -1160,8 +1160,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/HomeViewModel.kt": {
-    "mtime": 1781253209.50369,
-    "ast_hash": "c64a28e45ddb0b4553e4f4bdfe40dfd2",
+    "mtime": 1781343021.609481,
+    "ast_hash": "3d4f998d88c4db9bf19966be3a57deaa",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/InitialSyncViewModel.kt": {
@@ -1195,8 +1195,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/SplashViewModel.kt": {
-    "mtime": 1778580762.6026413,
-    "ast_hash": "58e18f59def9414b4e9ef7fe05e72c5c",
+    "mtime": 1781289672.631187,
+    "ast_hash": "9847cf97ccee54164ba661c3b39dff26",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/StorefrontOrdersViewModel.kt": {
@@ -2065,8 +2065,8 @@
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/service/PasswordResetOtpService.java": {
-    "mtime": 1778580762.7776177,
-    "ast_hash": "ab6a272882661b7086c7a3f49d64fbcb",
+    "mtime": 1781334533.1557865,
+    "ast_hash": "927521b2f0a3fbee744b2ddf642b4c40",
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/service/PostSplitService.java": {
@@ -2825,8 +2825,8 @@
     "semantic_hash": ""
   },
   "docker-compose.production.yml": {
-    "mtime": 1781001652.7087226,
-    "ast_hash": "556dccf7b16d5cf489925ddb8746207b",
+    "mtime": 1781341218.1786728,
+    "ast_hash": "c98115301b6b0572e0183fc119bd69c3",
     "semantic_hash": ""
   },
   "docker-compose.yml": {
@@ -3130,8 +3130,8 @@
     "semantic_hash": ""
   },
   "server/src/main/resources/templates/invoice.html": {
-    "mtime": 1781083639.1841462,
-    "ast_hash": "74e33c04a427afa142c90906ab8bf769",
+    "mtime": 1781342250.0639596,
+    "ast_hash": "2eabe50bcaceab3694f91e5be20ef262",
     "semantic_hash": ""
   },
   "web-admin/public/privacy-policy.html": {
@@ -3265,8 +3265,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/OtpVerificationScreen.kt": {
-    "mtime": 1781248755.5854745,
-    "ast_hash": "cd6770eb6e877fe2da5ca1f2a9d07274",
+    "mtime": 1781291606.591893,
+    "ast_hash": "ea7e2b1ce0056f38c65bce57ce1f7293",
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/config/CacheConfig.java": {
@@ -3652,6 +3652,86 @@
   "web-admin/src/app/pages/forgot-password/forgot-password-page.component.ts": {
     "mtime": 1780944673.3506274,
     "ast_hash": "844dfd378d5d07d2c59a0cfd03ff46ec",
+    "semantic_hash": ""
+  },
+  "Android/app/src/debug/java/com/khanabook/lite/pos/util/FlashlightInitializer.kt": {
+    "mtime": 1781256920.504515,
+    "ast_hash": "3164f1241e17a5189df6c3b399347b44",
+    "semantic_hash": ""
+  },
+  "Android/app/src/release/java/com/khanabook/lite/pos/util/FlashlightInitializer.kt": {
+    "mtime": 1781257041.5506537,
+    "ast_hash": "eddc151135f03191dc02a7c2058d1d41",
+    "semantic_hash": ""
+  },
+  "Android/FLASHLIGHT_INTEGRATION.md": {
+    "mtime": 1781257104.996256,
+    "ast_hash": "17f78f394059d81f6af27891bf7a96d2",
+    "semantic_hash": ""
+  },
+  "Android/LOGIN_IMPROVEMENTS.md": {
+    "mtime": 1781256514.5600967,
+    "ast_hash": "9b0a3ca5265e8c079d399a0af5d66c64",
+    "semantic_hash": ""
+  },
+  "scratch/shots/s1.png": {
+    "mtime": 1781352404.8950932,
+    "ast_hash": "8134f5c3730f1fdf459e8a18543b82c2",
+    "semantic_hash": ""
+  },
+  "scratch/shots/s2.png": {
+    "mtime": 1781352481.046098,
+    "ast_hash": "2995ae12d06e63a59e9bd49831e446fe",
+    "semantic_hash": ""
+  },
+  "scratch/shots/s3_home.png": {
+    "mtime": 1781352511.6436172,
+    "ast_hash": "ad231249e0d7578df6912a561f51883e",
+    "semantic_hash": ""
+  },
+  "scratch/shots/s4_menu.png": {
+    "mtime": 1781352536.864852,
+    "ast_hash": "1968be40748bd3e03f5a02861b29157a",
+    "semantic_hash": ""
+  },
+  "scratch/shots/s5_add.png": {
+    "mtime": 1781352571.2105663,
+    "ast_hash": "73bd00bec4d2c9df98c11baaf4b86b46",
+    "semantic_hash": ""
+  },
+  "scratch/shots/s6_back.png": {
+    "mtime": 1781352599.1729639,
+    "ast_hash": "3f1e350cf2c7807b48311c885207eade",
+    "semantic_hash": ""
+  },
+  "scratch/shots/t1_home.png": {
+    "mtime": 1781352698.16311,
+    "ast_hash": "5af66a2db6688b10938831e734a7392e",
+    "semantic_hash": ""
+  },
+  "scratch/shots/t2_newbill.png": {
+    "mtime": 1781352718.6860292,
+    "ast_hash": "aafce912cc94fb97167ee0090dab5869",
+    "semantic_hash": ""
+  },
+  "scratch/shots/t3_menu.png": {
+    "mtime": 1781352749.0337815,
+    "ast_hash": "d4ae948898f13c1cdc785f7db1e5d397",
+    "semantic_hash": ""
+  },
+  "scratch/shots/t4_add.png": {
+    "mtime": 1781352772.5007915,
+    "ast_hash": "3a202a9b362945ea48d29bdd467ae79c",
+    "semantic_hash": ""
+  },
+  "scratch/shots/t5_cart.png": {
+    "mtime": 1781352796.9648821,
+    "ast_hash": "b2fa29ef62cc39ed3901959d8c5c47db",
+    "semantic_hash": ""
+  },
+  "scratch/shots/t6_pay.png": {
+    "mtime": 1781352825.596306,
+    "ast_hash": "b5a7d5c8be8d04aefb1da94edf8d14ac",
     "semantic_hash": ""
   }
 }

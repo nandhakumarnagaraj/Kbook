@@ -26,6 +26,7 @@ public class GenericSyncService {
 	private static final Logger log = LoggerFactory.getLogger(GenericSyncService.class);
 
 	private final BillRepository billRepository;
+	private final BillPaymentRepository billPaymentRepository;
 	private final MenuItemRepository menuItemRepository;
 	private final ItemVariantRepository itemVariantRepository;
 	private final CategoryRepository categoryRepository;

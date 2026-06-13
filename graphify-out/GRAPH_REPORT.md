@@ -1,16 +1,16 @@
-# Graph Report - KhanaBook  (2026-06-12)
+# Graph Report - KhanaBook  (2026-06-13)
 
 ## Corpus Check
-- 689 files · ~660,111 words
+- 628 files · ~609,478 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 8517 nodes · 15930 edges · 706 communities (576 shown, 130 thin omitted)
-- Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 1373 edges (avg confidence: 0.8)
+- 7379 nodes · 13831 edges · 656 communities (532 shown, 124 thin omitted)
+- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 1361 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `3bd80698`
+- Built from commit: `fb312232`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -55,7 +55,6 @@
 - [[_COMMUNITY_Community 37|Community 37]]
 - [[_COMMUNITY_Community 38|Community 38]]
 - [[_COMMUNITY_Community 39|Community 39]]
-- [[_COMMUNITY_Community 40|Community 40]]
 - [[_COMMUNITY_Community 41|Community 41]]
 - [[_COMMUNITY_Community 42|Community 42]]
 - [[_COMMUNITY_Community 43|Community 43]]
@@ -67,15 +66,12 @@
 - [[_COMMUNITY_Community 49|Community 49]]
 - [[_COMMUNITY_Community 50|Community 50]]
 - [[_COMMUNITY_Community 51|Community 51]]
-- [[_COMMUNITY_Community 52|Community 52]]
 - [[_COMMUNITY_Community 53|Community 53]]
 - [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
 - [[_COMMUNITY_Community 56|Community 56]]
 - [[_COMMUNITY_Community 57|Community 57]]
 - [[_COMMUNITY_Community 58|Community 58]]
-- [[_COMMUNITY_Community 59|Community 59]]
-- [[_COMMUNITY_Community 60|Community 60]]
 - [[_COMMUNITY_Community 61|Community 61]]
 - [[_COMMUNITY_Community 62|Community 62]]
 - [[_COMMUNITY_Community 63|Community 63]]
@@ -84,8 +80,6 @@
 - [[_COMMUNITY_Community 66|Community 66]]
 - [[_COMMUNITY_Community 67|Community 67]]
 - [[_COMMUNITY_Community 68|Community 68]]
-- [[_COMMUNITY_Community 69|Community 69]]
-- [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 71|Community 71]]
 - [[_COMMUNITY_Community 72|Community 72]]
 - [[_COMMUNITY_Community 73|Community 73]]
@@ -95,17 +89,13 @@
 - [[_COMMUNITY_Community 77|Community 77]]
 - [[_COMMUNITY_Community 78|Community 78]]
 - [[_COMMUNITY_Community 79|Community 79]]
-- [[_COMMUNITY_Community 80|Community 80]]
 - [[_COMMUNITY_Community 81|Community 81]]
-- [[_COMMUNITY_Community 82|Community 82]]
 - [[_COMMUNITY_Community 83|Community 83]]
 - [[_COMMUNITY_Community 84|Community 84]]
 - [[_COMMUNITY_Community 85|Community 85]]
 - [[_COMMUNITY_Community 86|Community 86]]
 - [[_COMMUNITY_Community 87|Community 87]]
 - [[_COMMUNITY_Community 88|Community 88]]
-- [[_COMMUNITY_Community 89|Community 89]]
-- [[_COMMUNITY_Community 90|Community 90]]
 - [[_COMMUNITY_Community 91|Community 91]]
 - [[_COMMUNITY_Community 92|Community 92]]
 - [[_COMMUNITY_Community 93|Community 93]]
@@ -119,15 +109,12 @@
 - [[_COMMUNITY_Community 101|Community 101]]
 - [[_COMMUNITY_Community 102|Community 102]]
 - [[_COMMUNITY_Community 103|Community 103]]
-- [[_COMMUNITY_Community 104|Community 104]]
-- [[_COMMUNITY_Community 105|Community 105]]
 - [[_COMMUNITY_Community 106|Community 106]]
 - [[_COMMUNITY_Community 107|Community 107]]
 - [[_COMMUNITY_Community 108|Community 108]]
 - [[_COMMUNITY_Community 109|Community 109]]
 - [[_COMMUNITY_Community 110|Community 110]]
 - [[_COMMUNITY_Community 111|Community 111]]
-- [[_COMMUNITY_Community 112|Community 112]]
 - [[_COMMUNITY_Community 113|Community 113]]
 - [[_COMMUNITY_Community 114|Community 114]]
 - [[_COMMUNITY_Community 115|Community 115]]
@@ -136,9 +123,6 @@
 - [[_COMMUNITY_Community 118|Community 118]]
 - [[_COMMUNITY_Community 119|Community 119]]
 - [[_COMMUNITY_Community 120|Community 120]]
-- [[_COMMUNITY_Community 121|Community 121]]
-- [[_COMMUNITY_Community 122|Community 122]]
-- [[_COMMUNITY_Community 123|Community 123]]
 - [[_COMMUNITY_Community 124|Community 124]]
 - [[_COMMUNITY_Community 125|Community 125]]
 - [[_COMMUNITY_Community 126|Community 126]]
@@ -147,25 +131,14 @@
 - [[_COMMUNITY_Community 129|Community 129]]
 - [[_COMMUNITY_Community 130|Community 130]]
 - [[_COMMUNITY_Community 131|Community 131]]
-- [[_COMMUNITY_Community 132|Community 132]]
-- [[_COMMUNITY_Community 133|Community 133]]
-- [[_COMMUNITY_Community 134|Community 134]]
-- [[_COMMUNITY_Community 135|Community 135]]
-- [[_COMMUNITY_Community 136|Community 136]]
-- [[_COMMUNITY_Community 137|Community 137]]
 - [[_COMMUNITY_Community 138|Community 138]]
 - [[_COMMUNITY_Community 139|Community 139]]
 - [[_COMMUNITY_Community 140|Community 140]]
 - [[_COMMUNITY_Community 141|Community 141]]
 - [[_COMMUNITY_Community 142|Community 142]]
 - [[_COMMUNITY_Community 143|Community 143]]
-- [[_COMMUNITY_Community 144|Community 144]]
 - [[_COMMUNITY_Community 145|Community 145]]
 - [[_COMMUNITY_Community 146|Community 146]]
-- [[_COMMUNITY_Community 147|Community 147]]
-- [[_COMMUNITY_Community 148|Community 148]]
-- [[_COMMUNITY_Community 149|Community 149]]
-- [[_COMMUNITY_Community 150|Community 150]]
 - [[_COMMUNITY_Community 151|Community 151]]
 - [[_COMMUNITY_Community 152|Community 152]]
 - [[_COMMUNITY_Community 153|Community 153]]
@@ -190,14 +163,12 @@
 - [[_COMMUNITY_Community 172|Community 172]]
 - [[_COMMUNITY_Community 173|Community 173]]
 - [[_COMMUNITY_Community 174|Community 174]]
-- [[_COMMUNITY_Community 175|Community 175]]
 - [[_COMMUNITY_Community 176|Community 176]]
 - [[_COMMUNITY_Community 177|Community 177]]
 - [[_COMMUNITY_Community 178|Community 178]]
 - [[_COMMUNITY_Community 179|Community 179]]
 - [[_COMMUNITY_Community 180|Community 180]]
 - [[_COMMUNITY_Community 181|Community 181]]
-- [[_COMMUNITY_Community 182|Community 182]]
 - [[_COMMUNITY_Community 183|Community 183]]
 - [[_COMMUNITY_Community 184|Community 184]]
 - [[_COMMUNITY_Community 185|Community 185]]
@@ -207,9 +178,6 @@
 - [[_COMMUNITY_Community 189|Community 189]]
 - [[_COMMUNITY_Community 190|Community 190]]
 - [[_COMMUNITY_Community 191|Community 191]]
-- [[_COMMUNITY_Community 192|Community 192]]
-- [[_COMMUNITY_Community 193|Community 193]]
-- [[_COMMUNITY_Community 194|Community 194]]
 - [[_COMMUNITY_Community 195|Community 195]]
 - [[_COMMUNITY_Community 196|Community 196]]
 - [[_COMMUNITY_Community 197|Community 197]]
@@ -224,7 +192,6 @@
 - [[_COMMUNITY_Community 206|Community 206]]
 - [[_COMMUNITY_Community 207|Community 207]]
 - [[_COMMUNITY_Community 208|Community 208]]
-- [[_COMMUNITY_Community 209|Community 209]]
 - [[_COMMUNITY_Community 210|Community 210]]
 - [[_COMMUNITY_Community 211|Community 211]]
 - [[_COMMUNITY_Community 212|Community 212]]
@@ -233,8 +200,6 @@
 - [[_COMMUNITY_Community 215|Community 215]]
 - [[_COMMUNITY_Community 216|Community 216]]
 - [[_COMMUNITY_Community 217|Community 217]]
-- [[_COMMUNITY_Community 218|Community 218]]
-- [[_COMMUNITY_Community 219|Community 219]]
 - [[_COMMUNITY_Community 220|Community 220]]
 - [[_COMMUNITY_Community 221|Community 221]]
 - [[_COMMUNITY_Community 222|Community 222]]
@@ -252,8 +217,6 @@
 - [[_COMMUNITY_Community 234|Community 234]]
 - [[_COMMUNITY_Community 235|Community 235]]
 - [[_COMMUNITY_Community 236|Community 236]]
-- [[_COMMUNITY_Community 237|Community 237]]
-- [[_COMMUNITY_Community 238|Community 238]]
 - [[_COMMUNITY_Community 239|Community 239]]
 - [[_COMMUNITY_Community 240|Community 240]]
 - [[_COMMUNITY_Community 241|Community 241]]
@@ -276,7 +239,6 @@
 - [[_COMMUNITY_Community 258|Community 258]]
 - [[_COMMUNITY_Community 259|Community 259]]
 - [[_COMMUNITY_Community 260|Community 260]]
-- [[_COMMUNITY_Community 261|Community 261]]
 - [[_COMMUNITY_Community 262|Community 262]]
 - [[_COMMUNITY_Community 263|Community 263]]
 - [[_COMMUNITY_Community 264|Community 264]]
@@ -306,7 +268,6 @@
 - [[_COMMUNITY_Community 288|Community 288]]
 - [[_COMMUNITY_Community 289|Community 289]]
 - [[_COMMUNITY_Community 290|Community 290]]
-- [[_COMMUNITY_Community 291|Community 291]]
 - [[_COMMUNITY_Community 292|Community 292]]
 - [[_COMMUNITY_Community 293|Community 293]]
 - [[_COMMUNITY_Community 294|Community 294]]
@@ -331,9 +292,7 @@
 - [[_COMMUNITY_Community 313|Community 313]]
 - [[_COMMUNITY_Community 314|Community 314]]
 - [[_COMMUNITY_Community 315|Community 315]]
-- [[_COMMUNITY_Community 316|Community 316]]
 - [[_COMMUNITY_Community 317|Community 317]]
-- [[_COMMUNITY_Community 318|Community 318]]
 - [[_COMMUNITY_Community 319|Community 319]]
 - [[_COMMUNITY_Community 320|Community 320]]
 - [[_COMMUNITY_Community 321|Community 321]]
@@ -341,8 +300,6 @@
 - [[_COMMUNITY_Community 323|Community 323]]
 - [[_COMMUNITY_Community 324|Community 324]]
 - [[_COMMUNITY_Community 325|Community 325]]
-- [[_COMMUNITY_Community 326|Community 326]]
-- [[_COMMUNITY_Community 327|Community 327]]
 - [[_COMMUNITY_Community 328|Community 328]]
 - [[_COMMUNITY_Community 329|Community 329]]
 - [[_COMMUNITY_Community 330|Community 330]]
@@ -352,14 +309,12 @@
 - [[_COMMUNITY_Community 334|Community 334]]
 - [[_COMMUNITY_Community 335|Community 335]]
 - [[_COMMUNITY_Community 336|Community 336]]
-- [[_COMMUNITY_Community 337|Community 337]]
 - [[_COMMUNITY_Community 338|Community 338]]
 - [[_COMMUNITY_Community 339|Community 339]]
 - [[_COMMUNITY_Community 340|Community 340]]
 - [[_COMMUNITY_Community 341|Community 341]]
 - [[_COMMUNITY_Community 342|Community 342]]
 - [[_COMMUNITY_Community 343|Community 343]]
-- [[_COMMUNITY_Community 344|Community 344]]
 - [[_COMMUNITY_Community 345|Community 345]]
 - [[_COMMUNITY_Community 346|Community 346]]
 - [[_COMMUNITY_Community 347|Community 347]]
@@ -380,9 +335,6 @@
 - [[_COMMUNITY_Community 362|Community 362]]
 - [[_COMMUNITY_Community 363|Community 363]]
 - [[_COMMUNITY_Community 364|Community 364]]
-- [[_COMMUNITY_Community 365|Community 365]]
-- [[_COMMUNITY_Community 366|Community 366]]
-- [[_COMMUNITY_Community 367|Community 367]]
 - [[_COMMUNITY_Community 368|Community 368]]
 - [[_COMMUNITY_Community 369|Community 369]]
 - [[_COMMUNITY_Community 370|Community 370]]
@@ -391,7 +343,6 @@
 - [[_COMMUNITY_Community 373|Community 373]]
 - [[_COMMUNITY_Community 374|Community 374]]
 - [[_COMMUNITY_Community 375|Community 375]]
-- [[_COMMUNITY_Community 376|Community 376]]
 - [[_COMMUNITY_Community 377|Community 377]]
 - [[_COMMUNITY_Community 378|Community 378]]
 - [[_COMMUNITY_Community 379|Community 379]]
@@ -403,7 +354,6 @@
 - [[_COMMUNITY_Community 385|Community 385]]
 - [[_COMMUNITY_Community 386|Community 386]]
 - [[_COMMUNITY_Community 387|Community 387]]
-- [[_COMMUNITY_Community 388|Community 388]]
 - [[_COMMUNITY_Community 389|Community 389]]
 - [[_COMMUNITY_Community 390|Community 390]]
 - [[_COMMUNITY_Community 391|Community 391]]
@@ -428,35 +378,12 @@
 - [[_COMMUNITY_Community 410|Community 410]]
 - [[_COMMUNITY_Community 411|Community 411]]
 - [[_COMMUNITY_Community 412|Community 412]]
-- [[_COMMUNITY_Community 413|Community 413]]
 - [[_COMMUNITY_Community 414|Community 414]]
-- [[_COMMUNITY_Community 415|Community 415]]
-- [[_COMMUNITY_Community 416|Community 416]]
-- [[_COMMUNITY_Community 417|Community 417]]
-- [[_COMMUNITY_Community 418|Community 418]]
-- [[_COMMUNITY_Community 419|Community 419]]
-- [[_COMMUNITY_Community 420|Community 420]]
-- [[_COMMUNITY_Community 421|Community 421]]
-- [[_COMMUNITY_Community 422|Community 422]]
-- [[_COMMUNITY_Community 423|Community 423]]
-- [[_COMMUNITY_Community 424|Community 424]]
-- [[_COMMUNITY_Community 425|Community 425]]
-- [[_COMMUNITY_Community 426|Community 426]]
 - [[_COMMUNITY_Community 427|Community 427]]
-- [[_COMMUNITY_Community 428|Community 428]]
-- [[_COMMUNITY_Community 429|Community 429]]
-- [[_COMMUNITY_Community 430|Community 430]]
-- [[_COMMUNITY_Community 431|Community 431]]
-- [[_COMMUNITY_Community 432|Community 432]]
-- [[_COMMUNITY_Community 433|Community 433]]
-- [[_COMMUNITY_Community 434|Community 434]]
-- [[_COMMUNITY_Community 435|Community 435]]
-- [[_COMMUNITY_Community 436|Community 436]]
 - [[_COMMUNITY_Community 437|Community 437]]
 - [[_COMMUNITY_Community 438|Community 438]]
 - [[_COMMUNITY_Community 439|Community 439]]
 - [[_COMMUNITY_Community 440|Community 440]]
-- [[_COMMUNITY_Community 441|Community 441]]
 - [[_COMMUNITY_Community 442|Community 442]]
 - [[_COMMUNITY_Community 443|Community 443]]
 - [[_COMMUNITY_Community 444|Community 444]]
@@ -478,7 +405,6 @@
 - [[_COMMUNITY_Community 460|Community 460]]
 - [[_COMMUNITY_Community 461|Community 461]]
 - [[_COMMUNITY_Community 462|Community 462]]
-- [[_COMMUNITY_Community 463|Community 463]]
 - [[_COMMUNITY_Community 464|Community 464]]
 - [[_COMMUNITY_Community 465|Community 465]]
 - [[_COMMUNITY_Community 466|Community 466]]
@@ -489,7 +415,6 @@
 - [[_COMMUNITY_Community 471|Community 471]]
 - [[_COMMUNITY_Community 472|Community 472]]
 - [[_COMMUNITY_Community 473|Community 473]]
-- [[_COMMUNITY_Community 474|Community 474]]
 - [[_COMMUNITY_Community 529|Community 529]]
 - [[_COMMUNITY_Community 530|Community 530]]
 - [[_COMMUNITY_Community 531|Community 531]]
@@ -500,23 +425,18 @@
 - [[_COMMUNITY_Community 536|Community 536]]
 - [[_COMMUNITY_Community 537|Community 537]]
 - [[_COMMUNITY_Community 538|Community 538]]
-- [[_COMMUNITY_Community 539|Community 539]]
 - [[_COMMUNITY_Community 540|Community 540]]
-- [[_COMMUNITY_Community 541|Community 541]]
 - [[_COMMUNITY_Community 542|Community 542]]
 - [[_COMMUNITY_Community 543|Community 543]]
 - [[_COMMUNITY_Community 544|Community 544]]
 - [[_COMMUNITY_Community 545|Community 545]]
-- [[_COMMUNITY_Community 546|Community 546]]
 - [[_COMMUNITY_Community 547|Community 547]]
 - [[_COMMUNITY_Community 548|Community 548]]
 - [[_COMMUNITY_Community 549|Community 549]]
 - [[_COMMUNITY_Community 550|Community 550]]
-- [[_COMMUNITY_Community 552|Community 552]]
 - [[_COMMUNITY_Community 553|Community 553]]
 - [[_COMMUNITY_Community 554|Community 554]]
 - [[_COMMUNITY_Community 555|Community 555]]
-- [[_COMMUNITY_Community 556|Community 556]]
 - [[_COMMUNITY_Community 557|Community 557]]
 - [[_COMMUNITY_Community 558|Community 558]]
 - [[_COMMUNITY_Community 559|Community 559]]
@@ -524,23 +444,16 @@
 - [[_COMMUNITY_Community 561|Community 561]]
 - [[_COMMUNITY_Community 562|Community 562]]
 - [[_COMMUNITY_Community 564|Community 564]]
-- [[_COMMUNITY_Community 565|Community 565]]
 - [[_COMMUNITY_Community 566|Community 566]]
 - [[_COMMUNITY_Community 567|Community 567]]
-- [[_COMMUNITY_Community 568|Community 568]]
-- [[_COMMUNITY_Community 569|Community 569]]
 - [[_COMMUNITY_Community 570|Community 570]]
 - [[_COMMUNITY_Community 571|Community 571]]
-- [[_COMMUNITY_Community 572|Community 572]]
 - [[_COMMUNITY_Community 573|Community 573]]
 - [[_COMMUNITY_Community 574|Community 574]]
 - [[_COMMUNITY_Community 575|Community 575]]
-- [[_COMMUNITY_Community 576|Community 576]]
 - [[_COMMUNITY_Community 577|Community 577]]
-- [[_COMMUNITY_Community 578|Community 578]]
 - [[_COMMUNITY_Community 579|Community 579]]
 - [[_COMMUNITY_Community 580|Community 580]]
-- [[_COMMUNITY_Community 581|Community 581]]
 - [[_COMMUNITY_Community 582|Community 582]]
 - [[_COMMUNITY_Community 583|Community 583]]
 - [[_COMMUNITY_Community 584|Community 584]]
@@ -550,12 +463,9 @@
 - [[_COMMUNITY_Community 588|Community 588]]
 - [[_COMMUNITY_Community 589|Community 589]]
 - [[_COMMUNITY_Community 590|Community 590]]
-- [[_COMMUNITY_Community 591|Community 591]]
 - [[_COMMUNITY_Community 592|Community 592]]
-- [[_COMMUNITY_Community 593|Community 593]]
 - [[_COMMUNITY_Community 594|Community 594]]
 - [[_COMMUNITY_Community 595|Community 595]]
-- [[_COMMUNITY_Community 596|Community 596]]
 - [[_COMMUNITY_Community 598|Community 598]]
 - [[_COMMUNITY_Community 599|Community 599]]
 - [[_COMMUNITY_Community 600|Community 600]]
@@ -592,7 +502,6 @@
 - [[_COMMUNITY_Community 631|Community 631]]
 - [[_COMMUNITY_Community 632|Community 632]]
 - [[_COMMUNITY_Community 633|Community 633]]
-- [[_COMMUNITY_Community 634|Community 634]]
 - [[_COMMUNITY_Community 635|Community 635]]
 - [[_COMMUNITY_Community 636|Community 636]]
 - [[_COMMUNITY_Community 637|Community 637]]
@@ -613,75 +522,75 @@
 ## God Nodes (most connected - your core abstractions)
 1. `AdminApiService` - 112 edges
 2. `RestaurantProfileRepository` - 63 edges
-3. `_()` - 56 edges
-4. `SessionManager` - 54 edges
-5. `formatCurrency()` - 53 edges
-6. `SettingsViewModel` - 51 edges
-7. `MenuViewModel` - 47 edges
-8. `BusinessApiService` - 47 edges
-9. `BillDao` - 46 edges
-10. `KhanaBookApi` - 43 edges
+3. `SessionManager` - 54 edges
+4. `formatCurrency()` - 53 edges
+5. `SettingsViewModel` - 51 edges
+6. `MenuViewModel` - 47 edges
+7. `BusinessApiService` - 47 edges
+8. `BillDao` - 46 edges
+9. `KhanaBookApi` - 43 edges
+10. `MockApiServer` - 37 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `fetchDesignSystem()` --calls--> `fetch`  [INFERRED]
-  .agents/skills/impeccable/scripts/live-browser.js → mcp/replit/create-repl.js
-- `completeThroughServer()` --calls--> `fetch`  [INFERRED]
-  .agents/skills/impeccable/scripts/live-complete.mjs → mcp/replit/create-repl.js
-- `postReply()` --calls--> `fetch`  [INFERRED]
-  .agents/skills/impeccable/scripts/live-poll.mjs → mcp/replit/create-repl.js
-- `pollCli()` --calls--> `fetch`  [INFERRED]
-  .agents/skills/impeccable/scripts/live-poll.mjs → mcp/replit/create-repl.js
-- `fetchServerStatus()` --calls--> `fetch`  [INFERRED]
-  .agents/skills/impeccable/scripts/live-status.mjs → mcp/replit/create-repl.js
+- `KhanaDatePickerField()` --calls--> `Date`  [INFERRED]
+  Android/app/src/main/java/com/khanabook/lite/pos/ui/components/CommonComponents.kt → server/src/main/java/com/khanabook/saas/utility/JwtUtility.java
+- `formatTimestamp()` --calls--> `Date`  [INFERRED]
+  Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/MarketplaceOrdersScreen.kt → server/src/main/java/com/khanabook/saas/utility/JwtUtility.java
+- `formatDateRangeHeadline()` --calls--> `Date`  [INFERRED]
+  Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/OrdersScreen.kt → server/src/main/java/com/khanabook/saas/utility/JwtUtility.java
+- `timeAgo()` --calls--> `Date`  [INFERRED]
+  Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/OrdersScreen.kt → server/src/main/java/com/khanabook/saas/utility/JwtUtility.java
+- `RevenueChartCard()` --calls--> `Date`  [INFERRED]
+  Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/ReportsScreen.kt → server/src/main/java/com/khanabook/saas/utility/JwtUtility.java
 
 ## Import Cycles
 - None detected.
 
-## Communities (706 total, 130 thin omitted)
+## Communities (656 total, 124 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.19
-Nodes (9): EasebuzzSubMerchant, List, Long, Map, Object, String, SuppressWarnings, Transactional (+1 more)
+Cohesion: 0.08
+Nodes (25): EasebuzzSubMerchantWebhookEvent, EasebuzzSubMerchantRepository, EasebuzzSubMerchantWebhookEventRepository, EasebuzzSubMerchant, List, Long, Optional, String (+17 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.15
-Nodes (12): HttpHeaders, OtpRequestRepository, OtpRequestRepository, Long, Optional, String, Long, PasswordEncoder (+4 more)
+Cohesion: 0.07
+Nodes (29): 1. Install Flashlight CLI, 2. Install Flipper Desktop (Optional but Recommended), 3. Run Your Debug Build, 4. Start Monitoring, Best Practices, Billing Screen, CI/CD Integration, Compare Two Builds (+21 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.11
-Nodes (69): d, C, _(), ae(), at(), be(), bt(), Ce() (+61 more)
+Cohesion: 0.08
+Nodes (23): 1. **Improved Touch Targets (WCAG 2.2 AA Compliance)**, 2. **Debounced User Validation**, 3. **Better Error Handling**, 4. **Internationalization Support**, 5. **Improved Accessibility**, 6. **ForgotPasswordDialog Improvements**, Automated Testing, Before vs After Comparison (+15 more)
+
+### Community 3 - "Community 3"
+Cohesion: 0.07
+Nodes (10): ResponseFixtures, InvoiceController, Bill, BillItem, GetMapping, List, Long, ResponseEntity (+2 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.09
 Nodes (24): DuplicateMenuItemException, MenuItemServiceImpl, MenuItemRepository, List, Long, MenuItem, Modifying, Object (+16 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.11
-Nodes (20): AfterEach, EasebuzzProperties, EasebuzzApiException, MultiValueMap, String, EasebuzzProperties, List, Map (+12 more)
+Cohesion: 0.09
+Nodes (26): AfterEach, EasebuzzProperties, EasebuzzApiException, MultiValueMap, String, EasebuzzProperties, List, Map (+18 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.20
-Nodes (15): BusinessProfileResponse, BusinessAdminController, RefundBillRequest, BusinessDashboardResponse, BusinessMarketplaceSetupResponse, BusinessMenuListItemResponse, BusinessOrderListItemResponse, BusinessStaffListItemResponse (+7 more)
+Cohesion: 0.14
+Nodes (24): BusinessProfileResponse, BusinessAdminController, RefundBillRequest, Boolean, BusinessDashboardResponse, BusinessMarketplaceSetupResponse, BusinessMenuListItemResponse, BusinessOrderListItemResponse (+16 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.04
-Nodes (17): ChargebacksPageComponent, CommissionReportPageComponent, CommissionRow, CommissionSummary, CustomerCdpPageComponent, FinancingPageComponent, InstantSettlementsPageComponent, OnboardingTrackerPageComponent (+9 more)
+Cohesion: 0.05
+Nodes (13): ChargebacksPageComponent, CustomerCdpPageComponent, FinancingPageComponent, InstantSettlementsPageComponent, OnboardingTrackerPageComponent, RefundAutomationPageComponent, Settlement, SettlementReportsPageComponent (+5 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.13
-Nodes (22): AuthViewModel, Boolean, com, MenuViewModel, Modifier, NavController, String, KhanaBookScreenScaffold() (+14 more)
-
-### Community 9 - "Community 9"
-Cohesion: 0.08
-Nodes (38): fetch, brandMarkSvg(), buildAnnotationsForCapture(), buildListHtml(), buildPinElement(), captureAndEmit(), captureElementToBlob(), checkpointPayload() (+30 more)
+Cohesion: 0.16
+Nodes (21): AuthViewModel, Boolean, com, MenuViewModel, Modifier, NavController, SettingsViewModel, String (+13 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.20
-Nodes (8): File, Async, List, Long, Map, String, MenuExtractionWorker, AppAssetStore
+Cohesion: 0.07
+Nodes (23): ApiResponses, MenuExtractionController, File, InvoicePDFGenerator, isValidReviewUrl(), ReportExporter, MenuExtractionJob, Operation (+15 more)
 
 ### Community 12 - "Community 12"
 Cohesion: 0.12
-Nodes (14): Claims, Date, SecretKey, JwtRequestFilterTest, TokenRevocationCache, String, Override, String (+6 more)
+Nodes (17): Claims, Date, SecretKey, JwtRequestFilter, JwtRequestFilterTest, String, FilterChain, HttpServletRequest (+9 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.17
@@ -700,15 +609,11 @@ Cohesion: 0.06
 Nodes (14): UserEntity, AuthViewModel, ChangePasswordResult, Error, Loading, LoginErrorCode, LoginResult, OtpSent (+6 more)
 
 ### Community 18 - "Community 18"
-Cohesion: 0.14
-Nodes (38): hasGeneratedHeader(), HEADER_MARKERS, isGeneratedFile(), isGitIgnored(), acceptCli(), argVal(), deindentContent(), detectCommentSyntax() (+30 more)
-
-### Community 19 - "Community 19"
-Cohesion: 0.07
-Nodes (15): create(), createMockOkHttpClient(), dispatch(), MockApiServer, start(), AssetUploadResult, RestaurantAssetController, DeleteMapping (+7 more)
+Cohesion: 0.27
+Nodes (10): MarketplaceWebhookController, BigDecimal, Long, Map, Object, PostMapping, ResponseEntity, String (+2 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.21
+Cohesion: 0.20
 Nodes (15): AdminSubMerchantController, DeleteMapping, EasebuzzSubMerchant, GetMapping, List, Long, Map, Object (+7 more)
 
 ### Community 21 - "Community 21"
@@ -720,8 +625,8 @@ Cohesion: 0.10
 Nodes (31): ChangePasswordRequest, AuthController, AuthResponse, ChangePasswordRequest, GoogleLoginRequest, LoginRequest, LogoutBody, PasswordResetOtpRequest (+23 more)
 
 ### Community 24 - "Community 24"
-Cohesion: 0.12
-Nodes (35): Boolean, CategoryEntity, Color, com, Double, Int, List, Long (+27 more)
+Cohesion: 0.14
+Nodes (33): androidx, Boolean, CategoryEntity, Color, com, Double, Int, List (+25 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.06
@@ -732,36 +637,40 @@ Cohesion: 0.06
 Nodes (33): Android App, Android Setup, Backend, Backend Setup, code:text (Android/      Android POS app built with Kotlin and Jetpack ), code:bash (docker compose up --build), code:bash (docker compose -f docker-compose.production.yml up --build -), code:bash (cd server) (+25 more)
 
 ### Community 28 - "Community 28"
-Cohesion: 0.29
-Nodes (17): BillStepper(), CartItemNoteDialog(), CustomerInfoStep(), FailedStep(), FoodTypeIcon(), formatAmountForSpeech(), loadShopLogoBlocking(), MenuSelectionStep() (+9 more)
+Cohesion: 0.21
+Nodes (5): PaymentReturnManager, ReturnEvent, Status, SpringRoleTest, Test
 
 ### Community 29 - "Community 29"
-Cohesion: 0.11
-Nodes (34): acknowledgePendingEvent(), annotRoot, args, broadcast(), child, childArgs, CONTEXT_DIR, { detectScript, sessionPath, livePath } (+26 more)
+Cohesion: 0.16
+Nodes (6): Double, ItemVariantEntity, MenuItemEntity, Pair, ItemVariantEntity, MenuItemEntity
 
 ### Community 30 - "Community 30"
-Cohesion: 0.20
-Nodes (32): assessCoverage(), buildColor(), CANONICAL_SECTIONS, collectBullets(), collectColorValues(), collectParagraphs(), detectFormat(), extractColors() (+24 more)
+Cohesion: 0.28
+Nodes (5): MarketplaceConfigControllerTest, HttpEntity, String, Test, Void
+
+### Community 31 - "Community 31"
+Cohesion: 0.09
+Nodes (3): BusinessOrder, MarketplaceOrder, OrdersPageComponent
 
 ### Community 32 - "Community 32"
 Cohesion: 0.16
 Nodes (9): BigDecimal, Bill, List, Long, Object, Optional, Query, BillRepository (+1 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.13
-Nodes (8): CategoryEntity, Float, StateFlow, String, LookupResult, Set, LookupResult, SettingsViewModel
+Cohesion: 0.20
+Nodes (3): CategoryEntity, String, LookupResult
 
 ### Community 34 - "Community 34"
-Cohesion: 0.02
-Nodes (5): DeveloperPortalPageComponent, EasebuzzSubMerchantRequest, PaymentRoutingPageComponent, AdminApiService, WebhookHealthPageComponent
+Cohesion: 0.03
+Nodes (4): DeveloperPortalPageComponent, PaymentRoutingPageComponent, AdminApiService, WebhookHealthPageComponent
 
 ### Community 35 - "Community 35"
 Cohesion: 0.10
 Nodes (3): OfflineTest, BaseTest, ScreenOrientation
 
 ### Community 36 - "Community 36"
-Cohesion: 0.09
-Nodes (13): Boolean, CategoryEntity, Double, Int, Long, Map, MenuItemEntity, MenuWithVariants (+5 more)
+Cohesion: 0.14
+Nodes (8): Boolean, CategoryEntity, Int, Long, Map, MenuWithVariants, StateFlow, MenuViewModel
 
 ### Community 37 - "Community 37"
 Cohesion: 0.06
@@ -775,13 +684,9 @@ Nodes (33): Android App, Android Setup, Backend, Backend Setup, code:text (Andro
 Cohesion: 0.09
 Nodes (3): BillingViewModel, BillSummary, CartItem
 
-### Community 40 - "Community 40"
-Cohesion: 0.08
-Nodes (28): code:yaml (---), code:markdown (---), code:json ({), code:markdown (<!-- SEED: re-run /impeccable document once there's code to ), Component translation rules, Narrative mapping, Pitfalls, Scan mode (approach C: auto-extract, then confirm descriptive language) (+20 more)
-
 ### Community 42 - "Community 42"
-Cohesion: 0.20
-Nodes (12): AuthService, AuthServiceImpl, AuthResponse, GoogleLoginRequest, LoginRequest, Map, Optional, Override (+4 more)
+Cohesion: 0.19
+Nodes (13): AuthService, AuthServiceImpl, AuthResponse, GoogleLoginRequest, LoginRequest, Map, Optional, Override (+5 more)
 
 ### Community 43 - "Community 43"
 Cohesion: 0.18
@@ -804,12 +709,8 @@ Cohesion: 0.18
 Nodes (9): SyncRepositoryIntegrationTest, BeforeEach, Bill, BillItem, Category, Long, MenuItem, String (+1 more)
 
 ### Community 49 - "Community 49"
-Cohesion: 0.16
-Nodes (23): barPaletteForTheme(), buildDesignHeader(), buildParamsPanel(), connectSSE(), defangOutsideHandlers(), designPanelCss(), detectPageTheme(), fetchDesignSystem() (+15 more)
-
-### Community 52 - "Community 52"
-Cohesion: 0.07
-Nodes (26): Anti-Patterns, code:css (/* Hide focus ring for mouse/touch */), code:html (<!-- When modal is open -->), code:javascript (const dialog = document.querySelector('dialog');), code:html (<button popovertarget="menu">Open menu</button>), code:css (.trigger {), code:html (<button popovertarget="menu" class="trigger">Open</button>), code:css (.dropdown {) (+18 more)
+Cohesion: 0.23
+Nodes (10): AssetUploadResult, RestaurantAssetController, DeleteMapping, Map, MultipartFile, Object, PostMapping, ResponseEntity (+2 more)
 
 ### Community 53 - "Community 53"
 Cohesion: 0.09
@@ -820,8 +721,8 @@ Cohesion: 0.35
 Nodes (8): UserServiceImpl, List, Long, Override, PushSyncResponse, String, Transactional, User
 
 ### Community 55 - "Community 55"
-Cohesion: 0.06
-Nodes (39): AccessDeniedException, MarketplaceConfigControllerTest, MarketplaceWebhookController, DataIntegrityViolationException, GlobalExceptionHandler, ExceptionHandler, HttpMessageNotReadableException, HttpRequestMethodNotSupportedException (+31 more)
+Cohesion: 0.31
+Nodes (13): AccessDeniedException, DataIntegrityViolationException, GlobalExceptionHandler, ExceptionHandler, HttpMessageNotReadableException, HttpRequestMethodNotSupportedException, MethodArgumentNotValidException, ObjectOptimisticLockingFailureException (+5 more)
 
 ### Community 56 - "Community 56"
 Cohesion: 0.24
@@ -831,21 +732,17 @@ Nodes (6): BeforeEach, EasebuzzSubMerchant, String, Test, Transactional, Easebuz
 Cohesion: 0.20
 Nodes (5): SystemTest, HttpEntity, String, Test, Void
 
-### Community 59 - "Community 59"
-Cohesion: 0.10
-Nodes (24): Action Summary, Anti-Patterns Verdict, Ask the User, Assessment A: Design Review, Assessment B: Detector + Browser Evidence, Assessment Orchestration, code:bash (node {{scripts_path}}/critique-storage.mjs slug "<resolved-p), code:bash (node {{scripts_path}}/detect.mjs --json [--fast] [target]) (+16 more)
-
-### Community 60 - "Community 60"
-Cohesion: 0.09
-Nodes (24): Assess Onboarding Needs, code:block1 (No projects yet), code:javascript (// Track which onboarding steps user has seen), Context Over Ceremony, Contextual Help, Design Onboarding Experiences, Documentation & Help, Empty State Design (+16 more)
+### Community 58 - "Community 58"
+Cohesion: 0.06
+Nodes (11): BusinessDashboard, BusinessMarketplaceSetup, BusinessProfile, BusinessStaffItem, MarketplaceConfig, MarketplaceConfigRequest, MarketplaceOrderCounts, RefundOrderRequest (+3 more)
 
 ### Community 63 - "Community 63"
-Cohesion: 0.16
-Nodes (7): CameraPreview(), OcrScannerScreen(), PermissionDeniedContent(), ScanControls(), SplashScreen(), SplashViewModel, MainActivity
+Cohesion: 0.18
+Nodes (7): com, Long, SessionManager, String, Bundle, FragmentActivity, MainActivity
 
 ### Community 64 - "Community 64"
-Cohesion: 0.14
-Nodes (15): outlinedSearchFieldColors(), SearchScreen(), buildInvoiceShareUrl(), buildPendingInvoiceShareUrl(), CurrencyUtils, DateUtils, directPrint(), findActivity() (+7 more)
+Cohesion: 0.30
+Nodes (13): Intent, buildInvoiceShareUrl(), buildPendingInvoiceShareUrl(), CurrencyUtils, directPrint(), findActivity(), generateBillText(), openBillToPrint() (+5 more)
 
 ### Community 65 - "Community 65"
 Cohesion: 0.07
@@ -856,64 +753,48 @@ Cohesion: 0.26
 Nodes (7): BeforeEach, ItemVariant, Long, MenuItem, StockLog, Test, StockLogServiceImplTest
 
 ### Community 67 - "Community 67"
-Cohesion: 0.15
-Nodes (17): RestaurantProfileServiceImpl, CounterResponse, List, Long, Override, PushSyncResponse, RestaurantProfile, String (+9 more)
+Cohesion: 0.31
+Nodes (9): RestaurantProfileServiceImpl, CounterResponse, List, Long, Override, PushSyncResponse, RestaurantProfile, String (+1 more)
 
 ### Community 68 - "Community 68"
-Cohesion: 0.09
-Nodes (43): ACTIONS, annotLastPinClick, annotState, apply(), bufferToBase64(), buildCollapsible(), buildColorModels(), buildRadiiModels() (+35 more)
-
-### Community 69 - "Community 69"
-Cohesion: 0.10
-Nodes (23): Appropriate to Context, Assess Delight Opportunities, Celebration Moments, code:css (/* Satisfying button press */), code:block2 ("Error 404"), code:block3 ("No projects"), code:block4 ("Delete"), code:block5 (Loading messages: write ones specific to your product, not g) (+15 more)
-
-### Community 70 - "Community 70"
-Cohesion: 0.10
-Nodes (23): Animate complex properties, Assess What "Extraordinary" Means Here, code:block1 (──────────── ⚡ OVERDRIVE ─────────────), code:css (@supports (animation-timeline: scroll()) {), code:javascript (if ('gpu' in navigator) { /* WebGPU */ }), For data-heavy interfaces, For functional UI, For performance-critical UI (+15 more)
+Cohesion: 0.40
+Nodes (5): List, Map, Object, String, PaymentMetricsService
 
 ### Community 71 - "Community 71"
 Cohesion: 0.09
 Nodes (3): LogoutRobot, SettingsRobot, MenuConfigurationTest
 
 ### Community 72 - "Community 72"
-Cohesion: 0.09
-Nodes (23): TaxComplianceController, Health, HealthIndicator, KitchenTicketFormatter, ServerInfoHealthIndicator, Override, EasebuzzProperties, List (+15 more)
+Cohesion: 0.07
+Nodes (30): TaxComplianceController, Health, HealthIndicator, HttpHeaders, KitchenTicketFormatter, ServerInfoHealthIndicator, OtpRequest, OtpRequestRepository (+22 more)
 
 ### Community 73 - "Community 73"
 Cohesion: 0.09
 Nodes (23): angularCompilerOptions, strictInjectionParameters, strictInputAccessModifiers, strictTemplates, compileOnSave, compilerOptions, declaration, esModuleInterop (+15 more)
 
 ### Community 74 - "Community 74"
-Cohesion: 0.14
-Nodes (27): cleanup(), clearScrollY(), clearSession(), copyToClipboard(), desc(), handleClick(), handleKeyDown(), handleMouseMove() (+19 more)
+Cohesion: 0.44
+Nodes (7): PaymentMetricsController, GetMapping, List, Map, Object, ResponseEntity, String
 
 ### Community 75 - "Community 75"
 Cohesion: 0.16
 Nodes (22): ApiEndpoints, BillAmounts, BillIds, Categories, Dates, DeepLinks, DeviceDimensions, DiscountCodes (+14 more)
 
 ### Community 76 - "Community 76"
-Cohesion: 0.09
-Nodes (52): LocalBusinessDetail, LocalBusinessListItem, AdminBusinessDetail, AdminBusinessListItem, AdminCommission, AdminDashboardSummary, AdminSettlement, AdminTransaction (+44 more)
+Cohesion: 0.10
+Nodes (42): LocalBusinessDetail, LocalBusinessListItem, AdminBusinessDetail, AdminBusinessListItem, AdminCommission, AdminDashboardSummary, AdminSettlement, AdminTransaction (+34 more)
 
 ### Community 77 - "Community 77"
 Cohesion: 0.06
 Nodes (4): MenuConfigUITest, HomeRobot, SearchRobot, NewBillRobot
 
 ### Community 78 - "Community 78"
-Cohesion: 0.07
-Nodes (35): PaymentMetricsController, PaymentRoutingController, EasebuzzWebhookEvent, EasebuzzWebhookEventRepository, BigDecimal, List, Long, Object (+27 more)
+Cohesion: 0.28
+Nodes (9): EasebuzzWebhookEvent, EasebuzzWebhookEventRepository, BigDecimal, List, Long, Object, Optional, Query (+1 more)
 
 ### Community 79 - "Community 79"
 Cohesion: 0.26
 Nodes (9): MarketplaceWebhookControllerTest, Empty, BeforeEach, Map, Object, ResponseEntity, String, SuppressWarnings (+1 more)
-
-### Community 80 - "Community 80"
-Cohesion: 0.11
-Nodes (21): Accessibility, Assess Animation Opportunities, code:css (/* Recommended: natural deceleration */), code:css (/* Prefer for simple, declarative animations */), code:javascript (/* Use for complex, interactive animations */), code:css (@media (prefers-reduced-motion: reduce) {), CSS Animations, Delight Moments (+13 more)
-
-### Community 82 - "Community 82"
-Cohesion: 0.10
-Nodes (21): Accessibility Resilience, Assess Hardening Needs, code:css (/* Single line with ellipsis */), code:javascript (// Debounce search input), code:css (/* Prevent flex items from overflowing */), code:jsx (// ❌ Bad: Assumes short English text), code:css (/* Use logical properties */), code:javascript (// ✅ Use Intl API for proper formatting) (+13 more)
 
 ### Community 83 - "Community 83"
 Cohesion: 0.09
@@ -932,28 +813,20 @@ Cohesion: 0.15
 Nodes (3): BillItemEntity, InvoiceFormatTest, InventoryConsumptionTest
 
 ### Community 87 - "Community 87"
-Cohesion: 0.27
-Nodes (6): Long, MultipartFile, RestaurantProfile, String, Transactional, AssetStorageService
-
-### Community 89 - "Community 89"
-Cohesion: 0.11
-Nodes (20): Animation Performance, Assess Performance Issues, code:html (<img), code:javascript (// Lazy load heavy component), code:css (@font-face {), code:javascript (// ❌ Bad: Alternating reads and writes (causes reflows)), code:css (/* ✅ GPU-accelerated (fast) */), code:javascript (// Efficiently detect when elements enter viewport) (+12 more)
-
-### Community 90 - "Community 90"
-Cohesion: 0.11
-Nodes (20): Clean Up, Code Quality, code:bash (slug=$(node {{scripts_path}}/critique-storage.mjs slug "<res), Color & Contrast, Content & Copy, Design System Discovery, Edge Cases & Error States, Final Verification (+12 more)
+Cohesion: 0.26
+Nodes (7): Path, Long, MultipartFile, RestaurantProfile, String, Transactional, AssetStorageService
 
 ### Community 91 - "Community 91"
-Cohesion: 0.26
-Nodes (20): DetailRow(), DetailRowLight(), FilterChip(), formatDate(), formatDateRangeHeadline(), HeaderCell(), ItemStatChip(), OrderDetailsDialog() (+12 more)
+Cohesion: 0.14
+Nodes (42): androidx, BillWithItems, Boolean, Color, com, Double, ImageVector, Int (+34 more)
 
 ### Community 92 - "Community 92"
 Cohesion: 0.23
 Nodes (5): BeforeEach, MarketplaceOrder, String, Test, MarketplaceOrderServiceTest
 
 ### Community 93 - "Community 93"
-Cohesion: 0.35
-Nodes (8): Pageable, SyncRepository, List, Long, Optional, Page, String, T
+Cohesion: 0.20
+Nodes (11): Pageable, SyncRepository, List, Long, Optional, Page, String, T (+3 more)
 
 ### Community 95 - "Community 95"
 Cohesion: 0.16
@@ -972,60 +845,48 @@ Cohesion: 0.19
 Nodes (14): BillPaymentServiceImpl, BillPayment, List, Long, PushSyncResponse, String, BillPayment, List (+6 more)
 
 ### Community 99 - "Community 99"
-Cohesion: 0.20
-Nodes (11): KhanaBookCard(), KhanaBookCardPreview(), KhanaBookGlassCard(), SectionLabel(), SettingsHomeSection(), ConfigCard(), ProfileCard(), SettingsGroupCard() (+3 more)
+Cohesion: 0.10
+Nodes (25): Boolean, Long, RestaurantProfileEntity, String, UserEntity, Boolean, Color, ImageVector (+17 more)
 
 ### Community 100 - "Community 100"
 Cohesion: 0.19
 Nodes (14): BillItemServiceImpl, BillItem, List, Long, PushSyncResponse, String, BillItem, List (+6 more)
 
 ### Community 101 - "Community 101"
-Cohesion: 0.19
-Nodes (9): KhanaDatePickerField(), ParchmentTextField(), KhanaBookInputField(), KhanaBookInputFieldPreview(), CallCustomerScreen(), outlinedSearchFieldColors(), KdsBillCard(), outlinedSearchFieldColors() (+1 more)
+Cohesion: 0.27
+Nodes (6): Modifier, SearchViewModel, KhanaDatePickerField(), ParchmentTextField(), CallCustomerScreen(), outlinedSearchFieldColors()
 
 ### Community 102 - "Community 102"
-Cohesion: 0.24
-Nodes (10): clearHandled(), cycleVariant(), isSessionHandled(), loadSession(), pickVariantContent(), queueCheckpoint(), readScrollY(), resumeSession() (+2 more)
+Cohesion: 0.33
+Nodes (8): BillServiceImpl, Bill, List, Long, Override, PushSyncResponse, String, Transactional
 
 ### Community 103 - "Community 103"
 Cohesion: 0.10
 Nodes (20): 2026-05-19 Session — Sandbox Testing & Marketplace Webhooks, 2026-05-21 Session — Typed Exceptions, Webhook HMAC Auth, Bug Fixes, 2026-05-26 Session (Afternoon) — Accessibility Overhaul, Route Animations, Shared Components, CSS Optimization, 2026-05-26 Session — Dashboard Layout, Sub-Merchant & Business Directory Modal Fixes, Order Management & Marketplace Setup UI Rebuilds, 2026-05-26 Session (Night) — UI/UX Rebuild Complete & Verified, 2026-05-27 Session — Design System Tokens Mapped & Tactile Polish, 2026-05-31 Session — Post-V2 Feature Enhancements & Critical Fixes, 2026-06-01 Session — Android Compose UI Rebuild to Match 20 Stitch Designs (+12 more)
 
-### Community 104 - "Community 104"
-Cohesion: 0.13
-Nodes (18): Accent Color Application, Accessibility, Assess Color Opportunity, Background & Surfaces, Balance & Refinement, Borders & Accents, code:json ({"id":"color-amount","kind":"range","min":0,"max":1,"step":0), Cohesion (+10 more)
-
-### Community 105 - "Community 105"
-Cohesion: 0.10
-Nodes (18): Accessibility Considerations, Anti-reflexes worth defending against, Classic Typography Principles, code:css (/* 1. Use font-display: swap for visibility */), code:css (/* Tabular numbers for data alignment */), code:css (/* Even out heading line lengths (browser picks better break), Fluid Type, Font Selection & Pairing (+10 more)
-
 ### Community 107 - "Community 107"
-Cohesion: 0.13
-Nodes (18): Alignment, Modifier, AuthViewModel, Dp, Modifier, String, Float, Int (+10 more)
+Cohesion: 0.20
+Nodes (18): AuthViewModel, Boolean, Composable, Modifier, String, Unit, AuthViewModel, KeyboardActions (+10 more)
 
 ### Community 108 - "Community 108"
-Cohesion: 0.22
-Nodes (27): CancelOrderDialog(), DetailRow(), DetailRowLight(), formatDateRangeHeadline(), getPayModeColor(), HeaderCell(), OnlineOrderDetailsDialog(), OnlineOrderDetailsPane() (+19 more)
+Cohesion: 0.09
+Nodes (60): androidx, Composable, Modifier, String, Unit, androidx, BillWithItems, Boolean (+52 more)
 
 ### Community 109 - "Community 109"
-Cohesion: 0.24
-Nodes (17): __dirname, ensureServerRunning(), globToRegex(), resolveFiles(), liveCli(), runScript(), safeParse(), scanForDrift() (+9 more)
+Cohesion: 0.41
+Nodes (6): List, Long, Map, Object, String, PaymentRoutingService
 
 ### Community 110 - "Community 110"
-Cohesion: 0.28
-Nodes (17): firstExisting(), getDesignSidecarCandidates(), getDesignSidecarPath(), getImpeccableDir(), getLegacyLiveAnnotationsDir(), getLegacyLiveConfigPath(), getLegacyLiveServerPath(), getLiveAnnotationsDir() (+9 more)
+Cohesion: 0.29
+Nodes (8): CounterResponse, List, Long, PushSyncResponse, RestaurantProfile, String, CounterResponse, RestaurantProfileService
 
 ### Community 111 - "Community 111"
-Cohesion: 0.11
+Cohesion: 0.10
 Nodes (7): BillEntity, KitchenPrintDispatchStatus, KitchenPrintQueueEntity, PrinterProfileEntity, KitchenPrintQueueManagerTest, KitchenTicketFormatterTest, BillWithItems
 
-### Community 112 - "Community 112"
-Cohesion: 0.12
-Nodes (17): 1. Context gathering, 2. Register, Absolute bans, code:bash (node {{scripts_path}}/load-context.mjs), code:bash (node {{scripts_path}}/pin.mjs <pin|unpin> <command>), Color, Commands, Copy (+9 more)
-
 ### Community 113 - "Community 113"
-Cohesion: 0.15
-Nodes (14): WebhookRetryConfig, EasebuzzPayout, PostConstruct, EasebuzzPayoutRepository, List, Long, Optional, String (+6 more)
+Cohesion: 0.17
+Nodes (11): Bill, Map, Object, String, Transactional, BeforeEach, Map, String (+3 more)
 
 ### Community 114 - "Community 114"
 Cohesion: 0.33
@@ -1036,32 +897,16 @@ Cohesion: 0.18
 Nodes (7): AuthResponse, GoogleLoginRequest, LoginRequest, Map, SignupRequest, String, AuthService
 
 ### Community 116 - "Community 116"
-Cohesion: 0.38
-Nodes (6): WebMvcConfig, Environment, InterceptorRegistry, ResourceHandlerRegistry, Override, WebMvcConfigurer
-
-### Community 117 - "Community 117"
-Cohesion: 0.12
-Nodes (3): BluetoothPrinterManager, onReceive(), Pair
+Cohesion: 0.29
+Nodes (10): androidx, Boolean, com, String, MutableState, PreviewView, CameraPreview(), OcrScannerScreen() (+2 more)
 
 ### Community 119 - "Community 119"
 Cohesion: 0.27
 Nodes (8): CreateEasebuzzOrderRequest, CreateEasebuzzOrderResponse, EasebuzzPaymentStatusResponse, EasebuzzRefundRequest, EasebuzzRefundResponse, EasebuzzRefundStatusResponse, EasebuzzSubMerchantStatusResponse, EasebuzzVerifyResponse
 
-### Community 121 - "Community 121"
-Cohesion: 0.11
-Nodes (16): 1. The Wall of Options, 2. The Memory Bridge, 3. The Hidden Navigation, 4. The Jargon Barrier, 5. The Visual Noise Floor, 6. The Inconsistent Pattern, 7. The Multi-Task Demand, 8. The Context Switch (+8 more)
-
-### Community 122 - "Community 122"
-Cohesion: 0.11
-Nodes (16): Cards Are Not Required, code:css (.card-container {), code:css (.icon-button {), Container Queries, Depth & Elevation, Grid Systems, Hierarchy Through Multiple Dimensions, Name Tokens Semantically (+8 more)
-
-### Community 123 - "Community 123"
-Cohesion: 0.11
-Nodes (16): Avoid Redundant Copy, Confirmation Dialogs: Use Sparingly, Consistency: The Terminology Problem, Don't Blame the User, Empty States Are Opportunities, Error Message Templates, Error Messages: The Formula, Form Instructions (+8 more)
-
 ### Community 125 - "Community 125"
-Cohesion: 0.27
-Nodes (16): appendOriginToDirective(), buildTagBlock(), commentClose(), commentOpen(), CONFIG_PATH, __dirname, findCspMetaTags(), getAttr() (+8 more)
+Cohesion: 0.36
+Nodes (7): PaymentRoutingController, GetMapping, Map, Object, PostMapping, ResponseEntity, String
 
 ### Community 126 - "Community 126"
 Cohesion: 0.09
@@ -1072,36 +917,12 @@ Cohesion: 0.14
 Nodes (3): RestaurantProfileEntity, OrderIdManagerTest, InvoiceFormatterTest
 
 ### Community 129 - "Community 129"
-Cohesion: 0.12
-Nodes (16): Animate enter states with @starting-style, Buttons must feel responsive, code:css (/* Interruptible - good for UI */), code:css (.button {), code:css (.toast {), code:jsx (// Legacy pattern (still works everywhere)), code:css (.button {), code:css (/* Bad */) (+8 more)
+Cohesion: 0.30
+Nodes (7): RefreshToken, RefreshTokenRepository, Long, Modifying, Optional, Query, String
 
 ### Community 130 - "Community 130"
 Cohesion: 0.16
 Nodes (6): ReportGenerator, DailySalesReport, MonthlySalesReport, OrderDetailRow, OrderLevelRow, TopSellingItem
-
-### Community 132 - "Community 132"
-Cohesion: 0.12
-Nodes (15): Alpha Is A Design Smell, Building Functional Palettes, Color & Contrast, Color Spaces: Use OKLCH, Contrast & Accessibility, Dangerous Color Combinations, Dark Mode Is Not Inverted Light Mode, Never Use Pure Gray or Pure Black (+7 more)
-
-### Community 133 - "Community 133"
-Cohesion: 0.15
-Nodes (15): Assess Current Layout, Break Card Grid Monotony, Choose the Right Layout Tool, code:json ({"id":"density","kind":"range","min":0.6,"max":1.4,"step":0.), code:json ({"id":"structure","kind":"steps","default":"grid","label":"S), Create Visual Rhythm, Establish a Spacing System, Improve Layout Systematically (+7 more)
-
-### Community 134 - "Community 134"
-Cohesion: 0.18
-Nodes (15): Cleanup, code:bash (node {{scripts_path}}/live.mjs), code:bash (node {{scripts_path}}/live-server.mjs stop), code:block2 (LOOP:), code:bash (node {{scripts_path}}/live-status.mjs), Exit, Handle `accept`, Handle `discard` (+7 more)
-
-### Community 135 - "Community 135"
-Cohesion: 0.12
-Nodes (15): Breakpoints: Content-Driven, code:css (/* Fine pointer (mouse, trackpad) */), code:css (body {), code:html (<meta name="viewport" content="width=device-width, initial-s), code:html (<img), code:html (<picture>), Detect Input Method, Not Just Screen Size, Layout Adaptation Patterns (+7 more)
-
-### Community 136 - "Community 136"
-Cohesion: 0.14
-Nodes (15): Anti-Goals, Brief Structure, Constraints, Content & Data, Design Direction, How to use the probes, Important limits, Interview cadence (+7 more)
-
-### Community 137 - "Community 137"
-Cohesion: 0.12
-Nodes (15): Accessibility & Inclusion, Brand & Personality, code:bash (node {{scripts_path}}/load-context.mjs), code:markdown (# Product), Interview mode, not confirmation mode, Minimum viable interview, Register (ask first; it shapes everything below), Step 1: Load current state (+7 more)
 
 ### Community 138 - "Community 138"
 Cohesion: 0.21
@@ -1123,33 +944,13 @@ Nodes (4): PrintDispatchMode, PrintDispatchResult, PrintRouter, PrintRouterTest
 Cohesion: 0.13
 Nodes (17): WebhookRetryJobRepository, List, Object, Query, String, WebhookRetryJob, Boolean, Function (+9 more)
 
-### Community 144 - "Community 144"
-Cohesion: 0.15
-Nodes (14): Assess Adaptation Challenge, Content Adaptation, Desktop Adaptation (Mobile → Desktop), Email Adaptation (Web → Email), Implement Adaptations, Layout Adaptation Techniques, Mobile Adaptation (Desktop → Mobile), Navigation Adaptation (+6 more)
-
-### Community 147 - "Community 147"
-Cohesion: 0.14
-Nodes (14): 1. Accessibility (A11y), 2. Performance, 3. Theming, 4. Responsive Design, 5. Anti-Patterns (CRITICAL), Anti-Patterns Verdict, Audit Health Score, Detailed Findings by Severity (+6 more)
-
-### Community 148 - "Community 148"
-Cohesion: 0.12
-Nodes (14): Brand bans (on top of the shared absolute bans), Brand permissions, Brand register, Color, Font selection procedure, Imagery, Layout, Motion (+6 more)
-
-### Community 149 - "Community 149"
-Cohesion: 0.16
-Nodes (14): Apply Clarity Principles, Assess Current Copy, Button & CTA Text, Confirmation Dialogs, Empty States, Error Messages, Form Labels & Instructions, Help Text & Tooltips (+6 more)
-
-### Community 150 - "Community 150"
-Cohesion: 0.12
-Nodes (14): 10. Help and Documentation, 1. Visibility of System Status, 2. Match Between System and Real World, 3. User Control and Freedom, 4. Consistency and Standards, 5. Error Prevention, 6. Recognition Rather Than Recall, 7. Flexibility and Efficiency of Use (+6 more)
-
 ### Community 153 - "Community 153"
-Cohesion: 0.20
-Nodes (16): KhanaBookSelectionDialog(), KhanaBookSelectionDialogPreview(), SelectionDialogOption, DetailRow(), Error, formatTimestamp(), Loading, MarketplaceFilter (+8 more)
+Cohesion: 0.08
+Nodes (61): Boolean, Long, Set, SharedFlow, StateFlow, String, android, androidx (+53 more)
 
 ### Community 154 - "Community 154"
-Cohesion: 0.17
-Nodes (23): getLegacyLiveSessionsDir(), readLiveServerInfo(), completeCli(), completeThroughServer(), parseArgs(), readServerInfo(), parseArgs(), resumeCli() (+15 more)
+Cohesion: 0.29
+Nodes (6): TokenBlocklistRepository, Modifying, Query, Transactional, Scheduled, TokenBlocklistCleanupService
 
 ### Community 155 - "Community 155"
 Cohesion: 0.24
@@ -1160,7 +961,7 @@ Cohesion: 0.26
 Nodes (4): Long, BeforeEach, Test, JwtUtilityTest
 
 ### Community 157 - "Community 157"
-Cohesion: 0.17
+Cohesion: 0.18
 Nodes (12): EntityNotFoundException, BigDecimal, List, Long, Map, Object, String, Transactional (+4 more)
 
 ### Community 158 - "Community 158"
@@ -1172,36 +973,36 @@ Cohesion: 0.14
 Nodes (5): NetworkModule, ConnectionStatus, NetworkMonitor, onAvailable(), onLost()
 
 ### Community 160 - "Community 160"
-Cohesion: 0.11
-Nodes (7): String, String, DbCheck, GlobalCrashHandler, initialize(), KeystoreBackedPreferences, QuickDbCheck
+Cohesion: 0.14
+Nodes (5): String, String, DbCheck, KeystoreBackedPreferences, QuickDbCheck
 
 ### Community 161 - "Community 161"
 Cohesion: 0.23
 Nodes (8): AttemptingPush, ClearingData, Idle, LoggedOut, LogoutState, LogoutViewModel, UnsyncedDataSummary, WarningOfflineData
 
 ### Community 162 - "Community 162"
-Cohesion: 0.16
-Nodes (5): Boolean, BluetoothDevice, PrinterProfileEntity, PrinterRole, RestaurantProfileEntity
+Cohesion: 0.10
+Nodes (12): Boolean, Context, Float, RestaurantProfileEntity, Set, StateFlow, Uri, BluetoothDevice (+4 more)
 
 ### Community 163 - "Community 163"
 Cohesion: 0.14
 Nodes (13): 18.10 Error Handling in POS, 18.1 Sub-merchant Onboarding from POS, 18.2 KYC Status Check, 18.3 KYC Resubmission, 18.4 Transactions — Payment Initiation, 18.5 Transactions — Status Tracking, 18.6 Transaction History, 18.7 Refunds — Raising (+5 more)
 
 ### Community 165 - "Community 165"
-Cohesion: 0.35
-Nodes (8): AccessDeniedHandler, AuthenticationEntryPoint, CorsConfigurationSource, HttpSecurity, SecurityConfig, SecurityFilterChain, Bean, PasswordEncoder
+Cohesion: 0.05
+Nodes (35): AccessDeniedHandler, Context, Application, AuthenticationEntryPoint, CacheManager, CacheConfig, JacksonConfig, OpenApiConfig (+27 more)
 
 ### Community 166 - "Community 166"
 Cohesion: 0.24
 Nodes (10): RestaurantProfileController, RestaurantProfileDTO, CounterResponse, GetMapping, List, Long, PostMapping, PushSyncResponse (+2 more)
 
 ### Community 167 - "Community 167"
-Cohesion: 0.29
-Nodes (5): BeforeEach, Map, String, Test, EasebuzzWebhookTest
+Cohesion: 0.27
+Nodes (4): CommissionReportPageComponent, CommissionRow, CommissionSummary, CommissionReport
 
 ### Community 168 - "Community 168"
-Cohesion: 0.23
-Nodes (8): DebugNDJSONLogger, Organization, Project, Team, Path, Map, Object, String
+Cohesion: 0.22
+Nodes (6): DebugNDJSONLogger, KhanaBookSaaSApplication, Map, Object, String, String
 
 ### Community 169 - "Community 169"
 Cohesion: 0.36
@@ -1212,24 +1013,20 @@ Cohesion: 0.15
 Nodes (6): Double, List, Long, MenuItemEntity, MenuWithVariants, kotlinx
 
 ### Community 171 - "Community 171"
-Cohesion: 0.22
-Nodes (14): applyParamDefaults(), applyParamValue(), closedClipPath(), closeTunePopover(), getVisibleVariantEl(), hideParamsPanel(), openTunePopover(), parseVariantParams() (+6 more)
+Cohesion: 0.36
+Nodes (6): EasebuzzPayout, EasebuzzPayoutRepository, List, Long, Optional, String
 
 ### Community 174 - "Community 174"
-Cohesion: 0.12
-Nodes (16): 1. Read the screenshot (if present), 2. Wrap the element, 3. Load the action's reference, 5. Apply the freeform prompt (if present), 6. Write all variants in a single edit, 7. Parameters (composition-sized, 0–4 per variant), 8. Signal done, Aborting an in-flight session (+8 more)
-
-### Community 175 - "Community 175"
-Cohesion: 0.20
-Nodes (12): Assess Current Typography, code:json ({"id":"scale","kind":"range","min":0.85,"max":1.3,"step":0.0), Establish Hierarchy, Fix Readability, Font Selection, Improve Typography Systematically, Live-mode signature params, Plan Typography Improvements (+4 more)
+Cohesion: 0.40
+Nodes (6): Bill, List, Long, PushSyncResponse, String, BillService
 
 ### Community 176 - "Community 176"
-Cohesion: 0.35
-Nodes (12): buildTargetNames(), cleanSkillsLock(), cleanup(), DEPRECATED_NAMES, findProjectRoot(), findSkillsDirs(), HARNESS_DIRS, isImpeccableSkill() (+4 more)
+Cohesion: 0.36
+Nodes (6): BigDecimal, Long, Map, Object, String, FinancingService
 
 ### Community 177 - "Community 177"
-Cohesion: 0.40
-Nodes (12): isMainModule(), kebab(), listSnapshotsForSlug(), main(), nowFilenameStamp(), parseFrontmatter(), readLatestSnapshot(), readTrend() (+4 more)
+Cohesion: 0.33
+Nodes (7): BillingViewModel, BillWithItems, Modifier, SearchViewModel, KdsBillCard(), outlinedSearchFieldColors(), ReprintKdsScreen()
 
 ### Community 178 - "Community 178"
 Cohesion: 0.29
@@ -1247,13 +1044,9 @@ Nodes (18): CustomerProfileRepository, BigDecimal, CustomerProfile, List, Long, 
 Cohesion: 0.10
 Nodes (19): 1️⃣ Link format, 2️⃣ Using badges, 3️⃣ Badge caption customization, 4️⃣ Quick checklist, 5️⃣ Real‑world example (for the server you just set up), Basic badge markdown, code:block1 (https://replit.com/integrations?mcp={payload}), code:json ({) (+11 more)
 
-### Community 182 - "Community 182"
-Cohesion: 0.15
-Nodes (11): code:block1 (Before: transition: all 300ms), code:css (.item {), Debugging Animations, Design Engineering, Frame-by-frame inspection, Initial Response, Review Checklist, Review Format (Required) (+3 more)
-
 ### Community 183 - "Community 183"
-Cohesion: 0.26
-Nodes (12): beginEditPin(), cancelEditingPin(), clearAnnotations(), finalizeEditingPin(), localCoords(), onAnnotDown(), onAnnotInputKey(), onAnnotMove() (+4 more)
+Cohesion: 0.28
+Nodes (7): BillingViewModel, Modifier, SearchViewModel, SettingsViewModel, String, outlinedSearchFieldColors(), SearchScreen()
 
 ### Community 184 - "Community 184"
 Cohesion: 0.32
@@ -1279,33 +1072,21 @@ Nodes (11): assets, ddd, fr, h, ip, layers, markers, nm (+3 more)
 Cohesion: 0.17
 Nodes (11): 15. Security Considerations, 16. Database Schema (Key Tables), 17. Glossary, 1. Executive Summary, 20. Future Enhancements, 2. Business Problem & Opportunity, `easebuzz_sub_merchant`, KhanaBook Easebuzz Sub-Merchant Business Model — v2 (+3 more)
 
-### Community 192 - "Community 192"
-Cohesion: 0.21
-Nodes (11): Amplify the Design, Assess Current State, Color Intensification, Composition Boldness, Motion & Animation, Plan Amplification, Register, Spatial Drama (+3 more)
-
-### Community 193 - "Community 193"
-Cohesion: 0.15
-Nodes (11): code:text (What should this be built on?), Craft Flow, Gates: do not compress, Production bar, Step 0: Project Foundation, Step 1: Shape the Design, Step 2: Load References, Step 3: Visual Direction & Assets (Harness-Gated) (+3 more)
-
-### Community 194 - "Community 194"
-Cohesion: 0.21
-Nodes (11): Assess Current State, Code Simplification, Content Simplification, Document Removed Complexity, Information Architecture, Interaction Simplification, Layout Simplification, Plan Simplification (+3 more)
-
 ### Community 195 - "Community 195"
-Cohesion: 0.18
-Nodes (12): AuthViewModel, KhanaBookLoadingOverlay(), LoadingType, KhanaBookSnackbar(), KhanaBookSnackbarHost(), KhanaSnackbarVisuals, KhanaToast, KindStyle (+4 more)
+Cohesion: 0.42
+Nodes (7): KhanaBookSnackbar(), KhanaBookSnackbarHost(), KhanaSnackbarVisuals, KhanaToast, KindStyle, styleFor(), ToastKind
 
 ### Community 196 - "Community 196"
-Cohesion: 0.28
-Nodes (11): detectCsp(), INLINE_HEADER_SIGNALS, LAYOUT_EXTS, MONOREPO_HELPER_SIGNALS, NUXT_ROUTE_RULES_SIGNALS, NUXT_SECURITY_SIGNALS, result, SCAN_EXTS (+3 more)
+Cohesion: 0.25
+Nodes (5): Alignment, Modifier, KhanaBookPurpleBackground(), SplashScreen(), SplashViewModel
 
 ### Community 197 - "Community 197"
-Cohesion: 0.27
-Nodes (8): DynamicPropertyRegistry, DynamicPropertySource, OtpRequest, BaseIntegrationTest, Long, String, User, UserRole
+Cohesion: 0.29
+Nodes (7): DynamicPropertyRegistry, DynamicPropertySource, BaseIntegrationTest, Long, String, User, UserRole
 
 ### Community 198 - "Community 198"
-Cohesion: 0.11
-Nodes (23): BillDTO, BillController, BillServiceImpl, GetMapping, List, Long, PostMapping, PushSyncResponse (+15 more)
+Cohesion: 0.27
+Nodes (9): BillDTO, BillController, GetMapping, List, Long, PostMapping, PushSyncResponse, ResponseEntity (+1 more)
 
 ### Community 199 - "Community 199"
 Cohesion: 0.27
@@ -1347,10 +1128,6 @@ Nodes (7): BigDecimal, Long, Map, Object, String, Transactional, InstantSettleme
 Cohesion: 0.21
 Nodes (5): MerchantCustomerOrderDetailResponse, MerchantCustomerOrderItem, MerchantCustomerOrderSummaryResponse, UpdateCustomerOrderStatusRequest, StorefrontOrderRepository
 
-### Community 209 - "Community 209"
-Cohesion: 0.23
-Nodes (10): Assess Current State, Color Refinement, Composition Refinement, Motion Reduction, Plan Refinement, Refine the Design, Register, Simplification (+2 more)
-
 ### Community 210 - "Community 210"
 Cohesion: 0.17
 Nodes (10): Build And Upload, code:properties (RELEASE_VERSION_CODE=2), code:powershell (.\gradlew.bat :app:compileReleaseKotlin), code:powershell (.\gradlew.bat :app:bundleRelease), Functional Release Test, Permissions And Policy, Play Store Release Checklist, Post-Upload (+2 more)
@@ -1360,28 +1137,16 @@ Cohesion: 0.18
 Nodes (10): code:block47 (1. Create sub-merchant draft in local DB), code:block48 (Customer pays via Android POS), Easebuzz Sub-Merchant & Payment API Reference, Error Handling Pattern, ID vs Key vs Email: Lookup Identifier Reference, Our Backend Endpoints, Payment & Refund Flow, Sub-Merchant Onboarding Flow (+2 more)
 
 ### Community 216 - "Community 216"
-Cohesion: 0.08
-Nodes (26): checks, labels, stored, today, values, CommissionConfigPageComponent, CommissionEditDialogComponent, CommissionRecord (+18 more)
+Cohesion: 0.09
+Nodes (17): CommissionConfigPageComponent, CommissionEditDialogComponent, CommissionRecord, OnlineView, OrderTab, EmptyStateComponent, ErrorStateComponent, formatAge() (+9 more)
 
 ### Community 217 - "Community 217"
 Cohesion: 0.08
 Nodes (23): 10. Unified Commerce Hub, 11. Customer Data Platform (CDP) Lite, 12. Developer Ecosystem & Marketplace, 1. Payment Success Rate Dashboard, 2. Refund Automation Toolkit, 3. Webhook Reliability Suite, 4. Sub-Merchant Onboarding Accelerator, 5. Instant Settlements Marketplace (+15 more)
 
-### Community 218 - "Community 218"
-Cohesion: 0.17
-Nodes (10): After This File, code:text (Asset production will work better as a scoped subagent job. ), Codex: Visual Direction & Asset Production, Four stop points before code, Step A: Explore Directions with the User, Step B: Generate the Brand Palette First, Step C: Generate 1-3 Visual Mocks Against the Palette, Step D: Approval Loop (+2 more)
-
-### Community 219 - "Community 219"
-Cohesion: 0.17
-Nodes (10): code:css (/* Quart out - smooth, refined (recommended default) */), code:css (/* Define animations normally */), Duration: The 100/300/500 Rule, Easing: Pick the Right Curve, Motion Design, Perceived Performance, Performance, Premium Motion Materials (+2 more)
-
 ### Community 220 - "Community 220"
-Cohesion: 0.21
-Nodes (21): Color, com, HomeStats, Int, Modifier, String, Unit, StatItem() (+13 more)
-
-### Community 221 - "Community 221"
-Cohesion: 0.36
-Nodes (10): __dirname, findHarnessDirs(), findProjectRoot(), generatePinnedSkill(), HARNESS_DIRS, loadCommandMetadata(), pin(), root (+2 more)
+Cohesion: 0.18
+Nodes (27): Boolean, Color, com, HomeStats, ImageVector, Int, List, Modifier (+19 more)
 
 ### Community 223 - "Community 223"
 Cohesion: 0.24
@@ -1420,24 +1185,16 @@ Cohesion: 0.05
 Nodes (22): AppComponent, fadeSlide, appConfig, routes, AuthService, errorInterceptor(), jwtInterceptor(), authGuard() (+14 more)
 
 ### Community 236 - "Community 236"
-Cohesion: 0.23
-Nodes (8): KhanaBookSwitch(), DashboardLinkCard(), PaymentConfigView(), PaymentToggle(), PlatformToggle(), LookupResult, LookupUiState, TaxConfigView()
-
-### Community 237 - "Community 237"
-Cohesion: 0.18
-Nodes (9): 1. Impatient Power User: "Alex", 2. Confused First-Timer: "Jordan", 3. Accessibility-Dependent User: "Sam", 4. Deliberate Stress Tester: "Riley", 5. Distracted Mobile User: "Casey", code:block1 (### [Role]: "[Name]"), Persona-Based Design Testing, Project-Specific Personas (+1 more)
-
-### Community 238 - "Community 238"
-Cohesion: 0.18
-Nodes (9): Color, Components, Layout, Motion, Product bans (on top of the shared absolute bans), Product permissions, Product register, The product slop test (+1 more)
+Cohesion: 0.08
+Nodes (21): RestaurantProfileEntity, RestaurantProfileEntity, SettingsViewModel, AuthViewModel, RestaurantProfileEntity, SettingsViewModel, RestaurantProfileEntity, KhanaBookCard() (+13 more)
 
 ### Community 242 - "Community 242"
 Cohesion: 0.44
 Nodes (6): GstFssaiController, GetMapping, Map, Object, ResponseEntity, String
 
 ### Community 243 - "Community 243"
-Cohesion: 0.33
-Nodes (6): LocalDate, RestaurantProfile, Scheduled, String, Transactional, ComplianceAlertService
+Cohesion: 0.28
+Nodes (7): RestaurantProfileRepository, LocalDate, RestaurantProfile, Scheduled, String, Transactional, ComplianceAlertService
 
 ### Community 244 - "Community 244"
 Cohesion: 0.27
@@ -1448,20 +1205,20 @@ Cohesion: 0.35
 Nodes (5): BeforeEach, Bill, Long, Test, BillServiceTest
 
 ### Community 246 - "Community 246"
-Cohesion: 0.16
-Nodes (6): ApplicationArguments, ApplicationRunner, KhanaBookSaaSApplication, TokenRevocationCacheInitializer, String, Override
-
-### Community 248 - "Community 248"
-Cohesion: 0.22
-Nodes (9): code:js (// Bad: triggers recalc on all children), code:jsx (// NOT hardware accelerated (convenient but drops frames und), code:js (element.animate([{ clipPath: 'inset(0 0 100% 0)' }, { clipPa), CSS animations beat JS under load, CSS variables are inheritable, Framer Motion hardware acceleration caveat, Only animate transform and opacity, Performance Rules (+1 more)
+Cohesion: 0.25
+Nodes (4): ApplicationArguments, ApplicationRunner, TokenRevocationCacheInitializer, Override
 
 ### Community 249 - "Community 249"
-Cohesion: 0.33
-Nodes (7): Loading, NavigateToAppLock, NavigateToInitialSync, NavigateToLogin, NavigateToMain, SplashState, SplashViewModel
+Cohesion: 0.35
+Nodes (9): StateFlow, ViewModel, Loading, NavigateToAppLock, NavigateToInitialSync, NavigateToLogin, NavigateToMain, SplashState (+1 more)
 
 ### Community 250 - "Community 250"
 Cohesion: 0.22
 Nodes (8): Accessibility & Inclusion, Anti-references, Brand Personality, Design Principles, Product, Product Purpose, Register, Users
+
+### Community 251 - "Community 251"
+Cohesion: 0.36
+Nodes (6): Float, Int, TextUnit, scaled(), typographyForSdk(), Typography
 
 ### Community 253 - "Community 253"
 Cohesion: 0.38
@@ -1487,17 +1244,9 @@ Nodes (6): List, Long, PushSyncResponse, String, User, UserService
 Cohesion: 0.36
 Nodes (7): Error, Idle, InitialSyncState, InitialSyncViewModel, SessionExpired, Success, Syncing
 
-### Community 261 - "Community 261"
-Cohesion: 0.22
-Nodes (7): code:text (Use the provided crop as the approved visual reference.), Core Rule, Impeccable Asset Producer, Input Contract, Output Contract, Prompt Pattern, Workflow
-
-### Community 262 - "Community 262"
-Cohesion: 0.25
-Nodes (8): code:jsx (import { useSpring } from 'framer-motion';), code:js ({ type: "spring", duration: 0.5, bounce: 0.2 }), code:js ({ type: "spring", mass: 1, stiffness: 100, damping: 10 }), Interruptibility advantage, Spring Animations, Spring-based mouse interactions, Spring configuration, When to use springs
-
 ### Community 263 - "Community 263"
-Cohesion: 0.25
-Nodes (8): code:js (const timeTaken = new Date().getTime() - dragStartTime.curre), code:js (function onPress() {), Damping at boundaries, Friction instead of hard stops, Gesture and Drag Interactions, Momentum-based dismissal, Multi-touch protection, Pointer capture for drag
+Cohesion: 0.43
+Nodes (3): create(), createMockOkHttpClient(), start()
 
 ### Community 264 - "Community 264"
 Cohesion: 0.25
@@ -1607,17 +1356,13 @@ Nodes (7): database, entities, identityHash, setupQueries, version, views, forma
 Cohesion: 0.08
 Nodes (23): 10. Unified Commerce Hub, 11. Customer Data Platform (CDP) Lite, 12. Developer Ecosystem & Marketplace, 1. Payment Success Rate Dashboard, 2. Refund Automation Toolkit, 3. Webhook Reliability Suite, 4. Sub-Merchant Onboarding Accelerator, 5. Instant Settlements Marketplace (+15 more)
 
-### Community 291 - "Community 291"
-Cohesion: 0.22
-Nodes (7): Extract Flow, Step 1: Discover the Design System, Step 2: Identify Patterns, Step 3: Plan Extraction, Step 4: Extract & Enrich, Step 5: Migrate, Step 6: Document
-
 ### Community 293 - "Community 293"
-Cohesion: 0.37
-Nodes (11): ActionButtonsArea(), AmountDisplay(), EasebuzzDetailRow(), EasebuzzDivider(), EasebuzzPaymentScreen(), EasebuzzStatusGauge(), PaymentMethod, PaymentMethodCard() (+3 more)
+Cohesion: 0.20
+Nodes (22): android, BigDecimal, Boolean, com, ImageVector, Int, Long, Modifier (+14 more)
 
 ### Community 294 - "Community 294"
-Cohesion: 0.51
-Nodes (6): completionAckForAcceptResult(), completionTypeForAcceptResult(), buildPollReplyPayload(), pollCli(), postReply(), readServerInfo()
+Cohesion: 0.48
+Nodes (4): ItemVariantRepository, Long, Modifying, Query
 
 ### Community 295 - "Community 295"
 Cohesion: 0.33
@@ -1627,17 +1372,9 @@ Nodes (4): Bucket, String, BucketEntry, OtpRateLimiter
 Cohesion: 0.28
 Nodes (3): BeforeEach, Test, ChargebackPreventionServiceTest
 
-### Community 297 - "Community 297"
-Cohesion: 0.29
-Nodes (7): 3D transforms for depth, code:css (/* Works regardless of drawer height */), code:css (.wrapper {), CSS Transform Mastery, scale() scales children too, transform-origin, translateY with percentages
-
 ### Community 298 - "Community 298"
-Cohesion: 0.29
-Nodes (7): clip-path for Animation, code:css (/* Fully hidden from right */), Comparison sliders, Hold-to-delete pattern, Image reveals on scroll, Tabs with perfect color transitions, The inset shape
-
-### Community 299 - "Community 299"
-Cohesion: 0.29
-Nodes (7): 1. Should this animate at all?, 2. What is the purpose?, 3. What easing should it use?, 4. How fast should it be?, code:css (/* Strong ease-out for UI interactions */), Perceived performance, The Animation Decision Framework
+Cohesion: 0.47
+Nodes (3): Context, FlashlightInitializer, NetworkFlipperPlugin
 
 ### Community 300 - "Community 300"
 Cohesion: 0.43
@@ -1691,14 +1428,6 @@ Nodes (23): Already Done (Do NOT redo), Button Height, code:kotlin (// Standard 
 Cohesion: 0.35
 Nodes (9): CustomerDataController, GetMapping, List, Long, Map, Object, PostMapping, ResponseEntity (+1 more)
 
-### Community 316 - "Community 316"
-Cohesion: 0.29
-Nodes (7): append-arrays, append-string, code:bash (node {{scripts_path}}/detect-csp.mjs), code:ts (// Dev-only allowance so impeccable live mode can load. Guar), code:ts (// Dev-only allowance so impeccable live mode can load.), Consent prompt template, CSP detection (first-time only)
-
-### Community 318 - "Community 318"
-Cohesion: 0.50
-Nodes (4): OpenApiConfig, OpenAPI, SecurityScheme, Bean
-
 ### Community 319 - "Community 319"
 Cohesion: 0.28
 Nodes (9): Bill, Chargeback, List, Long, Map, Object, String, Transactional (+1 more)
@@ -1708,20 +1437,12 @@ Cohesion: 0.54
 Nodes (5): AdminSettlementResponse, AdminSettlementController, GetMapping, List, ResponseEntity
 
 ### Community 322 - "Community 322"
-Cohesion: 0.38
-Nodes (11): AboutAppView(), AboutInfoCard(), AboutInfoRow(), AboutLinkRow(), AppInfoSection(), FaqItem, FaqRow(), HairlineDivider() (+3 more)
+Cohesion: 0.23
+Nodes (18): Boolean, Color, com, ImageVector, Modifier, String, Unit, AboutAppView() (+10 more)
 
 ### Community 323 - "Community 323"
 Cohesion: 0.25
 Nodes (16): Float, String, InitialSyncViewModel, ErrorContent(), ErrorContentPurple(), InitialSyncScreen(), SessionExpiredContent(), SessionExpiredContentPurple() (+8 more)
-
-### Community 326 - "Community 326"
-Cohesion: 0.33
-Nodes (6): Asymmetric enter/exit timing, code:css (/* Release: fast */), Cohesion matters, Review your work the next day, The opacity + height combination, The Sonner Principles (Building Loved Components)
-
-### Community 327 - "Community 327"
-Cohesion: 0.33
-Nodes (6): Accessibility, code:css (@media (prefers-reduced-motion: reduce) {), code:jsx (const shouldReduceMotion = useReducedMotion();), code:css (@media (hover: hover) and (pointer: fine) {), prefers-reduced-motion, Touch device hover states
 
 ### Community 328 - "Community 328"
 Cohesion: 0.48
@@ -1747,13 +1468,9 @@ Nodes (6): 7. Post-Transaction Split — Create, code:json ({), code:json ({), E
 Cohesion: 0.34
 Nodes (9): RefundController, GetMapping, List, Long, Map, Object, PostMapping, ResponseEntity (+1 more)
 
-### Community 337 - "Community 337"
-Cohesion: 0.31
-Nodes (4): RestaurantProfileRepository, BeforeEach, Test, BillServiceImplTest
-
 ### Community 338 - "Community 338"
-Cohesion: 0.16
-Nodes (11): Boolean, com, HomeStats, Int, List, StateFlow, String, ComplianceAlert (+3 more)
+Cohesion: 0.18
+Nodes (10): Boolean, com, HomeStats, Int, List, SharedFlow, StateFlow, String (+2 more)
 
 ### Community 339 - "Community 339"
 Cohesion: 0.43
@@ -1770,10 +1487,6 @@ Nodes (4): isTablet(), rememberWindowSizeClass(), WindowSizeClass, WindowWidthSi
 ### Community 343 - "Community 343"
 Cohesion: 0.73
 Nodes (4): test-easebuzz-sandbox.sh script, http_get(), http_post(), http_put()
-
-### Community 344 - "Community 344"
-Cohesion: 0.60
-Nodes (3): JacksonConfig, Hibernate6Module, Bean
 
 ### Community 345 - "Community 345"
 Cohesion: 0.40
@@ -1847,18 +1560,6 @@ Nodes (5): 12. Refund API v2, code:json ({), code:json ({), Request, Response (S
 Cohesion: 0.40
 Nodes (5): 15. On-Demand Settlement APIs, code:json ({), code:json ({), Request, Response (Success)
 
-### Community 365 - "Community 365"
-Cohesion: 0.40
-Nodes (5): code:json ({), code:json ({), Drift-heal warning, First-time setup (config missing or invalid), Troubleshooting
-
-### Community 366 - "Community 366"
-Cohesion: 0.40
-Nodes (5): Handle fallback, Step 1: Identify where the element actually lives, Step 2: Show three variants in the DOM for preview, Step 3: On accept, write to true source, Step 4: On discard, clean up the served file
-
-### Community 367 - "Community 367"
-Cohesion: 0.40
-Nodes (5): 4. Plan three variants: identity first, then mode, then axes, Phase A: Extract the identity (non-skippable), Phase B: Pick mode (default vs departure), Phase C: Plan three variants, Phase D: Squint test
-
 ### Community 368 - "Community 368"
 Cohesion: 0.60
 Nodes (3): GoogleAuthConfig, GoogleIdTokenVerifier, Bean
@@ -1883,13 +1584,9 @@ Nodes (7): start-server-background.sh script, DB_PASSWORD, DB_URL, DB_USERNAME, 
 Cohesion: 0.10
 Nodes (20): 2026-05-19 Session — Sandbox Testing & Marketplace Webhooks, 2026-05-21 Session — Typed Exceptions, Webhook HMAC Auth, Bug Fixes, 2026-05-26 Session (Afternoon) — Accessibility Overhaul, Route Animations, Shared Components, CSS Optimization, 2026-05-26 Session — Dashboard Layout, Sub-Merchant & Business Directory Modal Fixes, Order Management & Marketplace Setup UI Rebuilds, 2026-05-26 Session (Night) — UI/UX Rebuild Complete & Verified, 2026-05-27 Session — Design System Tokens Mapped & Tactile Polish, 2026-05-31 Session — Post-V2 Feature Enhancements & Critical Fixes, 2026-06-01 Session — Android Compose UI Rebuild to Match 20 Stitch Designs (+12 more)
 
-### Community 376 - "Community 376"
-Cohesion: 0.60
-Nodes (3): candidates, detectorPath, __dirname
-
 ### Community 377 - "Community 377"
-Cohesion: 0.70
-Nodes (3): configValue(), isPlaceholder(), localProperty()
+Cohesion: 0.52
+Nodes (5): Boolean, String, configValue(), isPlaceholder(), localProperty()
 
 ### Community 378 - "Community 378"
 Cohesion: 0.50
@@ -1915,13 +1612,13 @@ Nodes (4): 7.1 KbookAdmin (Platform Operator), 7.2 Restaurant Owner (Business Us
 Cohesion: 0.50
 Nodes (4): 9.1 Hash Sequence Reference, 9.2 Backend-to-Easebuzz Flow, 9. API Orchestration, code:block5 (1. Android POS calls POST /api/v2/payments/easebuzz/create-o)
 
-### Community 387 - "Community 387"
-Cohesion: 0.42
-Nodes (7): AdminReportsController, GetMapping, List, Map, Object, ResponseEntity, String
+### Community 386 - "Community 386"
+Cohesion: 0.47
+Nodes (3): List, NavigationUtils, TabItem
 
-### Community 388 - "Community 388"
-Cohesion: 0.29
-Nodes (6): adapt, argumentHint, description, animate, argumentHint, description
+### Community 387 - "Community 387"
+Cohesion: 0.36
+Nodes (7): AdminReportsController, GetMapping, List, Map, Object, ResponseEntity, String
 
 ### Community 389 - "Community 389"
 Cohesion: 0.60
@@ -1991,97 +1688,17 @@ Nodes (4): vercel-composition-patterns, computedHash, source, sourceType
 Cohesion: 0.50
 Nodes (4): vercel-react-native, computedHash, source, sourceType
 
+### Community 406 - "Community 406"
+Cohesion: 0.19
+Nodes (5): KatalonHelper, Organization, Project, Team, TestListener
+
 ### Community 407 - "Community 407"
 Cohesion: 0.60
 Nodes (3): ChangePasswordRequest, PasswordResetOtpRequest, ResetPasswordRequest
 
-### Community 415 - "Community 415"
-Cohesion: 0.25
-Nodes (9): InvoiceController, Bill, BillItem, GetMapping, List, Long, ResponseEntity, RestaurantProfile (+1 more)
-
-### Community 416 - "Community 416"
-Cohesion: 0.67
-Nodes (3): audit, argumentHint, description
-
-### Community 417 - "Community 417"
-Cohesion: 0.29
-Nodes (6): craft, argumentHint, description, layout, argumentHint, description
-
-### Community 418 - "Community 418"
-Cohesion: 0.67
-Nodes (3): clarify, argumentHint, description
-
-### Community 419 - "Community 419"
-Cohesion: 0.67
-Nodes (3): colorize, argumentHint, description
-
-### Community 420 - "Community 420"
-Cohesion: 0.29
-Nodes (9): Boolean, DeleteMapping, Long, Map, Object, PutMapping, String, Transactional (+1 more)
-
-### Community 421 - "Community 421"
-Cohesion: 0.67
-Nodes (3): critique, argumentHint, description
-
-### Community 422 - "Community 422"
-Cohesion: 0.67
-Nodes (3): delight, argumentHint, description
-
-### Community 423 - "Community 423"
-Cohesion: 0.67
-Nodes (3): distill, argumentHint, description
-
-### Community 424 - "Community 424"
-Cohesion: 0.67
-Nodes (3): document, argumentHint, description
-
-### Community 425 - "Community 425"
-Cohesion: 0.67
-Nodes (3): extract, argumentHint, description
-
-### Community 426 - "Community 426"
-Cohesion: 0.67
-Nodes (3): harden, argumentHint, description
-
 ### Community 427 - "Community 427"
 Cohesion: 0.10
 Nodes (19): 1️⃣ Link format, 2️⃣ Using badges, 3️⃣ Badge caption customization, 4️⃣ Quick checklist, 5️⃣ Real‑world example (for the server you just set up), Basic badge markdown, code:block1 (https://replit.com/integrations?mcp={payload}), code:json ({) (+11 more)
-
-### Community 428 - "Community 428"
-Cohesion: 0.67
-Nodes (3): live, argumentHint, description
-
-### Community 429 - "Community 429"
-Cohesion: 0.67
-Nodes (3): onboard, argumentHint, description
-
-### Community 430 - "Community 430"
-Cohesion: 0.67
-Nodes (3): optimize, argumentHint, description
-
-### Community 431 - "Community 431"
-Cohesion: 0.67
-Nodes (3): overdrive, argumentHint, description
-
-### Community 432 - "Community 432"
-Cohesion: 0.67
-Nodes (3): polish, argumentHint, description
-
-### Community 433 - "Community 433"
-Cohesion: 0.67
-Nodes (3): quieter, argumentHint, description
-
-### Community 434 - "Community 434"
-Cohesion: 0.67
-Nodes (3): shape, argumentHint, description
-
-### Community 435 - "Community 435"
-Cohesion: 0.67
-Nodes (3): teach, argumentHint, description
-
-### Community 436 - "Community 436"
-Cohesion: 0.67
-Nodes (3): typeset, argumentHint, description
 
 ### Community 529 - "Community 529"
 Cohesion: 0.30
@@ -2101,15 +1718,15 @@ Nodes (8): OnboardingController, GetMapping, Long, Map, Object, PostMapping, Res
 
 ### Community 533 - "Community 533"
 Cohesion: 0.40
-Nodes (11): Boolean, Dp, Int, Modifier, String, OtpInputRow(), OtpVerificationBody(), OtpVerificationHeader() (+3 more)
+Nodes (11): Boolean, Int, Modifier, String, Dp, OtpInputRow(), OtpVerificationBody(), OtpVerificationHeader() (+3 more)
 
 ### Community 534 - "Community 534"
 Cohesion: 0.33
 Nodes (7): UnifiedCommerceController, GetMapping, Long, Map, Object, ResponseEntity, String
 
 ### Community 535 - "Community 535"
-Cohesion: 0.14
-Nodes (14): RefreshToken, RefreshTokenRepository, Long, Modifying, Optional, Query, String, BeforeEach (+6 more)
+Cohesion: 0.27
+Nodes (7): BeforeEach, LoginRequest, Long, String, Test, User, AuthServiceImplTest
 
 ### Community 536 - "Community 536"
 Cohesion: 0.38
@@ -2121,35 +1738,23 @@ Nodes (14): Int, List, Modifier, String, EasebuzzPaymentRepository, EasebuzzKycS
 
 ### Community 538 - "Community 538"
 Cohesion: 0.14
-Nodes (10): BillPaymentRepository, ItemVariantRepository, StockLogRepository, Long, String, CategoryRepository, Long, Modifying (+2 more)
-
-### Community 539 - "Community 539"
-Cohesion: 0.33
-Nodes (8): ApiResponses, MenuExtractionController, Operation, GetMapping, Long, MultipartFile, PostMapping, ResponseEntity
+Nodes (10): BillItemRepository, BillPaymentRepository, StockLogRepository, BillItem, List, Long, Long, String (+2 more)
 
 ### Community 540 - "Community 540"
 Cohesion: 0.23
-Nodes (6): BackendErrorParser, BackendException, ErrorEnvelope, ParsedBackendError, SanitizedBackendError, SyncConflictException
+Nodes (4): BackendErrorParser, ErrorEnvelope, ParsedBackendError, SyncConflictException
 
 ### Community 544 - "Community 544"
-Cohesion: 0.24
-Nodes (4): AnomalyAlert, PaymentDashboardData, PaymentDashboardPageComponent, PaymentMethodMetric
+Cohesion: 0.07
+Nodes (17): checks, d, labels, stored, today, values, AnomalyAlert, PaymentDashboardData (+9 more)
 
 ### Community 545 - "Community 545"
 Cohesion: 0.38
 Nodes (6): Class, SyncMapper, S, List, SuppressWarnings, T
 
-### Community 546 - "Community 546"
-Cohesion: 0.60
-Nodes (3): CacheManager, CacheConfig, Bean
-
 ### Community 547 - "Community 547"
 Cohesion: 0.33
 Nodes (3): RefreshToken, Long, String
-
-### Community 552 - "Community 552"
-Cohesion: 0.33
-Nodes (6): EasebuzzSubMerchantRepository, EasebuzzSubMerchant, List, Long, Optional, String
 
 ### Community 553 - "Community 553"
 Cohesion: 0.34
@@ -2160,16 +1765,12 @@ Cohesion: 0.53
 Nodes (4): FoodType, OrderStatus, PaymentMode, PaymentStatus
 
 ### Community 555 - "Community 555"
-Cohesion: 0.10
-Nodes (22): OncePerRequestFilter, TokenBlocklistRepository, AppVersionFilter, RequestIdFilter, RequestTimingFilter, Modifying, Query, Transactional (+14 more)
-
-### Community 556 - "Community 556"
-Cohesion: 0.32
-Nodes (12): actionLabel(), buildConfigureRow(), buildConfirmedRow(), buildCyclingRow(), buildDots(), buildGeneratingRow(), buildSavingRow(), el() (+4 more)
+Cohesion: 0.15
+Nodes (16): OncePerRequestFilter, AppVersionFilter, RequestIdFilter, RequestTimingFilter, FilterChain, HttpServletRequest, HttpServletResponse, Override (+8 more)
 
 ### Community 557 - "Community 557"
-Cohesion: 0.16
-Nodes (12): BigDecimal, Long, Map, Object, String, Long, Map, Object (+4 more)
+Cohesion: 0.19
+Nodes (7): BigDecimal, Long, Map, Object, String, UnifiedCommerceService, ZoneId
 
 ### Community 558 - "Community 558"
 Cohesion: 0.36
@@ -2180,28 +1781,20 @@ Cohesion: 0.38
 Nodes (5): auth, token, type, name, url
 
 ### Community 561 - "Community 561"
-Cohesion: 0.21
+Cohesion: 0.22
 Nodes (9): RestaurantProfileRepository, List, Long, Modifying, Object, Optional, Query, RestaurantProfile (+1 more)
 
 ### Community 562 - "Community 562"
 Cohesion: 0.33
 Nodes (9): AuthViewModel, Int, List, MenuViewModel, NavController, AppBottomBar(), AppNavigationRail(), MainScreen() (+1 more)
 
-### Community 565 - "Community 565"
-Cohesion: 0.38
-Nodes (6): Async, BigDecimal, Long, String, Transactional, PostSplitService
-
 ### Community 566 - "Community 566"
 Cohesion: 0.31
 Nodes (8): ChargebackRepository, BigDecimal, Chargeback, List, Long, Object, Query, String
 
 ### Community 567 - "Community 567"
-Cohesion: 0.31
+Cohesion: 0.28
 Nodes (9): AdminBusinessDetailResponse, AdminBusinessListItemResponse, AdminDashboardSummaryResponse, BigDecimal, Cacheable, List, Long, Transactional (+1 more)
-
-### Community 568 - "Community 568"
-Cohesion: 0.29
-Nodes (4): Bucket, String, BucketEntry, LoginRateLimiter
 
 ### Community 570 - "Community 570"
 Cohesion: 0.14
@@ -2211,12 +1804,8 @@ Nodes (13): 18.10 Error Handling in POS, 18.1 Sub-merchant Onboarding from POS, 
 Cohesion: 0.71
 Nodes (6): ShimmerBox(), SkeletonCard(), SkeletonListItem(), SkeletonMenuScreen(), SkeletonReportScreen(), SkeletonTableRow()
 
-### Community 572 - "Community 572"
-Cohesion: 0.46
-Nodes (4): EasebuzzSubMerchantWebhookEvent, EasebuzzSubMerchantWebhookEventRepository, List, String
-
 ### Community 573 - "Community 573"
-Cohesion: 0.20
+Cohesion: 0.22
 Nodes (4): ItemVariantPullDto, MasterSyncResponse, MenuItemPullDto, SyncManagerTest
 
 ### Community 574 - "Community 574"
@@ -2227,17 +1816,9 @@ Nodes (7): RestaurantPaymentConfigController, GetMapping, Map, Object, PutMappin
 Cohesion: 0.17
 Nodes (11): 15. Security Considerations, 16. Database Schema (Key Tables), 17. Glossary, 1. Executive Summary, 20. Future Enhancements, 2. Business Problem & Opportunity, `easebuzz_sub_merchant`, KhanaBook Easebuzz Sub-Merchant Business Model — v2 (+3 more)
 
-### Community 576 - "Community 576"
-Cohesion: 0.50
-Nodes (4): MenuExtractionJob, MenuExtractionJobRepository, List, Long
-
 ### Community 577 - "Community 577"
-Cohesion: 0.26
-Nodes (7): JwtRequestFilter, FilterChain, HttpServletRequest, HttpServletResponse, String, BeforeEach, UserRepository
-
-### Community 578 - "Community 578"
-Cohesion: 0.71
-Nodes (5): ConnectedPrinterBanner(), DeviceRow(), PrinterConfigView(), PrinterOptionRow(), PrinterTargetCard()
+Cohesion: 0.24
+Nodes (5): BeforeEach, Long, String, Test, WebAdminControllerTest
 
 ### Community 579 - "Community 579"
 Cohesion: 0.18
@@ -2246,10 +1827,6 @@ Nodes (10): code:block47 (1. Create sub-merchant draft in local DB), code:block4
 ### Community 580 - "Community 580"
 Cohesion: 0.20
 Nodes (9): auth, bearer, type, info, description, name, schema, item (+1 more)
-
-### Community 581 - "Community 581"
-Cohesion: 0.48
-Nodes (4): BillItemRepository, BillItem, List, Long
 
 ### Community 582 - "Community 582"
 Cohesion: 0.20
@@ -2286,10 +1863,6 @@ Nodes (8): Accessibility & Inclusion, Anti-references, Brand Personality, Design
 ### Community 595 - "Community 595"
 Cohesion: 0.29
 Nodes (6): Color Hierarchy:, ── Design System Notes ──────────────────────────────────────────, Neutral    → Text hierarchy, backgrounds, dividers (bulk of UI), Primary 🟠  → CTAs, selected nav, brand marks (sparingly), Secondary 🟡 → Section titles, badges, highlights, secondary buttons (workhorse), Tertiary 🔵  → Info chips, data indicators, helper links (supporting)
-
-### Community 596 - "Community 596"
-Cohesion: 0.67
-Nodes (3): bolder, argumentHint, description
 
 ### Community 598 - "Community 598"
 Cohesion: 0.29
@@ -2431,10 +2004,6 @@ Nodes (4): 7.1 KbookAdmin (Platform Operator), 7.2 Restaurant Owner (Business Us
 Cohesion: 0.50
 Nodes (4): 9.1 Hash Sequence Reference, 9.2 Backend-to-Easebuzz Flow, 9. API Orchestration, code:block5 (1. Android POS calls POST /api/v2/payments/easebuzz/create-o)
 
-### Community 634 - "Community 634"
-Cohesion: 0.50
-Nodes (4): Beauty is leverage, Core Philosophy, Taste is trained, not innate, Unseen details compound
-
 ### Community 635 - "Community 635"
 Cohesion: 0.50
 Nodes (4): computedHash, source, sourceType, accesslint
@@ -2496,24 +2065,24 @@ Cohesion: 0.50
 Nodes (4): vercel-web-design, computedHash, source, sourceType
 
 ## Knowledge Gaps
-- **1667 isolated node(s):** `description`, `argumentHint`, `description`, `argumentHint`, `description` (+1662 more)
+- **1257 isolated node(s):** `Boolean`, `project_number`, `project_id`, `storage_bucket`, `version` (+1252 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **130 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **124 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `DatabaseModule` connect `Community 81` to `Community 131`, `Community 228`, `Community 229`, `Community 585`, `Community 559`, `Community 592`, `Community 208`, `Community 51`, `Community 117`, `Community 190`?**
-  _High betweenness centrality (0.033) - this node is a cross-community bridge._
-- **Why does `PaymentMethod` connect `Community 106` to `Community 43`?**
-  _High betweenness centrality (0.031) - this node is a cross-community bridge._
-- **Why does `NewBillRobot` connect `Community 77` to `Community 106`?**
-  _High betweenness centrality (0.030) - this node is a cross-community bridge._
-- **What connects `description`, `argumentHint`, `description` to the rest of the system?**
-  _1667 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `Intent` connect `Community 64` to `Community 322`, `Community 35`, `Community 164`, `Community 228`, `Community 101`, `Community 39`, `Community 236`, `Community 116`, `Community 311`, `Community 537`, `Community 221`, `Community 63`?**
+  _High betweenness centrality (0.039) - this node is a cross-community bridge._
+- **Why does `Date` connect `Community 12` to `Community 322`, `Community 101`, `Community 262`, `Community 108`, `Community 177`, `Community 183`, `Community 153`, `Community 91`?**
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
+- **Why does `ReprintKdsScreen()` connect `Community 177` to `Community 101`, `Community 107`, `Community 108`, `Community 12`, `Community 246`, `Community 63`?**
+  _High betweenness centrality (0.026) - this node is a cross-community bridge._
+- **What connects `Boolean`, `project_number`, `project_id` to the rest of the system?**
+  _1257 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Community 0` be split into smaller, more focused modules?**
+  _Cohesion score 0.08339029391660971 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.14838709677419354 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.11097308488612836 - nodes in this community are weakly interconnected._
-- **Should `Community 3` be split into smaller, more focused modules?**
   _Cohesion score 0.08333333333333333 - nodes in this community are weakly interconnected._
