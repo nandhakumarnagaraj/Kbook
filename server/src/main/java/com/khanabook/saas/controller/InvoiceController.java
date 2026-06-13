@@ -392,35 +392,6 @@ public class InvoiceController {
          .append("</div>");
 
         // ══════════════════════════════════════════════════════
-        // ADDRESSES: From / Bill To
-        // ══════════════════════════════════════════════════════
-        h.append("<div class=\"addr\">")
-         .append("<div><div class=\"ttl\">From</div>")
-         .append("<div class=\"ct\"><strong>").append(esc(shopName)).append("</strong><br>");
-        if (!address.isEmpty()) h.append(esc(address)).append("<br>");
-        if (!gstin.isEmpty()) h.append("GST: ").append(esc(gstin)).append("<br>");
-        if (!phone.isEmpty() || !email.isEmpty()) {
-            if (!phone.isEmpty()) h.append(esc(phone));
-            if (!phone.isEmpty() && !email.isEmpty()) h.append(" | ");
-            if (!email.isEmpty()) h.append(esc(email));
-        }
-        h.append("</div></div>")
-         .append("<div><div class=\"ttl\">Bill To</div>")
-         .append("<div class=\"ct\">");
-        if (!customerName.isEmpty()) {
-            h.append("<strong>").append(esc(customerName)).append("</strong><br>");
-        } else {
-            h.append("<strong>Guest</strong><br>");
-        }
-        if (!customerPhone.isEmpty()) h.append(esc(customerPhone)).append("<br>");
-        h.append("</div></div></div>");
-
-        // ══════════════════════════════════════════════════════
-        // DIVIDER
-        // ══════════════════════════════════════════════════════
-        h.append("<div class=\"sep\"></div>");
-
-        // ══════════════════════════════════════════════════════
         // ITEMS TABLE: Item, Qty, Total only
         // ══════════════════════════════════════════════════════
         h.append("<table><thead><tr>")
@@ -463,7 +434,7 @@ public class InvoiceController {
         // ══════════════════════════════════════════════════════
         h.append("<div class=\"sep\"></div>")
          .append("<div class=\"fmsg\">")
-         .append(esc(footer.isEmpty() ? "Thank you for your business!" : footer))
+         .append(esc(footer.isEmpty() ? "Thank you" : footer))
          .append("</div>");
 
         // ══════════════════════════════════════════════════════
