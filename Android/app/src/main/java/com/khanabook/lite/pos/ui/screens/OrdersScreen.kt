@@ -881,7 +881,7 @@ private fun OrderCard(
             ),
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) KbBrandSaffron.copy(alpha = 0.08f) else Color.White
+            containerColor = if (isSelected) KbBrandSaffron.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(
             width = if (isSelected) 1.5.dp else 1.dp,
@@ -944,7 +944,7 @@ private fun OrderCard(
                     ) {
                         Text(
                             text = timeAgo(row.salesDate),
-                            color = Color(0xFF6B7280),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall
                         )
                         OrderStatusChip(row.orderStatus)

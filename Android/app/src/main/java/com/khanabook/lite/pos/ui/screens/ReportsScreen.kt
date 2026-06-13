@@ -1483,7 +1483,7 @@ fun OrderDetailsDialog(
                         // ORDER ITEMS Card
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
                             shape = RoundedCornerShape(10.dp)
                         ) {
@@ -1552,7 +1552,7 @@ fun OrderDetailsDialog(
                         // PAYMENT DETAILS Card
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
                             shape = RoundedCornerShape(10.dp)
                         ) {

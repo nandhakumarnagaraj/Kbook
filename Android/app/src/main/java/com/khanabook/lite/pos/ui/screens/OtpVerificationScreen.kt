@@ -100,7 +100,7 @@ fun OtpInputRow(
                     modifier = Modifier.fillMaxSize().focusRequester(focusRequesters[i]),
                     textStyle = TextStyle(
                         textAlign = TextAlign.Center,
-                        color = Color(0xFF1F2937),
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = MaterialTheme.typography.headlineSmall.fontSize,
                         fontWeight = FontWeight.Bold
                     ),
@@ -202,7 +202,7 @@ fun PurpleFormSheet(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
-        color = Color(0xFFFFFFFF) // Pure white #FFFFFF
+        color = MaterialTheme.colorScheme.surface // Sheet surface
     ) {
         content()
     }
@@ -260,7 +260,7 @@ fun OtpVerificationBody(
         Text(
             text = "Enter OTP",
             style = MaterialTheme.typography.headlineMedium,
-            color = Color(0xFF1E293B),
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold
         )
 
@@ -269,7 +269,7 @@ fun OtpVerificationBody(
         Text(
             text = "We've sent a 6-digit code to $phoneNumber",
             style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF4B5563)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -298,7 +298,7 @@ fun OtpVerificationBody(
             colors = ButtonDefaults.buttonColors(
                 containerColor = KbBrandSaffron,
                 contentColor = Color.White,
-                disabledContainerColor = Color(0xFF9B9BAA), // Disabled grey #9B9BAA
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant, // Disabled bg
                 disabledContentColor = Color.White
             ),
             shape = RoundedCornerShape(14.dp), // Medium corner radius
@@ -329,7 +329,7 @@ fun OtpVerificationBody(
         }
         Text(
             text = resendText,
-            color = if (resendTimerSeconds > 0) Color(0xFF9CA3AF) else KbBrandSaffron,
+            color = if (resendTimerSeconds > 0) MaterialTheme.colorScheme.onSurfaceVariant else KbBrandSaffron,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier
                 .clickable(enabled = resendTimerSeconds == 0 && !isLoading) { onResendClick() }

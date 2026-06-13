@@ -569,7 +569,7 @@ private fun DisplayScaleView(
         // SECTION 1: TEXT SIZE
         Text(
             text = "TEXT SIZE",
-            color = Color(0xFFF97316),
+            color = KbBrandSaffron,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp

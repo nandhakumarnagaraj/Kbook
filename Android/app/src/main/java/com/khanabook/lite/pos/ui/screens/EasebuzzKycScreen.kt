@@ -62,6 +62,7 @@ import com.khanabook.lite.pos.data.repository.EasebuzzPaymentRepository
 import com.khanabook.lite.pos.data.remote.dto.EasebuzzSubMerchantStatusResponse
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
+import com.khanabook.lite.pos.ui.theme.KbBrandVioletBright
 import com.khanabook.lite.pos.ui.theme.KbGray300
 import com.khanabook.lite.pos.ui.theme.KbGray500
 import com.khanabook.lite.pos.ui.theme.KbOpacity
@@ -172,7 +173,7 @@ fun EasebuzzKycScreen(
             Text(
                 text = "Complete your KYC to start receiving payments",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF7C6FCD) // Violet accent matching spec
+                color = KbBrandVioletBright // Violet accent matching spec
             )
 
             Spacer(modifier = Modifier.height(spacing.mediumLarge))

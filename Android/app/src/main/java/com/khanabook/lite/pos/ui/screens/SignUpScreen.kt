@@ -207,7 +207,7 @@ fun SignUpScreen(
                     .fillMaxWidth()
                     .weight(1f),
                 shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
-                color = Color.White
+                color = MaterialTheme.colorScheme.surface
             ) {
                 val scrollState = rememberScrollState()
                 Column(
@@ -219,7 +219,7 @@ fun SignUpScreen(
                 ) {
                     Text(
                         text = "Create Your Restaurant",
-                        color = Color(0xFF0F172A),
+                        color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
@@ -229,7 +229,7 @@ fun SignUpScreen(
 
                     Text(
                         text = "Start billing in 2 minutes",
-                        color = Color(0xFF475569),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
@@ -240,7 +240,7 @@ fun SignUpScreen(
                     // RESTAURANT NAME
                     Text(
                         text = "RESTAURANT NAME",
-                        color = Color(0xFF475569),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.12.em
@@ -272,7 +272,7 @@ fun SignUpScreen(
                     // WHATSAPP NUMBER
                     Text(
                         text = "WHATSAPP NUMBER",
-                        color = Color(0xFF475569),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.12.em
@@ -310,8 +310,8 @@ fun SignUpScreen(
                                     },
                                     modifier = Modifier.height(36.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFF97316),
-                                        disabledContainerColor = Color(0xFFCBD5E1)
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
                                     ),
                                     shape = RoundedCornerShape(18.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp),
@@ -319,7 +319,7 @@ fun SignUpScreen(
                                 ) {
                                     Text(
                                         "Send OTP",
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onPrimary,
                                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                                     )
                                 }
@@ -350,7 +350,7 @@ fun SignUpScreen(
 
                         Text(
                             text = "ENTER OTP",
-                            color = Color(0xFF475569),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.12.em
@@ -390,7 +390,7 @@ fun SignUpScreen(
 
                             Text(
                                 text = resendText,
-                                color = if (otpTimer > 0) Color(0xFF94A3B8) else Color(0xFF7C3AED),
+                                color = if (otpTimer > 0) MaterialTheme.colorScheme.onSurfaceVariant else KbBrandVioletBright,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 modifier = Modifier
                                     .clickable(enabled = otpTimer == 0 && !isLoading) {
@@ -399,7 +399,7 @@ fun SignUpScreen(
                             )
 
                             Text(
-                                text = "Change number?", color = Color(0xFFF97316),
+                                text = "Change number?", color = MaterialTheme.colorScheme.primary,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                 modifier = Modifier
                                     .clickable(enabled = !isLoading) { otpSent = false }
@@ -412,7 +412,7 @@ fun SignUpScreen(
                     // PASSWORD
                     Text(
                         text = "PASSWORD",
-                        color = Color(0xFF475569),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.12.em
@@ -435,7 +435,7 @@ fun SignUpScreen(
                                 Icon(
                                     imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                     contentDescription = "Toggle Password",
-                                    tint = Color(0xFF94A3B8)
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         },
@@ -457,7 +457,7 @@ fun SignUpScreen(
                     // CONFIRM PASSWORD
                     Text(
                         text = "CONFIRM PASSWORD",
-                        color = Color(0xFF475569),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.12.em
@@ -481,7 +481,7 @@ fun SignUpScreen(
                                 Icon(
                                     imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                     contentDescription = "Toggle Confirm Password",
-                                    tint = Color(0xFF94A3B8)
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         },
@@ -505,7 +505,7 @@ fun SignUpScreen(
                             checked = agreedToTerms,
                             onCheckedChange = { agreedToTerms = it },
                             colors = CheckboxDefaults.colors(
-                                checkedColor = Color(0xFF7C3AED),
+                                checkedColor = KbBrandVioletBright,
                                 uncheckedColor = MaterialTheme.kbOutlineSubtle,
                                 checkmarkColor = Color.White
                             )
@@ -513,20 +513,20 @@ fun SignUpScreen(
                         val annotatedString = buildAnnotatedString {
                             append("I agree to ")
                             pushStringAnnotation(tag = "URL", annotation = "https://khanabook.com/legal-privacy.html")
-                            withStyle(style = SpanStyle(color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)) {
+                            withStyle(style = SpanStyle(color = KbBrandVioletBright, fontWeight = FontWeight.Bold)) {
                                 append("Terms")
                             }
                             pop()
                             append(" & ")
                             pushStringAnnotation(tag = "URL", annotation = "https://khanabook.com/legal-privacy.html")
-                            withStyle(style = SpanStyle(color = Color(0xFF7C3AED), fontWeight = FontWeight.Bold)) {
+                            withStyle(style = SpanStyle(color = KbBrandVioletBright, fontWeight = FontWeight.Bold)) {
                                 append("Privacy Policy")
                             }
                             pop()
                         }
                         ClickableText(
                             text = annotatedString,
-                            style = TextStyle(color = Color(0xFF4B5563), fontSize = 14.sp),
+                            style = TextStyle(color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp),
                             onClick = { offset ->
                                 annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
                                     .firstOrNull()?.let {
@@ -579,10 +579,10 @@ fun SignUpScreen(
                             .fillMaxWidth()
                             .height(56.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFormFilled) Color(0xFFF97316) else Color(0xFFCBD5E1),
-                            contentColor = Color.White,
-                            disabledContainerColor = Color(0xFFCBD5E1),
-                            disabledContentColor = Color.White
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         shape = RoundedCornerShape(14.dp),
                         enabled = isFormFilled
@@ -590,7 +590,7 @@ fun SignUpScreen(
                         if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 strokeWidth = 2.dp
                             )
                         } else {
@@ -610,12 +610,12 @@ fun SignUpScreen(
                     ) {
                         Text(
                             text = "Already have an account? ",
-                            color = Color(0xFF4B5563),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
                             text = "Sign In",
-                            color = Color(0xFF7C3AED),
+                            color = KbBrandVioletBright,
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.clickable { onLoginClick() }
                         )

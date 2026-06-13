@@ -1606,7 +1606,7 @@ fun ManualMenuView(
                     ) {
                         Text(
                             text = "CATEGORIES",
-                            color = Color(0xFF7C3AED), // Muted Purple
+                            color = KbBrandVioletBright, // Muted Purple
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.8.sp,
@@ -1746,9 +1746,9 @@ fun ManualMenuView(
                                     .fillMaxWidth()
                                     .height(52.dp)
                                     .padding(horizontal = 16.dp),
-                                border = BorderStroke(1.5.dp, Color(0xFFF97316)),
+                                border = BorderStroke(1.5.dp, KbBrandSaffron),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFF97316))
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = KbBrandSaffron)
                             ) {
                                 Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -1777,7 +1777,7 @@ fun ManualMenuView(
                     ) {
                         Text(
                             text = "ITEMS IN ${activeCategory?.name?.uppercase()}",
-                            color = Color(0xFF7C3AED),
+                            color = KbBrandVioletBright,
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.8.sp,
@@ -1838,8 +1838,8 @@ fun ManualMenuView(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(16.dp),
-                containerColor = Color(0xFFF97316),
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape
             ) {
                 Icon(Icons.Default.Add, "Add Item")
@@ -1982,7 +1982,7 @@ fun MenuItemRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val indicatorColor = if (item.foodType == "veg") Color(0xFF10B981) else Color(0xFFEF4444)
+                    val indicatorColor = if (item.foodType == "veg") KbSuccess else KbError
                     Box(
                         modifier = Modifier
                             .size(14.dp)

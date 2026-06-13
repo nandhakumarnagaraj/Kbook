@@ -407,11 +407,11 @@ fun HomeScreen(
                                         .border(1.dp, Color(0xFFF97316).copy(alpha = 0.5f), KbShape.Medium),
                                     shape = KbShape.Medium,
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFFFF7ED),
-                                        contentColor = Color(0xFFF97316)
+                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                        contentColor = MaterialTheme.colorScheme.primary
                                     )
                                 ) {
-                                    Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFFF97316))
+                                    Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                                     Spacer(Modifier.width(6.dp))
                                     Text("Menu", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 }
@@ -1157,7 +1157,7 @@ fun HomeActionGridCard(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .background(iconBgColor, CircleShape),
+                    .background(iconColor.copy(alpha = 0.14f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -1207,12 +1207,12 @@ private fun RestaurantStatusBanner(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(20.dp)
-                    .background(Color(0xFFE6F4EA), CircleShape)
+                    .background(KbSuccess.copy(alpha = 0.16f), CircleShape)
             ) {
                 Box(
                     modifier = Modifier
                         .size(10.dp)
-                        .background(Color(0xFF137333), CircleShape)
+                        .background(KbSuccess, CircleShape)
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
