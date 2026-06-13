@@ -1030,13 +1030,13 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/PaymentConfigSection.kt": {
-    "mtime": 1781354018.190839,
-    "ast_hash": "bb6336ce41a306e63058e981c4639158",
+    "mtime": 1781355296.7763333,
+    "ast_hash": "95f64209353277b2f5a8d708a82fbaea",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/PrinterConfigSection.kt": {
-    "mtime": 1781354744.8462512,
-    "ast_hash": "bd51a8d8726b72bed848bbd239e32827",
+    "mtime": 1781355296.7773416,
+    "ast_hash": "6d80c3dd05fb29e1ce7f5c346ed687cd",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/ReportsScreen.kt": {
@@ -1090,8 +1090,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/TaxConfigSection.kt": {
-    "mtime": 1781354012.2627263,
-    "ast_hash": "d1667bff453e475f8d14374585108c42",
+    "mtime": 1781355296.7783563,
+    "ast_hash": "b938d0c0c91733085aa9de427481dc42",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/theme/AdaptiveUtils.kt": {
@@ -2220,8 +2220,8 @@
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/sync/service/GenericSyncService.java": {
-    "mtime": 1780944673.2086086,
-    "ast_hash": "c43af72e7dfbed2944b62ed8037adc79",
+    "mtime": 1781355117.904556,
+    "ast_hash": "06784f99b46f8ed3d3b144e1518d1164",
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/util/DbCheck.java": {
