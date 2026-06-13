@@ -60,6 +60,8 @@ fun SettingsHomeSection(
                 .padding(horizontal = spacing.medium)
                 .verticalScroll(rememberScrollState())
         ) {
+            Spacer(modifier = Modifier.height(spacing.medium))
+
             // ── Inline Profile Card (only visible in wide screen pane) ──────────
             if (isWideScreen) {
                 ProfileCard(
