@@ -123,7 +123,7 @@ fun MainScreen(
                     onCallCustomer = onCallCustomer,
                     onMarketplaceOrders = onMarketplaceOrders,
                     onMenuClick = {
-                        val settingsIndex = visibleTabs.indexOfFirst { it.label == "Settings" }
+                        val settingsIndex = visibleTabs.indexOfFirst { it.label == "Profile" }
                         if (settingsIndex != -1) {
                             selectedTabIndex = settingsIndex
                         }
@@ -131,7 +131,7 @@ fun MainScreen(
                 )
                 "Orders" -> OrdersScreen(onBack = backToHome)
                 "Reports" -> ReportsScreen(onBack = backToHome)
-                "Settings" -> SettingsScreen(
+                "Profile" -> SettingsScreen(
                     onBack = backToHome,
                     navController = navController,
                     onScanClick = onScanClick,

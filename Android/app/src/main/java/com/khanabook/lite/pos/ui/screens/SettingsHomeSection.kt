@@ -67,13 +67,6 @@ fun SettingsHomeSection(
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            PriorityActionsStrip(
-                profile = profile,
-                onSectionSelected = onSectionSelected
-            )
-
-            Spacer(modifier = Modifier.height(spacing.medium))
-
             // ── Section: CONFIGURATION ─────────────────────────────────────────
             SectionLabel("CONFIGURATION")
             Spacer(modifier = Modifier.height(spacing.extraSmall))
@@ -114,19 +107,7 @@ fun SettingsHomeSection(
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            // ── Section: ACCOUNT SESSION ───────────────────────────────────────
-            SectionLabel("ACCOUNT SESSION")
-            Spacer(modifier = Modifier.height(spacing.extraSmall))
-
-            KhanaBookCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = spacing.extraSmall),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                LogoutSection(logoutViewModel)
-            }
+            LogoutSection(logoutViewModel)
             Spacer(modifier = Modifier.height(spacing.large))
         }
     }
@@ -144,115 +125,4 @@ private fun SectionLabel(text: String) {
         ),
         modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall)
     )
-}
-
-@Composable
-private fun PriorityActionsStrip(
-    profile: RestaurantProfileEntity?,
-    onSectionSelected: (String) -> Unit
-) {
-    val spacing = KhanaBookTheme.spacing
-    val paymentReady = profile?.upiEnabled == true || profile?.easebuzzEnabled == true
-    val printerReady = profile?.printerEnabled == true
-    val menuReady = !profile?.shopName.isNullOrBlank() && !profile?.shopAddress.isNullOrBlank()
-
-    Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-        SectionLabel("PRIORITY TASKS")
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(spacing.small)
-        ) {
-            PriorityActionCard(
-                modifier = Modifier.weight(1f),
-                title = "Menu",
-                subtitle = if (menuReady) "Branding looks ready" else "Finish shop details",
-                icon = Icons.Outlined.Store,
-                tone = if (menuReady) MaterialTheme.kbSecondary else KbBrandSaffron,
-                onClick = { onSectionSelected("shop") }
-            )
-            PriorityActionCard(
-                modifier = Modifier.weight(1f),
-                title = "Payments",
-                subtitle = if (paymentReady) "UPI or Easebuzz enabled" else "Connect payment methods",
-                icon = Icons.Outlined.CreditCard,
-                tone = if (paymentReady) KbSuccess else KbBrandSaffron,
-                onClick = { onSectionSelected("payment") }
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(spacing.small)
-        ) {
-            PriorityActionCard(
-                modifier = Modifier.weight(1f),
-                title = "Printing",
-                subtitle = if (printerReady) "Printer is connected" else "Set up receipt printing",
-                icon = Icons.Outlined.Print,
-                tone = if (printerReady) KbSuccess else KbWarning,
-                onClick = { onSectionSelected("printer") }
-            )
-            PriorityActionCard(
-                modifier = Modifier.weight(1f),
-                title = "Support",
-                subtitle = "Help, recovery & sync tools",
-                icon = Icons.Filled.Bolt,
-                tone = MaterialTheme.kbSecondary,
-                onClick = { onSectionSelected("help_support") }
-            )
-        }
-    }
-}
-
-@Composable
-private fun PriorityActionCard(
-    modifier: Modifier = Modifier,
-    title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    tone: androidx.compose.ui.graphics.Color,
-    onClick: () -> Unit
-) {
-    val spacing = KhanaBookTheme.spacing
-    KhanaBookCard(
-        modifier = modifier,
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
-    ) {
-        Column(
-            modifier = Modifier.padding(spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(spacing.small)
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(spacing.small), verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(tone.copy(alpha = KbOpacity.StatusBg), RoundedCornerShape(10.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    androidx.compose.material3.Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = tone,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        color = MaterialTheme.kbTextPrimary,
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                        maxLines = 1
-                    )
-                    Text(
-                        text = subtitle,
-                        color = MaterialTheme.kbTextSecondary,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2
-                    )
-                }
-            }
-        }
-    }
 }

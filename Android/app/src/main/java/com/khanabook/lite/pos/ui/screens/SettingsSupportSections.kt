@@ -770,24 +770,20 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
-        verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
+    Button(
+        onClick = { if (!isLoading) showConfirmDialog = true },
+        enabled = !isLoading,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = DangerRed,
+            disabledContainerColor = DangerRed.copy(alpha = 0.4f)
+        ),
+        shape = RoundedCornerShape(10.dp)
     ) {
-        Text("Account Session", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium)
-        Button(
-            onClick = { if (!isLoading) showConfirmDialog = true },
-            enabled = !isLoading,
-            modifier = Modifier.fillMaxWidth().height(40.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = DangerRed,
-                disabledContainerColor = DangerRed.copy(alpha = 0.4f)
-            ),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(iconSize.small))
-            Spacer(modifier = Modifier.width(spacing.small))
-            Text("Sign Out", style = MaterialTheme.typography.labelLarge)
-        }
+        Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(iconSize.small))
+        Spacer(modifier = Modifier.width(spacing.small))
+        Text("Sign Out", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
     }
 }
