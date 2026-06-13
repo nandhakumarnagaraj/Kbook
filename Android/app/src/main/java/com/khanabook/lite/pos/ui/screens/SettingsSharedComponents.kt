@@ -2,12 +2,15 @@ package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import androidx.compose.foundation.layout.Box
@@ -43,10 +47,23 @@ import java.text.SimpleDateFormat
  * A single grouped card that wraps multiple [SettingsGroupItem] rows separated by [HorizontalDivider].
  * All items in one section (e.g., CONFIGURATION) share this one card, matching the design mockup.
  */
+data class SettingsItemInfo(
+    val icon: ImageVector,
+    val title: String,
+    val subtitle: String,
+    val iconBg: Color,
+    val iconTint: Color,
+    val badgeText: String? = null
+)
+
+/**
+ * A single grouped card that wraps multiple [SettingsGroupItem] rows separated by [HorizontalDivider].
+ * All items in one section (e.g., CONFIGURATION) share this one card, matching the design mockup.
+ */
 @Composable
 fun SettingsGroupCard(
     modifier: Modifier = Modifier,
-    items: List<Triple<ImageVector, String, String>>,  // icon, title, subtitle
+    items: List<SettingsItemInfo>,
     onItemClick: (Int) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -57,7 +74,7 @@ fun SettingsGroupCard(
         border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
     ) {
         Column {
-            items.forEachIndexed { index, (icon, title, subtitle) ->
+            items.forEachIndexed { index, item ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -77,32 +94,49 @@ fun SettingsGroupCard(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1f)
                     ) {
-                        // Icon container
+                        // Icon container with custom bg color
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(KbBrandSaffron.copy(alpha = 0.12f), CircleShape),
+                                .background(item.iconBg, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = icon,
+                                imageVector = item.icon,
                                 contentDescription = null,
-                                tint = MaterialTheme.kbSecondary,
+                                tint = item.iconTint,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
                         Spacer(modifier = Modifier.size(spacing.medium))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = title,
+                                text = item.title,
                                 color = MaterialTheme.kbTextPrimary,
                                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
                             )
                             Text(
-                                text = subtitle,
+                                text = item.subtitle,
                                 color = MaterialTheme.kbTextSecondary,
                                 style = MaterialTheme.typography.bodySmall
                             )
+                            if (item.badgeText != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .padding(top = 4.dp)
+                                        .background(Color(0xFFFFF2E6), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = item.badgeText,
+                                        color = Color(0xFFEF4444),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                }
+                            }
                         }
                     }
                     Icon(
@@ -125,64 +159,125 @@ fun SettingsGroupCard(
 }
 
 @Composable
-fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?, lastSyncTimestamp: Long = 0L) {
+fun ProfileCard(
+    user: UserEntity?,
+    profile: RestaurantProfileEntity?,
+    lastSyncTimestamp: Long = 0L,
+    onEditClick: () -> Unit
+) {
     val displayName = profile?.shopName?.takeIf { it.isNotBlank() } ?: user?.name?.takeIf { it.isNotBlank() } ?: "Guest"
     val displayPhone = profile?.whatsappNumber?.takeIf { it.isNotBlank() } ?: user?.whatsappNumber ?: ""
     val spacing = KhanaBookTheme.spacing
     val syncLabel = remember(lastSyncTimestamp) {
         if (lastSyncTimestamp > 0L) {
-            "Last sync: " + SimpleDateFormat("dd MMM, hh:mm a", java.util.Locale.getDefault()).format(java.util.Date(lastSyncTimestamp))
+            "Synced " + SimpleDateFormat("dd MMM, h:mm a", java.util.Locale.getDefault()).format(java.util.Date(lastSyncTimestamp))
         } else "Not synced yet"
     }
 
-    // Inline profile — no card, matches mockup with avatar + info + green sync dot
-    Row(
+    val context = LocalContext.current
+    val logoModel = remember(profile) {
+        profile?.logoUrl?.takeIf { it.isNotBlank() }
+            ?: com.khanabook.lite.pos.domain.util.AppAssetStore.resolveAssetPath(profile?.logoPath)
+    }
+
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = spacing.medium, vertical = spacing.medium),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.08f)),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
     ) {
-        // Large circle avatar
-        Box(
+        Row(
             modifier = Modifier
-                .size(56.dp)
-                .background(KbBrandSaffron, CircleShape),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .padding(spacing.medium),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
-            Text(
-                text = displayName.take(1).uppercase(),
-                color = Color.White,
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-            )
-        }
-        Spacer(modifier = Modifier.size(spacing.medium))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = displayName,
-                color = MaterialTheme.kbTextPrimary,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-            )
-            if (displayPhone.isNotBlank()) {
-                Text(
-                    text = displayPhone,
-                    color = MaterialTheme.kbTertiary.copy(alpha = 0.85f),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-            // Sync indicator with green dot
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            // Rounded square avatar with green status indicator
+            Box(
+                modifier = Modifier.size(56.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(6.dp)
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(KbBrandSaffron),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!logoModel.isNullOrBlank()) {
+                        coil.compose.AsyncImage(
+                            model = coil.request.ImageRequest.Builder(context)
+                                .data(logoModel)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Shop Logo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = displayName.take(1).uppercase(),
+                            color = Color.White,
+                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                }
+                // Status dot (online/synced)
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
                         .background(KbSuccess, CircleShape)
+                        .border(2.dp, Color(0xFF0E0A22), CircleShape) // Dark indigo matching scaffold header gradient background
+                        .align(Alignment.BottomEnd)
                 )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = syncLabel,
-                    color = KbSuccess.copy(alpha = 0.75f),
-                    style = MaterialTheme.typography.labelSmall
+                    text = displayName,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
+                if (displayPhone.isNotBlank()) {
+                    Text(
+                        text = displayPhone,
+                        color = Color.White.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .background(KbSuccess, CircleShape)
+                    )
+                    Text(
+                        text = syncLabel,
+                        color = KbSuccess.copy(alpha = 0.9f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+
+            // Edit button
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable { onEditClick() }
+                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                    .background(Color.White.copy(alpha = 0.05f))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Edit",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                 )
             }
         }

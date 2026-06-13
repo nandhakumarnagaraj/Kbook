@@ -190,7 +190,15 @@ fun SettingsScreen(
             titleStyleCompact = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
             titleStyleExpanded = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
             headerContent = {
-                if (section == "help_support") {
+                if (section == "menu" && !isWideScreen) {
+                    val lastSyncTs = remember(section) { viewModel.getLastSyncTimestamp() }
+                    ProfileCard(
+                        user = currentUser,
+                        profile = profile,
+                        lastSyncTimestamp = lastSyncTs,
+                        onEditClick = { section = "shop" }
+                    )
+                } else if (section == "help_support") {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
