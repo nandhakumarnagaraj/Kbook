@@ -59,6 +59,8 @@ fun SettingsScreen(
     onScanClick: (String?) -> Unit = {},
     menuViewModel: MenuViewModel,
     onBottomBarVisibilityChange: (Boolean) -> Unit = {},
+    initialSection: String? = null,
+    onInitialSectionConsumed: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
     logoutViewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel = hiltViewModel()
@@ -66,6 +68,13 @@ fun SettingsScreen(
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     var section by rememberSaveable { mutableStateOf("menu") }
+    // Honor a one-shot request to open a specific section (e.g. Home "Menu" → Menu Configuration).
+    LaunchedEffect(initialSection) {
+        if (initialSection != null) {
+            section = initialSection
+            onInitialSectionConsumed()
+        }
+    }
     var helpSearchQuery by remember { mutableStateOf("") }
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout

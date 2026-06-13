@@ -20,11 +20,13 @@
     <color name="kb_saffron_900">#4A1D00</color>
     <color name="kb_saffron_950">#331200</color>
 
-    <!-- ── Named brand tokens ────────────────────────────────── -->
-    <color name="kb_brand_saffron">#C85A00</color>       <!-- Primary CTA -->
-    <color name="kb_brand_saffron_light">#E8832A</color> <!-- Bright accent -->
-    <color name="kb_brand_saffron_dark">#994500</color>  <!-- Pressed / container -->
-    <color name="kb_brand_saffron_android">#D97706</color><!-- Launcher / splash -->
+    <!-- ── Named brand tokens (mirror Color.kt — anchored to logo) ──── -->
+    <color name="kb_brand_saffron">#F97316</color>       <!-- Action/CTA — logo ₹ orange -->
+    <color name="kb_brand_saffron_light">#FB923C</color> <!-- Bright accent -->
+    <color name="kb_brand_saffron_dark">#C2410C</color>  <!-- Pressed / container -->
+    <color name="kb_brand_saffron_android">#F97316</color><!-- Launcher / splash -->
+    <color name="kb_brand_violet">#5B21B6</color>        <!-- Identity — logo chevrons -->
+    <color name="kb_brand_violet_deep">#1A1535</color>   <!-- Header gradient top -->
 
     <!-- ── Neutral gray scale ────────────────────────────────── -->
     <color name="kb_gray_50">#F8F9FA</color>
@@ -85,9 +87,9 @@
     <color name="kb_black_alpha_70">#B3000000</color>
     <color name="kb_black_alpha_90">#E6000000</color>
 
-    <!-- ── Splash / system chrome ────────────────────────────── -->
-    <color name="splash_bg">#0E0A22</color>
-    <color name="splash_bg_light">#0E0A22</color>
+    <!-- ── Splash / system chrome (brand violet, matches header) ──── -->
+    <color name="splash_bg">#1A1535</color>
+    <color name="splash_bg_light">#1A1535</color>
 
     <!-- ── Dark theme surface tokens ────────────────────────── -->
     <color name="kb_dark_bg">#060604</color>

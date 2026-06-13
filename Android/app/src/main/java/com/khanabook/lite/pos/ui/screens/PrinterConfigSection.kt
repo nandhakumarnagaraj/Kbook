@@ -5,83 +5,46 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Intent
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.BluetoothConnected
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
+import com.khanabook.lite.pos.data.local.entity.PrinterProfileEntity
 import com.khanabook.lite.pos.domain.model.PrinterRole
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
+import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.theme.*
-import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("MissingPermission")
 @Composable
 fun PrinterConfigView(
     profile: RestaurantProfileEntity?,
@@ -90,16 +53,24 @@ fun PrinterConfigView(
     viewModel: SettingsViewModel
 ) {
     val spacing = KhanaBookTheme.spacing
+    val context = LocalContext.current
+    val toastScope = rememberCoroutineScope()
+
+    // Mode selection and drill down states
+    var configMode by remember { mutableStateOf<String?>(null) } // null = ModeSelection, "manual" = drill down
+    var pendingAction by remember { mutableStateOf<String?>(null) } // "add", "view", "edit"
+    var activeCategory by remember { mutableStateOf<String?>(null) } // null = Category List, "customer", "kitchen", "prefs"
+
     val customerPrinter by viewModel.customerPrinter.collectAsStateWithLifecycle()
     val kitchenPrinter by viewModel.kitchenPrinter.collectAsStateWithLifecycle()
-    var enabled by remember { mutableStateOf(profile?.printerEnabled ?: false) }
-    var paper58 by remember { mutableStateOf((profile?.paperSize ?: "58mm") == "58mm") }
-    var autoPrint by remember { mutableStateOf(profile?.autoPrintOnSuccess ?: false) }
-    var includeLogo by remember { mutableStateOf(profile?.includeLogoInPrint ?: true) }
-    var maskPhone by remember { mutableStateOf(profile?.maskCustomerPhone ?: true) }
+    var enabled by remember(profile?.printerEnabled) { mutableStateOf(profile?.printerEnabled ?: false) }
+    var paper58 by remember(profile?.paperSize) { mutableStateOf((profile?.paperSize ?: "58mm") == "58mm") }
+    var autoPrint by remember(profile?.autoPrintOnSuccess) { mutableStateOf(profile?.autoPrintOnSuccess ?: false) }
+    var includeLogo by remember(profile?.includeLogoInPrint) { mutableStateOf(profile?.includeLogoInPrint ?: true) }
+    var maskPhone by remember(profile?.maskCustomerPhone) { mutableStateOf(profile?.maskCustomerPhone ?: true) }
     var kitchenEnabled by remember(kitchenPrinter?.id, kitchenPrinter?.enabled) { mutableStateOf(kitchenPrinter?.enabled ?: false) }
     var kitchenPaper58 by remember(kitchenPrinter?.id, kitchenPrinter?.paperSize) { mutableStateOf((kitchenPrinter?.paperSize ?: "58mm") == "58mm") }
-    val context = LocalContext.current
+
     var isBtActive by remember { mutableStateOf(viewModel.isBluetoothEnabled(context)) }
     var pendingRole by remember { mutableStateOf(PrinterRole.CUSTOMER) }
 
@@ -109,17 +80,17 @@ fun PrinterConfigView(
     val printerStatusRoles by viewModel.printerStatusRoles.collectAsStateWithLifecycle()
     val btIsConnecting by viewModel.btIsConnecting.collectAsStateWithLifecycle()
     val btConnectResult by viewModel.btConnectResult.collectAsStateWithLifecycle()
-    var showBtSheet by remember { mutableStateOf(false) }
-    var snackbarMessageRes by remember { mutableStateOf<Int?>(null) }
-    val snackbarHostState = remember { SnackbarHostState() }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    var showScanDialog by remember { mutableStateOf(false) }
+    var showConfigureDetailsDialog by remember { mutableStateOf(false) }
+    var showPrefsDialog by remember { mutableStateOf(false) }
+    var selectedDeviceForConfig by remember { mutableStateOf<BluetoothDevice?>(null) }
 
     val bluetoothLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             isBtActive = true
             viewModel.startBluetoothScan(context)
-            showBtSheet = true
+            showScanDialog = true
         }
     }
 
@@ -134,29 +105,14 @@ fun PrinterConfigView(
                 bluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
             } else {
                 viewModel.startBluetoothScan(context)
-                showBtSheet = true
+                showScanDialog = true
             }
         } else {
-            snackbarMessageRes = R.string.toast_permissions_required
+            toastScope.launch { KhanaToast.show("Bluetooth permissions required to scan", ToastKind.Error) }
         }
     }
 
-    LaunchedEffect(btConnectResult) {
-        btConnectResult?.let {
-            snackbarMessageRes = if (it) R.string.toast_printer_connected else R.string.toast_printer_connect_failed
-            if (it) showBtSheet = false
-            viewModel.clearBtConnectResult()
-        }
-    }
-
-    LaunchedEffect(snackbarMessageRes) {
-        snackbarMessageRes?.let {
-            snackbarHostState.showSnackbar(context.getString(it))
-            snackbarMessageRes = null
-        }
-    }
-
-    val openBtSheet: () -> Unit = {
+    val openPrinterScan: () -> Unit = {
         if (!viewModel.hasBluetoothPermissions(context)) {
             val perms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
@@ -168,435 +124,767 @@ fun PrinterConfigView(
             bluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
         } else {
             viewModel.startBluetoothScan(context)
-            showBtSheet = true
+            showScanDialog = true
         }
     }
 
-    val isAnyBtConnected = printerStatusRoles.contains(PrinterRole.CUSTOMER.name) ||
-        printerStatusRoles.contains(PrinterRole.KITCHEN.name)
-    val connectedBtName = when {
-        printerStatusRoles.contains(PrinterRole.CUSTOMER.name) -> customerPrinter?.name
-        printerStatusRoles.contains(PrinterRole.KITCHEN.name) -> kitchenPrinter?.name
-        else -> null
-    }
-
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(spacing.medium)
-        ) {
-            // ── Stitch: Printer Setup Card ──
-            ConfigCard {
-                // Header
-                Text(
-                    text = "Printer Setup",
-                    color = MaterialTheme.kbTextPrimary,
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Spacer(modifier = Modifier.height(spacing.smallMedium))
-
-                // ── Bluetooth content ──
-                PrinterTargetCard(
-                    title = "Customer Receipt Printer",
-                    printerName = customerPrinter?.name ?: "No Printer",
-                    macAddress = customerPrinter?.macAddress,
-                    enabled = enabled,
-                    autoPrint = autoPrint,
-                    showAutoPrintToggle = true,
-                    paper58 = paper58,
-                    includeLogo = includeLogo,
-                    showLogoToggle = true,
-                    isConnected = printerStatusRoles.contains(PrinterRole.CUSTOMER.name),
-                    onEnabledChange = { enabled = it },
-                    onAutoPrintChange = { autoPrint = it },
-                    onPaperSizeChange = { paper58 = it },
-                    onIncludeLogoChange = { includeLogo = it },
-                    helperText = null,
-                    onSelectPrinter = {
-                        pendingRole = PrinterRole.CUSTOMER
-                        openBtSheet()
-                    },
-                    onTestPrint = { viewModel.testPrint(PrinterRole.CUSTOMER) }
-                )
-                Spacer(modifier = Modifier.height(spacing.smallMedium))
-                PrinterTargetCard(
-                    title = "Kitchen Ticket Printer",
-                    printerName = kitchenPrinter?.name ?: "No Printer",
-                    macAddress = kitchenPrinter?.macAddress,
-                    enabled = kitchenEnabled,
-                    autoPrint = true,
-                    showAutoPrintToggle = false,
-                    paper58 = kitchenPaper58,
-                    includeLogo = false,
-                    showLogoToggle = false,
-                    isConnected = printerStatusRoles.contains(PrinterRole.KITCHEN.name),
-                    onEnabledChange = { kitchenEnabled = it },
-                    onAutoPrintChange = {},
-                    onPaperSizeChange = { kitchenPaper58 = it },
-                    onIncludeLogoChange = {},
-                    helperText = null,
-                    onSelectPrinter = {
-                        pendingRole = PrinterRole.KITCHEN
-                        openBtSheet()
-                    },
-                    onTestPrint = { viewModel.testPrint(PrinterRole.KITCHEN) }
-                )
-
-                // Bluetooth connected state
-                if (isAnyBtConnected) {
-                    Spacer(modifier = Modifier.height(spacing.small))
-                    ConnectedPrinterBanner(
-                        printerName = connectedBtName ?: "Bluetooth Printer",
-                        onDisconnect = {
-                            // Business logic: reset connection state
-                            // (actual disconnect handled by system; we just clear UI state)
-                        }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(spacing.smallMedium))
-
-                // ── Print Test Page button (Stitch: at bottom of card) ──
-                Button(
-                    onClick = {
-                        if (printerStatusRoles.contains(PrinterRole.CUSTOMER.name)) {
-                            viewModel.testPrint(PrinterRole.CUSTOMER)
-                        } else if (printerStatusRoles.contains(PrinterRole.KITCHEN.name)) {
-                            viewModel.testPrint(PrinterRole.KITCHEN)
-                        }
-                    },
-                    enabled = isAnyBtConnected,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = KbBrandSaffron,
-                        disabledContainerColor = KbBrandSaffron.copy(alpha = KbOpacity.Disabled)
-                    ),
-                    shape = KbShape.Medium
-                ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Text("Print Test Page", color = Color.White)
-                }
+    LaunchedEffect(btConnectResult) {
+        btConnectResult?.let {
+            if (it) {
+                toastScope.launch { KhanaToast.show("Printer connected successfully!", ToastKind.Success) }
+                showScanDialog = false
+                showConfigureDetailsDialog = true
+            } else {
+                toastScope.launch { KhanaToast.show("Failed to connect printer", ToastKind.Error) }
             }
-
-            Spacer(modifier = Modifier.height(spacing.smallMedium))
-
-            // ── Print Options (keep existing) ──
-            ConfigCard {
-                Text(
-                    "Print Options",
-                    color = MaterialTheme.kbSecondary,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                PrinterOptionRow("Mask Customer Phone", maskPhone) { maskPhone = it }
-            }
-
-            Spacer(modifier = Modifier.height(spacing.smallMedium))
-
-            // ── Save / Back buttons (keep existing) ──
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = {
-                        profile?.copy(
-                            printerEnabled = enabled,
-                            paperSize = if (paper58) "58mm" else "80mm",
-                            autoPrintOnSuccess = autoPrint,
-                            includeLogoInPrint = includeLogo,
-                            maskCustomerPhone = maskPhone,
-                            isSynced = false,
-                            updatedAt = System.currentTimeMillis()
-                        )?.let { onSave(it) }
-                        customerPrinter?.let {
-                            viewModel.updatePrinterProfile(
-                                role = PrinterRole.CUSTOMER,
-                                enabled = enabled,
-                                autoPrint = autoPrint,
-                                paperSize = if (paper58) "58mm" else "80mm",
-                                includeLogo = includeLogo
-                            )
-                        }
-                        kitchenPrinter?.let {
-                            viewModel.updatePrinterProfile(
-                                role = PrinterRole.KITCHEN,
-                                enabled = kitchenEnabled,
-                                autoPrint = true,
-                                paperSize = if (kitchenPaper58) "58mm" else "80mm",
-                                includeLogo = false
-                            )
-                        }
-                    },
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = KbSuccess),
-                    shape = KbShape.Medium
-                ) {
-                    Text(
-                        "Save",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.kbSecondary.copy(alpha = 0.7f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbSecondary),
-                    shape = KbShape.Medium
-                ) {
-                    Text("Back", style = MaterialTheme.typography.titleMedium)
-                }
-            }
+            viewModel.clearBtConnectResult()
         }
-
-        KhanaBookSnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = spacing.medium, vertical = spacing.small)
-        )
     }
 
-    // ── Bluetooth bottom sheet (keep existing) ──
-    if (showBtSheet) {
-        ModalBottomSheet(
-            onDismissRequest = {
-                viewModel.stopBluetoothScan()
-                showBtSheet = false
-            },
-            sheetState = sheetState,
-            containerColor = MaterialTheme.kbBgSecondary
-        ) {
-            Column(
+    // Intercept back key
+    BackHandler {
+        when {
+            activeCategory != null -> activeCategory = null
+            configMode != null -> {
+                configMode = null
+                pendingAction = null
+            }
+            else -> onBack()
+        }
+    }
+
+    // Handle "add" action trigger
+    LaunchedEffect(pendingAction) {
+        if (pendingAction == "add") {
+            pendingRole = PrinterRole.CUSTOMER
+            openPrinterScan()
+            pendingAction = null
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            
+            // Sub-header with back navigation and title
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(spacing.large)
-                    .padding(bottom = spacing.large)
+                    .background(MaterialTheme.kbHeaderGradient)
+                    .statusBarsPadding()
+                    .padding(bottom = 12.dp)
             ) {
-                Text(
-                    "Select ${if (pendingRole == PrinterRole.CUSTOMER) "Customer" else "Kitchen"} Printer",
-                    color = MaterialTheme.kbSecondary,
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                if (btIsScanning) {
-                    LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.medium),
-                        color = MaterialTheme.kbSecondary
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = {
+                            when {
+                                activeCategory != null -> activeCategory = null
+                                configMode != null -> {
+                                    configMode = null
+                                    pendingAction = null
+                                }
+                                else -> onBack()
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                    Text(
+                        text = when {
+                            activeCategory == "customer" -> "Customer Receipt Printer"
+                            activeCategory == "kitchen" -> "Kitchen Printer"
+                            activeCategory == "prefs" -> "Print Settings"
+                            configMode == "manual" -> "Printers Configuration"
+                            else -> "Printer Settings"
+                        },
+                        modifier = Modifier.weight(1f),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center
                     )
-                }
-                LazyColumn(modifier = Modifier.heightIn(max = 300.dp), contentPadding = PaddingValues(bottom = spacing.small)) {
-                    items(btDevices) { device ->
-                        val selectedMac = if (pendingRole == PrinterRole.CUSTOMER) customerPrinter?.macAddress else kitchenPrinter?.macAddress
-                        DeviceRow(
-                            device = device,
-                            isConnecting = btIsConnecting,
-                            isSelected = device.address == selectedMac,
-                            isConnected = connectedPrinterMac == device.address
-                        ) {
-                            viewModel.connectToPrinter(
-                                context = context,
-                                device = device,
-                                role = pendingRole,
-                                paperSize = if (pendingRole == PrinterRole.CUSTOMER) {
-                                    if (paper58) "58mm" else "80mm"
+                    
+                    // Add Button when in Level 1 or 2 manual mode
+                    if (configMode == "manual") {
+                        IconButton(
+                            onClick = {
+                                if (activeCategory == "prefs") {
+                                    showPrefsDialog = true
                                 } else {
-                                    if (kitchenPaper58) "58mm" else "80mm"
+                                    pendingRole = if (activeCategory == "kitchen") PrinterRole.KITCHEN else PrinterRole.CUSTOMER
+                                    openPrinterScan()
+                                }
+                            }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(Color.White.copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Add",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.width(48.dp))
+                    }
+                }
+            }
+
+            if (configMode == null) {
+                // SCREEN 1: MODE SELECTION VIEW
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                ) {
+                    // Dashboard Stats
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        KhanaBookGlassCard(modifier = Modifier.weight(1f)) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("Customer Printer", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f), style = MaterialTheme.typography.labelMedium)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = customerPrinter?.name?.take(8) ?: "Not Configured",
+                                    color = if (customerPrinter != null) KbBrandSaffron else MaterialTheme.kbTextSecondary,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+                        KhanaBookGlassCard(modifier = Modifier.weight(1f)) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("Kitchen Printer", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f), style = MaterialTheme.typography.labelMedium)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = kitchenPrinter?.name?.take(8) ?: "Not Configured",
+                                    color = if (kitchenPrinter != null) KbBrandSaffron else MaterialTheme.kbTextSecondary,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    Text("Select Printer Setup Flow", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+
+                    // Manual Config Card
+                    KhanaBookGlassCard(modifier = Modifier.fillMaxWidth()) {
+                        Column {
+                            Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .background(KbBrandSaffron.copy(alpha = 0.1f), CircleShape)
+                                        .border(1.dp, KbBrandSaffron.copy(alpha = 0.2f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Edit, null, tint = KbBrandSaffron, modifier = Modifier.size(24.dp))
+                                }
+                                Spacer(modifier = Modifier.width(spacing.medium))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Manual Setup", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    Text("Select role (customer/kitchen) and configure details manually", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+
+                            HorizontalDivider(color = KbBrandSaffron.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 20.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                SmartAIOption(
+                                    icon = Icons.Default.Add,
+                                    label = "Add",
+                                    onClick = {
+                                        pendingAction = "add"
+                                        configMode = "manual"
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                SmartAIOption(
+                                    icon = Icons.Default.Visibility,
+                                    label = "View",
+                                    onClick = {
+                                        pendingAction = "view"
+                                        configMode = "manual"
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                SmartAIOption(
+                                    icon = Icons.Default.Edit,
+                                    label = "Edit",
+                                    onClick = {
+                                        pendingAction = "edit"
+                                        configMode = "manual"
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+
+                    // Auto Scan Discovery Card
+                    KhanaBookGlassCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(spacing.medium)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .background(KbBrandVioletLight.copy(alpha = 0.1f), CircleShape)
+                                        .border(1.5.dp, KbBrandVioletLight, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Bluetooth, null, tint = KbBrandVioletLight, modifier = Modifier.size(24.dp))
+                                }
+                                Spacer(modifier = Modifier.width(spacing.medium))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("Auto Pair & Connect", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Surface(color = KbBrandVioletLight, shape = RoundedCornerShape(4.dp)) {
+                                            Text("PAIR", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                        }
+                                    }
+                                    Text("Scan for all active bluetooth receipt printers around", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f), style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(spacing.medium))
+                            
+                            Button(
+                                onClick = {
+                                    pendingRole = PrinterRole.CUSTOMER
+                                    openPrinterScan()
                                 },
-                                includeLogo = pendingRole == PrinterRole.CUSTOMER && includeLogo
-                            )
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = KbBrandVioletLight)
+                            ) {
+                                Text("Auto Scan Printers", color = Color.White)
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (activeCategory == null) {
+                    // SCREEN 2: LEVEL 1 - CATEGORY LIST
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.kbBgPrimary)
+                    ) {
+                        Text(
+                            text = "PRINTER CHANNELS",
+                            color = KbBrandVioletBright,
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp,
+                                fontSize = 12.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+                        )
+
+                        // 1. Customer Receipts Tile
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .clickable { activeCategory = "customer" },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+                            border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .background(Color(0xFFEFF6FF), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Receipt, null, tint = Color(0xFF3B82F6), modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Customer Receipts", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                    Text(
+                                        text = customerPrinter?.name ?: "No printer connected",
+                                        color = MaterialTheme.kbTextSecondary,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.kbTextTertiary)
+                            }
+                        }
+
+                        // 2. Kitchen KDS Orders Tile
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .clickable { activeCategory = "kitchen" },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+                            border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .background(Color(0xFFFFF7ED), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.RestaurantMenu, null, tint = Color(0xFFF97316), modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Kitchen Orders (KDS)", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                    Text(
+                                        text = kitchenPrinter?.name ?: "No kitchen printer set",
+                                        color = MaterialTheme.kbTextSecondary,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.kbTextTertiary)
+                            }
+                        }
+
+                        // 3. Printing Preferences Tile
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .clickable { activeCategory = "prefs" },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+                            border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .background(Color(0xFFEFF6FF), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Print, null, tint = Color(0xFF8B5CF6), modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Print Preferences", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                                    Text(
+                                        text = "Auto-print, print logo & phone masking settings",
+                                        color = MaterialTheme.kbTextSecondary,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.kbTextTertiary)
+                            }
+                        }
+                    }
+                } else {
+                    // SCREEN 3: LEVEL 2 - ITEM DETAILS LIST
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.kbBgPrimary)
+                            .padding(spacing.medium),
+                        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                    ) {
+                        Text(
+                            text = "${activeCategory?.uppercase()} HARDWARE",
+                            color = KbBrandVioletBright,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        when (activeCategory) {
+                            "customer" -> {
+                                KhanaBookGlassCard(modifier = Modifier.fillMaxWidth()) {
+                                    Column(modifier = Modifier.padding(spacing.medium)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text("Customer Receipt Printer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.kbTextPrimary)
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text("Status: ${if (enabled) "Enabled" else "Disabled"}", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+                                                Text("Hardware Name: ${customerPrinter?.name ?: "None"}", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+                                                if (customerPrinter != null) {
+                                                    Text("Paper size: ${if (paper58) "58mm" else "80mm"}", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+                                                }
+                                            }
+                                            IconButton(onClick = {
+                                                pendingRole = PrinterRole.CUSTOMER
+                                                openPrinterScan()
+                                            }) {
+                                                Icon(Icons.Default.Edit, "Edit", tint = KbBrandSaffron)
+                                            }
+                                        }
+                                        if (customerPrinter != null) {
+                                            Spacer(modifier = Modifier.height(spacing.medium))
+                                            Button(
+                                                onClick = { viewModel.testPrint(PrinterRole.CUSTOMER) },
+                                                modifier = Modifier.fillMaxWidth().height(44.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron)
+                                            ) {
+                                                Text("Print Test Receipt", color = Color.White)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            "kitchen" -> {
+                                KhanaBookGlassCard(modifier = Modifier.fillMaxWidth()) {
+                                    Column(modifier = Modifier.padding(spacing.medium)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text("Kitchen Order Printer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.kbTextPrimary)
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text("Status: ${if (kitchenEnabled) "Enabled" else "Disabled"}", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+                                                Text("Hardware Name: ${kitchenPrinter?.name ?: "None"}", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+                                                if (kitchenPrinter != null) {
+                                                    Text("Paper size: ${if (kitchenPaper58) "58mm" else "80mm"}", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+                                                }
+                                            }
+                                            IconButton(onClick = {
+                                                pendingRole = PrinterRole.KITCHEN
+                                                openPrinterScan()
+                                            }) {
+                                                Icon(Icons.Default.Edit, "Edit", tint = KbBrandSaffron)
+                                            }
+                                        }
+                                        if (kitchenPrinter != null) {
+                                            Spacer(modifier = Modifier.height(spacing.medium))
+                                            Button(
+                                                onClick = { viewModel.testPrint(PrinterRole.KITCHEN) },
+                                                modifier = Modifier.fillMaxWidth().height(44.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron)
+                                            ) {
+                                                Text("Print Kitchen Test Page", color = Color.White)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            "prefs" -> {
+                                KhanaBookGlassCard(modifier = Modifier.fillMaxWidth()) {
+                                    Column(modifier = Modifier.padding(spacing.medium)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text("Preferences & Rules", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.kbTextPrimary)
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text("Auto Print Receipts: ${if (autoPrint) "Active" else "Disabled"}", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+                                                Text("Include Shop Logo: ${if (includeLogo) "Active" else "Disabled"}", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+                                                Text("Mask Customer Phone: ${if (maskPhone) "Active" else "Disabled"}", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+                                            }
+                                            IconButton(onClick = { showPrefsDialog = true }) {
+                                                Icon(Icons.Default.Edit, "Edit", tint = KbBrandSaffron)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Bottom Actions (Save / Back)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                        ) {
+                            Button(
+                                onClick = {
+                                    profile?.copy(
+                                        printerEnabled = enabled,
+                                        paperSize = if (paper58) "58mm" else "80mm",
+                                        autoPrintOnSuccess = autoPrint,
+                                        includeLogoInPrint = includeLogo,
+                                        maskCustomerPhone = maskPhone,
+                                        isSynced = false,
+                                        updatedAt = System.currentTimeMillis()
+                                    )?.let { onSave(it) }
+                                    customerPrinter?.let {
+                                        viewModel.updatePrinterProfile(
+                                            role = PrinterRole.CUSTOMER,
+                                            enabled = enabled,
+                                            autoPrint = autoPrint,
+                                            paperSize = if (paper58) "58mm" else "80mm",
+                                            includeLogo = includeLogo
+                                        )
+                                    }
+                                    kitchenPrinter?.let {
+                                        viewModel.updatePrinterProfile(
+                                            role = PrinterRole.KITCHEN,
+                                            enabled = kitchenEnabled,
+                                            autoPrint = true,
+                                            paperSize = if (kitchenPaper58) "58mm" else "80mm",
+                                            includeLogo = false
+                                        )
+                                    }
+                                    toastScope.launch { KhanaToast.show("Printer configurations saved", ToastKind.Success) }
+                                },
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
+                                shape = RoundedCornerShape(24.dp)
+                            ) {
+                                Text("Save Configuration", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                            }
+                            OutlinedButton(
+                                onClick = { onBack() },
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.kbSecondary.copy(alpha = 0.7f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbSecondary),
+                                shape = RoundedCornerShape(24.dp)
+                            ) {
+                                Text("Back", style = MaterialTheme.typography.titleMedium)
+                            }
                         }
                     }
                 }
             }
         }
-    }
-}
 
-@Composable
-private fun ConnectedPrinterBanner(
-    printerName: String,
-    onDisconnect: () -> Unit
-) {
-    val spacing = KhanaBookTheme.spacing
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                KbSuccess.copy(alpha = KbOpacity.StatusBg),
-                KbShape.Small
-            )
-            .border(
-                1.dp,
-                KbSuccess.copy(alpha = KbOpacity.StatusBorder),
-                KbShape.Small
-            )
-            .padding(horizontal = spacing.medium, vertical = spacing.small),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Default.CheckCircle,
-                null,
-                tint = KbSuccess,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(spacing.small))
-            Text(
-                printerName,
-                color = KbSuccess,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
-            )
-        }
-        TextButton(onClick = onDisconnect) {
-            Text("Disconnect", color = MaterialTheme.kbTextSecondary)
-        }
-    }
-}
-
-@Composable
-private fun PrinterTargetCard(
-    title: String,
-    printerName: String,
-    macAddress: String?,
-    enabled: Boolean,
-    autoPrint: Boolean,
-    showAutoPrintToggle: Boolean,
-    paper58: Boolean,
-    includeLogo: Boolean,
-    showLogoToggle: Boolean,
-    isConnected: Boolean,
-    helperText: String?,
-    onEnabledChange: (Boolean) -> Unit,
-    onAutoPrintChange: (Boolean) -> Unit,
-    onPaperSizeChange: (Boolean) -> Unit,
-    onIncludeLogoChange: (Boolean) -> Unit,
-    onSelectPrinter: () -> Unit,
-    onTestPrint: () -> Unit
-) {
-    val spacing = KhanaBookTheme.spacing
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-            .padding(spacing.smallMedium)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(title, color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium)
-                KhanaBookSwitch(
-                    checked = enabled,
-                    onCheckedChange = onEnabledChange
-                )
-            }
-            if (enabled) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(printerName, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Box(modifier = Modifier.size(8.dp).background(if (isConnected) KbSuccess else KbError, CircleShape))
-                }
-                Text("MAC: ${macAddress ?: "---"}", color = MaterialTheme.kbPrimary, style = MaterialTheme.typography.labelSmall)
-                Text(
-                    text = if (macAddress.isNullOrBlank()) "Status: No printer selected" else if (isConnected) "Status: Connected" else "Status: Ready to test",
-                    color = if (macAddress.isNullOrBlank()) MaterialTheme.kbPrimary.copy(alpha = 0.7f) else if (isConnected) KbSuccess else MaterialTheme.kbPrimary,
-                    style = MaterialTheme.typography.labelSmall
-                )
-                helperText?.let {
-                    Text(it, color = MaterialTheme.kbPrimary.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
-                }
-                if (showAutoPrintToggle) {
-                    PrinterOptionRow("Auto Print", autoPrint) { onAutoPrintChange(it) }
-                }
-                if (showLogoToggle) {
-                    PrinterOptionRow("Include Logo", includeLogo) { onIncludeLogoChange(it) }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = paper58, onClick = { onPaperSizeChange(true) }, colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.kbPrimary))
-                    Text("58mm", color = MaterialTheme.kbPrimary)
-                    Spacer(modifier = Modifier.width(spacing.large))
-                    RadioButton(selected = !paper58, onClick = { onPaperSizeChange(false) }, colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.kbPrimary))
-                    Text("80mm", color = MaterialTheme.kbPrimary)
-                }
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                    Button(onClick = onSelectPrinter, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbOutlineSubtle)) {
-                        Text("Select Printer")
+        // ── Primary Dialog: Bluetooth Scan Dialog ──
+        if (showScanDialog) {
+            KhanaBookDialog(
+                onDismissRequest = {
+                    viewModel.stopBluetoothScan()
+                    showScanDialog = false
+                },
+                title = "Pair Bluetooth Printer",
+                content = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = "Scanning for active bluetooth printers around...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.kbTextSecondary
+                        )
+                        if (btIsScanning) {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = KbBrandSaffron)
+                        }
+                        
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 240.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(vertical = 4.dp)
+                        ) {
+                            if (btDevices.isEmpty() && !btIsScanning) {
+                                item {
+                                    Text("No printers found. Tap Scan to search again.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.kbTextTertiary)
+                                }
+                            } else {
+                                items(btDevices) { device ->
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                selectedDeviceForConfig = device
+                                                viewModel.connectToPrinter(
+                                                    context = context,
+                                                    device = device,
+                                                    role = pendingRole,
+                                                    paperSize = if (pendingRole == PrinterRole.CUSTOMER) (if (paper58) "58mm" else "80mm") else (if (kitchenPaper58) "58mm" else "80mm"),
+                                                    includeLogo = if (pendingRole == PrinterRole.CUSTOMER) includeLogo else false
+                                                )
+                                            },
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+                                        border = BorderStroke(0.5.dp, MaterialTheme.kbOutlineSubtle)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(Icons.Default.Bluetooth, null, tint = KbBrandSaffron)
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(device.name ?: "Unknown Printer", color = MaterialTheme.kbTextPrimary, fontWeight = FontWeight.Bold)
+                                                Text(device.address, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodySmall)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                    Button(
-                        onClick = onTestPrint,
-                        enabled = !macAddress.isNullOrBlank(),
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron, disabledContainerColor = KbBrandSaffron.copy(alpha = 0.35f))
+                },
+                actions = {
+                    TextButton(
+                        onClick = {
+                            viewModel.stopBluetoothScan()
+                            showScanDialog = false
+                        }
                     ) {
-                        Text("Test Printer", color = Color.White)
+                        Text("Cancel", color = MaterialTheme.kbTextSecondary)
+                    }
+                    TextButton(onClick = { viewModel.startBluetoothScan(context) }) {
+                        Text("Scan Again", color = KbBrandSaffron)
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun DeviceRow(
-    device: BluetoothDevice,
-    isConnecting: Boolean,
-    isSelected: Boolean = false,
-    isConnected: Boolean = false,
-    onClick: () -> Unit
-) {
-    val spacing = KhanaBookTheme.spacing
-    val iconSize = KhanaBookTheme.iconSize
-    @Suppress("MissingPermission")
-    val name = device.name ?: "Unknown"
-    val border = if (isSelected) BorderStroke(2.dp, MaterialTheme.kbPrimary) else null
-    val backgroundColor = if (isSelected) MaterialTheme.kbBgSecondary else MaterialTheme.kbOutlineSubtle
-
-    KhanaBookCard(
-        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),
-        onClick = if (!isConnecting) onClick else null,
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        if (border != null) {
-            Modifier.border(border, RoundedCornerShape(8.dp))
-        }
-        Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                if (isConnected) Icons.Default.BluetoothConnected else Icons.Default.Bluetooth,
-                null,
-                tint = if (isSelected) MaterialTheme.kbPrimary else MaterialTheme.kbPrimary,
-                modifier = Modifier.size(iconSize.medium)
             )
-            Spacer(modifier = Modifier.width(spacing.medium))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(name, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium))
-                Text(device.address, color = if (isSelected) MaterialTheme.kbPrimary.copy(alpha = 0.7f) else MaterialTheme.kbPrimary, style = MaterialTheme.typography.labelSmall)
-            }
-            if (isConnecting) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.kbSecondary, strokeWidth = 2.dp)
-            } else if (isConnected) {
-                Box(modifier = Modifier.size(8.dp).background(KbSuccess, CircleShape))
-            }
         }
-    }
-}
 
-@Composable
-private fun PrinterOptionRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange, colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.kbPrimary))
-        Text(label, color = MaterialTheme.kbPrimary, style = MaterialTheme.typography.bodyMedium)
+        // ── Secondary Dialog: Printer Details Configuration ──
+        if (showConfigureDetailsDialog) {
+            var tempEnabled by remember { mutableStateOf(if (pendingRole == PrinterRole.CUSTOMER) enabled else kitchenEnabled) }
+            var tempPaper58 by remember { mutableStateOf(if (pendingRole == PrinterRole.CUSTOMER) paper58 else kitchenPaper58) }
+            
+            KhanaBookDialog(
+                onDismissRequest = { showConfigureDetailsDialog = false },
+                title = "Printer Alignment Preferences",
+                content = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = "Set printing details for paired device: ${selectedDeviceForConfig?.name ?: "Connected Printer"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.kbTextSecondary
+                        )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("Activate Printer for POS", color = MaterialTheme.kbTextPrimary)
+                            KhanaBookSwitch(checked = tempEnabled, onCheckedChange = { tempEnabled = it }, checkedTrackColor = KbSuccess)
+                        }
+                        
+                        Text("Paper Width", fontWeight = FontWeight.Bold, color = MaterialTheme.kbTextPrimary)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { tempPaper58 = true },
+                                border = if (tempPaper58) BorderStroke(1.5.dp, KbBrandSaffron) else null
+                            ) {
+                                Box(modifier = Modifier.padding(12.dp), contentAlignment = Alignment.Center) {
+                                    Text("58mm Receipt", fontWeight = if (tempPaper58) FontWeight.Bold else FontWeight.Normal)
+                                }
+                            }
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { tempPaper58 = false },
+                                border = if (!tempPaper58) BorderStroke(1.5.dp, KbBrandSaffron) else null
+                            ) {
+                                Box(modifier = Modifier.padding(12.dp), contentAlignment = Alignment.Center) {
+                                    Text("80mm Receipt", fontWeight = if (!tempPaper58) FontWeight.Bold else FontWeight.Normal)
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Button(
+                            onClick = { viewModel.testPrint(pendingRole) },
+                            modifier = Modifier.fillMaxWidth().height(44.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = KbBrandVioletBright)
+                        ) {
+                            Text("Print Test Alignment", color = Color.White)
+                        }
+                    }
+                },
+                actions = {
+                    TextButton(onClick = { showConfigureDetailsDialog = false }) { Text("Dismiss", color = MaterialTheme.kbTextSecondary) }
+                    TextButton(
+                        onClick = {
+                            if (pendingRole == PrinterRole.CUSTOMER) {
+                                enabled = tempEnabled
+                                paper58 = tempPaper58
+                            } else {
+                                kitchenEnabled = tempEnabled
+                                kitchenPaper58 = tempPaper58
+                            }
+                            showConfigureDetailsDialog = false
+                        }
+                    ) {
+                        Text("Apply Preferences", color = KbBrandSaffron)
+                    }
+                }
+            )
+        }
+
+        // ── Primary Dialog: Printing Preferences Edit ──
+        if (showPrefsDialog) {
+            var tempAuto by remember { mutableStateOf(autoPrint) }
+            var tempLogo by remember { mutableStateOf(includeLogo) }
+            var tempMask by remember { mutableStateOf(maskPhone) }
+            
+            KhanaBookDialog(
+                onDismissRequest = { showPrefsDialog = false },
+                title = "Print Settings & Prefs",
+                content = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("Auto-Print on Success", color = MaterialTheme.kbTextPrimary)
+                            KhanaBookSwitch(checked = tempAuto, onCheckedChange = { tempAuto = it }, checkedTrackColor = KbSuccess)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("Include Shop Logo", color = MaterialTheme.kbTextPrimary)
+                            KhanaBookSwitch(checked = tempLogo, onCheckedChange = { tempLogo = it }, checkedTrackColor = KbSuccess)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("Mask Customer Phone No", color = MaterialTheme.kbTextPrimary)
+                            KhanaBookSwitch(checked = tempMask, onCheckedChange = { tempMask = it }, checkedTrackColor = KbSuccess)
+                        }
+                    }
+                },
+                actions = {
+                    TextButton(onClick = { showPrefsDialog = false }) { Text("Cancel", color = MaterialTheme.kbTextSecondary) }
+                    TextButton(
+                        onClick = {
+                            autoPrint = tempAuto
+                            includeLogo = tempLogo
+                            maskPhone = tempMask
+                            showPrefsDialog = false
+                        }
+                    ) { Text("Apply", color = KbBrandSaffron) }
+                }
+            )
+        }
+
+        // Processing Overlay
+        KhanaBookLoadingOverlay(
+            visible = btIsConnecting,
+            type = LoadingType.PROCESSING,
+            message = "Connecting to printer hardware...",
+            subtitle = "Configuring bluetooth serial link..."
+        )
     }
 }

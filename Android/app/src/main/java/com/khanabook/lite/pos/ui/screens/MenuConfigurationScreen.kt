@@ -175,6 +175,9 @@ fun MenuConfigurationScreen(
     }
 
     var showOverwritePrompt by remember { mutableStateOf(false) }
+    // Tracks which Manual Entry action ("add"/"view"/"edit") the user picked, so the
+    // manual view can pre-open the add-item flow for "add" instead of all three behaving alike.
+    var pendingManualAction by remember { mutableStateOf<String?>(null) }
 
     // Standard staggered entry animation
     var screenVisible by remember { mutableStateOf(false) }
@@ -227,7 +230,10 @@ fun MenuConfigurationScreen(
                         selectedCategoryName = categories.find { it.id == selectedCategoryId }?.name,
                         totalCategoriesCount = totalCategoriesCount,
                         totalItemsCount = totalItemsCount,
-                        onManualClick = { viewModel.setConfigMode("manual") },
+                        onManualClick = { action ->
+                            pendingManualAction = action
+                            viewModel.setConfigMode("manual")
+                        },
                         onSmartImportClick = {
                             val catName = categories.find { it.id == selectedCategoryId }?.name ?: ""
                             navController.navigate("ocr_scanner/$catName")
@@ -245,6 +251,8 @@ fun MenuConfigurationScreen(
                         totalItemsCount = totalItemsCount,
                         selectedCategoryId = selectedCategoryId,
                         menuItems = menuItems,
+                        initialAction = pendingManualAction,
+                        onInitialActionConsumed = { pendingManualAction = null },
                         onCategorySelect = { viewModel.selectCategory(it) },
                         onAddCategory = { viewModel.addCategory(it, true) },
                         onUpdateCategory = { viewModel.updateCategory(it) },
@@ -1157,7 +1165,7 @@ fun ModeSelectionView(
     selectedCategoryName: String?,
     totalCategoriesCount: Int,
     totalItemsCount: Int,
-    onManualClick: () -> Unit,
+    onManualClick: (String) -> Unit,
     onSmartImportClick: () -> Unit,
     onGalleryClick: () -> Unit,
     onPdfClick: () -> Unit
@@ -1241,19 +1249,19 @@ fun ModeSelectionView(
                     SmartAIOption(
                         icon = Icons.Default.Add,
                         label = "Add",
-                        onClick = onManualClick,
+                        onClick = { onManualClick("add") },
                         modifier = Modifier.weight(1f)
                     )
                     SmartAIOption(
                         icon = Icons.Default.Visibility,
                         label = "View",
-                        onClick = onManualClick,
+                        onClick = { onManualClick("view") },
                         modifier = Modifier.weight(1f)
                     )
                     SmartAIOption(
                         icon = Icons.Default.Edit,
                         label = "Edit",
-                        onClick = onManualClick,
+                        onClick = { onManualClick("edit") },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -1406,6 +1414,8 @@ fun ManualMenuView(
     totalItemsCount: Int,
     selectedCategoryId: Long?,
     menuItems: List<MenuWithVariants>,
+    initialAction: String? = null,
+    onInitialActionConsumed: () -> Unit = {},
     onCategorySelect: (Long) -> Unit,
     onAddCategory: (String) -> Unit,
     onUpdateCategory: (CategoryEntity) -> Unit,
@@ -1436,6 +1446,26 @@ fun ManualMenuView(
         searchQuery = ""
     }
 
+    // Make the Manual Entry "Add" / "View" / "Edit" buttons behave distinctly.
+    // "add": drill into the selected (or first) category and open the new-item dialog
+    // immediately, saving the user two taps. "view"/"edit": land on the categories list.
+    LaunchedEffect(initialAction, categories) {
+        when (initialAction) {
+            "add" -> {
+                if (categories.isNotEmpty()) {
+                    val target = categories.firstOrNull { it.id == selectedCategoryId }
+                        ?: categories.first()
+                    onCategorySelect(target.id)
+                    activeCategory = target
+                    showAddItemDialog = true
+                    onInitialActionConsumed()
+                }
+                // If no categories exist yet, wait — this effect re-runs once they load.
+            }
+            "view", "edit" -> onInitialActionConsumed()
+        }
+    }
+
     val applyItemDraftToExisting: (MenuWithVariants, String, Double, String, List<Pair<String, Double>>) -> Unit =
         { existingItem, updatedName, updatedPrice, updatedFoodType, updatedVariants ->
             onUpdateItem(
@@ -1459,9 +1489,7 @@ fun ManualMenuView(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(
-                        colors = listOf(Color(0xFF1A1535), Color(0xFF130F29))
-                    ))
+                    .background(MaterialTheme.kbHeaderGradient)
                     .statusBarsPadding()
                     .padding(bottom = 12.dp)
             ) {

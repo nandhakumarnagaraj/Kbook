@@ -25,14 +25,28 @@ val KbSaffron800 = Color(0xFF5C2500)
 val KbSaffron900 = Color(0xFF4A1D00)
 val KbSaffron950 = Color(0xFF331200)  // on-primary-fixed
 
-// Premium Saffron palette — brand colors matching spec
-val KbBrandSaffron = Color(0xFFE8A020) // Saffron/amber #E8A020
+// ═══════════════════════════════════════════════════════════════
+// KHANABOOK BRAND — anchored to the app logo (sampled pixels)
+//  • Action / CTA accent  = Orange  #F97316  (the ₹ on the receipt)
+//  • Identity / header     = Violet  #5B21B6  (the < > chevrons)
+//  • Ink / frame           = Charcoal #222222 (outer chevrons)
+// ═══════════════════════════════════════════════════════════════
 
-val KbBrandSaffronLight = Color(0xFFF0BC60) // Lighter saffron #F0BC60
+// ── Action accent (CTA / primary buttons / FAB) — the logo ₹ orange ──
+val KbBrandSaffron = Color(0xFFF97316) // Logo orange #F97316 (canonical)
 
-val KbBrandSaffronDark = Color(0xFFB07010) // Darker saffron #B07010
+val KbBrandSaffronLight = Color(0xFFFB923C) // Lighter orange #FB923C
 
-val KbBrandSaffronAndroid = Color(0xFFF97316) // Original brand orange
+val KbBrandSaffronDark = Color(0xFFC2410C) // Darker orange / pressed #C2410C
+
+val KbBrandSaffronAndroid = Color(0xFFF97316) // Deprecated alias — same as KbBrandSaffron
+
+// ── Brand identity (logo violet chevrons) ──
+val KbBrandViolet      = Color(0xFF5B21B6) // Logo violet #5B21B6 (deep, AA+ with white)
+val KbBrandVioletBright = Color(0xFF7C3AED) // Brighter violet #7C3AED (accents/links)
+val KbBrandVioletLight = Color(0xFF8B5CF6) // Light violet #8B5CF6 (dark-mode accent)
+val KbBrandVioletDeep  = Color(0xFF1A1535) // Header top — near-black violet
+val KbBrandVioletDeeper = Color(0xFF130F29) // Header bottom
 
 val KbBrandAmber = Color(0xFFF59E0B)
 val KbBrandGreen = Color(0xFF16A34A)
@@ -161,9 +175,9 @@ val MaterialTheme.kbOutlineSubtle: Color
 val MaterialTheme.kbOutlineBold: Color
     @Composable @ReadOnlyComposable get() = colorScheme.outline
 
-/** 
- * Unified header gradient — saffron-tinted earth gradient (#2E1708 → #121212).
- * Matches the KhanaBook premium saffron culinary brand identity.
+/**
+ * Unified header gradient — deep brand violet (#1A1535 → #130F29), matching the
+ * logo chevrons. This is the single source of truth for every screen header.
  * Use this instead of inline Brush.verticalGradient declarations.
  */
 val MaterialTheme.kbHeaderGradient: Brush
@@ -189,9 +203,9 @@ val KbMidnightSurface: Color
 val KbMidnightOverlay: Color
     @Composable @ReadOnlyComposable get() = if (globalIsDark) Color(0xCC121212.toInt()) else Color(0xE6FFFFFF.toInt())
 
-// ── Premium Saffron-Earth Gradient (Matching design spec #0E0A22 → #0D0820) ─────────
+// ── Brand violet header gradient (logo chevrons, #1A1535 → #130F29) ─────────
 val KbMidnightGradient: Brush = Brush.verticalGradient(
-    colors = listOf(Color(0xFF0E0A22), Color(0xFF0D0820))
+    colors = listOf(KbBrandVioletDeep, KbBrandVioletDeeper)
 )
 val KbPurpleGradient: Brush
     @Composable @ReadOnlyComposable get() = if (globalIsDark) KbMidnightGradient else Brush.verticalGradient(
@@ -202,12 +216,14 @@ val KbPurpleGradient: Brush
 val KbLavender: Color = Color(0xFFECEDF6) // Lavender-grey input fill #ECEDF6
 val KbPurpleAccent: Color = Color(0xFFE8A020) // Amber accent for links
 
-// ── Glassmorphism Surfaces ────────────────────────────────────
+// ── Card Surfaces ─────────────────────────────────────────────
+// POS spec: cards are 95–100% opaque (no glassmorphism). Kept the
+// historical name to avoid a wide rename; the values are now opaque.
 val KbGlassSurface: Color
     @Composable @ReadOnlyComposable get() = if (globalIsDark) {
-        Color(0x991C1810)
+        Color(0xFF1C1810)
     } else {
-        Color(0x99FFFFFF)
+        Color(0xFFFFFFFF)
     }
 
 val KbGlassOverlay: Color

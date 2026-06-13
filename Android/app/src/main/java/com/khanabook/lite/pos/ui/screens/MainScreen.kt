@@ -81,6 +81,9 @@ fun MainScreen(
         mutableIntStateOf(if (initialVisibleIndex != -1) initialVisibleIndex else 0) 
     }
     var showBottomBar by rememberSaveable { mutableStateOf(true) }
+    // One-shot request for the Profile/Settings screen to open a specific section
+    // (e.g. tapping "Menu" on Home jumps directly into Menu Configuration).
+    var settingsInitialSection by rememberSaveable { mutableStateOf<String?>(null) }
     val safeSelectedTabIndex = selectedTabIndex.coerceIn(0, (visibleTabs.lastIndex).coerceAtLeast(0))
 
     val layout = KhanaBookTheme.layout
@@ -125,6 +128,7 @@ fun MainScreen(
                     onMenuClick = {
                         val settingsIndex = visibleTabs.indexOfFirst { it.label == "Profile" }
                         if (settingsIndex != -1) {
+                            settingsInitialSection = "menu_config"
                             selectedTabIndex = settingsIndex
                         }
                     }
@@ -136,7 +140,9 @@ fun MainScreen(
                     navController = navController,
                     onScanClick = onScanClick,
                     menuViewModel = menuViewModel,
-                    onBottomBarVisibilityChange = { visible -> showBottomBar = visible }
+                    onBottomBarVisibilityChange = { visible -> showBottomBar = visible },
+                    initialSection = settingsInitialSection,
+                    onInitialSectionConsumed = { settingsInitialSection = null }
                 )
             }
         }

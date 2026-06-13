@@ -9,7 +9,7 @@
     <style name="Theme.KhanaBookLite.Launch" parent="Theme.KhanaBookLite">
         <item name="android:windowDisablePreview">false</item>
         <item name="android:windowIsTranslucent">false</item>
-        <item name="android:windowSplashScreenBackground">#0E0A22</item>
+        <item name="android:windowSplashScreenBackground">@color/splash_bg</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_logo_with_glow</item>
     </style>
 

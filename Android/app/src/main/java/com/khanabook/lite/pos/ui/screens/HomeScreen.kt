@@ -131,9 +131,7 @@ fun HomeScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Brush.verticalGradient(
-                                colors = listOf(Color(0xFF1A1535), Color(0xFF130F29))
-                            ))
+                            .background(MaterialTheme.kbHeaderGradient)
                     ) {
                         Column(
                             modifier = Modifier
