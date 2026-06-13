@@ -138,49 +138,54 @@ fun PurpleGradientHeader(
     KhanaBookPurpleBackground(
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
-            .statusBarsPadding()
-            .padding(vertical = 24.dp),
+            .height(260.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .statusBarsPadding()
+                .padding(vertical = 24.dp)
         ) {
             // White elevated logo card
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                modifier = Modifier.size(100.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                modifier = Modifier.size(110.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     androidx.compose.foundation.Image(
                         painter = painterResource(id = R.drawable.ic_khanabook_logo),
                         contentDescription = "KhanaBook logo",
-                        modifier = Modifier.size(68.dp)
+                        modifier = Modifier.size(72.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             Text(
                 text = title,
                 color = Color.White,
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 28.sp
+                    fontSize = 30.sp,
+                    letterSpacing = (-0.5).sp
                 ),
                 textAlign = TextAlign.Center
             )
 
             if (subtitle != null) {
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = subtitle,
-                    color = Color(0xFF7C6FCD), // Violet accent matching spec
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                    color = Color(0xFFB4ACE8), // Soft lavender tint
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
                     textAlign = TextAlign.Center
                 )
             }
@@ -196,7 +201,7 @@ fun PurpleFormSheet(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
         color = Color(0xFFFFFFFF) // Pure white #FFFFFF
     ) {
         content()
@@ -360,7 +365,7 @@ fun OtpVerificationScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.kbBgPrimary)
+            .background(Color(0xFF0D0820))
     ) {
         // Midnight purple gradient header
         PurpleGradientHeader(

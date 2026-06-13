@@ -83,10 +83,8 @@
 
     <!-- Launch / Splash theme (pre-Compose, dark) -->
     <style name="Theme.KhanaBookLite.Launch" parent="Theme.KhanaBookLite">
-        <item name="android:windowBackground">@drawable/launch_screen_background</item>
-        <item name="android:windowSplashScreenBackground">@color/splash_bg</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
-        <item name="android:windowSplashScreenIconBackgroundColor">#FFFFFF</item>
+        <item name="android:windowDisablePreview">false</item>
+        <item name="android:windowIsTranslucent">false</item>
     </style>
 
 </resources>

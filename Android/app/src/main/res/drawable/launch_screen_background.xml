@@ -5,11 +5,18 @@
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Base layer: clean white -->
+    <!-- Base layer: dark purple -->
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#FFFFFF" />
+            <solid android:color="#0E0A22" />
         </shape>
     </item>
+
+    <!-- Logo glow layer: centered -->
+    <item
+        android:width="160dp"
+        android:height="160dp"
+        android:gravity="center"
+        android:drawable="@drawable/splash_logo_with_glow" />
 
 </layer-list>

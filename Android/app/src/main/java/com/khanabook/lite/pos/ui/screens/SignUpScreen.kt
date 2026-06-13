@@ -144,62 +144,69 @@ fun SignUpScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.kbBgPrimary)
+            .background(Color(0xFF0D0820))
+            .imePadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header matching Login screen
             KhanaBookPurpleBackground(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(vertical = 32.dp),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(vertical = 48.dp)
                 ) {
                     Card(
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        modifier = Modifier.size(100.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                        modifier = Modifier.size(110.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Image(
                                 painter = painterResource(id = R.drawable.khanabook_logo),
                                 contentDescription = "KhanaBook logo",
-                                modifier = Modifier.size(68.dp)
+                                modifier = Modifier.size(72.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
                     Text(
                         text = "KhanaBook",
                         color = Color.White,
-                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 28.sp),
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 30.sp,
+                            letterSpacing = (-0.5).sp
+                        ),
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
                         text = "Restaurant POS & Management",
-                        color = Color(0xFF8B7CD9),
-                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
+                        color = Color(0xFFB4ACE8), // Soft lavender tint
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
                         textAlign = TextAlign.Center
                     )
                 }
             }
 
-            // Surface Form Card
+            // Surface Form Card - smoother rounded corners
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
                 color = Color.White
             ) {
                 val scrollState = rememberScrollState()
@@ -242,41 +249,23 @@ fun SignUpScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    TextField(
+                    val shopNameError = (shopName.isNotEmpty() && !isShopNameValid) || fieldError("name", "shopName") != null
+                    OnboardingInputField(
                         value = shopName,
                         onValueChange = { shopName = it },
-                        placeholder = { Text("Restaurant Name", color = Color(0xFF94A3B8), fontSize = 16.sp) },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        textStyle = TextStyle(color = Color(0xFF1E293B), fontSize = 16.sp),
-                        colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF1E293B),
-                            unfocusedTextColor = Color(0xFF1E293B),
-                            disabledTextColor = Color(0xFF94A3B8),
-                            errorTextColor = KbError,
-                            focusedContainerColor = Color(0xFFF3F0FA),
-                            unfocusedContainerColor = Color(0xFFF3F0FA),
-                            disabledContainerColor = Color(0xFFF3F0FA),
-                            errorContainerColor = Color(0xFFFEE2E2),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            errorIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFFF97316)
-                        ),
-                        singleLine = true,
-                        isError = (shopName.isNotEmpty() && !isShopNameValid) || fieldError("name", "shopName") != null,
-                        supportingText = {
-                            val err = fieldError("name", "shopName")
-                            if (err != null) {
-                                Text(err, color = KbError, style = MaterialTheme.typography.labelSmall)
-                            } else if (shopName.isNotEmpty() && !isShopNameValid) {
-                                Text("Shop name must be at least 2 characters", color = KbError, style = MaterialTheme.typography.labelSmall)
-                            }
-                        },
+                        placeholder = "Restaurant Name",
+                        isError = shopNameError,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                         keyboardActions = KeyboardActions(onNext = { runCatching { phoneFocusRequester.requestFocus() } })
                     )
+                    val err = fieldError("name", "shopName")
+                    if (err != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(err, color = KbError, style = MaterialTheme.typography.labelSmall)
+                    } else if (shopName.isNotEmpty() && !isShopNameValid) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Shop name must be at least 2 characters", color = KbError, style = MaterialTheme.typography.labelSmall)
+                    }
 
                     Spacer(modifier = Modifier.height(18.dp))
 
@@ -432,10 +421,15 @@ fun SignUpScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    TextField(
+                    val passwordError = (newPassword.isNotEmpty() && !isPasswordValid) || fieldError("password") != null
+                    OnboardingInputField(
                         value = newPassword,
                         onValueChange = { newPassword = it },
-                        placeholder = { Text("Enter password", color = Color(0xFF94A3B8), fontSize = 16.sp) },
+                        placeholder = "Enter password",
+                        isError = passwordError,
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(onNext = { runCatching { confirmPasswordFocusRequester.requestFocus() } }),
                         trailingIcon = {
                             IconButton(onClick = { showPassword = !showPassword }) {
                                 Icon(
@@ -445,41 +439,18 @@ fun SignUpScreen(
                                 )
                             }
                         },
-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
-                            .focusRequester(passwordFocusRequester),
-                        shape = RoundedCornerShape(14.dp),
-                        textStyle = TextStyle(color = Color(0xFF1E293B), fontSize = 16.sp),
-                        colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF1E293B),
-                            unfocusedTextColor = Color(0xFF1E293B),
-                            disabledTextColor = Color(0xFF94A3B8),
-                            errorTextColor = KbError,
-                            focusedContainerColor = Color(0xFFF3F0FA),
-                            unfocusedContainerColor = Color(0xFFF3F0FA),
-                            disabledContainerColor = Color(0xFFF3F0FA),
-                            errorContainerColor = Color(0xFFFEE2E2),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            errorIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFFF97316)
-                        ),
-                        singleLine = true,
-                        isError = (newPassword.isNotEmpty() && !isPasswordValid) || fieldError("password") != null,
-                        supportingText = {
-                            val err = fieldError("password")
-                            if (err != null) {
-                                Text(err, color = KbError, style = MaterialTheme.typography.labelSmall)
-                            } else if (newPassword.isNotEmpty() && !isPasswordValid) {
-                                Text("Must be 8+ chars with uppercase, digit & symbol", color = KbError, style = MaterialTheme.typography.labelSmall)
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(onNext = { runCatching { confirmPasswordFocusRequester.requestFocus() } })
+                            .focusRequester(passwordFocusRequester)
                     )
+                    val pwErr = fieldError("password")
+                    if (pwErr != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(pwErr, color = KbError, style = MaterialTheme.typography.labelSmall)
+                    } else if (newPassword.isNotEmpty() && !isPasswordValid) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Must be 8+ chars with uppercase, digit & symbol", color = KbError, style = MaterialTheme.typography.labelSmall)
+                    }
 
                     Spacer(modifier = Modifier.height(18.dp))
 
@@ -495,10 +466,16 @@ fun SignUpScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    TextField(
+                    val passwordsMatch = confirmPassword.isEmpty() || newPassword == confirmPassword
+
+                    OnboardingInputField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        placeholder = { Text("Re‑enter password", color = Color(0xFF94A3B8), fontSize = 16.sp) },
+                        placeholder = "Re‑enter password",
+                        isError = !passwordsMatch,
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                         trailingIcon = {
                             IconButton(onClick = { showPassword = !showPassword }) {
                                 Icon(
@@ -508,38 +485,14 @@ fun SignUpScreen(
                                 )
                             }
                         },
-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
-                            .focusRequester(confirmPasswordFocusRequester),
-                        shape = RoundedCornerShape(14.dp),
-                        textStyle = TextStyle(color = Color(0xFF1E293B), fontSize = 16.sp),
-                        colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF1E293B),
-                            unfocusedTextColor = Color(0xFF1E293B),
-                            disabledTextColor = Color(0xFF94A3B8),
-                            errorTextColor = KbError,
-                            focusedContainerColor = Color(0xFFF3F0FA),
-                            unfocusedContainerColor = Color(0xFFF3F0FA),
-                            disabledContainerColor = Color(0xFFF3F0FA),
-                            errorContainerColor = Color(0xFFFEE2E2),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            errorIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFFF97316)
-                        ),
-                        singleLine = true,
-                        isError = confirmPassword.isNotEmpty() && confirmPassword != newPassword,
-                        supportingText = {
-                            if (confirmPassword.isNotEmpty() && confirmPassword != newPassword) {
-                                Text("Passwords do not match", color = KbError, style = MaterialTheme.typography.labelSmall)
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+                            .focusRequester(confirmPasswordFocusRequester)
                     )
+                    if (!passwordsMatch) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Passwords do not match", color = KbError, style = MaterialTheme.typography.labelSmall)
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 

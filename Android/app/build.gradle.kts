@@ -290,6 +290,11 @@ dependencies {
     // Easebuzz Payment SDK
     implementation("in.easebuzz:android-v2:1.0.6")
 
+    // Flashlight Performance Monitoring (debug only)
+    debugImplementation("com.facebook.flipper:flipper:0.182.0")
+    debugImplementation("com.facebook.soloader:soloader:0.10.5")
+    debugImplementation("com.facebook.flipper:flipper-network-plugin:0.182.0")
+
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.mockk.agent)

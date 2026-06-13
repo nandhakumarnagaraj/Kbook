@@ -169,11 +169,18 @@ class MainActivity : FragmentActivity() {
                     WindowCompat.getInsetsController(window, window.decorView)
                 }
                 LaunchedEffect(currentRoute) {
-                    val routesWithHiddenStatusBar = listOf("splash", "login", "signup", "app_lock", "initial_sync")
-                    if (currentRoute in routesWithHiddenStatusBar) {
-                        windowInsetsController.hide(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+                    // Always show status bar to prevent black overlay/strip above content
+                    windowInsetsController.show(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+                    
+                    val isMainRoute = currentRoute?.startsWith("main/") == true || currentRoute == "main/{tab}"
+                    val isSettingsTab = isMainRoute && (currentBackStackEntry?.arguments?.getString("tab") == "3")
+                    
+                    if (isSettingsTab) {
+                        // Standard theme-dependent behavior for Settings tab
+                        windowInsetsController.isAppearanceLightStatusBars = !globalIsDark
                     } else {
-                        windowInsetsController.show(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+                        // All other screens have dark headers or backgrounds, ensure light (white) icons
+                        windowInsetsController.isAppearanceLightStatusBars = false
                     }
                 }
 

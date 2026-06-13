@@ -15,11 +15,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
@@ -114,6 +114,23 @@ fun ReportsScreen(
     val cancelRate = remember(cancelledCount, orderCount) {
         if (orderCount > 0) (cancelledCount.toDouble() / orderCount * 100) else 0.0
     }
+    val activeCount = remember(orderLevelRows) {
+        orderLevelRows.count { it.orderStatus == OrderStatus.DRAFT }
+    }
+    val paymentModes = remember(paymentBreakdown) {
+        paymentBreakdown.entries
+            .filter { !it.key.contains("_part") }
+            .mapNotNull { entry ->
+                val amount = entry.value.toDoubleOrNull() ?: 0.0
+                if (amount > 0.0) entry.key to amount else null
+            }
+            .sortedByDescending { it.second }
+    }
+    val topPaymentMode = paymentModes.firstOrNull()?.first ?: "None"
+    val topPaymentShare = remember(totalSales, paymentModes) {
+        val top = paymentModes.firstOrNull()?.second ?: 0.0
+        if (totalSales > 0.0) (top / totalSales) * 100 else 0.0
+    }
 
     Box(
         modifier = Modifier
@@ -192,7 +209,7 @@ fun ReportsScreen(
                             StatCard(
                                 label = "Total Sales",
                                 value = CurrencyUtils.formatPrice(totalSales),
-                                icon = Icons.Default.TrendingUp,
+                                icon = Icons.AutoMirrored.Filled.TrendingUp,
                                 iconTint = KbBrandSaffron,
                                 modifier = Modifier.weight(1f)
                             )
@@ -251,7 +268,7 @@ fun ReportsScreen(
                     StatCard(
                         label = "Total Sales",
                         value = CurrencyUtils.formatPrice(totalSales),
-                        icon = Icons.Default.TrendingUp,
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
                         iconTint = KbBrandSaffron,
                         modifier = Modifier.weight(1f)
                     )
@@ -439,6 +456,18 @@ fun ReportsScreen(
                 }
             }
 
+            ReportInsightStrip(
+                reportType = reportType,
+                totalSales = totalSales,
+                orderCount = orderCount,
+                cancelRate = cancelRate,
+                activeCount = activeCount,
+                topPaymentMode = topPaymentMode,
+                topPaymentShare = topPaymentShare,
+                paymentModes = paymentModes,
+                modifier = Modifier.padding(horizontal = spacing.medium)
+            )
+
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = spacing.medium),
                 color = MaterialTheme.kbOutlineSubtle,
@@ -457,15 +486,34 @@ fun ReportsScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 } else if (reportType == "Payment") {
-                    PaymentLevelView(
-                        breakdown = paymentBreakdown,
-                        settingsViewModel = settingsViewModel,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        PaymentMixSummaryCard(
+                            paymentModes = paymentModes,
+                            totalSales = totalSales,
+                            modifier = Modifier.padding(horizontal = spacing.medium)
+                        )
+                        PaymentLevelView(
+                            breakdown = paymentBreakdown,
+                            settingsViewModel = settingsViewModel,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 } else {
-                    OrderLevelView(orderLevelRows, profile) { billId ->
-                        selectedBillId = billId
-                        viewModel.loadBillDetails(billId)
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        OrderStatusHeatmapCard(
+                            orderLevelRows = orderLevelRows,
+                            modifier = Modifier.padding(horizontal = spacing.medium)
+                        )
+                        OrderLevelView(orderLevelRows, profile) { billId ->
+                            selectedBillId = billId
+                            viewModel.loadBillDetails(billId)
+                        }
                     }
                 }
             }
@@ -714,6 +762,195 @@ private fun ItemStatChip(
             color = MaterialTheme.kbTextSecondary,
             style = MaterialTheme.typography.labelSmall
         )
+    }
+}
+
+@Composable
+private fun ReportInsightStrip(
+    reportType: String,
+    totalSales: Double,
+    orderCount: Int,
+    cancelRate: Double,
+    activeCount: Int,
+    topPaymentMode: String,
+    topPaymentShare: Double,
+    paymentModes: List<Pair<String, Double>>,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    val revenuePerOrder = if (orderCount > 0) totalSales / orderCount else 0.0
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            InsightPill(Modifier.weight(1f), "Revenue / order", CurrencyUtils.formatPrice(revenuePerOrder), KbBrandSaffron)
+            InsightPill(Modifier.weight(1f), "Cancellation", "%.1f%%".format(cancelRate), if (cancelRate > 8.0) KbWarning else KbSuccess)
+            InsightPill(
+                Modifier.weight(1f),
+                if (reportType == "Payment") "Top payment" else "Active orders",
+                if (reportType == "Payment") topPaymentMode else activeCount.toString(),
+                if (reportType == "Payment") KbSuccess else KbWarning
+            )
+            InsightPill(
+                Modifier.weight(1f),
+                if (reportType == "Payment") "Mix share" else "Order count",
+                if (reportType == "Payment") "%.0f%%".format(topPaymentShare) else orderCount.toString(),
+                MaterialTheme.kbSecondary
+            )
+        }
+
+        if (reportType == "Payment" && paymentModes.isNotEmpty()) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
+                items(paymentModes.take(5), key = { it.first }) { (mode, amount) ->
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = KbBrandSaffron.copy(alpha = KbOpacity.StatusBg),
+                        border = BorderStroke(1.dp, KbBrandSaffron.copy(alpha = KbOpacity.StatusBorder))
+                    ) {
+                        Text(
+                            text = "$mode  ${CurrencyUtils.formatPrice(amount)}",
+                            modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small),
+                            color = KbBrandSaffron,
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InsightPill(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+    tone: Color
+) {
+    KhanaBookCard(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = label,
+                color = MaterialTheme.kbTextSecondary,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                maxLines = 1
+            )
+            Text(
+                text = value,
+                color = tone,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun PaymentMixSummaryCard(
+    paymentModes: List<Pair<String, Double>>,
+    totalSales: Double,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    KhanaBookCard(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
+    ) {
+        Column(
+            modifier = Modifier.padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Text(
+                text = "Payment mix",
+                color = MaterialTheme.kbSecondary,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+            paymentModes.take(4).forEach { (mode, amount) ->
+                val share = if (totalSales > 0.0) (amount / totalSales) * 100 else 0.0
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = mode, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                    Text(text = "${CurrencyUtils.formatPrice(amount)} • %.0f%%".format(share), color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrderStatusHeatmapCard(
+    orderLevelRows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    val total = orderLevelRows.size.coerceAtLeast(1)
+    val completed = orderLevelRows.count { it.orderStatus == OrderStatus.COMPLETED }
+    val active = orderLevelRows.count { it.orderStatus == OrderStatus.DRAFT }
+    val cancelled = orderLevelRows.count { it.orderStatus == OrderStatus.CANCELLED }
+    KhanaBookCard(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
+    ) {
+        Column(
+            modifier = Modifier.padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Text(
+                text = "Status heatmap",
+                color = MaterialTheme.kbSecondary,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing.small), modifier = Modifier.fillMaxWidth()) {
+                HeatTile("Active", active, total, KbWarning, Modifier.weight(1f))
+                HeatTile("Done", completed, total, KbSuccess, Modifier.weight(1f))
+                HeatTile("Cancelled", cancelled, total, KbError, Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeatTile(
+    label: String,
+    count: Int,
+    total: Int,
+    tone: Color,
+    modifier: Modifier = Modifier
+) {
+    val fill = if (total > 0) count.toFloat() / total.toFloat() else 0f
+    Column(
+        modifier = modifier
+            .background(tone.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(label, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelSmall)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .background(MaterialTheme.kbOutlineSubtle, RoundedCornerShape(999.dp))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fill.coerceIn(0f, 1f))
+                    .background(tone, RoundedCornerShape(999.dp))
+            )
+        }
+        Text(text = count.toString(), color = tone, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
     }
 }
 

@@ -6,6 +6,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.khanabook.lite.pos.domain.util.AppAssetStore
 import com.khanabook.lite.pos.domain.util.GlobalCrashHandler
+import com.khanabook.lite.pos.util.FlashlightInitializer
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -36,6 +37,7 @@ class KhanaBookApplication : Application(), Configuration.Provider {
         }
         super.onCreate()
 
+        FlashlightInitializer.initialize(this)
         GlobalCrashHandler.initialize(this)
         AppAssetStore.initialize(this)
 

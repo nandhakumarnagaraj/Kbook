@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -83,19 +84,33 @@ fun SplashScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 // White elevated logo card — same as Login/SignUp
-                Card(
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    modifier = Modifier.size(120.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                // Soft, blurred mesh gradient glow directly behind the logo (refined purple theme)
+                Box(
+                    modifier = Modifier.size(160.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_khanabook_logo),
-                            contentDescription = stringResource(id = R.string.cd_logo),
-                            modifier = Modifier.size(80.dp)
-                        )
-                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .drawBehind {
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            Color(0xFF8B5CF6).copy(alpha = 0.45f), // Glowing violet/purple
+                                            Color(0xFFD946EF).copy(alpha = 0.15f), // Soft pink/magenta glow edge
+                                            Color.Transparent
+                                        ),
+                                        center = center,
+                                        radius = size.width / 2
+                                    )
+                                )
+                            }
+                    )
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_khanabook_logo),
+                        contentDescription = stringResource(id = R.string.cd_logo),
+                        modifier = Modifier.size(88.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))

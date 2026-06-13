@@ -79,10 +79,6 @@ fun AboutAppView() {
     val uriHandler = LocalUriHandler.current
     val context   = LocalContext.current
 
-    val buildDate = remember {
-        SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date())
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -183,10 +179,6 @@ fun AboutAppView() {
             HairlineDivider()
             AboutInfoRow(label = "Build Number",  value = BuildConfig.VERSION_CODE.toString())
             HairlineDivider()
-            AboutInfoRow(label = "Platform",      value = "Android")
-            HairlineDivider()
-            AboutInfoRow(label = "Last Updated",  value = buildDate)
-            HairlineDivider()
             AboutInfoRow(label = "Developer",     value = "Piquant Services Pvt. Ltd.")
             HairlineDivider()
             AboutInfoRow(
@@ -218,11 +210,6 @@ fun AboutAppView() {
             AboutLinkRow(
                 label = "Terms of Service",
                 onClick = { uriHandler.openUri("https://khanabook.com/legal-privacy.html") }
-            )
-            HairlineDivider()
-            AboutLinkRow(
-                label = "Open Source Licenses",
-                onClick = { /* Could show dialog or open licenses page */ }
             )
         }
 

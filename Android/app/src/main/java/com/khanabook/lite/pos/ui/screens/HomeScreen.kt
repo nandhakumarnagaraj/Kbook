@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -76,6 +77,19 @@ fun HomeScreen(
     val complianceAlerts by viewModel.complianceAlerts.collectAsState()
     val dismissedAlerts: MutableList<String> = remember { mutableListOf() }
     val statsReady by viewModel.statsReady.collectAsState()
+    var showNotificationsSheet by remember { mutableStateOf(false) }
+    val notificationCount = remember(
+        unsyncedCount,
+        marketplacePendingCount,
+        complianceAlerts,
+        stats
+    ) {
+        val syncIssues = if (unsyncedCount > 0) 1 else 0
+        val marketAlerts = if (marketplacePendingCount > 0) 1 else 0
+        val complianceCount = complianceAlerts.size
+        val kdsAlerts = if (stats.kdsPendingCount > 0) 1 else 0
+        syncIssues + marketAlerts + complianceCount + kdsAlerts
+    }
 
     var headerVisible by remember { mutableStateOf(false) }
     var statsVisible by remember { mutableStateOf(false) }
@@ -177,29 +191,30 @@ fun HomeScreen(
                                 ) {
                                     SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
                                     
-                                    // Custom notification button matching mockup
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(Color.Black.copy(alpha = 0.2f))
-                                            .clickable { /* Handle click */ },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Notifications,
-                                            contentDescription = "Notifications",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(22.dp)
-                                        )
-                                        // Red badge dot
-                                        Box(
+                                    Box {
+                                        IconButton(
+                                            onClick = { showNotificationsSheet = true },
                                             modifier = Modifier
-                                                .align(Alignment.TopEnd)
-                                                .padding(top = 8.dp, end = 8.dp)
-                                                .size(8.dp)
-                                                .background(Color(0xFFEF4444), CircleShape)
-                                        )
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(Color.Black.copy(alpha = 0.2f))
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Notifications,
+                                                contentDescription = "Notifications",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                        if (notificationCount > 0) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .padding(top = 3.dp, end = 1.dp)
+                                                    .size(10.dp)
+                                                    .background(Color(0xFFEF4444), CircleShape)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -247,6 +262,14 @@ fun HomeScreen(
                     }
                 }
             }
+
+            OperationalPulseStrip(
+                unsyncedCount = unsyncedCount,
+                marketplacePendingCount = marketplacePendingCount,
+                complianceCount = complianceAlerts.size,
+                isOnline = connectionStatus != com.khanabook.lite.pos.domain.util.ConnectionStatus.Unavailable
+            )
+
             val isWideScreen = !KhanaBookTheme.layout.isCompact
 
             if (isWideScreen) {
@@ -358,7 +381,7 @@ fun HomeScreen(
                                         contentColor = MaterialTheme.kbTextPrimary
                                     )
                                 ) {
-                                    Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF8B5CF6))
+                                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF8B5CF6))
                                     Spacer(Modifier.width(6.dp))
                                     Text("Orders", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 }
@@ -542,7 +565,7 @@ fun HomeScreen(
                                     contentColor = MaterialTheme.kbTextPrimary
                                 )
                             ) {
-                                Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF8B5CF6))
+                            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF8B5CF6))
                                 Spacer(Modifier.width(6.dp))
                                 Text("Orders", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
@@ -627,6 +650,39 @@ fun HomeScreen(
             RestaurantStatusBanner(stats = stats, lastOrderTime = stats.lastOrderTime)
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            if (showNotificationsSheet) {
+                val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+                ModalBottomSheet(
+                    onDismissRequest = { showNotificationsSheet = false },
+                    sheetState = sheetState,
+                    containerColor = MaterialTheme.kbBgCard
+                ) {
+                    NotificationCenterSheet(
+                        unsyncedCount = unsyncedCount,
+                        marketplacePendingCount = marketplacePendingCount,
+                        kdsPendingCount = stats.kdsPendingCount,
+                        complianceAlerts = complianceAlerts.filter { it.label !in dismissedAlerts },
+                        onMarketplaceOrders = {
+                            showNotificationsSheet = false
+                            onMarketplaceOrders()
+                        },
+                        onReprintKds = {
+                            showNotificationsSheet = false
+                            onReprintKds()
+                        },
+                        onOrderStatus = {
+                            showNotificationsSheet = false
+                            onOrderStatus()
+                        },
+                        onNewBill = {
+                            showNotificationsSheet = false
+                            onNewBill()
+                        },
+                        onDismiss = { showNotificationsSheet = false }
+                    )
+                }
+            }
         }
     }
 }
@@ -743,6 +799,7 @@ private fun TodaySummaryContent(
             modifier = Modifier.weight(1f)
         )
     }
+
 }
 
 @Composable
@@ -1255,6 +1312,255 @@ fun ComplianceBanner(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun OperationalPulseStrip(
+    unsyncedCount: Int,
+    marketplacePendingCount: Int,
+    complianceCount: Int,
+    isOnline: Boolean
+) {
+    val spacing = KhanaBookTheme.spacing
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        PulseTile(
+            modifier = Modifier.weight(1f),
+            title = if (isOnline) "Sync" else "Offline",
+            value = if (isOnline) "Live" else "Queued",
+            tone = if (isOnline) KbSuccess else KbWarning
+        )
+        PulseTile(
+            modifier = Modifier.weight(1f),
+            title = "Unsynced",
+            value = unsyncedCount.toString(),
+            tone = if (unsyncedCount > 0) KbWarning else MaterialTheme.kbSecondary
+        )
+        PulseTile(
+            modifier = Modifier.weight(1f),
+            title = "Marketplace",
+            value = marketplacePendingCount.toString(),
+            tone = if (marketplacePendingCount > 0) KbBrandSaffron else MaterialTheme.kbSecondary
+        )
+        PulseTile(
+            modifier = Modifier.weight(1f),
+            title = "Alerts",
+            value = complianceCount.toString(),
+            tone = if (complianceCount > 0) KbError else KbSuccess
+        )
+    }
+    Spacer(modifier = Modifier.height(spacing.extraSmall))
+}
+
+@Composable
+private fun PulseTile(
+    modifier: Modifier = Modifier,
+    title: String,
+    value: String,
+    tone: Color
+) {
+    KhanaBookCard(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = title,
+                color = MaterialTheme.kbTextSecondary,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium)
+            )
+            Text(
+                text = value,
+                color = tone,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+        }
+    }
+}
+
+@Composable
+private fun NotificationCenterSheet(
+    unsyncedCount: Int,
+    marketplacePendingCount: Int,
+    kdsPendingCount: Int,
+    complianceAlerts: List<HomeViewModel.ComplianceAlert>,
+    onMarketplaceOrders: () -> Unit,
+    onReprintKds: () -> Unit,
+    onOrderStatus: () -> Unit,
+    onNewBill: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = spacing.medium, vertical = spacing.small),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Notifications",
+                    color = MaterialTheme.kbTextPrimary,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
+                Text(
+                    text = "Operational alerts and shortcuts",
+                    color = MaterialTheme.kbTextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = MaterialTheme.kbPrimary)
+            }
+        }
+
+        if (unsyncedCount == 0 && marketplacePendingCount == 0 && kdsPendingCount == 0 && complianceAlerts.isEmpty()) {
+            KhanaBookCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "You're all caught up",
+                        color = MaterialTheme.kbTextPrimary,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Text(
+                        text = "No pending sync, marketplace, KDS, or compliance alerts right now.",
+                        color = MaterialTheme.kbTextSecondary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        } else {
+            NotificationActionCard(
+                title = "New Bill",
+                subtitle = "Jump straight into billing",
+                icon = Icons.Default.Add,
+                tone = KbBrandSaffron,
+                onClick = onNewBill
+            )
+            NotificationActionCard(
+                title = "Orders",
+                subtitle = "Review active order flow",
+                icon = Icons.AutoMirrored.Filled.List,
+                tone = MaterialTheme.kbSecondary,
+                onClick = onOrderStatus
+            )
+            if (marketplacePendingCount > 0) {
+                NotificationActionCard(
+                    title = "Marketplace",
+                    subtitle = "$marketplacePendingCount pending order(s)",
+                    icon = Icons.Default.ShoppingCart,
+                    tone = KbWarning,
+                    onClick = onMarketplaceOrders
+                )
+            }
+            if (kdsPendingCount > 0) {
+                NotificationActionCard(
+                    title = "Kitchen Print",
+                    subtitle = "$kdsPendingCount pending KDS ticket(s)",
+                    icon = Icons.Default.Print,
+                    tone = KbSuccess,
+                    onClick = onReprintKds
+                )
+            }
+            if (unsyncedCount > 0) {
+                NotificationActionCard(
+                    title = "Sync queue",
+                    subtitle = "$unsyncedCount item(s) waiting to sync",
+                    icon = Icons.Default.Sync,
+                    tone = KbBrandRed,
+                    onClick = onDismiss
+                )
+            }
+            complianceAlerts.forEach { alert ->
+                val tone = when (alert.urgency) {
+                    HomeViewModel.ComplianceAlert.Urgency.EXPIRED, HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> KbError
+                    HomeViewModel.ComplianceAlert.Urgency.HIGH -> KbWarning
+                    HomeViewModel.ComplianceAlert.Urgency.MEDIUM -> KbSuccess
+                }
+                NotificationActionCard(
+                    title = alert.label,
+                    subtitle = when (alert.urgency) {
+                        HomeViewModel.ComplianceAlert.Urgency.EXPIRED -> "Expired - renew immediately"
+                        HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> "Expires in ${kotlin.math.abs(alert.daysLeft)} day(s)"
+                        HomeViewModel.ComplianceAlert.Urgency.HIGH -> "Expires in ${alert.daysLeft} days"
+                        HomeViewModel.ComplianceAlert.Urgency.MEDIUM -> "Expires in ${alert.daysLeft} days"
+                    },
+                    icon = Icons.Default.WarningAmber,
+                    tone = tone,
+                    onClick = onDismiss
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationActionCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    tone: Color,
+    onClick: () -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    KhanaBookCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
+    ) {
+        Row(
+            modifier = Modifier.padding(spacing.medium),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(tone.copy(alpha = 0.12f), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = tone, modifier = Modifier.size(20.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    color = MaterialTheme.kbTextPrimary,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    text = subtitle,
+                    color = MaterialTheme.kbTextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.kbTextSecondary
+            )
         }
     }
 }

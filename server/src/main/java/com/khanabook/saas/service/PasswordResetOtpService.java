@@ -135,8 +135,8 @@ public class PasswordResetOtpService {
 		if (metaAccessToken == null || metaAccessToken.isBlank()
 				|| phoneNumberId == null || phoneNumberId.isBlank()
 				|| otpTemplateName == null || otpTemplateName.isBlank()) {
-			log.warn("WhatsApp OTP config missing for challengeType={} phone={}",
-					describeChallenge(challengeKey), phoneNumber);
+			log.warn("WhatsApp OTP config missing for challengeType={} phone={}. Generated OTP for local testing: {}",
+					describeChallenge(challengeKey), phoneNumber, otp);
 			return;
 		}
 

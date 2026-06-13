@@ -565,7 +565,6 @@ fun MenuSelectionStep(
     val layout = KhanaBookTheme.layout
     val displayItems = if (searchQuery.isNotBlank()) searchResults else items
     
-    // Adaptive split-view: Categories on left, Cart on right for tablets
     val isWideScreen = layout.isWideListDetail
     val gridColumns = layout.menuGridColumns
 
@@ -579,234 +578,374 @@ fun MenuSelectionStep(
         derivedStateOf { cartItems.sumOf { it.quantity } }
     }
 
-    Row(modifier = Modifier.fillMaxSize()) {
-        // Main Menu Area
-        Column(modifier = Modifier.weight(if (isWideScreen) 0.65f else 1f).fillMaxHeight()) {
-            // ── Offline sync banner ───────────────────────────────────────────
-            AnimatedVisibility(
-                visible = isOffline,
-                enter = expandVertically() + fadeIn(tween(300)),
-                exit  = shrinkVertically() + fadeOut(tween(200))
+    if (isWideScreen) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            TabletCategoryRail(
+                categories = categories,
+                selectedCategoryId = selectedCategoryId,
+                searchQuery = searchQuery,
+                isOffline = isOffline,
+                onCategorySelected = { menuViewModel.selectCategory(it) },
+                onClearSearch = { menuViewModel.setSearchQuery("") },
+                onSearchChange = { menuViewModel.setSearchQuery(it) },
+                modifier = Modifier.weight(0.22f)
+            )
+
+            VerticalDivider(color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.35f))
+
+            Column(
+                modifier = Modifier
+                    .weight(0.48f)
+                    .fillMaxHeight()
             ) {
+                AnimatedVisibility(
+                    visible = isOffline,
+                    enter = expandVertically() + fadeIn(tween(300)),
+                    exit = shrinkVertically() + fadeOut(tween(200))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(KbWarning.copy(alpha = 0.12f))
+                            .padding(horizontal = spacing.medium, vertical = spacing.small),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        Icon(Icons.Default.CloudOff, null, tint = KbWarning, modifier = Modifier.size(16.dp))
+                        Text(
+                            text = "Offline - bill will sync when back online",
+                            color = KbWarning,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(KbWarning.copy(alpha = 0.15f))
                         .padding(horizontal = spacing.medium, vertical = spacing.small),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CloudOff,
-                        contentDescription = null,
-                        tint = KbWarning,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = "Offline — bill will sync when back online",
-                        color = KbWarning,
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
-            }
-
-            KhanaBookInputField(
-                value = searchQuery,
-                onValueChange = { menuViewModel.setSearchQuery(it) },
-                label = "Search",
-                placeholder = "Search items...",
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.kbTextSecondary) },
-                trailingIcon = {
-                    if (searchQuery.isNotBlank()) {
-                        IconButton(onClick = { menuViewModel.setSearchQuery("") }) {
-                            Icon(Icons.Default.Close, null, tint = MaterialTheme.kbTextSecondary)
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium, vertical = spacing.small)
-            )
-
-            // ── Category Chips ────────────────────────────────────────────────
-            if (searchQuery.isBlank() && categories.isNotEmpty()) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = spacing.small),
-                    contentPadding = PaddingValues(horizontal = spacing.medium),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                ) {
-                    items(categories, key = { it.id }) { category ->
-                        val isSelected = category.id == selectedCategoryId
-                        Surface(
-                            onClick = { menuViewModel.selectCategory(category.id) },
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (isSelected) KbBrandSaffron else MaterialTheme.kbBgCard,
-                            border = BorderStroke(
-                                1.5.dp,
-                                if (isSelected) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
-                            )
-                        ) {
-                            Text(
-                                category.name,
-                                modifier = Modifier.padding(horizontal = spacing.medium, vertical = 6.dp),
-                                color = if (isSelected) Color.White else MaterialTheme.kbTextSecondary,
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (categories.isEmpty() && displayItems.isEmpty()) {
-                // Skeleton while menu data loads
-                SkeletonMenuScreen(modifier = Modifier.weight(1f))
-            } else if (displayItems.isEmpty()) {
-                Box(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            androidx.compose.material.icons.Icons.Default.SearchOff,
-                            contentDescription = null,
-                            tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.3f),
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(Modifier.height(spacing.small))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            if (searchQuery.isNotBlank()) "No items match \"$searchQuery\""
-                            else "No items in this category",
-                            color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyMedium
+                            text = if (searchQuery.isBlank()) "Fast billing" else "Search results",
+                            color = MaterialTheme.kbTextPrimary,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                        Text(
+                            text = if (searchQuery.isBlank()) "Tap items to build the ticket" else "Filtered across the current menu",
+                            color = MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = KbBrandSaffron.copy(alpha = KbOpacity.StatusBg),
+                        border = BorderStroke(1.dp, KbBrandSaffron.copy(alpha = KbOpacity.StatusBorder))
+                    ) {
+                        Text(
+                            text = "$derivedItemCount items",
+                            modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small),
+                            color = KbBrandSaffron,
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                         )
                     }
                 }
-            } else {
-                // ── Menu list (matches screenshot design) ─────────────────────
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(
-                        start = spacing.medium,
-                        end = spacing.medium,
-                        bottom = spacing.bottomListPadding
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
-                ) {
-                    items(displayItems, key = { it.menuItem.id }) { menuWithVariants ->
-                        val item = menuWithVariants.menuItem
-                        val variants = menuWithVariants.variants
-                        var showVariantPicker by remember { mutableStateOf(false) }
-                        val itemAvailable = item.isAvailable
-                        // Resolve category name from the loaded categories list
-                        val categoryName = categories.find { it.id == item.categoryId }?.name ?: ""
 
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (itemAvailable) Color.White else Color.White.copy(alpha = 0.7f)
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                when {
+                    categories.isEmpty() && displayItems.isEmpty() -> {
+                        SkeletonMenuScreen(modifier = Modifier.weight(1f))
+                    }
+                    displayItems.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Left: name + category sub-label
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        item.name,
-                                        color = if (itemAvailable) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary,
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    if (categoryName.isNotBlank()) {
-                                        Text(
-                                            categoryName,
-                                            color = MaterialTheme.kbTextSecondary,
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    }
-                                }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    Icons.Default.SearchOff,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(Modifier.height(spacing.small))
+                                Text(
+                                    if (searchQuery.isNotBlank()) "No items match \"$searchQuery\"" else "No items in this category",
+                                    color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                    else -> {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(gridColumns),
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(
+                                start = spacing.medium,
+                                end = spacing.medium,
+                                bottom = spacing.medium,
+                                top = spacing.small
+                            ),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                            verticalArrangement = Arrangement.spacedBy(spacing.small)
+                        ) {
+                            items(displayItems, key = { it.menuItem.id }) { menuWithVariants ->
+                                val item = menuWithVariants.menuItem
+                                val variants = menuWithVariants.variants
+                                val categoryName = categories.find { it.id == item.categoryId }?.name ?: ""
+                                var showVariantPicker by remember { mutableStateOf(false) }
+                                MenuItemGridCard(
+                                    item = item,
+                                    variants = variants,
+                                    categoryName = categoryName,
+                                    cartItems = cartItems,
+                                    onAdd = { billingViewModel.addToCart(item) },
+                                    onRemove = { billingViewModel.removeFromCart(item) },
+                                    onOpenVariantPicker = { showVariantPicker = true }
+                                )
 
-                                Spacer(modifier = Modifier.width(spacing.small))
-
-                                // Right: price + qty controls
-                                if (itemAvailable) {
-                                    if (variants.isEmpty()) {
-                                        val cartItem = cartItems.find { it.item.id == item.id && it.variant == null }
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Text(
-                                                CurrencyUtils.formatPrice(item.basePrice),
-                                                color = KbBrandSaffron,
-                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                                            )
-                                            QuantitySelector(
-                                                quantity = cartItem?.quantity ?: 0,
-                                                onAdd = { billingViewModel.addToCart(item) },
-                                                onRemove = { billingViewModel.removeFromCart(item) }
-                                            )
+                                if (showVariantPicker) {
+                                    VariantPickerDialog(
+                                        itemName = item.name,
+                                        variants = variants,
+                                        onDismiss = { showVariantPicker = false },
+                                        onSelect = { variant ->
+                                            billingViewModel.addToCart(item, variant)
+                                            showVariantPicker = false
                                         }
-                                    } else {
-                                        // Variant item — show + button to open picker
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Text(
-                                                "${variants.size} var.",
-                                                color = MaterialTheme.kbTextSecondary,
-                                                style = MaterialTheme.typography.labelSmall
-                                            )
-                                            OutlinedButton(
-                                                onClick = { showVariantPicker = true },
-                                                modifier = Modifier.height(34.dp),
-                                                shape = RoundedCornerShape(8.dp),
-                                                colors = ButtonDefaults.outlinedButtonColors(contentColor = KbBrandSaffron),
-                                                border = BorderStroke(1.dp, KbBrandSaffron),
-                                                contentPadding = PaddingValues(horizontal = spacing.small)
-                                            ) {
-                                                Text("+", fontWeight = FontWeight.Bold)
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    Text(
-                                        "Unavailable",
-                                        color = KbBrandRed.copy(alpha = KbOpacity.Muted),
-                                        style = MaterialTheme.typography.labelSmall
                                     )
                                 }
                             }
                         }
-
-                        if (showVariantPicker) {
-                            VariantPickerDialog(
-                                itemName = item.name,
-                                variants = variants,
-                                onDismiss = { showVariantPicker = false },
-                                onSelect = { variant ->
-                                    billingViewModel.addToCart(item, variant)
-                                    showVariantPicker = false
-                                }
-                            )
-                        }
                     }
                 }
             }
 
+            VerticalDivider(color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.35f))
 
-            if (!isWideScreen) {
-                // ── Bottom Cart Panel ─────────────────────────────────────────
+            TabletCartPanel(
+                cartItems = cartItems,
+                total = total,
+                derivedItemCount = derivedItemCount,
+                billingViewModel = billingViewModel,
+                onProceedToPayment = onProceedToPayment,
+                modifier = Modifier.weight(0.30f)
+            )
+        }
+    } else {
+        Row(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                AnimatedVisibility(
+                    visible = isOffline,
+                    enter = expandVertically() + fadeIn(tween(300)),
+                    exit = shrinkVertically() + fadeOut(tween(200))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(KbWarning.copy(alpha = 0.15f))
+                            .padding(horizontal = spacing.medium, vertical = spacing.small),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        Icon(Icons.Default.CloudOff, null, tint = KbWarning, modifier = Modifier.size(16.dp))
+                        Text(
+                            text = "Offline - bill will sync when back online",
+                            color = KbWarning,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+
+                KhanaBookInputField(
+                    value = searchQuery,
+                    onValueChange = { menuViewModel.setSearchQuery(it) },
+                    label = "Search",
+                    placeholder = "Search items...",
+                    leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.kbTextSecondary) },
+                    trailingIcon = {
+                        if (searchQuery.isNotBlank()) {
+                            IconButton(onClick = { menuViewModel.setSearchQuery("") }) {
+                                Icon(Icons.Default.Close, null, tint = MaterialTheme.kbTextSecondary)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.medium, vertical = spacing.small)
+                )
+
+                if (searchQuery.isBlank() && categories.isNotEmpty()) {
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = spacing.small),
+                        contentPadding = PaddingValues(horizontal = spacing.medium),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        items(categories, key = { it.id }) { category ->
+                            val isSelected = category.id == selectedCategoryId
+                            Surface(
+                                onClick = { menuViewModel.selectCategory(category.id) },
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isSelected) KbBrandSaffron else MaterialTheme.kbBgCard,
+                                border = BorderStroke(
+                                    1.5.dp,
+                                    if (isSelected) KbBrandSaffron else MaterialTheme.kbOutlineSubtle
+                                )
+                            ) {
+                                Text(
+                                    category.name,
+                                    modifier = Modifier.padding(horizontal = spacing.medium, vertical = 6.dp),
+                                    color = if (isSelected) Color.White else MaterialTheme.kbTextSecondary,
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (categories.isEmpty() && displayItems.isEmpty()) {
+                    SkeletonMenuScreen(modifier = Modifier.weight(1f))
+                } else if (displayItems.isEmpty()) {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.SearchOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.3f),
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(Modifier.height(spacing.small))
+                            Text(
+                                if (searchQuery.isNotBlank()) "No items match \"$searchQuery\"" else "No items in this category",
+                                color = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(
+                            start = spacing.medium,
+                            end = spacing.medium,
+                            bottom = spacing.bottomListPadding
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                    ) {
+                        items(displayItems, key = { it.menuItem.id }) { menuWithVariants ->
+                            val item = menuWithVariants.menuItem
+                            val variants = menuWithVariants.variants
+                            var showVariantPicker by remember { mutableStateOf(false) }
+                            val itemAvailable = item.isAvailable
+                            val categoryName = categories.find { it.id == item.categoryId }?.name ?: ""
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (itemAvailable) Color.White else Color.White.copy(alpha = 0.7f)
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            item.name,
+                                            color = if (itemAvailable) MaterialTheme.kbTextPrimary else MaterialTheme.kbTextSecondary,
+                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        if (categoryName.isNotBlank()) {
+                                            Text(
+                                                categoryName,
+                                                color = MaterialTheme.kbTextSecondary,
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(spacing.small))
+
+                                    if (itemAvailable) {
+                                        if (variants.isEmpty()) {
+                                            val cartItem = cartItems.find { it.item.id == item.id && it.variant == null }
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Text(
+                                            CurrencyUtils.formatPrice(item.basePrice.toString()),
+                                                    color = KbBrandSaffron,
+                                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                                )
+                                                QuantitySelector(
+                                                    quantity = cartItem?.quantity ?: 0,
+                                                    onAdd = { billingViewModel.addToCart(item) },
+                                                    onRemove = { billingViewModel.removeFromCart(item) }
+                                                )
+                                            }
+                                        } else {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Text(
+                                                    "${variants.size} var.",
+                                                    color = MaterialTheme.kbTextSecondary,
+                                                    style = MaterialTheme.typography.labelSmall
+                                                )
+                                                OutlinedButton(
+                                                    onClick = { showVariantPicker = true },
+                                                    modifier = Modifier.height(34.dp),
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = KbBrandSaffron),
+                                                    border = BorderStroke(1.dp, KbBrandSaffron),
+                                                    contentPadding = PaddingValues(horizontal = spacing.small)
+                                                ) {
+                                                    Text("+", fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        Text(
+                                            "Unavailable",
+                                            color = KbBrandRed.copy(alpha = KbOpacity.Muted),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (showVariantPicker) {
+                                VariantPickerDialog(
+                                    itemName = item.name,
+                                    variants = variants,
+                                    onDismiss = { showVariantPicker = false },
+                                    onSelect = { variant ->
+                                        billingViewModel.addToCart(item, variant)
+                                        showVariantPicker = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -816,7 +955,6 @@ fun MenuSelectionStep(
                     tonalElevation = KbElevation.Medium
                 ) {
                     Column(modifier = Modifier.padding(spacing.smallMedium)) {
-                        // Cart items list (scrollable with max height)
                         if (cartItems.isNotEmpty()) {
                             Column(
                                 modifier = Modifier
@@ -903,7 +1041,6 @@ fun MenuSelectionStep(
                             Spacer(modifier = Modifier.height(spacing.small))
                         }
 
-                        // Items count + total row (no table reference)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -934,7 +1071,7 @@ fun MenuSelectionStep(
                             enabled = derivedItemCount > 0
                         ) {
                             Text(
-                                if (derivedItemCount > 0) "Place Order — ${CurrencyUtils.formatPrice(total)}" else "Place Order",
+                                if (derivedItemCount > 0) "Place Order - ${CurrencyUtils.formatPrice(total)}" else "Place Order",
                                 color = Color.White,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
@@ -942,114 +1079,379 @@ fun MenuSelectionStep(
                     }
                 }
             }
+        }
+    }
+}
 
+@Composable
+private fun TabletCategoryRail(
+    categories: List<com.khanabook.lite.pos.data.local.entity.CategoryEntity>,
+    selectedCategoryId: Long?,
+    searchQuery: String,
+    isOffline: Boolean,
+    onCategorySelected: (Long) -> Unit,
+    onClearSearch: () -> Unit,
+    onSearchChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .background(MaterialTheme.kbBgSecondary)
+            .padding(spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+            Text(
+                text = "Categories",
+                color = MaterialTheme.kbTextPrimary,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Text(
+                text = "Fast touch access",
+                color = MaterialTheme.kbTextSecondary,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
 
-        // Side Cart Area for Wide Screens
-        if (isWideScreen) {
+        KhanaBookInputField(
+            value = searchQuery,
+            onValueChange = onSearchChange,
+            label = "Search",
+            placeholder = "Search items...",
+            leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.kbTextSecondary) },
+            trailingIcon = {
+                if (searchQuery.isNotBlank()) {
+                    IconButton(onClick = onClearSearch) {
+                        Icon(Icons.Default.Close, null, tint = MaterialTheme.kbTextSecondary)
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        if (isOffline) {
             Surface(
-                modifier = Modifier
-                    .weight(0.35f)
-                    .fillMaxHeight(), color = MaterialTheme.kbBgSecondary,
-                tonalElevation = 2.dp
+                shape = KbShape.Small,
+                color = KbWarning.copy(alpha = KbOpacity.StatusBg),
+                border = BorderStroke(1.dp, KbWarning.copy(alpha = KbOpacity.StatusBorder))
             ) {
-                Column(modifier = Modifier.padding(spacing.medium)) {
+                Row(
+                    modifier = Modifier.padding(spacing.small),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    Icon(Icons.Default.CloudOff, null, tint = KbWarning, modifier = Modifier.size(16.dp))
                     Text(
-                        "Order Summary", 
-                        color = MaterialTheme.kbTertiary, 
-                        style = MaterialTheme.typography.titleLarge
+                        text = "Offline sync pending",
+                        color = KbWarning,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium)
                     )
-                    Spacer(modifier = Modifier.height(spacing.medium))
-                    
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(bottom = spacing.bottomListPadding)
+                }
+            }
+        }
+
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(spacing.small),
+            contentPadding = PaddingValues(bottom = spacing.small)
+        ) {
+            items(categories, key = { it.id }) { category ->
+                val isSelected = category.id == selectedCategoryId
+                Surface(
+                    onClick = { onCategorySelected(category.id) },
+                    shape = KbShape.Small,
+                    color = if (isSelected) KbBrandSaffron.copy(alpha = 0.12f) else MaterialTheme.kbBgCard,
+                    border = BorderStroke(
+                        1.dp,
+                        if (isSelected) KbBrandSaffron.copy(alpha = 0.35f) else MaterialTheme.kbOutlineSubtle
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        items(cartItems, key = { "${it.item.id}_${it.variant?.id ?: 0}" }) { cartItem ->
-                            var showNoteDialog by remember { mutableStateOf(false) }
-                            Column(
-                                modifier = Modifier.animateItem()
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(cartItem.item.name, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        if (cartItem.variant != null) {
-                                            Text(cartItem.variant.variantName, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        }
-                                        if (cartItem.note.isNotBlank()) {
-                                            Text("Note: ${cartItem.note}", color = MaterialTheme.kbPrimary.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        }
-                                    }
-                                    Text(
-                                        "${cartItem.quantity} x ${CurrencyUtils.formatPrice(cartItem.variant?.price ?: cartItem.item.basePrice)}",
-                                        color = MaterialTheme.kbTextPrimary,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        maxLines = 1
-                                    )
-                                    IconButton(onClick = { showNoteDialog = true }, modifier = Modifier.size(32.dp)) {
-                                        Icon(
-                                            if (cartItem.note.isNotBlank()) Icons.Default.EditNote else Icons.AutoMirrored.Filled.NoteAdd,
-                                            contentDescription = "Add note",
-                                            tint = if (cartItem.note.isNotBlank()) MaterialTheme.kbSecondary else MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-                                HorizontalDivider(color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.1f))
-                            }
-                            if (showNoteDialog) {
-                                CartItemNoteDialog(
-                                    initialNote = cartItem.note,
-                                    itemName = cartItem.item.name,
-                                    onDismiss = { showNoteDialog = false },
-                                    onSave = { note ->
-                                        billingViewModel.updateCartItemNote(cartItem.item, cartItem.variant, note)
-                                        showNoteDialog = false
-                                    }
-                                )
-                            }
+                        Text(
+                            text = category.name,
+                            color = if (isSelected) KbBrandSaffron else MaterialTheme.kbTextPrimary,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = if (isSelected) "Active" else "Tap to filter",
+                            color = MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuItemGridCard(
+    item: com.khanabook.lite.pos.data.local.entity.MenuItemEntity,
+    variants: List<com.khanabook.lite.pos.data.local.entity.ItemVariantEntity>,
+    categoryName: String,
+    cartItems: List<BillingViewModel.CartItem>,
+    onAdd: () -> Unit,
+    onRemove: () -> Unit,
+    onOpenVariantPicker: () -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    val itemAvailable = item.isAvailable
+    val cartItem = cartItems.find { it.item.id == item.id && it.variant == null }
+    KhanaBookCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = KbShape.Small
+    ) {
+        Column(
+            modifier = Modifier.padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (itemAvailable) KbSuccess.copy(alpha = KbOpacity.StatusBg) else KbError.copy(alpha = KbOpacity.StatusBg),
+                    border = BorderStroke(
+                        1.dp,
+                        if (itemAvailable) KbSuccess.copy(alpha = KbOpacity.StatusBorder) else KbError.copy(alpha = KbOpacity.StatusBorder)
+                    )
+                ) {
+                    Text(
+                        text = if (itemAvailable) "Available" else "Hidden",
+                        modifier = Modifier.padding(horizontal = spacing.small, vertical = 4.dp),
+                        color = if (itemAvailable) KbSuccess else KbError,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
+                if (categoryName.isNotBlank()) {
+                    Text(
+                        text = categoryName,
+                        color = MaterialTheme.kbTextSecondary,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+
+            Text(
+                text = item.name,
+                color = MaterialTheme.kbTextPrimary,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            if (item.description?.isNotBlank() == true) {
+                Text(
+                    text = item.description,
+                    color = MaterialTheme.kbTextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = if (variants.isEmpty()) CurrencyUtils.formatPrice(item.basePrice.toString()) else "${variants.size} variants",
+                        color = KbBrandSaffron,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                    if (cartItem != null) {
+                        Text(
+                            text = "${cartItem.quantity} in cart",
+                            color = MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+
+                if (itemAvailable) {
+                    if (variants.isEmpty()) {
+                        QuantitySelector(
+                            quantity = cartItem?.quantity ?: 0,
+                            onAdd = onAdd,
+                            onRemove = onRemove
+                        )
+                    } else {
+                        OutlinedButton(
+                            onClick = onOpenVariantPicker,
+                            modifier = Modifier.height(KbButtonSize.HeightSmall),
+                            shape = KbShape.ExtraSmall,
+                            border = BorderStroke(1.dp, KbBrandSaffron),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = KbBrandSaffron),
+                            contentPadding = PaddingValues(horizontal = spacing.small)
+                        ) {
+                            Text("Choose", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(spacing.medium))
-                    
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-                        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TabletCartPanel(
+    cartItems: List<BillingViewModel.CartItem>,
+    total: Double,
+    derivedItemCount: Int,
+    billingViewModel: BillingViewModel,
+    onProceedToPayment: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    Surface(
+        modifier = modifier.fillMaxHeight(),
+        color = MaterialTheme.kbBgSecondary,
+        tonalElevation = 2.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Order Summary",
+                    color = MaterialTheme.kbTextPrimary,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    text = "Persistent cart and payment lane",
+                    color = MaterialTheme.kbTextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(bottom = spacing.small),
+                verticalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                items(cartItems, key = { "${it.item.id}_${it.variant?.id ?: 0}" }) { cartItem ->
+                    var showNoteDialog by remember { mutableStateOf(false) }
+                    Column(
+                        modifier = Modifier.animateItem()
                     ) {
-                        Column(modifier = Modifier.padding(spacing.medium)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Total Amount", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
-                                Text(CurrencyUtils.formatPrice(total), color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-                            }
-                            Spacer(modifier = Modifier.height(spacing.medium))
-                            Button(
-                                onClick = onProceedToPayment,
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
-                                shape = RoundedCornerShape(12.dp),
-                                enabled = derivedItemCount > 0
-                            ) {
-                                Text("Proceed to Payment", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                            }
-                            if (derivedItemCount == 0) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    "Add items from the menu to proceed",
-                                    color = MaterialTheme.kbTextSecondary.copy(alpha = 0.45f),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    cartItem.item.name,
+                                    color = MaterialTheme.kbTextPrimary,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (cartItem.variant != null) {
+                                    Text(
+                                        cartItem.variant.variantName,
+                                        color = MaterialTheme.kbTextSecondary,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                if (cartItem.note.isNotBlank()) {
+                                    Text(
+                                        "Note: ${cartItem.note}",
+                                        color = MaterialTheme.kbPrimary.copy(alpha = 0.7f),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                            Text(
+                                "${cartItem.quantity} x ${CurrencyUtils.formatPrice((cartItem.variant?.price ?: cartItem.item.basePrice).toString())}",
+                                color = MaterialTheme.kbTextPrimary,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1
+                            )
+                            IconButton(onClick = { showNoteDialog = true }, modifier = Modifier.size(32.dp)) {
+                                Icon(
+                                    if (cartItem.note.isNotBlank()) Icons.Default.EditNote else Icons.AutoMirrored.Filled.NoteAdd,
+                                    contentDescription = "Add note",
+                                    tint = if (cartItem.note.isNotBlank()) MaterialTheme.kbSecondary else MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
+                        HorizontalDivider(color = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.1f))
+                    }
+                    if (showNoteDialog) {
+                        CartItemNoteDialog(
+                            initialNote = cartItem.note,
+                            itemName = cartItem.item.name,
+                            onDismiss = { showNoteDialog = false },
+                            onSave = { note ->
+                                billingViewModel.updateCartItemNote(cartItem.item, cartItem.variant, note)
+                                showNoteDialog = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+                border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f))
+            ) {
+                Column(modifier = Modifier.padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Total Amount", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
+                        Text(CurrencyUtils.formatPrice(total), color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = KbBrandSaffron.copy(alpha = KbOpacity.StatusBg),
+                        border = BorderStroke(1.dp, KbBrandSaffron.copy(alpha = KbOpacity.StatusBorder))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing.small, vertical = spacing.extraSmall),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Items", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelMedium)
+                            Text("$derivedItemCount", color = KbBrandSaffron, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                        }
+                    }
+                    Button(
+                        onClick = onProceedToPayment,
+                        modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = derivedItemCount > 0
+                    ) {
+                        Text("Proceed to Payment", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                    }
+                    if (derivedItemCount == 0) {
+                        Text(
+                            "Add items from the menu to proceed",
+                            color = MaterialTheme.kbTextSecondary.copy(alpha = 0.45f),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
                     }
                 }
             }

@@ -136,6 +136,60 @@ fun OnboardingPhoneInput(
 }
 
 @Composable
+fun OnboardingInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    readOnly: Boolean = false,
+    isError: Boolean = false,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    trailingIcon: @Composable (() -> Unit)? = null
+) {
+    val containerColor = if (isError) Color(0xFFFEE2E2) else Color(0xFFF3F0FA)
+    
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .background(containerColor, RoundedCornerShape(14.dp))
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+            if (value.isEmpty()) {
+                Text(
+                    text = placeholder,
+                    color = Color(0xFF94A3B8),
+                    fontSize = 16.sp
+                )
+            }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                readOnly = readOnly,
+                textStyle = TextStyle(
+                    color = Color(0xFF1E293B),
+                    fontSize = 16.sp
+                ),
+                visualTransformation = visualTransformation,
+                keyboardOptions = keyboardOptions,
+                keyboardActions = keyboardActions,
+                singleLine = true,
+                cursorBrush = SolidColor(Color(0xFFF97316)),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        if (trailingIcon != null) {
+            Spacer(modifier = Modifier.width(8.dp))
+            trailingIcon()
+        }
+    }
+}
+
+@Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onSignUpClick: () -> Unit = {},
@@ -232,20 +286,20 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.kbBgPrimary)
+            .background(Color(0xFF0D0820))
+            .imePadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header: Midnight Purple Gradient with blobs
             KhanaBookPurpleBackground(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(vertical = 48.dp),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(vertical = 48.dp)
                 ) {
                     // White card containing Logo - expanded and elevated
                     Card(
@@ -403,47 +457,12 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    TextField(
+                    OnboardingInputField(
                         value = password,
                         onValueChange = { password = it },
-                        placeholder = { Text("Enter password", color = Color(0xFF94A3B8), fontSize = 16.sp) },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = { showPassword = !showPassword },
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = if (showPassword) stringResource(R.string.content_desc_hide_password) else stringResource(R.string.content_desc_show_password),
-                                    tint = Color(0xFF94A3B8),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        },
-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .focusRequester(passwordFocusRequester),
-                        shape = RoundedCornerShape(14.dp),
-                        textStyle = TextStyle(color = Color(0xFF1E293B), fontSize = 16.sp),
-                        colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF1E293B),
-                            unfocusedTextColor = Color(0xFF1E293B),
-                            disabledTextColor = Color(0xFF94A3B8),
-                            errorTextColor = KbError,
-                            focusedContainerColor = Color(0xFFF3F0FA),
-                            unfocusedContainerColor = Color(0xFFF3F0FA),
-                            disabledContainerColor = Color(0xFFF3F0FA),
-                            errorContainerColor = Color(0xFFFEE2E2),
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            errorIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFFF97316)
-                        ),
-                        singleLine = true,
+                        placeholder = "Enter password",
                         isError = password.isBlank() && loginStatus is AuthViewModel.LoginResult.Error,
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done
@@ -459,7 +478,23 @@ fun LoginScreen(
                                 }
                                 focusManager.clearFocus()
                             }
-                        )
+                        ),
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { showPassword = !showPassword },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = if (showPassword) stringResource(R.string.content_desc_hide_password) else stringResource(R.string.content_desc_show_password),
+                                    tint = Color(0xFF94A3B8),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(passwordFocusRequester)
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -719,7 +754,8 @@ fun ForgotPasswordDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.kbBgPrimary)
+            .background(Color(0xFF0D0820))
+            .imePadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header height 310dp with gradient blobs
@@ -734,6 +770,7 @@ fun ForgotPasswordDialog(
                         .fillMaxWidth()
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .align(Alignment.TopStart)
                 ) {
                     Box(
                         modifier = Modifier
@@ -999,10 +1036,17 @@ fun ForgotPasswordDialog(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        TextField(
+                        val newPasswordError = fieldError("password")
+                        OnboardingInputField(
                             value = newPassword,
                             onValueChange = { newPassword = it },
-                            placeholder = { Text("Enter new password", color = Color(0xFF94A3B8), fontSize = 16.sp) },
+                            placeholder = "Enter new password",
+                            isError = newPasswordError != null,
+                            visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Next
+                            ),
                             trailingIcon = {
                                 IconButton(
                                     onClick = { showNewPassword = !showNewPassword },
@@ -1016,25 +1060,12 @@ fun ForgotPasswordDialog(
                                     )
                                 }
                             },
-                            visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = TextFieldDefaults.colors(
-                                focusedTextColor = Color(0xFF1E293B),
-                                unfocusedTextColor = Color(0xFF1E293B),
-                                focusedContainerColor = Color(0xFFF3F0FA),
-                                unfocusedContainerColor = Color(0xFFF3F0FA),
-                                disabledContainerColor = Color(0xFFF3F0FA),
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                cursorColor = Color(0xFFF97316)
-                            ),
-                            singleLine = true,
-                            isError = fieldError("password") != null,
-                            supportingText = {
-                                fieldError("password")?.let { Text(it, color = KbError, style = MaterialTheme.typography.labelSmall) }
-                            }
+                            modifier = Modifier.fillMaxWidth()
                         )
+                        if (newPasswordError != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(newPasswordError, color = KbError, style = MaterialTheme.typography.labelSmall)
+                        }
 
                         Spacer(modifier = Modifier.height(20.dp))
 
@@ -1048,10 +1079,16 @@ fun ForgotPasswordDialog(
 
                         val passwordsMatch = confirmPassword.isEmpty() || newPassword == confirmPassword
 
-                        TextField(
+                        OnboardingInputField(
                             value = confirmPassword,
                             onValueChange = { confirmPassword = it },
-                            placeholder = { Text("Repeat new password", color = Color(0xFF94A3B8), fontSize = 16.sp) },
+                            placeholder = "Repeat new password",
+                            isError = !passwordsMatch,
+                            visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
                             trailingIcon = {
                                 IconButton(
                                     onClick = { showConfirmPassword = !showConfirmPassword },
@@ -1065,25 +1102,12 @@ fun ForgotPasswordDialog(
                                     )
                                 }
                             },
-                            visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = TextFieldDefaults.colors(
-                                focusedTextColor = Color(0xFF1E293B),
-                                unfocusedTextColor = Color(0xFF1E293B),
-                                focusedContainerColor = Color(0xFFF3F0FA),
-                                unfocusedContainerColor = Color(0xFFF3F0FA),
-                                disabledContainerColor = Color(0xFFF3F0FA),
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                cursorColor = Color(0xFFF97316)
-                            ),
-                            singleLine = true,
-                            isError = !passwordsMatch,
-                            supportingText = {
-                                if (!passwordsMatch) Text("Passwords do not match", color = KbError, style = MaterialTheme.typography.labelSmall)
-                            }
+                            modifier = Modifier.fillMaxWidth()
                         )
+                        if (!passwordsMatch) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Passwords do not match", color = KbError, style = MaterialTheme.typography.labelSmall)
+                        }
 
                         Spacer(modifier = Modifier.height(32.dp))
 

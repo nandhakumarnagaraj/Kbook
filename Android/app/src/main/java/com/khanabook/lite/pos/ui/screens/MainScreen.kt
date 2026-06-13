@@ -39,12 +39,18 @@ import androidx.navigation.NavController
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import com.khanabook.lite.pos.R
 
 @Composable
@@ -64,8 +70,14 @@ fun MainScreen(
     val visibleTabs = remember { NavigationUtils.getVisibleTabs() }
     val haptic = LocalHapticFeedback.current
 
-    var selectedTabIndex by rememberSaveable(initialTab, visibleTabs) { 
-        val initialVisibleIndex = visibleTabs.indexOfFirst { it.originalIndex == initialTab }
+    var selectedTabIndex by rememberSaveable(initialTab, visibleTabs) {
+        val normalizedInitialTab = when (initialTab) {
+            1 -> 0 // Billing is launched from actions now, so old tab links fall back to Home.
+            2 -> 1 // Old Menu tab deep links now land on Orders, keeping route indices stable enough.
+            3 -> 4 // Old Settings tab deep links still open Settings.
+            else -> initialTab
+        }
+        val initialVisibleIndex = visibleTabs.indexOfFirst { it.originalIndex == normalizedInitialTab }
         mutableIntStateOf(if (initialVisibleIndex != -1) initialVisibleIndex else 0) 
     }
     var showBottomBar by rememberSaveable { mutableStateOf(true) }
@@ -111,18 +123,14 @@ fun MainScreen(
                     onCallCustomer = onCallCustomer,
                     onMarketplaceOrders = onMarketplaceOrders,
                     onMenuClick = {
-                        val menuIndex = visibleTabs.indexOfFirst { it.label == "Menu" }
-                        if (menuIndex != -1) {
-                            selectedTabIndex = menuIndex
+                        val settingsIndex = visibleTabs.indexOfFirst { it.label == "Settings" }
+                        if (settingsIndex != -1) {
+                            selectedTabIndex = settingsIndex
                         }
                     }
                 )
                 "Orders" -> OrdersScreen(onBack = backToHome)
-                "Menu" -> MenuConfigurationScreen(
-                    navController = navController,
-                    onBackClick = backToHome,
-                    viewModel = menuViewModel
-                )
+                "Reports" -> ReportsScreen(onBack = backToHome)
                 "Settings" -> SettingsScreen(
                     onBack = backToHome,
                     navController = navController,
@@ -198,24 +206,38 @@ fun AppNavigationRail(
     val inactiveColor = MaterialTheme.kbTextDisabled
 
     NavigationRail(
-        containerColor = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.statusBarsPadding().navigationBarsPadding(),
+        containerColor = MaterialTheme.kbBgCard.copy(alpha = 0.98f),
+        modifier = Modifier
+            .width(104.dp)
+            .statusBarsPadding()
+            .navigationBarsPadding(),
         header = {
-            Spacer(modifier = Modifier.height(16.dp))
-            Box(
+            Column(
                 modifier = Modifier
-                    .size(36.dp)
-                    .background(Color.White, CircleShape)
-                    .padding(4.dp),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(top = 14.dp, bottom = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.khanabook_logo),
-                    contentDescription = "Logo",
-                    modifier = Modifier.fillMaxSize()
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color.White, CircleShape)
+                        .padding(6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.khanabook_logo),
+                        contentDescription = "KhanaBook",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Text(
+                    text = "POS",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = activeColor
                 )
             }
-            Spacer(modifier = Modifier.height(24.dp))
         }
     ) {
         visibleTabs.forEachIndexed { index, item ->
@@ -229,9 +251,10 @@ fun AppNavigationRail(
                     unselectedIconColor = inactiveColor,
                     selectedTextColor = activeColor,
                     unselectedTextColor = inactiveColor,
-                    indicatorColor = activeColor.copy(alpha = 0.12f)
+                    indicatorColor = activeColor.copy(alpha = KbOpacity.StatusBg)
                 )
             )
+            Spacer(modifier = Modifier.height(6.dp))
         }
     }
 }
@@ -246,9 +269,9 @@ fun AppBottomBar(
     val inactiveColor = MaterialTheme.kbTextDisabled
 
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.kbBgCard.copy(alpha = 0.98f),
         modifier = Modifier.navigationBarsPadding(),
-        tonalElevation = 0.dp
+        tonalElevation = 3.dp
     ) {
         visibleTabs.forEachIndexed { index, item ->
             NavigationBarItem(
@@ -261,7 +284,7 @@ fun AppBottomBar(
                     unselectedIconColor = inactiveColor,
                     selectedTextColor = activeColor,
                     unselectedTextColor = inactiveColor,
-                    indicatorColor = activeColor.copy(alpha = 0.12f)
+                    indicatorColor = activeColor.copy(alpha = KbOpacity.StatusBg)
                 )
             )
         }

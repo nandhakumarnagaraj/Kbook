@@ -267,7 +267,7 @@ fun SettingsScreen(
                                 PaymentConfigView(profile, onSave = {
                                     viewModel.saveProfile(it)
                                     toastScope.launch { KhanaToast.show(ctx.getString(R.string.toast_payment_settings_saved), ToastKind.Success) }
-                                }, onBack = { })
+                                }, onBack = { }, onOpenEasebuzzKyc = { navController.navigate("easebuzz_kyc") }, onOpenMarketplaceOrders = { navController.navigate("marketplace_orders") })
                             }
                             "printer" -> {
                                 PrinterConfigView(profile, onSave = {
@@ -357,7 +357,7 @@ fun SettingsScreen(
                                 viewModel.saveProfile(it)
                                 toastScope.launch { KhanaToast.show(ctx.getString(R.string.toast_payment_settings_saved), ToastKind.Success) }
                                 section = "menu"
-                            }, onBack = { section = "menu" })
+                            }, onBack = { section = "menu" }, onOpenEasebuzzKyc = { navController.navigate("easebuzz_kyc") }, onOpenMarketplaceOrders = { navController.navigate("marketplace_orders") })
                         }
                         "printer" -> {
                             PrinterConfigView(profile, onSave = {

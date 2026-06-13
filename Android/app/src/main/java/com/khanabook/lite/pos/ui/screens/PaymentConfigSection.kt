@@ -1,9 +1,6 @@
 package com.khanabook.lite.pos.ui.screens
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,7 +16,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.LocalShipping
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -35,9 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
@@ -46,13 +44,12 @@ import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
+import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
 import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
-import com.khanabook.lite.pos.ui.theme.kbPrimary
 import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.kbTextPrimary
 import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 import com.khanabook.lite.pos.ui.theme.KbSuccess
-import com.khanabook.lite.pos.ui.theme.SwiggyOrange
-import com.khanabook.lite.pos.ui.theme.ZomatoRed
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 
@@ -60,31 +57,23 @@ import kotlinx.coroutines.launch
 fun PaymentConfigView(
     profile: RestaurantProfileEntity?,
     onSave: (RestaurantProfileEntity) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onOpenEasebuzzKyc: () -> Unit = {},
+    onOpenMarketplaceOrders: () -> Unit = {}
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
-    val context = LocalContext.current
     var currency by remember { mutableStateOf(profile?.currency ?: "INR") }
     var upiSupported by remember { mutableStateOf(profile?.upiEnabled ?: false) }
     var upiHandle by remember { mutableStateOf(profile?.upiHandle ?: "") }
     var cashEnabled by remember { mutableStateOf(profile?.cashEnabled ?: true) }
     var posEnabled by remember { mutableStateOf(profile?.posEnabled ?: false) }
-    val easebuzzEnabled = profile?.easebuzzEnabled ?: false
-    val ownWebsiteEnabled = profile?.ownWebsiteEnabled ?: false
-    val zomatoEnabled = profile?.zomatoEnabled ?: false
-    val swiggyEnabled = profile?.swiggyEnabled ?: false
+    var easebuzzEnabled by remember { mutableStateOf(profile?.easebuzzEnabled ?: false) }
+    var ownWebsiteEnabled by remember { mutableStateOf(profile?.ownWebsiteEnabled ?: false) }
+    var zomatoEnabled by remember { mutableStateOf(profile?.zomatoEnabled ?: false) }
+    var swiggyEnabled by remember { mutableStateOf(profile?.swiggyEnabled ?: false) }
 
     val toastScope = rememberCoroutineScope()
-
-    fun openWebDashboard(path: String = "") {
-        val base = BuildConfig.WEB_ADMIN_URL.trimEnd('/')
-        val url = if (path.isBlank()) base else "$base/$path"
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(intent)
-    }
 
     Column(
         modifier = Modifier
@@ -119,16 +108,69 @@ fun PaymentConfigView(
             Spacer(modifier = Modifier.height(spacing.large))
             Text("Online Platforms", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium)
             Text(
-                "Setup is managed via the web admin dashboard.",
+                "Everything here stays inside the app. No browser hops.",
                 color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.labelSmall
             )
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            PlatformToggle("Easebuzz Payments", easebuzzEnabled) { openWebDashboard("payments/easebuzz") }
-            PlatformToggle("Own Website", ownWebsiteEnabled) { openWebDashboard("marketplace/own-website") }
-            PlatformToggle("Zomato Integration", zomatoEnabled) { openWebDashboard("marketplace/zomato") }
-            PlatformToggle("Swiggy Integration", swiggyEnabled) { openWebDashboard("marketplace/swiggy") }
+            IntegrationCard(
+                title = "Easebuzz Onboarding",
+                subtitle = "Native KYC flow and online payment activation.",
+                icon = Icons.Outlined.Security,
+                tone = KbBrandSaffron
+            ) {
+                PaymentToggle("Enable Easebuzz", easebuzzEnabled) { easebuzzEnabled = it }
+                Spacer(modifier = Modifier.height(spacing.small))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    Button(
+                        onClick = onOpenEasebuzzKyc,
+                        enabled = easebuzzEnabled,
+                        modifier = Modifier.weight(1f).height(44.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
+                        shape = RoundedCornerShape(22.dp)
+                    ) {
+                        Icon(imageVector = Icons.Outlined.Security, contentDescription = null, tint = Color.White)
+                        Spacer(modifier = Modifier.size(spacing.extraSmall))
+                        Text("Open KYC", color = Color.White)
+                    }
+                    OutlinedButton(
+                        onClick = { easebuzzEnabled = false },
+                        modifier = Modifier.weight(1f).height(44.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
+                        shape = RoundedCornerShape(22.dp)
+                    ) {
+                        Text("Reset")
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(spacing.medium))
+
+            IntegrationCard(
+                title = "Marketplace Integrations",
+                subtitle = "Zomato, Swiggy, and own-website checkout flags.",
+                icon = Icons.Outlined.LocalShipping,
+                tone = MaterialTheme.kbSecondary
+            ) {
+                PaymentToggle("Own Website", ownWebsiteEnabled) { ownWebsiteEnabled = it }
+                PaymentToggle("Zomato Integration", zomatoEnabled) { zomatoEnabled = it }
+                PaymentToggle("Swiggy Integration", swiggyEnabled) { swiggyEnabled = it }
+                Spacer(modifier = Modifier.height(spacing.small))
+                Button(
+                    onClick = onOpenMarketplaceOrders,
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbSecondary),
+                    shape = RoundedCornerShape(22.dp)
+                ) {
+                    Icon(imageVector = Icons.Outlined.Storefront, contentDescription = null, tint = Color.White)
+                    Spacer(modifier = Modifier.size(spacing.extraSmall))
+                    Text("Open Marketplace Orders", color = Color.White)
+                }
+            }
 
             Spacer(modifier = Modifier.height(spacing.medium))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
@@ -144,6 +186,10 @@ fun PaymentConfigView(
                             currency = currency,
                             upiEnabled = upiSupported,
                             upiHandle = upiHandle.trim(),
+                            easebuzzEnabled = easebuzzEnabled,
+                            ownWebsiteEnabled = ownWebsiteEnabled,
+                            zomatoEnabled = zomatoEnabled,
+                            swiggyEnabled = swiggyEnabled,
                             upiQrPath = null,
                             upiQrUrl = null,
                             cashEnabled = cashEnabled,
@@ -168,85 +214,57 @@ fun PaymentConfigView(
 }
 
 @Composable
-fun PaymentToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().height(48.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+fun IntegrationCard(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tone: Color,
+    content: @Composable () -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = tone.copy(alpha = 0.08f)
+        ),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, tone.copy(alpha = 0.2f))
     ) {
-        Text(label, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
-        KhanaBookSwitch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            checkedTrackColor = KbSuccess
-        )
+        Column(modifier = Modifier.padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing.small), verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = icon, contentDescription = null, tint = tone, modifier = Modifier.size(20.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleSmall)
+                    Text(subtitle, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            content()
+        }
     }
 }
 
 @Composable
-fun PlatformToggle(label: String, enabled: Boolean, onOpenDashboard: () -> Unit) {
+fun PaymentToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     val spacing = KhanaBookTheme.spacing
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp)
-            .clickable(onClick = onOpenDashboard),
+            .height(48.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(label, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium)
         Row(verticalAlignment = Alignment.CenterVertically) {
             KhanaBookSwitch(
-                checked = enabled,
-                onCheckedChange = {},
-                enabled = false,
+                checked = checked,
+                onCheckedChange = onCheckedChange,
                 checkedTrackColor = KbSuccess
             )
             Spacer(modifier = Modifier.size(spacing.small))
             Icon(
-                imageVector = Icons.Default.OpenInNew,
-                contentDescription = "Open dashboard",
-                tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.6f),
-                modifier = Modifier.size(18.dp).padding(start = 4.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun DashboardLinkCard(
-    label: String,
-    color: Color,
-    onClick: () -> Unit
-) {
-    val spacing = KhanaBookTheme.spacing
-    Card(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = spacing.extraSmall),
-        colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.12f)
-        ),
-        shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.35f))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.medium, vertical = spacing.small),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                label,
-                color = color,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
-            )
-            Icon(
-                imageVector = Icons.Default.OpenInNew,
+                imageVector = Icons.Filled.CheckCircle,
                 contentDescription = null,
-                tint = color,
+                tint = if (checked) KbSuccess else MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
                 modifier = Modifier.size(18.dp)
             )
         }

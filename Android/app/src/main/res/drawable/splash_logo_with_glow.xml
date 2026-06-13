@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Glow layer: 160dp x 160dp soft radial gradient -->
+    <item
+        android:width="160dp"
+        android:height="160dp"
+        android:gravity="center">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="80dp"
+                android:centerX="50%"
+                android:centerY="50%"
+                android:startColor="#738B5CF6"
+                android:centerColor="#26D946EF"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+    
+    <!-- Logo layer: 88dp x 88dp centered -->
+    <item
+        android:width="88dp"
+        android:height="88dp"
+        android:gravity="center">
+        <bitmap
+            android:src="@drawable/ic_khanabook_logo"
+            android:gravity="fill" />
+    </item>
+</layer-list>

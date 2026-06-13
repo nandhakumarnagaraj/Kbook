@@ -36,10 +36,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.model.OrderDetailRow
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
-import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.remote.dto.MerchantCustomerOrderDetailResponse
 import com.khanabook.lite.pos.data.remote.dto.MerchantCustomerOrderSummaryResponse
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
@@ -345,6 +345,12 @@ fun OrdersScreen(
                                         }
                                     }
                                 }
+
+                                OrderStatusOverviewStrip(
+                                    rows = filteredRows,
+                                    currentFilter = statusFilter,
+                                    onFilterSelected = { statusFilter = it }
+                                )
                             }
                         }
                     }
@@ -1979,6 +1985,95 @@ private fun DetailRowLight(label: String, value: String, isStatus: Boolean = fal
             OrderStatusChip(status)
         } else {
             Text(text = value, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+        }
+    }
+}
+
+@Composable
+private fun OrderStatusOverviewStrip(
+    rows: List<OrderDetailRow>,
+    currentFilter: String,
+    onFilterSelected: (String) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    val activeCount = rows.count { it.orderStatus == OrderStatus.DRAFT }
+    val completedCount = rows.count { it.orderStatus == OrderStatus.COMPLETED }
+    val cancelledCount = rows.count { it.orderStatus == OrderStatus.CANCELLED }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.medium),
+        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+    ) {
+        OrderSummaryChip(
+            modifier = Modifier.weight(1f),
+            title = "All",
+            count = rows.size,
+            tone = KbBrandSaffron,
+            selected = currentFilter == "All",
+            onClick = { onFilterSelected("All") }
+        )
+        OrderSummaryChip(
+            modifier = Modifier.weight(1f),
+            title = "Active",
+            count = activeCount,
+            tone = KbWarning,
+            selected = currentFilter == "Active",
+            onClick = { onFilterSelected("Active") }
+        )
+        OrderSummaryChip(
+            modifier = Modifier.weight(1f),
+            title = "Completed",
+            count = completedCount,
+            tone = KbSuccess,
+            selected = currentFilter == "Completed",
+            onClick = { onFilterSelected("Completed") }
+        )
+        OrderSummaryChip(
+            modifier = Modifier.weight(1f),
+            title = "Cancelled",
+            count = cancelledCount,
+            tone = KbError,
+            selected = currentFilter == "Cancelled",
+            onClick = { onFilterSelected("Cancelled") }
+        )
+    }
+}
+
+@Composable
+private fun OrderSummaryChip(
+    modifier: Modifier = Modifier,
+    title: String,
+    count: Int,
+    tone: Color,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    KhanaBookCard(
+        modifier = modifier,
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) tone.copy(alpha = 0.12f) else MaterialTheme.kbBgCard
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = title,
+                color = MaterialTheme.kbTextSecondary,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                maxLines = 1
+            )
+            Text(
+                text = count.toString(),
+                color = tone,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1
+            )
         }
     }
 }
