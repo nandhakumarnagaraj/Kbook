@@ -450,7 +450,7 @@ public class InvoiceController {
         // FOOTER
         // ══════════════════════════════════════════════════════
         h.append("<div class=\"ft\">")
-         .append("Powered by <a href=\"https://play.google.com/store/apps/details?id=com.piquantservices.khanabooklite\" target=\"_blank\">KhanaBook</a>")
+         .append("Powered by <a href=\"https://khanabook.com\" target=\"_blank\">KhanaBook</a>")
          .append("</div>")
          .append("</div></body></html>");
 
