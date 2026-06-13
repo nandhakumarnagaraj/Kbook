@@ -36,7 +36,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -44,8 +43,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -117,12 +114,6 @@ fun PrinterConfigView(
     val snackbarHostState = remember { SnackbarHostState() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // Stitch: printer type toggle (WiFi / Bluetooth)
-    var printerType by remember { mutableStateOf("bluetooth") }
-    var wifiIpAddress by remember { mutableStateOf("") }
-    var wifiPort by remember { mutableStateOf("9100") }
-    var wifiConnected by remember { mutableStateOf(false) }
-    var testingWifi by remember { mutableStateOf(false) }
 
     val bluetoothLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
@@ -206,185 +197,63 @@ fun PrinterConfigView(
                 )
                 Spacer(modifier = Modifier.height(spacing.smallMedium))
 
-                // WiFi / Bluetooth toggle tabs
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                ) {
-                    FilterChip(
-                        selected = printerType == "wifi",
-                        onClick = { printerType = "wifi" },
-                        label = { Text("WiFi") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Wifi, null, modifier = Modifier.size(18.dp))
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = KbBrandSaffron.copy(alpha = KbOpacity.Selected),
-                            selectedLabelColor = KbBrandSaffron
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            borderColor = KbBrandSaffron.copy(alpha = KbOpacity.StatusBorder),
-                            selectedBorderColor = KbBrandSaffron,
-                            enabled = true,
-                            selected = printerType == "wifi"
-                        ),
-                        shape = KbShape.Medium
-                    )
-                    FilterChip(
-                        selected = printerType == "bluetooth",
-                        onClick = { printerType = "bluetooth" },
-                        label = { Text("Bluetooth") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Bluetooth, null, modifier = Modifier.size(18.dp))
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = KbBrandSaffron.copy(alpha = KbOpacity.Selected),
-                            selectedLabelColor = KbBrandSaffron
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            borderColor = KbBrandSaffron.copy(alpha = KbOpacity.StatusBorder),
-                            selectedBorderColor = KbBrandSaffron,
-                            enabled = true,
-                            selected = printerType == "bluetooth"
-                        ),
-                        shape = KbShape.Medium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(spacing.smallMedium))
-
-                // ── WiFi content ──
-                if (printerType == "wifi") {
-                    OutlinedTextField(
-                        value = wifiIpAddress,
-                        onValueChange = { wifiIpAddress = it },
-                        label = { Text("IP Address") },
-                        placeholder = { Text("192.168.1.100") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = KbShape.Small,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = KbBrandSaffron,
-                            cursorColor = KbBrandSaffron
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(spacing.small))
-                    OutlinedTextField(
-                        value = wifiPort,
-                        onValueChange = { wifiPort = it },
-                        label = { Text("Port") },
-                        placeholder = { Text("9100") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = KbShape.Small,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = KbBrandSaffron,
-                            cursorColor = KbBrandSaffron
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(spacing.smallMedium))
-                    Button(
-                        onClick = {
-                            if (wifiIpAddress.isNotBlank()) {
-                                testingWifi = true
-                                // Simulate test; replace with actual IPP/network printer check
-                                snackbarMessageRes = R.string.toast_printer_connected
-                                wifiConnected = true
-                                testingWifi = false
-                            } else {
-                                snackbarMessageRes = R.string.toast_printer_connect_failed
-                            }
-                        },
-                        enabled = wifiIpAddress.isNotBlank() && !testingWifi,
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                        shape = KbShape.Medium
-                    ) {
-                        if (testingWifi) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Test Connection", color = Color.White)
-                        }
-                    }
-
-                    // WiFi connected state
-                    if (wifiConnected && wifiIpAddress.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(spacing.small))
-                        ConnectedPrinterBanner(
-                            printerName = "WiFi@${wifiIpAddress}:${wifiPort}",
-                            onDisconnect = {
-                                wifiConnected = false
-                                wifiIpAddress = ""
-                                wifiPort = "9100"
-                            }
-                        )
-                    }
-                }
-
                 // ── Bluetooth content ──
-                if (printerType == "bluetooth") {
-                    PrinterTargetCard(
-                        title = "Customer Receipt Printer",
-                        printerName = customerPrinter?.name ?: "No Printer",
-                        macAddress = customerPrinter?.macAddress,
-                        enabled = enabled,
-                        autoPrint = autoPrint,
-                        showAutoPrintToggle = true,
-                        paper58 = paper58,
-                        includeLogo = includeLogo,
-                        showLogoToggle = true,
-                        isConnected = printerStatusRoles.contains(PrinterRole.CUSTOMER.name),
-                        onEnabledChange = { enabled = it },
-                        onAutoPrintChange = { autoPrint = it },
-                        onPaperSizeChange = { paper58 = it },
-                        onIncludeLogoChange = { includeLogo = it },
-                        helperText = null,
-                        onSelectPrinter = {
-                            pendingRole = PrinterRole.CUSTOMER
-                            openBtSheet()
-                        },
-                        onTestPrint = { viewModel.testPrint(PrinterRole.CUSTOMER) }
-                    )
-                    Spacer(modifier = Modifier.height(spacing.smallMedium))
-                    PrinterTargetCard(
-                        title = "Kitchen Ticket Printer",
-                        printerName = kitchenPrinter?.name ?: "No Printer",
-                        macAddress = kitchenPrinter?.macAddress,
-                        enabled = kitchenEnabled,
-                        autoPrint = true,
-                        showAutoPrintToggle = false,
-                        paper58 = kitchenPaper58,
-                        includeLogo = false,
-                        showLogoToggle = false,
-                        isConnected = printerStatusRoles.contains(PrinterRole.KITCHEN.name),
-                        onEnabledChange = { kitchenEnabled = it },
-                        onAutoPrintChange = {},
-                        onPaperSizeChange = { kitchenPaper58 = it },
-                        onIncludeLogoChange = {},
-                        helperText = null,
-                        onSelectPrinter = {
-                            pendingRole = PrinterRole.KITCHEN
-                            openBtSheet()
-                        },
-                        onTestPrint = { viewModel.testPrint(PrinterRole.KITCHEN) }
-                    )
+                PrinterTargetCard(
+                    title = "Customer Receipt Printer",
+                    printerName = customerPrinter?.name ?: "No Printer",
+                    macAddress = customerPrinter?.macAddress,
+                    enabled = enabled,
+                    autoPrint = autoPrint,
+                    showAutoPrintToggle = true,
+                    paper58 = paper58,
+                    includeLogo = includeLogo,
+                    showLogoToggle = true,
+                    isConnected = printerStatusRoles.contains(PrinterRole.CUSTOMER.name),
+                    onEnabledChange = { enabled = it },
+                    onAutoPrintChange = { autoPrint = it },
+                    onPaperSizeChange = { paper58 = it },
+                    onIncludeLogoChange = { includeLogo = it },
+                    helperText = null,
+                    onSelectPrinter = {
+                        pendingRole = PrinterRole.CUSTOMER
+                        openBtSheet()
+                    },
+                    onTestPrint = { viewModel.testPrint(PrinterRole.CUSTOMER) }
+                )
+                Spacer(modifier = Modifier.height(spacing.smallMedium))
+                PrinterTargetCard(
+                    title = "Kitchen Ticket Printer",
+                    printerName = kitchenPrinter?.name ?: "No Printer",
+                    macAddress = kitchenPrinter?.macAddress,
+                    enabled = kitchenEnabled,
+                    autoPrint = true,
+                    showAutoPrintToggle = false,
+                    paper58 = kitchenPaper58,
+                    includeLogo = false,
+                    showLogoToggle = false,
+                    isConnected = printerStatusRoles.contains(PrinterRole.KITCHEN.name),
+                    onEnabledChange = { kitchenEnabled = it },
+                    onAutoPrintChange = {},
+                    onPaperSizeChange = { kitchenPaper58 = it },
+                    onIncludeLogoChange = {},
+                    helperText = null,
+                    onSelectPrinter = {
+                        pendingRole = PrinterRole.KITCHEN
+                        openBtSheet()
+                    },
+                    onTestPrint = { viewModel.testPrint(PrinterRole.KITCHEN) }
+                )
 
-                    // Bluetooth connected state
-                    if (isAnyBtConnected) {
-                        Spacer(modifier = Modifier.height(spacing.small))
-                        ConnectedPrinterBanner(
-                            printerName = connectedBtName ?: "Bluetooth Printer",
-                            onDisconnect = {
-                                // Business logic: reset connection state
-                                // (actual disconnect handled by system; we just clear UI state)
-                            }
-                        )
-                    }
+                // Bluetooth connected state
+                if (isAnyBtConnected) {
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    ConnectedPrinterBanner(
+                        printerName = connectedBtName ?: "Bluetooth Printer",
+                        onDisconnect = {
+                            // Business logic: reset connection state
+                            // (actual disconnect handled by system; we just clear UI state)
+                        }
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(spacing.smallMedium))
@@ -392,22 +261,13 @@ fun PrinterConfigView(
                 // ── Print Test Page button (Stitch: at bottom of card) ──
                 Button(
                     onClick = {
-                        when (printerType) {
-                            "wifi" -> if (wifiConnected) snackbarMessageRes = R.string.toast_printer_settings_saved
-                            "bluetooth" -> {
-                                if (printerStatusRoles.contains(PrinterRole.CUSTOMER.name)) {
-                                    viewModel.testPrint(PrinterRole.CUSTOMER)
-                                } else if (printerStatusRoles.contains(PrinterRole.KITCHEN.name)) {
-                                    viewModel.testPrint(PrinterRole.KITCHEN)
-                                }
-                            }
+                        if (printerStatusRoles.contains(PrinterRole.CUSTOMER.name)) {
+                            viewModel.testPrint(PrinterRole.CUSTOMER)
+                        } else if (printerStatusRoles.contains(PrinterRole.KITCHEN.name)) {
+                            viewModel.testPrint(PrinterRole.KITCHEN)
                         }
                     },
-                    enabled = when (printerType) {
-                        "wifi" -> wifiConnected
-                        "bluetooth" -> isAnyBtConnected
-                        else -> false
-                    },
+                    enabled = isAnyBtConnected,
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = KbBrandSaffron,
