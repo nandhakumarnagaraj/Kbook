@@ -116,3 +116,8 @@ Thumbs.db
 /.idea/workspace.xml
 nul
 Android/nul
+
+# Antigravity agents & local builds
+.agents/
+Android/*.apk
+
