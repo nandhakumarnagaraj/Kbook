@@ -264,13 +264,7 @@ fun OrdersScreen(
                                     .padding(horizontal = spacing.medium),
                                 contentAlignment = Alignment.CenterStart
                             ) {
-                                IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = "Back",
-                                        tint = Color.White
-                                    )
-                                }
+                                KhanaBookBackButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart))
                                 Text(
                                     text = "Orders",
                                     modifier = Modifier.align(Alignment.Center),
@@ -589,13 +583,7 @@ fun OrdersScreen(
                                 .padding(horizontal = spacing.medium),
                             contentAlignment = Alignment.CenterStart
                         ) {
-                            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back",
-                                    tint = Color.White
-                                )
-                            }
+                            KhanaBookBackButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart))
                             Text(
                                 text = "Orders",
                                 modifier = Modifier.align(Alignment.Center),

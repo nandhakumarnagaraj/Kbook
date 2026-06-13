@@ -49,7 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookBackButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -178,13 +178,7 @@ fun OcrScannerScreen(
                         .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
+                    KhanaBookBackButton(onClick = onBack)
                     Text(
                         text = if (returnBarcode) "Scan Barcode" else "Scan Menu",
                         modifier = Modifier.weight(1f),

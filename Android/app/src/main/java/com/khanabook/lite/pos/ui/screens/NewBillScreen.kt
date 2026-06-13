@@ -218,7 +218,7 @@ fun NewBillScreen(
                     Box(
                         modifier = Modifier
                             .size(36.dp)
-                            .background(MaterialTheme.kbBgSecondary, CircleShape)
+                            .background(Color.White.copy(alpha = 0.15f), CircleShape)
                             .clickable(enabled = !paymentFlowLocked) {
                                 if (paymentFlowLocked) return@clickable
                                 if (step == 1) onBack() else if (step == 2) step = 1 else if (step == 3) step = 2 else onBack()

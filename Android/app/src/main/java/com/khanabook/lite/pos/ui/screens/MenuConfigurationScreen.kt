@@ -203,13 +203,7 @@ fun MenuConfigurationScreen(
                             .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = { onBack() }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = Color.White
-                            )
-                        }
+                        KhanaBookBackButton(onClick = { onBack() })
                         Text(
                             text = "Menu Configuration",
                             modifier = Modifier.weight(1f),

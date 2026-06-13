@@ -156,13 +156,7 @@ fun EasebuzzKycScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
-                    )
-                }
+                com.khanabook.lite.pos.ui.designsystem.KhanaBookBackButton(onClick = onBack)
                 Text(
                     text = "KYC Verification",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),

@@ -375,18 +375,7 @@ fun EasebuzzPaymentScreen(
                         .padding(horizontal = spacing.medium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0x11FFFFFF))
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
+                    com.khanabook.lite.pos.ui.designsystem.KhanaBookBackButton(onClick = onBack)
                     Spacer(modifier = Modifier.width(spacing.medium))
                     Column {
                         Text(

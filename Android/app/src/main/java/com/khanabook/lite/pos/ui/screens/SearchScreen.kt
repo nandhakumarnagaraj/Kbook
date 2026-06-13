@@ -176,13 +176,7 @@ fun SearchScreen(
                             .padding(horizontal = spacing.medium),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = Color.White
-                            )
-                        }
+                        KhanaBookBackButton(onClick = onBack)
                         Text(
                             text = title,
                             modifier = Modifier.weight(1f),

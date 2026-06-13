@@ -67,20 +67,7 @@ fun KhanaBookScreenScaffold(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (onBack != null) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(Color.White.copy(alpha = 0.15f), CircleShape)
-                            .clickable { onBack() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    KhanaBookBackButton(onClick = onBack)
                 } else if (logo != null) {
                     Box(
                         modifier = Modifier.size(36.dp),
@@ -128,3 +115,25 @@ fun KhanaBookScreenScaffold(
         }
     }
 }
+
+@Composable
+fun KhanaBookBackButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(36.dp)
+            .background(Color.White.copy(alpha = 0.15f), CircleShape)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back",
+            tint = Color.White,
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+

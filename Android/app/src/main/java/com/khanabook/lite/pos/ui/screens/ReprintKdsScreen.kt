@@ -99,13 +99,7 @@ fun ReprintKdsScreen(
                         .padding(horizontal = spacing.medium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
+                    KhanaBookBackButton(onClick = onBack)
                     Text(
                         text = "Reprint KDS",
                         modifier = Modifier.weight(1f),
