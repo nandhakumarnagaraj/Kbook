@@ -83,37 +83,37 @@ fun SettingsHomeSection(
                         icon = Icons.Outlined.Store,
                         title = "Restaurant",
                         subtitle = "Shop name, address & branding",
-                        iconBg = Color(0xFFEF4444).copy(alpha = 0.08f),
-                        iconTint = Color(0xFFEF4444)
+                        iconBg = KbAccentRed.copy(alpha = 0.08f),
+                        iconTint = KbAccentRed
                     ),
                     SettingsItemInfo(
                         icon = Icons.AutoMirrored.Outlined.Assignment,
                         title = "Menu",
                         subtitle = "Items, categories & pricing",
-                        iconBg = Color(0xFFF97316).copy(alpha = 0.08f),
-                        iconTint = Color(0xFFF97316)
+                        iconBg = KbAccentOrange.copy(alpha = 0.08f),
+                        iconTint = KbAccentOrange
                     ),
                     SettingsItemInfo(
                         icon = Icons.Outlined.CreditCard,
                         title = "Payment",
                         subtitle = "UPI, Easebuzz & marketplace setup",
-                        iconBg = Color(0xFF0284C7).copy(alpha = 0.08f),
-                        iconTint = Color(0xFF0284C7),
+                        iconBg = KbAccentBlue.copy(alpha = 0.08f),
+                        iconTint = KbAccentBlue,
                         badgeText = "Action needed"
                     ),
                     SettingsItemInfo(
                         icon = Icons.Outlined.Print,
                         title = "Printer",
                         subtitle = "Bluetooth & thermal printer",
-                        iconBg = Color(0xFF8B5CF6).copy(alpha = 0.08f),
-                        iconTint = Color(0xFF8B5CF6)
+                        iconBg = KbAccentViolet.copy(alpha = 0.08f),
+                        iconTint = KbAccentViolet
                     ),
                     SettingsItemInfo(
                         icon = Icons.Outlined.Percent,
                         title = "Tax & GST",
                         subtitle = "GST, FSSAI & tax settings",
-                        iconBg = Color(0xFF16A34A).copy(alpha = 0.08f),
-                        iconTint = Color(0xFF16A34A)
+                        iconBg = KbAccentGreen.copy(alpha = 0.08f),
+                        iconTint = KbAccentGreen
                     )
                 ),
                 onItemClick = { index ->
@@ -141,8 +141,8 @@ fun SettingsHomeSection(
                         icon = Icons.Outlined.Settings,
                         title = "Display & Security",
                         subtitle = "Dark mode, PIN & notifications",
-                        iconBg = Color(0xFF7C5CDB).copy(alpha = 0.08f),
-                        iconTint = Color(0xFF7C5CDB)
+                        iconBg = KbAccentPurple.copy(alpha = 0.08f),
+                        iconTint = KbAccentPurple
                     )
                 ),
                 onItemClick = { onSectionSelected("security") }

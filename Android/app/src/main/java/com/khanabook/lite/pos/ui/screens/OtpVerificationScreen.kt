@@ -340,7 +340,7 @@ fun OtpVerificationBody(
 
         Text(
             text = "Change number?",
-            color = Color(0xFFE8A020), // Amber accent
+            color = KbPurpleAccent, // Amber accent
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier
                 .clickable(enabled = !isLoading) { onChangeNumberClick() }

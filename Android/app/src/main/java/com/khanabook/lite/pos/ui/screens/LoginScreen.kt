@@ -807,7 +807,7 @@ fun ForgotPasswordDialog(
                         modifier = Modifier
                             .size(110.dp)
                             .background(Color.Transparent, CircleShape)
-                            .border(1.dp, Color(0xFFF97316).copy(alpha = 0.3f), CircleShape),
+                            .border(1.dp, KbBrandSaffron.copy(alpha = 0.3f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
@@ -819,7 +819,7 @@ fun ForgotPasswordDialog(
                             Icon(
                                 imageVector = if (step == 3) Icons.Default.Lock else Icons.Default.Email,
                                 contentDescription = null,
-                                tint = Color(0xFFF97316),
+                                tint = KbBrandSaffron,
                                 modifier = Modifier.size(36.dp)
                             )
                         }

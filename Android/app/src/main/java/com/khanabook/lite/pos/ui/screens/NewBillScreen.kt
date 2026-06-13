@@ -1951,7 +1951,7 @@ fun PaymentStep(
                     .fillMaxWidth()
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isOnline == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) MaterialTheme.kbPrimary else Color.Gray
+                    containerColor = if (isOnline == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) MaterialTheme.kbPrimary else MaterialTheme.kbOutlineSubtle
                 ),
                 shape = RoundedCornerShape(12.dp),
                 enabled = isOnline == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available
@@ -1979,7 +1979,7 @@ fun PaymentStep(
                         .height(56.dp),
                     colors =
                             ButtonDefaults.buttonColors(
-                                    containerColor = if (isAmountValid) KbSuccess else Color.Gray
+                                    containerColor = if (isAmountValid) KbSuccess else MaterialTheme.kbOutlineSubtle
                             ),
                     shape = RoundedCornerShape(12.dp),
                     enabled = isAmountValid

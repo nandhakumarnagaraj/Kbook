@@ -102,6 +102,37 @@ val KbSwiggyOrange = Color(0xFFF97316)
 val KbWhatsAppGreen = Color(0xFF22C55E)
 
 // ═══════════════════════════════════════════════════════════════
+// CATEGORY ACCENT TOKENS
+// Per-item icon accents used by the Profile / Settings list rows.
+// Named so screens never hardcode hex values inline.
+// ═══════════════════════════════════════════════════════════════
+val KbAccentRed    = Color(0xFFEF4444) // Restaurant, App Lock
+val KbAccentOrange = Color(0xFFF97316) // Menu, Payment Sound Box
+val KbAccentBlue   = Color(0xFF0284C7) // Payment, Change Password
+val KbAccentViolet = Color(0xFF8B5CF6) // Printer, Display
+val KbAccentGreen  = Color(0xFF16A34A) // Tax & GST, Help & Support
+val KbAccentPurple = Color(0xFF7C5CDB) // Display & Security, Dark Mode
+val KbAccentEmerald = Color(0xFF10B981) // Emerald accent (KDS / quick actions)
+val KbAccentBlueBright = Color(0xFF3B82F6) // Bright blue accent
+
+// ── Accent border tints (lighter outline shades for quick-action cards) ──
+val KbAccentVioletBorder = Color(0xFFC084FC)
+val KbAccentEmeraldBorder = Color(0xFF34D399)
+val KbAccentBlueBorder   = Color(0xFF60A5FA)
+val KbAccentRedBorder    = Color(0xFFF87171)
+val KbAccentOrangeLight  = Color(0xFFFDBA74)
+
+// ── Accent surface tints (soft fills behind icons, light mode) ──
+val KbAccentVioletSurface  = Color(0xFFF3E8FF)
+val KbAccentEmeraldSurface = Color(0xFFECFDF5)
+val KbAccentBlueSurface    = Color(0xFFEFF6FF)
+val KbAccentRedSurface     = Color(0xFFFEF2F2)
+val KbAccentOrangeSurface  = Color(0xFFFFF7ED)
+
+// ── Deep violet badge surface (sync-status pill on Home) ──
+val KbVioletBadgeSurface = Color(0xFF1B1A3F)
+
+// ═══════════════════════════════════════════════════════════════
 // GLOBAL DARK MODE FLAG — used by legacy color aliases below.
 // The composable ThemeState system is now in ThemeState.kt.
 // ═══════════════════════════════════════════════════════════════

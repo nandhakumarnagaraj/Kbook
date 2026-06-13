@@ -129,6 +129,7 @@ fun SettingsListView(
             icon = Icons.Outlined.Lock,
             text = "App Lock",
             subtitle = "PIN & biometric protection",
+            iconColor = KbAccentRed,
             onClick = { onSelectItem("app_lock") }
         )
         Spacer(modifier = Modifier.height(spacing.extraSmall))
@@ -136,6 +137,7 @@ fun SettingsListView(
             icon = Icons.Outlined.Password,
             text = "Change Password",
             subtitle = "Update your login password",
+            iconColor = KbAccentBlue,
             onClick = { onSelectItem("change_password") }
         )
 
@@ -146,6 +148,7 @@ fun SettingsListView(
             icon = Icons.Outlined.TextIncrease,
             text = "Display",
             subtitle = "Font size & layout density",
+            iconColor = KbAccentViolet,
             onClick = { onSelectItem("ui_scale") }
         )
         Spacer(modifier = Modifier.height(spacing.extraSmall))
@@ -153,6 +156,7 @@ fun SettingsListView(
             icon = Icons.Outlined.DarkMode,
             text = "Dark Mode",
             subtitle = "Switch to dark interface",
+            iconColor = KbAccentPurple,
             checked = globalIsDark,
             onCheckedChange = { isDark ->
                 globalIsDark = isDark
@@ -169,6 +173,7 @@ fun SettingsListView(
             icon = Icons.Default.Notifications,
             text = "Payment Sound Box",
             subtitle = "Announce received payment amounts",
+            iconColor = KbAccentOrange,
             checked = isSoundBoxEnabled,
             onCheckedChange = { enabled ->
                 isSoundBoxEnabled = enabled
@@ -186,6 +191,7 @@ fun SettingsListView(
             icon = Icons.AutoMirrored.Outlined.HelpOutline,
             text = "Help & Support",
             subtitle = "FAQs & contact support",
+            iconColor = KbAccentGreen,
             onClick = { onSelectItem("help_support") }
         )
         Spacer(modifier = Modifier.height(spacing.extraSmall))
@@ -193,6 +199,7 @@ fun SettingsListView(
             icon = Icons.Outlined.Info,
             text = "About App",
             subtitle = "Version ${BuildConfig.VERSION_NAME} · Licenses",
+            iconColor = MaterialTheme.kbTextSecondary,
             onClick = { onSelectItem("about_app") }
         )
     }

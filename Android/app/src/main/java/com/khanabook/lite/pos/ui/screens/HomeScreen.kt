@@ -177,7 +177,7 @@ fun HomeScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = greeting,
-                                        color = Color(0xFFFDBA74), // Warm gold/orange greeting
+                                        color = KbAccentOrangeLight, // Warm gold/orange greeting
                                         style = MaterialTheme.typography.labelMedium.copy(
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Medium
@@ -224,7 +224,7 @@ fun HomeScreen(
                                                     .align(Alignment.TopEnd)
                                                     .padding(top = 3.dp, end = 1.dp)
                                                     .size(10.dp)
-                                                    .background(Color(0xFFEF4444), CircleShape)
+                                                    .background(KbAccentRed, CircleShape)
                                             )
                                         }
                                     }
@@ -317,14 +317,14 @@ fun HomeScreen(
                                     MetricCard(
                                         value = stats.orderCount.toString(),
                                         label = "Total Orders",
-                                        accentColor = Color(0xFFF97316),
+                                        accentColor = KbAccentOrange,
                                         badge = "today",
                                         modifier = Modifier.weight(1f)
                                     )
                                     MetricCard(
                                         value = CurrencyUtils.formatPriceCompact(stats.revenue),
                                         label = "Revenue",
-                                        accentColor = Color(0xFF8B5CF6),
+                                        accentColor = KbAccentViolet,
                                         badge = "today",
                                         modifier = Modifier.weight(1f)
                                     )
@@ -333,7 +333,7 @@ fun HomeScreen(
                                             if (stats.orderCount > 0) stats.revenue / stats.orderCount else 0.0
                                         ),
                                         label = "Avg Order",
-                                        accentColor = Color(0xFF10B981),
+                                        accentColor = KbAccentEmerald,
                                         badge = "today",
                                         modifier = Modifier.weight(1f)
                                     )
@@ -371,7 +371,7 @@ fun HomeScreen(
                                         .shadow(2.dp, KbShape.Medium),
                                     shape = KbShape.Medium,
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFF97316)
+                                        containerColor = KbAccentOrange
                                     )
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -393,7 +393,7 @@ fun HomeScreen(
                                         contentColor = MaterialTheme.kbTextPrimary
                                     )
                                 ) {
-                                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF8B5CF6))
+                                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = KbAccentViolet)
                                     Spacer(Modifier.width(6.dp))
                                     Text("Orders", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 }
@@ -404,7 +404,7 @@ fun HomeScreen(
                                     modifier = Modifier
                                         .weight(1.1f)
                                         .height(48.dp)
-                                        .border(1.dp, Color(0xFFF97316).copy(alpha = 0.5f), KbShape.Medium),
+                                        .border(1.dp, KbAccentOrange.copy(alpha = 0.5f), KbShape.Medium),
                                     shape = KbShape.Medium,
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
@@ -432,18 +432,18 @@ fun HomeScreen(
                                 HomeActionGridCard(
                                     text = "Find Bill",
                                     icon = Icons.Default.Search,
-                                    borderColor = Color(0xFFC084FC),
-                                    iconColor = Color(0xFF8B5CF6),
-                                    iconBgColor = Color(0xFFF3E8FF),
+                                    borderColor = KbAccentVioletBorder,
+                                    iconColor = KbAccentViolet,
+                                    iconBgColor = KbAccentVioletSurface,
                                     modifier = Modifier.weight(1f),
                                     onClick = onSearchBill
                                 )
                                 HomeActionGridCard(
                                     text = "Reprint KDS",
                                     icon = Icons.Default.Print,
-                                    borderColor = Color(0xFF34D399),
-                                    iconColor = Color(0xFF10B981),
-                                    iconBgColor = Color(0xFFECFDF5),
+                                    borderColor = KbAccentEmeraldBorder,
+                                    iconColor = KbAccentEmerald,
+                                    iconBgColor = KbAccentEmeraldSurface,
                                     modifier = Modifier.weight(1f),
                                     onClick = onReprintKds
                                 )
@@ -455,18 +455,18 @@ fun HomeScreen(
                                 HomeActionGridCard(
                                     text = "Order Status",
                                     icon = Icons.Default.AccessTime,
-                                    borderColor = Color(0xFF60A5FA),
-                                    iconColor = Color(0xFF3B82F6),
-                                    iconBgColor = Color(0xFFEFF6FF),
+                                    borderColor = KbAccentBlueBorder,
+                                    iconColor = KbAccentBlueBright,
+                                    iconBgColor = KbAccentBlueSurface,
                                     modifier = Modifier.weight(1f),
                                     onClick = onOrderStatus
                                 )
                                 HomeActionGridCard(
                                     text = "Call Customers",
                                     icon = Icons.Default.Call,
-                                    borderColor = Color(0xFFF87171),
-                                    iconColor = Color(0xFFEF4444),
-                                    iconBgColor = Color(0xFFFEF2F2),
+                                    borderColor = KbAccentRedBorder,
+                                    iconColor = KbAccentRed,
+                                    iconBgColor = KbAccentRedSurface,
                                     modifier = Modifier.weight(1f),
                                     onClick = onCallCustomer
                                 )
@@ -501,14 +501,14 @@ fun HomeScreen(
                                 MetricCard(
                                     value = stats.orderCount.toString(),
                                     label = "Total Orders",
-                                    accentColor = Color(0xFFF97316),
+                                    accentColor = KbAccentOrange,
                                     badge = "today",
                                     modifier = Modifier.weight(1f)
                                 )
                                 MetricCard(
                                     value = CurrencyUtils.formatPriceCompact(stats.revenue),
                                     label = "Revenue",
-                                    accentColor = Color(0xFF8B5CF6),
+                                    accentColor = KbAccentViolet,
                                     badge = "today",
                                     modifier = Modifier.weight(1f)
                                 )
@@ -517,7 +517,7 @@ fun HomeScreen(
                                         if (stats.orderCount > 0) stats.revenue / stats.orderCount else 0.0
                                     ),
                                     label = "Avg Order",
-                                    accentColor = Color(0xFF10B981),
+                                    accentColor = KbAccentEmerald,
                                     badge = "today",
                                     modifier = Modifier.weight(1f)
                                 )
@@ -555,7 +555,7 @@ fun HomeScreen(
                                     .shadow(2.dp, KbShape.Medium),
                                 shape = KbShape.Medium,
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFF97316)
+                                    containerColor = KbAccentOrange
                                 )
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -577,7 +577,7 @@ fun HomeScreen(
                                     contentColor = MaterialTheme.kbTextPrimary
                                 )
                             ) {
-                            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF8B5CF6))
+                            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = KbAccentViolet)
                                 Spacer(Modifier.width(6.dp))
                                 Text("Orders", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
@@ -588,14 +588,14 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .weight(1.1f)
                                     .height(48.dp)
-                                    .border(1.dp, Color(0xFFF97316).copy(alpha = 0.5f), KbShape.Medium),
+                                    .border(1.dp, KbAccentOrange.copy(alpha = 0.5f), KbShape.Medium),
                                 shape = KbShape.Medium,
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFFFF7ED),
-                                    contentColor = Color(0xFFF97316)
+                                    containerColor = KbAccentOrangeSurface,
+                                    contentColor = KbAccentOrange
                                 )
                             ) {
-                                Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFFF97316))
+                                Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp), tint = KbAccentOrange)
                                 Spacer(Modifier.width(6.dp))
                                 Text("Menu", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
@@ -616,18 +616,18 @@ fun HomeScreen(
                             HomeActionGridCard(
                                 text = "Find Bill",
                                 icon = Icons.Default.Search,
-                                borderColor = Color(0xFFC084FC),
-                                iconColor = Color(0xFF8B5CF6),
-                                iconBgColor = Color(0xFFF3E8FF),
+                                borderColor = KbAccentVioletBorder,
+                                iconColor = KbAccentViolet,
+                                iconBgColor = KbAccentVioletSurface,
                                 modifier = Modifier.weight(1f),
                                 onClick = onSearchBill
                             )
                             HomeActionGridCard(
                                 text = "Reprint KDS",
                                 icon = Icons.Default.Print,
-                                borderColor = Color(0xFF34D399),
-                                iconColor = Color(0xFF10B981),
-                                iconBgColor = Color(0xFFECFDF5),
+                                borderColor = KbAccentEmeraldBorder,
+                                iconColor = KbAccentEmerald,
+                                iconBgColor = KbAccentEmeraldSurface,
                                 modifier = Modifier.weight(1f),
                                 onClick = onReprintKds
                             )
@@ -639,18 +639,18 @@ fun HomeScreen(
                             HomeActionGridCard(
                                 text = "Order Status",
                                 icon = Icons.Default.AccessTime,
-                                borderColor = Color(0xFF60A5FA),
-                                iconColor = Color(0xFF3B82F6),
-                                iconBgColor = Color(0xFFEFF6FF),
+                                borderColor = KbAccentBlueBorder,
+                                iconColor = KbAccentBlueBright,
+                                iconBgColor = KbAccentBlueSurface,
                                 modifier = Modifier.weight(1f),
                                 onClick = onOrderStatus
                             )
                             HomeActionGridCard(
                                 text = "Call Customers",
                                 icon = Icons.Default.Call,
-                                borderColor = Color(0xFFF87171),
-                                iconColor = Color(0xFFEF4444),
-                                iconBgColor = Color(0xFFFEF2F2),
+                                borderColor = KbAccentRedBorder,
+                                iconColor = KbAccentRed,
+                                iconBgColor = KbAccentRedSurface,
                                 modifier = Modifier.weight(1f),
                                 onClick = onCallCustomer
                             )
@@ -973,9 +973,9 @@ fun SyncStatusHeader(
         !isOnline -> Pair(KbError, KbError)
         !isSessionValid -> Pair(KbWarning, KbWarning)
         unsyncedCount > 0 -> Pair(KbBrandSaffron, KbBrandSaffron)
-        else -> Pair(Color(0xFF10B981), Color(0xFF10B981))
+        else -> Pair(KbAccentEmerald, KbAccentEmerald)
     }
-    val bgColor = Color(0xFF1B1A3F)
+    val bgColor = KbVioletBadgeSurface
 
     Box(
         contentAlignment = Alignment.Center,

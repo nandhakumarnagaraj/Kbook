@@ -1651,7 +1651,7 @@ fun ManualMenuView(
 
                                 // Colored badge configuration
                                 val badgeColors = when (index % 5) {
-                                    0 -> Pair(Color(0xFFFFF7ED), Color(0xFFF97316)) // Orange
+                                    0 -> Pair(Color(0xFFFFF7ED), KbBrandSaffron) // Orange
                                     1 -> Pair(Color(0xFFF5F3FF), Color(0xFF8B5CF6)) // Purple
                                     2 -> Pair(Color(0xFFECFDF5), Color(0xFF10B981)) // Green
                                     3 -> Pair(Color(0xFFEFF6FF), Color(0xFF3B82F6)) // Blue
@@ -1690,7 +1690,7 @@ fun ManualMenuView(
                                             Icon(
                                                 imageVector = Icons.Default.Restaurant,
                                                 contentDescription = null,
-                                                tint = Color(0xFFD97706),
+                                                tint = KbYellow,
                                                 modifier = Modifier.size(20.dp)
                                             )
                                         }

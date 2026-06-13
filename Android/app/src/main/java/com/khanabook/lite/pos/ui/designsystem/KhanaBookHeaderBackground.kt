@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.khanabook.lite.pos.ui.theme.KbBrandViolet
 import com.khanabook.lite.pos.ui.theme.KbMidnightGradient
 import kotlin.math.min
 
@@ -40,7 +41,7 @@ fun KhanaBookPurpleBackground(
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color(0xFF5B21B6).copy(alpha = 0.28f), // Rich indigo/violet
+                            KbBrandViolet.copy(alpha = 0.28f), // Rich indigo/violet
                             Color(0xFF4C1D95).copy(alpha = 0.08f),
                             Color.Transparent
                         ),

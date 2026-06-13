@@ -667,7 +667,7 @@ private fun DisplayScaleView(
         // SECTION 2: LAYOUT DENSITY
         Text(
             text = "LAYOUT DENSITY",
-            color = if (globalIsDark) Color(0xFFA78BFA) else Color(0xFF7C3AED),
+            color = if (globalIsDark) Color(0xFFA78BFA) else KbBrandVioletBright,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp

@@ -37,7 +37,6 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.text.font.FontWeight
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookGlassCard
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
@@ -273,15 +272,19 @@ fun ProfileCard(
 }
 
 @Composable
-internal fun SettingsItem(icon: ImageVector, text: String, subtitle: String? = null, iconBg: Color = KbBrandSaffron.copy(alpha = 0.12f), iconTint: Color = MaterialTheme.kbSecondary, onClick: () -> Unit) {
+internal fun SettingsItem(icon: ImageVector, text: String, subtitle: String? = null, iconColor: Color = MaterialTheme.kbSecondary, onClick: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
 
-    // Premium Glassmorphism Settings Item with optional subtitle
-    KhanaBookGlassCard(
+    // Neutral settings card matching the Profile screen (kbBgCard + subtle outline),
+    // with a per-item coloured icon instead of an all-saffron glass card.
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = spacing.extraSmall),
-        onClick = onClick,
+            .padding(vertical = spacing.extraSmall)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -299,10 +302,10 @@ internal fun SettingsItem(icon: ImageVector, text: String, subtitle: String? = n
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .background(iconBg, CircleShape),
+                        .background(iconColor.copy(alpha = 0.08f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, null, tint = iconTint, modifier = Modifier.size(20.dp))
+                    Icon(icon, null, tint = iconColor, modifier = Modifier.size(20.dp))
                 }
                 Spacer(modifier = Modifier.size(spacing.medium))
                 Column(modifier = Modifier.weight(1f)) {
@@ -314,7 +317,7 @@ internal fun SettingsItem(icon: ImageVector, text: String, subtitle: String? = n
                     if (subtitle != null) {
                         Text(
                             subtitle,
-                            color = MaterialTheme.kbSecondary.copy(alpha = 0.65f),
+                            color = MaterialTheme.kbTextSecondary,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -336,16 +339,19 @@ internal fun SettingsToggleItem(
     icon: ImageVector,
     text: String,
     subtitle: String? = null,
+    iconColor: Color = MaterialTheme.kbSecondary,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
 
-    // Glassmorphism toggle item with optional subtitle
-    KhanaBookGlassCard(
+    // Neutral toggle card matching the Profile screen, with a per-item coloured icon.
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = spacing.extraSmall),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -363,10 +369,10 @@ internal fun SettingsToggleItem(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .background(MaterialTheme.kbPrimary.copy(alpha = 0.12f), CircleShape),
+                        .background(iconColor.copy(alpha = 0.08f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(20.dp))
+                    Icon(icon, null, tint = iconColor, modifier = Modifier.size(20.dp))
                 }
                 Spacer(modifier = Modifier.size(spacing.medium))
                 Column(modifier = Modifier.weight(1f)) {
@@ -378,7 +384,7 @@ internal fun SettingsToggleItem(
                     if (subtitle != null) {
                         Text(
                             subtitle,
-                            color = MaterialTheme.kbSecondary.copy(alpha = 0.65f),
+                            color = MaterialTheme.kbTextSecondary,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -387,7 +393,7 @@ internal fun SettingsToggleItem(
             KhanaBookSwitch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                checkedTrackColor = MaterialTheme.kbPrimary
+                checkedTrackColor = KbBrandSaffron
             )
         }
     }

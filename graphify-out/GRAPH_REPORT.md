@@ -1,16 +1,16 @@
 # Graph Report - KhanaBook  (2026-06-13)
 
 ## Corpus Check
-- 628 files · ~604,658 words
+- 628 files · ~602,845 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 7391 nodes · 13858 edges · 645 communities (522 shown, 123 thin omitted)
+- 7391 nodes · 13858 edges · 644 communities (521 shown, 123 thin omitted)
 - Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 1364 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c07590d8`
+- Built from commit: `84c9444f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -419,7 +419,6 @@
 - [[_COMMUNITY_Community 535|Community 535]]
 - [[_COMMUNITY_Community 538|Community 538]]
 - [[_COMMUNITY_Community 540|Community 540]]
-- [[_COMMUNITY_Community 542|Community 542]]
 - [[_COMMUNITY_Community 543|Community 543]]
 - [[_COMMUNITY_Community 544|Community 544]]
 - [[_COMMUNITY_Community 545|Community 545]]
@@ -535,7 +534,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (645 total, 123 thin omitted)
+## Communities (644 total, 123 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.08
@@ -567,7 +566,7 @@ Nodes (24): BusinessProfileResponse, BusinessAdminController, RefundBillRequest,
 
 ### Community 7 - "Community 7"
 Cohesion: 0.05
-Nodes (13): ChargebacksPageComponent, CustomerCdpPageComponent, FinancingPageComponent, InstantSettlementsPageComponent, OnboardingTrackerPageComponent, RefundAutomationPageComponent, Settlement, SettlementReportsPageComponent (+5 more)
+Nodes (15): ChargebacksPageComponent, CommissionReportPageComponent, CommissionRow, CommissionSummary, CustomerCdpPageComponent, FinancingPageComponent, InstantSettlementsPageComponent, OnboardingTrackerPageComponent (+7 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.12
@@ -650,7 +649,7 @@ Cohesion: 0.18
 Nodes (3): CategoryEntity, String, LookupResult
 
 ### Community 34 - "Community 34"
-Cohesion: 0.03
+Cohesion: 0.02
 Nodes (4): DeveloperPortalPageComponent, PaymentRoutingPageComponent, AdminApiService, WebhookHealthPageComponent
 
 ### Community 35 - "Community 35"
@@ -770,8 +769,8 @@ Cohesion: 0.16
 Nodes (22): ApiEndpoints, BillAmounts, BillIds, Categories, Dates, DeepLinks, DeviceDimensions, DiscountCodes (+14 more)
 
 ### Community 76 - "Community 76"
-Cohesion: 0.10
-Nodes (42): LocalBusinessDetail, LocalBusinessListItem, AdminBusinessDetail, AdminBusinessListItem, AdminCommission, AdminDashboardSummary, AdminSettlement, AdminTransaction (+34 more)
+Cohesion: 0.09
+Nodes (44): LocalBusinessDetail, LocalBusinessListItem, AdminBusinessDetail, AdminBusinessListItem, AdminCommission, AdminDashboardSummary, AdminSettlement, AdminTransaction (+36 more)
 
 ### Community 77 - "Community 77"
 Cohesion: 0.06
@@ -814,8 +813,8 @@ Cohesion: 0.29
 Nodes (5): BeforeEach, Map, String, Test, EasebuzzWebhookTest
 
 ### Community 93 - "Community 93"
-Cohesion: 0.35
-Nodes (8): Pageable, SyncRepository, List, Long, Optional, Page, String, T
+Cohesion: 0.20
+Nodes (11): Pageable, SyncRepository, List, Long, Optional, Page, String, T (+3 more)
 
 ### Community 94 - "Community 94"
 Cohesion: 0.33
@@ -985,10 +984,6 @@ Nodes (23): AccessDeniedHandler, Context, Application, AuthenticationEntryPoint,
 Cohesion: 0.24
 Nodes (10): RestaurantProfileController, RestaurantProfileDTO, CounterResponse, GetMapping, List, Long, PostMapping, PushSyncResponse (+2 more)
 
-### Community 167 - "Community 167"
-Cohesion: 0.27
-Nodes (4): CommissionReportPageComponent, CommissionRow, CommissionSummary, CommissionReport
-
 ### Community 168 - "Community 168"
 Cohesion: 0.35
 Nodes (5): DebugNDJSONLogger, Path, Map, Object, String
@@ -1062,8 +1057,8 @@ Cohesion: 0.42
 Nodes (7): KhanaBookSnackbar(), KhanaBookSnackbarHost(), KhanaSnackbarVisuals, KhanaToast, KindStyle, styleFor(), ToastKind
 
 ### Community 196 - "Community 196"
-Cohesion: 0.39
-Nodes (3): BeforeEach, Test, BillServiceImplTest
+Cohesion: 0.54
+Nodes (5): AdminSettlementResponse, AdminSettlementController, GetMapping, List, ResponseEntity
 
 ### Community 197 - "Community 197"
 Cohesion: 0.14
@@ -1178,8 +1173,8 @@ Cohesion: 0.44
 Nodes (6): GstFssaiController, GetMapping, Map, Object, ResponseEntity, String
 
 ### Community 243 - "Community 243"
-Cohesion: 0.18
-Nodes (12): AdminSettlementResponse, AdminSettlementController, RestaurantProfileRepository, LocalDate, RestaurantProfile, Scheduled, String, Transactional (+4 more)
+Cohesion: 0.28
+Nodes (7): RestaurantProfileRepository, LocalDate, RestaurantProfile, Scheduled, String, Transactional, ComplianceAlertService
 
 ### Community 244 - "Community 244"
 Cohesion: 0.27
