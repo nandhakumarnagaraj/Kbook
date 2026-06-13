@@ -153,6 +153,40 @@ fun SettingsScreen(
                     }
                 }
             },
+            logo = if (section == "menu") {
+                {
+                    val displayName = profile?.shopName?.takeIf { it.isNotBlank() }
+                        ?: currentUser?.name?.takeIf { it.isNotBlank() }
+                        ?: "My Shop"
+                    val logoModel = profile?.logoUrl?.takeIf { it.isNotBlank() }
+                        ?: com.khanabook.lite.pos.domain.util.AppAssetStore.resolveAssetPath(profile?.logoPath)
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (!logoModel.isNullOrBlank()) {
+                            coil.compose.AsyncImage(
+                                model = coil.request.ImageRequest.Builder(LocalContext.current)
+                                    .data(logoModel)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Shop Logo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                        } else {
+                            Text(
+                                text = displayName.take(1).uppercase(),
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+                }
+            } else null,
             titleStyleCompact = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
             titleStyleExpanded = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
             headerContent = {

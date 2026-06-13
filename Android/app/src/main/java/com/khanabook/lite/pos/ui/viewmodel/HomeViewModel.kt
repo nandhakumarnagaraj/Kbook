@@ -57,6 +57,17 @@ class HomeViewModel @Inject constructor(
             initialValue = "Your Shop"
         )
 
+    val logoModel: StateFlow<String?> = profileFlow
+        .map { profile ->
+            profile?.logoUrl?.takeIf { it.isNotBlank() }
+                ?: com.khanabook.lite.pos.domain.util.AppAssetStore.resolveAssetPath(profile?.logoPath)
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
     /** Time-aware greeting: Good Morning / Afternoon / Evening. */
     val greeting: String
         get() = when (LocalTime.now().hour) {

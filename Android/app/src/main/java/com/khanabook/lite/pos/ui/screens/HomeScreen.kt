@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.shadow
 import kotlin.math.abs
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import com.khanabook.lite.pos.R
 
 @Composable
@@ -72,6 +73,7 @@ fun HomeScreen(
     val connectionStatus by viewModel.connectionStatus.collectAsState()
     val unsyncedCount by viewModel.unsyncedCount.collectAsState()
     val shopName by viewModel.shopName.collectAsState()
+    val logoModel by viewModel.logoModel.collectAsState()
     val greeting = viewModel.greeting
     val marketplacePendingCount by viewModel.marketplacePendingCount.collectAsState()
     val complianceAlerts by viewModel.complianceAlerts.collectAsState()
@@ -150,15 +152,27 @@ fun HomeScreen(
                                     colors = CardDefaults.cardColors(containerColor = Color.White)
                                 ) {
                                     Box(
-                                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                                        modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Image(
-                                            painter = painterResource(id = R.drawable.ic_khanabook_logo),
-                                            contentDescription = "Logo",
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentScale = ContentScale.Fit
-                                        )
+                                        if (!logoModel.isNullOrBlank()) {
+                                            coil.compose.AsyncImage(
+                                                model = coil.request.ImageRequest.Builder(LocalContext.current)
+                                                    .data(logoModel)
+                                                    .crossfade(true)
+                                                    .build(),
+                                                contentDescription = "Shop Logo",
+                                                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Image(
+                                                painter = painterResource(id = R.drawable.ic_khanabook_logo),
+                                                contentDescription = "Logo",
+                                                modifier = Modifier.fillMaxSize().padding(8.dp),
+                                                contentScale = ContentScale.Fit
+                                            )
+                                        }
                                     }
                                 }
 

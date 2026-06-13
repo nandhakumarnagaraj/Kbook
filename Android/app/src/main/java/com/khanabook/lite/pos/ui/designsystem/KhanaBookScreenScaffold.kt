@@ -39,6 +39,7 @@ fun KhanaBookScreenScaffold(
     modifier: Modifier = Modifier,
     titleStyleCompact: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineSmall,
     titleStyleExpanded: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineMedium,
+    logo: @Composable (() -> Unit)? = null,
     headerTrailing: @Composable (() -> Unit)? = null,
     headerContent: @Composable (ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
@@ -79,6 +80,13 @@ fun KhanaBookScreenScaffold(
                             tint = Color.White,
                             modifier = Modifier.size(18.dp)
                         )
+                    }
+                } else if (logo != null) {
+                    Box(
+                        modifier = Modifier.size(36.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        logo()
                     }
                 } else {
                     Spacer(modifier = Modifier.width(36.dp))
