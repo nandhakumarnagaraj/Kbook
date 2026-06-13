@@ -144,11 +144,13 @@ fun SettingsScreen(
                 "menu" -> "Profile"
                 else -> "Profile"
             },
-            onBack = {
-                when {
-                    section in settingsSubSections -> section = "security"
-                    section != "menu" -> section = "menu"
-                    else -> onBack()
+            onBack = if (section == "menu") null else {
+                {
+                    when {
+                        section in settingsSubSections -> section = "security"
+                        section != "menu" -> section = "menu"
+                        else -> onBack()
+                    }
                 }
             },
             titleStyleCompact = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
