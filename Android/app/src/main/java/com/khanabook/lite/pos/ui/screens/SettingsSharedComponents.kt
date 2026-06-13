@@ -195,43 +195,31 @@ fun ProfileCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
-            // Rounded square avatar with green status indicator
+            // Rounded square avatar
             Box(
-                modifier = Modifier.size(56.dp)
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(KbBrandSaffron),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(KbBrandSaffron),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (!logoModel.isNullOrBlank()) {
-                        coil.compose.AsyncImage(
-                            model = coil.request.ImageRequest.Builder(context)
-                                .data(logoModel)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = "Shop Logo",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                        )
-                    } else {
-                        Text(
-                            text = displayName.take(1).uppercase(),
-                            color = Color.White,
-                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
+                if (!logoModel.isNullOrBlank()) {
+                    coil.compose.AsyncImage(
+                        model = coil.request.ImageRequest.Builder(context)
+                            .data(logoModel)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Shop Logo",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        text = displayName.take(1).uppercase(),
+                        color = Color.White,
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                    )
                 }
-                // Status dot (online/synced)
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .background(KbSuccess, CircleShape)
-                        .border(2.dp, Color(0xFF0E0A22), CircleShape) // Dark indigo matching scaffold header gradient background
-                        .align(Alignment.BottomEnd)
-                )
             }
 
             Column(modifier = Modifier.weight(1f)) {
