@@ -1949,11 +1949,11 @@ fun PaymentStep(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(KbButtonSize.HeightLarge),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isOnline == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) MaterialTheme.kbPrimary else MaterialTheme.kbOutlineSubtle
                 ),
-                shape = RoundedCornerShape(12.dp),
+                shape = KbShape.Medium,
                 enabled = isOnline == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available
             ) {
                 Text(
@@ -1976,12 +1976,12 @@ fun PaymentStep(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(KbButtonSize.HeightLarge),
                     colors =
                             ButtonDefaults.buttonColors(
                                     containerColor = if (isAmountValid) KbSuccess else MaterialTheme.kbOutlineSubtle
                             ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = KbShape.Medium,
                     enabled = isAmountValid
             ) {
                 Text(
@@ -2084,9 +2084,9 @@ fun FailedStep(
         // "Back to Home" button
         OutlinedButton(
             onClick = onNewBill,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge),
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-            shape = RoundedCornerShape(12.dp)
+            shape = KbShape.Medium
         ) {
             Icon(Icons.Default.Home, null, tint = MaterialTheme.kbSecondary)
             Spacer(modifier = Modifier.width(spacing.small))
@@ -2192,9 +2192,9 @@ fun SuccessStep(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge),
                 colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                shape = RoundedCornerShape(12.dp),
+                shape = KbShape.Medium,
                 enabled = lastBill != null && !isSharingInvoice
             ) {
                 if (isSharingInvoice) {
@@ -2218,9 +2218,9 @@ fun SuccessStep(
                     onClick = {
                         lastBill?.let { viewModel.printReceipt(it) }
                     },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge),
                     colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = KbShape.Medium,
                     enabled = lastBill?.let { it.bill.orderStatus != "cancelled" } == true && !receiptPrinting
             ) {
                 if (receiptPrinting) {
@@ -2243,9 +2243,9 @@ fun SuccessStep(
         Spacer(modifier = Modifier.height(spacing.extraLarge))
         OutlinedButton(
                 onClick = onDone,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-                shape = RoundedCornerShape(12.dp)
+                shape = KbShape.Medium
         ) {                        Text("Back to Home", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.titleMedium) }
     }
 }

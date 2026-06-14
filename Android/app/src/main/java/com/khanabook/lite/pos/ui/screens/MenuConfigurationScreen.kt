@@ -1651,11 +1651,11 @@ fun ManualMenuView(
 
                                 // Colored badge configuration
                                 val badgeColors = when (index % 5) {
-                                    0 -> Pair(Color(0xFFFFF7ED), KbBrandSaffron) // Orange
-                                    1 -> Pair(Color(0xFFF5F3FF), Color(0xFF8B5CF6)) // Purple
-                                    2 -> Pair(Color(0xFFECFDF5), Color(0xFF10B981)) // Green
-                                    3 -> Pair(Color(0xFFEFF6FF), Color(0xFF3B82F6)) // Blue
-                                    else -> Pair(Color(0xFFFEF2F2), Color(0xFFEF4444)) // Red
+                                    0 -> Pair(KbAccentOrangeSurface, KbBrandSaffron) // Orange
+                                    1 -> Pair(KbAccentVioletSurface, KbAccentViolet) // Purple
+                                    2 -> Pair(KbAccentEmeraldSurface, KbAccentEmerald) // Green
+                                    3 -> Pair(KbAccentBlueSurface, KbAccentBlueBright) // Blue
+                                    else -> Pair(KbAccentRedSurface, KbAccentRed) // Red
                                 }
 
                                 Card(
@@ -1684,7 +1684,7 @@ fun ManualMenuView(
                                         Box(
                                             modifier = Modifier
                                                 .size(44.dp)
-                                                .background(Color(0xFFFFF7ED), CircleShape),
+                                                .background(KbAccentOrangeSurface, CircleShape),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
