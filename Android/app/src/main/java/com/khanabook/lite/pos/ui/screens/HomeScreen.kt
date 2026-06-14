@@ -53,6 +53,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import com.khanabook.lite.pos.R
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 
 @Composable
 fun HomeScreen(
@@ -68,6 +70,7 @@ fun HomeScreen(
 ) {
     val pageBg = KbMidnightBase
     val spacing = KhanaBookTheme.spacing
+    val haptic = LocalHapticFeedback.current
 
     val stats by viewModel.todayStats.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
@@ -146,7 +149,7 @@ fun HomeScreen(
                                 // White rounded brand logo box
                                 Card(
                                     modifier = Modifier.size(56.dp),
-                                    shape = RoundedCornerShape(14.dp),
+                                    shape = KbShape.Medium,
                                     colors = CardDefaults.cardColors(containerColor = Color.White)
                                 ) {
                                     Box(
@@ -160,7 +163,7 @@ fun HomeScreen(
                                                     .crossfade(true)
                                                     .build(),
                                                 contentDescription = "Shop Logo",
-                                                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)),
+                                                modifier = Modifier.fillMaxSize().clip(KbShape.Medium),
                                                 contentScale = ContentScale.Crop
                                             )
                                         } else {
@@ -364,7 +367,10 @@ fun HomeScreen(
                             ) {
                                 // "New Bill" Saffron Filled Button
                                 Button(
-                                    onClick = onNewBill,
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onNewBill()
+                                    },
                                     modifier = Modifier
                                         .weight(1.2f)
                                         .height(48.dp)
@@ -372,7 +378,8 @@ fun HomeScreen(
                                     shape = KbShape.Medium,
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = KbAccentOrange
-                                    )
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 8.dp)
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(6.dp))
@@ -381,7 +388,10 @@ fun HomeScreen(
                                 
                                 // "Orders" White/Card Button
                                 Button(
-                                    onClick = onSearchBill,
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onSearchBill()
+                                    },
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(48.dp)
@@ -391,7 +401,8 @@ fun HomeScreen(
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.kbBgCard,
                                         contentColor = MaterialTheme.kbTextPrimary
-                                    )
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 8.dp)
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = KbAccentViolet)
                                     Spacer(Modifier.width(6.dp))
@@ -400,7 +411,10 @@ fun HomeScreen(
                                 
                                 // "Menu" Light Saffron Outlined/Tinted Button
                                 Button(
-                                    onClick = onMenuClick,
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onMenuClick()
+                                    },
                                     modifier = Modifier
                                         .weight(1.1f)
                                         .height(48.dp)
@@ -409,7 +423,8 @@ fun HomeScreen(
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                                         contentColor = MaterialTheme.colorScheme.primary
-                                    )
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 8.dp)
                                 ) {
                                     Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                                     Spacer(Modifier.width(6.dp))
@@ -548,7 +563,10 @@ fun HomeScreen(
                         ) {
                             // "New Bill" Saffron Filled Button
                             Button(
-                                onClick = onNewBill,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onNewBill()
+                                },
                                 modifier = Modifier
                                     .weight(1.2f)
                                     .height(48.dp)
@@ -556,7 +574,8 @@ fun HomeScreen(
                                 shape = KbShape.Medium,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = KbAccentOrange
-                                )
+                                ),
+                                contentPadding = PaddingValues(horizontal = 8.dp)
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
@@ -565,7 +584,10 @@ fun HomeScreen(
                             
                             // "Orders" White/Card Button
                             Button(
-                                onClick = onSearchBill,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onSearchBill()
+                                },
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp)
@@ -575,7 +597,8 @@ fun HomeScreen(
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.kbBgCard,
                                     contentColor = MaterialTheme.kbTextPrimary
-                                )
+                                ),
+                                contentPadding = PaddingValues(horizontal = 8.dp)
                             ) {
                             Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = KbAccentViolet)
                                 Spacer(Modifier.width(6.dp))
@@ -584,7 +607,10 @@ fun HomeScreen(
                             
                             // "Menu" Light Saffron Outlined/Tinted Button
                             Button(
-                                onClick = onMenuClick,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onMenuClick()
+                                },
                                 modifier = Modifier
                                     .weight(1.1f)
                                     .height(48.dp)
@@ -593,7 +619,8 @@ fun HomeScreen(
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = KbAccentOrangeSurface,
                                     contentColor = KbAccentOrange
-                                )
+                                ),
+                                contentPadding = PaddingValues(horizontal = 8.dp)
                             ) {
                                 Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp), tint = KbAccentOrange)
                                 Spacer(Modifier.width(6.dp))
@@ -711,10 +738,10 @@ private fun MetricCard(
         modifier = modifier
             .shadow(
                 elevation = 4.dp,
-                shape = RoundedCornerShape(16.dp),
+                shape = KbShape.Large,
                 clip = false
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = KbShape.Large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
     ) {
         Column(
@@ -1040,12 +1067,16 @@ fun HomeActionCard(
     val cardBorderColor = MaterialTheme.kbOutlineSubtle
     val accentColor = KbSuccess
 
+    val haptic = LocalHapticFeedback.current
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .border(1.dp, cardBorderColor, RoundedCornerShape(12.dp)),
-        shape = RoundedCornerShape(12.dp),
+            .clickable(onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            })
+            .border(1.dp, cardBorderColor, KbShape.Large),
+        shape = KbShape.Large,
         colors = CardDefaults.cardColors(containerColor = cardBg),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -1128,17 +1159,21 @@ fun HomeActionGridCard(
     val spacing = KhanaBookTheme.spacing
     val cardBg = MaterialTheme.kbBgCard
 
+    val haptic = LocalHapticFeedback.current
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .border(1.5.dp, borderColor, RoundedCornerShape(16.dp))
+            .clickable(onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            })
+            .border(1.5.dp, borderColor, KbShape.Large)
             .shadow(
                 elevation = 2.dp,
-                shape = RoundedCornerShape(16.dp),
+                shape = KbShape.Large,
                 clip = false
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = KbShape.Large,
         colors = CardDefaults.cardColors(containerColor = cardBg)
     ) {
         Column(
@@ -1186,9 +1221,9 @@ private fun RestaurantStatusBanner(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .border(1.dp, MaterialTheme.kbOutlineSubtle, RoundedCornerShape(16.dp))
-            .shadow(2.dp, RoundedCornerShape(16.dp), clip = false),
-        shape = RoundedCornerShape(16.dp),
+            .border(1.dp, MaterialTheme.kbOutlineSubtle, KbShape.Large)
+            .shadow(2.dp, KbShape.Large, clip = false),
+        shape = KbShape.Large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
     ) {
         Row(
@@ -1269,7 +1304,7 @@ fun ComplianceBanner(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
+        shape = KbShape.Small,
         color = bannerBg,
         tonalElevation = 0.dp
     ) {
@@ -1373,7 +1408,7 @@ private fun PulseTile(
 ) {
     KhanaBookCard(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
+        shape = KbShape.Medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
     ) {
         Column(
@@ -1439,7 +1474,7 @@ private fun NotificationCenterSheet(
         if (unsyncedCount == 0 && marketplacePendingCount == 0 && kdsPendingCount == 0 && complianceAlerts.isEmpty()) {
             KhanaBookCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp)
+                shape = KbShape.Medium
             ) {
                 Column(
                     modifier = Modifier.padding(spacing.medium),
@@ -1531,10 +1566,14 @@ private fun NotificationActionCard(
     onClick: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
+    val haptic = LocalHapticFeedback.current
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onClick()
+        },
+        shape = KbShape.Medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
     ) {
         Row(
@@ -1545,7 +1584,7 @@ private fun NotificationActionCard(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(tone.copy(alpha = 0.12f), RoundedCornerShape(12.dp)),
+                    .background(tone.copy(alpha = 0.12f), KbShape.Small),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(icon, contentDescription = null, tint = tone, modifier = Modifier.size(20.dp))
