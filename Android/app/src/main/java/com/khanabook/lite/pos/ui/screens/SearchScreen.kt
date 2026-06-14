@@ -102,23 +102,20 @@ fun SearchScreen(
             title = { Text("Refund Order", color = MaterialTheme.kbSecondary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
-                    OutlinedTextField(
+                    KhanaBookInputField(
                         value = refundAmount,
                         onValueChange = { refundAmount = it },
-                        label = { Text("Refund Amount") },
+                        label = "Refund Amount",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = outlinedSearchFieldColors()
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
+                    KhanaBookInputField(
                         value = refundReason,
                         onValueChange = { refundReason = it },
-                        label = { Text("Reason (optional)") },
+                        label = "Reason (optional)",
                         singleLine = false,
-                        maxLines = 2,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = outlinedSearchFieldColors()
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
@@ -238,7 +235,7 @@ fun SearchScreen(
 
                     Spacer(modifier = Modifier.height(spacing.medium))
 
-                    OutlinedTextField(
+                    KhanaBookInputField(
                         value = dailyId,
                         onValueChange = {
                             if (it.isEmpty() || it.all { char -> char.isDigit() }) {
@@ -248,9 +245,8 @@ fun SearchScreen(
                                 showDailyIdError = true
                             }
                         },
-                        label = { Text("Order No") },
+                        label = "Order No",
                         modifier = Modifier.fillMaxWidth(),
-                        colors = outlinedSearchFieldColors(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         isError = showDailyIdError,
@@ -263,28 +259,19 @@ fun SearchScreen(
 
                     Spacer(modifier = Modifier.height(spacing.medium))
 
-                    Button(
+                    PrimaryButton(
+                        text = "Search Order",
                         onClick = {
                             if (dailyId.isNotBlank() && dailyDate.isNotBlank()) {
                                 viewModel.searchByDailyId(dailyId, dailyDate)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                        shape = RoundedCornerShape(12.dp),
-                        enabled = dailyId.isNotEmpty()
-                    ) {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(iconSize.small)
-                        )
-                        Spacer(modifier = Modifier.width(spacing.small))
-                        Text("Search Order", color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                    }
+                        leadingIcon = Icons.Default.Search,
+                        enabled = dailyId.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 } else {
-                    OutlinedTextField(
+                    KhanaBookInputField(
                         value = lifetimeQuery,
                         onValueChange = { 
                             val invoiceNo = it.removePrefix("INV").removePrefix("inv")
@@ -295,10 +282,9 @@ fun SearchScreen(
                                 showLifetimeQueryError = true
                             }
                         },
-                        label = { Text("Invoice No") },
-                        prefix = { Text("INV") },
+                        label = "Invoice No",
+                        leadingIcon = { Text("INV", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)) },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = outlinedSearchFieldColors(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         isError = showLifetimeQueryError,
@@ -309,26 +295,17 @@ fun SearchScreen(
                         }
                     )
                     Spacer(modifier = Modifier.height(spacing.medium))
-                    Button(
+                    PrimaryButton(
+                        text = "Search Order",
                         onClick = {
                             lifetimeQuery.toLongOrNull()?.let {
                                 viewModel.searchByLifetimeId(it)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                        shape = RoundedCornerShape(12.dp),
-                        enabled = lifetimeQuery.isNotEmpty()
-                    ) {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(iconSize.small)
-                        )
-                        Spacer(modifier = Modifier.width(spacing.small))
-                        Text("Search Order", color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                    } // closes Button
+                        leadingIcon = Icons.Default.Search,
+                        enabled = lifetimeQuery.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
               } // closes else
               } // closes header Column
              } // closes AnimatedVisibility header
@@ -343,7 +320,7 @@ fun SearchScreen(
                     KhanaBookCard(
                     modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = KbShape.Large
                 ) {
                     Column(modifier = Modifier.padding(spacing.medium).wrapContentHeight()) {
                         
@@ -510,28 +487,24 @@ fun SearchScreen(
                                             }
                                         },
                                         enabled = currentResult.items.isNotEmpty(),
-                                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                                        modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge),
                                         colors = ButtonDefaults.buttonColors(containerColor = KbWhatsAppGreen),
-                                        shape = RoundedCornerShape(12.dp)
+                                        shape = KbShape.Medium
                                     ) {
                                         Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                                         Spacer(modifier = Modifier.width(spacing.extraSmall))
                                         Text("Share Invoice", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                                     }
 
-                                    Button(
+                                    PrimaryButton(
+                                        text = "Print Receipt",
                                         onClick = {
                                             result?.let { billingViewModel.printReceipt(it) }
                                         },
                                         enabled = currentResult.items.isNotEmpty() && currentResult.bill.orderStatus != "cancelled",
-                                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Icon(Icons.Default.Receipt, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
-                                        Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                        Text("Print Receipt", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-                                    }
+                                        leadingIcon = Icons.Default.Receipt,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
 
                                     val canRefund = (currentResult.bill.orderStatus.equals("completed", ignoreCase = true) ||
                                             currentResult.bill.orderStatus.equals("paid", ignoreCase = true)) &&
@@ -549,9 +522,9 @@ fun SearchScreen(
                                                     isEasebuzzRefund = true
                                                     showRefundDialog = true
                                                 },
-                                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                                modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge),
                                                 colors = ButtonDefaults.buttonColors(containerColor = KbError),
-                                                shape = RoundedCornerShape(12.dp)
+                                                shape = KbShape.Medium
                                             ) {
                                                 Icon(Icons.Default.CreditCard, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                                                 Spacer(modifier = Modifier.width(spacing.extraSmall))
@@ -566,9 +539,9 @@ fun SearchScreen(
                                                 isEasebuzzRefund = false
                                                 showRefundDialog = true
                                             },
-                                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                                            modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge),
                                             colors = ButtonDefaults.buttonColors(containerColor = KbWarning),
-                                            shape = RoundedCornerShape(12.dp)
+                                            shape = KbShape.Medium
                                         ) {
                                             Icon(Icons.Default.Replay, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
                                             Spacer(modifier = Modifier.width(spacing.extraSmall))
@@ -609,11 +582,4 @@ fun SearchScreen(
 }
 }
 
-@Composable
-private fun outlinedSearchFieldColors() =
-    OutlinedTextFieldDefaults.colors(
-        focusedTextColor = MaterialTheme.kbTextPrimary,
-        unfocusedTextColor = MaterialTheme.kbTextPrimary,
-        focusedBorderColor = MaterialTheme.kbPrimary, unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-        focusedLabelColor = MaterialTheme.kbPrimary, unfocusedLabelColor = MaterialTheme.kbSecondary
-    )
+

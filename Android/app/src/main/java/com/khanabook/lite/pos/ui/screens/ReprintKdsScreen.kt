@@ -144,7 +144,7 @@ fun ReprintKdsScreen(
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
-                OutlinedTextField(
+                KhanaBookInputField(
                     value = dailyId,
                     onValueChange = {
                         if (it.isEmpty() || it.all { char -> char.isDigit() }) {
@@ -153,14 +153,14 @@ fun ReprintKdsScreen(
                         } else {
                             showDailyIdError = true
                         }
-                    }, label = { Text("Order No", color = MaterialTheme.kbSecondary) },
+                    },
+                    label = "Order No",
                     isError = showDailyIdError,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = spacing.medium),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = outlinedSearchFieldColors()
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 if (showDailyIdError) {
                     Text("Please enter numbers only", color = KbError, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
@@ -168,30 +168,17 @@ fun ReprintKdsScreen(
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
-                Button(
+                PrimaryButton(
+                    text = "Search Order",
                     onClick = { doSearch() },
+                    leadingIcon = Icons.Default.Search,
+                    enabled = dailyId.isNotEmpty(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
-                        .padding(horizontal = spacing.medium),colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                        shape = RoundedCornerShape(12.dp),
-                        enabled = dailyId.isNotEmpty()
-                ) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(iconSize.small)
-                    )
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Text(
-                        "Search Order",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
+                        .padding(horizontal = spacing.medium)
+                )
             } else {
-                OutlinedTextField(
+                KhanaBookInputField(
                     value = invoiceQuery,
                     onValueChange = {
                         val invoiceNo = it.removePrefix("INV").removePrefix("inv")
@@ -201,15 +188,15 @@ fun ReprintKdsScreen(
                         } else {
                             showInvoiceError = true
                         }
-                    }, label = { Text("Invoice No", color = MaterialTheme.kbSecondary) },
-                    prefix = { Text("INV") },
+                    },
+                    label = "Invoice No",
+                    leadingIcon = { Text("INV", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)) },
                     isError = showInvoiceError,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = spacing.medium),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = outlinedSearchFieldColors()
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 if (showInvoiceError) {
                     Text("Please enter numbers only", color = KbError, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
@@ -217,29 +204,15 @@ fun ReprintKdsScreen(
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
-                Button(
+                PrimaryButton(
+                    text = "Search Order",
                     onClick = { doSearch() },
+                    leadingIcon = Icons.Default.Search,
+                    enabled = invoiceQuery.isNotEmpty(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
-                        .padding(horizontal = spacing.medium),
-                    colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = invoiceQuery.isNotEmpty()
-                ) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(iconSize.small)
-                    )
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Text(
-                        "Search Order",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
+                        .padding(horizontal = spacing.medium)
+                )
             }
 
             Spacer(modifier = Modifier.height(spacing.medium))
@@ -293,7 +266,7 @@ private fun KdsBillCard(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-            shape = RoundedCornerShape(12.dp)
+            shape = KbShape.Large
         ) {
             Column(modifier = Modifier.padding(spacing.medium)) {
                 Row(
@@ -357,26 +330,15 @@ private fun KdsBillCard(
                     Text(CurrencyUtils.formatPrice(bill.totalAmount), color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(spacing.medium))
-                Button(
+                PrimaryButton(
+                    text = "Reprint KDS",
                     onClick = { onPrint(billWithItems) },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(Icons.Default.Print, null, tint = MaterialTheme.kbTextPrimary, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Reprint KDS", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                }
+                    leadingIcon = Icons.Default.Print,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
 }
 
-@Composable
-private fun outlinedSearchFieldColors() =
-    OutlinedTextFieldDefaults.colors(
-        focusedTextColor = MaterialTheme.kbTextPrimary,
-        unfocusedTextColor = MaterialTheme.kbTextPrimary,
-        focusedBorderColor = MaterialTheme.kbPrimary, unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-        focusedLabelColor = MaterialTheme.kbPrimary, unfocusedLabelColor = MaterialTheme.kbSecondary
-    )
+

@@ -63,6 +63,7 @@ import com.khanabook.lite.pos.data.remote.dto.EasebuzzSubMerchantStatusResponse
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
 import com.khanabook.lite.pos.ui.theme.KbBrandVioletBright
+import com.khanabook.lite.pos.ui.theme.KbMidnightGradient
 import com.khanabook.lite.pos.ui.theme.KbGray300
 import com.khanabook.lite.pos.ui.theme.KbGray500
 import com.khanabook.lite.pos.ui.theme.KbOpacity
@@ -138,11 +139,7 @@ fun EasebuzzKycScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFF0E0A22), Color(0xFF0D0820))
-                )
-            )
+            .background(KbMidnightGradient)
     ) {
         Column(
             modifier = Modifier
@@ -173,7 +170,7 @@ fun EasebuzzKycScreen(
             Text(
                 text = "Complete your KYC to start receiving payments",
                 style = MaterialTheme.typography.bodyMedium,
-                color = KbBrandVioletBright // Violet accent matching spec
+                color = KbBrandSaffron // Saffron accent matching brand palette
             )
 
             Spacer(modifier = Modifier.height(spacing.mediumLarge))

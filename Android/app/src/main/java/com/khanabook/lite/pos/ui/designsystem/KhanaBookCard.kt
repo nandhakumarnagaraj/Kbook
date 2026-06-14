@@ -25,7 +25,7 @@ import com.khanabook.lite.pos.ui.theme.*
 fun KhanaBookCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    shape: Shape = RoundedCornerShape(16.dp),
+    shape: Shape = KbShape.Large, // canonical card radius (18.dp)
     // Default container colour is theme-aware: dark surface in dark mode, white in light mode.
     colors: CardColors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
     elevation: CardElevation = CardDefaults.cardElevation(defaultElevation = 0.dp),

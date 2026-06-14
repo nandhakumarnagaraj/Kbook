@@ -77,6 +77,8 @@ import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
+import com.khanabook.lite.pos.ui.designsystem.PrimaryButton
+import com.khanabook.lite.pos.ui.designsystem.SecondaryButton
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
@@ -258,8 +260,9 @@ fun PrinterConfigView(
 
                 Spacer(modifier = Modifier.height(spacing.smallMedium))
 
-                // ── Print Test Page button (Stitch: at bottom of card) ──
-                Button(
+                PrimaryButton(
+                    text = "Print Test Page",
+                    enabled = isAnyBtConnected,
                     onClick = {
                         if (printerStatusRoles.contains(PrinterRole.CUSTOMER.name)) {
                             viewModel.testPrint(PrinterRole.CUSTOMER)
@@ -267,22 +270,9 @@ fun PrinterConfigView(
                             viewModel.testPrint(PrinterRole.KITCHEN)
                         }
                     },
-                    enabled = isAnyBtConnected,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = KbBrandSaffron,
-                        disabledContainerColor = KbBrandSaffron.copy(alpha = KbOpacity.Disabled)
-                    ),
-                    shape = KbShape.Medium
-                ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Text("Print Test Page", color = Color.White)
-                }
+                    leadingIcon = Icons.Default.CheckCircle,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             Spacer(modifier = Modifier.height(spacing.smallMedium))
@@ -305,7 +295,9 @@ fun PrinterConfigView(
                 horizontalArrangement = Arrangement.spacedBy(spacing.small),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Button(
+                PrimaryButton(
+                    text = "Save",
+                    modifier = Modifier.weight(1f),
                     onClick = {
                         profile?.copy(
                             printerEnabled = enabled,
@@ -334,26 +326,13 @@ fun PrinterConfigView(
                                 includeLogo = false
                             )
                         }
-                    },
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = KbSuccess),
-                    shape = KbShape.Medium
-                ) {
-                    Text(
-                        "Save",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.kbSecondary.copy(alpha = 0.7f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbSecondary),
-                    shape = KbShape.Medium
-                ) {
-                    Text("Back", style = MaterialTheme.typography.titleMedium)
-                }
+                    }
+                )
+                SecondaryButton(
+                    text = "Back",
+                    modifier = Modifier.weight(1f),
+                    onClick = onBack
+                )
             }
         }
 
@@ -487,7 +466,7 @@ private fun PrinterTargetCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+            .border(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f), KbShape.Small)
             .padding(spacing.smallMedium)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
@@ -531,14 +510,20 @@ private fun PrinterTargetCard(
                     Text("80mm", color = MaterialTheme.kbPrimary)
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                    Button(onClick = onSelectPrinter, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbOutlineSubtle)) {
+                    Button(
+                        onClick = onSelectPrinter,
+                        modifier = Modifier.weight(1f).height(KbButtonSize.HeightMedium),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbOutlineSubtle),
+                        shape = KbShape.Medium
+                    ) {
                         Text("Select Printer")
                     }
                     Button(
                         onClick = onTestPrint,
                         enabled = !macAddress.isNullOrBlank(),
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron, disabledContainerColor = KbBrandSaffron.copy(alpha = 0.35f))
+                        modifier = Modifier.weight(1f).height(KbButtonSize.HeightMedium),
+                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron, disabledContainerColor = KbBrandSaffron.copy(alpha = 0.35f)),
+                        shape = KbShape.Medium
                     ) {
                         Text("Test Printer", color = Color.White)
                     }
@@ -567,10 +552,10 @@ fun DeviceRow(
         modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),
         onClick = if (!isConnecting) onClick else null,
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        shape = RoundedCornerShape(8.dp)
+        shape = KbShape.Small
     ) {
         if (border != null) {
-            Modifier.border(border, RoundedCornerShape(8.dp))
+            Modifier.border(border, KbShape.Small)
         }
         Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
             Icon(

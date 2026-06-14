@@ -52,7 +52,11 @@ data class SettingsItemInfo(
     val subtitle: String,
     val iconBg: Color,
     val iconTint: Color,
-    val badgeText: String? = null
+    val badgeText: String? = null,
+    // When [checked] is non-null the row renders a trailing switch instead of a
+    // chevron, and tapping the row (or the switch) calls [onCheckedChange].
+    val checked: Boolean? = null,
+    val onCheckedChange: ((Boolean) -> Unit)? = null
 )
 
 /**
@@ -69,7 +73,7 @@ fun SettingsGroupCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-        shape = RoundedCornerShape(14.dp),
+        shape = KbShape.Large,
         border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
     ) {
         Column {
@@ -79,12 +83,15 @@ fun SettingsGroupCard(
                         .fillMaxWidth()
                         .clip(
                             when (index) {
-                                0 -> RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
-                                items.lastIndex -> RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
+                                0 -> RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
+                                items.lastIndex -> RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp)
                                 else -> RoundedCornerShape(0.dp)
                             }
                         )
-                        .clickable { onItemClick(index) }
+                        .clickable {
+                            if (item.checked != null) item.onCheckedChange?.invoke(!item.checked)
+                            else onItemClick(index)
+                        }
                         .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -123,14 +130,13 @@ fun SettingsGroupCard(
                                 Box(
                                     modifier = Modifier
                                         .padding(top = 4.dp)
-                                        .background(Color(0xFFFFF2E6), RoundedCornerShape(6.dp))
+                                        .background(KbAccentRedSurface, KbShape.ExtraSmall)
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = item.badgeText,
-                                        color = Color(0xFFEF4444),
+                                        color = KbAccentRed,
                                         style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                     )
@@ -138,12 +144,20 @@ fun SettingsGroupCard(
                             }
                         }
                     }
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.kbTextSecondary.copy(alpha = 0.5f),
-                        modifier = Modifier.size(18.dp)
-                    )
+                    if (item.checked != null) {
+                        KhanaBookSwitch(
+                            checked = item.checked,
+                            onCheckedChange = { item.onCheckedChange?.invoke(it) },
+                            checkedTrackColor = KbBrandSaffron
+                        )
+                    } else {
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.kbTextSecondary.copy(alpha = KbOpacity.Overlay),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
                 if (index < items.lastIndex) {
                     HorizontalDivider(
@@ -281,11 +295,11 @@ internal fun SettingsItem(icon: ImageVector, text: String, subtitle: String? = n
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = spacing.extraSmall)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(KbShape.Large)
             .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
         border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-        shape = RoundedCornerShape(12.dp)
+        shape = KbShape.Large
     ) {
         Row(
             modifier = Modifier
@@ -352,7 +366,7 @@ internal fun SettingsToggleItem(
             .padding(vertical = spacing.extraSmall),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
         border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-        shape = RoundedCornerShape(12.dp)
+        shape = KbShape.Large
     ) {
         Row(
             modifier = Modifier
@@ -407,7 +421,7 @@ fun ConfigCard(content: @Composable ColumnScope.() -> Unit) {
             .fillMaxWidth()
             .padding(bottom = spacing.smallMedium),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-        shape = RoundedCornerShape(10.dp),
+        shape = KbShape.Large,
         border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
     ) {
         Column(modifier = Modifier.padding(spacing.medium)) { content() }

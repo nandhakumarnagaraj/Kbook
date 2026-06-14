@@ -1067,7 +1067,7 @@ fun MenuSelectionStep(
                                 containerColor = KbBrandSaffron,
                                 disabledContainerColor = KbBrandSaffron.copy(alpha = KbOpacity.Disabled)
                             ),
-                            shape = KbShape.Small,
+                            shape = KbShape.Medium,
                             enabled = derivedItemCount > 0
                         ) {
                             Text(
@@ -1438,8 +1438,8 @@ private fun TabletCartPanel(
                     Button(
                         onClick = onProceedToPayment,
                         modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
-                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
+                        shape = KbShape.Medium,
                         enabled = derivedItemCount > 0
                     ) {
                         Text("Proceed to Payment", color = Color.White, style = MaterialTheme.typography.titleMedium)

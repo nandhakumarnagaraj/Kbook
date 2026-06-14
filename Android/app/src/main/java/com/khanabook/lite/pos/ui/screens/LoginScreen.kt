@@ -91,7 +91,7 @@ fun OnboardingPhoneInput(
     ) {
         Text(
             text = "+91",
-            color = KbBrandVioletBright,
+            color = KbBrandSaffron,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp
         )
@@ -286,7 +286,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0D0820))
+            .background(KbBrandVioletDeeper)
             .imePadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -334,7 +334,7 @@ fun LoginScreen(
 
                     Text(
                         text = "Restaurant POS & Management",
-                        color = Color(0xFFB4ACE8), // Soft lavender tint
+                        color = Color.White.copy(alpha = KbOpacity.Muted),
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
@@ -529,35 +529,17 @@ fun LoginScreen(
                     val isFormFilled = isLoginIdValid && password.isNotBlank() && loginUserCheckError == null
                     val isLoginEnabled = isFormFilled && !isLoading && !isLoginUserChecking
 
-                    Button(
+                    PrimaryButton(
+                        text = "Continue",
                         onClick = {
                             if (isLoginEnabled) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 viewModel.login(loginId, password)
                             }
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        enabled = isFormFilled
-                    ) {
-                        if (isLoading && !isGoogleLogin) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text("Continue", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                        }
-                    }
+                        enabled = isFormFilled,
+                        loading = isLoading && !isGoogleLogin
+                    )
 
                     Spacer(modifier = Modifier.height(28.dp))
 
@@ -600,8 +582,8 @@ fun LoginScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
+                            .height(KbButtonSize.HeightLarge),
+                        shape = KbShape.Medium,
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = MaterialTheme.colorScheme.surface,
                             contentColor = MaterialTheme.colorScheme.onSurface
@@ -615,7 +597,7 @@ fun LoginScreen(
                             if (isLoading && isGoogleLogin) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
-                                    color = Color(0xFFEA580C),
+                                    color = KbBrandSaffron,
                                     strokeWidth = 2.dp
                                 )
                             } else {
@@ -754,7 +736,7 @@ fun ForgotPasswordDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0D0820))
+            .background(KbBrandVioletDeeper)
             .imePadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -842,7 +824,7 @@ fun ForgotPasswordDialog(
                             2 -> "Enter the 6-digit OTP sent to +91 $phone."
                             else -> "Create a new strong password for your account."
                         },
-                        color = Color(0xFFB4ACE8), // lavender tint
+                        color = Color.White.copy(alpha = KbOpacity.Muted),
                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 20.sp),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 32.dp)

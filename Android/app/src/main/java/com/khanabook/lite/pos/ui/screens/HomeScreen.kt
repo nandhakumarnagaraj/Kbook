@@ -887,18 +887,12 @@ private fun TodaySummaryEmpty(onNewBill: () -> Unit) {
             color = MaterialTheme.kbTextTertiary
         )
         Spacer(Modifier.height(spacing.medium))
-        Button(
+        PrimaryButton(
+            text = "Create New Bill",
             onClick = onNewBill,
-            modifier = Modifier.height(48.dp),
-            shape = KbShape.Medium,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.kbPrimary
-            )
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Create New Bill")
-        }
+            modifier = Modifier,
+            leadingIcon = Icons.Default.Add
+        )
         Spacer(Modifier.height(spacing.small))
     }
 }

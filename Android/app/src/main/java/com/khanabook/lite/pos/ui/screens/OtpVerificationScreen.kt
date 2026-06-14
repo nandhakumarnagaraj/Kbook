@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,8 +45,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.R
-import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookPurpleBackground
+import com.khanabook.lite.pos.ui.designsystem.PrimaryButton
+import com.khanabook.lite.pos.ui.theme.*
 
 // ── OTP Input Row (reusable 6-digit boxes) ───────────────────────────────────
 @Composable
@@ -181,7 +180,7 @@ fun PurpleGradientHeader(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = subtitle,
-                    color = Color(0xFFB4ACE8), // Soft lavender tint
+                    color = Color.White.copy(alpha = KbOpacity.Muted),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
@@ -290,33 +289,12 @@ fun OtpVerificationBody(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
+        PrimaryButton(
+            text = "Verify OTP",
             onClick = onVerifyClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = KbBrandSaffron,
-                contentColor = Color.White,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant, // Disabled bg
-                disabledContentColor = Color.White
-            ),
-            shape = RoundedCornerShape(14.dp), // Medium corner radius
-            enabled = otp.length == 6 && !isLoading
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text(
-                    "Verify OTP",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-        }
+            enabled = otp.length == 6,
+            loading = isLoading
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -365,7 +343,7 @@ fun OtpVerificationScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF0D0820))
+            .background(KbBrandVioletDeeper)
     ) {
         // Midnight purple gradient header
         PurpleGradientHeader(

@@ -447,9 +447,7 @@ fun SettingsScreen(
 
 @Composable
 private fun DensityGridIcon(densityType: String, isSelected: Boolean) {
-    val activeColor = if (globalIsDark) Color(0xFFA78BFA) else Color(0xFF6D28D9)
-    val inactiveColor = if (globalIsDark) Color(0xFF4B4855) else Color(0xFFD1D5DB)
-    val tint = if (isSelected) activeColor else inactiveColor
+    val tint = if (isSelected) KbBrandSaffron else MaterialTheme.kbOutlineBold
     val spacing = when (densityType) {
         "compact" -> 6.dp
         "spacious" -> 2.dp
@@ -489,13 +487,13 @@ fun DisplaySettingsMobileScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (globalIsDark) Color(0xFF121212) else Color(0xFFF3F0FA))
+            .background(MaterialTheme.kbBgPrimary)
     ) {
-        // Mockup Header: deep purple / midnight background
+        // Brand violet header (matches every other screen header)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(if (globalIsDark) Color(0xFF0F092E) else Color(0xFF1E144C))
+                .background(MaterialTheme.kbHeaderGradient)
                 .statusBarsPadding()
                 .padding(vertical = 16.dp, horizontal = 16.dp),
             contentAlignment = Alignment.CenterStart
@@ -503,7 +501,7 @@ fun DisplaySettingsMobileScreen(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(Color.White.copy(alpha = 0.12f), CircleShape)
+                    .background(Color.White.copy(alpha = KbOpacity.Pressed), CircleShape)
                     .clickable { onBack() },
                 contentAlignment = Alignment.Center
             ) {
@@ -519,8 +517,7 @@ fun DisplaySettingsMobileScreen(
                 text = "Display Settings",
                 color = Color.White,
                 style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
+                    fontWeight = FontWeight.Bold
                 ),
                 modifier = Modifier.align(Alignment.Center)
             )
@@ -581,10 +578,10 @@ private fun DisplayScaleView(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = if (globalIsDark) Color(0xFF1E1B24) else Color.White
+                containerColor = MaterialTheme.kbBgCard
             ),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            shape = KbShape.Large,
+            elevation = CardDefaults.cardElevation(defaultElevation = KbElevation.Low)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 // Text size selector buttons
@@ -601,27 +598,18 @@ private fun DisplayScaleView(
                             onClick = { scale = valScale },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(42.dp),
+                                .height(KbButtonSize.HeightSmall),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isSelected) {
-                                    if (globalIsDark) Color(0xFFA78BFA) else Color(0xFF6D28D9)
-                                } else {
-                                    if (globalIsDark) Color(0xFF2E2B38) else Color(0xFFF5F3FF)
-                                },
-                                contentColor = if (isSelected) {
-                                    Color.White
-                                } else {
-                                    if (globalIsDark) Color(0xFF9CA3AF) else Color(0xFF6B7280)
-                                }
+                                containerColor = if (isSelected) KbBrandSaffron else MaterialTheme.kbBgSecondary,
+                                contentColor = if (isSelected) Color.White else MaterialTheme.kbTextSecondary
                             ),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = KbShape.Small,
                             contentPadding = PaddingValues(0.dp)
                         ) {
                             Text(
                                 text = scaleLabels[index],
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold
                                 )
                             )
                         }
@@ -634,14 +622,14 @@ private fun DisplayScaleView(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (globalIsDark) Color(0xFF25222E) else Color(0xFFF5F3FF))
+                        .clip(KbShape.Large)
+                        .background(MaterialTheme.kbBgSecondary)
                         .padding(16.dp)
                 ) {
                     Column {
                         Text(
                             text = "Preview text",
-                            color = if (globalIsDark) Color(0xFF9CA3AF) else Color(0xFF6B7280),
+                            color = MaterialTheme.kbTextSecondary,
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
@@ -652,7 +640,7 @@ private fun DisplayScaleView(
                                 }
                                 append(" · Table 4 · ₹240.00")
                             },
-                            color = if (globalIsDark) Color.White else Color(0xFF1F2937),
+                            color = MaterialTheme.kbTextPrimary,
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontSize = (16 * scale).sp
                             )
@@ -667,7 +655,7 @@ private fun DisplayScaleView(
         // SECTION 2: LAYOUT DENSITY
         Text(
             text = "LAYOUT DENSITY",
-            color = if (globalIsDark) Color(0xFFA78BFA) else KbBrandVioletBright,
+            color = KbBrandSaffron,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp
@@ -685,22 +673,22 @@ private fun DisplayScaleView(
             
             densities.forEachIndexed { index, densityType ->
                 val isSelected = density == densityType
-                val activeThemeColor = if (globalIsDark) Color(0xFFA78BFA) else Color(0xFF6D28D9)
-                
+                val activeThemeColor = KbBrandSaffron
+
                 Card(
                     modifier = Modifier
                         .weight(1f)
                         .height(108.dp)
                         .clickable { density = densityType },
                     colors = CardDefaults.cardColors(
-                        containerColor = if (globalIsDark) Color(0xFF1E1B24) else Color.White
+                        containerColor = MaterialTheme.kbBgCard
                     ),
                     border = BorderStroke(
                         width = if (isSelected) 2.dp else 1.dp,
-                        color = if (isSelected) activeThemeColor else if (globalIsDark) Color(0xFF2E2B38) else Color(0xFFE5E7EB)
+                        color = if (isSelected) activeThemeColor else MaterialTheme.kbOutlineSubtle
                     ),
-                    shape = RoundedCornerShape(20.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    shape = KbShape.Large,
+                    elevation = CardDefaults.cardElevation(defaultElevation = KbElevation.Low)
                 ) {
                     Column(
                         modifier = Modifier
@@ -713,10 +701,9 @@ private fun DisplayScaleView(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = densityLabels[index],
-                            color = if (isSelected) activeThemeColor else if (globalIsDark) Color(0xFF9CA3AF) else Color(0xFF4B5563),
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 13.sp
+                            color = if (isSelected) activeThemeColor else MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         )
                     }
@@ -729,7 +716,7 @@ private fun DisplayScaleView(
         // SECTION 3: OTHER OPTIONS
         Text(
             text = "OTHER OPTIONS",
-            color = Color(0xFF10B981),
+            color = KbBrandSaffron,
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp
@@ -741,10 +728,10 @@ private fun DisplayScaleView(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
-                containerColor = if (globalIsDark) Color(0xFF1E1B24) else Color.White
+                containerColor = MaterialTheme.kbBgCard
             ),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            shape = KbShape.Large,
+            elevation = CardDefaults.cardElevation(defaultElevation = KbElevation.Low)
         ) {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 // Show Order Animations
@@ -757,12 +744,12 @@ private fun DisplayScaleView(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             "Show Order Animations",
-                            color = if (globalIsDark) Color.White else Color(0xFF1F2937),
+                            color = MaterialTheme.kbTextPrimary,
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                         )
                         Text(
                             "Smooth transitions & effects",
-                            color = if (globalIsDark) Color(0xFF9CA3AF) else Color(0xFF6B7280),
+                            color = MaterialTheme.kbTextSecondary,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -770,11 +757,11 @@ private fun DisplayScaleView(
                         checked = showAnimations,
                         onCheckedChange = { showAnimations = it },
                         checkedTrackColor = KbBrandSaffron,
-                        uncheckedTrackColor = if (globalIsDark) Color(0xFF374151) else Color(0xFFE5E7EB)
+                        uncheckedTrackColor = MaterialTheme.kbOutlineBold
                     )
                 }
 
-                HorizontalDivider(color = if (globalIsDark) Color(0xFF2E2B38) else Color(0xFFF3F4F6))
+                HorizontalDivider(color = MaterialTheme.kbOutlineSubtle)
 
                 // Haptic Feedback
                 Row(
@@ -786,12 +773,12 @@ private fun DisplayScaleView(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             "Haptic Feedback",
-                            color = if (globalIsDark) Color.White else Color(0xFF1F2937),
+                            color = MaterialTheme.kbTextPrimary,
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                         )
                         Text(
                             "Vibration on tap",
-                            color = if (globalIsDark) Color(0xFF9CA3AF) else Color(0xFF6B7280),
+                            color = MaterialTheme.kbTextSecondary,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -799,11 +786,11 @@ private fun DisplayScaleView(
                         checked = haptic,
                         onCheckedChange = { haptic = it },
                         checkedTrackColor = KbBrandSaffron,
-                        uncheckedTrackColor = if (globalIsDark) Color(0xFF374151) else Color(0xFFE5E7EB)
+                        uncheckedTrackColor = MaterialTheme.kbOutlineBold
                     )
                 }
 
-                HorizontalDivider(color = if (globalIsDark) Color(0xFF2E2B38) else Color(0xFFF3F4F6))
+                HorizontalDivider(color = MaterialTheme.kbOutlineSubtle)
 
                 // Bold Order Numbers
                 Row(
@@ -815,12 +802,12 @@ private fun DisplayScaleView(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             "Bold Order Numbers",
-                            color = if (globalIsDark) Color.White else Color(0xFF1F2937),
+                            color = MaterialTheme.kbTextPrimary,
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                         )
                         Text(
                             "Easier to scan quickly",
-                            color = if (globalIsDark) Color(0xFF9CA3AF) else Color(0xFF6B7280),
+                            color = MaterialTheme.kbTextSecondary,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -828,7 +815,7 @@ private fun DisplayScaleView(
                         checked = bold,
                         onCheckedChange = { bold = it },
                         checkedTrackColor = KbBrandSaffron,
-                        uncheckedTrackColor = if (globalIsDark) Color(0xFF374151) else Color(0xFFE5E7EB)
+                        uncheckedTrackColor = MaterialTheme.kbOutlineBold
                     )
                 }
             }
@@ -837,34 +824,21 @@ private fun DisplayScaleView(
         Spacer(modifier = Modifier.height(28.dp))
 
         // CTA BUTTON: Apply Settings
-        Button(
+        PrimaryButton(
+            text = "Apply Settings",
             onClick = {
                 viewModel.updateDisplayScale(scale)
                 viewModel.updateLayoutDensity(density)
                 viewModel.updateShowOrderAnimations(showAnimations)
                 viewModel.updateHapticFeedbackEnabled(haptic)
                 viewModel.updateBoldOrderNumbers(bold)
-                
+
                 coroutineScope.launch {
                     KhanaToast.show("Settings applied successfully", ToastKind.Success)
                 }
                 onBack()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = KbBrandSaffron,
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(16.dp),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-        ) {
-            Text(
-                "Apply Settings",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-            )
-        }
+            }
+        )
 
         Spacer(modifier = Modifier.height(36.dp))
     }

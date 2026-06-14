@@ -516,7 +516,6 @@ private fun MarketplaceOrderCard(
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
-
                 if (isPending && !expanded) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -529,7 +528,7 @@ private fun MarketplaceOrderCard(
                                 containerColor = KbBrandSaffron,
                                 contentColor = Color.White
                             ),
-                            shape = KbShape.Small,
+                            shape = KbShape.Medium,
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(vertical = 10.dp)
                         ) {
@@ -549,7 +548,7 @@ private fun MarketplaceOrderCard(
                             onClick = { showRejectDialog = true },
                             enabled = !isLoading,
                             border = BorderStroke(1.dp, KbError.copy(alpha = KbOpacity.StatusBorder)),
-                            shape = KbShape.Small,
+                            shape = KbShape.Medium,
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(vertical = 10.dp)
                         ) {
@@ -599,7 +598,7 @@ private fun MarketplaceOrderCard(
                                         containerColor = KbBrandSaffron,
                                         contentColor = Color.White
                                     ),
-                                    shape = KbShape.Small,
+                                    shape = KbShape.Medium,
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     if (isLoading) {
@@ -618,7 +617,7 @@ private fun MarketplaceOrderCard(
                                     onClick = { showRejectDialog = true },
                                     enabled = !isLoading,
                                     border = BorderStroke(1.dp, KbError.copy(alpha = KbOpacity.StatusBorder)),
-                                    shape = KbShape.Small,
+                                    shape = KbShape.Medium,
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(Icons.Default.Close, null, tint = KbError, modifier = Modifier.size(16.dp))
@@ -634,7 +633,7 @@ private fun MarketplaceOrderCard(
                                         containerColor = KbBrandSaffron,
                                         contentColor = Color.White
                                     ),
-                                    shape = KbShape.Small,
+                                    shape = KbShape.Medium,
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     if (isLoading) {

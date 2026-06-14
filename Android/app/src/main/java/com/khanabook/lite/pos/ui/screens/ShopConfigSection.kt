@@ -433,13 +433,13 @@ fun ShopConfigView(
                                 color = MaterialTheme.kbSecondary
                             )
                         } else if (numberChanged && (!otpSent || otpTimer == 0)) {
-                            Button(
+                        Button(
                                 onClick = {
                                     if (isPhoneValid && userExistsError == null) authViewModel.sendOtp(whatsapp, "update_whatsapp")
                                 },
                                 modifier = Modifier.padding(end = spacing.extraSmall).height(56.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                                shape = RoundedCornerShape(20.dp),
+                                shape = KbShape.Medium,
                                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
                                 enabled = isPhoneValid && !isUserChecking && userExistsError == null
                             ) {
@@ -574,14 +574,14 @@ fun ShopConfigView(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .height(48.dp)
+                            .height(KbButtonSize.HeightLarge)
                             .graphicsLayer {
                                 scaleX = saveButtonScale
                                 scaleY = saveButtonScale
                                 alpha = saveButtonAlpha
                             },
                         colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                        shape = RoundedCornerShape(24.dp),
+                        shape = KbShape.Medium,
                         enabled = !saveProfileLoading
                     ) {
                         if (saveProfileLoading) {
@@ -594,10 +594,10 @@ fun ShopConfigView(
                         onClick = { onBack() },
                         modifier = Modifier
                             .weight(1f)
-                            .height(48.dp),
+                            .height(KbButtonSize.HeightLarge),
                         border = BorderStroke(1.dp, MaterialTheme.kbSecondary.copy(alpha = 0.7f)),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbSecondary),
-                        shape = RoundedCornerShape(24.dp)
+                        shape = KbShape.Medium
                     ) {
                         Text("Back", style = MaterialTheme.typography.titleMedium)
                     }

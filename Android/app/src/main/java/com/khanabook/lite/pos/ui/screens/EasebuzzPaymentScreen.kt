@@ -687,7 +687,7 @@ private fun EasebuzzDivider() {
         modifier = Modifier
             .fillMaxWidth()
             .height(1.dp)
-            .background(Color(0x1AFFFFFF))
+            .background(Color.White.copy(alpha = KbOpacity.Divider))
     )
 }
 
@@ -743,14 +743,14 @@ private fun ActionButtonsArea(
                     onClick = launchSdk,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(KbButtonSize.HeightLarge),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
                     shape = KhanaShapes.medium
                 ) {
                     Text(
                         text = "Process Payment",
                         color = Color.White,
-                        fontSize = 16.sp,
+                        style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -1019,7 +1019,7 @@ private fun EasebuzzStatusGauge(
 
             // 2. Track Line
             drawCircle(
-                color = Color(0x11FFFFFF),
+                color = Color.White.copy(alpha = KbOpacity.Border),
                 radius = radius - 24.dp.toPx(),
                 style = Stroke(width = strokeWidth)
             )

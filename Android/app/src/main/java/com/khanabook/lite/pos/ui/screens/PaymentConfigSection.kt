@@ -43,8 +43,12 @@ import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
+import com.khanabook.lite.pos.ui.designsystem.PrimaryButton
+import com.khanabook.lite.pos.ui.designsystem.SecondaryButton
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.KbBrandSaffron
+import com.khanabook.lite.pos.ui.theme.KbShape
+import com.khanabook.lite.pos.ui.theme.KbButtonSize
 import com.khanabook.lite.pos.ui.theme.kbOutlineSubtle
 import com.khanabook.lite.pos.ui.theme.kbSecondary
 import com.khanabook.lite.pos.ui.theme.kbTextPrimary
@@ -129,9 +133,9 @@ fun PaymentConfigView(
                     Button(
                         onClick = onOpenEasebuzzKyc,
                         enabled = easebuzzEnabled,
-                        modifier = Modifier.weight(1f).height(44.dp),
+                        modifier = Modifier.weight(1f).height(KbButtonSize.HeightMedium),
                         colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                        shape = RoundedCornerShape(22.dp)
+                        shape = KbShape.Medium
                     ) {
                         Icon(imageVector = Icons.Outlined.Security, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.size(spacing.extraSmall))
@@ -139,9 +143,9 @@ fun PaymentConfigView(
                     }
                     OutlinedButton(
                         onClick = { easebuzzEnabled = false },
-                        modifier = Modifier.weight(1f).height(44.dp),
+                        modifier = Modifier.weight(1f).height(KbButtonSize.HeightMedium),
                         border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-                        shape = RoundedCornerShape(22.dp)
+                        shape = KbShape.Medium
                     ) {
                         Text("Reset")
                     }
@@ -162,9 +166,9 @@ fun PaymentConfigView(
                 Spacer(modifier = Modifier.height(spacing.small))
                 Button(
                     onClick = onOpenMarketplaceOrders,
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightMedium),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbSecondary),
-                    shape = RoundedCornerShape(22.dp)
+                    shape = KbShape.Medium
                 ) {
                     Icon(imageVector = Icons.Outlined.Storefront, contentDescription = null, tint = Color.White)
                     Spacer(modifier = Modifier.size(spacing.extraSmall))
@@ -174,13 +178,15 @@ fun PaymentConfigView(
 
             Spacer(modifier = Modifier.height(spacing.medium))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                Button(
+                PrimaryButton(
+                    text = "Save",
+                    modifier = Modifier.weight(1f),
                     onClick = {
                         if (upiSupported && upiHandle.isBlank()) {
                             toastScope.launch {
                                 KhanaToast.show("Enter UPI ID to generate amount QR", ToastKind.Error)
                             }
-                            return@Button
+                            return@PrimaryButton
                         }
                         profile?.copy(
                             currency = currency,
@@ -197,17 +203,13 @@ fun PaymentConfigView(
                             isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }
-                    },
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = KbSuccess),
-                    shape = RoundedCornerShape(24.dp)
-                ) { Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium) }
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-                    shape = RoundedCornerShape(24.dp)
-                ) { Text("Back") }
+                    }
+                )
+                SecondaryButton(
+                    text = "Back",
+                    modifier = Modifier.weight(1f),
+                    onClick = onBack
+                )
             }
         }
     }
@@ -227,7 +229,7 @@ fun IntegrationCard(
         colors = androidx.compose.material3.CardDefaults.cardColors(
             containerColor = tone.copy(alpha = 0.08f)
         ),
-        shape = RoundedCornerShape(12.dp),
+        shape = KbShape.Large,
         border = BorderStroke(1.dp, tone.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.small)) {

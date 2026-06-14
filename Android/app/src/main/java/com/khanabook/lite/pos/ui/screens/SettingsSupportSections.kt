@@ -511,7 +511,7 @@ fun HelpSupportView(searchQuery: String) {
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = KbBrandAmber),
-                shape = RoundedCornerShape(10.dp),
+                shape = KbShape.Small,
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Icon(Icons.Default.Star, null, tint = Color.White, modifier = Modifier.size(14.dp))
@@ -775,12 +775,12 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
         enabled = !isLoading,
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp),
+            .height(KbButtonSize.HeightLarge),
         colors = ButtonDefaults.buttonColors(
             containerColor = DangerRed,
             disabledContainerColor = DangerRed.copy(alpha = 0.4f)
         ),
-        shape = RoundedCornerShape(10.dp)
+        shape = KbShape.Medium
     ) {
         Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(iconSize.small))
         Spacer(modifier = Modifier.width(spacing.small))

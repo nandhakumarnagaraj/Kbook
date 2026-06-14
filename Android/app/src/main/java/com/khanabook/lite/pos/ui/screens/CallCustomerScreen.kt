@@ -152,7 +152,7 @@ fun CallCustomerScreen(
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
-                OutlinedTextField(
+                KhanaBookInputField(
                         value = dailyId,
                         onValueChange = {
                             if (it.isEmpty() || it.all { char -> char.isDigit() }) {
@@ -162,10 +162,9 @@ fun CallCustomerScreen(
                                 showDailyIdError = true
                             }
                         },
-                        label = { Text("Order No") },
+                        label = "Order No",
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
-                        colors = outlinedSearchFieldColors(),
                         singleLine = true,
                         isError = showDailyIdError,
                         supportingText = {
@@ -177,23 +176,19 @@ fun CallCustomerScreen(
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
-                Button(
+                PrimaryButton(
+                        text = "Search Customer",
                         onClick = {
                             if (dailyId.isNotBlank() && dailyDate.isNotBlank()) {
                                 viewModel.searchByDailyId(dailyId, dailyDate)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                        enabled = dailyId.isNotEmpty()
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.kbTextPrimary, modifier = Modifier.size(iconSize.small))
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Text("Search Customer", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                }
+                        leadingIcon = Icons.Default.Search,
+                        enabled = dailyId.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                )
             } else {
-                OutlinedTextField(
+                KhanaBookInputField(
                         value = lifetimeId,
                         onValueChange = { 
                             val invoiceNo = it.removePrefix("INV").removePrefix("inv")
@@ -204,10 +199,9 @@ fun CallCustomerScreen(
                                 showLifetimeIdError = true
                             }
                         },
-                        label = { Text("Invoice No") },
-                        prefix = { Text("INV") },
+                        label = "Invoice No",
+                        leadingIcon = { Text("INV", color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)) },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = outlinedSearchFieldColors(),
                         singleLine = true,
                         isError = showLifetimeIdError,
                         supportingText = {
@@ -222,19 +216,15 @@ fun CallCustomerScreen(
                                 )
                 )
                 Spacer(modifier = Modifier.height(spacing.medium))
-                Button(
+                PrimaryButton(
+                        text = "Search Customer",
                         onClick = {
                             lifetimeId.toLongOrNull()?.let { viewModel.searchByLifetimeId(it) }
                         },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                        enabled = lifetimeId.isNotEmpty()
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(iconSize.small))
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Text("Search Customer", color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                } // closes Button
+                        leadingIcon = Icons.Default.Search,
+                        enabled = lifetimeId.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                )
               } // closes else
              } // closes Column
             } // closes AnimatedVisibility header
@@ -248,7 +238,7 @@ fun CallCustomerScreen(
                 KhanaBookCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                        shape = KbShape.Large
                 ) {
                     Column(
                             modifier = Modifier.padding(spacing.large),
@@ -304,9 +294,9 @@ fun CallCustomerScreen(
                                     }
                                 },
                                 enabled = currentResult.bill.customerWhatsapp != null,
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge),
                                 colors = ButtonDefaults.buttonColors(containerColor = KbSuccess),
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                                shape = KbShape.Medium
                         ) {
                             Icon(Icons.Default.Call, contentDescription = null, tint = Color.White)
                             Spacer(modifier = Modifier.width(spacing.small))
@@ -342,13 +332,4 @@ fun CallCustomerScreen(
 }
 }
 
-@Composable
-private fun outlinedSearchFieldColors() =
-    OutlinedTextFieldDefaults.colors(
-        focusedTextColor = MaterialTheme.kbTextPrimary,
-        unfocusedTextColor = MaterialTheme.kbTextPrimary,
-        focusedBorderColor = MaterialTheme.kbSecondary,
-        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-        focusedLabelColor = MaterialTheme.kbSecondary,
-        unfocusedLabelColor = MaterialTheme.kbTextSecondary
-    )
+

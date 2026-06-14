@@ -95,6 +95,7 @@ import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
+import com.khanabook.lite.pos.ui.designsystem.PrimaryButton
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
@@ -125,82 +126,95 @@ fun SettingsListView(
     ) {
         SettingsGroupLabel("SECURITY")
         Spacer(modifier = Modifier.height(spacing.extraSmall))
-        SettingsItem(
-            icon = Icons.Outlined.Lock,
-            text = "App Lock",
-            subtitle = "PIN & biometric protection",
-            iconColor = KbAccentRed,
-            onClick = { onSelectItem("app_lock") }
-        )
-        Spacer(modifier = Modifier.height(spacing.extraSmall))
-        SettingsItem(
-            icon = Icons.Outlined.Password,
-            text = "Change Password",
-            subtitle = "Update your login password",
-            iconColor = KbAccentBlue,
-            onClick = { onSelectItem("change_password") }
+        SettingsGroupCard(
+            items = listOf(
+                SettingsItemInfo(
+                    icon = Icons.Outlined.Lock,
+                    title = "App Lock",
+                    subtitle = "PIN & biometric protection",
+                    iconBg = KbAccentRed.copy(alpha = KbOpacity.Border),
+                    iconTint = KbAccentRed
+                ),
+                SettingsItemInfo(
+                    icon = Icons.Outlined.Password,
+                    title = "Change Password",
+                    subtitle = "Update your login password",
+                    iconBg = KbAccentBlue.copy(alpha = KbOpacity.Border),
+                    iconTint = KbAccentBlue
+                )
+            ),
+            onItemClick = { index -> onSelectItem(if (index == 0) "app_lock" else "change_password") }
         )
 
         Spacer(modifier = Modifier.height(spacing.medium))
         SettingsGroupLabel("PREFERENCES")
         Spacer(modifier = Modifier.height(spacing.extraSmall))
-        SettingsItem(
-            icon = Icons.Outlined.TextIncrease,
-            text = "Display",
-            subtitle = "Font size & layout density",
-            iconColor = KbAccentViolet,
-            onClick = { onSelectItem("ui_scale") }
-        )
-        Spacer(modifier = Modifier.height(spacing.extraSmall))
-        SettingsToggleItem(
-            icon = Icons.Outlined.DarkMode,
-            text = "Dark Mode",
-            subtitle = "Switch to dark interface",
-            iconColor = KbAccentPurple,
-            checked = globalIsDark,
-            onCheckedChange = { isDark ->
-                globalIsDark = isDark
-                val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
-                prefs.edit().putBoolean("is_dark_theme", isDark).apply()
-                androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
-                    if (isDark) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
-                    else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
+        SettingsGroupCard(
+            items = listOf(
+                SettingsItemInfo(
+                    icon = Icons.Outlined.TextIncrease,
+                    title = "Display",
+                    subtitle = "Font size & layout density",
+                    iconBg = KbAccentViolet.copy(alpha = KbOpacity.Border),
+                    iconTint = KbAccentViolet
+                ),
+                SettingsItemInfo(
+                    icon = Icons.Outlined.DarkMode,
+                    title = "Dark Mode",
+                    subtitle = "Switch to dark interface",
+                    iconBg = KbAccentPurple.copy(alpha = KbOpacity.Border),
+                    iconTint = KbAccentPurple,
+                    checked = globalIsDark,
+                    onCheckedChange = { isDark ->
+                        globalIsDark = isDark
+                        val prefs = context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
+                        prefs.edit().putBoolean("is_dark_theme", isDark).apply()
+                        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
+                            if (isDark) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+                            else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
+                        )
+                    }
+                ),
+                SettingsItemInfo(
+                    icon = Icons.Default.Notifications,
+                    title = "Payment Sound Box",
+                    subtitle = "Announce received payment amounts",
+                    iconBg = KbAccentOrange.copy(alpha = KbOpacity.Border),
+                    iconTint = KbAccentOrange,
+                    checked = isSoundBoxEnabled,
+                    onCheckedChange = { enabled ->
+                        isSoundBoxEnabled = enabled
+                        context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
+                            .edit()
+                            .putBoolean("is_sound_box_enabled", enabled)
+                            .apply()
+                    }
                 )
-            }
-        )
-        Spacer(modifier = Modifier.height(spacing.extraSmall))
-        SettingsToggleItem(
-            icon = Icons.Default.Notifications,
-            text = "Payment Sound Box",
-            subtitle = "Announce received payment amounts",
-            iconColor = KbAccentOrange,
-            checked = isSoundBoxEnabled,
-            onCheckedChange = { enabled ->
-                isSoundBoxEnabled = enabled
-                context.getSharedPreferences("session_prefs", Context.MODE_PRIVATE)
-                    .edit()
-                    .putBoolean("is_sound_box_enabled", enabled)
-                    .apply()
-            }
+            ),
+            onItemClick = { index -> if (index == 0) onSelectItem("ui_scale") }
         )
 
         Spacer(modifier = Modifier.height(spacing.medium))
         SettingsGroupLabel("ABOUT")
         Spacer(modifier = Modifier.height(spacing.extraSmall))
-        SettingsItem(
-            icon = Icons.AutoMirrored.Outlined.HelpOutline,
-            text = "Help & Support",
-            subtitle = "FAQs & contact support",
-            iconColor = KbAccentGreen,
-            onClick = { onSelectItem("help_support") }
-        )
-        Spacer(modifier = Modifier.height(spacing.extraSmall))
-        SettingsItem(
-            icon = Icons.Outlined.Info,
-            text = "About App",
-            subtitle = "Version ${BuildConfig.VERSION_NAME} · Licenses",
-            iconColor = MaterialTheme.kbTextSecondary,
-            onClick = { onSelectItem("about_app") }
+        SettingsGroupCard(
+            items = listOf(
+                SettingsItemInfo(
+                    icon = Icons.AutoMirrored.Outlined.HelpOutline,
+                    title = "Help & Support",
+                    subtitle = "FAQs & contact support",
+                    iconBg = KbAccentGreen.copy(alpha = KbOpacity.Border),
+                    iconTint = KbAccentGreen
+                ),
+                SettingsItemInfo(
+                    icon = Icons.Outlined.Info,
+                    title = "About App",
+                    subtitle = "Version ${BuildConfig.VERSION_NAME} · Licenses",
+                    iconBg = MaterialTheme.kbTextSecondary.copy(alpha = KbOpacity.Border),
+                    iconTint = MaterialTheme.kbTextSecondary
+                )
+            ),
+            onItemClick = { index -> onSelectItem(if (index == 0) "help_support" else "about_app") }
         )
     }
 }
@@ -249,8 +263,7 @@ fun AppLockView(
     ) {
         KhanaBookCard(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-            shape = RoundedCornerShape(10.dp)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(spacing.medium),
@@ -304,8 +317,7 @@ fun AppLockView(
         if (showPinOptions) {
             KhanaBookCard(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-                shape = RoundedCornerShape(12.dp)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
             ) {
                 Column(modifier = Modifier.padding(spacing.medium), verticalArrangement = Arrangement.spacedBy(spacing.small)) {
                     Text("PIN Options", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleSmall)
@@ -313,7 +325,7 @@ fun AppLockView(
                         onClick = { viewModel.startChangePin() },
                         modifier = Modifier.fillMaxWidth(),
                         border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = KbShape.Medium
                     ) {
                         Icon(Icons.Outlined.Lock, null, tint = MaterialTheme.kbSecondary, modifier = Modifier.size(iconSize.xsmall))
                         Spacer(modifier = Modifier.width(spacing.small))
@@ -565,8 +577,7 @@ fun ChangePasswordView(
             // Password Requirements Card
             KhanaBookCard(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
-                shape = RoundedCornerShape(16.dp)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -609,39 +620,17 @@ fun ChangePasswordView(
                 .fillMaxWidth()
                 .padding(spacing.medium)
         ) {
-            Button(
+            PrimaryButton(
+                text = "Update Password",
                 onClick = {
                     if (isFormValid) {
                         localError = null
                         authViewModel.changePassword(currentPassword.trim(), newPassword.trim())
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isFormValid) KbBrandSaffron else MaterialTheme.kbOutlineSubtle,
-                    contentColor = Color.White,
-                    disabledContainerColor = MaterialTheme.kbOutlineSubtle,
-                    disabledContentColor = Color.White.copy(alpha = 0.6f)
-                ),
-                shape = RoundedCornerShape(16.dp),
-                enabled = isFormValid && !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(iconSize.small),
-                        strokeWidth = 2.dp,
-                        color = Color.White
-                    )
-                } else {
-                    Text(
-                        text = "Update Password",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-            }
+                enabled = isFormValid && !isLoading,
+                loading = isLoading
+            )
         }
     }
 }

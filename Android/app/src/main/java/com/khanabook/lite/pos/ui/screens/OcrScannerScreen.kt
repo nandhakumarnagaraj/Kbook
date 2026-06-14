@@ -50,6 +50,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookBackButton
+import com.khanabook.lite.pos.ui.designsystem.PrimaryButton
+import com.khanabook.lite.pos.ui.designsystem.SecondaryButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -408,19 +410,13 @@ private fun ScanControls(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 if (!hasCapturedPhoto) {
-                    Button(
+                    PrimaryButton(
+                        text = "Capture Photo",
                         onClick = onCapturePhoto,
                         enabled = !isProcessing,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.kbPrimary, contentColor = MaterialTheme.kbTextOnBrand
-                            )
-                    ) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = null)
-                        Spacer(modifier = Modifier.size(8.dp))
-                        Text("Capture Photo", fontWeight = FontWeight.Bold)
-                    }
+                        leadingIcon = Icons.Default.CameraAlt,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -428,38 +424,25 @@ private fun ScanControls(
                     ) {
                         OutlinedButton(
                             onClick = onRetake,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).height(KbButtonSize.HeightLarge),
                             colors =
                                 ButtonDefaults.outlinedButtonColors(
                                     contentColor = MaterialTheme.kbSecondary
-                                )
+                                ),
+                            shape = KbShape.Medium
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null)
                             Spacer(modifier = Modifier.size(6.dp))
                             Text("Retake")
                         }
 
-                        Button(
+                        PrimaryButton(
+                            text = "Use Photo",
                             onClick = onUsePhoto,
                             enabled = !isProcessing,
-                            modifier = Modifier.weight(1f),
-                            colors =
-                                ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.kbPrimary,
-                                    contentColor = MaterialTheme.kbTextPrimary
-                                )
-                        ) {
-                            if (isProcessing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp), color = MaterialTheme.kbTextPrimary,
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.size(8.dp))
-                                Text("Analysing...", fontWeight = FontWeight.Bold)
-                            } else {
-                                Text("Use Photo", fontWeight = FontWeight.Bold)
-                            }
-                        }
+                            loading = isProcessing,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }
@@ -481,12 +464,11 @@ fun PermissionDeniedContent(onRequestPermission: () -> Unit) {
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(com.khanabook.lite.pos.ui.theme.KhanaBookTheme.spacing.medium))
-        Button(
+        PrimaryButton(
+            text = "Grant Permission",
             onClick = onRequestPermission,
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary)
-        ) {
-            Text("Grant Permission", color = MaterialTheme.kbTextPrimary)
-        }
+            modifier = Modifier.fillMaxWidth(0.8f)
+        )
         TextButton(
             onClick = {
                 val intent =

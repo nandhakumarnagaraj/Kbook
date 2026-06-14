@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -40,6 +39,8 @@ import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.KbSuccess
 import com.khanabook.lite.pos.ui.theme.kbPrimary
 import com.khanabook.lite.pos.ui.theme.kbSecondary
+import com.khanabook.lite.pos.ui.theme.KbShape
+import com.khanabook.lite.pos.ui.theme.KbButtonSize
 
 data class LookupUiState(
     val loading: Boolean = false,
@@ -149,7 +150,7 @@ fun TaxConfigView(
                     modifier = Modifier.height(56.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbPrimary.copy(alpha = 0.7f)),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbPrimary),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = KbShape.Medium
                 ) {
                     Text("Fetch", style = MaterialTheme.typography.labelLarge)
                 }
@@ -190,7 +191,7 @@ fun TaxConfigView(
                         enabled = isGstValid && !lookupState.loading,
                         modifier = Modifier.height(56.dp),                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbPrimary.copy(alpha = 0.7f)),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbPrimary),
-                    shape = RoundedCornerShape(28.dp)
+                    shape = KbShape.Medium
                 ) {
                     Text("Fetch", style = MaterialTheme.typography.labelLarge)
                 }
@@ -212,10 +213,10 @@ fun TaxConfigView(
                 OutlinedButton(
                     onClick = { onLookupBoth(gstNumber, fssaiNumber) },
                     enabled = !lookupState.loading,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge),
                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbPrimary.copy(alpha = 0.7f)),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbPrimary),
-                    shape = RoundedCornerShape(24.dp)
+                    shape = KbShape.Medium
                 ) {
                     Text("Fetch Both (GST + FSSAI)", style = MaterialTheme.typography.labelLarge)
                 }
@@ -256,17 +257,17 @@ fun TaxConfigView(
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }
                     },
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.weight(1f).height(KbButtonSize.HeightLarge),
                     colors = ButtonDefaults.buttonColors(containerColor = KbSuccess),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = KbShape.Medium,
                     enabled = isSaveEnabled
                 ) { Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium) }
                 OutlinedButton(
                     onClick = onBack,
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier.weight(1f).height(KbButtonSize.HeightLarge),
                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.kbPrimary.copy(alpha = 0.7f)),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.kbPrimary),
-                    shape = RoundedCornerShape(24.dp)
+                    shape = KbShape.Medium
                 ) {
                     Text("Back", style = MaterialTheme.typography.titleMedium)
                 }

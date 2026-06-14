@@ -433,29 +433,17 @@ fun OrdersScreen(
 
                                 Spacer(modifier = Modifier.height(spacing.small))
 
-                                OutlinedTextField(
+                                KhanaBookInputField(
                                     value = searchQuery,
                                     onValueChange = { searchQuery = it },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = spacing.medium),
-                                    placeholder = {
-                                        Text("Search orders...", color = MaterialTheme.kbTextTertiary)
-                                    },
+                                    label = "Search Orders",
+                                    placeholder = "Search by daily number or lifetime ID...",
                                     leadingIcon = {
                                         Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.kbTextTertiary)
                                     },
-                                    singleLine = true,
-                                    shape = KbShape.Small,
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = MaterialTheme.kbPrimary,
-                                        unfocusedBorderColor = MaterialTheme.kbOutlineSubtle,
-                                        focusedTextColor = MaterialTheme.kbTextPrimary,
-                                        unfocusedTextColor = MaterialTheme.kbTextPrimary,
-                                        cursorColor = MaterialTheme.kbPrimary,
-                                        focusedContainerColor = MaterialTheme.kbBgCard,
-                                        unfocusedContainerColor = MaterialTheme.kbBgCard
-                                    )
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = spacing.medium)
                                 )
 
                                 Spacer(modifier = Modifier.height(spacing.small))
@@ -746,29 +734,17 @@ fun OrdersScreen(
 
                             Spacer(modifier = Modifier.height(spacing.small))
 
-                            OutlinedTextField(
+                            KhanaBookInputField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = spacing.medium),
-                                placeholder = {
-                                    Text("Search orders...", color = MaterialTheme.kbTextTertiary)
-                                },
+                                label = "Search Orders",
+                                placeholder = "Search by daily number or lifetime ID...",
                                 leadingIcon = {
                                     Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.kbTextTertiary)
                                 },
-                                singleLine = true,
-                                shape = KbShape.Small,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.kbPrimary,
-                                    unfocusedBorderColor = MaterialTheme.kbOutlineSubtle,
-                                    focusedTextColor = MaterialTheme.kbTextPrimary,
-                                    unfocusedTextColor = MaterialTheme.kbTextPrimary,
-                                    cursorColor = MaterialTheme.kbPrimary,
-                                    focusedContainerColor = MaterialTheme.kbBgCard,
-                                    unfocusedContainerColor = MaterialTheme.kbBgCard
-                                )
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = spacing.medium)
                             )
 
                             Spacer(modifier = Modifier.height(spacing.small))
@@ -1375,35 +1351,23 @@ fun PartAmountDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {
-                    OutlinedTextField(
+                    KhanaBookInputField(
                         value = p1Text,
                         onValueChange = { p1Text = it },
-                        label = { Text("${labels.first} Amount", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f)) },
+                        label = "${labels.first} Amount",
                         modifier = Modifier.weight(1f),
                         isError = !isValid,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.kbPrimary,
-                            unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-                            focusedTextColor = MaterialTheme.kbTextPrimary,
-                            unfocusedTextColor = MaterialTheme.kbTextPrimary
-                        ),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
                         ),
                         singleLine = true
                     )
-                    OutlinedTextField(
+                    KhanaBookInputField(
                         value = p2Text,
                         onValueChange = { p2Text = it },
-                        label = { Text("${labels.second} Amount", color = MaterialTheme.kbPrimary.copy(alpha = 0.6f)) },
+                        label = "${labels.second} Amount",
                         modifier = Modifier.weight(1f),
                         isError = !isValid,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.kbPrimary,
-                            unfocusedBorderColor = MaterialTheme.kbOutlineSubtle.copy(alpha = 0.5f),
-                            focusedTextColor = MaterialTheme.kbTextPrimary,
-                            unfocusedTextColor = MaterialTheme.kbTextPrimary
-                        ),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
                         ),
@@ -2088,7 +2052,7 @@ private fun OrderDetailsPane(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.kbBgCard)
-            .padding(24.dp)
+            .padding(spacing.medium)
             .verticalScroll(rememberScrollState())
     ) {
         Row(
@@ -2230,20 +2194,17 @@ private fun OrderDetailsPane(
         ) {
             OutlinedButton(
                 onClick = { onPrintKds?.invoke(billWithItems) },
-                modifier = Modifier.weight(1f).height(48.dp),
+                modifier = Modifier.weight(1f).height(KbButtonSize.HeightLarge),
                 border = BorderStroke(1.dp, KbPurpleAccent),
-                shape = RoundedCornerShape(10.dp)
+                shape = KbShape.Medium
             ) {
                 Text("Reprint KOT", color = KbPurpleAccent, style = MaterialTheme.typography.titleMedium)
             }
-            Button(
-                onClick = { onPrintReceipt?.invoke(billWithItems) },
-                modifier = Modifier.weight(1f).height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("Reprint Bill", color = Color.White, style = MaterialTheme.typography.titleMedium)
-            }
+            PrimaryButton(
+                text = "Reprint Bill",
+                modifier = Modifier.weight(1f),
+                onClick = { onPrintReceipt?.invoke(billWithItems) }
+            )
         }
     }
 }
@@ -2260,7 +2221,7 @@ private fun OnlineOrderDetailsPane(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.kbBgCard)
-            .padding(24.dp)
+            .padding(spacing.medium)
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {

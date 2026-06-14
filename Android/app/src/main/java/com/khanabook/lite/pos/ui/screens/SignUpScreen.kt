@@ -49,6 +49,7 @@ import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookLoadingOverlay
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
 import com.khanabook.lite.pos.ui.designsystem.LoadingType
+import com.khanabook.lite.pos.ui.designsystem.PrimaryButton
 import com.khanabook.lite.pos.ui.designsystem.verticalScrollbar
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookPurpleBackground
 import com.khanabook.lite.pos.ui.theme.*
@@ -144,7 +145,7 @@ fun SignUpScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0D0820))
+            .background(KbBrandVioletDeeper)
             .imePadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -191,7 +192,7 @@ fun SignUpScreen(
 
                     Text(
                         text = "Restaurant POS & Management",
-                        color = Color(0xFFB4ACE8), // Soft lavender tint
+                        color = Color.White.copy(alpha = KbOpacity.Muted),
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
@@ -548,7 +549,8 @@ fun SignUpScreen(
 
                     val isFormValid = isShopNameValid && isPhoneValid && isPasswordValid && (newPassword == confirmPassword) && agreedToTerms && otpSent && otp.length == 6 && !isLoading && userExistsError == null
 
-                    Button(
+                    PrimaryButton(
+                        text = "Create Account",
                         onClick = {
                             if (isFormValid) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -575,31 +577,9 @@ fun SignUpScreen(
                                 }
                             }
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        shape = RoundedCornerShape(14.dp),
-                        enabled = isFormFilled
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Text(
-                                text = "Create Account",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
+                        enabled = isFormFilled,
+                        loading = isLoading
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
