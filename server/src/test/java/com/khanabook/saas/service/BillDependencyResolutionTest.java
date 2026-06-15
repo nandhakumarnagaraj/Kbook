@@ -42,6 +42,7 @@ class BillDependencyResolutionTest {
     void setUp() {
         GenericSyncService gs = new GenericSyncService(
                 billRepo,
+                billPaymentRepo,
                 menuItemRepo,
                 itemVariantRepo,
                 categoryRepo

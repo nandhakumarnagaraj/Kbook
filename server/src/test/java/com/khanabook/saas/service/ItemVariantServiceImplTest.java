@@ -3,6 +3,7 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.entity.ItemVariant;
 import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
@@ -33,6 +34,7 @@ class ItemVariantServiceImplTest {
     @Mock private ItemVariantRepository itemVariantRepo;
     @Mock private MenuItemRepository menuItemRepo;
     @Mock private BillRepository billRepository;
+    @Mock private BillPaymentRepository billPaymentRepository;
     @Mock private CategoryRepository categoryRepository;
 
     private GenericSyncService genericSyncService;
@@ -45,6 +47,7 @@ class ItemVariantServiceImplTest {
     void setUp() {
         genericSyncService = new GenericSyncService(
             billRepository,
+            billPaymentRepository,
             menuItemRepo,
             itemVariantRepo,
             categoryRepository

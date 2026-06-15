@@ -3,6 +3,7 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
@@ -33,6 +34,7 @@ import static org.mockito.Mockito.*;
 class BillServiceImplTest {
 
     @Mock private BillRepository billRepository;
+    @Mock private BillPaymentRepository billPaymentRepository;
     @Mock private RestaurantProfileRepository profileRepository;
     @Mock private MenuItemRepository menuItemRepository;
     @Mock private ItemVariantRepository itemVariantRepository;
@@ -50,6 +52,7 @@ class BillServiceImplTest {
     void setUp() {
         genericSyncService = new GenericSyncService(
             billRepository,
+            billPaymentRepository,
             menuItemRepository,
             itemVariantRepository,
             categoryRepository
