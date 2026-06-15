@@ -143,7 +143,8 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_43_44,
                 AppDatabase.MIGRATION_44_45,
                 AppDatabase.MIGRATION_45_46,
-                AppDatabase.MIGRATION_46_47
+                AppDatabase.MIGRATION_46_47,
+                AppDatabase.MIGRATION_47_48
             )
             .build()
     }
@@ -186,6 +187,7 @@ object DatabaseModule {
     @Provides fun provideKitchenPrintQueueDao(database: AppDatabase) = database.kitchenPrintQueueDao()
     @Provides fun provideBillDao(database: AppDatabase) = database.billDao()
     @Provides fun provideInventoryDao(database: AppDatabase) = database.inventoryDao()
+    @Provides fun provideNotificationDao(database: AppDatabase) = database.notificationDao()
 
     @Provides
     @Singleton

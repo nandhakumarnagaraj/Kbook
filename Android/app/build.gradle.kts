@@ -287,6 +287,9 @@ dependencies {
     implementation(libs.pdfbox.android)
     implementation(libs.lottie.compose)
 
+    // Firebase Cloud Messaging
+    implementation("com.google.firebase:firebase-messaging:24.1.1")
+
     // Easebuzz Payment SDK
     implementation("in.easebuzz:android-v2:1.0.6")
 

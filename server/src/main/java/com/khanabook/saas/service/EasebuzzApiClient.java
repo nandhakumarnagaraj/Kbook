@@ -43,7 +43,8 @@ public class EasebuzzApiClient {
 		
 		// 1. Extract and Clean Parameters
 		String txnid = data.get("txnid");
-		if (txnid.length() > 20) txnid = txnid.substring(0, 20);
+		// Easebuzz allows up to 40 chars for txnid (regex: ^[a-zA-Z0-9_|\\-\\/]{1,40}$)
+		if (txnid.length() > 40) txnid = txnid.substring(0, 40);
 		
 		String amount = data.get("amount");
 		String productinfo = data.get("productinfo").replaceAll("[^a-zA-Z0-9]", ""); 
@@ -147,16 +148,28 @@ public class EasebuzzApiClient {
 		return raw;
 	}
 
-	public Map<String, Object> initiateRefund(String txnid, String amount) {
+	/**
+	 * Initiate a refund via Easebuzz Refund API v2.
+	 *
+	 * Official docs hash sequence:
+	 *   key|merchant_refund_id|easebuzz_id|refund_amount|salt
+	 *
+	 * @param merchantRefundId Unique refund reference (e.g. REF{billId}_{timestamp})
+	 * @param easebuzzId       Easebuzz transaction ID from the original payment
+	 * @param refundAmount     Amount to refund
+	 */
+	public Map<String, Object> initiateRefund(String merchantRefundId, String easebuzzId, String refundAmount) {
 		checkCredentials();
-		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-		params.add("key", props.getMerchantKey());
-		params.add("txnid", txnid);
-		params.add("amount", amount);
-		// Refund API v2 hash: key|txnid|amount|salt
-		params.add("hash", generateHash(props.getMerchantKey(), txnid, amount));
+		String hash = generateHash(props.getMerchantKey(), merchantRefundId, easebuzzId, refundAmount);
 
-		return post(props.getPaymentBaseUrl() + "/transaction/v2/refund", params);
+		Map<String, Object> body = new HashMap<>();
+		body.put("key", props.getMerchantKey());
+		body.put("merchant_refund_id", merchantRefundId);
+		body.put("easebuzz_id", easebuzzId);
+		body.put("refund_amount", refundAmount);
+		body.put("hash", hash);
+
+		return postJson(props.getDashboardBaseUrl() + "/transaction/v2/refund", body);
 	}
 
 	public Map<String, Object> getRefundStatus(String txnid, String refundId) {
@@ -167,7 +180,7 @@ public class EasebuzzApiClient {
 		params.add("refund_id", refundId);
 		params.add("hash", generateHash(props.getMerchantKey(), txnid, refundId));
 
-		return post(props.getPaymentBaseUrl() + "/transaction/v2/refund_status", params);
+		return post(props.getDashboardBaseUrl() + "/transaction/v2/refund_status", params);
 	}
 
 	public Map<String, Object> verifyOtp(String subMerchantId, String otp) {

@@ -41,11 +41,14 @@ import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel.HomeStats
 import com.khanabook.lite.pos.ui.designsystem.*
+import com.khanabook.lite.pos.ui.viewmodel.NotificationViewModel
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.border
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import kotlin.math.abs
@@ -66,7 +69,8 @@ fun HomeScreen(
     onMarketplaceOrders: () -> Unit = {},
     onMenuClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
-    authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
+    authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel(),
+    notificationViewModel: NotificationViewModel = hiltViewModel()
 ) {
     val pageBg = KbMidnightBase
     val spacing = KhanaBookTheme.spacing
@@ -82,18 +86,22 @@ fun HomeScreen(
     val complianceAlerts by viewModel.complianceAlerts.collectAsState()
     val dismissedAlerts: MutableList<String> = remember { mutableListOf() }
     val statsReady by viewModel.statsReady.collectAsState()
+    val pushNotifications by notificationViewModel.notifications.collectAsState()
+    val pushUnreadCount by notificationViewModel.unreadCount.collectAsState()
     var showNotificationsSheet by remember { mutableStateOf(false) }
+    // Combined notification count: push notifications + operational alerts
     val notificationCount = remember(
         unsyncedCount,
         marketplacePendingCount,
         complianceAlerts,
-        stats
+        stats,
+        pushUnreadCount
     ) {
         val syncIssues = if (unsyncedCount > 0) 1 else 0
         val marketAlerts = if (marketplacePendingCount > 0) 1 else 0
         val complianceCount = complianceAlerts.size
         val kdsAlerts = if (stats.kdsPendingCount > 0) 1 else 0
-        syncIssues + marketAlerts + complianceCount + kdsAlerts
+        pushUnreadCount + syncIssues + marketAlerts + complianceCount + kdsAlerts
     }
 
     var headerVisible by remember { mutableStateOf(false) }
@@ -206,31 +214,13 @@ fun HomeScreen(
                                 ) {
                                     SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
                                     
-                                    Box {
-                                        IconButton(
-                                            onClick = { showNotificationsSheet = true },
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .clip(CircleShape)
-                                                .background(Color.Black.copy(alpha = 0.2f))
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Notifications,
-                                                contentDescription = "Notifications",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(22.dp)
-                                            )
+                                    NotificationBellIcon(
+                                        unreadCount = notificationCount,
+                                        onClick = {
+                                            notificationViewModel.refreshFromServer()
+                                            showNotificationsSheet = true
                                         }
-                                        if (notificationCount > 0) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .align(Alignment.TopEnd)
-                                                    .padding(top = 3.dp, end = 1.dp)
-                                                    .size(10.dp)
-                                                    .background(KbAccentRed, CircleShape)
-                                            )
-                                        }
-                                    }
+                                    )
                                 }
                             }
                         }
@@ -697,6 +687,17 @@ fun HomeScreen(
                         kdsPendingCount = stats.kdsPendingCount,
                         complianceAlerts = complianceAlerts.filter { it.label !in dismissedAlerts },
                         isOnline = connectionStatus != com.khanabook.lite.pos.domain.util.ConnectionStatus.Unavailable,
+                        pushNotifications = pushNotifications,
+                        pushUnreadCount = pushUnreadCount,
+                        onNotificationClick = { notif ->
+                            notificationViewModel.markAsRead(notif.id)
+                        },
+                        onMarkAllNotificationsRead = {
+                            notificationViewModel.markAllAsRead()
+                        },
+                        onRefreshNotifications = {
+                            notificationViewModel.refreshFromServer()
+                        },
                         onMarketplaceOrders = {
                             showNotificationsSheet = false
                             onMarketplaceOrders()
@@ -1430,6 +1431,11 @@ private fun NotificationCenterSheet(
     kdsPendingCount: Int,
     complianceAlerts: List<HomeViewModel.ComplianceAlert>,
     isOnline: Boolean,
+    pushNotifications: List<com.khanabook.lite.pos.data.local.entity.NotificationEntity> = emptyList(),
+    pushUnreadCount: Int = 0,
+    onNotificationClick: (com.khanabook.lite.pos.data.local.entity.NotificationEntity) -> Unit = {},
+    onMarkAllNotificationsRead: () -> Unit = {},
+    onRefreshNotifications: () -> Unit = {},
     onMarketplaceOrders: () -> Unit,
     onReprintKds: () -> Unit,
     onOrderStatus: () -> Unit,
@@ -1456,14 +1462,55 @@ private fun NotificationCenterSheet(
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
-                    text = "Operational alerts and shortcuts",
+                    text = if (pushUnreadCount > 0) "$pushUnreadCount unread push notifications" else "Operational alerts and shortcuts",
                     color = MaterialTheme.kbTextSecondary,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            TextButton(onClick = onDismiss) {
-                Text("Close", color = MaterialTheme.kbPrimary)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (pushUnreadCount > 0) {
+                    TextButton(onClick = onMarkAllNotificationsRead) {
+                        Text("Mark all read", color = KbBrandSaffron)
+                    }
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Close", color = MaterialTheme.kbPrimary)
+                }
             }
+        }
+
+        // Push notifications section
+        if (pushNotifications.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 280.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(1.dp)
+                ) {
+                    items(
+                        items = pushNotifications.take(10),
+                        key = { n -> n.id }
+                    ) { notification ->
+                        com.khanabook.lite.pos.ui.designsystem.NotificationRow(
+                            notification = notification,
+                            onClick = { onNotificationClick(notification) }
+                        )
+                    }
+                }
+                if (pushUnreadCount > 0) {
+                    TextButton(
+                        onClick = onRefreshNotifications,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        Text("Refresh", color = KbBrandSaffron)
+                    }
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.kbOutlineSubtle)
         }
 
         OperationalPulseStrip(

@@ -20,9 +20,10 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillEntity::class,
                         BillItemEntity::class,
                         BillPaymentEntity::class,
-                        StockLogEntity::class
+                        StockLogEntity::class,
+                        NotificationEntity::class
                 ],
-        version = 47,
+        version = 48,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -34,6 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun kitchenPrintQueueDao(): KitchenPrintQueueDao
     abstract fun billDao(): BillDao
     abstract fun inventoryDao(): InventoryDao
+    abstract fun notificationDao(): NotificationDao
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
@@ -121,6 +123,29 @@ abstract class AppDatabase : RoomDatabase() {
                     } catch (e: android.database.sqlite.SQLiteException) {
                         android.util.Log.w("AppDatabase", "MIGRATION_46_47: swiggy_api_key may already exist: ${e.message}")
                     }
+                }
+            }
+
+            val MIGRATION_47_48 = object : Migration(47, 48) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS `notifications` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            `server_id` INTEGER NOT NULL DEFAULT 0,
+                            `notification_type` TEXT NOT NULL,
+                            `title` TEXT NOT NULL,
+                            `message` TEXT,
+                            `reference_id` TEXT,
+                            `reference_type` TEXT,
+                            `amount` TEXT,
+                            `is_read` INTEGER NOT NULL DEFAULT 0,
+                            `created_at` INTEGER NOT NULL
+                        )
+                        """.trimIndent()
+                    )
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `idx_notifications_read` ON `notifications` (`is_read`)")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS `idx_notifications_created` ON `notifications` (`created_at`)")
                 }
             }
 

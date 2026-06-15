@@ -126,6 +126,13 @@
             <version>8.0</version>
         </dependency>
 
+        <!-- Firebase Admin SDK for push notifications -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.3.0</version>
+        </dependency>
+
         <!-- Google API (FIXED commons-logging issue) -->
         <dependency>
             <groupId>com.google.api-client</groupId>

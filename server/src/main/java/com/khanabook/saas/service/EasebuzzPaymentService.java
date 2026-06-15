@@ -237,15 +237,38 @@ public class EasebuzzPaymentService {
         }
         String txnid = bill.getGatewayTxnId();
 
-        Map<String, Object> result = easebuzzApi.initiateRefund(txnid, amount.toString());
+        // Look up easebuzz_id from the original payment webhook event
+        String easebuzzId = "";
+        java.util.Optional<EasebuzzWebhookEvent> webhookEvent = webhookEventRepo
+                .findByRestaurantIdAndTxnId(bill.getRestaurantId(), txnid);
+        if (webhookEvent.isPresent() && webhookEvent.get().getEasebuzzId() != null) {
+            easebuzzId = webhookEvent.get().getEasebuzzId();
+        }
+        if (easebuzzId.isBlank()) {
+            log.warn("Could not find easebuzz_id for billId={} txnid={}, proceeding with txnid as fallback", billId, txnid);
+            easebuzzId = txnid;
+        }
+
+        // Generate unique merchant refund reference
+        String merchantRefundId = "REF" + billId + "_" + System.currentTimeMillis();
+
+        log.info("Initiating refund billId={} txnid={} easebuzzId={} merchantRefundId={} amount={}",
+                billId, txnid, easebuzzId, merchantRefundId, amount);
+
+        Map<String, Object> result = easebuzzApi.initiateRefund(merchantRefundId, easebuzzId, amount.toString());
         log.info("Refund initiation response for billId={}: {}", billId, result);
 
         boolean success = toBool(result.get("status"));
         if (success) {
-            Object msgObj = result.get("msg");
-            Map<String, Object> msg = msgObj instanceof Map ? (Map<String, Object>) msgObj : null;
-            String ebRefundId = msg != null ? str(msg.get("refund_id")) : "";
-            bill.setRefundId(ebRefundId != null && !ebRefundId.isBlank() ? ebRefundId : "REF_" + txnid);
+            // v2 refund response returns refund_id directly (not nested in msg)
+            String ebRefundId = str(result.get("refund_id"));
+            if (ebRefundId.isBlank()) {
+                Object msgObj = result.get("msg");
+                if (msgObj instanceof Map) {
+                    ebRefundId = str(((Map<String, Object>) msgObj).get("refund_id"));
+                }
+            }
+            bill.setRefundId(ebRefundId.isBlank() ? merchantRefundId : ebRefundId);
             bill.setRefundAmount(amount);
             bill.setGatewayStatus("refund_initiated");
             billRepo.save(bill);
@@ -253,6 +276,7 @@ public class EasebuzzPaymentService {
             return Map.of(
                 "status", "success",
                 "easebuzz_refund_id", bill.getRefundId(),
+                "merchant_refund_id", merchantRefundId,
                 "txnid", txnid
             );
         }
