@@ -55,6 +55,7 @@ class MainActivity : FragmentActivity() {
 
     @Inject lateinit var sessionManager: SessionManager
     @Inject lateinit var easebuzzSdkPaymentRepository: com.khanabook.lite.pos.data.repository.EasebuzzSdkPaymentRepository
+    @Inject lateinit var easebuzzPaymentRepository: com.khanabook.lite.pos.data.repository.EasebuzzPaymentRepository
     private var lastBackPressTime: Long = 0
 
     companion object {
@@ -451,6 +452,12 @@ class MainActivity : FragmentActivity() {
                     }
                     composable("marketplace_orders") {
                         MarketplaceOrdersScreen(
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable("easebuzz_kyc") {
+                        EasebuzzKycScreen(
+                            paymentRepository = easebuzzPaymentRepository,
                             onBack = { navController.popBackStack() }
                         )
                     }
