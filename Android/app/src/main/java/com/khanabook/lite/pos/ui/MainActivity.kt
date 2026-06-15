@@ -44,6 +44,7 @@ import com.khanabook.lite.pos.domain.manager.TrustedExternalAppReturn
 import com.khanabook.lite.pos.ui.screens.*
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.theme.globalIsDark
+import com.khanabook.lite.pos.ui.theme.KbMotion
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -229,31 +230,47 @@ class MainActivity : FragmentActivity() {
                     navController = navController,
                     startDestination = "splash",
                     enterTransition = {
-                        fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
+                        fadeIn(animationSpec = tween(KbMotion.MotionDuration.Medium, easing = KbMotion.EasingEmphasized)) +
                         slideInHorizontally(
                             initialOffsetX = { fullWidth -> fullWidth / 5 },
-                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                            animationSpec = tween(KbMotion.MotionDuration.Medium, easing = KbMotion.EasingEmphasized)
+                        ) +
+                        scaleIn(
+                            initialScale = 0.98f,
+                            animationSpec = tween(KbMotion.MotionDuration.Medium, easing = KbMotion.EasingEmphasized)
                         )
                     },
                     exitTransition = {
-                        fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)) +
+                        fadeOut(animationSpec = tween(KbMotion.MotionDuration.Fast, easing = KbMotion.EasingEmphasized)) +
                         slideOutHorizontally(
                             targetOffsetX = { fullWidth -> -fullWidth / 5 },
-                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                            animationSpec = tween(KbMotion.MotionDuration.Medium, easing = KbMotion.EasingEmphasized)
+                        ) +
+                        scaleOut(
+                            targetScale = 0.98f,
+                            animationSpec = tween(KbMotion.MotionDuration.Medium, easing = KbMotion.EasingEmphasized)
                         )
                     },
                     popEnterTransition = {
-                        fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
+                        fadeIn(animationSpec = tween(KbMotion.MotionDuration.Medium, easing = KbMotion.EasingEmphasized)) +
                         slideInHorizontally(
                             initialOffsetX = { fullWidth -> -fullWidth / 5 },
-                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                            animationSpec = tween(KbMotion.MotionDuration.Medium, easing = KbMotion.EasingEmphasized)
+                        ) +
+                        scaleIn(
+                            initialScale = 0.98f,
+                            animationSpec = tween(KbMotion.MotionDuration.Medium, easing = KbMotion.EasingEmphasized)
                         )
                     },
                     popExitTransition = {
-                        fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)) +
+                        fadeOut(animationSpec = tween(KbMotion.MotionDuration.Fast, easing = KbMotion.EasingEmphasized)) +
                         slideOutHorizontally(
                             targetOffsetX = { fullWidth -> fullWidth / 5 },
-                            animationSpec = tween(300, easing = FastOutSlowInEasing)
+                            animationSpec = tween(KbMotion.MotionDuration.Medium, easing = KbMotion.EasingEmphasized)
+                        ) +
+                        scaleOut(
+                            targetScale = 0.98f,
+                            animationSpec = tween(KbMotion.MotionDuration.Medium, easing = KbMotion.EasingEmphasized)
                         )
                     }
                 ) {

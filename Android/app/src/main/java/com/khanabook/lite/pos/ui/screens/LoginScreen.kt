@@ -33,8 +33,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -215,6 +219,45 @@ fun LoginScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
+    var activeStaggerStep by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        for (step in 1..7) {
+            delay(50)
+            activeStaggerStep = step
+        }
+    }
+
+    var isPhoneFocused by remember { mutableStateOf(false) }
+    var isPasswordFocused by remember { mutableStateOf(false) }
+
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
+    val headerHeight by animateDpAsState(
+        targetValue = if (isKeyboardVisible) 160.dp else 270.dp,
+        animationSpec = tween(durationMillis = 300, easing = KbMotion.EasingEmphasized),
+        label = "headerHeight"
+    )
+    val logoSize by animateDpAsState(
+        targetValue = if (isKeyboardVisible) 64.dp else 96.dp,
+        animationSpec = tween(durationMillis = 300, easing = KbMotion.EasingEmphasized),
+        label = "logoSize"
+    )
+    val logoIconSize by animateDpAsState(
+        targetValue = if (isKeyboardVisible) 40.dp else 60.dp,
+        animationSpec = tween(durationMillis = 300, easing = KbMotion.EasingEmphasized),
+        label = "logoIconSize"
+    )
+    val headerVerticalPadding by animateDpAsState(
+        targetValue = if (isKeyboardVisible) 8.dp else 12.dp,
+        animationSpec = tween(durationMillis = 300, easing = KbMotion.EasingEmphasized),
+        label = "headerVerticalPadding"
+    )
+    val logoSpacerHeight by animateDpAsState(
+        targetValue = if (isKeyboardVisible) 4.dp else 12.dp,
+        animationSpec = tween(durationMillis = 300, easing = KbMotion.EasingEmphasized),
+        label = "logoSpacer"
+    )
+
     val googleSignInClient = remember(localContext) {
         val serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID.takeIf { it.isNotBlank() }
             ?: localContext.getString(R.string.default_web_client_id)
@@ -293,7 +336,7 @@ fun LoginScreen(
             KhanaBookPurpleBackground(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(270.dp),
+                    .height(headerHeight),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -301,48 +344,51 @@ fun LoginScreen(
                     verticalArrangement = Arrangement.Center,
                     modifier = Modifier
                         .statusBarsPadding()
-                        .padding(top = 8.dp, bottom = 12.dp)
+                        .padding(top = headerVerticalPadding / 2, bottom = headerVerticalPadding)
+                        .staggeredEntrance(1, activeStaggerStep)
                 ) {
                     // White card containing Logo - expanded and elevated
                     Card(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        modifier = Modifier.size(96.dp),
+                        modifier = Modifier.size(logoSize),
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Image(
                                 painter = painterResource(id = R.drawable.ic_khanabook_logo),
                                 contentDescription = "KhanaBook logo",
-                                modifier = Modifier.size(60.dp)
+                                modifier = Modifier.size(logoIconSize)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(logoSpacerHeight))
 
                     Text(
                         text = "KhanaBook",
                         color = Color.White,
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 30.sp,
+                            fontSize = if (isKeyboardVisible) 22.sp else 30.sp,
                             letterSpacing = (-0.5).sp
                         ),
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    if (!isKeyboardVisible) {
+                        Spacer(modifier = Modifier.height(6.dp))
 
-                    Text(
-                        text = "Restaurant POS & Management",
-                        color = Color.White.copy(alpha = KbOpacity.Muted),
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        textAlign = TextAlign.Center
-                    )
+                        Text(
+                            text = "Restaurant POS & Management",
+                            color = Color.White.copy(alpha = KbOpacity.Muted),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
 
@@ -360,152 +406,179 @@ fun LoginScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 24.dp, vertical = 36.dp)
                 ) {
-                    Text(
-                        text = "Welcome back",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 24.sp,
-                            letterSpacing = (-0.5).sp
-                        ),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    // ── TITLE & SUBTITLE (Step 2) ──────────────────────────────────────────
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .staggeredEntrance(2, activeStaggerStep)
+                    ) {
+                        Text(
+                            text = "Welcome back",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 24.sp,
+                                letterSpacing = (-0.5).sp
+                            ),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(
-                        text = "Sign in to your restaurant account",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        Text(
+                            text = "Sign in to your restaurant account",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // PHONE NUMBER
-                    Text(
-                        text = "PHONE NUMBER",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.08.em
+                    // ── PHONE NUMBER INPUT (Step 3) ───────────────────────────────────────
+                    val loginErrorTrigger = (loginStatus as? AuthViewModel.LoginResult.Error)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .staggeredEntrance(3, activeStaggerStep)
+                    ) {
+                        Text(
+                            text = "PHONE NUMBER",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.08.em
+                            )
                         )
-                    )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                    OnboardingPhoneInput(
-                        value = loginId,
-                        onValueChange = {
-                            loginId = it.take(10)
-                            shouldCheckUser = true
-                        },
-                        placeholder = "Enter phone number",
-                        isError = loginUserCheckError != null
-                            || (loginId.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
-                        trailingIcon = {
-                            Box(
-                                modifier = Modifier.size(48.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                when {
-                                    isLoginUserChecking -> CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        strokeWidth = 2.dp,
-                                        color = KbBrandSaffron
-                                    )
-                                    loginUserCheckError != null -> Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = stringResource(R.string.content_desc_account_not_found),
-                                        tint = KbError,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    loginId.length == 10 && !isLoginUserChecking -> Icon(
-                                        Icons.Default.CheckCircle,
-                                        contentDescription = stringResource(R.string.content_desc_account_verified),
-                                        tint = KbWhatsAppGreen,
-                                        modifier = Modifier.size(22.dp)
-                                    )
+                        OnboardingPhoneInput(
+                            value = loginId,
+                            onValueChange = {
+                                loginId = it.take(10)
+                                shouldCheckUser = true
+                            },
+                            placeholder = "Enter phone number",
+                            isError = loginUserCheckError != null
+                                    || (loginId.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
+                            trailingIcon = {
+                                Box(
+                                    modifier = Modifier.size(48.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    when {
+                                        isLoginUserChecking -> CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            strokeWidth = 2.dp,
+                                            color = KbBrandSaffron
+                                        )
+                                        loginUserCheckError != null -> Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = stringResource(R.string.content_desc_account_not_found),
+                                            tint = KbError,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                        loginId.length == 10 && !isLoginUserChecking -> Icon(
+                                            Icons.Default.CheckCircle,
+                                            contentDescription = stringResource(R.string.content_desc_account_verified),
+                                            tint = KbWhatsAppGreen,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
                                 }
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Phone,
-                            imeAction = ImeAction.Next
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onNext = { runCatching { passwordFocusRequester.requestFocus() } }
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Phone,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { runCatching { passwordFocusRequester.requestFocus() } }
+                            ),
+                            modifier = Modifier
+                                .onFocusChanged { isPhoneFocused = it.isFocused }
+                                .kbFocusGlow(isPhoneFocused)
+                                .shake(loginUserCheckError ?: loginErrorTrigger)
                         )
-                    )
 
-                    if (loginUserCheckError != null) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(loginUserCheckError!!, color = KbError, style = MaterialTheme.typography.labelSmall)
+                        if (loginUserCheckError != null) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(loginUserCheckError!!, color = KbError, style = MaterialTheme.typography.labelSmall)
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(22.dp))
 
-                    // PASSWORD
-                    Text(
-                        text = "PASSWORD",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.08.em
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    OnboardingInputField(
-                        value = password,
-                        onValueChange = { password = it },
-                        placeholder = "Enter password",
-                        isError = password.isBlank() && loginStatus is AuthViewModel.LoginResult.Error,
-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                val canLogin = isLoginIdValid && password.isNotBlank()
-                                    && loginUserCheckError == null && !isLoginUserChecking
-                                    && loginStatus !is AuthViewModel.LoginResult.Loading
-                                if (canLogin) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.login(loginId, password)
-                                }
-                                focusManager.clearFocus()
-                            }
-                        ),
-                        trailingIcon = {
-                            IconButton(
-                                onClick = { showPassword = !showPassword },
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = if (showPassword) stringResource(R.string.content_desc_hide_password) else stringResource(R.string.content_desc_show_password),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        },
+                    // ── PASSWORD INPUT (Step 4) ───────────────────────────────────────────
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .focusRequester(passwordFocusRequester)
-                    )
+                            .staggeredEntrance(4, activeStaggerStep)
+                    ) {
+                        Text(
+                            text = "PASSWORD",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.08.em
+                            )
+                        )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
+                        OnboardingInputField(
+                            value = password,
+                            onValueChange = { password = it },
+                            placeholder = "Enter password",
+                            isError = password.isBlank() && loginStatus is AuthViewModel.LoginResult.Error,
+                            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    val canLogin = isLoginIdValid && password.isNotBlank()
+                                            && loginUserCheckError == null && !isLoginUserChecking
+                                            && loginStatus !is AuthViewModel.LoginResult.Loading
+                                    if (canLogin) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.login(loginId, password)
+                                    }
+                                    focusManager.clearFocus()
+                                }
+                            ),
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { showPassword = !showPassword },
+                                    modifier = Modifier.size(48.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = if (showPassword) stringResource(R.string.content_desc_hide_password) else stringResource(R.string.content_desc_show_password),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(passwordFocusRequester)
+                                .onFocusChanged { isPasswordFocused = it.isFocused }
+                                .kbFocusGlow(isPasswordFocused)
+                                .shake(loginErrorTrigger)
+                        )
+                    }
+
+                    // ── FORGOT PASSWORD (Step 5) ──────────────────────────────────────────
                     Box(
                         modifier = Modifier
                             .align(Alignment.End)
                             .clickable { showForgotDialog = true }
                             .padding(vertical = 8.dp, horizontal = 4.dp)
+                            .staggeredEntrance(5, activeStaggerStep)
                     ) {
                         Text(
                             text = stringResource(R.string.label_forgot_password),
@@ -515,133 +588,146 @@ fun LoginScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    val loginErrorMessage = (loginStatus as? AuthViewModel.LoginResult.Error)?.message
-                    if (loginErrorMessage != null) {
-                        Text(
-                            text = loginErrorMessage,
-                            color = KbError,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 12.dp).fillMaxWidth(),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-
-                    val isFormFilled = isLoginIdValid && password.isNotBlank() && loginUserCheckError == null
-                    val isLoginEnabled = isFormFilled && !isLoading && !isLoginUserChecking
-
-                    PrimaryButton(
-                        text = "Continue",
-                        onClick = {
-                            if (isLoginEnabled) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.login(loginId, password)
-                            }
-                        },
-                        enabled = isFormFilled,
-                        loading = isLoading && !isGoogleLogin
-                    )
-
-                    Spacer(modifier = Modifier.height(28.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(1.dp)
-                                .background(MaterialTheme.colorScheme.outlineVariant)
-                        )
-                        Text(
-                            text = "or continue with",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(1.dp)
-                                .background(MaterialTheme.colorScheme.outlineVariant)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(28.dp))
-
-                    // Google Outlined Button
-                    OutlinedButton(
-                        onClick = {
-                            if (!isLoading) {
-                                isGoogleLogin = true
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                googleSignInClient.signOut().addOnCompleteListener {
-                                    googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                                }
-                            }
-                        },
+                    // ── PRIMARY ACTION BUTTON (Step 6) ────────────────────────────────────
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(KbButtonSize.HeightLarge),
-                        shape = KbShape.Medium,
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                            .staggeredEntrance(6, activeStaggerStep)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            if (isLoading && isGoogleLogin) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = KbBrandSaffron,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_google_logo),
-                                    contentDescription = "Google Logo",
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = "Sign in with Google",
-                                    style = MaterialTheme.typography.bodyLarge.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                )
-                            }
+                        val loginErrorMessage = (loginStatus as? AuthViewModel.LoginResult.Error)?.message
+                        if (loginErrorMessage != null) {
+                            Text(
+                                text = loginErrorMessage,
+                                color = KbError,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(bottom = 12.dp).fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
                         }
+
+                        val isFormFilled = isLoginIdValid && password.isNotBlank() && loginUserCheckError == null
+                        val isLoginEnabled = isFormFilled && !isLoading && !isLoginUserChecking
+
+                        PrimaryButton(
+                            text = "Continue",
+                            onClick = {
+                                if (isLoginEnabled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.login(loginId, password)
+                                }
+                            },
+                            enabled = isFormFilled,
+                            loading = isLoading && !isGoogleLogin
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(36.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                    // ── OAUTH & REGISTRATION LINKS (Step 7) ───────────────────────────────
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .staggeredEntrance(7, activeStaggerStep),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "New to KhanaBook? ",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                        )
-                        Box(
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(1.dp)
+                                    .background(MaterialTheme.colorScheme.outlineVariant)
+                            )
+                            Text(
+                                text = "or continue with",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(1.dp)
+                                    .background(MaterialTheme.colorScheme.outlineVariant)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Google Outlined Button
+                        OutlinedButton(
+                            onClick = {
+                                if (!isLoading) {
+                                    isGoogleLogin = true
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    googleSignInClient.signOut().addOnCompleteListener {
+                                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                    }
+                                }
+                            },
                             modifier = Modifier
-                                .clickable { onSignUpClick() }
-                                .padding(vertical = 4.dp, horizontal = 4.dp)
+                                .fillMaxWidth()
+                                .height(KbButtonSize.HeightLarge),
+                            shape = KbShape.Medium,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                if (isLoading && isGoogleLogin) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = KbBrandSaffron,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_google_logo),
+                                        contentDescription = "Google Logo",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = "Sign in with Google",
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(28.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Sign Up",
-                                color = KbBrandVioletBright,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                text = "New to KhanaBook? ",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
                             )
+                            Box(
+                                modifier = Modifier
+                                    .clickable { onSignUpClick() }
+                                    .padding(vertical = 4.dp, horizontal = 4.dp)
+                            ) {
+                                Text(
+                                    text = "Sign Up",
+                                    color = KbBrandVioletBright,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
                         }
                     }
                 }

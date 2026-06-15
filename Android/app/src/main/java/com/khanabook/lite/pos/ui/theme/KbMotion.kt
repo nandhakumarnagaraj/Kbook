@@ -18,6 +18,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -32,14 +33,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 
 // ═══════════════════════════════════════════════════════════════
 // KHANBOOK DLS — MOTION SYSTEM
@@ -73,6 +79,13 @@ object KbMotion {
     // Extra Long: onboarding, splash
     const val DurationExtraLong = 1000
 
+    // Unified duration object categories
+    object MotionDuration {
+        const val Fast = 120
+        const val Medium = 250
+        const val Slow = 500
+    }
+
     // ── Easing curves ─────────────────────────────────────────────
     // Standard: general purpose
     val EasingStandard = CubicBezierEasing(0.2f, 0f, 0f, 1f)
@@ -89,6 +102,9 @@ object KbMotion {
     // Linear: progress bars, spinners
     val EasingLinear = LinearEasing
 
+    // Linear Out Slow In
+    val EasingLinearOutSlowIn = CubicBezierEasing(0f, 0f, 0.2f, 1f)
+
     // ── Spring specs ──────────────────────────────────────────────
     // Default: slightly underdamped — used for press scale, card lift
     val SpringDefault = spring<Float>(dampingRatio = 0.7f, stiffness = 300f)
@@ -98,6 +114,29 @@ object KbMotion {
 
     // Stiff: very tight — used for nav icon transitions
     val SpringStiff = spring<Float>(dampingRatio = 0.8f, stiffness = 600f)
+
+    // Low Stiffness: gentle bounce — used for adaptive layout transitions
+    val SpringLowStiffness = spring<Float>(dampingRatio = 0.85f, stiffness = 200f)
+
+    /**
+     * Performance check helper to identify low-end POS terminals or battery-saver states.
+     */
+    fun isLowEndDevice(context: android.content.Context): Boolean {
+        val activityManager = context.getSystemService(android.content.Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+        if (activityManager != null) {
+            val memoryInfo = android.app.ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memoryInfo)
+            val totalMemGb = memoryInfo.totalMem / (1024 * 1024 * 1024)
+            if (totalMemGb < 4) return true
+        }
+        val cores = Runtime.getRuntime().availableProcessors()
+        if (cores < 6) return true
+
+        val powerManager = context.getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager
+        if (powerManager != null && powerManager.isPowerSaveMode) return true
+
+        return false
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -241,5 +280,74 @@ fun KbLoadingDots(modifier: Modifier = Modifier) {
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = alpha))
             )
         }
+    }
+}
+
+/**
+ * Horizontal shake animation modifier.
+ * Animates translationX horizontally to indicate error states.
+ */
+fun Modifier.shake(trigger: Any?): Modifier = composed {
+    var animOffset by remember { mutableStateOf(0f) }
+    LaunchedEffect(trigger) {
+        if (trigger != null && trigger != false && trigger != "") {
+            val shakeRange = listOf(-12f, 10f, -8f, 6f, -4f, 2f, 0f)
+            for (offset in shakeRange) {
+                animOffset = offset
+                delay(30)
+            }
+        }
+    }
+    this.graphicsLayer { translationX = animOffset }
+}
+
+/**
+ * Focus-aware glow modifier for inputs, cards, and text fields.
+ * Animates shadow elevation and applies a saffron border highlight on focus.
+ */
+fun Modifier.kbFocusGlow(
+    isFocused: Boolean,
+    focusedColor: Color = Color(0xFFF97316), // Saffron brand color
+    unfocusedColor: Color = Color.Transparent,
+    shape: Shape = RoundedCornerShape(14.dp)
+): Modifier = composed {
+    val shadowElevation by animateFloatAsState(
+        targetValue = if (isFocused) 6f else 0f,
+        animationSpec = tween(durationMillis = 200, easing = KbMotion.EasingStandard),
+        label = "shadowGlowElevation"
+    )
+
+    this
+        .graphicsLayer {
+            this.shadowElevation = shadowElevation
+            this.clip = true
+            this.shape = shape
+        }
+        .border(
+            width = if (isFocused) 2.dp else 0.dp,
+            color = if (isFocused) focusedColor else unfocusedColor,
+            shape = shape
+        )
+}
+
+/**
+ * Staggered entrance animation modifier for lists, form elements, and screen content.
+ * Animates opacity and vertical translation sequentially based on stagger step index.
+ */
+fun Modifier.staggeredEntrance(stepIndex: Int, activeStep: Int): Modifier = composed {
+    val visible = activeStep >= stepIndex
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(durationMillis = 300, easing = KbMotion.EasingStandard),
+        label = "staggerAlpha$stepIndex"
+    )
+    val translationY by animateFloatAsState(
+        targetValue = if (visible) 0f else 20f,
+        animationSpec = tween(durationMillis = 300, easing = KbMotion.EasingStandard),
+        label = "staggerTranslation$stepIndex"
+    )
+    this.graphicsLayer {
+        this.alpha = alpha
+        this.translationY = translationY
     }
 }

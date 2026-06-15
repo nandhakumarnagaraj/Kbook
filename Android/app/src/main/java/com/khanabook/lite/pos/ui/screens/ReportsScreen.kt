@@ -224,6 +224,28 @@ fun ReportsScreen(
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(spacing.small))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing.medium),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                        ) {
+                            ReportTypeToggle(
+                                label = "Payment Level Report",
+                                isSelected = reportType == "Payment",
+                                onClick = { viewModel.setReportType("Payment") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            ReportTypeToggle(
+                                label = "Order Level Report",
+                                isSelected = reportType == "Order",
+                                onClick = { viewModel.setReportType("Order") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
             }
@@ -307,31 +329,7 @@ fun ReportsScreen(
             }
 
             
-            AnimatedVisibility(visible = contentVisible, enter = enterSpec, exit = exitSpec) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.medium),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                ) {
-                    ReportTypeToggle(
-                        label = "Payment Level Report",
-                        isSelected = reportType == "Payment",
-                        onClick = { viewModel.setReportType("Payment") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    ReportTypeToggle(
-                        label = "Order Level Report",
-                        isSelected = reportType == "Order",
-                        onClick = { viewModel.setReportType("Order") },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-
-
-            Spacer(modifier = Modifier.height(spacing.medium))
+            // Toggle buttons moved to header
 
             Box(
                 modifier = Modifier
@@ -462,13 +460,25 @@ private fun PaymentMixSummaryCard(
 @Composable
 fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val spacing = KhanaBookTheme.spacing
+    val containerColor by animateColorAsState(
+        targetValue = if (isSelected) KbBrandSaffron else Color.Transparent,
+        animationSpec = tween(200),
+        label = "report_toggle_container"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
+        animationSpec = tween(200),
+        label = "report_toggle_content"
+    )
+    val borderColor = if (isSelected) KbBrandSaffron else Color.White.copy(alpha = 0.15f)
+
     Surface(
         onClick = onClick,
-        modifier = modifier.height(48.dp),
-        shape = RoundedCornerShape(8.dp),
-        color = if (isSelected) MaterialTheme.kbPrimaryBold.copy(alpha = 0.8f) else Color.Transparent,
-        border = if (isSelected) BorderStroke(1.dp, MaterialTheme.kbPrimary) else BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle.copy(alpha = 0.3f)),
-        contentColor = if (isSelected) MaterialTheme.kbPrimary else MaterialTheme.kbPrimary.copy(alpha = 0.7f)
+        modifier = modifier.height(38.dp),
+        shape = RoundedCornerShape(19.dp),
+        color = containerColor,
+        border = if (isSelected) null else BorderStroke(1.dp, borderColor),
+        contentColor = contentColor
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(

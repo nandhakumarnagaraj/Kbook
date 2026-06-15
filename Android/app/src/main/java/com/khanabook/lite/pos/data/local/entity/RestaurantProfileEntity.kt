@@ -65,6 +65,14 @@ data class RestaurantProfileEntity(
     val zomatoEnabled: Boolean = false,
     @ColumnInfo(name = "swiggy_enabled", defaultValue = "0")
     val swiggyEnabled: Boolean = false,
+    @ColumnInfo(name = "zomato_store_id")
+    val zomatoStoreId: String? = null,
+    @ColumnInfo(name = "zomato_api_key")
+    val zomatoApiKey: String? = null,
+    @ColumnInfo(name = "swiggy_store_id")
+    val swiggyStoreId: String? = null,
+    @ColumnInfo(name = "swiggy_api_key")
+    val swiggyApiKey: String? = null,
     @ColumnInfo(name = "own_website_enabled", defaultValue = "0")
     val ownWebsiteEnabled: Boolean = false,
     @ColumnInfo(name = "easebuzz_enabled", defaultValue = "0")

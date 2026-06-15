@@ -1,22 +1,32 @@
 package com.khanabook.lite.pos.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Storefront
@@ -24,6 +34,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -31,15 +42,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookInputField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
@@ -54,8 +70,10 @@ import com.khanabook.lite.pos.ui.theme.kbSecondary
 import com.khanabook.lite.pos.ui.theme.kbTextPrimary
 import com.khanabook.lite.pos.ui.theme.kbTextSecondary
 import com.khanabook.lite.pos.ui.theme.KbSuccess
-import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+
+private val ZomatoBrand = Color(0xFFE23744)
+private val SwiggyBrand = Color(0xFFFC8019)
 
 @Composable
 fun PaymentConfigView(
@@ -67,6 +85,8 @@ fun PaymentConfigView(
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
+
+    // ── Payment method toggles ───────────────────────────────────────────────
     var currency by remember { mutableStateOf(profile?.currency ?: "INR") }
     var upiSupported by remember { mutableStateOf(profile?.upiEnabled ?: false) }
     var upiHandle by remember { mutableStateOf(profile?.upiHandle ?: "") }
@@ -74,8 +94,18 @@ fun PaymentConfigView(
     var posEnabled by remember { mutableStateOf(profile?.posEnabled ?: false) }
     var easebuzzEnabled by remember { mutableStateOf(profile?.easebuzzEnabled ?: false) }
     var ownWebsiteEnabled by remember { mutableStateOf(profile?.ownWebsiteEnabled ?: false) }
+
+    // ── Zomato integration ───────────────────────────────────────────────────
     var zomatoEnabled by remember { mutableStateOf(profile?.zomatoEnabled ?: false) }
+    var zomatoStoreId by remember { mutableStateOf(profile?.zomatoStoreId ?: "") }
+    var zomatoApiKey by remember { mutableStateOf(profile?.zomatoApiKey ?: "") }
+    var zomatoApiKeyVisible by remember { mutableStateOf(false) }
+
+    // ── Swiggy integration ───────────────────────────────────────────────────
     var swiggyEnabled by remember { mutableStateOf(profile?.swiggyEnabled ?: false) }
+    var swiggyStoreId by remember { mutableStateOf(profile?.swiggyStoreId ?: "") }
+    var swiggyApiKey by remember { mutableStateOf(profile?.swiggyApiKey ?: "") }
+    var swiggyApiKeyVisible by remember { mutableStateOf(false) }
 
     val toastScope = rememberCoroutineScope()
 
@@ -86,6 +116,7 @@ fun PaymentConfigView(
             .padding(layout.contentPadding)
     ) {
         ConfigCard {
+            // ── Currency (read-only) ─────────────────────────────────────────
             ParchmentTextField(
                 value = currency,
                 onValueChange = {},
@@ -93,6 +124,8 @@ fun PaymentConfigView(
                 enabled = false
             )
             Spacer(modifier = Modifier.height(spacing.large))
+
+            // ── Payment methods ──────────────────────────────────────────────
             Text("Payment Methods", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium)
             PaymentToggle("Cash Payment", cashEnabled) { cashEnabled = it }
             PaymentToggle("POS Machine", posEnabled) { posEnabled = it }
@@ -110,16 +143,19 @@ fun PaymentConfigView(
             }
 
             Spacer(modifier = Modifier.height(spacing.large))
+
+            // ── Online Platforms ─────────────────────────────────────────────
             Text("Online Platforms", color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.titleMedium)
             Text(
-                "Everything here stays inside the app. No browser hops.",
+                "Configure your delivery platform integrations below.",
                 color = MaterialTheme.kbTextSecondary.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.labelSmall
             )
             Spacer(modifier = Modifier.height(spacing.medium))
 
+            // ── Easebuzz card ────────────────────────────────────────────────
             IntegrationCard(
-                title = "Easebuzz Onboarding",
+                title = "Easebuzz Payments",
                 subtitle = "Native KYC flow and online payment activation.",
                 icon = Icons.Outlined.Security,
                 tone = KbBrandSaffron
@@ -150,19 +186,138 @@ fun PaymentConfigView(
                         Text("Reset")
                     }
                 }
+                // Info tip
+                if (easebuzzEnabled) {
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    PlatformInfoChip(
+                        text = "Complete KYC to start accepting online payments via Easebuzz",
+                        tint = KbBrandSaffron
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
+            // ── Zomato card ──────────────────────────────────────────────────
             IntegrationCard(
-                title = "Marketplace Integrations",
-                subtitle = "Zomato, Swiggy, and own-website checkout flags.",
+                title = "Zomato Integration",
+                subtitle = "Connect your Zomato outlet to receive orders.",
+                icon = Icons.Outlined.Storefront,
+                tone = ZomatoBrand
+            ) {
+                PaymentToggle("Enable Zomato", zomatoEnabled) {
+                    zomatoEnabled = it
+                    // Clear credentials when disabled
+                    if (!it) { zomatoStoreId = ""; zomatoApiKey = "" }
+                }
+
+                // Animated expandable config form
+                AnimatedVisibility(
+                    visible = zomatoEnabled,
+                    enter = expandVertically(tween(300)) + fadeIn(tween(300)),
+                    exit = shrinkVertically(tween(250)) + fadeOut(tween(200))
+                ) {
+                    Column(modifier = Modifier.padding(top = spacing.small)) {
+                        ParchmentTextField(
+                            value = zomatoStoreId,
+                            onValueChange = { zomatoStoreId = it.trim() },
+                            label = "Zomato Store ID *",
+                            supportingText = "Found in Zomato Partner Portal → Outlet Details"
+                        )
+                        Spacer(modifier = Modifier.height(spacing.small))
+                        KhanaBookInputField(
+                            value = zomatoApiKey,
+                            onValueChange = { zomatoApiKey = it.trim() },
+                            label = "Zomato API Key *",
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            visualTransformation = if (zomatoApiKeyVisible) VisualTransformation.None
+                                                   else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { zomatoApiKeyVisible = !zomatoApiKeyVisible }) {
+                                    Icon(
+                                        imageVector = if (zomatoApiKeyVisible) Icons.Default.Visibility
+                                                      else Icons.Default.VisibilityOff,
+                                        contentDescription = if (zomatoApiKeyVisible) "Hide key" else "Show key",
+                                        tint = MaterialTheme.kbTextSecondary
+                                    )
+                                }
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(spacing.small))
+                        PlatformInfoChip(
+                            text = "Get Store ID & API Key from Zomato Partner Portal → API Access",
+                            tint = ZomatoBrand
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(spacing.medium))
+
+            // ── Swiggy card ──────────────────────────────────────────────────
+            IntegrationCard(
+                title = "Swiggy Integration",
+                subtitle = "Connect your Swiggy outlet to receive orders.",
+                icon = Icons.Outlined.Storefront,
+                tone = SwiggyBrand
+            ) {
+                PaymentToggle("Enable Swiggy", swiggyEnabled) {
+                    swiggyEnabled = it
+                    // Clear credentials when disabled
+                    if (!it) { swiggyStoreId = ""; swiggyApiKey = "" }
+                }
+
+                // Animated expandable config form
+                AnimatedVisibility(
+                    visible = swiggyEnabled,
+                    enter = expandVertically(tween(300)) + fadeIn(tween(300)),
+                    exit = shrinkVertically(tween(250)) + fadeOut(tween(200))
+                ) {
+                    Column(modifier = Modifier.padding(top = spacing.small)) {
+                        ParchmentTextField(
+                            value = swiggyStoreId,
+                            onValueChange = { swiggyStoreId = it.trim() },
+                            label = "Swiggy Store ID *",
+                            supportingText = "Found in Swiggy Partner Portal → Store Settings"
+                        )
+                        Spacer(modifier = Modifier.height(spacing.small))
+                        KhanaBookInputField(
+                            value = swiggyApiKey,
+                            onValueChange = { swiggyApiKey = it.trim() },
+                            label = "Swiggy API Key *",
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            visualTransformation = if (swiggyApiKeyVisible) VisualTransformation.None
+                                                   else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { swiggyApiKeyVisible = !swiggyApiKeyVisible }) {
+                                    Icon(
+                                        imageVector = if (swiggyApiKeyVisible) Icons.Default.Visibility
+                                                      else Icons.Default.VisibilityOff,
+                                        contentDescription = if (swiggyApiKeyVisible) "Hide key" else "Show key",
+                                        tint = MaterialTheme.kbTextSecondary
+                                    )
+                                }
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(spacing.small))
+                        PlatformInfoChip(
+                            text = "Get Store ID & API Key from Swiggy Partner Portal → Integration",
+                            tint = SwiggyBrand
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(spacing.medium))
+
+            // ── Own website ──────────────────────────────────────────────────
+            IntegrationCard(
+                title = "Own Website",
+                subtitle = "Accept orders through your own website checkout.",
                 icon = Icons.Outlined.LocalShipping,
                 tone = MaterialTheme.kbSecondary
             ) {
                 PaymentToggle("Own Website", ownWebsiteEnabled) { ownWebsiteEnabled = it }
-                PaymentToggle("Zomato Integration", zomatoEnabled) { zomatoEnabled = it }
-                PaymentToggle("Swiggy Integration", swiggyEnabled) { swiggyEnabled = it }
                 Spacer(modifier = Modifier.height(spacing.small))
                 Button(
                     onClick = onOpenMarketplaceOrders,
@@ -172,19 +327,36 @@ fun PaymentConfigView(
                 ) {
                     Icon(imageVector = Icons.Outlined.Storefront, contentDescription = null, tint = Color.White)
                     Spacer(modifier = Modifier.size(spacing.extraSmall))
-                    Text("Open Marketplace Orders", color = Color.White)
+                    Text("View Live Orders", color = Color.White)
                 }
             }
 
             Spacer(modifier = Modifier.height(spacing.medium))
+
+            // ── Save / Back ──────────────────────────────────────────────────
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
                 PrimaryButton(
                     text = "Save",
                     modifier = Modifier.weight(1f),
                     onClick = {
+                        // Validate UPI
                         if (upiSupported && upiHandle.isBlank()) {
                             toastScope.launch {
                                 KhanaToast.show("Enter UPI ID to generate amount QR", ToastKind.Error)
+                            }
+                            return@PrimaryButton
+                        }
+                        // Validate Zomato credentials if enabled
+                        if (zomatoEnabled && (zomatoStoreId.isBlank() || zomatoApiKey.isBlank())) {
+                            toastScope.launch {
+                                KhanaToast.show("Enter Zomato Store ID and API Key", ToastKind.Error)
+                            }
+                            return@PrimaryButton
+                        }
+                        // Validate Swiggy credentials if enabled
+                        if (swiggyEnabled && (swiggyStoreId.isBlank() || swiggyApiKey.isBlank())) {
+                            toastScope.launch {
+                                KhanaToast.show("Enter Swiggy Store ID and API Key", ToastKind.Error)
                             }
                             return@PrimaryButton
                         }
@@ -195,7 +367,11 @@ fun PaymentConfigView(
                             easebuzzEnabled = easebuzzEnabled,
                             ownWebsiteEnabled = ownWebsiteEnabled,
                             zomatoEnabled = zomatoEnabled,
+                            zomatoStoreId = zomatoStoreId.trim().ifBlank { null },
+                            zomatoApiKey = zomatoApiKey.trim().ifBlank { null },
                             swiggyEnabled = swiggyEnabled,
+                            swiggyStoreId = swiggyStoreId.trim().ifBlank { null },
+                            swiggyApiKey = swiggyApiKey.trim().ifBlank { null },
                             upiQrPath = null,
                             upiQrUrl = null,
                             cashEnabled = cashEnabled,
@@ -214,6 +390,35 @@ fun PaymentConfigView(
         }
     }
 }
+
+// ── Info chip ────────────────────────────────────────────────────────────────
+
+@Composable
+private fun PlatformInfoChip(text: String, tint: Color) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(tint.copy(alpha = 0.07f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Icon(
+            imageVector = Icons.Default.Info,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(14.dp).padding(top = 1.dp)
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = tint,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+// ── IntegrationCard ──────────────────────────────────────────────────────────
 
 @Composable
 fun IntegrationCard(
@@ -244,6 +449,8 @@ fun IntegrationCard(
         }
     }
 }
+
+// ── PaymentToggle ─────────────────────────────────────────────────────────────
 
 @Composable
 fun PaymentToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {

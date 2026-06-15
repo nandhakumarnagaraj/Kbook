@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/MainActivity.kt": {
-    "mtime": 1781323923.3897235,
-    "ast_hash": "987e6997bd202ad6ec75c52c76e08ce8",
+    "mtime": 1781514764.2400887,
+    "ast_hash": "46f68690d290326b1c689ec06a37af65",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/components/CommonComponents.kt": {
@@ -995,8 +995,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/LoginScreen.kt": {
-    "mtime": 1781421834.1703088,
-    "ast_hash": "e9247bc33c735b790fc4dd9d1f839c2d",
+    "mtime": 1781515047.853367,
+    "ast_hash": "1713cef3722b8a1c428388db600f7430",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/MainScreen.kt": {
@@ -1040,8 +1040,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/ReportsScreen.kt": {
-    "mtime": 1781512725.209413,
-    "ast_hash": "dd9bc1fbddfa4a9a4cdd16e244d5f6a1",
+    "mtime": 1781515364.4786544,
+    "ast_hash": "2379ab23674817e65b0bfe12dde8729b",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/ReprintKdsScreen.kt": {
@@ -1080,13 +1080,13 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/SignUpScreen.kt": {
-    "mtime": 1781421855.7954843,
-    "ast_hash": "4947e30f4c30853078a61937a6be2d18",
+    "mtime": 1781515053.3255184,
+    "ast_hash": "17e09b6a6f1b8e9c8966196f22d8fa5b",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/SplashScreen.kt": {
-    "mtime": 1781380685.7222807,
-    "ast_hash": "a1522d8eb94585a8ff6fbdeb6a5757d4",
+    "mtime": 1781515040.8050816,
+    "ast_hash": "e5ebfe220d2900cf525de4fd5230567d",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/TaxConfigSection.kt": {
@@ -1110,8 +1110,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/theme/KbMotion.kt": {
-    "mtime": 1780944672.1608634,
-    "ast_hash": "f3649ae9cd47481421f0579b245dd354",
+    "mtime": 1781514812.565331,
+    "ast_hash": "68ac7ad79477753b8edcca2712edebbc",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/theme/KbTokens.kt": {

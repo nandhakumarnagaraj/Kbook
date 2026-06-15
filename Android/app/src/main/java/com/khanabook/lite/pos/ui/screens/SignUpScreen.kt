@@ -19,6 +19,10 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -96,6 +100,47 @@ fun SignUpScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val isLoading = signUpStatus is AuthViewModel.SignUpResult.Loading || loginStatus is AuthViewModel.LoginResult.Loading
 
+    var activeStaggerStep by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        for (step in 1..8) {
+            delay(50)
+            activeStaggerStep = step
+        }
+    }
+
+    var isShopFocused by remember { mutableStateOf(false) }
+    var isPhoneFocused by remember { mutableStateOf(false) }
+    var isPasswordFocused by remember { mutableStateOf(false) }
+    var isConfirmPasswordFocused by remember { mutableStateOf(false) }
+
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
+    val headerHeight by animateDpAsState(
+        targetValue = if (isKeyboardVisible) 160.dp else 270.dp,
+        animationSpec = tween(durationMillis = 300, easing = KbMotion.EasingEmphasized),
+        label = "headerHeight"
+    )
+    val logoSize by animateDpAsState(
+        targetValue = if (isKeyboardVisible) 64.dp else 96.dp,
+        animationSpec = tween(durationMillis = 300, easing = KbMotion.EasingEmphasized),
+        label = "logoSize"
+    )
+    val logoIconSize by animateDpAsState(
+        targetValue = if (isKeyboardVisible) 40.dp else 60.dp,
+        animationSpec = tween(durationMillis = 300, easing = KbMotion.EasingEmphasized),
+        label = "logoIconSize"
+    )
+    val headerVerticalPadding by animateDpAsState(
+        targetValue = if (isKeyboardVisible) 8.dp else 12.dp,
+        animationSpec = tween(durationMillis = 300, easing = KbMotion.EasingEmphasized),
+        label = "headerVerticalPadding"
+    )
+    val logoSpacerHeight by animateDpAsState(
+        targetValue = if (isKeyboardVisible) 4.dp else 12.dp,
+        animationSpec = tween(durationMillis = 300, easing = KbMotion.EasingEmphasized),
+        label = "logoSpacer"
+    )
+
     LaunchedEffect(signUpStatus) {
         when (signUpStatus) {
             is AuthViewModel.SignUpResult.Success -> {
@@ -152,7 +197,7 @@ fun SignUpScreen(
             KhanaBookPurpleBackground(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(270.dp),
+                    .height(headerHeight),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -160,47 +205,50 @@ fun SignUpScreen(
                     verticalArrangement = Arrangement.Center,
                     modifier = Modifier
                         .statusBarsPadding()
-                        .padding(top = 8.dp, bottom = 12.dp)
+                        .padding(top = headerVerticalPadding / 2, bottom = headerVerticalPadding)
+                        .staggeredEntrance(1, activeStaggerStep)
                 ) {
                     Card(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        modifier = Modifier.size(96.dp),
+                        modifier = Modifier.size(logoSize),
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Image(
-                                painter = painterResource(id = R.drawable.khanabook_logo),
+                                painter = painterResource(id = R.drawable.ic_khanabook_logo),
                                 contentDescription = "KhanaBook logo",
-                                modifier = Modifier.size(60.dp)
+                                modifier = Modifier.size(logoIconSize)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(logoSpacerHeight))
 
                     Text(
                         text = "KhanaBook",
                         color = Color.White,
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 30.sp,
+                            fontSize = if (isKeyboardVisible) 22.sp else 30.sp,
                             letterSpacing = (-0.5).sp
                         ),
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    if (!isKeyboardVisible) {
+                        Spacer(modifier = Modifier.height(6.dp))
 
-                    Text(
-                        text = "Restaurant POS & Management",
-                        color = Color.White.copy(alpha = KbOpacity.Muted),
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        textAlign = TextAlign.Center
-                    )
+                        Text(
+                            text = "Restaurant POS & Management",
+                            color = Color.White.copy(alpha = KbOpacity.Muted),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
 
@@ -220,139 +268,41 @@ fun SignUpScreen(
                         .verticalScrollbar(scrollState)
                         .padding(horizontal = 24.dp, vertical = 32.dp)
                 ) {
-                    Text(
-                        text = "Create Your Restaurant",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    // Step 2: Header titles
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .staggeredEntrance(2, activeStaggerStep)
+                    ) {
+                        Text(
+                            text = "Create Your Restaurant",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
-                    Text(
-                        text = "Start billing in 2 minutes",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        Text(
+                            text = "Start billing in 2 minutes",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // RESTAURANT NAME
-                    Text(
-                        text = "RESTAURANT NAME",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.12.em
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    val shopNameError = (shopName.isNotEmpty() && !isShopNameValid) || fieldError("name", "shopName") != null
-                    OnboardingInputField(
-                        value = shopName,
-                        onValueChange = { shopName = it },
-                        placeholder = "Restaurant Name",
-                        isError = shopNameError,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(onNext = { runCatching { phoneFocusRequester.requestFocus() } })
-                    )
-                    val err = fieldError("name", "shopName")
-                    if (err != null) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(err, color = KbError, style = MaterialTheme.typography.labelSmall)
-                    } else if (shopName.isNotEmpty() && !isShopNameValid) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Shop name must be at least 2 characters", color = KbError, style = MaterialTheme.typography.labelSmall)
-                    }
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    // WHATSAPP NUMBER
-                    Text(
-                        text = "WHATSAPP NUMBER",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.12.em
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OnboardingPhoneInput(
-                        value = phoneNumber,
-                        onValueChange = {
-                            phoneNumber = it.take(10)
-                            if (phoneNumber.length == 10) {
-                                viewModel.checkUserExists(phoneNumber)
-                            }
-                        },
-                        placeholder = "WhatsApp Number",
+                    // Step 3: Restaurant Name
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .focusRequester(phoneFocusRequester),
-                        isError = (phoneNumber.isNotEmpty() && !isPhoneValid) || userExistsError != null || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
-                        trailingIcon = {
-                            if (isUserChecking) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
-                                    color = KbBrandSaffron
-                                )
-                            } else if (!otpSent || otpTimer == 0) {
-                                Button(
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        viewModel.sendOtp(phoneNumber)
-                                        otpSent = true
-                                    },
-                                    modifier = Modifier.height(36.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                                    ),
-                                    shape = RoundedCornerShape(18.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp),
-                                    enabled = isPhoneValid && !isLoading && !isUserChecking && userExistsError == null
-                                ) {
-                                    Text(
-                                        "Send OTP",
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                                    )
-                                }
-                            } else {
-                                Text(
-                                    text = "Sent",
-                                    color = KbWhatsAppGreen,
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(onNext = { runCatching { passwordFocusRequester.requestFocus() } })
-                    )
-
-                    val phoneError = fieldError("phoneNumber", "loginId", "whatsappNumber") ?: userExistsError
-                    if (phoneError != null) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(phoneError, color = KbError, style = MaterialTheme.typography.labelSmall)
-                    } else if (phoneNumber.isNotEmpty() && !isPhoneValid) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Enter a valid 10-digit number", color = KbError, style = MaterialTheme.typography.labelSmall)
-                    }
-
-                    // Conditional OTP row inline
-                    if (otpSent) {
-                        Spacer(modifier = Modifier.height(18.dp))
-
+                            .staggeredEntrance(3, activeStaggerStep)
+                    ) {
                         Text(
-                            text = "ENTER OTP",
+                            text = "RESTAURANT NAME",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Bold,
@@ -362,146 +312,289 @@ fun SignUpScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        OtpInputRow(
-                            otp = otp,
-                            onOtpChange = { code -> otp = code.filter { ch -> ch.isDigit() }.take(6) }
+                        val shopNameError = (shopName.isNotEmpty() && !isShopNameValid) || fieldError("name", "shopName") != null
+                        val signUpErrorTrigger = (signUpStatus as? AuthViewModel.SignUpResult.Error)
+                        OnboardingInputField(
+                            value = shopName,
+                            onValueChange = { shopName = it },
+                            placeholder = "Restaurant Name",
+                            isError = shopNameError,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                            keyboardActions = KeyboardActions(onNext = { runCatching { phoneFocusRequester.requestFocus() } }),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onFocusChanged { isShopFocused = it.isFocused }
+                                .kbFocusGlow(isShopFocused)
+                                .shake(signUpErrorTrigger ?: if (shopNameError) true else null)
                         )
-
-                        val otpError = fieldError("otp")
-                        if (otpError != null) {
+                        val err = fieldError("name", "shopName")
+                        if (err != null) {
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = otpError, color = KbError,
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                            Text(err, color = KbError, style = MaterialTheme.typography.labelSmall)
+                        } else if (shopName.isNotEmpty() && !isShopNameValid) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Shop name must be at least 2 characters", color = KbError, style = MaterialTheme.typography.labelSmall)
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // Step 4: WhatsApp Number + inline OTP
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .staggeredEntrance(4, activeStaggerStep)
+                    ) {
+                        Text(
+                            text = "WHATSAPP NUMBER",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.12.em
+                            )
+                        )
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val resendText = if (otpTimer > 0) {
-                                val min = otpTimer / 60
-                                val sec = otpTimer % 60
-                                "Resend code in ${String.format("%02d:%02d", min, sec)}"
-                            } else {
-                                "Resend code"
+                        val phoneError = fieldError("phoneNumber", "loginId", "whatsappNumber") ?: userExistsError
+                        val signUpErrorTrigger = (signUpStatus as? AuthViewModel.SignUpResult.Error)
+                        OnboardingPhoneInput(
+                            value = phoneNumber,
+                            onValueChange = {
+                                phoneNumber = it.take(10)
+                                if (phoneNumber.length == 10) {
+                                    viewModel.checkUserExists(phoneNumber)
+                                }
+                            },
+                            placeholder = "WhatsApp Number",
+                            isError = (phoneNumber.isNotEmpty() && !isPhoneValid) || userExistsError != null || fieldError("phoneNumber", "loginId", "whatsappNumber") != null,
+                            trailingIcon = {
+                                if (isUserChecking) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = KbBrandSaffron
+                                    )
+                                } else if (!otpSent || otpTimer == 0) {
+                                    Button(
+                                        onClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            viewModel.sendOtp(phoneNumber)
+                                            otpSent = true
+                                        },
+                                        modifier = Modifier.height(36.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                                        ),
+                                        shape = RoundedCornerShape(18.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp),
+                                        enabled = isPhoneValid && !isLoading && !isUserChecking && userExistsError == null
+                                    ) {
+                                        Text(
+                                            "Send OTP",
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                        )
+                                    }
+                                } else {
+                                    Text(
+                                        text = "Sent",
+                                        color = KbWhatsAppGreen,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+                            keyboardActions = KeyboardActions(onNext = { runCatching { passwordFocusRequester.requestFocus() } }),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(phoneFocusRequester)
+                                .onFocusChanged { isPhoneFocused = it.isFocused }
+                                .kbFocusGlow(isPhoneFocused)
+                                .shake(phoneError ?: signUpErrorTrigger)
+                        )
+
+                        val phoneErr = fieldError("phoneNumber", "loginId", "whatsappNumber") ?: userExistsError
+                        if (phoneErr != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(phoneErr, color = KbError, style = MaterialTheme.typography.labelSmall)
+                        } else if (phoneNumber.isNotEmpty() && !isPhoneValid) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Enter a valid 10-digit number", color = KbError, style = MaterialTheme.typography.labelSmall)
+                        }
+
+                        // Conditional OTP row inline
+                        if (otpSent) {
+                            Spacer(modifier = Modifier.height(18.dp))
+
+                            Text(
+                                text = "ENTER OTP",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.12.em
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            OtpInputRow(
+                                otp = otp,
+                                onOtpChange = { code -> otp = code.filter { ch -> ch.isDigit() }.take(6) }
+                            )
+
+                            val otpError = fieldError("otp")
+                            if (otpError != null) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = otpError, color = KbError,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
 
-                            Text(
-                                text = resendText,
-                                color = if (otpTimer > 0) MaterialTheme.colorScheme.onSurfaceVariant else KbBrandVioletBright,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                modifier = Modifier
-                                    .clickable(enabled = otpTimer == 0 && !isLoading) {
-                                        viewModel.sendOtp(phoneNumber)
-                                    }
-                            )
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                            Text(
-                                text = "Change number?", color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                modifier = Modifier
-                                    .clickable(enabled = !isLoading) { otpSent = false }
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val resendText = if (otpTimer > 0) {
+                                    val min = otpTimer / 60
+                                    val sec = otpTimer % 60
+                                    "Resend code in ${String.format("%02d:%02d", min, sec)}"
+                                } else {
+                                    "Resend code"
+                                }
+
+                                Text(
+                                    text = resendText,
+                                    color = if (otpTimer > 0) MaterialTheme.colorScheme.onSurfaceVariant else KbBrandVioletBright,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    modifier = Modifier
+                                        .clickable(enabled = otpTimer == 0 && !isLoading) {
+                                            viewModel.sendOtp(phoneNumber)
+                                        }
+                                )
+
+                                Text(
+                                    text = "Change number?", color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    modifier = Modifier
+                                        .clickable(enabled = !isLoading) { otpSent = false }
+                                )
+                            }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // PASSWORD
-                    Text(
-                        text = "PASSWORD",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.12.em
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    val passwordError = (newPassword.isNotEmpty() && !isPasswordValid) || fieldError("password") != null
-                    OnboardingInputField(
-                        value = newPassword,
-                        onValueChange = { newPassword = it },
-                        placeholder = "Enter password",
-                        isError = passwordError,
-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(onNext = { runCatching { confirmPasswordFocusRequester.requestFocus() } }),
-                        trailingIcon = {
-                            IconButton(onClick = { showPassword = !showPassword }) {
-                                Icon(
-                                    imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = "Toggle Password",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
+                    // Step 5: Password & Confirm Password
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .focusRequester(passwordFocusRequester)
-                    )
-                    val pwErr = fieldError("password")
-                    if (pwErr != null) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(pwErr, color = KbError, style = MaterialTheme.typography.labelSmall)
-                    } else if (newPassword.isNotEmpty() && !isPasswordValid) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Must be 8+ chars with uppercase, digit & symbol", color = KbError, style = MaterialTheme.typography.labelSmall)
-                    }
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    // CONFIRM PASSWORD
-                    Text(
-                        text = "CONFIRM PASSWORD",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.12.em
+                            .staggeredEntrance(5, activeStaggerStep)
+                    ) {
+                        Text(
+                            text = "PASSWORD",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.12.em
+                            )
                         )
-                    )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    val passwordsMatch = confirmPassword.isEmpty() || newPassword == confirmPassword
+                        val passwordError = (newPassword.isNotEmpty() && !isPasswordValid) || fieldError("password") != null
+                        val signUpErrorTrigger = (signUpStatus as? AuthViewModel.SignUpResult.Error)
+                        OnboardingInputField(
+                            value = newPassword,
+                            onValueChange = { newPassword = it },
+                            placeholder = "Enter password",
+                            isError = passwordError,
+                            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                            keyboardActions = KeyboardActions(onNext = { runCatching { confirmPasswordFocusRequester.requestFocus() } }),
+                            trailingIcon = {
+                                IconButton(onClick = { showPassword = !showPassword }) {
+                                    Icon(
+                                        imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = "Toggle Password",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(passwordFocusRequester)
+                                .onFocusChanged { isPasswordFocused = it.isFocused }
+                                .kbFocusGlow(isPasswordFocused)
+                                .shake(signUpErrorTrigger ?: if (passwordError) true else null)
+                        )
+                        val pwErr = fieldError("password")
+                        if (pwErr != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(pwErr, color = KbError, style = MaterialTheme.typography.labelSmall)
+                        } else if (newPassword.isNotEmpty() && !isPasswordValid) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Must be 8+ chars with uppercase, digit & symbol", color = KbError, style = MaterialTheme.typography.labelSmall)
+                        }
 
-                    OnboardingInputField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
-                        placeholder = "Re‑enter password",
-                        isError = !passwordsMatch,
-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                        trailingIcon = {
-                            IconButton(onClick = { showPassword = !showPassword }) {
-                                Icon(
-                                    imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = "Toggle Confirm Password",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(confirmPasswordFocusRequester)
-                    )
-                    if (!passwordsMatch) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Passwords do not match", color = KbError, style = MaterialTheme.typography.labelSmall)
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        // CONFIRM PASSWORD
+                        Text(
+                            text = "CONFIRM PASSWORD",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.12.em
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        val passwordsMatch = confirmPassword.isEmpty() || newPassword == confirmPassword
+
+                        OnboardingInputField(
+                            value = confirmPassword,
+                            onValueChange = { confirmPassword = it },
+                            placeholder = "Re‑enter password",
+                            isError = !passwordsMatch,
+                            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                            trailingIcon = {
+                                IconButton(onClick = { showPassword = !showPassword }) {
+                                    Icon(
+                                        imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = "Toggle Confirm Password",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(confirmPasswordFocusRequester)
+                                .onFocusChanged { isConfirmPasswordFocused = it.isFocused }
+                                .kbFocusGlow(isConfirmPasswordFocused)
+                                .shake(signUpErrorTrigger ?: if (!passwordsMatch) true else null)
+                        )
+                        if (!passwordsMatch) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Passwords do not match", color = KbError, style = MaterialTheme.typography.labelSmall)
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Terms and Conditions Checkbox
+                    // Step 6: Terms and Conditions Checkbox
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .staggeredEntrance(6, activeStaggerStep),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
@@ -541,6 +634,7 @@ fun SignUpScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
+                    // Step 7: Create Account CTA
                     val isFormFilled = shopName.isNotBlank() &&
                             phoneNumber.isNotBlank() &&
                             otpSent &&
@@ -551,42 +645,51 @@ fun SignUpScreen(
 
                     val isFormValid = isShopNameValid && isPhoneValid && isPasswordValid && (newPassword == confirmPassword) && agreedToTerms && otpSent && otp.length == 6 && !isLoading && userExistsError == null
 
-                    PrimaryButton(
-                        text = "Create Account",
-                        onClick = {
-                            if (isFormValid) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.signUp(
-                                    shopName = shopName,
-                                    ownerName = shopName, // Map empty ownerName to shopName cleanly
-                                    phoneNumber = phoneNumber,
-                                    otp = otp,
-                                    password = newPassword
-                                )
-                            } else {
-                                val errorMsg = when {
-                                    !isShopNameValid -> "Shop name must be at least 2 characters"
-                                    !isPhoneValid -> "Please enter a valid 10-digit WhatsApp number"
-                                    userExistsError != null -> userExistsError ?: "WhatsApp number already registered"
-                                    otp.length != 6 -> "Please enter a valid 6-digit OTP"
-                                    !isPasswordValid -> "Password must be at least 8 characters with uppercase, digit & symbol"
-                                    newPassword != confirmPassword -> "Passwords do not match"
-                                    !agreedToTerms -> "You must agree to the Terms & Privacy Policy"
-                                    else -> "Please correct the highlighted errors"
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .staggeredEntrance(7, activeStaggerStep)
+                    ) {
+                        PrimaryButton(
+                            text = "Create Account",
+                            onClick = {
+                                if (isFormValid) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.signUp(
+                                        shopName = shopName,
+                                        ownerName = shopName, // Map empty ownerName to shopName cleanly
+                                        phoneNumber = phoneNumber,
+                                        otp = otp,
+                                        password = newPassword
+                                    )
+                                } else {
+                                    val errorMsg = when {
+                                        !isShopNameValid -> "Shop name must be at least 2 characters"
+                                        !isPhoneValid -> "Please enter a valid 10-digit WhatsApp number"
+                                        userExistsError != null -> userExistsError ?: "WhatsApp number already registered"
+                                        otp.length != 6 -> "Please enter a valid 6-digit OTP"
+                                        !isPasswordValid -> "Password must be at least 8 characters with uppercase, digit & symbol"
+                                        newPassword != confirmPassword -> "Passwords do not match"
+                                        !agreedToTerms -> "You must agree to the Terms & Privacy Policy"
+                                        else -> "Please correct the highlighted errors"
+                                    }
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(errorMsg)
+                                    }
                                 }
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar(errorMsg)
-                                }
-                            }
-                        },
-                        enabled = isFormFilled,
-                        loading = isLoading
-                    )
+                            },
+                            enabled = isFormFilled,
+                            loading = isLoading
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
+                    // Step 8: Already have an account row
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .staggeredEntrance(8, activeStaggerStep),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
