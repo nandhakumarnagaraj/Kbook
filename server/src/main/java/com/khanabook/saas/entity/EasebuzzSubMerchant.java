@@ -35,6 +35,15 @@ public class EasebuzzSubMerchant {
     @Column(name = "business_name", nullable = false)
     private String businessName;
 
+    /**
+     * Full legal entity name as registered with PAN/GST authorities.
+     * EaseBuzz CPV matches the submitted business name against this; using a
+     * display/trade name here causes CPV mismatch (negative report). Falls back
+     * to businessName at submission time only if not separately provided.
+     */
+    @Column(name = "legal_entity_name")
+    private String legalEntityName;
+
     @Column(name = "business_type")
     private String businessType;
 
@@ -64,6 +73,17 @@ public class EasebuzzSubMerchant {
 
     @Column(name = "business_address", columnDefinition = "TEXT")
     private String businessAddress;
+
+    @Column(name = "state")
+    private String state;
+
+    /** FSSAI license number (license, not acknowledgment/application receipt). */
+    @Column(name = "fssai_number")
+    private String fssaiNumber;
+
+    /** FSSAI license expiry as epoch millis. */
+    @Column(name = "fssai_expiry_date")
+    private Long fssaiExpiryDate;
 
     @Column(name = "contact_email")
     private String contactEmail;

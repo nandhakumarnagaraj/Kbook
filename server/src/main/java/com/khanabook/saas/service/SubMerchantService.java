@@ -56,6 +56,7 @@ public class SubMerchantService {
         EasebuzzSubMerchant sm = new EasebuzzSubMerchant();
         sm.setRestaurantId(restaurantId);
         sm.setBusinessName(str(data.get("businessName")));
+        sm.setLegalEntityName(str(data.get("legalEntityName")));
         sm.setBusinessType(str(data.get("businessType")));
         sm.setPan(str(data.get("pan")));
         sm.setGst(str(data.get("gst")));
@@ -65,6 +66,10 @@ public class SubMerchantService {
         sm.setBranchName(str(data.get("branchName")));
         sm.setBeneficiaryName(str(data.get("beneficiaryName")));
         sm.setBusinessAddress(str(data.get("businessAddress")));
+        sm.setState(str(data.get("state")));
+        sm.setFssaiNumber(str(data.get("fssaiNumber")));
+        if (data.get("fssaiExpiryDate") != null)
+            sm.setFssaiExpiryDate(Long.parseLong(data.get("fssaiExpiryDate").toString()));
         sm.setContactEmail(str(data.get("contactEmail")));
         sm.setContactPhone(str(data.get("contactPhone")));
         Object commissionVal = data.get("commissionRate");
@@ -113,6 +118,7 @@ public class SubMerchantService {
     public EasebuzzSubMerchant update(Long id, Map<String, String> data) {
         EasebuzzSubMerchant sm = getById(id);
         if (data.containsKey("businessName")) sm.setBusinessName(data.get("businessName"));
+        if (data.containsKey("legalEntityName")) sm.setLegalEntityName(data.get("legalEntityName"));
         if (data.containsKey("businessType")) sm.setBusinessType(data.get("businessType"));
         if (data.containsKey("pan")) sm.setPan(data.get("pan"));
         if (data.containsKey("gst")) sm.setGst(data.get("gst"));
@@ -122,6 +128,10 @@ public class SubMerchantService {
         if (data.containsKey("branchName")) sm.setBranchName(data.get("branchName"));
         if (data.containsKey("beneficiaryName")) sm.setBeneficiaryName(data.get("beneficiaryName"));
         if (data.containsKey("businessAddress")) sm.setBusinessAddress(data.get("businessAddress"));
+        if (data.containsKey("state")) sm.setState(data.get("state"));
+        if (data.containsKey("fssaiNumber")) sm.setFssaiNumber(data.get("fssaiNumber"));
+        if (data.containsKey("fssaiExpiryDate") && data.get("fssaiExpiryDate") != null)
+            sm.setFssaiExpiryDate(Long.parseLong(data.get("fssaiExpiryDate")));
         if (data.containsKey("contactEmail")) sm.setContactEmail(data.get("contactEmail"));
         if (data.containsKey("contactPhone")) sm.setContactPhone(data.get("contactPhone"));
         if (data.containsKey("commissionRate") && data.get("commissionRate") != null)
@@ -396,12 +406,20 @@ public class SubMerchantService {
     @Transactional
     public EasebuzzSubMerchant submitToEasebuzz(Long id) {
         EasebuzzSubMerchant sm = getById(id);
+        // EaseBuzz compliance: a valid FSSAI license is mandatory for food merchants.
+        if (sm.getFssaiNumber() == null || sm.getFssaiNumber().isBlank()) {
+            throw new BusinessRuleException(
+                "A valid FSSAI license number is required before onboarding to EaseBuzz.",
+                "FSSAI_REQUIRED"
+            );
+        }
         Map<String, Object> result = easebuzzApi.createSubMerchant(
             sm.getBusinessName(), sm.getContactEmail(), sm.getContactPhone(),
             sm.getBankAccountNo(), sm.getIfsc(), sm.getBankName(),
             sm.getBeneficiaryName(), sm.getBranchName(),
             sm.getBusinessType(), sm.getPan(), sm.getGst(),
-            sm.getBusinessAddress()
+            sm.getBusinessAddress(),
+            sm.getLegalEntityName(), sm.getState(), sm.getFssaiNumber()
         );
         Object statusObj = result != null ? result.get("status") : null;
         boolean apiStatus = EasebuzzApiClient.toBool(statusObj);

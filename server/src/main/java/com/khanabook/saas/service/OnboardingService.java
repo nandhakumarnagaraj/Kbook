@@ -93,6 +93,15 @@ public class OnboardingService {
         if (isNotBlank(profile.getGstin()) && isBlank(sm.getGst())) {
             sm.setGst(profile.getGstin());
         }
+        // EaseBuzz compliance: carry FSSAI license into the sub-merchant draft so it
+        // can be transmitted at onboarding (mandatory for food merchants).
+        if (isNotBlank(profile.getFssaiNumber()) && isBlank(sm.getFssaiNumber())) {
+            sm.setFssaiNumber(profile.getFssaiNumber());
+        }
+        if (profile.getFssaiExpiryDate() != null && sm.getFssaiExpiryDate() == null) {
+            sm.setFssaiExpiryDate(profile.getFssaiExpiryDate()
+                .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli());
+        }
         if (isNotBlank(profile.getWhatsappNumber()) && isBlank(sm.getContactPhone())) {
             sm.setContactPhone(profile.getWhatsappNumber());
         }
@@ -114,6 +123,7 @@ public class OnboardingService {
             "businessName", isNotBlank(saved.getBusinessName()),
             "businessAddress", isNotBlank(saved.getBusinessAddress()),
             "gst", isNotBlank(saved.getGst()),
+            "fssaiNumber", isNotBlank(saved.getFssaiNumber()),
             "contactPhone", isNotBlank(saved.getContactPhone()),
             "contactEmail", isNotBlank(saved.getContactEmail())
         ));

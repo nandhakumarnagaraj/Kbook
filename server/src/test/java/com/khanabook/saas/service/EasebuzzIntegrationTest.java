@@ -72,6 +72,9 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         data.put("branchName", "Test Branch");
         data.put("beneficiaryName", "Test Owner");
         data.put("businessAddress", "123 Test St");
+        data.put("state", "Karnataka");
+        data.put("legalEntityName", "Test Restaurant Pvt Ltd");
+        data.put("fssaiNumber", "12345678901234");
         data.put("contactEmail", "test@example.com");
         data.put("contactPhone", "9999999999");
         data.put("commissionRate", "3.0");
@@ -82,7 +85,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         assertEquals("Test Restaurant", sm.getBusinessName());
 
         // 2. Submit to Easebuzz (mock)
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());

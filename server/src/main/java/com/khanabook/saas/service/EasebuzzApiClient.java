@@ -237,17 +237,33 @@ public class EasebuzzApiClient {
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> createSubMerchant(String subMerchantName, String email, String phone,
 			String accountNumber, String ifsc, String bankName, String nameInBank, String branchName,
-			String businessType, String pan, String gst, String businessAddress) {
+			String businessType, String pan, String gst, String businessAddress,
+			String legalEntityName, String state, String fssaiNumber) {
 		checkCredentials();
+
+		// Compliance (EaseBuzz CPV): the business name registered must be the verified
+		// legal entity name matching PAN/GST — a display/trade name causes CPV mismatch.
+		String legalName = (legalEntityName != null && !legalEntityName.isBlank())
+				? legalEntityName : subMerchantName;
+		String sanitizedLegalName = sanitizeName(legalName);
+		String sanitizedDisplayName = sanitizeName(subMerchantName);
+
+		// Do not submit placeholder data to a CPV pipeline — fail fast on missing essentials.
+		if (sanitizedLegalName == null || sanitizedLegalName.isBlank())
+			throw new IllegalArgumentException("Legal entity name is required for sub-merchant onboarding");
+		if (businessAddress == null || businessAddress.isBlank())
+			throw new IllegalArgumentException("Business address is required for sub-merchant onboarding");
+		if (state == null || state.isBlank())
+			throw new IllegalArgumentException("State is required for sub-merchant onboarding");
+
 		String hash = generateHash(props.getMerchantKey(), email != null ? email : "", phone != null ? phone : "");
 		Map<String, Object> merchantDetails = new HashMap<>();
 		merchantDetails.put("merchant_key", props.getMerchantKey());
 		merchantDetails.put("hash", hash);
 
-		String sanitizedName = sanitizeName(subMerchantName);
 		String password = generateRandomPassword();
 		Map<String, Object> submerchantDetails = new HashMap<>();
-		submerchantDetails.put("sub_merchant_name", sanitizedName);
+		submerchantDetails.put("sub_merchant_name", sanitizedDisplayName);
 		submerchantDetails.put("sub_merchant_email", email);
 		submerchantDetails.put("sub_merchant_phone", phone);
 		submerchantDetails.put("sub_merchant_name_in_bank", nameInBank);
@@ -262,18 +278,21 @@ public class EasebuzzApiClient {
 		String nature = "INDIVIDUAL/FREELANCERS";
 		if ("SOLE_PROPRIETORSHIP".equalsIgnoreCase(businessType)) nature = "SOLE PROPRIETOR";
 		else if ("PARTNERSHIP".equalsIgnoreCase(businessType)) nature = "PARTNERSHIP FIRM";
-		else if ("PRIVATE_LIMITED".equalsIgnoreCase(businessType) || "PUBLIC_LIMITED".equalsIgnoreCase(businessType)) 
+		else if ("PRIVATE_LIMITED".equalsIgnoreCase(businessType) || "PUBLIC_LIMITED".equalsIgnoreCase(businessType))
 			nature = "PRIVATE LTD/PUBLIC LTD/OPC";
 
 		businessDetails.put("sub_merchant_business_nature", nature);
 		businessDetails.put("sub_merchant_business_type", businessType != null ? businessType : "SOLE PROPRIETOR");
-		businessDetails.put("sub_merchant_business_name", sanitizedName);
-		businessDetails.put("sub_merchant_business_address", businessAddress != null ? businessAddress : "123 Test Street");
-		businessDetails.put("sub_merchant_state", "Karnataka"); 
+		businessDetails.put("sub_merchant_business_name", sanitizedLegalName);
+		businessDetails.put("sub_merchant_business_address", businessAddress);
+		businessDetails.put("sub_merchant_state", state);
 		businessDetails.put("sub_merchant_mcc_code", "5812");
 
 		if (gst != null && !gst.isBlank()) businessDetails.put("sub_merchant_gstin", gst);
 		if (pan != null && !pan.isBlank()) businessDetails.put("sub_merchant_pan_number", pan);
+		// FSSAI license is mandatory for food merchants per EaseBuzz compliance.
+		if (fssaiNumber != null && !fssaiNumber.isBlank())
+			businessDetails.put("sub_merchant_fssai_number", fssaiNumber);
 
 		Map<String, Object> body = new HashMap<>();
 		body.put("merchant_details", merchantDetails);
