@@ -278,12 +278,6 @@ fun HomeScreen(
                 }
             }
 
-            OperationalPulseStrip(
-                unsyncedCount = unsyncedCount,
-                marketplacePendingCount = marketplacePendingCount,
-                complianceCount = complianceAlerts.size,
-                isOnline = connectionStatus != com.khanabook.lite.pos.domain.util.ConnectionStatus.Unavailable
-            )
 
             val isWideScreen = !KhanaBookTheme.layout.isCompact
 
@@ -702,6 +696,7 @@ fun HomeScreen(
                         marketplacePendingCount = marketplacePendingCount,
                         kdsPendingCount = stats.kdsPendingCount,
                         complianceAlerts = complianceAlerts.filter { it.label !in dismissedAlerts },
+                        isOnline = connectionStatus != com.khanabook.lite.pos.domain.util.ConnectionStatus.Unavailable,
                         onMarketplaceOrders = {
                             showNotificationsSheet = false
                             onMarketplaceOrders()
@@ -1367,8 +1362,7 @@ private fun OperationalPulseStrip(
     val spacing = KhanaBookTheme.spacing
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         PulseTile(
@@ -1435,6 +1429,7 @@ private fun NotificationCenterSheet(
     marketplacePendingCount: Int,
     kdsPendingCount: Int,
     complianceAlerts: List<HomeViewModel.ComplianceAlert>,
+    isOnline: Boolean,
     onMarketplaceOrders: () -> Unit,
     onReprintKds: () -> Unit,
     onOrderStatus: () -> Unit,
@@ -1470,6 +1465,13 @@ private fun NotificationCenterSheet(
                 Text("Close", color = MaterialTheme.kbPrimary)
             }
         }
+
+        OperationalPulseStrip(
+            unsyncedCount = unsyncedCount,
+            marketplacePendingCount = marketplacePendingCount,
+            complianceCount = complianceAlerts.size,
+            isOnline = isOnline
+        )
 
         if (unsyncedCount == 0 && marketplacePendingCount == 0 && kdsPendingCount == 0 && complianceAlerts.isEmpty()) {
             KhanaBookCard(

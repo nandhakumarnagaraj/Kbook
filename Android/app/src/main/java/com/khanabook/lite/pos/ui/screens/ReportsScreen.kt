@@ -3,6 +3,7 @@ package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
@@ -135,7 +136,7 @@ fun ReportsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.kbBgGradient)
+            .background(MaterialTheme.kbBgPrimary)
     ) {
         Column(
             modifier = Modifier
@@ -150,66 +151,79 @@ fun ReportsScreen(
                     .padding(top = 8.dp, bottom = 12.dp)
             ) {
                 AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = spacing.medium),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        KhanaBookBackButton(onClick = onBack)
-                        Text(
-                            text = "Reports",
-                            modifier = Modifier.weight(1f),
-                            color = Color.White,
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            textAlign = TextAlign.Center
-                        )
-                        Surface(
-                            onClick = { showDateRangePicker = true },
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color.White.copy(alpha = 0.15f),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
+                    Column {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing.medium),
+                            contentAlignment = Alignment.CenterStart
                         ) {
+                            KhanaBookBackButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart))
                             Text(
-                                text = timeFilter,
+                                text = "Reports",
+                                modifier = Modifier.align(Alignment.Center),
                                 color = Color.White,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         }
-                    }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(spacing.medium))
+                        Spacer(modifier = Modifier.height(spacing.medium))
 
-            AnimatedContent(
-                targetState = reportType,
-                transitionSpec = {
-                    fadeIn(tween(300)) togetherWith fadeOut(tween(300))
-                },
-                label = "filter_crossfade"
-            ) { _ ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.medium),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                ) {
-                    listOf("Daily", "Weekly", "Monthly", "Custom").forEach { filter ->
-                        FilterChip(
-                            label = filter,
-                            isSelected = timeFilter == filter,
-                            onClick = { 
-                                if (filter == "Custom") {
-                                    showDateRangePicker = true
-                                } else {
-                                    viewModel.setTimeFilter(filter) 
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing.medium)
+                                .background(Color(0xFF0E0822).copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                                .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)), RoundedCornerShape(10.dp))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(4.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                listOf("Daily", "Weekly", "Monthly", "Custom").forEach { title ->
+                                    val isSelected = timeFilter == title
+                                    val containerColor by animateColorAsState(
+                                        targetValue = if (isSelected) KbBrandSaffron else Color.Transparent,
+                                        animationSpec = tween(200),
+                                        label = "chip_container"
+                                    )
+                                    val contentColor by animateColorAsState(
+                                        targetValue = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
+                                        animationSpec = tween(200),
+                                        label = "chip_content"
+                                    )
+                                    val borderColor = if (isSelected) KbBrandSaffron else Color.White.copy(alpha = 0.15f)
+                                    Surface(
+                                        onClick = {
+                                            if (title == "Custom") {
+                                                showDateRangePicker = true
+                                            } else {
+                                                viewModel.setTimeFilter(title)
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f).height(36.dp),
+                                        shape = RoundedCornerShape(18.dp),
+                                        color = containerColor,
+                                        border = if (isSelected) null else BorderStroke(1.dp, borderColor),
+                                        contentColor = contentColor
+                                    ) {
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier.padding(horizontal = 14.dp)
+                                        ) {
+                                            Text(
+                                                text = title,
+                                                style = if (isSelected) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelMedium,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
+                                        }
+                                    }
                                 }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
+                            }
+                        }
                     }
                 }
             }
@@ -315,23 +329,7 @@ fun ReportsScreen(
                 }
             }
 
-            ReportInsightStrip(
-                reportType = reportType,
-                totalSales = totalSales,
-                orderCount = orderCount,
-                cancelRate = cancelRate,
-                activeCount = activeCount,
-                topPaymentMode = topPaymentMode,
-                topPaymentShare = topPaymentShare,
-                paymentModes = paymentModes,
-                modifier = Modifier.padding(horizontal = spacing.medium)
-            )
 
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = spacing.medium),
-                color = MaterialTheme.kbOutlineSubtle,
-                thickness = 1.dp
-            )
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -365,10 +363,6 @@ fun ReportsScreen(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(spacing.small)
                     ) {
-                        OrderStatusHeatmapCard(
-                            orderLevelRows = orderLevelRows,
-                            modifier = Modifier.padding(horizontal = spacing.medium)
-                        )
                         OrderLevelView(orderLevelRows, profile) { billId ->
                             selectedBillId = billId
                             viewModel.loadBillDetails(billId)
@@ -424,93 +418,7 @@ fun ReportsScreen(
 }
 
 
-@Composable
-private fun ReportInsightStrip(
-    reportType: String,
-    totalSales: Double,
-    orderCount: Int,
-    cancelRate: Double,
-    activeCount: Int,
-    topPaymentMode: String,
-    topPaymentShare: Double,
-    paymentModes: List<Pair<String, Double>>,
-    modifier: Modifier = Modifier
-) {
-    val spacing = KhanaBookTheme.spacing
-    val revenuePerOrder = if (orderCount > 0) totalSales / orderCount else 0.0
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(spacing.small)
-        ) {
-            InsightPill(Modifier.weight(1f), "Revenue / order", CurrencyUtils.formatPrice(revenuePerOrder), KbBrandSaffron)
-            InsightPill(Modifier.weight(1f), "Cancellation", "%.1f%%".format(cancelRate), if (cancelRate > 8.0) KbWarning else KbSuccess)
-            InsightPill(
-                Modifier.weight(1f),
-                if (reportType == "Payment") "Top payment" else "Active orders",
-                if (reportType == "Payment") topPaymentMode else activeCount.toString(),
-                if (reportType == "Payment") KbSuccess else KbWarning
-            )
-            InsightPill(
-                Modifier.weight(1f),
-                if (reportType == "Payment") "Mix share" else "Order count",
-                if (reportType == "Payment") "%.0f%%".format(topPaymentShare) else orderCount.toString(),
-                MaterialTheme.kbSecondary
-            )
-        }
 
-        if (reportType == "Payment" && paymentModes.isNotEmpty()) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                items(paymentModes.take(5), key = { it.first }) { (mode, amount) ->
-                    Surface(
-                        shape = RoundedCornerShape(999.dp),
-                        color = KbBrandSaffron.copy(alpha = KbOpacity.StatusBg),
-                        border = BorderStroke(1.dp, KbBrandSaffron.copy(alpha = KbOpacity.StatusBorder))
-                    ) {
-                        Text(
-                            text = "$mode  ${CurrencyUtils.formatPrice(amount)}",
-                            modifier = Modifier.padding(horizontal = spacing.medium, vertical = spacing.small),
-                            color = KbBrandSaffron,
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun InsightPill(
-    modifier: Modifier = Modifier,
-    label: String,
-    value: String,
-    tone: Color
-) {
-    KhanaBookCard(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = label,
-                color = MaterialTheme.kbTextSecondary,
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                maxLines = 1
-            )
-            Text(
-                text = value,
-                color = tone,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                maxLines = 1
-            )
-        }
-    }
-}
 
 @Composable
 private fun PaymentMixSummaryCard(
@@ -547,100 +455,9 @@ private fun PaymentMixSummaryCard(
     }
 }
 
-@Composable
-private fun OrderStatusHeatmapCard(
-    orderLevelRows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>,
-    modifier: Modifier = Modifier
-) {
-    val spacing = KhanaBookTheme.spacing
-    val total = orderLevelRows.size.coerceAtLeast(1)
-    val completed = orderLevelRows.count { it.orderStatus == OrderStatus.COMPLETED }
-    val active = orderLevelRows.count { it.orderStatus == OrderStatus.DRAFT }
-    val cancelled = orderLevelRows.count { it.orderStatus == OrderStatus.CANCELLED }
-    KhanaBookCard(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
-    ) {
-        Column(
-            modifier = Modifier.padding(spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(spacing.small)
-        ) {
-            Text(
-                text = "Status heatmap",
-                color = MaterialTheme.kbSecondary,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(spacing.small), modifier = Modifier.fillMaxWidth()) {
-                HeatTile("Active", active, total, KbWarning, Modifier.weight(1f))
-                HeatTile("Done", completed, total, KbSuccess, Modifier.weight(1f))
-                HeatTile("Cancelled", cancelled, total, KbError, Modifier.weight(1f))
-            }
-        }
-    }
-}
 
-@Composable
-private fun HeatTile(
-    label: String,
-    count: Int,
-    total: Int,
-    tone: Color,
-    modifier: Modifier = Modifier
-) {
-    val fill = if (total > 0) count.toFloat() / total.toFloat() else 0f
-    Column(
-        modifier = modifier
-            .background(tone.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Text(label, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.labelSmall)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .background(MaterialTheme.kbOutlineSubtle, RoundedCornerShape(999.dp))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(fill.coerceIn(0f, 1f))
-                    .background(tone, RoundedCornerShape(999.dp))
-            )
-        }
-        Text(text = count.toString(), color = tone, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-    }
-}
 
-@Composable
-fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val containerColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.kbPrimary else Color.Transparent,
-        animationSpec = tween(200),
-        label = "chip_container"
-    )
-    val contentColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.kbTextOnBrand else MaterialTheme.kbTextPrimary,
-        animationSpec = tween(200),
-        label = "chip_content"
-    )
-    Surface(
-        onClick = onClick,
-        modifier = modifier.height(48.dp),
-        shape = RoundedCornerShape(8.dp),
-        color = containerColor,
-        border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-        contentColor = contentColor
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = label,
-                style = if (isSelected) MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelMedium
-            )
-        }
-    }
-}
+
 
 @Composable
 fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {

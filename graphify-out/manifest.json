@@ -985,8 +985,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/HomeScreen.kt": {
-    "mtime": 1781422983.07667,
-    "ast_hash": "361bdf49bbc6b7ff3dc86d6e923dea76",
+    "mtime": 1781512179.4116638,
+    "ast_hash": "e7957d0c1f37c93b78c2e6c6fc8ef5ea",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/InitialSyncScreen.kt": {
@@ -1040,8 +1040,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/ReportsScreen.kt": {
-    "mtime": 1781510159.8526802,
-    "ast_hash": "0fb270d2e27606ac61f2a64e3d4396ca",
+    "mtime": 1781512725.209413,
+    "ast_hash": "dd9bc1fbddfa4a9a4cdd16e244d5f6a1",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/ReprintKdsScreen.kt": {
