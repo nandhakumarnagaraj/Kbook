@@ -291,7 +291,9 @@ fun LoginScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             KhanaBookPurpleBackground(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(270.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -299,25 +301,25 @@ fun LoginScreen(
                     verticalArrangement = Arrangement.Center,
                     modifier = Modifier
                         .statusBarsPadding()
-                        .padding(vertical = 48.dp)
+                        .padding(top = 8.dp, bottom = 12.dp)
                 ) {
                     // White card containing Logo - expanded and elevated
                     Card(
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        modifier = Modifier.size(110.dp),
+                        modifier = Modifier.size(96.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Image(
                                 painter = painterResource(id = R.drawable.ic_khanabook_logo),
                                 contentDescription = "KhanaBook logo",
-                                modifier = Modifier.size(72.dp)
+                                modifier = Modifier.size(60.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
                         text = "KhanaBook",
@@ -330,7 +332,7 @@ fun LoginScreen(
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
                         text = "Restaurant POS & Management",
@@ -740,11 +742,11 @@ fun ForgotPasswordDialog(
             .imePadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header height 310dp with gradient blobs
+            // Header height 260dp with gradient blobs
             KhanaBookPurpleBackground(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(310.dp)
+                    .height(260.dp)
             ) {
                 // Back Button Box (48dp target, visual 40dp)
                 Box(
@@ -781,20 +783,20 @@ fun ForgotPasswordDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 24.dp),
+                        .padding(bottom = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(110.dp)
+                            .size(90.dp)
                             .background(Color.Transparent, CircleShape)
                             .border(1.dp, KbBrandSaffron.copy(alpha = 0.3f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(90.dp)
+                                .size(74.dp)
                                 .background(Color(0xFF3C1E10), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
@@ -802,21 +804,21 @@ fun ForgotPasswordDialog(
                                 imageVector = if (step == 3) Icons.Default.Lock else Icons.Default.Email,
                                 contentDescription = null,
                                 tint = KbBrandSaffron,
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(32.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
                         text = "Forgot Password?",
                         color = Color.White,
-                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 28.sp),
+                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp),
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
                         text = when (step) {
@@ -825,9 +827,9 @@ fun ForgotPasswordDialog(
                             else -> "Create a new strong password for your account."
                         },
                         color = Color.White.copy(alpha = KbOpacity.Muted),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 20.sp),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, lineHeight = 18.sp),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 32.dp)
+                        modifier = Modifier.padding(horizontal = 24.dp)
                     )
                 }
             }

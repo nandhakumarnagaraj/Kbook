@@ -150,7 +150,9 @@ fun SignUpScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             KhanaBookPurpleBackground(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(270.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -158,24 +160,24 @@ fun SignUpScreen(
                     verticalArrangement = Arrangement.Center,
                     modifier = Modifier
                         .statusBarsPadding()
-                        .padding(vertical = 48.dp)
+                        .padding(top = 8.dp, bottom = 12.dp)
                 ) {
                     Card(
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        modifier = Modifier.size(110.dp),
+                        modifier = Modifier.size(96.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Image(
                                 painter = painterResource(id = R.drawable.khanabook_logo),
                                 contentDescription = "KhanaBook logo",
-                                modifier = Modifier.size(72.dp)
+                                modifier = Modifier.size(60.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
                         text = "KhanaBook",
@@ -188,7 +190,7 @@ fun SignUpScreen(
                         textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
                         text = "Restaurant POS & Management",
