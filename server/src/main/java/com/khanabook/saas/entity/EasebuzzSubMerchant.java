@@ -127,6 +127,21 @@ public class EasebuzzSubMerchant {
     @Column(name = "bank_proof_url", columnDefinition = "TEXT")
     private String bankProofUrl;
 
+    // Business proof documents (EaseBuzz CPV). Proprietorship entities must
+    // provide TWO valid business proofs; other entity types may require them
+    // per risk assessment. Each slot stores the document type + uploaded URL.
+    @Column(name = "business_proof_1_type", length = 100)
+    private String businessProof1Type;
+
+    @Column(name = "business_proof_1_url", columnDefinition = "TEXT")
+    private String businessProof1Url;
+
+    @Column(name = "business_proof_2_type", length = 100)
+    private String businessProof2Type;
+
+    @Column(name = "business_proof_2_url", columnDefinition = "TEXT")
+    private String businessProof2Url;
+
     @Column(name = "easebuzz_response", columnDefinition = "TEXT")
     private String easebuzzResponse;
 

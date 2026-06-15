@@ -123,6 +123,56 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         assertNotNull(active.getKycActivatedAt());
     }
 
+    @Transactional
+    @Test
+    void proprietorshipRequiresTwoBusinessProofsForSubmission() {
+        Map<String, Object> data = baseSubMerchantData();
+        data.put("businessType", "SOLE_PROPRIETORSHIP");
+        EasebuzzSubMerchant sm = subMerchantService.create(data, testRestaurantId);
+
+        // Missing business proofs → submission blocked for proprietorship.
+        com.khanabook.saas.exception.BusinessRuleException ex = assertThrows(
+            com.khanabook.saas.exception.BusinessRuleException.class,
+            () -> subMerchantService.submitToEasebuzz(sm.getId())
+        );
+        assertEquals("BUSINESS_PROOFS_REQUIRED", ex.getRule());
+
+        // Supplying both proofs allows submission to proceed.
+        subMerchantService.update(sm.getId(), Map.of(
+            "businessProof1Type", "GST_CERTIFICATE",
+            "businessProof1Url", "https://docs.kbook.test/proof1.pdf",
+            "businessProof2Type", "UDYAM_CERTIFICATE",
+            "businessProof2Url", "https://docs.kbook.test/proof2.pdf"
+        ));
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
+
+        EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
+        assertEquals("PENDING_KYC", submitted.getStatus());
+    }
+
+    /** Minimal valid create payload (legal name, state, FSSAI all present). */
+    private Map<String, Object> baseSubMerchantData() {
+        Map<String, Object> data = new java.util.HashMap<>();
+        data.put("businessName", "Test Restaurant");
+        data.put("legalEntityName", "Test Restaurant Pvt Ltd");
+        data.put("businessType", "Restaurant");
+        data.put("pan", "ABCDE1234F");
+        data.put("gst", "29ABCDE1234F1Z5");
+        data.put("bankAccountNo", "1234567890");
+        data.put("ifsc", "HDFC0000123");
+        data.put("bankName", "HDFC");
+        data.put("branchName", "Test Branch");
+        data.put("beneficiaryName", "Test Owner");
+        data.put("businessAddress", "123 Test St");
+        data.put("state", "Karnataka");
+        data.put("fssaiNumber", "12345678901234");
+        data.put("contactEmail", "test@example.com");
+        data.put("contactPhone", "9999999999");
+        data.put("commissionRate", "3.0");
+        return data;
+    }
+
     @Test
     void testPaymentInitiationAndWebhook() {
         // Setup active sub-merchant

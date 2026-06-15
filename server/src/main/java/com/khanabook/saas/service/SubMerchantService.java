@@ -70,6 +70,10 @@ public class SubMerchantService {
         sm.setFssaiNumber(str(data.get("fssaiNumber")));
         if (data.get("fssaiExpiryDate") != null)
             sm.setFssaiExpiryDate(Long.parseLong(data.get("fssaiExpiryDate").toString()));
+        sm.setBusinessProof1Type(str(data.get("businessProof1Type")));
+        sm.setBusinessProof1Url(str(data.get("businessProof1Url")));
+        sm.setBusinessProof2Type(str(data.get("businessProof2Type")));
+        sm.setBusinessProof2Url(str(data.get("businessProof2Url")));
         sm.setContactEmail(str(data.get("contactEmail")));
         sm.setContactPhone(str(data.get("contactPhone")));
         Object commissionVal = data.get("commissionRate");
@@ -89,6 +93,14 @@ public class SubMerchantService {
 
     private String str(Object o) {
         return o != null ? o.toString() : null;
+    }
+
+    /** Matches the proprietorship business types EaseBuzz requires two proofs for. */
+    private boolean isProprietorship(String businessType) {
+        if (businessType == null) return false;
+        String t = businessType.trim().toUpperCase().replace(" ", "_");
+        return t.equals("SOLE_PROPRIETORSHIP") || t.equals("PROPRIETORSHIP")
+            || t.equals("SOLE_PROPRIETOR") || t.equals("INDIVIDUAL");
     }
 
     @Transactional
@@ -132,6 +144,10 @@ public class SubMerchantService {
         if (data.containsKey("fssaiNumber")) sm.setFssaiNumber(data.get("fssaiNumber"));
         if (data.containsKey("fssaiExpiryDate") && data.get("fssaiExpiryDate") != null)
             sm.setFssaiExpiryDate(Long.parseLong(data.get("fssaiExpiryDate")));
+        if (data.containsKey("businessProof1Type")) sm.setBusinessProof1Type(data.get("businessProof1Type"));
+        if (data.containsKey("businessProof1Url")) sm.setBusinessProof1Url(data.get("businessProof1Url"));
+        if (data.containsKey("businessProof2Type")) sm.setBusinessProof2Type(data.get("businessProof2Type"));
+        if (data.containsKey("businessProof2Url")) sm.setBusinessProof2Url(data.get("businessProof2Url"));
         if (data.containsKey("contactEmail")) sm.setContactEmail(data.get("contactEmail"));
         if (data.containsKey("contactPhone")) sm.setContactPhone(data.get("contactPhone"));
         if (data.containsKey("commissionRate") && data.get("commissionRate") != null)
@@ -412,6 +428,17 @@ public class SubMerchantService {
                 "A valid FSSAI license number is required before onboarding to EaseBuzz.",
                 "FSSAI_REQUIRED"
             );
+        }
+        // EaseBuzz CPV: proprietorship entities must provide two valid business proofs.
+        if (isProprietorship(sm.getBusinessType())) {
+            boolean proof1 = sm.getBusinessProof1Url() != null && !sm.getBusinessProof1Url().isBlank();
+            boolean proof2 = sm.getBusinessProof2Url() != null && !sm.getBusinessProof2Url().isBlank();
+            if (!proof1 || !proof2) {
+                throw new BusinessRuleException(
+                    "Proprietorship entities require two valid business proof documents for CPV.",
+                    "BUSINESS_PROOFS_REQUIRED"
+                );
+            }
         }
         Map<String, Object> result = easebuzzApi.createSubMerchant(
             sm.getBusinessName(), sm.getContactEmail(), sm.getContactPhone(),
