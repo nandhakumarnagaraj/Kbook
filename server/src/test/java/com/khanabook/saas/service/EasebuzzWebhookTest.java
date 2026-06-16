@@ -31,6 +31,7 @@ class EasebuzzWebhookTest {
     @Mock private PostSplitService postSplitService;
     @Mock private SubMerchantService subMerchantService;
     @Mock private EasebuzzPayoutRepository payoutRepo;
+    @Mock private PushNotificationService pushNotificationService;
 
     @InjectMocks
     private EasebuzzWebhookService webhookService;

@@ -226,7 +226,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
             .thenReturn(Map.of("status", "success", "easebuzz_id", "E250TEST123"));
 
         // Mock refund
-        when(easebuzzApi.initiateRefund(any(), any()))
+        when(easebuzzApi.initiateRefund(any(), any(), any()))
             .thenReturn(Map.of(
                 "status", true,
                 "msg", Map.of("refund_id", "REFTEST123", "status", "initiated")

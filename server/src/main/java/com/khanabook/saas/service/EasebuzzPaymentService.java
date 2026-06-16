@@ -93,11 +93,13 @@ public class EasebuzzPaymentService {
         try {
             EasebuzzSubMerchant sm = subMerchantService.getByRestaurantId(restaurantId);
             boolean subMerchantActive = "ACTIVE".equals(sm.getStatus());
-            if (subMerchantActive && sm.getSubMerchantId() != null) {
-                data.put("sub_merchant_id", sm.getSubMerchantId());
-                log.info("Using sub-merchant for payment: {}", sm.getSubMerchantId());
+            boolean isTestMode = "test".equalsIgnoreCase(props.getPayMode());
+            String subMerchantId = sm.getSubMerchantId();
+            if (subMerchantId != null && !subMerchantId.isBlank() && (subMerchantActive || isTestMode)) {
+                data.put("sub_merchant_id", subMerchantId);
+                log.info("Using sub-merchant for payment: {} (active={}, testMode={})", subMerchantId, subMerchantActive, isTestMode);
             } else {
-                log.warn("Sub-merchant not ACTIVE (status={}), processing as parent merchant", sm.getStatus());
+                log.warn("Sub-merchant not active or missing ID (status={}, id={}), processing as parent merchant", sm.getStatus(), subMerchantId);
             }
             if (sm.getContactEmail() != null) {
                 data.put("email", sm.getContactEmail());
