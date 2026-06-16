@@ -92,17 +92,18 @@ public class EasebuzzPaymentService {
         // Look up sub-merchant — use its ID and contact info if available
         try {
             EasebuzzSubMerchant sm = subMerchantService.getByRestaurantId(restaurantId);
-            if (sm.getSubMerchantId() != null) {
+            boolean subMerchantActive = "ACTIVE".equals(sm.getStatus());
+            if (subMerchantActive && sm.getSubMerchantId() != null) {
                 data.put("sub_merchant_id", sm.getSubMerchantId());
+                log.info("Using sub-merchant for payment: {}", sm.getSubMerchantId());
+            } else {
+                log.warn("Sub-merchant not ACTIVE (status={}), processing as parent merchant", sm.getStatus());
             }
             if (sm.getContactEmail() != null) {
                 data.put("email", sm.getContactEmail());
             }
             if (phone.isBlank() && sm.getContactPhone() != null) {
                 phone = sm.getContactPhone();
-            }
-            if (!"ACTIVE".equals(sm.getStatus())) {
-                log.warn("Sub-merchant status is {}, proceeding with subMerchantId={}", sm.getStatus(), sm.getSubMerchantId());
             }
         } catch (RuntimeException e) {
             log.info("No sub-merchant configured for restaurant {}, proceeding as parent-merchant payment", restaurantId);
