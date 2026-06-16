@@ -50,6 +50,38 @@ class EasebuzzPaymentRepository(
             deviceId = sessionManager.getDeviceId()
         )
 
+    suspend fun onboardSubMerchant(
+        request: com.khanabook.lite.pos.data.remote.dto.EasebuzzOnboardRequest
+    ): com.khanabook.lite.pos.data.remote.dto.EasebuzzSubMerchantActionResponse =
+        api.onboardEasebuzzSubMerchant(
+            deviceId = sessionManager.getDeviceId(),
+            request = request
+        )
+
+    suspend fun resubmitSubMerchant(
+        request: com.khanabook.lite.pos.data.remote.dto.EasebuzzOnboardRequest
+    ): com.khanabook.lite.pos.data.remote.dto.EasebuzzSubMerchantActionResponse =
+        api.resubmitEasebuzzSubMerchant(
+            deviceId = sessionManager.getDeviceId(),
+            request = request
+        )
+
+    suspend fun generateKycAccessKey(): com.khanabook.lite.pos.data.remote.dto.EasebuzzKycAccessKeyResponse =
+        api.generateEasebuzzKycAccessKey(
+            deviceId = sessionManager.getDeviceId()
+        )
+
+    suspend fun verifyKycOtp(otp: String): com.khanabook.lite.pos.data.remote.dto.EasebuzzOtpResponse =
+        api.verifyEasebuzzKycOtp(
+            deviceId = sessionManager.getDeviceId(),
+            request = com.khanabook.lite.pos.data.remote.dto.EasebuzzOtpRequest(otp = otp)
+        )
+
+    suspend fun resendKycOtp(): com.khanabook.lite.pos.data.remote.dto.EasebuzzOtpResponse =
+        api.resendEasebuzzKycOtp(
+            deviceId = sessionManager.getDeviceId()
+        )
+
     suspend fun refund(
         localBillId: Long,
         amount: java.math.BigDecimal,

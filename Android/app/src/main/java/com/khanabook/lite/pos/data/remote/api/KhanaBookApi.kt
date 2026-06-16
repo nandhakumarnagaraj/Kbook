@@ -155,6 +155,35 @@ interface KhanaBookApi {
             @Query("deviceId") deviceId: String
         ): EasebuzzSubMerchantStatusResponse
 
+        // ── Easebuzz Sub-Merchant Onboarding (owner-driven) ──────────────────
+        @POST("api/v2/restaurants/payment-config/easebuzz/onboard")
+        suspend fun onboardEasebuzzSubMerchant(
+            @Query("deviceId") deviceId: String,
+            @Body request: EasebuzzOnboardRequest
+        ): EasebuzzSubMerchantActionResponse
+
+        @POST("api/v2/restaurants/payment-config/easebuzz/resubmit")
+        suspend fun resubmitEasebuzzSubMerchant(
+            @Query("deviceId") deviceId: String,
+            @Body request: EasebuzzOnboardRequest
+        ): EasebuzzSubMerchantActionResponse
+
+        @POST("api/v2/restaurants/payment-config/easebuzz/kyc-access-key")
+        suspend fun generateEasebuzzKycAccessKey(
+            @Query("deviceId") deviceId: String
+        ): EasebuzzKycAccessKeyResponse
+
+        @POST("api/v2/restaurants/payment-config/easebuzz/verify-otp")
+        suspend fun verifyEasebuzzKycOtp(
+            @Query("deviceId") deviceId: String,
+            @Body request: EasebuzzOtpRequest
+        ): EasebuzzOtpResponse
+
+        @POST("api/v2/restaurants/payment-config/easebuzz/resend-otp")
+        suspend fun resendEasebuzzKycOtp(
+            @Query("deviceId") deviceId: String
+        ): EasebuzzOtpResponse
+
         // ── GST / FSSAI Lookup ───────────────────────────────────────────────
         @GET("api/v2/business/lookup/gst")
         suspend fun lookupGst(@Query("gstin") gstin: String): Map<String, Any>

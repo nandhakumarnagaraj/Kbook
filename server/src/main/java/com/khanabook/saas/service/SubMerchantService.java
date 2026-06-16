@@ -315,6 +315,62 @@ public class SubMerchantService {
         return easebuzzApi.resendOtp(sm.getSubMerchantId());
     }
 
+    // ============================================================
+    // Owner-driven (POS app) onboarding orchestration.
+    // Tenant-scoped: the controller resolves restaurantId from TenantContext,
+    // so a restaurant owner can only ever act on their own sub-merchant.
+    // ============================================================
+
+    /**
+     * Onboard the restaurant's sub-merchant directly from the POS app: create a draft if none
+     * exists, apply the submitted details, then submit to EaseBuzz. Skips the local business-proof
+     * gate because documents are uploaded later on EaseBuzz's hosted KYC portal (no document API).
+     * Only valid when nothing has been submitted yet (no record, or DRAFT/FAILED). After a rejection
+     * the owner uses {@link #resubmitForRestaurant} instead.
+     */
+    @Transactional
+    public EasebuzzSubMerchant onboardForRestaurant(Long restaurantId, Map<String, Object> data) {
+        EasebuzzSubMerchant existing = subMerchantRepo.findByRestaurantId(restaurantId).orElse(null);
+        EasebuzzSubMerchant sm;
+        if (existing != null) {
+            String status = existing.getStatus();
+            if (!"DRAFT".equals(status) && !"FAILED".equals(status)) {
+                throw new BusinessRuleException(
+                    "Onboarding already submitted (status " + status + "). Use resubmit to update details.",
+                    "ONBOARDING_ALREADY_SUBMITTED"
+                );
+            }
+            sm = update(existing.getId(), toStringMap(data));
+        } else {
+            sm = create(data, restaurantId);
+        }
+        return submitToEasebuzz(sm.getId(), false);
+    }
+
+    /**
+     * Push corrected details to EaseBuzz after a KYC rejection, from the POS app.
+     * The local status stays REJECTED until EaseBuzz re-reviews and sends a new KYC webhook.
+     */
+    @Transactional
+    public EasebuzzSubMerchant resubmitForRestaurant(Long restaurantId, Map<String, Object> data) {
+        EasebuzzSubMerchant sm = getByRestaurantId(restaurantId);
+        update(sm.getId(), toStringMap(data));
+        return updateOnEasebuzz(sm.getId());
+    }
+
+    private Map<String, String> toStringMap(Map<String, Object> data) {
+        Map<String, String> out = new java.util.HashMap<>();
+        for (Map.Entry<String, Object> e : data.entrySet()) {
+            out.put(e.getKey(), e.getValue() != null ? e.getValue().toString() : null);
+        }
+        return out;
+    }
+
+    /** Resolve the tenant's sub-merchant DB id, or throw if none exists yet. */
+    public Long requireSubMerchantIdForRestaurant(Long restaurantId) {
+        return getByRestaurantId(restaurantId).getId();
+    }
+
     public Map<String, Object> initiateOnDemandSettlement(String amount) {
         String requestId = "SETTLE_" + System.currentTimeMillis();
         return easebuzzApi.initiateOnDemandSettlement(requestId, amount);
@@ -421,6 +477,20 @@ public class SubMerchantService {
 
     @Transactional
     public EasebuzzSubMerchant submitToEasebuzz(Long id) {
+        return submitToEasebuzz(id, true);
+    }
+
+    /**
+     * Submit a sub-merchant to EaseBuzz.
+     *
+     * @param requireBusinessProofs when true (admin/web flow) proprietorships must already have two
+     *        business-proof document URLs stored locally before submission. The owner-driven POS flow
+     *        passes false: EaseBuzz has no document-ingest API, so KYC documents (including the two
+     *        proprietorship proofs) are uploaded later on EaseBuzz's hosted KYC portal, not stored here.
+     *        The FSSAI license number is always required because it is submitted as text via the API.
+     */
+    @Transactional
+    public EasebuzzSubMerchant submitToEasebuzz(Long id, boolean requireBusinessProofs) {
         EasebuzzSubMerchant sm = getById(id);
         // EaseBuzz compliance: a valid FSSAI license is mandatory for food merchants.
         if (sm.getFssaiNumber() == null || sm.getFssaiNumber().isBlank()) {
@@ -430,7 +500,7 @@ public class SubMerchantService {
             );
         }
         // EaseBuzz CPV: proprietorship entities must provide two valid business proofs.
-        if (isProprietorship(sm.getBusinessType())) {
+        if (requireBusinessProofs && isProprietorship(sm.getBusinessType())) {
             boolean proof1 = sm.getBusinessProof1Url() != null && !sm.getBusinessProof1Url().isBlank();
             boolean proof2 = sm.getBusinessProof2Url() != null && !sm.getBusinessProof2Url().isBlank();
             if (!proof1 || !proof2) {

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -76,7 +75,7 @@ fun NotificationBellIcon(
 
 /**
  * Single notification row — displays icon, title, message, time, and read/unread state.
- * Matches Easebuzz ePOS notification drawer style with saffron accent.
+ * Matches Easebuzz ePOS notification drawer style with purple brand accent.
  */
 @Composable
 fun NotificationRow(
@@ -84,12 +83,14 @@ fun NotificationRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Semantic colors mapped to Easebuzz ePOS status palette:
+    // settlement → blue (#1890ff), success → green, refund/cancel → red, kyc → violet, brand → purple (#6D44E5)
     val (icon, iconColor) = when (notification.notificationType) {
         "payment_received" -> Icons.Default.Payment to KbSuccess
-        "refund" -> Icons.Default.Replay to KbBrandSaffron
+        "refund" -> Icons.Default.Replay to KbAccentRed
         "kyc" -> Icons.Default.VerifiedUser to KbAccentViolet
-        "settlement" -> Icons.Default.AccountBalance to KbAccentEmerald
-        else -> Icons.Default.Notifications to KbAccentBlue
+        "settlement" -> Icons.Default.AccountBalance to KbAccentBlue
+        else -> Icons.Default.Notifications to KbAccentPurple
     }
 
     val timeText = remember(notification.createdAt) {
@@ -101,7 +102,7 @@ fun NotificationRow(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         color = if (!notification.isRead)
-            KbBrandSaffron.copy(alpha = 0.06f)
+            KbAccentPurple.copy(alpha = 0.06f)
         else
             Color.Transparent,
         shape = KbShape.Small
@@ -141,8 +142,7 @@ fun NotificationRow(
                         else
                             MaterialTheme.kbTextPrimary,
                         style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = if (notification.isRead) FontWeight.Normal else FontWeight.SemiBold,
-                            fontSize = 13.sp
+                            fontWeight = if (notification.isRead) FontWeight.Normal else FontWeight.SemiBold
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -153,7 +153,7 @@ fun NotificationRow(
                         Box(
                             modifier = Modifier
                                 .size(8.dp)
-                                .background(KbBrandSaffron, CircleShape)
+                                .background(KbAccentPurple, CircleShape)
                         )
                     }
                 }
@@ -164,7 +164,7 @@ fun NotificationRow(
                     Text(
                         text = msg,
                         color = MaterialTheme.kbTextSecondary,
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                        style = MaterialTheme.typography.bodySmall,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -184,20 +184,19 @@ fun NotificationRow(
                     Text(
                         text = timeText,
                         color = MaterialTheme.kbTextTertiary,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+                        style = MaterialTheme.typography.labelSmall
                     )
 
                     notification.amount?.let { amt ->
                         Spacer(modifier = Modifier.width(4.dp))
                         Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = KbBrandSaffron.copy(alpha = 0.1f)
+                            shape = KbShape.ExtraSmall,
+                            color = KbSuccess.copy(alpha = 0.1f)
                         ) {
                             Text(
                                 text = "₹$amt",
-                                color = KbBrandSaffron,
+                                color = KbSuccess,
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 ),
                                 modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
@@ -245,7 +244,7 @@ fun NotificationListPanel(
                 if (unreadCount > 0) {
                     Text(
                         text = "$unreadCount unread",
-                        color = KbBrandSaffron,
+                        color = KbAccentPurple,
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
                     )
                 }
@@ -253,7 +252,7 @@ fun NotificationListPanel(
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (unreadCount > 0) {
                     TextButton(onClick = onMarkAllRead) {
-                        Text("Mark all read", color = KbBrandSaffron)
+                        Text("Mark all read", color = KbAccentPurple)
                     }
                 }
                 TextButton(onClick = onDismiss) {

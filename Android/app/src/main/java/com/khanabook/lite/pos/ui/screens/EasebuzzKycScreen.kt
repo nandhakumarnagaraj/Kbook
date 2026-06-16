@@ -94,7 +94,9 @@ private data class KycStep(
 @Composable
 fun EasebuzzKycScreen(
     paymentRepository: EasebuzzPaymentRepository,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onStartOnboarding: () -> Unit = {},
+    onResubmit: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -104,15 +106,44 @@ fun EasebuzzKycScreen(
     var subMerchantStatus by remember { mutableStateOf<EasebuzzSubMerchantStatusResponse?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(Unit) {
+    // Owner KYC actions (portal + OTP)
+    var otp by remember { mutableStateOf("") }
+    var actionBusy by remember { mutableStateOf(false) }
+    var actionMessage by remember { mutableStateOf<String?>(null) }
+
+    suspend fun refreshStatus() {
         try {
+            isLoading = true
             subMerchantStatus = paymentRepository.getSubMerchantStatus()
-            isLoading = false
+            errorMessage = null
         } catch (e: Exception) {
             errorMessage = e.message ?: "Failed to load KYC status"
+        } finally {
             isLoading = false
         }
     }
+
+    fun openKycPortal(existingUrl: String?) {
+        scope.launch {
+            try {
+                actionBusy = true
+                actionMessage = null
+                val url = existingUrl?.takeIf { it.isNotBlank() }
+                    ?: paymentRepository.generateKycAccessKey().kycUrl
+                if (url.isNullOrBlank()) {
+                    actionMessage = "Could not get a KYC link. Try Refresh and retry."
+                } else {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                }
+            } catch (e: Exception) {
+                actionMessage = e.message ?: "Failed to open KYC portal"
+            } finally {
+                actionBusy = false
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) { refreshStatus() }
 
     val steps = remember(subMerchantStatus) {
         val s = subMerchantStatus
@@ -194,60 +225,140 @@ fun EasebuzzKycScreen(
 
                 Spacer(modifier = Modifier.height(spacing.mediumLarge))
 
-                val activeStep = steps.indexOfFirst { it.state == KycStepState.ACTIVE }
-                    .coerceAtLeast(0)
+                val state = status.status.uppercase().replace(" ", "_")
 
-                KycDocumentUploadArea(
-                    stepNumber = activeStep + 1,
-                    stepLabel = steps.getOrNull(activeStep)?.label?.replace("\n", " ") ?: "Document",
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(spacing.mediumLarge))
-
-                if (status.kycUrl != null) {
-                    Button(
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(status.kycUrl))
-                            context.startActivity(intent)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary),
-                        shape = KbShape.Medium
-                    ) {
+                KhanaBookCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+                    shape = KbShape.Large
+                ) {
+                    Column(modifier = Modifier.padding(spacing.medium)) {
                         Text(
-                            "Next",
-                            color = MaterialTheme.kbTextOnBrand,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
+                            text = "Status: " + kycStatusLabel(state),
+                            color = MaterialTheme.kbTextPrimary,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        if (!status.subMerchantId.isNullOrBlank()) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "Sub-merchant ID: ${status.subMerchantId}",
+                                color = MaterialTheme.kbTextSecondary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = kycStatusHint(state),
+                            color = MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
 
-                if (status.status.lowercase() == "pending kyc" || status.status.lowercase() == "rejected") {
+                Spacer(modifier = Modifier.height(spacing.mediumLarge))
+
+                actionMessage?.let {
+                    Text(it, color = MaterialTheme.kbSecondary, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.height(spacing.small))
+                }
+
+                when {
+                    !status.hasSubMerchant || state == "NOT_REGISTERED" || state == "NOT_STARTED" ||
+                        state == "DRAFT" || state == "FAILED" -> {
+                        BrandButton("Start Onboarding", onClick = onStartOnboarding)
+                    }
+
+                    status.isActive || state == "ACTIVE" -> {
+                        Text(
+                            "Your KYC is verified — online payments are active.",
+                            color = KbSuccess,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    state == "REJECTED" -> {
+                        BrandButton("Update & Resubmit Details", onClick = onResubmit)
+                        Spacer(Modifier.height(spacing.small))
+                        OutlinedButton(
+                            onClick = { openKycPortal(status.kycUrl) },
+                            enabled = !actionBusy,
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = KbShape.Medium
+                        ) { Text("Open KYC Portal", color = MaterialTheme.kbSecondary) }
+                    }
+
+                    state == "KYC_SUBMITTED" -> {
+                        Text(
+                            "Documents submitted. Easebuzz is reviewing — this can take a little while.",
+                            color = MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    else -> { // PENDING_KYC
+                        BrandButton(
+                            if (actionBusy) "Opening…" else "Open KYC Portal",
+                            enabled = !actionBusy,
+                            onClick = { openKycPortal(status.kycUrl) }
+                        )
+                        Spacer(Modifier.height(spacing.medium))
+                        // OTP step — LIVE only (Easebuzz sandbox does not issue onboarding OTPs)
+                        com.khanabook.lite.pos.ui.designsystem.KhanaBookInputField(
+                            value = otp,
+                            onValueChange = { otp = it },
+                            label = "Onboarding OTP",
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                            )
+                        )
+                        Spacer(Modifier.height(spacing.small))
+                        Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        try {
+                                            actionBusy = true; actionMessage = null
+                                            val r = paymentRepository.verifyKycOtp(otp.trim())
+                                            actionMessage = r.msg ?: r.error ?: "OTP submitted"
+                                            refreshStatus()
+                                        } catch (e: Exception) {
+                                            actionMessage = e.message ?: "OTP verification failed"
+                                        } finally { actionBusy = false }
+                                    }
+                                },
+                                enabled = !actionBusy && otp.isNotBlank(),
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                shape = KbShape.Medium,
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary)
+                            ) { Text("Verify OTP", color = MaterialTheme.kbTextOnBrand) }
+                            OutlinedButton(
+                                onClick = {
+                                    scope.launch {
+                                        try {
+                                            actionBusy = true; actionMessage = null
+                                            val r = paymentRepository.resendKycOtp()
+                                            actionMessage = r.msg ?: r.error ?: "OTP resent"
+                                        } catch (e: Exception) {
+                                            actionMessage = e.message ?: "Could not resend OTP"
+                                        } finally { actionBusy = false }
+                                    }
+                                },
+                                enabled = !actionBusy,
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                shape = KbShape.Medium
+                            ) { Text("Resend", color = MaterialTheme.kbSecondary) }
+                        }
+                    }
+                }
+
+                if (!status.isActive) {
                     Spacer(modifier = Modifier.height(spacing.small))
                     OutlinedButton(
-                        onClick = {
-                            scope.launch {
-                                try {
-                                    isLoading = true
-                                    subMerchantStatus = paymentRepository.getSubMerchantStatus()
-                                    isLoading = false
-                                } catch (e: Exception) {
-                                    errorMessage = e.message
-                                    isLoading = false
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
+                        onClick = { scope.launch { refreshStatus() } },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = KbShape.Medium
-                    ) {
-                        Text("Refresh Status", color = MaterialTheme.kbSecondary)
-                    }
+                    ) { Text("Refresh Status", color = MaterialTheme.kbSecondary) }
                 }
 
                 Spacer(modifier = Modifier.height(spacing.medium))
@@ -492,4 +603,41 @@ private fun KycDocumentUploadArea(
             }
         }
     }
+}
+
+@Composable
+private fun BrandButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        shape = KbShape.Medium,
+        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron)
+    ) {
+        Text(text, color = Color.White, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+private fun kycStatusLabel(state: String): String = when (state) {
+    "ACTIVE" -> "Verified"
+    "PENDING_KYC" -> "Pending KYC"
+    "KYC_SUBMITTED" -> "Under review"
+    "REJECTED" -> "Rejected"
+    "FAILED" -> "Submission failed"
+    "DRAFT" -> "Draft"
+    "NOT_REGISTERED", "NOT_STARTED" -> "Not started"
+    else -> state
+}
+
+private fun kycStatusHint(state: String): String = when (state) {
+    "ACTIVE" -> "You can accept online payments."
+    "PENDING_KYC" -> "Open the Easebuzz portal to upload your documents."
+    "KYC_SUBMITTED" -> "Easebuzz is reviewing your documents."
+    "REJECTED" -> "Your KYC was rejected. Update your details and resubmit."
+    "FAILED" -> "Onboarding submission failed. Review details and try again."
+    "DRAFT" -> "Finish onboarding to submit to Easebuzz."
+    "NOT_REGISTERED", "NOT_STARTED" -> "Start onboarding to register as an Easebuzz sub-merchant."
+    else -> ""
 }

@@ -68,12 +68,14 @@ fun HomeScreen(
     onCallCustomer: () -> Unit,
     onMarketplaceOrders: () -> Unit = {},
     onMenuClick: () -> Unit = {},
+    onNotifications: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel(),
     notificationViewModel: NotificationViewModel = hiltViewModel()
 ) {
     val pageBg = KbMidnightBase
     val spacing = KhanaBookTheme.spacing
+    val layoutDensity = KhanaBookTheme.density
     val haptic = LocalHapticFeedback.current
 
     val stats by viewModel.todayStats.collectAsState()
@@ -88,7 +90,6 @@ fun HomeScreen(
     val statsReady by viewModel.statsReady.collectAsState()
     val pushNotifications by notificationViewModel.notifications.collectAsState()
     val pushUnreadCount by notificationViewModel.unreadCount.collectAsState()
-    var showNotificationsSheet by remember { mutableStateOf(false) }
     // Combined notification count: push notifications + operational alerts
     val notificationCount = remember(
         unsyncedCount,
@@ -218,7 +219,7 @@ fun HomeScreen(
                                         unreadCount = notificationCount,
                                         onClick = {
                                             notificationViewModel.refreshFromServer()
-                                            showNotificationsSheet = true
+                                            onNotifications()
                                         }
                                     )
                                 }
@@ -424,52 +425,13 @@ fun HomeScreen(
                                 )
                             }
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                HomeActionGridCard(
-                                    text = "Find Bill",
-                                    icon = Icons.Default.Search,
-                                    borderColor = KbAccentVioletBorder,
-                                    iconColor = KbAccentViolet,
-                                    iconBgColor = KbAccentVioletSurface,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = onSearchBill
-                                )
-                                HomeActionGridCard(
-                                    text = "Reprint KDS",
-                                    icon = Icons.Default.Print,
-                                    borderColor = KbAccentEmeraldBorder,
-                                    iconColor = KbAccentEmerald,
-                                    iconBgColor = KbAccentEmeraldSurface,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = onReprintKds
-                                )
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                HomeActionGridCard(
-                                    text = "Order Status",
-                                    icon = Icons.Default.AccessTime,
-                                    borderColor = KbAccentBlueBorder,
-                                    iconColor = KbAccentBlueBright,
-                                    iconBgColor = KbAccentBlueSurface,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = onOrderStatus
-                                )
-                                HomeActionGridCard(
-                                    text = "Call Customers",
-                                    icon = Icons.Default.Call,
-                                    borderColor = KbAccentRedBorder,
-                                    iconColor = KbAccentRed,
-                                    iconBgColor = KbAccentRedSurface,
-                                    modifier = Modifier.weight(1f),
-                                    onClick = onCallCustomer
-                                )
-                            }
+                            HomeSecondaryActions(
+                                density = layoutDensity,
+                                onSearchBill = onSearchBill,
+                                onReprintKds = onReprintKds,
+                                onOrderStatus = onOrderStatus,
+                                onCallCustomer = onCallCustomer
+                            )
                         }
                     }
                 }
@@ -620,52 +582,13 @@ fun HomeScreen(
                             )
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            HomeActionGridCard(
-                                text = "Find Bill",
-                                icon = Icons.Default.Search,
-                                borderColor = KbAccentVioletBorder,
-                                iconColor = KbAccentViolet,
-                                iconBgColor = KbAccentVioletSurface,
-                                modifier = Modifier.weight(1f),
-                                onClick = onSearchBill
-                            )
-                            HomeActionGridCard(
-                                text = "Reprint KDS",
-                                icon = Icons.Default.Print,
-                                borderColor = KbAccentEmeraldBorder,
-                                iconColor = KbAccentEmerald,
-                                iconBgColor = KbAccentEmeraldSurface,
-                                modifier = Modifier.weight(1f),
-                                onClick = onReprintKds
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            HomeActionGridCard(
-                                text = "Order Status",
-                                icon = Icons.Default.AccessTime,
-                                borderColor = KbAccentBlueBorder,
-                                iconColor = KbAccentBlueBright,
-                                iconBgColor = KbAccentBlueSurface,
-                                modifier = Modifier.weight(1f),
-                                onClick = onOrderStatus
-                            )
-                            HomeActionGridCard(
-                                text = "Call Customers",
-                                icon = Icons.Default.Call,
-                                borderColor = KbAccentRedBorder,
-                                iconColor = KbAccentRed,
-                                iconBgColor = KbAccentRedSurface,
-                                modifier = Modifier.weight(1f),
-                                onClick = onCallCustomer
-                            )
-                        }
+                        HomeSecondaryActions(
+                            density = layoutDensity,
+                            onSearchBill = onSearchBill,
+                            onReprintKds = onReprintKds,
+                            onOrderStatus = onOrderStatus,
+                            onCallCustomer = onCallCustomer
+                        )
                     }
                 }
             }
@@ -673,49 +596,46 @@ fun HomeScreen(
             RestaurantStatusBanner(stats = stats, lastOrderTime = stats.lastOrderTime)
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
 
-            if (showNotificationsSheet) {
-                val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-                ModalBottomSheet(
-                    onDismissRequest = { showNotificationsSheet = false },
-                    sheetState = sheetState,
-                    containerColor = MaterialTheme.kbBgCard
+/**
+ * The four secondary actions (Find Bill, Reprint KDS, Order Status, Call Customers).
+ *
+ * Layout follows the user's Layout Density setting (Settings → Display):
+ *  - "horizontal" → each card on its own full-width line, stacked vertically
+ *  - otherwise     → the standard 2×2 grid
+ */
+@Composable
+private fun HomeSecondaryActions(
+    density: String,
+    onSearchBill: () -> Unit,
+    onReprintKds: () -> Unit,
+    onOrderStatus: () -> Unit,
+    onCallCustomer: () -> Unit
+) {
+    val cards: List<@Composable (Modifier) -> Unit> = listOf(
+        { m -> HomeActionGridCard("Find Bill", Icons.Default.Search, KbAccentVioletBorder, KbAccentViolet, KbAccentVioletSurface, m, onSearchBill) },
+        { m -> HomeActionGridCard("Reprint KDS", Icons.Default.Print, KbAccentEmeraldBorder, KbAccentEmerald, KbAccentEmeraldSurface, m, onReprintKds) },
+        { m -> HomeActionGridCard("Order Status", Icons.Default.AccessTime, KbAccentBlueBorder, KbAccentBlueBright, KbAccentBlueSurface, m, onOrderStatus) },
+        { m -> HomeActionGridCard("Call Customers", Icons.Default.Call, KbAccentRedBorder, KbAccentRed, KbAccentRedSurface, m, onCallCustomer) }
+    )
+
+    if (density == "horizontal") {
+        // One card per line, full width.
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            cards.forEach { card -> card(Modifier.fillMaxWidth()) }
+        }
+    } else {
+        // Standard 2×2 grid.
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            cards.chunked(2).forEach { rowCards ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    NotificationCenterSheet(
-                        unsyncedCount = unsyncedCount,
-                        marketplacePendingCount = marketplacePendingCount,
-                        kdsPendingCount = stats.kdsPendingCount,
-                        complianceAlerts = complianceAlerts.filter { it.label !in dismissedAlerts },
-                        isOnline = connectionStatus != com.khanabook.lite.pos.domain.util.ConnectionStatus.Unavailable,
-                        pushNotifications = pushNotifications,
-                        pushUnreadCount = pushUnreadCount,
-                        onNotificationClick = { notif ->
-                            notificationViewModel.markAsRead(notif.id)
-                        },
-                        onMarkAllNotificationsRead = {
-                            notificationViewModel.markAllAsRead()
-                        },
-                        onRefreshNotifications = {
-                            notificationViewModel.refreshFromServer()
-                        },
-                        onMarketplaceOrders = {
-                            showNotificationsSheet = false
-                            onMarketplaceOrders()
-                        },
-                        onReprintKds = {
-                            showNotificationsSheet = false
-                            onReprintKds()
-                        },
-                        onOrderStatus = {
-                            showNotificationsSheet = false
-                            onOrderStatus()
-                        },
-                        onNewBill = {
-                            showNotificationsSheet = false
-                            onNewBill()
-                        },
-                        onDismiss = { showNotificationsSheet = false }
-                    )
+                    rowCards.forEach { card -> card(Modifier.weight(1f)) }
                 }
             }
         }
@@ -1425,7 +1345,7 @@ private fun PulseTile(
 }
 
 @Composable
-private fun NotificationCenterSheet(
+internal fun NotificationCenterSheet(
     unsyncedCount: Int,
     marketplacePendingCount: Int,
     kdsPendingCount: Int,
@@ -1440,7 +1360,10 @@ private fun NotificationCenterSheet(
     onReprintKds: () -> Unit,
     onOrderStatus: () -> Unit,
     onNewBill: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    // When rendered as a full screen, the host provides its own top bar, so the
+    // sheet's internal title/close header is suppressed.
+    showHeader: Boolean = true
 ) {
     val spacing = KhanaBookTheme.spacing
     Column(
@@ -1450,31 +1373,33 @@ private fun NotificationCenterSheet(
             .padding(horizontal = spacing.medium, vertical = spacing.small),
         verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Notifications",
-                    color = MaterialTheme.kbTextPrimary,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                )
-                Text(
-                    text = if (pushUnreadCount > 0) "$pushUnreadCount unread push notifications" else "Operational alerts and shortcuts",
-                    color = MaterialTheme.kbTextSecondary,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (pushUnreadCount > 0) {
-                    TextButton(onClick = onMarkAllNotificationsRead) {
-                        Text("Mark all read", color = KbBrandSaffron)
-                    }
+        if (showHeader) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Notifications",
+                        color = MaterialTheme.kbTextPrimary,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        text = if (pushUnreadCount > 0) "$pushUnreadCount unread push notifications" else "Operational alerts and shortcuts",
+                        color = MaterialTheme.kbTextSecondary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
-                TextButton(onClick = onDismiss) {
-                    Text("Close", color = MaterialTheme.kbPrimary)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (pushUnreadCount > 0) {
+                        TextButton(onClick = onMarkAllNotificationsRead) {
+                            Text("Mark all read", color = KbAccentPurple)
+                        }
+                    }
+                    TextButton(onClick = onDismiss) {
+                        Text("Close", color = MaterialTheme.kbPrimary)
+                    }
                 }
             }
         }
@@ -1506,7 +1431,7 @@ private fun NotificationCenterSheet(
                         onClick = onRefreshNotifications,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
-                        Text("Refresh", color = KbBrandSaffron)
+                        Text("Refresh", color = KbAccentPurple)
                     }
                 }
             }
@@ -1546,7 +1471,7 @@ private fun NotificationCenterSheet(
                 title = "New Bill",
                 subtitle = "Jump straight into billing",
                 icon = Icons.Default.Add,
-                tone = KbBrandSaffron,
+                tone = KbAccentPurple,
                 onClick = onNewBill
             )
             NotificationActionCard(

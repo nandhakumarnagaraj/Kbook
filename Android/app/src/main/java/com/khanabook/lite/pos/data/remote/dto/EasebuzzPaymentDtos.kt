@@ -63,3 +63,56 @@ data class EasebuzzRefundStatusResponse(
     @SerializedName("refund_status") val refundStatus: String? = null,
     @SerializedName("error") val error: String? = null
 )
+
+// ── Sub-merchant onboarding & KYC (owner-driven, POS app) ────────────────────
+
+/**
+ * Onboarding details the owner submits to register as an Easebuzz sub-merchant.
+ * Documents are NOT sent here — Easebuzz has no document API; they are uploaded
+ * later on Easebuzz's hosted KYC portal. FSSAI is mandatory for food merchants.
+ */
+data class EasebuzzOnboardRequest(
+    @SerializedName("businessName") val businessName: String,
+    @SerializedName("legalEntityName") val legalEntityName: String,
+    @SerializedName("businessType") val businessType: String,
+    @SerializedName("pan") val pan: String? = null,
+    @SerializedName("gst") val gst: String? = null,
+    @SerializedName("fssaiNumber") val fssaiNumber: String,
+    @SerializedName("fssaiExpiryDate") val fssaiExpiryDate: Long? = null,
+    @SerializedName("businessAddress") val businessAddress: String,
+    @SerializedName("state") val state: String,
+    @SerializedName("bankAccountNo") val bankAccountNo: String,
+    @SerializedName("ifsc") val ifsc: String,
+    @SerializedName("bankName") val bankName: String,
+    @SerializedName("branchName") val branchName: String? = null,
+    @SerializedName("beneficiaryName") val beneficiaryName: String,
+    @SerializedName("contactEmail") val contactEmail: String,
+    @SerializedName("contactPhone") val contactPhone: String
+)
+
+/** Result of an onboarding / resubmit action. */
+data class EasebuzzSubMerchantActionResponse(
+    @SerializedName("status") val status: String,
+    @SerializedName("subMerchantId") val subMerchantId: String? = null,
+    @SerializedName("subMerchantStatus") val subMerchantStatus: String? = null,
+    @SerializedName("kycStatus") val kycStatus: String? = null,
+    @SerializedName("message") val message: String? = null
+)
+
+/** Result of generating the Easebuzz hosted KYC portal URL. */
+data class EasebuzzKycAccessKeyResponse(
+    @SerializedName("status") val status: String,
+    @SerializedName("kyc_url") val kycUrl: String? = null,
+    @SerializedName("sub_merchant_id") val subMerchantId: String? = null
+)
+
+data class EasebuzzOtpRequest(
+    @SerializedName("otp") val otp: String
+)
+
+/** Raw OTP/action response from Easebuzz (shape varies; surfaced as-is). */
+data class EasebuzzOtpResponse(
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("msg") val msg: String? = null,
+    @SerializedName("error") val error: String? = null
+)

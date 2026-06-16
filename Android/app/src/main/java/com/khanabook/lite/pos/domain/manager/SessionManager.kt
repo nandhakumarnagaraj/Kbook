@@ -121,7 +121,11 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().putFloat("display_scale", scale.coerceIn(0.8f, 1.3f)).apply()
     }
 
-    fun getLayoutDensity(): String = prefs.getString("layout_density", "default") ?: "default"
+    fun getLayoutDensity(): String {
+        // "compact" was renamed to "horizontal"; migrate any legacy stored value.
+        val stored = prefs.getString("layout_density", "default") ?: "default"
+        return if (stored == "compact") "horizontal" else stored
+    }
 
     fun setLayoutDensity(density: String) {
         prefs.edit().putString("layout_density", density).apply()

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/restaurants/payment-config/easebuzz")
@@ -88,5 +89,65 @@ public class RestaurantPaymentConfigController {
                 "activationDate",    null
             ));
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Owner-driven onboarding & KYC (POS app). All actions are scoped to the
+    // current tenant, so an owner can only ever act on their own sub-merchant.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Create (or re-onboard a DRAFT/FAILED) sub-merchant from the POS app and submit to EaseBuzz.
+     * Body carries the onboarding details (business/legal name, type, PAN, GST, FSSAI, bank, etc.).
+     */
+    @PostMapping("/onboard")
+    public ResponseEntity<Map<String, Object>> onboard(@RequestBody Map<String, Object> data) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        EasebuzzSubMerchant sm = subMerchantService.onboardForRestaurant(restaurantId, data);
+        return ResponseEntity.ok(actionResult(sm));
+    }
+
+    /** Push corrected details to EaseBuzz after a KYC rejection. */
+    @PostMapping("/resubmit")
+    public ResponseEntity<Map<String, Object>> resubmit(@RequestBody Map<String, Object> data) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        EasebuzzSubMerchant sm = subMerchantService.resubmitForRestaurant(restaurantId, data);
+        return ResponseEntity.ok(actionResult(sm));
+    }
+
+    /** Generate the EaseBuzz hosted KYC portal URL for document upload. */
+    @PostMapping("/kyc-access-key")
+    public ResponseEntity<Map<String, Object>> kycAccessKey() {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        Long id = subMerchantService.requireSubMerchantIdForRestaurant(restaurantId);
+        return ResponseEntity.ok(subMerchantService.generateKycAccessKey(id));
+    }
+
+    /** Verify the onboarding OTP sent by EaseBuzz (LIVE only — not supported in sandbox). */
+    @PostMapping("/verify-otp")
+    public ResponseEntity<Map<String, Object>> verifyOtp(@RequestBody Map<String, Object> body) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        Long id = subMerchantService.requireSubMerchantIdForRestaurant(restaurantId);
+        String otp = body.get("otp") != null ? body.get("otp").toString() : "";
+        return ResponseEntity.ok(subMerchantService.verifyOtp(id, otp));
+    }
+
+    /** Resend the onboarding OTP (LIVE only — not supported in sandbox). */
+    @PostMapping("/resend-otp")
+    public ResponseEntity<Map<String, Object>> resendOtp() {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        Long id = subMerchantService.requireSubMerchantIdForRestaurant(restaurantId);
+        return ResponseEntity.ok(subMerchantService.resendOtp(id));
+    }
+
+    private Map<String, Object> actionResult(EasebuzzSubMerchant sm) {
+        Map<String, Object> out = new HashMap<>();
+        boolean ok = !"FAILED".equals(sm.getStatus());
+        out.put("status", ok ? "success" : "failure");
+        out.put("subMerchantId", sm.getSubMerchantId() != null ? sm.getSubMerchantId() : "");
+        out.put("subMerchantStatus", sm.getStatus());
+        out.put("kycStatus", sm.getKycStatus() != null ? sm.getKycStatus() : "");
+        out.put("message", Objects.toString(sm.getEasebuzzResponse(), ""));
+        return out;
     }
 }

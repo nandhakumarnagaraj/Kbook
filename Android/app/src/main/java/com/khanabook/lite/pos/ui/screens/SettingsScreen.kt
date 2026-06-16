@@ -449,12 +449,12 @@ fun SettingsScreen(
 private fun DensityGridIcon(densityType: String, isSelected: Boolean) {
     val tint = if (isSelected) KbBrandSaffron else MaterialTheme.kbOutlineBold
     val spacing = when (densityType) {
-        "compact" -> 6.dp
+        "horizontal" -> 6.dp
         "spacious" -> 2.dp
         else -> 4.dp
     }
     val squareSize = when (densityType) {
-        "compact" -> 6.dp
+        "horizontal" -> 6.dp
         "spacious" -> 14.dp
         else -> 10.dp
     }
@@ -668,8 +668,8 @@ private fun DisplayScaleView(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val densities = listOf("compact", "default", "spacious")
-            val densityLabels = listOf("Compact", "Default", "Spacious")
+            val densities = listOf("horizontal", "default", "spacious")
+            val densityLabels = listOf("Horizontal", "Default", "Spacious")
             
             densities.forEachIndexed { index, densityType ->
                 val isSelected = density == densityType

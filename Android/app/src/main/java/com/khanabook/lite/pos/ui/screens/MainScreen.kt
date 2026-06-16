@@ -125,6 +125,7 @@ fun MainScreen(
                     onOrderStatus = onOrderStatus,
                     onCallCustomer = onCallCustomer,
                     onMarketplaceOrders = onMarketplaceOrders,
+                    onNotifications = { navController.navigate("notifications") },
                     onMenuClick = {
                         val settingsIndex = visibleTabs.indexOfFirst { it.label == "Profile" }
                         if (settingsIndex != -1) {

@@ -92,6 +92,10 @@ object KhanaBookTheme {
     val layout: ResponsiveLayout
         @Composable
         get() = LocalResponsiveLayout.current
+    /** User-selected layout density: "horizontal", "default", or "spacious". */
+    val density: String
+        @Composable
+        get() = LocalLayoutDensity.current
 }
 
 @Composable
@@ -100,6 +104,7 @@ fun KhanaBookLiteTheme(
     // when the user explicitly toggles the in-app theme switch.
     darkTheme: Boolean = isSystemInDarkTheme(),
     displayScale: Float = 1.0f,
+    layoutDensity: String = "default",
     content: @Composable () -> Unit
 ) {
     // Sync the global dark-mode flag so legacy color aliases (DarkBrown1, CardBG, etc.)
@@ -172,7 +177,8 @@ fun KhanaBookLiteTheme(
         LocalDensity provides Density(density = effectiveDensity, fontScale = effectiveFontScale),
         LocalSpacing provides Spacing(),
         LocalIconSize provides IconSize(),
-        LocalResponsiveLayout provides responsiveLayout
+        LocalResponsiveLayout provides responsiveLayout,
+        LocalLayoutDensity provides layoutDensity
     ) {
         MaterialTheme(
             colorScheme = if (isDark) DarkColorScheme else LightColorScheme,

@@ -59,3 +59,10 @@ internal fun responsiveLayoutForWidth(screenWidthDp: Int): ResponsiveLayout {
 val LocalResponsiveLayout = staticCompositionLocalOf {
     responsiveLayoutForWidth(screenWidthDp = 360)
 }
+
+/**
+ * User-selected layout density from Settings → Display ("horizontal", "default", "spacious").
+ * Unlike [LocalResponsiveLayout] (driven by screen width), this reflects an explicit user
+ * preference and is plumbed from MainActivity via [com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme].
+ */
+val LocalLayoutDensity = staticCompositionLocalOf { "default" }

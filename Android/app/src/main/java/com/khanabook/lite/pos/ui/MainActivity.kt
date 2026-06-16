@@ -113,10 +113,17 @@ class MainActivity : FragmentActivity() {
         setContent {
             val prefs = remember { applicationContext.getSharedPreferences("session_prefs", Context.MODE_PRIVATE) }
             var targetScale by remember { mutableStateOf(prefs.getFloat("display_scale", 1.0f)) }
+            // "compact" was renamed to "horizontal"; migrate any legacy stored value.
+            fun readDensity(): String {
+                val stored = prefs.getString("layout_density", "default") ?: "default"
+                return if (stored == "compact") "horizontal" else stored
+            }
+            var layoutDensity by remember { mutableStateOf(readDensity()) }
             DisposableEffect(Unit) {
                 val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                    if (key == "display_scale") {
-                        targetScale = prefs.getFloat("display_scale", 1.0f)
+                    when (key) {
+                        "display_scale" -> targetScale = prefs.getFloat("display_scale", 1.0f)
+                        "layout_density" -> layoutDensity = readDensity()
                     }
                 }
                 prefs.registerOnSharedPreferenceChangeListener(listener)
@@ -126,7 +133,7 @@ class MainActivity : FragmentActivity() {
                 targetValue = targetScale,
                 animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
             )
-            KhanaBookLiteTheme(displayScale = displayScale) {
+            KhanaBookLiteTheme(displayScale = displayScale, layoutDensity = layoutDensity) {
                 val navController = rememberNavController()
                 val authViewModel: AuthViewModel = hiltViewModel()
                 val menuViewModel: MenuViewModel = hiltViewModel()
@@ -354,6 +361,15 @@ class MainActivity : FragmentActivity() {
                             }
                         )
                     }
+                    composable("notifications") {
+                        NotificationsScreen(
+                            onBack = { navController.popBackStack() },
+                            onNewBill = { navController.navigate("new_bill") },
+                            onOrderStatus = { navController.navigate("order_status") },
+                            onMarketplaceOrders = { navController.navigate("marketplace_orders") },
+                            onReprintKds = { navController.navigate("reprint_kds") }
+                        )
+                    }
                     composable(
                         route = "new_bill?resumePayment={resumePayment}",
                         arguments = listOf(
@@ -458,6 +474,28 @@ class MainActivity : FragmentActivity() {
                     composable("easebuzz_kyc") {
                         EasebuzzKycScreen(
                             paymentRepository = easebuzzPaymentRepository,
+                            onBack = { navController.popBackStack() },
+                            onStartOnboarding = { navController.navigate("easebuzz_onboarding?resubmit=false") },
+                            onResubmit = { navController.navigate("easebuzz_onboarding?resubmit=true") }
+                        )
+                    }
+                    composable(
+                        route = "easebuzz_onboarding?resubmit={resubmit}",
+                        arguments = listOf(
+                            navArgument("resubmit") {
+                                type = NavType.BoolType
+                                defaultValue = false
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val isResubmit = backStackEntry.arguments?.getBoolean("resubmit") ?: false
+                        EasebuzzOnboardingScreen(
+                            isResubmit = isResubmit,
+                            onSubmitted = {
+                                navController.navigate("easebuzz_kyc") {
+                                    popUpTo("easebuzz_onboarding?resubmit={resubmit}") { inclusive = true }
+                                }
+                            },
                             onBack = { navController.popBackStack() }
                         )
                     }
