@@ -6,9 +6,9 @@ import com.khanabook.saas.entity.DeviceToken;
 import com.khanabook.saas.entity.NotificationEvent;
 import com.khanabook.saas.repository.DeviceTokenRepository;
 import com.khanabook.saas.repository.NotificationEventRepository;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 public class PushNotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(PushNotificationService.class);
@@ -25,6 +24,18 @@ public class PushNotificationService {
     private final DeviceTokenRepository deviceTokenRepo;
     private final NotificationEventRepository notificationEventRepo;
     private final FirebaseApp firebaseApp;
+
+    @Autowired
+    public PushNotificationService(DeviceTokenRepository deviceTokenRepo,
+                                   NotificationEventRepository notificationEventRepo,
+                                   @Autowired(required = false) FirebaseApp firebaseApp) {
+        this.deviceTokenRepo = deviceTokenRepo;
+        this.notificationEventRepo = notificationEventRepo;
+        this.firebaseApp = firebaseApp;
+        if (firebaseApp == null) {
+            log.warn("FirebaseApp not available. Push notifications will be DISABLED.");
+        }
+    }
 
     /**
      * Register or update a device token for push notifications.
@@ -70,6 +81,10 @@ public class PushNotificationService {
     public void pushToRestaurant(Long restaurantId, String title, String message,
                                   String notificationType, String referenceId,
                                   String referenceType, BigDecimal amount) {
+        if (firebaseApp == null) {
+            log.debug("Firebase not configured, skipping push to restaurantId={}", restaurantId);
+            return;
+        }
         List<DeviceToken> tokens = deviceTokenRepo.findByRestaurantIdAndActiveTrue(restaurantId);
         if (tokens.isEmpty()) {
             log.debug("No active device tokens for restaurantId={}", restaurantId);

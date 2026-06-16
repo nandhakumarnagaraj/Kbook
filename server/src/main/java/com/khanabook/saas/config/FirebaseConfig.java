@@ -5,6 +5,7 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,6 +13,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 @Configuration
+@ConditionalOnProperty(name = "FIREBASE_CREDENTIALS_PATH")
 public class FirebaseConfig {
 
     private static final Logger log = LoggerFactory.getLogger(FirebaseConfig.class);
@@ -19,21 +21,6 @@ public class FirebaseConfig {
     @Bean
     public FirebaseApp firebaseApp() {
         String credentialsPath = System.getenv("FIREBASE_CREDENTIALS_PATH");
-        if (credentialsPath == null || credentialsPath.isBlank()) {
-            log.warn("FIREBASE_CREDENTIALS_PATH not set. Push notifications will be DISABLED.");
-            // Return a dummy FirebaseApp for DI compatibility (no actual push will happen)
-            try {
-                return FirebaseApp.initializeApp(
-                    FirebaseOptions.builder()
-                        .setProjectId("khanabook-lite")
-                        .build(),
-                    "khanabook-dummy"
-                );
-            } catch (Exception e) {
-                log.error("Failed to create dummy FirebaseApp: {}", e.getMessage());
-                return null;
-            }
-        }
 
         try (FileInputStream serviceAccount = new FileInputStream(credentialsPath)) {
             FirebaseOptions options = FirebaseOptions.builder()
@@ -41,7 +28,6 @@ public class FirebaseConfig {
                 .setProjectId("khanabook-lite")
                 .build();
 
-            // Return existing app if already initialized, otherwise create new
             try {
                 return FirebaseApp.getInstance("khanabook");
             } catch (IllegalStateException e) {
@@ -49,7 +35,7 @@ public class FirebaseConfig {
             }
         } catch (IOException e) {
             log.error("Failed to initialize Firebase: {}", e.getMessage());
-            return null;
+            throw new RuntimeException("Firebase initialization failed", e);
         }
     }
 }
