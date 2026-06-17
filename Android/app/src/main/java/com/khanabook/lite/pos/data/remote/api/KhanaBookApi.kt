@@ -20,6 +20,10 @@ data class LogoUploadResponse(
         val logoVersion: Int = 0
 )
 
+data class KycDocumentUploadResponse(
+        val url: String
+)
+
 interface KhanaBookApi {
 
         // ── Auth ────────────────────────────────────────────────────────────
@@ -102,6 +106,13 @@ interface KhanaBookApi {
         @Multipart
         @POST("api/v2/restaurants/logo")
         suspend fun uploadLogo(@Part file: MultipartBody.Part): LogoUploadResponse
+
+        @Multipart
+        @POST("api/v2/restaurants/kyc-document")
+        suspend fun uploadKycDocument(
+                @Query("type") type: String,
+                @Part file: MultipartBody.Part
+        ): KycDocumentUploadResponse
 
         // ── Storefront ───────────────────────────────────────────────────────
         @GET("api/v2/storefront/orders")

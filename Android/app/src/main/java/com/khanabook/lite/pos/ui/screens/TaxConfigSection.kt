@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
@@ -14,13 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -126,7 +124,41 @@ fun TaxConfigView(
             .padding(spacing.medium)
     ) {
         ConfigCard {
-            ParchmentTextField(value = country, onValueChange = {}, label = "Country", enabled = false)
+            // ── Country Dropdown (restricted to India) ───────────────────────
+            var countryMenuExpanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = countryMenuExpanded,
+                onExpandedChange = { countryMenuExpanded = it }
+            ) {
+                ParchmentTextField(
+                    value = country,
+                    onValueChange = {},
+                    label = "Country",
+                    readOnly = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(),
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.kbSecondary
+                        )
+                    }
+                )
+                ExposedDropdownMenu(
+                    expanded = countryMenuExpanded,
+                    onDismissRequest = { countryMenuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("India") },
+                        onClick = {
+                            country = "India"
+                            countryMenuExpanded = false
+                        }
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(spacing.medium))
 
             // FSSAI + lookup
@@ -248,7 +280,7 @@ fun TaxConfigView(
                 Button(
                     onClick = {
                         profile?.copy(
-                            country = country,
+                            country = if (country.equals("India", ignoreCase = true)) "India" else "India",
                             gstEnabled = gstEnabled,
                             gstin = gstNumber,
                             gstPercentage = gstPct.toDoubleOrNull() ?: 0.0,

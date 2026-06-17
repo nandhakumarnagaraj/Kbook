@@ -7,6 +7,7 @@
 /server/*.pid
 /server/*.err
 /server/*.out
+/logs/
 
 # All server versioned log files (server-v3.log through server-v99.log)
 server/server-v*.log
@@ -38,6 +39,7 @@ web-admin-run.err
 
 # Android APK build outputs
 /Android/apk-output/
+/artifacts/android/*.apk
 
 # Backend IDE metadata (Eclipse)
 /server/.settings/
@@ -62,6 +64,7 @@ web-admin-run.err
 
 # Node.js
 node_modules/
+/web-admin/dist/
 package-lock.json
 package.json
 server/.env*
@@ -90,6 +93,13 @@ test.html
 
 # Local dev CDN uploads (not for VCS)
 /cdn/
+
+# Generated analysis and scratch output
+/graphify-out/
+/scratch/
+
+# Duplicate static export folder; active web assets live in web-admin/public/
+/website/
 
 # Claude Code local session data
 .claude/

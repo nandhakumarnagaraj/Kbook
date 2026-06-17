@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KhanaBook Easebuzz Diagrams</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; color: #1f2937; background: #faf8f5; }
+    header { padding: 24px 32px; border-bottom: 1px solid #e5e7eb; background: #ffffff; }
+    h1 { margin: 0; font-size: 24px; }
+    main { display: grid; gap: 24px; padding: 24px; }
+    section { overflow: auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff; }
+    h2 { margin: 0 0 16px; font-size: 18px; }
+    .mermaid { min-width: 900px; }
+    .fallback { margin: 16px 24px 0; padding: 12px 14px; border: 1px solid #fed7aa; border-radius: 8px; background: #fff7ed; color: #9a3412; }
+  </style>
+</head>
+<body>
+  <header><h1>KhanaBook Easebuzz Integration Diagrams</h1></header>
+  <div id="fallback" class="fallback" hidden>If diagrams do not render, connect to the internet or install Mermaid CLI. The Mermaid source is embedded below, so this page should not be blank.</div>
+  <main>
+    <section>
+      <h2>System Architecture</h2>
+      <pre class="mermaid">flowchart LR
+    subgraph Client[&quot;Client Surfaces&quot;]
+        POS[&quot;Android POS\nCompose + Retrofit\nEasebuzz SDK V2&quot;]
+        ADMIN[&quot;Angular Web Admin\nPlatform operations&quot;]
+        OWNER[&quot;Business/Owner Console\nTenant scoped settings&quot;]
+    end
+
+    subgraph API[&quot;KhanaBook Spring Boot API\n/api/v2&quot;]
+        JWT[&quot;JWT Filter\nTenantContext&quot;]
+        PAYCTRL[&quot;PaymentController\n/payments/easebuzz&quot;]
+        RESTCFG[&quot;RestaurantPaymentConfigController\n/restaurants/payment-config/easebuzz&quot;]
+        ADMCTRL[&quot;AdminSubMerchantController\n/admin/sub-merchants&quot;]
+        PAYSRV[&quot;EasebuzzPaymentService&quot;]
+        SMSRV[&quot;SubMerchantService&quot;]
+        WHSRV[&quot;EasebuzzWebhookService&quot;]
+        SPLIT[&quot;PostSplitService\n@Async postSplitExecutor&quot;]
+        EBCLIENT[&quot;EasebuzzApiClient&quot;]
+        WIRE[&quot;EasebuzzWireApiClient&quot;]
+    end
+
+    subgraph DB[&quot;PostgreSQL&quot;]
+        BILL[&quot;bill\npayment/gateway/refund fields&quot;]
+        SM[&quot;easebuzz_sub_merchant&quot;]
+        WHEVENT[&quot;easebuzz_webhook_events&quot;]
+        SMWHEVENT[&quot;easebuzz_sub_merchant_webhook_event&quot;]
+        PAYOUT[&quot;easebuzz_payout&quot;]
+        PROFILE[&quot;restaurant_profile\neasebuzzEnabled&quot;]
+    end
+
+    subgraph EB[&quot;Easebuzz&quot;]
+        PAY[&quot;pay.easebuzz.in\npayment/initiateLink\ntransaction APIs&quot;]
+        DASH[&quot;dashboard.easebuzz.in\nsubmerchant, KYC, split,\nrefund, settlement, payout&quot;]
+        KYC[&quot;Hosted KYC Portal&quot;]
+        WEBHOOK[&quot;Webhook Delivery&quot;]
+        SETTLE[&quot;Settlement Engine&quot;]
+    end
+
+    POS --&gt; JWT
+    OWNER --&gt; JWT
+    ADMIN --&gt; JWT
+    JWT --&gt; PAYCTRL
+    JWT --&gt; RESTCFG
+    JWT --&gt; ADMCTRL
+
+    PAYCTRL --&gt; PAYSRV
+    RESTCFG --&gt; SMSRV
+    ADMCTRL --&gt; SMSRV
+    PAYSRV --&gt; EBCLIENT
+    SMSRV --&gt; EBCLIENT
+    SMSRV --&gt; WIRE
+    WHSRV --&gt; SPLIT
+    SPLIT --&gt; EBCLIENT
+
+    PAYSRV &lt;--&gt; BILL
+    SMSRV &lt;--&gt; SM
+    SMSRV &lt;--&gt; PROFILE
+    WHSRV &lt;--&gt; WHEVENT
+    WHSRV &lt;--&gt; SMWHEVENT
+    SMSRV &lt;--&gt; PAYOUT
+
+    EBCLIENT --&gt; PAY
+    EBCLIENT --&gt; DASH
+    WIRE --&gt; DASH
+    DASH --&gt; KYC
+    WEBHOOK --&gt; PAYCTRL
+    DASH --&gt; SETTLE</pre>
+    </section>
+    <section>
+      <h2>End To End Sequence</h2>
+      <pre class="mermaid">sequenceDiagram
+    autonumber
+    actor Admin as KbookAdmin
+    actor Owner as Restaurant Owner
+    actor Staff as POS Staff
+    actor Customer
+    participant POS as Android POS
+    participant API as KhanaBook API
+    participant DB as PostgreSQL
+    participant EB as Easebuzz
+    participant KYC as Easebuzz KYC Portal
+    participant SET as Easebuzz Settlement
+
+    Admin-&gt;&gt;API: Create sub-merchant draft
+    API-&gt;&gt;DB: Insert easebuzz_sub_merchant(DRAFT, restaurant_id)
+    Admin-&gt;&gt;API: Submit to Easebuzz
+    API-&gt;&gt;EB: Create sub-merchant
+    EB--&gt;&gt;API: submerchant_id
+    API-&gt;&gt;DB: status=PENDING_KYC, save subMerchantId
+    Admin-&gt;&gt;API: Generate KYC access key
+    API-&gt;&gt;EB: generate_kyc_access_key
+    EB--&gt;&gt;API: hosted KYC URL
+    API-&gt;&gt;DB: Save kycPortalUrl
+    Owner-&gt;&gt;KYC: Upload KYC/CPV documents
+    EB--&gt;&gt;API: Sub-merchant webhook
+    API-&gt;&gt;DB: status=ACTIVE or REJECTED or KYC_SUBMITTED
+    Admin-&gt;&gt;API: Create split label
+    API-&gt;&gt;EB: split/v1/create label sm_{sub_merchant_id}
+    API-&gt;&gt;DB: Save splitLabel
+    Staff-&gt;&gt;POS: Start online payment
+    POS-&gt;&gt;API: create-order billId, restaurantId
+    API-&gt;&gt;DB: Load bill and active sub-merchant
+    API-&gt;&gt;EB: payment/initiateLink with sub_merchant_id
+    EB--&gt;&gt;API: access token/payment URL
+    API-&gt;&gt;DB: Save gatewayTxnId and gatewayStatus
+    API--&gt;&gt;POS: access_token, txnid, amount
+    Customer-&gt;&gt;EB: Pay using checkout/SDK
+    EB--&gt;&gt;API: Payment webhook
+    API-&gt;&gt;API: Verify hash and idempotency
+    API-&gt;&gt;DB: Mark bill paid and save webhook event
+    API-&gt;&gt;EB: post-split/v1/create
+    EB--&gt;&gt;API: Split accepted or failed
+    API-&gt;&gt;DB: Save commissionAmount and settledAt on success
+    SET--&gt;&gt;Owner: Bank settlement to restaurant
+    SET--&gt;&gt;Admin: Commission settlement to parent</pre>
+    </section>
+    <section>
+      <h2>Onboarding Kyc Cpv Flow</h2>
+      <pre class="mermaid">flowchart TD
+    A[&quot;Start: restaurant tenant exists&quot;] --&gt; B{&quot;Who initiates?&quot;}
+    B --&gt;|Admin| C[&quot;POST /admin/sub-merchants\nCreate local DRAFT&quot;]
+    B --&gt;|Owner POS| D[&quot;POST /restaurants/payment-config/easebuzz/onboard\nTenant from TenantContext&quot;]
+    C --&gt; E[&quot;SubMerchantService.create\nrestaurant_id bound to sub-merchant&quot;]
+    D --&gt; E
+    E --&gt; F{&quot;Already exists for restaurant_id?&quot;}
+    F --&gt;|Yes| G[&quot;Reject duplicate\nBusinessRuleException&quot;]
+    F --&gt;|No or DRAFT/FAILED owner retry| H[&quot;Validate onboarding fields&quot;]
+    H --&gt; I[&quot;FSSAI required\nLegal name required\nAddress and state required&quot;]
+    I --&gt; J{&quot;Admin flow and proprietorship?&quot;}
+    J --&gt;|Yes| K[&quot;Require two business proof URLs\nCPV gate&quot;]
+    J --&gt;|No| L[&quot;Submit to Easebuzz&quot;]
+    K --&gt; L
+    L --&gt; M[&quot;POST /merchant/v1/submerchant/create/&quot;]
+    M --&gt; N{&quot;Easebuzz success?&quot;}
+    N --&gt;|No| O[&quot;status=FAILED\nstore easebuzzResponse&quot;]
+    N --&gt;|Yes| P[&quot;Save subMerchantId\nstatus=PENDING_KYC\nkycSubmittedAt&quot;]
+    P --&gt; Q[&quot;ensureEasebuzzEnabled(restaurant_id)&quot;]
+    Q --&gt; R[&quot;Generate KYC access key&quot;]
+    R --&gt; S[&quot;POST /submerchant/v1/generate_kyc_access_key&quot;]
+    S --&gt; T[&quot;Save hosted kycPortalUrl&quot;]
+    T --&gt; U[&quot;Owner uploads documents on Easebuzz portal&quot;]
+    U --&gt; V[&quot;Sub-merchant webhook&quot;]
+    V --&gt; W{&quot;data.status&quot;}
+    W --&gt;|&quot;True&quot;| X[&quot;status=ACTIVE\nkycActivatedAt=now&quot;]
+    W --&gt;|&quot;Pending&quot;| Y[&quot;status=KYC_SUBMITTED\nkycSubmittedAt=now&quot;]
+    W --&gt;|&quot;False&quot;| Z[&quot;status=REJECTED&quot;]</pre>
+    </section>
+    <section>
+      <h2>Otp Verification Flow</h2>
+      <pre class="mermaid">sequenceDiagram
+    autonumber
+    actor User as Admin or Restaurant Owner
+    participant UI as Web Admin / POS
+    participant API as KhanaBook API
+    participant SVC as SubMerchantService
+    participant EB as Easebuzz Dashboard API
+    participant DB as PostgreSQL
+
+    User-&gt;&gt;UI: Enter OTP or request resend
+    UI-&gt;&gt;API: POST verify-otp or resend-otp
+    API-&gt;&gt;SVC: Resolve sub-merchant
+    SVC-&gt;&gt;DB: Load by id or current tenant restaurant_id
+    alt Missing subMerchantId
+        SVC--&gt;&gt;API: BusinessRuleException NO_EASEBUZZ_ID
+        API--&gt;&gt;UI: Error response
+    else Verify OTP
+        SVC-&gt;&gt;EB: /submerchant/v1/verify_otp\nhash merchant_key|sub_merchant_id|otp|salt
+        EB--&gt;&gt;SVC: OTP result
+        SVC--&gt;&gt;API: Raw Easebuzz result
+        API--&gt;&gt;UI: status/msg/error
+    else Resend OTP
+        SVC-&gt;&gt;EB: /submerchant/v1/resend_otp\nhash merchant_key|sub_merchant_id|salt
+        EB--&gt;&gt;SVC: Resend result
+        SVC--&gt;&gt;API: Raw Easebuzz result
+        API--&gt;&gt;UI: status/msg/error
+    end</pre>
+    </section>
+    <section>
+      <h2>Cpv Verification Flow</h2>
+      <pre class="mermaid">flowchart TD
+    A[&quot;Collect business details&quot;] --&gt; B[&quot;Use legalEntityName\nmust match PAN/GST&quot;]
+    B --&gt; C[&quot;Sanitize name\nremove quotes and backslashes&quot;]
+    C --&gt; D[&quot;Validate address and state&quot;]
+    D --&gt; E[&quot;Require FSSAI license number\nfood merchant compliance&quot;]
+    E --&gt; F{&quot;Business type is proprietorship?&quot;}
+    F --&gt;|Yes, admin flow| G[&quot;Require businessProof1Url and businessProof2Url&quot;]
+    F --&gt;|No or POS self-onboarding| H[&quot;Proceed to hosted KYC&quot;]
+    G --&gt; H
+    H --&gt; I[&quot;Submit sub-merchant and generate KYC URL&quot;]
+    I --&gt; J[&quot;Owner uploads PAN, bank proof, business proof, FSSAI docs on Easebuzz portal&quot;]
+    J --&gt; K[&quot;Easebuzz performs CPV/KYC verification&quot;]
+    K --&gt; L{&quot;Webhook data.status&quot;}
+    L --&gt;|&quot;True&quot;| M[&quot;ACTIVE\nPayments and split setup allowed&quot;]
+    L --&gt;|&quot;Pending&quot;| N[&quot;KYC_SUBMITTED\nTrack aging and follow up&quot;]
+    L --&gt;|&quot;False&quot;| O[&quot;REJECTED\nCorrect legal/bank/proof details and resubmit&quot;]</pre>
+    </section>
+    <section>
+      <h2>Payment Initiation Flow</h2>
+      <pre class="mermaid">sequenceDiagram
+    autonumber
+    actor Staff
+    actor Customer
+    participant POS as Android POS
+    participant API as PaymentController
+    participant SVC as EasebuzzPaymentService
+    participant SM as SubMerchantService
+    participant DB as PostgreSQL
+    participant EB as Easebuzz Pay API
+
+    Staff-&gt;&gt;POS: Select Easebuzz Online for bill
+    POS-&gt;&gt;API: POST /payments/easebuzz/create-order\nbillId, restaurantId
+    API-&gt;&gt;SVC: createOrder(billId, restaurantId)
+    SVC-&gt;&gt;DB: Load bill
+    SVC-&gt;&gt;SVC: Block if already paid
+    SVC-&gt;&gt;SVC: Run chargeback/fraud score
+    SVC-&gt;&gt;SVC: Generate 20-char txnid\nKB + billTail + restTail + uuid
+    SVC-&gt;&gt;SM: Load sub-merchant by restaurantId
+    alt Active sub-merchant or test mode
+        SVC-&gt;&gt;SVC: Add sub_merchant_id
+    else Missing/inactive sub-merchant
+        SVC-&gt;&gt;SVC: Continue as parent merchant payment
+    end
+    SVC-&gt;&gt;EB: POST /payment/initiateLink\nhash key|txnid|amount|productinfo|firstname|email|udf1..udf10|salt
+    EB--&gt;&gt;SVC: access key
+    SVC-&gt;&gt;DB: Save gatewayTxnId and gatewayStatus
+    SVC--&gt;&gt;API: access_token, payment_url, txnid
+    API--&gt;&gt;POS: Payment params
+    POS-&gt;&gt;EB: Open Easebuzz checkout/SDK
+    Customer-&gt;&gt;EB: Complete payment</pre>
+    </section>
+    <section>
+      <h2>Webhook Processing Flow</h2>
+      <pre class="mermaid">flowchart TD
+    A[&quot;Easebuzz webhook&quot;] --&gt; B{&quot;Endpoint&quot;}
+    B --&gt;|&quot;payment&quot;| C[&quot;POST /payments/easebuzz/webhook&quot;]
+    B --&gt;|&quot;refund&quot;| D[&quot;POST /payments/easebuzz/refund/webhook&quot;]
+    B --&gt;|&quot;sub-merchant KYC&quot;| E[&quot;POST /payments/easebuzz/sub-merchant/webhook&quot;]
+    B --&gt;|&quot;payout&quot;| F[&quot;POST /payments/easebuzz/payout/webhook&quot;]
+
+    C --&gt; G[&quot;Verify reverse payment hash\nsalt|status|udf10..udf1|email|firstname|productinfo|amount|txnid|key&quot;]
+    D --&gt; H[&quot;Verify refund hash\nkey|easepayid|salt&quot;]
+    E --&gt; I[&quot;Verify sub-merchant hash\nkey|submerchant_id|salt&quot;]
+    F --&gt; J[&quot;Verify payout hash\nsettlement or transfer sequence&quot;]
+
+    G --&gt; K{&quot;Hash valid?&quot;}
+    H --&gt; K
+    I --&gt; K
+    J --&gt; K
+    K --&gt;|No| L[&quot;Return hash_mismatch\nNo state mutation&quot;]
+    K --&gt;|Yes| M{&quot;Webhook type&quot;}
+
+    M --&gt;|&quot;payment success&quot;| N[&quot;Load bill from udf1\nSkip if already paid&quot;]
+    N --&gt; O[&quot;Mark paid\nsave EasebuzzWebhookEvent\npush notification&quot;]
+    O --&gt; P[&quot;Trigger async post-split&quot;]
+
+    M --&gt;|&quot;refund&quot;| Q[&quot;Find bill by gatewayTxnId\nSkip if already refunded&quot;]
+    Q --&gt; R[&quot;Update refundId/refundAmount/gatewayStatus\nsave audit event&quot;]
+
+    M --&gt;|&quot;sub-merchant&quot;| S[&quot;Save sub-merchant webhook event\nupdate KYC status&quot;]
+    S --&gt; T[&quot;True=ACTIVE\nPending=KYC_SUBMITTED\nFalse=REJECTED&quot;]
+
+    M --&gt;|&quot;payout&quot;| U[&quot;Find payout by merchantRequestId\nupdate status/UTR/error&quot;]</pre>
+    </section>
+    <section>
+      <h2>Post Split Settlement Flow</h2>
+      <pre class="mermaid">sequenceDiagram
+    autonumber
+    participant WH as EasebuzzWebhookService
+    participant SPLIT as PostSplitService
+    participant DB as PostgreSQL
+    participant SM as SubMerchantService
+    participant EB as Easebuzz Dashboard API
+    participant SET as Settlement Engine
+
+    WH-&gt;&gt;SPLIT: createPostSplitAsync(billId, easebuzzId, txnid)
+    SPLIT-&gt;&gt;DB: Load bill outside transaction
+    SPLIT-&gt;&gt;SM: Load sub-merchant by bill.restaurantId
+    alt Sub-merchant inactive or no split label
+        SPLIT--&gt;&gt;WH: Skip split, log warning
+    else Already settled
+        SPLIT--&gt;&gt;WH: Skip duplicate
+    else Eligible
+        SPLIT-&gt;&gt;SPLIT: merchantRequestId = KB{billId}_{easebuzzIdPrefix}
+        SPLIT-&gt;&gt;SPLIT: Calculate commissionAmount and restaurantAmount
+        SPLIT-&gt;&gt;EB: POST /post-split/v1/create/\nkey, merchant_request_id, easebuzz_id, amount, config, hash
+        alt Success
+            EB--&gt;&gt;SPLIT: status=success
+            SPLIT-&gt;&gt;DB: Save commissionAmount and settledAt
+            SET--&gt;&gt;DB: Later external settlement appears in reports
+        else Failure
+            SPLIT-&gt;&gt;SPLIT: Retry up to 3 attempts\nwith stable merchantRequestId
+        end
+    end</pre>
+    </section>
+    <section>
+      <h2>Refund Flow</h2>
+      <pre class="mermaid">sequenceDiagram
+    autonumber
+    actor User as Staff/Admin
+    participant POS as Android POS / Web Admin
+    participant API as PaymentController or RefundController
+    participant SVC as EasebuzzPaymentService
+    participant DB as PostgreSQL
+    participant EB as Easebuzz Dashboard API
+
+    User-&gt;&gt;POS: Request full or partial refund
+    POS-&gt;&gt;API: POST /payments/easebuzz/refund/{billId}\namount, reason
+    API-&gt;&gt;SVC: initiateRefund(billId, amount, reason)
+    SVC-&gt;&gt;DB: Load bill
+    SVC-&gt;&gt;DB: Find easebuzz_id from webhook event by restaurantId + txnid
+    alt easebuzz_id missing
+        SVC-&gt;&gt;SVC: Fallback to txnid
+    end
+    SVC-&gt;&gt;SVC: merchantRefundId = REF{billId}_{timestamp}
+    SVC-&gt;&gt;EB: POST /transaction/v2/refund\nkey, merchant_refund_id, easebuzz_id, refund_amount, hash
+    EB--&gt;&gt;SVC: refund_id/status
+    alt Success
+        SVC-&gt;&gt;DB: Save refundId, refundAmount, gatewayStatus=refund_initiated
+        SVC--&gt;&gt;API: success, easebuzz_refund_id
+    else Failure
+        SVC--&gt;&gt;API: failure, error
+    end
+    EB--&gt;&gt;API: Refund webhook
+    API-&gt;&gt;SVC: handleRefundWebhook
+    SVC-&gt;&gt;SVC: Verify refund hash
+    SVC-&gt;&gt;DB: Update refund status and audit event</pre>
+    </section>
+    <section>
+      <h2>Refund Status Flow</h2>
+      <pre class="mermaid">flowchart LR
+    A[&quot;GET /payments/easebuzz/refund-status/{billId}&quot;] --&gt; B[&quot;Load bill&quot;]
+    B --&gt; C{&quot;gatewayTxnId and refundId exist?&quot;}
+    C --&gt;|No| D[&quot;Return failure with reason&quot;]
+    C --&gt;|Yes| E[&quot;POST /transaction/v2/refund_status&quot;]
+    E --&gt; F[&quot;Return status, refund_id, txnid, msg&quot;]</pre>
+    </section>
+    <section>
+      <h2>Settlement Tracking Flow</h2>
+      <pre class="mermaid">flowchart TD
+    A[&quot;Restaurant owner requests settlement view&quot;] --&gt; B[&quot;GET /business/settlements/estimate&quot;]
+    B --&gt; C[&quot;TenantContext restaurantId&quot;]
+    C --&gt; D[&quot;Sum completed revenue by restaurant&quot;]
+    D --&gt; E[&quot;Calculate fee and net payout estimate&quot;]
+    E --&gt; F{&quot;Eligible and active sub-merchant?&quot;}
+    F --&gt;|No| G[&quot;Show ineligible reason&quot;]
+    F --&gt;|Yes| H[&quot;POST /business/settlements/instant&quot;]
+    H --&gt; I[&quot;Validate amount &gt;= minimum&quot;]
+    I --&gt; J[&quot;Require ACTIVE sub-merchant&quot;]
+    J --&gt; K[&quot;POST /settlement/v1/on_demand&quot;]
+    K --&gt; L[&quot;Return initiated response\nsend notification email&quot;]
+
+    M[&quot;Admin settlement tracking&quot;] --&gt; N[&quot;GET /admin/sub-merchants/settlements/retrieve?date=YYYY-MM-DD&quot;]
+    N --&gt; O[&quot;POST /settlements/v1/retrieve&quot;]
+    O --&gt; P[&quot;Return Easebuzz settlement data for reconciliation&quot;]
+
+    Q[&quot;Payout webhook&quot;] --&gt; R[&quot;POST /payments/easebuzz/payout/webhook&quot;]
+    R --&gt; S[&quot;Verify payout hash&quot;]
+    S --&gt; T[&quot;Update easebuzz_payout status and UTR&quot;]</pre>
+    </section>
+  </main>
+  <script type="module">
+    const fallback = document.getElementById('fallback');
+    try {
+      const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs');
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'base',
+        securityLevel: 'loose',
+        themeVariables: {
+          primaryColor: '#FFF7ED',
+          primaryBorderColor: '#F97316',
+          primaryTextColor: '#1F2937',
+          lineColor: '#6B7280',
+          secondaryColor: '#F9FAFB',
+          tertiaryColor: '#FFFFFF'
+        }
+      });
+      await mermaid.run({ querySelector: '.mermaid' });
+    } catch (error) {
+      fallback.hidden = false;
+      console.error(error);
+    }
+  </script>
+</body>
+</html>

@@ -42,7 +42,11 @@ data class EasebuzzSubMerchantStatusResponse(
     @SerializedName("kycUrl") val kycUrl: String? = null,
     @SerializedName("kycStatus") val kycStatus: String? = null,
     @SerializedName("kycSubmissionDate") val kycSubmissionDate: String? = null,
-    @SerializedName("activationDate") val activationDate: String? = null
+    @SerializedName("activationDate") val activationDate: String? = null,
+    @SerializedName("idProofUrl") val idProofUrl: String? = null,
+    @SerializedName("bankProofUrl") val bankProofUrl: String? = null,
+    @SerializedName("businessProof1Url") val businessProof1Url: String? = null,
+    @SerializedName("businessProof2Url") val businessProof2Url: String? = null
 )
 
 data class EasebuzzRefundRequest(

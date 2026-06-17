@@ -1,0 +1,32 @@
+sequenceDiagram
+    autonumber
+    actor Staff
+    actor Customer
+    participant POS as Android POS
+    participant API as PaymentController
+    participant SVC as EasebuzzPaymentService
+    participant SM as SubMerchantService
+    participant DB as PostgreSQL
+    participant EB as Easebuzz Pay API
+
+    Staff->>POS: Select Easebuzz Online for bill
+    POS->>API: POST /payments/easebuzz/create-order\nbillId, restaurantId
+    API->>SVC: createOrder(billId, restaurantId)
+    SVC->>DB: Load bill
+    SVC->>SVC: Block if already paid
+    SVC->>SVC: Run chargeback/fraud score
+    SVC->>SVC: Generate 20-char txnid\nKB + billTail + restTail + uuid
+    SVC->>SM: Load sub-merchant by restaurantId
+    alt Active sub-merchant or test mode
+        SVC->>SVC: Add sub_merchant_id
+    else Missing/inactive sub-merchant
+        SVC->>SVC: Continue as parent merchant payment
+    end
+    SVC->>EB: POST /payment/initiateLink\nhash key|txnid|amount|productinfo|firstname|email|udf1..udf10|salt
+    EB-->>SVC: access key
+    SVC->>DB: Save gatewayTxnId and gatewayStatus
+    SVC-->>API: access_token, payment_url, txnid
+    API-->>POS: Payment params
+    POS->>EB: Open Easebuzz checkout/SDK
+    Customer->>EB: Complete payment
+

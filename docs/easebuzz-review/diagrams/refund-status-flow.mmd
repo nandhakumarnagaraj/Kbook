@@ -1,0 +1,7 @@
+flowchart LR
+    A["GET /payments/easebuzz/refund-status/{billId}"] --> B["Load bill"]
+    B --> C{"gatewayTxnId and refundId exist?"}
+    C -->|No| D["Return failure with reason"]
+    C -->|Yes| E["POST /transaction/v2/refund_status"]
+    E --> F["Return status, refund_id, txnid, msg"]
+

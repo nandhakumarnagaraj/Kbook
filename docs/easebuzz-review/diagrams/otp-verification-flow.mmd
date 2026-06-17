@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    actor User as Admin or Restaurant Owner
+    participant UI as Web Admin / POS
+    participant API as KhanaBook API
+    participant SVC as SubMerchantService
+    participant EB as Easebuzz Dashboard API
+    participant DB as PostgreSQL
+
+    User->>UI: Enter OTP or request resend
+    UI->>API: POST verify-otp or resend-otp
+    API->>SVC: Resolve sub-merchant
+    SVC->>DB: Load by id or current tenant restaurant_id
+    alt Missing subMerchantId
+        SVC-->>API: BusinessRuleException NO_EASEBUZZ_ID
+        API-->>UI: Error response
+    else Verify OTP
+        SVC->>EB: /submerchant/v1/verify_otp\nhash merchant_key|sub_merchant_id|otp|salt
+        EB-->>SVC: OTP result
+        SVC-->>API: Raw Easebuzz result
+        API-->>UI: status/msg/error
+    else Resend OTP
+        SVC->>EB: /submerchant/v1/resend_otp\nhash merchant_key|sub_merchant_id|salt
+        EB-->>SVC: Resend result
+        SVC-->>API: Raw Easebuzz result
+        API-->>UI: status/msg/error
+    end
+

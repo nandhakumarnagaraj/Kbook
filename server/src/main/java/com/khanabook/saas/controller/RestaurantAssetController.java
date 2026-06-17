@@ -24,6 +24,14 @@ public class RestaurantAssetController {
 		return ResponseEntity.ok(Map.of("logoUrl", result.url(), "logoVersion", result.version()));
 	}
 
+	@PostMapping(value = "/kyc-document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<Map<String, String>> uploadKycDocument(
+			@RequestParam("type") String docType,
+			@RequestPart("file") MultipartFile file) {
+		AssetUploadResult result = assetStorageService.uploadKycDocument(TenantContext.getCurrentTenant(), docType, file);
+		return ResponseEntity.ok(Map.of("url", result.url()));
+	}
+
 	@DeleteMapping("/logo")
 	public ResponseEntity<Void> deleteLogo() {
 		assetStorageService.deleteLogo(TenantContext.getCurrentTenant());

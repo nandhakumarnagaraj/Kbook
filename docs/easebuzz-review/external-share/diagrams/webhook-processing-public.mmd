@@ -1,0 +1,15 @@
+flowchart TD
+    A["Easebuzz webhook received"] --> B{"Webhook type"}
+    B -->|Payment| C["Verify payment hash"]
+    B -->|Refund| D["Verify refund hash"]
+    B -->|KYC| E["Verify sub-merchant hash"]
+    B -->|Payout or settlement| F["Verify payout or settlement hash"]
+    C --> G{"Valid?"}
+    D --> G
+    E --> G
+    F --> G
+    G -->|No| H["Reject without state change"]
+    G -->|Yes| I["Apply idempotency checks"]
+    I --> J["Update payment, refund, KYC, or payout status"]
+    J --> K["Record audit event for reconciliation"]
+

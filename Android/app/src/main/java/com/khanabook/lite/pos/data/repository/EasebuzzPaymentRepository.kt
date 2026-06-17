@@ -1,6 +1,8 @@
 package com.khanabook.lite.pos.data.repository
 
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import com.khanabook.lite.pos.data.remote.dto.CreateEasebuzzOrderRequest
 import com.khanabook.lite.pos.data.remote.dto.CreateEasebuzzOrderResponse
 import com.khanabook.lite.pos.data.remote.dto.EasebuzzPaymentStatusResponse
@@ -95,4 +97,28 @@ class EasebuzzPaymentRepository(
                 reason = reason
             )
         )
+
+    suspend fun uploadKycDocument(
+        docType: String,
+        fileUri: android.net.Uri,
+        context: android.content.Context
+    ): com.khanabook.lite.pos.data.remote.api.KycDocumentUploadResponse {
+        val contentResolver = context.contentResolver
+        val inputStream = contentResolver.openInputStream(fileUri) ?: throw java.io.IOException("Unable to open stream")
+        val mimeType = contentResolver.getType(fileUri) ?: "application/octet-stream"
+        
+        var filename = "kyc_doc"
+        contentResolver.query(fileUri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (nameIndex != -1 && cursor.moveToFirst()) {
+                filename = cursor.getString(nameIndex)
+            }
+        }
+
+        val bytes = inputStream.use { it.readBytes() }
+        val requestFile = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
+        val body = okhttp3.MultipartBody.Part.createFormData("file", filename, requestFile)
+        
+        return api.uploadKycDocument(docType, body)
+    }
 }

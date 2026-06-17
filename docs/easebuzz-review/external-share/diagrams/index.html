@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KhanaBook Easebuzz Public Diagrams</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; color: #1f2937; background: #faf8f5; }
+    header { padding: 24px 32px; border-bottom: 1px solid #e5e7eb; background: #ffffff; }
+    h1 { margin: 0; font-size: 24px; }
+    main { display: grid; gap: 24px; padding: 24px; }
+    section { overflow: auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff; }
+    h2 { margin: 0 0 16px; font-size: 18px; }
+    .mermaid { min-width: 900px; }
+    .fallback { margin: 16px 24px 0; padding: 12px 14px; border: 1px solid #fed7aa; border-radius: 8px; background: #fff7ed; color: #9a3412; }
+  </style>
+</head>
+<body>
+  <header><h1>KhanaBook Easebuzz Integration Diagrams</h1></header>
+  <div id="fallback" class="fallback" hidden>If diagrams do not render, connect to the internet. The Mermaid source is embedded below, so this page should not be blank.</div>
+  <main>
+    <section>
+      <h2>System Architecture</h2>
+      <pre class="mermaid">flowchart LR
+    POS["KhanaBook POS / Business Console"] --&gt; API["KhanaBook Backend\nIntegration Layer"]
+    OPS["KhanaBook Operations Console"] --&gt; API
+
+    API --&gt; EBPay["Easebuzz Payment Gateway"]
+    API --&gt; EBDash["Easebuzz Dashboard APIs"]
+    API --&gt; EBKyc["Easebuzz Hosted KYC"]
+    EBPay --&gt; WH["KhanaBook Webhook Endpoint"]
+    EBDash --&gt; WH
+    WH --&gt; API
+
+    API --&gt; Ledger["KhanaBook Payment Ledger\nTenant Isolated"]</pre>
+    </section>
+
+    <section>
+      <h2>Payment And Split Sequence</h2>
+      <pre class="mermaid">sequenceDiagram
+    autonumber
+    actor Customer
+    participant POS as KhanaBook POS
+    participant KB as KhanaBook Backend
+    participant EB as Easebuzz
+    participant SET as Easebuzz Settlement
+
+    POS-&gt;&gt;KB: Create payment request for restaurant order
+    KB-&gt;&gt;KB: Validate tenant and payment eligibility
+    KB-&gt;&gt;EB: Initiate payment with restaurant sub-merchant context
+    EB--&gt;&gt;KB: Return payment access token or payment URL
+    KB--&gt;&gt;POS: Return payment parameters
+    Customer-&gt;&gt;EB: Complete payment
+    EB--&gt;&gt;KB: Send payment status webhook
+    KB-&gt;&gt;KB: Verify webhook hash and update payment status
+    KB-&gt;&gt;EB: Submit post-transaction split configuration
+    EB--&gt;&gt;KB: Confirm split status
+    SET--&gt;&gt;Customer: Customer receives payment or refund updates as applicable
+    SET--&gt;&gt;KB: Settlement and payout status available for reconciliation</pre>
+    </section>
+
+    <section>
+      <h2>Onboarding KYC</h2>
+      <pre class="mermaid">flowchart TD
+    A["Restaurant partner applies for online payments"] --&gt; B["KhanaBook validates business, contact, bank, and food-license details"]
+    B --&gt; C["KhanaBook creates or updates Easebuzz sub-merchant"]
+    C --&gt; D{"Sub-merchant created?"}
+    D --&gt;|No| E["Show correction required to operations or restaurant owner"]
+    D --&gt;|Yes| F["Generate Easebuzz KYC access link"]
+    F --&gt; G["Restaurant owner completes KYC on Easebuzz hosted portal"]
+    G --&gt; H["Easebuzz sends KYC status webhook"]
+    H --&gt; I{"KYC status"}
+    I --&gt;|Approved| J["Enable online payment routing for the restaurant"]
+    I --&gt;|Pending| K["Keep onboarding under review"]
+    I --&gt;|Rejected| L["Request corrected details and resubmission"]</pre>
+    </section>
+
+    <section>
+      <h2>Webhook Processing</h2>
+      <pre class="mermaid">flowchart TD
+    A["Easebuzz webhook received"] --&gt; B{"Webhook type"}
+    B --&gt;|Payment| C["Verify payment hash"]
+    B --&gt;|Refund| D["Verify refund hash"]
+    B --&gt;|KYC| E["Verify sub-merchant hash"]
+    B --&gt;|Payout or settlement| F["Verify payout or settlement hash"]
+    C --&gt; G{"Valid?"}
+    D --&gt; G
+    E --&gt; G
+    F --&gt; G
+    G --&gt;|No| H["Reject without state change"]
+    G --&gt;|Yes| I["Apply idempotency checks"]
+    I --&gt; J["Update payment, refund, KYC, or payout status"]
+    J --&gt; K["Record audit event for reconciliation"]</pre>
+    </section>
+
+    <section>
+      <h2>OTP Verification</h2>
+      <pre class="mermaid">sequenceDiagram
+    autonumber
+    actor User as Restaurant Owner or Operations User
+    participant UI as KhanaBook Interface
+    participant KB as KhanaBook Backend
+    participant EB as Easebuzz
+
+    User-&gt;&gt;UI: Enter OTP or request resend
+    UI-&gt;&gt;KB: Submit OTP action
+    KB-&gt;&gt;KB: Resolve tenant or approved operations context
+    KB-&gt;&gt;EB: Verify OTP or resend OTP
+    EB--&gt;&gt;KB: Return OTP result
+    KB--&gt;&gt;UI: Show success or correction required</pre>
+    </section>
+
+    <section>
+      <h2>Refund</h2>
+      <pre class="mermaid">sequenceDiagram
+    autonumber
+    actor User as Restaurant Staff or Operations User
+    participant UI as KhanaBook Interface
+    participant KB as KhanaBook Backend
+    participant EB as Easebuzz
+
+    User-&gt;&gt;UI: Request refund for paid order
+    UI-&gt;&gt;KB: Submit refund amount and reason
+    KB-&gt;&gt;KB: Validate payment, tenant, and refundable amount
+    KB-&gt;&gt;EB: Initiate refund
+    EB--&gt;&gt;KB: Return refund identifier and status
+    KB--&gt;&gt;UI: Show refund initiated
+    EB--&gt;&gt;KB: Send refund status webhook
+    KB-&gt;&gt;KB: Verify webhook and update refund status</pre>
+    </section>
+
+    <section>
+      <h2>Settlement Tracking</h2>
+      <pre class="mermaid">flowchart TD
+    A["Successful customer payment"] --&gt; B["KhanaBook records payment status"]
+    B --&gt; C["KhanaBook submits split configuration to Easebuzz"]
+    C --&gt; D["Easebuzz processes restaurant share and platform commission"]
+    D --&gt; E["Settlement or payout status becomes available"]
+    E --&gt; F["KhanaBook reconciles settlement status with payment ledger"]
+    F --&gt; G{"Mismatch found?"}
+    G --&gt;|No| H["Mark reconciliation complete"]
+    G --&gt;|Yes| I["Flag for operations review"]</pre>
+    </section>
+  </main>
+  <script type="module">
+    const fallback = document.getElementById("fallback");
+    try {
+      const { default: mermaid } = await import("https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs");
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "base",
+        securityLevel: "loose",
+        themeVariables: {
+          primaryColor: "#FFF7ED",
+          primaryBorderColor: "#F97316",
+          primaryTextColor: "#1F2937",
+          lineColor: "#6B7280",
+          secondaryColor: "#F9FAFB",
+          tertiaryColor: "#FFFFFF"
+        }
+      });
+      await mermaid.run({ querySelector: ".mermaid" });
+    } catch (error) {
+      fallback.hidden = false;
+      console.error(error);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+flowchart TD
+    A["Start: restaurant tenant exists"] --> B{"Who initiates?"}
+    B -->|Admin| C["POST /admin/sub-merchants\nCreate local DRAFT"]
+    B -->|Owner POS| D["POST /restaurants/payment-config/easebuzz/onboard\nTenant from TenantContext"]
+    C --> E["SubMerchantService.create\nrestaurant_id bound to sub-merchant"]
+    D --> E
+    E --> F{"Already exists for restaurant_id?"}
+    F -->|Yes| G["Reject duplicate\nBusinessRuleException"]
+    F -->|No or DRAFT/FAILED owner retry| H["Validate onboarding fields"]
+    H --> I["FSSAI required\nLegal name required\nAddress and state required"]
+    I --> J{"Admin flow and proprietorship?"}
+    J -->|Yes| K["Require two business proof URLs\nCPV gate"]
+    J -->|No| L["Submit to Easebuzz"]
+    K --> L
+    L --> M["POST /merchant/v1/submerchant/create/"]
+    M --> N{"Easebuzz success?"}
+    N -->|No| O["status=FAILED\nstore easebuzzResponse"]
+    N -->|Yes| P["Save subMerchantId\nstatus=PENDING_KYC\nkycSubmittedAt"]
+    P --> Q["ensureEasebuzzEnabled(restaurant_id)"]
+    Q --> R["Generate KYC access key"]
+    R --> S["POST /submerchant/v1/generate_kyc_access_key"]
+    S --> T["Save hosted kycPortalUrl"]
+    T --> U["Owner uploads documents on Easebuzz portal"]
+    U --> V["Sub-merchant webhook"]
+    V --> W{"data.status"}
+    W -->|"True"| X["status=ACTIVE\nkycActivatedAt=now"]
+    W -->|"Pending"| Y["status=KYC_SUBMITTED\nkycSubmittedAt=now"]
+    W -->|"False"| Z["status=REJECTED"]
+

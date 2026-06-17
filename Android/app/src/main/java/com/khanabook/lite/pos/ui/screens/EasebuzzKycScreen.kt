@@ -2,6 +2,8 @@ package com.khanabook.lite.pos.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -110,6 +112,7 @@ fun EasebuzzKycScreen(
     var otp by remember { mutableStateOf("") }
     var actionBusy by remember { mutableStateOf(false) }
     var actionMessage by remember { mutableStateOf<String?>(null) }
+    var uploadType by remember { mutableStateOf<String?>(null) }
 
     suspend fun refreshStatus() {
         try {
@@ -120,6 +123,27 @@ fun EasebuzzKycScreen(
             errorMessage = e.message ?: "Failed to load KYC status"
         } finally {
             isLoading = false
+        }
+    }
+
+    val documentPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null && uploadType != null) {
+            scope.launch {
+                try {
+                    actionBusy = true
+                    actionMessage = "Uploading document..."
+                    paymentRepository.uploadKycDocument(uploadType!!, uri, context)
+                    actionMessage = "Document uploaded successfully!"
+                    refreshStatus()
+                } catch (e: Exception) {
+                    actionMessage = "Upload failed: ${e.message}"
+                } finally {
+                    actionBusy = false
+                    uploadType = null
+                }
+            }
         }
     }
 
@@ -254,6 +278,61 @@ fun EasebuzzKycScreen(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(spacing.mediumLarge))
+
+                Text(
+                    text = "Upload KYC Documents to Server",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(vertical = spacing.small)
+                )
+
+                val isEditable = !status.isActive
+                
+                KycDocUploadCard(
+                    label = "Identity Proof (PAN / Aadhaar)",
+                    url = status.idProofUrl,
+                    onSelectFile = {
+                        uploadType = "id_proof"
+                        documentPickerLauncher.launch("*/*")
+                    },
+                    busy = actionBusy,
+                    isEditable = isEditable
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+                KycDocUploadCard(
+                    label = "Bank Proof (Cancelled Cheque / Statement)",
+                    url = status.bankProofUrl,
+                    onSelectFile = {
+                        uploadType = "bank_proof"
+                        documentPickerLauncher.launch("*/*")
+                    },
+                    busy = actionBusy,
+                    isEditable = isEditable
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+                KycDocUploadCard(
+                    label = "Address Proof 1 (Proprietorship / Entity proof)",
+                    url = status.businessProof1Url,
+                    onSelectFile = {
+                        uploadType = "business_proof_1"
+                        documentPickerLauncher.launch("*/*")
+                    },
+                    busy = actionBusy,
+                    isEditable = isEditable
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+                KycDocUploadCard(
+                    label = "Address Proof 2 (GST / FSSAI / Other proof)",
+                    url = status.businessProof2Url,
+                    onSelectFile = {
+                        uploadType = "business_proof_2"
+                        documentPickerLauncher.launch("*/*")
+                    },
+                    busy = actionBusy,
+                    isEditable = isEditable
+                )
 
                 Spacer(modifier = Modifier.height(spacing.mediumLarge))
 
@@ -640,4 +719,101 @@ private fun kycStatusHint(state: String): String = when (state) {
     "DRAFT" -> "Finish onboarding to submit to Easebuzz."
     "NOT_REGISTERED", "NOT_STARTED" -> "Start onboarding to register as an Easebuzz sub-merchant."
     else -> ""
+}
+
+@Composable
+private fun KycDocUploadCard(
+    label: String,
+    url: String?,
+    onSelectFile: () -> Unit,
+    busy: Boolean,
+    isEditable: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    KhanaBookCard(
+        modifier = modifier.fillMaxWidth(),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard),
+        shape = KbShape.Medium
+    ) {
+        Row(
+            modifier = Modifier.padding(spacing.medium),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    color = MaterialTheme.kbTextPrimary,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                if (!url.isNullOrBlank()) {
+                    Text(
+                        text = "Uploaded (local CDN copy)",
+                        color = KbSuccess,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                } else {
+                    Text(
+                        text = "Not uploaded",
+                        color = MaterialTheme.kbTextSecondary,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+            
+            if (!url.isNullOrBlank()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Rounded.CheckCircle,
+                        contentDescription = "Uploaded",
+                        tint = KbSuccess,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    val context = LocalContext.current
+                    OutlinedButton(
+                        onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        },
+                        modifier = Modifier.height(36.dp),
+                        shape = KbShape.Small
+                    ) {
+                        Text("View")
+                    }
+                    if (isEditable) {
+                        Spacer(modifier = Modifier.width(spacing.small))
+                        OutlinedButton(
+                            onClick = onSelectFile,
+                            enabled = !busy,
+                            modifier = Modifier.height(36.dp),
+                            shape = KbShape.Small
+                        ) {
+                            Text("Replace")
+                        }
+                    }
+                }
+            } else {
+                if (isEditable) {
+                    Button(
+                        onClick = onSelectFile,
+                        enabled = !busy,
+                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
+                        shape = KbShape.Small,
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.CloudUpload,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(spacing.extraSmall))
+                        Text("Upload", color = Color.White)
+                    }
+                }
+            }
+        }
+    }
 }

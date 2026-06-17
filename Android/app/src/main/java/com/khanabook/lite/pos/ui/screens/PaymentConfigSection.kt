@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
@@ -30,14 +32,8 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Storefront
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -116,13 +112,41 @@ fun PaymentConfigView(
             .padding(layout.contentPadding)
     ) {
         ConfigCard {
-            // ── Currency (read-only) ─────────────────────────────────────────
-            ParchmentTextField(
-                value = currency,
-                onValueChange = {},
-                label = "Currency *",
-                enabled = false
-            )
+            // ── Currency Dropdown (restricted to INR) ────────────────────────
+            var currencyMenuExpanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = currencyMenuExpanded,
+                onExpandedChange = { currencyMenuExpanded = it }
+            ) {
+                ParchmentTextField(
+                    value = currency,
+                    onValueChange = {},
+                    label = "Currency *",
+                    readOnly = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(),
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.kbSecondary
+                        )
+                    }
+                )
+                ExposedDropdownMenu(
+                    expanded = currencyMenuExpanded,
+                    onDismissRequest = { currencyMenuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("INR") },
+                        onClick = {
+                            currency = "INR"
+                            currencyMenuExpanded = false
+                        }
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(spacing.large))
 
             // ── Payment methods ──────────────────────────────────────────────
@@ -361,7 +385,7 @@ fun PaymentConfigView(
                             return@PrimaryButton
                         }
                         profile?.copy(
-                            currency = currency,
+                            currency = if (currency.equals("INR", ignoreCase = true)) "INR" else "INR",
                             upiEnabled = upiSupported,
                             upiHandle = upiHandle.trim(),
                             easebuzzEnabled = easebuzzEnabled,

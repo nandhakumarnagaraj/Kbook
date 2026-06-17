@@ -1,0 +1,14 @@
+sequenceDiagram
+    autonumber
+    actor User as Restaurant Owner or Operations User
+    participant UI as KhanaBook Interface
+    participant KB as KhanaBook Backend
+    participant EB as Easebuzz
+
+    User->>UI: Enter OTP or request resend
+    UI->>KB: Submit OTP action
+    KB->>KB: Resolve tenant or approved operations context
+    KB->>EB: Verify OTP or resend OTP
+    EB-->>KB: Return OTP result
+    KB-->>UI: Show success or correction required
+

@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    actor User as Staff/Admin
+    participant POS as Android POS / Web Admin
+    participant API as PaymentController or RefundController
+    participant SVC as EasebuzzPaymentService
+    participant DB as PostgreSQL
+    participant EB as Easebuzz Dashboard API
+
+    User->>POS: Request full or partial refund
+    POS->>API: POST /payments/easebuzz/refund/{billId}\namount, reason
+    API->>SVC: initiateRefund(billId, amount, reason)
+    SVC->>DB: Load bill
+    SVC->>DB: Find easebuzz_id from webhook event by restaurantId + txnid
+    alt easebuzz_id missing
+        SVC->>SVC: Fallback to txnid
+    end
+    SVC->>SVC: merchantRefundId = REF{billId}_{timestamp}
+    SVC->>EB: POST /transaction/v2/refund\nkey, merchant_refund_id, easebuzz_id, refund_amount, hash
+    EB-->>SVC: refund_id/status
+    alt Success
+        SVC->>DB: Save refundId, refundAmount, gatewayStatus=refund_initiated
+        SVC-->>API: success, easebuzz_refund_id
+    else Failure
+        SVC-->>API: failure, error
+    end
+    EB-->>API: Refund webhook
+    API->>SVC: handleRefundWebhook
+    SVC->>SVC: Verify refund hash
+    SVC->>DB: Update refund status and audit event
+

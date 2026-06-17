@@ -148,6 +148,8 @@ public class SubMerchantService {
         if (data.containsKey("businessProof1Url")) sm.setBusinessProof1Url(data.get("businessProof1Url"));
         if (data.containsKey("businessProof2Type")) sm.setBusinessProof2Type(data.get("businessProof2Type"));
         if (data.containsKey("businessProof2Url")) sm.setBusinessProof2Url(data.get("businessProof2Url"));
+        if (data.containsKey("idProofUrl")) sm.setIdProofUrl(data.get("idProofUrl"));
+        if (data.containsKey("bankProofUrl")) sm.setBankProofUrl(data.get("bankProofUrl"));
         if (data.containsKey("contactEmail")) sm.setContactEmail(data.get("contactEmail"));
         if (data.containsKey("contactPhone")) sm.setContactPhone(data.get("contactPhone"));
         if (data.containsKey("commissionRate") && data.get("commissionRate") != null)
@@ -158,6 +160,31 @@ public class SubMerchantService {
             sm.setDcDeductionGtTwoThousand(new java.math.BigDecimal(data.get("dcDeductionGtTwoThousand")));
         sm.setUpdatedAt(System.currentTimeMillis());
         return subMerchantRepo.save(sm);
+    }
+
+    @Transactional
+    public void updateKycDocumentUrl(Long restaurantId, String docType, String url) {
+        EasebuzzSubMerchant sm = subMerchantRepo.findByRestaurantId(restaurantId)
+                .orElseThrow(() -> new EntityNotFoundException("EasebuzzSubMerchant", "restaurantId=" + restaurantId));
+        switch (docType) {
+            case "id_proof":
+                sm.setIdProofUrl(url);
+                break;
+            case "bank_proof":
+                sm.setBankProofUrl(url);
+                break;
+            case "business_proof_1":
+                sm.setBusinessProof1Url(url);
+                break;
+            case "business_proof_2":
+                sm.setBusinessProof2Url(url);
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown KYC document type: " + docType);
+        }
+        sm.setUpdatedAt(System.currentTimeMillis());
+        subMerchantRepo.save(sm);
+        log.info("Updated KYC doc URL type={} for restaurantId={}: {}", docType, restaurantId, url);
     }
 
     @Transactional

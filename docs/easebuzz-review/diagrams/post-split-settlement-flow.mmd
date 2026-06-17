@@ -1,0 +1,29 @@
+sequenceDiagram
+    autonumber
+    participant WH as EasebuzzWebhookService
+    participant SPLIT as PostSplitService
+    participant DB as PostgreSQL
+    participant SM as SubMerchantService
+    participant EB as Easebuzz Dashboard API
+    participant SET as Settlement Engine
+
+    WH->>SPLIT: createPostSplitAsync(billId, easebuzzId, txnid)
+    SPLIT->>DB: Load bill outside transaction
+    SPLIT->>SM: Load sub-merchant by bill.restaurantId
+    alt Sub-merchant inactive or no split label
+        SPLIT-->>WH: Skip split, log warning
+    else Already settled
+        SPLIT-->>WH: Skip duplicate
+    else Eligible
+        SPLIT->>SPLIT: merchantRequestId = KB{billId}_{easebuzzIdPrefix}
+        SPLIT->>SPLIT: Calculate commissionAmount and restaurantAmount
+        SPLIT->>EB: POST /post-split/v1/create/\nkey, merchant_request_id, easebuzz_id, amount, config, hash
+        alt Success
+            EB-->>SPLIT: status=success
+            SPLIT->>DB: Save commissionAmount and settledAt
+            SET-->>DB: Later external settlement appears in reports
+        else Failure
+            SPLIT->>SPLIT: Retry up to 3 attempts\nwith stable merchantRequestId
+        end
+    end
+

@@ -76,18 +76,26 @@ public class RestaurantPaymentConfigController {
             result.put("kycSubmissionDate",  sm.getKycSubmittedAt() != null ? sm.getKycSubmittedAt().toString() : null);
             result.put("kycUrl",            sm.getKycPortalUrl() != null ? sm.getKycPortalUrl() : "");
             result.put("activationDate",     sm.getKycActivatedAt() != null ? sm.getKycActivatedAt().toString() : null);
+            result.put("idProofUrl",         sm.getIdProofUrl());
+            result.put("bankProofUrl",       sm.getBankProofUrl());
+            result.put("businessProof1Url",  sm.getBusinessProof1Url());
+            result.put("businessProof2Url",  sm.getBusinessProof2Url());
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                "status",             "NOT_REGISTERED",
-                "subMerchantId",      "",
-                "hasSubMerchant",     false,
-                "isActive",           false,
-                "kycStatus",          "",
-                "kycSubmissionDate",  null,
-                "kycUrl",            "",
-                "activationDate",    null
-            ));
+            Map<String, Object> fallback = new HashMap<>();
+            fallback.put("status",             "NOT_REGISTERED");
+            fallback.put("subMerchantId",      "");
+            fallback.put("hasSubMerchant",     false);
+            fallback.put("isActive",           false);
+            fallback.put("kycStatus",          "");
+            fallback.put("kycSubmissionDate",  null);
+            fallback.put("kycUrl",            "");
+            fallback.put("activationDate",     null);
+            fallback.put("idProofUrl",         null);
+            fallback.put("bankProofUrl",       null);
+            fallback.put("businessProof1Url",  null);
+            fallback.put("businessProof2Url",  null);
+            return ResponseEntity.ok(fallback);
         }
     }
 

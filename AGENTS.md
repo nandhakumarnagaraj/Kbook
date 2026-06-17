@@ -38,13 +38,13 @@ Complete Android Compose UI rebuild to match 20 Stitch-generated design mockups 
 - **Server Compilation Fixed**: Added Maven wrapper (`mvnw`) to `server/`. `target/classes` now reflects new `.java` files. `NoResourceFoundException` for `/api/v2/business/profile` resolved.
 - **Easebuzz Hash Corrections** (critical): Initiate Payment hash fixed from `udf6-udf10` to 5 empty pipes (`||||||`). Refund endpoint upgraded from v1 (`/transaction/v1/refund`) to v2 (`/transaction/v2/refund`) with correct hash `key|txnid|amount|salt`.
 - **New Easebuzz APIs Added**: `getRefundStatus()` (v2), `cancelTransaction()`, `initiatePayout()` (v2), `initiateOnDemandSettlement()` — all wired in `EasebuzzApiClient.java`
-- **Documentation**: Created `easebuzz-submerchant-business-model.md` (comprehensive business model + POS features + 20 sections). Updated `sub-merchant-apis.md` to 15 APIs with official Easebuzz Stoplight doc URLs for each.
+- **Documentation**: Created `docs/easebuzz/easebuzz-submerchant-business-model.md` (comprehensive business model + POS features + 20 sections). Updated `docs/easebuzz/sub-merchant-apis.md` to 15 APIs with official Easebuzz Stoplight doc URLs for each.
 - Git: committed `04599cd` (14 files, 1845 insertions), pushed to `origin/v2`
 - **OTP APIs Implemented**: `verifyOtp()` + `resendOtp()` in `EasebuzzApiClient.java`, service methods in `SubMerchantService.java`, endpoints in `AdminSubMerchantController.java`, OTP action buttons (📱 OTP / 🔄 OTP) in web admin UI, API methods in `admin-api.service.ts`
 - **Missing Endpoints Wired**: `cancelTransaction`, `initiatePayout`, `initiateOnDemandSettlement`, `retrieveTransactionSplit` — all wired from client → service → controller
 - **Web Admin Split Retrieve**: 🔍 Retrieve Split Status button in detail panel
 - **Android Refund Status**: Added `getEasebuzzRefundStatus()` API + DTO + repo method
-- **Documentation Updated**: `sub-merchant-apis.md` endpoint table now includes all 22 endpoints
+- **Documentation Updated**: `docs/easebuzz/sub-merchant-apis.md` endpoint table now includes all 22 endpoints
 
 ### 2026-05-21 Session — Typed Exceptions, Webhook HMAC Auth, Bug Fixes
 - **Typed exception hierarchy**: `BusinessRuleException` (→ 422), `EasebuzzApiException` (→ 502), `EntityNotFoundException` (→ 404) — all registered in `GlobalExceptionHandler`
@@ -185,8 +185,8 @@ Complete Android Compose UI rebuild to match 20 Stitch-generated design mockups 
 7. ~~Add Android Refund Status API~~ ✅ Done
 8. ~~Test all Easebuzz sub-merchant APIs against sandbox~~ ✅ Done (KYC = live-only, sub-merchant 500 needs feature enablement)
 9. ~~Verify `getRefundStatus()` and `cancelTransaction()` work correctly in sandbox~~ ✅ Done (404 — need feature enablement)
-10. ~~Send sandbox support email to Easebuzz — enable sub-merchant/split/refund features~~ ✅ Draft exists (`easebuzz-sandbox-support-email.md`)
-11. ~~Create live-mode test plan for KYC, sub-merchant CRUD, split APIs~~ ✅ Done (`easebuzz-live-test-plan.md`)
+10. ~~Send sandbox support email to Easebuzz — enable sub-merchant/split/refund features~~ ✅ Draft exists (`docs/easebuzz/easebuzz-sandbox-support-email.md`)
+11. ~~Create live-mode test plan for KYC, sub-merchant CRUD, split APIs~~ ✅ Done (`docs/easebuzz/easebuzz-live-test-plan.md`)
 12. ~~Fix web-admin subscription leaks — add `takeUntilDestroyed()` to 45 `.subscribe()` calls~~ ✅ Committed
 13. ~~Commit pending code review fixes & tests~~ ✅ Committed (`e2855a9`)
 14. ~~Typed exceptions + webhook HMAC auth + txnid fix + sync hasMore fix~~ ✅ Committed (`05683fc`)
@@ -220,7 +220,7 @@ Complete Android Compose UI rebuild to match 20 Stitch-generated design mockups 
 - `web-admin/src/app/layout/sidebar-layout/sidebar-layout.component.ts` — brand logo + 100dvh
 - `web-admin/src/app/pages/login/login-page.component.ts` — login with brand logo, responsive Google button
 - `web-admin/src/index.html` — SEO meta tags, favicon
-- `sub-merchant-apis.md` — complete API reference document
+- `docs/easebuzz/sub-merchant-apis.md` — complete API reference document
 - `web-admin/public/khanabook_logo.png` — brand logo from Android drawable
 - `Android/app/.../data/remote/api/KhanaBookApi.kt` — added GST/FSSAI/both lookup endpoints
 - `Android/app/.../ui/viewmodel/SettingsViewModel.kt` — added lookup methods + `LookupResult` state
@@ -232,5 +232,5 @@ Complete Android Compose UI rebuild to match 20 Stitch-generated design mockups 
 - `server/.../test/.../service/EasebuzzIntegrationTest.java` — 5 tests
 - `server/.../test/.../service/EasebuzzNewFeaturesTest.java` — 5 tests
 - `server/.../test/.../service/EasebuzzWebhookTest.java` — 4 tests
-- `easebuzz-sandbox-support-email.md` — draft support email for feature enablement
-- `easebuzz-live-test-plan.md` — live-mode test plan for KYC/sub-merchant/split APIs
+- `docs/easebuzz/easebuzz-sandbox-support-email.md` — draft support email for feature enablement
+- `docs/easebuzz/easebuzz-live-test-plan.md` — live-mode test plan for KYC/sub-merchant/split APIs
