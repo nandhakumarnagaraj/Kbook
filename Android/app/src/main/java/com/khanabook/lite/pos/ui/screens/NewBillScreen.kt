@@ -357,7 +357,7 @@ fun CustomerInfoStep(
     // Restore from ViewModel so state survives AnimatedContent recreation when going back
     var name by remember { mutableStateOf(billingViewModel?.customerName?.value ?: "") }
     var whatsapp by remember { mutableStateOf(billingViewModel?.customerWhatsapp?.value ?: "") }
-    var orderType by remember { mutableStateOf(billingViewModel?.orderType?.value ?: "order") }
+    var orderType by remember { mutableStateOf(billingViewModel?.orderType?.value ?: "dinein") }
     val spacing = KhanaBookTheme.spacing
 
     val recentCustomers by (billingViewModel?.recentCustomers ?: kotlinx.coroutines.flow.flowOf(emptyList<Pair<String,String>>())).collectAsState(initial = emptyList())
@@ -395,7 +395,7 @@ fun CustomerInfoStep(
             Spacer(modifier = Modifier.height(spacing.extraLarge))
         }
 
-        // Order type selector (Walk-in maps to legacy "order")
+        // Order type selector (Dine-in, Takeaway, Delivery)
         Text(
             "ORDER TYPE",
             color = MaterialTheme.kbTertiary,
@@ -410,7 +410,6 @@ fun CustomerInfoStep(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             listOf(
-                "Walk-in" to "order",
                 "Dine-in" to "dinein",
                 "Takeaway" to "takeaway",
                 "Delivery" to "delivery"

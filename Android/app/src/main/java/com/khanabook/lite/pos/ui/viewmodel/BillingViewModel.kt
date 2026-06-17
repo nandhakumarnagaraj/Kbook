@@ -101,8 +101,8 @@ class BillingViewModel @Inject constructor(
     private val _customerWhatsapp = MutableStateFlow("")
     val customerWhatsapp: StateFlow<String> = _customerWhatsapp
 
-    // Order type (Walk-in maps to the legacy default "order"; others are distinct dbValues).
-    private val _orderType = MutableStateFlow("order")
+    // Order type (defaults to "dinein").
+    private val _orderType = MutableStateFlow("dinein")
     val orderType: StateFlow<String> = _orderType
 
     fun setOrderType(type: String) {
@@ -262,7 +262,7 @@ class BillingViewModel @Inject constructor(
         _cartItems.value = emptyList()
         _customerName.value = ""
         _customerWhatsapp.value = ""
-        _orderType.value = "order"
+        _orderType.value = "dinein"
         _paymentMode.value = PaymentMode.UPI
         _partAmount1.value = "0.0"
         _partAmount2.value = "0.0"
