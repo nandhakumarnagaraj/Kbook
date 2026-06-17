@@ -47,6 +47,11 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.unit.Dp
+
 // ═══════════════════════════════════════════════════════════════
 // KHANBOOK DLS — MOTION SYSTEM
 //
@@ -170,7 +175,7 @@ fun KbFadeSlideIn(
  */
 fun Modifier.kbPressScale(
     enabled: Boolean = true,
-    scaleDown: Float = 0.96f
+    scaleDown: Float = 0.98f
 ): Modifier = composed {
     var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
@@ -191,6 +196,71 @@ fun Modifier.kbPressScale(
                 }
             )
         }
+}
+
+/**
+ * Self-drawing checkmark animation for payment/operation success states.
+ */
+@Composable
+fun KbSuccessCheckmark(
+    modifier: Modifier = Modifier,
+    color: Color = KbSuccess,
+    strokeWidth: Dp = 4.dp
+) {
+    val animateVal = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        animateVal.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 600, easing = KbMotion.EasingStandard)
+        )
+    }
+
+    Canvas(modifier = modifier) {
+        val width = size.width
+        val height = size.height
+
+        val progress = animateVal.value
+        val p1 = 0.4f
+        val startX = width * 0.28f
+        val startY = height * 0.5f
+        val midX = width * 0.44f
+        val midY = height * 0.66f
+        val endX = width * 0.72f
+        val endY = height * 0.34f
+
+        if (progress > 0f) {
+            if (progress <= p1) {
+                val currentProgress = progress / p1
+                val curX = startX + (midX - startX) * currentProgress
+                val curY = startY + (midY - startY) * currentProgress
+                drawLine(
+                    color = color,
+                    start = androidx.compose.ui.geometry.Offset(startX, startY),
+                    end = androidx.compose.ui.geometry.Offset(curX, curY),
+                    strokeWidth = strokeWidth.toPx(),
+                    cap = StrokeCap.Round
+                )
+            } else {
+                drawLine(
+                    color = color,
+                    start = androidx.compose.ui.geometry.Offset(startX, startY),
+                    end = androidx.compose.ui.geometry.Offset(midX, midY),
+                    strokeWidth = strokeWidth.toPx(),
+                    cap = StrokeCap.Round
+                )
+                val currentProgress = (progress - p1) / (1f - p1)
+                val curX = midX + (endX - midX) * currentProgress
+                val curY = midY + (endY - midY) * currentProgress
+                drawLine(
+                    color = color,
+                    start = androidx.compose.ui.geometry.Offset(midX, midY),
+                    end = androidx.compose.ui.geometry.Offset(curX, curY),
+                    strokeWidth = strokeWidth.toPx(),
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+    }
 }
 
 /**

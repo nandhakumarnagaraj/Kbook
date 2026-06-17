@@ -3,6 +3,7 @@
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -15,12 +16,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -69,6 +72,8 @@ fun HomeScreen(
     onMarketplaceOrders: () -> Unit = {},
     onMenuClick: () -> Unit = {},
     onNotifications: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
+    onViewReports: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel(),
     notificationViewModel: NotificationViewModel = hiltViewModel()
@@ -79,6 +84,7 @@ fun HomeScreen(
     val haptic = LocalHapticFeedback.current
 
     val stats by viewModel.todayStats.collectAsState()
+    val recentBills by viewModel.recentBills.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
     val unsyncedCount by viewModel.unsyncedCount.collectAsState()
     val shopName by viewModel.shopName.collectAsState()
@@ -86,11 +92,11 @@ fun HomeScreen(
     val greeting = viewModel.greeting
     val marketplacePendingCount by viewModel.marketplacePendingCount.collectAsState()
     val complianceAlerts by viewModel.complianceAlerts.collectAsState()
-    val dismissedAlerts: MutableList<String> = remember { mutableListOf() }
+    val dismissedAlerts = remember { mutableStateListOf<String>() }
     val statsReady by viewModel.statsReady.collectAsState()
     val pushNotifications by notificationViewModel.notifications.collectAsState()
     val pushUnreadCount by notificationViewModel.unreadCount.collectAsState()
-    // Combined notification count: push notifications + operational alerts
+    
     val notificationCount = remember(
         unsyncedCount,
         marketplacePendingCount,
@@ -155,7 +161,6 @@ fun HomeScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // White rounded brand logo box
                                 Card(
                                     modifier = Modifier.size(56.dp),
                                     shape = KbShape.Medium,
@@ -189,7 +194,7 @@ fun HomeScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = greeting,
-                                        color = KbAccentOrangeLight, // Warm gold/orange greeting
+                                        color = KbAccentOrangeLight,
                                         style = MaterialTheme.typography.labelMedium.copy(
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Medium
@@ -269,331 +274,238 @@ fun HomeScreen(
                 }
             }
 
+            // Restaurant status banner
+            RestaurantStatusBanner(stats = stats, lastOrderTime = stats.lastOrderTime)
 
-            val isWideScreen = !KhanaBookTheme.layout.isCompact
-
-            if (isWideScreen) {
-                Row(
+            // Today's Summary section
+            AnimatedVisibility(visible = statsVisible, enter = enterSpec, exit = exitSpec) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    AnimatedVisibility(
-                        visible = statsVisible,
-                        enter = enterSpec,
-                        exit = exitSpec,
-                        modifier = Modifier.weight(1.2f)
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text(
-                                text = "Today's Summary",
-                                color = MaterialTheme.kbTextSecondary,
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.6.sp
-                                )
-                            )
-                            if (!statsReady || (stats.orderCount == 0 && stats.revenue == 0.0)) {
-                                TodaySummaryEmpty(onNewBill = onNewBill)
-                            } else {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    MetricCard(
-                                        value = stats.orderCount.toString(),
-                                        label = "Total Orders",
-                                        accentColor = KbAccentOrange,
-                                        badge = "today",
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    MetricCard(
-                                        value = CurrencyUtils.formatPriceCompact(stats.revenue),
-                                        label = "Revenue",
-                                        accentColor = KbAccentViolet,
-                                        badge = "today",
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    MetricCard(
-                                        value = CurrencyUtils.formatPriceCompact(
-                                            if (stats.orderCount > 0) stats.revenue / stats.orderCount else 0.0
-                                        ),
-                                        label = "Avg Order",
-                                        accentColor = KbAccentEmerald,
-                                        badge = "today",
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    AnimatedVisibility(
-                        visible = actionsVisible,
-                        enter = enterSpec,
-                        exit = exitSpec,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text(
-                                text = "Quick Actions",
-                                color = MaterialTheme.kbTextSecondary,
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.6.sp
-                                )
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                // "New Bill" Saffron Filled Button
-                                Button(
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onNewBill()
-                                    },
-                                    modifier = Modifier
-                                        .weight(1.2f)
-                                        .height(48.dp)
-                                        .shadow(2.dp, KbShape.Medium),
-                                    shape = KbShape.Medium,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = KbAccentOrange
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 8.dp)
-                                ) {
-                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("New Bill", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                }
-                                
-                                // "Orders" White/Card Button
-                                Button(
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onSearchBill()
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp)
-                                        .border(1.dp, MaterialTheme.kbOutlineSubtle, KbShape.Medium)
-                                        .shadow(1.dp, KbShape.Medium),
-                                    shape = KbShape.Medium,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.kbBgCard,
-                                        contentColor = MaterialTheme.kbTextPrimary
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 8.dp)
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = KbAccentViolet)
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Orders", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                }
-                                
-                                // "Menu" Light Saffron Outlined/Tinted Button
-                                Button(
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onMenuClick()
-                                    },
-                                    modifier = Modifier
-                                        .weight(1.1f)
-                                        .height(48.dp)
-                                        .border(1.dp, KbAccentOrange.copy(alpha = 0.5f), KbShape.Medium),
-                                    shape = KbShape.Medium,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                        contentColor = MaterialTheme.colorScheme.primary
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 8.dp)
-                                ) {
-                                    Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Menu", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                }
-                            }
-
-                            if (marketplacePendingCount > 0) {
-                                HomeActionCard(
-                                    text = "Online Orders",
-                                    onClick = onMarketplaceOrders,
-                                    badgeCount = marketplacePendingCount
-                                )
-                            }
-
-                            HomeSecondaryActions(
-                                density = layoutDensity,
-                                onSearchBill = onSearchBill,
-                                onReprintKds = onReprintKds,
-                                onOrderStatus = onOrderStatus,
-                                onCallCustomer = onCallCustomer
-                            )
-                        }
-                    }
-                }
-            } else {
-                AnimatedVisibility(visible = statsVisible, enter = enterSpec, exit = exitSpec) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "Today's Summary",
                             color = MaterialTheme.kbTextSecondary,
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
+                                fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.6.sp
                             )
                         )
-                        if (!statsReady || (stats.orderCount == 0 && stats.revenue == 0.0)) {
-                            TodaySummaryEmpty(onNewBill = onNewBill)
-                        } else {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                MetricCard(
-                                    value = stats.orderCount.toString(),
-                                    label = "Total Orders",
-                                    accentColor = KbAccentOrange,
-                                    badge = "today",
-                                    modifier = Modifier.weight(1f)
-                                )
-                                MetricCard(
-                                    value = CurrencyUtils.formatPriceCompact(stats.revenue),
-                                    label = "Revenue",
-                                    accentColor = KbAccentViolet,
-                                    badge = "today",
-                                    modifier = Modifier.weight(1f)
-                                )
-                                MetricCard(
-                                    value = CurrencyUtils.formatPriceCompact(
-                                        if (stats.orderCount > 0) stats.revenue / stats.orderCount else 0.0
-                                    ),
-                                    label = "Avg Order",
-                                    accentColor = KbAccentEmerald,
-                                    badge = "today",
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
                         Text(
-                            text = "Quick Actions",
-                            color = MaterialTheme.kbTextSecondary,
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                letterSpacing = 0.6.sp
-                            )
+                            text = "View All",
+                            color = KbBrandSaffron,
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier
+                                .clip(KbShape.Small)
+                                .clickable { onViewReports() }
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            // "New Bill" Saffron Filled Button
-                            Button(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onNewBill()
-                                },
-                                modifier = Modifier
-                                    .weight(1.2f)
-                                    .height(48.dp)
-                                    .shadow(2.dp, KbShape.Medium),
-                                shape = KbShape.Medium,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = KbAccentOrange
-                                ),
-                                contentPadding = PaddingValues(horizontal = 8.dp)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("New Bill", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            }
-                            
-                            // "Orders" White/Card Button
-                            Button(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onSearchBill()
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                                    .border(1.dp, MaterialTheme.kbOutlineSubtle, KbShape.Medium)
-                                    .shadow(1.dp, KbShape.Medium),
-                                shape = KbShape.Medium,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.kbBgCard,
-                                    contentColor = MaterialTheme.kbTextPrimary
-                                ),
-                                contentPadding = PaddingValues(horizontal = 8.dp)
-                            ) {
-                            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp), tint = KbAccentViolet)
-                                Spacer(Modifier.width(6.dp))
-                                Text("Orders", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            }
-                            
-                            // "Menu" Light Saffron Outlined/Tinted Button
-                            Button(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onMenuClick()
-                                },
-                                modifier = Modifier
-                                    .weight(1.1f)
-                                    .height(48.dp)
-                                    .border(1.dp, KbAccentOrange.copy(alpha = 0.5f), KbShape.Medium),
-                                shape = KbShape.Medium,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = KbAccentOrangeSurface,
-                                    contentColor = KbAccentOrange
-                                ),
-                                contentPadding = PaddingValues(horizontal = 8.dp)
-                            ) {
-                                Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp), tint = KbAccentOrange)
-                                Spacer(Modifier.width(6.dp))
-                                Text("Menu", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            }
-                        }
+                    }
 
-                        if (marketplacePendingCount > 0) {
-                            HomeActionCard(
-                                text = "Online Orders",
-                                onClick = onMarketplaceOrders,
-                                badgeCount = marketplacePendingCount
-                            )
-                        }
-
-                        HomeSecondaryActions(
-                            density = layoutDensity,
-                            onSearchBill = onSearchBill,
-                            onReprintKds = onReprintKds,
-                            onOrderStatus = onOrderStatus,
-                            onCallCustomer = onCallCustomer
+                    // 4 equal stat tiles: Total Orders · Revenue · Avg Ticket · Cancelled
+                    val avgTicket = if (stats.orderCount > 0) stats.revenue / stats.orderCount else 0.0
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        MetricCardSmall(
+                            value = stats.orderCount.toString(),
+                            label = "Total Orders",
+                            icon = Icons.Default.Receipt,
+                            modifier = Modifier.weight(1f),
+                            accentColor = KbAccentBlueBright
+                        )
+                        MetricCardSmall(
+                            value = CurrencyUtils.formatPrice(stats.revenue),
+                            label = "Revenue",
+                            icon = Icons.Default.Payments,
+                            modifier = Modifier.weight(1f),
+                            accentColor = KbSuccess
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        MetricCardSmall(
+                            value = CurrencyUtils.formatPrice(avgTicket),
+                            label = "Avg Ticket",
+                            icon = Icons.AutoMirrored.Filled.TrendingUp,
+                            modifier = Modifier.weight(1f),
+                            accentColor = KbAccentPurple
+                        )
+                        MetricCardSmall(
+                            value = stats.cancelledCount.toString(),
+                            label = "Cancelled",
+                            icon = Icons.Default.Cancel,
+                            modifier = Modifier.weight(1f),
+                            accentColor = if (stats.cancelledCount > 0) KbError else MaterialTheme.kbTextSecondary
                         )
                     }
                 }
             }
 
-            RestaurantStatusBanner(stats = stats, lastOrderTime = stats.lastOrderTime)
+            // Actions & Utilities Section
+            AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // 1. Primary CTA: "+ New Bill"
+                    Button(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onNewBill()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .kbPressScale()
+                            .shadow(4.dp, KbShape.Medium),
+                        shape = KbShape.Medium,
+                        colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("CREATE NEW BILL", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                    }
+
+                    // 2. Secondary action grid (mockup set)
+                    Text(
+                        text = "Quick Actions",
+                        color = MaterialTheme.kbTextSecondary,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.6.sp
+                        )
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        SecondaryActionChip(
+                            label = "Orders",
+                            icon = Icons.AutoMirrored.Filled.List,
+                            onClick = onSearchBill,
+                            modifier = Modifier.weight(1f)
+                        )
+                        SecondaryActionChip(
+                            label = "Order Status",
+                            icon = Icons.Default.HourglassEmpty,
+                            onClick = onOrderStatus,
+                            modifier = Modifier.weight(1f)
+                        )
+                        SecondaryActionChip(
+                            label = "Find Bill",
+                            icon = Icons.Default.Search,
+                            onClick = onSearchBill,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        SecondaryActionChip(
+                            label = "Reprint Bill",
+                            icon = Icons.Default.Print,
+                            onClick = onReprintKds,
+                            modifier = Modifier.weight(1f)
+                        )
+                        SecondaryActionChip(
+                            label = "Call Customers",
+                            icon = Icons.Default.People,
+                            onClick = onCallCustomer,
+                            modifier = Modifier.weight(1f)
+                        )
+                        SecondaryActionChip(
+                            label = "Menu",
+                            icon = Icons.Default.Restaurant,
+                            onClick = onMenuClick,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            // Recent Activity Section
+            AnimatedVisibility(visible = statsVisible, enter = enterSpec, exit = exitSpec) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Recent Activity",
+                            color = MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.6.sp
+                            )
+                        )
+                        if (recentBills.isNotEmpty()) {
+                            Text(
+                                text = "View All",
+                                color = KbBrandSaffron,
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                modifier = Modifier.clickable { onSearchBill() }
+                            )
+                        }
+                    }
+
+                    if (recentBills.isEmpty()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, MaterialTheme.kbOutlineSubtle, KbShape.Medium),
+                            shape = KbShape.Medium,
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "No recent orders today",
+                                    color = MaterialTheme.kbTextTertiary,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            recentBills.forEach { bill ->
+                                RecentActivityItem(
+                                    bill = bill,
+                                    onClick = onSearchBill
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -638,6 +550,155 @@ private fun HomeSecondaryActions(
                     rowCards.forEach { card -> card(Modifier.weight(1f)) }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MetricCardSmall(
+    value: String,
+    label: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    accentColor: Color = MaterialTheme.kbTextPrimary
+) {
+    Card(
+        modifier = modifier
+            .border(1.dp, MaterialTheme.kbOutlineSubtle, KbShape.Medium)
+            .shadow(1.dp, KbShape.Medium),
+        shape = KbShape.Medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(accentColor.copy(alpha = 0.1f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = accentColor, modifier = Modifier.size(18.dp))
+            }
+            Column {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.kbTextPrimary
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.kbTextSecondary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SecondaryActionChip(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier
+            .height(44.dp)
+            .kbPressScale(),
+        shape = KbShape.Medium,
+        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = MaterialTheme.kbTextPrimary,
+            containerColor = MaterialTheme.kbBgCard
+        ),
+        contentPadding = PaddingValues(horizontal = 4.dp)
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = KbBrandSaffron)
+        Spacer(Modifier.width(6.dp))
+        Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun RecentActivityItem(
+    bill: com.khanabook.lite.pos.data.local.entity.BillEntity,
+    onClick: () -> Unit
+) {
+    val timeText = remember(bill.createdAt) {
+        val diff = System.currentTimeMillis() - bill.createdAt
+        when {
+            diff < 60_000 -> "Just now"
+            diff < 3_600_000 -> "${diff / 60_000}m ago"
+            diff < 86_400_000 -> "${diff / 3_600_000}h ago"
+            else -> {
+                val sdf = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+                sdf.format(java.util.Date(bill.createdAt))
+            }
+        }
+    }
+
+    val statusText = when (bill.orderStatus) {
+        "cancelled" -> "Cancelled"
+        else -> if (bill.paymentStatus == "paid" || bill.paymentStatus == "success") "Paid" else "Unpaid"
+    }
+
+    val statusColor = when (bill.orderStatus) {
+        "cancelled" -> KbError
+        else -> if (bill.paymentStatus == "paid" || bill.paymentStatus == "success") KbSuccess else KbWarning
+    }
+
+    val icon = when (bill.paymentMode.lowercase()) {
+        "cash" -> Icons.Default.AttachMoney
+        "upi", "qr" -> Icons.Default.QrCode
+        else -> Icons.Default.CreditCard
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .border(1.dp, MaterialTheme.kbOutlineSubtle, KbShape.Medium),
+        shape = KbShape.Medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(statusColor.copy(alpha = 0.1f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = statusColor, modifier = Modifier.size(20.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Bill #${bill.dailyOrderDisplay}",
+                    color = MaterialTheme.kbTextPrimary,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                Text(
+                    text = "$statusText • $timeText",
+                    color = MaterialTheme.kbTextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Text(
+                text = "₹${bill.totalAmount}",
+                color = if (bill.orderStatus == "cancelled") KbError else MaterialTheme.kbTextPrimary,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontFeatureSettings = "tnum"
+                )
+            )
         }
     }
 }
@@ -1361,8 +1422,6 @@ internal fun NotificationCenterSheet(
     onOrderStatus: () -> Unit,
     onNewBill: () -> Unit,
     onDismiss: () -> Unit,
-    // When rendered as a full screen, the host provides its own top bar, so the
-    // sheet's internal title/close header is suppressed.
     showHeader: Boolean = true
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -1371,7 +1430,7 @@ internal fun NotificationCenterSheet(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = spacing.medium, vertical = spacing.small),
-        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (showHeader) {
             Row(
@@ -1381,12 +1440,12 @@ internal fun NotificationCenterSheet(
             ) {
                 Column {
                     Text(
-                        text = "Notifications",
+                        text = "Operations Center",
                         color = MaterialTheme.kbTextPrimary,
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
-                        text = if (pushUnreadCount > 0) "$pushUnreadCount unread push notifications" else "Operational alerts and shortcuts",
+                        text = "Real-time alerts, sync queues, and restaurant actions",
                         color = MaterialTheme.kbTextSecondary,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -1394,138 +1453,266 @@ internal fun NotificationCenterSheet(
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (pushUnreadCount > 0) {
                         TextButton(onClick = onMarkAllNotificationsRead) {
-                            Text("Mark all read", color = KbAccentPurple)
+                            Text("Mark all read", color = KbAccentPurple, fontWeight = FontWeight.Bold)
                         }
                     }
                     TextButton(onClick = onDismiss) {
-                        Text("Close", color = MaterialTheme.kbPrimary)
+                        Text("Close", color = MaterialTheme.kbPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
 
-        // Push notifications section
-        if (pushNotifications.isNotEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 280.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+        // 1. Sync & Connection Status (Sync Status)
+        if (!isOnline || unsyncedCount > 0) {
+            val statusColor = if (!isOnline) KbError else KbWarning
+            Card(
+                modifier = Modifier.fillMaxWidth().kbPressScale(),
+                shape = KbShape.Medium,
+                colors = CardDefaults.cardColors(containerColor = statusColor.copy(alpha = 0.08f))
             ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(1.dp)
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(
-                        items = pushNotifications.take(10),
-                        key = { n -> n.id }
-                    ) { notification ->
-                        com.khanabook.lite.pos.ui.designsystem.NotificationRow(
-                            notification = notification,
-                            onClick = { onNotificationClick(notification) }
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(statusColor.copy(alpha = 0.15f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (!isOnline) Icons.Default.CloudOff else Icons.Default.Sync,
+                            contentDescription = null,
+                            tint = statusColor,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (!isOnline) "Network Connection Offline" else "Unsynced Transactions Enqueued",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = statusColor
+                        )
+                        Text(
+                            text = if (!isOnline) "Your transactions are safely saved locally and will sync when network returns."
+                            else "$unsyncedCount receipt(s) waiting to sync to the cloud database.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.kbTextSecondary
+                        )
+                    }
+                }
+            }
+        }
+
+        // 2. Critical Compliance Warnings (Critical Alerts & Compliance Reminders)
+        if (complianceAlerts.isNotEmpty()) {
+            Text(
+                text = "Compliance Alerts",
+                color = MaterialTheme.kbTextSecondary,
+                style = MaterialTheme.typography.titleSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            )
+            complianceAlerts.forEach { alert ->
+                val alertColor = when (alert.urgency) {
+                    HomeViewModel.ComplianceAlert.Urgency.EXPIRED,
+                    HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> KbError
+                    HomeViewModel.ComplianceAlert.Urgency.HIGH -> KbWarning
+                    HomeViewModel.ComplianceAlert.Urgency.MEDIUM -> KbSuccess
+                }
+                Card(
+                    modifier = Modifier.fillMaxWidth().kbPressScale(),
+                    shape = KbShape.Medium,
+                    colors = CardDefaults.cardColors(containerColor = alertColor.copy(alpha = 0.06f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(alertColor.copy(alpha = 0.15f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.WarningAmber,
+                                contentDescription = null,
+                                tint = alertColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = alert.label,
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = alertColor
+                            )
+                            Text(
+                                text = when (alert.urgency) {
+                                    HomeViewModel.ComplianceAlert.Urgency.EXPIRED -> "License expired! Renew immediately to maintain operations."
+                                    HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> "Urgent! Expires in ${kotlin.math.abs(alert.daysLeft)} day(s)."
+                                    else -> "Renewal required in ${alert.daysLeft} days."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.kbTextSecondary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Online Orders & Kitchen Prints (Pending Store Actions)
+        if (marketplacePendingCount > 0 || kdsPendingCount > 0) {
+            Text(
+                text = "Pending Store Actions",
+                color = MaterialTheme.kbTextSecondary,
+                style = MaterialTheme.typography.titleSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            )
+            if (marketplacePendingCount > 0) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().kbPressScale(),
+                    shape = KbShape.Medium,
+                    colors = CardDefaults.cardColors(containerColor = KbBrandSaffron.copy(alpha = 0.06f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(KbBrandSaffron.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ShoppingCart,
+                                contentDescription = null,
+                                tint = KbBrandSaffron,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "New Online Orders",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = KbBrandSaffron
+                            )
+                            Text(
+                                text = "$marketplacePendingCount marketplace order(s) awaiting acceptance.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.kbTextSecondary
+                            )
+                        }
+                        Button(
+                            onClick = onMarketplaceOrders,
+                            colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
+                            shape = KbShape.Small,
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text("Accept", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+            if (kdsPendingCount > 0) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().kbPressScale(),
+                    shape = KbShape.Medium,
+                    colors = CardDefaults.cardColors(containerColor = KbSuccess.copy(alpha = 0.06f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(KbSuccess.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Print,
+                                contentDescription = null,
+                                tint = KbSuccess,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Pending Kitchen Prints",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = KbSuccess
+                            )
+                            Text(
+                                text = "$kdsPendingCount print tickets enqueued in KDS print task manager.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.kbTextSecondary
+                            )
+                        }
+                        Button(
+                            onClick = onReprintKds,
+                            colors = ButtonDefaults.buttonColors(containerColor = KbSuccess),
+                            shape = KbShape.Small,
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text("Print", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Activity Timeline (Payment Events, Notification History)
+        Text(
+            text = "Activity Timeline",
+            color = MaterialTheme.kbTextSecondary,
+            style = MaterialTheme.typography.titleSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        )
+
+        if (pushNotifications.isEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = KbShape.Medium,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgCard)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No operational events logged today.",
+                        color = MaterialTheme.kbTextTertiary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        } else {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                pushNotifications.take(6).forEach { notification ->
+                    com.khanabook.lite.pos.ui.designsystem.NotificationRow(
+                        notification = notification,
+                        onClick = { onNotificationClick(notification) }
+                    )
                 }
                 if (pushUnreadCount > 0) {
                     TextButton(
                         onClick = onRefreshNotifications,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
-                        Text("Refresh", color = KbAccentPurple)
+                        Text("Refresh Logs", color = KbAccentPurple, fontWeight = FontWeight.Bold)
                     }
                 }
-            }
-            HorizontalDivider(color = MaterialTheme.kbOutlineSubtle)
-        }
-
-        OperationalPulseStrip(
-            unsyncedCount = unsyncedCount,
-            marketplacePendingCount = marketplacePendingCount,
-            complianceCount = complianceAlerts.size,
-            isOnline = isOnline
-        )
-
-        if (unsyncedCount == 0 && marketplacePendingCount == 0 && kdsPendingCount == 0 && complianceAlerts.isEmpty()) {
-            KhanaBookCard(
-                modifier = Modifier.fillMaxWidth(),
-                shape = KbShape.Medium
-            ) {
-                Column(
-                    modifier = Modifier.padding(spacing.medium),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "You're all caught up",
-                        color = MaterialTheme.kbTextPrimary,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
-                    )
-                    Text(
-                        text = "No pending sync, marketplace, KDS, or compliance alerts right now.",
-                        color = MaterialTheme.kbTextSecondary,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        } else {
-            NotificationActionCard(
-                title = "New Bill",
-                subtitle = "Jump straight into billing",
-                icon = Icons.Default.Add,
-                tone = KbAccentPurple,
-                onClick = onNewBill
-            )
-            NotificationActionCard(
-                title = "Orders",
-                subtitle = "Review active order flow",
-                icon = Icons.AutoMirrored.Filled.List,
-                tone = MaterialTheme.kbSecondary,
-                onClick = onOrderStatus
-            )
-            if (marketplacePendingCount > 0) {
-                NotificationActionCard(
-                    title = "Marketplace",
-                    subtitle = "$marketplacePendingCount pending order(s)",
-                    icon = Icons.Default.ShoppingCart,
-                    tone = KbWarning,
-                    onClick = onMarketplaceOrders
-                )
-            }
-            if (kdsPendingCount > 0) {
-                NotificationActionCard(
-                    title = "Kitchen Print",
-                    subtitle = "$kdsPendingCount pending KDS ticket(s)",
-                    icon = Icons.Default.Print,
-                    tone = KbSuccess,
-                    onClick = onReprintKds
-                )
-            }
-            if (unsyncedCount > 0) {
-                NotificationActionCard(
-                    title = "Sync queue",
-                    subtitle = "$unsyncedCount item(s) waiting to sync",
-                    icon = Icons.Default.Sync,
-                    tone = KbBrandRed,
-                    onClick = onDismiss
-                )
-            }
-            complianceAlerts.forEach { alert ->
-                val tone = when (alert.urgency) {
-                    HomeViewModel.ComplianceAlert.Urgency.EXPIRED, HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> KbError
-                    HomeViewModel.ComplianceAlert.Urgency.HIGH -> KbWarning
-                    HomeViewModel.ComplianceAlert.Urgency.MEDIUM -> KbSuccess
-                }
-                NotificationActionCard(
-                    title = alert.label,
-                    subtitle = when (alert.urgency) {
-                        HomeViewModel.ComplianceAlert.Urgency.EXPIRED -> "Expired - renew immediately"
-                        HomeViewModel.ComplianceAlert.Urgency.CRITICAL -> "Expires in ${kotlin.math.abs(alert.daysLeft)} day(s)"
-                        HomeViewModel.ComplianceAlert.Urgency.HIGH -> "Expires in ${alert.daysLeft} days"
-                        HomeViewModel.ComplianceAlert.Urgency.MEDIUM -> "Expires in ${alert.daysLeft} days"
-                    },
-                    icon = Icons.Default.WarningAmber,
-                    tone = tone,
-                    onClick = onDismiss
-                )
             }
         }
     }

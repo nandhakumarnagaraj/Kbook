@@ -132,6 +132,18 @@ fun MainScreen(
                             settingsInitialSection = "menu_config"
                             selectedTabIndex = settingsIndex
                         }
+                    },
+                    onSettingsClick = {
+                        val settingsIndex = visibleTabs.indexOfFirst { it.label == "Profile" }
+                        if (settingsIndex != -1) {
+                            selectedTabIndex = settingsIndex
+                        }
+                    },
+                    onViewReports = {
+                        val reportsIndex = visibleTabs.indexOfFirst { it.label == "Reports" }
+                        if (reportsIndex != -1) {
+                            selectedTabIndex = reportsIndex
+                        }
                     }
                 )
                 "Orders" -> OrdersScreen(onBack = backToHome)

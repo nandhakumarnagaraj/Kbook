@@ -101,6 +101,14 @@ class BillingViewModel @Inject constructor(
     private val _customerWhatsapp = MutableStateFlow("")
     val customerWhatsapp: StateFlow<String> = _customerWhatsapp
 
+    // Order type (Walk-in maps to the legacy default "order"; others are distinct dbValues).
+    private val _orderType = MutableStateFlow("order")
+    val orderType: StateFlow<String> = _orderType
+
+    fun setOrderType(type: String) {
+        _orderType.value = type
+    }
+
     private val _recentCustomers = MutableStateFlow<List<Pair<String, String>>>(emptyList())
     val recentCustomers: StateFlow<List<Pair<String, String>>> = _recentCustomers
 
@@ -254,6 +262,7 @@ class BillingViewModel @Inject constructor(
         _cartItems.value = emptyList()
         _customerName.value = ""
         _customerWhatsapp.value = ""
+        _orderType.value = "order"
         _paymentMode.value = PaymentMode.UPI
         _partAmount1.value = "0.0"
         _partAmount2.value = "0.0"
@@ -347,7 +356,7 @@ class BillingViewModel @Inject constructor(
                 dailyOrderId = dailyCounter,
                 dailyOrderDisplay = displayId,
                 lifetimeOrderId = lifetimeId,
-                orderType = "order",
+                orderType = _orderType.value,
                 customerName = _customerName.value.ifBlank { null },
                 customerWhatsapp = _customerWhatsapp.value.ifBlank { null },
                 subtotal = finalSummary.subtotal,
@@ -564,7 +573,7 @@ class BillingViewModel @Inject constructor(
                 dailyOrderId = dailyCounter,
                 dailyOrderDisplay = displayId,
                 lifetimeOrderId = lifetimeId,
-                orderType = "order",
+                orderType = _orderType.value,
                 customerName = _customerName.value.ifBlank { null },
                 customerWhatsapp = _customerWhatsapp.value.ifBlank { null },
                 subtotal = finalSummary.subtotal,

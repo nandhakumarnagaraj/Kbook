@@ -53,7 +53,7 @@ fun NotificationsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(KbMidnightBase)
+            .background(MaterialTheme.kbBgPrimary)
     ) {
         // Brand-violet top bar (matches the home header the bell lives in).
         Box(

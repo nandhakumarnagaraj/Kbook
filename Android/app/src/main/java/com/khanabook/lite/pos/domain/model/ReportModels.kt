@@ -8,6 +8,7 @@ data class OrderLevelRow(
     val paymentMode: PaymentMode,
     val orderStatus: OrderStatus,
     val date: String,
+    val amount: String = "0.0",
     val cancelReason: String = ""
 )
 

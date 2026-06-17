@@ -253,6 +253,16 @@ fun ReportsScreen(
             Spacer(modifier = Modifier.height(spacing.medium))
 
             
+            ReportKpiCells(
+                totalOrders = orderCount,
+                totalRevenue = totalSales,
+                avgTicket = avgOrder,
+                cancelledCount = cancelledCount,
+                modifier = Modifier.padding(horizontal = spacing.medium)
+            )
+
+            Spacer(modifier = Modifier.height(spacing.small))
+
             if (showDateRangePicker) {
                 DatePickerDialog(
                     onDismissRequest = { showDateRangePicker = false },
@@ -697,10 +707,11 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            HeaderCell("Order No", Modifier.weight(1.2f))
-            HeaderCell("Status", Modifier.weight(1.8f))
-            HeaderCell("Action", Modifier.weight(1.2f))
-            HeaderCell("Date", Modifier.weight(1.8f))
+            HeaderCell("Order No", Modifier.weight(1.0f))
+            HeaderCell("Status", Modifier.weight(1.5f))
+            HeaderCell("Amount", Modifier.weight(1.3f))
+            HeaderCell("Date", Modifier.weight(1.6f))
+            HeaderCell("Action", Modifier.weight(1.1f))
         }
 
         if (rows.isEmpty()) {
@@ -753,6 +764,68 @@ fun HeaderCell(text: String, modifier: Modifier = Modifier) {
     )
 }
 
+/** The four headline KPIs shown above the report body. */
+@Composable
+private fun ReportKpiCells(
+    totalOrders: Int,
+    totalRevenue: Double,
+    avgTicket: Double,
+    cancelledCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        KpiCell("Total Orders", totalOrders.toString(), KbAccentBlueBright, Modifier.weight(1f))
+        KpiCell("Total Revenue", CurrencyUtils.formatPrice(totalRevenue), KbSuccess, Modifier.weight(1f))
+        KpiCell("Avg Ticket", CurrencyUtils.formatPrice(avgTicket), KbAccentPurple, Modifier.weight(1f))
+        KpiCell(
+            "Cancelled",
+            cancelledCount.toString(),
+            if (cancelledCount > 0) KbError else MaterialTheme.kbTextSecondary,
+            Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun KpiCell(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = KbShape.Medium,
+        color = MaterialTheme.kbBgCard,
+        border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
+    ) {
+        Column(
+            modifier = Modifier
+                .heightIn(min = 60.dp)
+                .padding(vertical = 10.dp, horizontal = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = value,
+                color = accent,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontFeatureSettings = "tnum"
+                ),
+                maxLines = 1,
+                softWrap = false
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = label,
+                color = MaterialTheme.kbTextSecondary,
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
+                maxLines = 2
+            )
+        }
+    }
+}
+
 @Composable
 fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?, onViewDetails: (Long) -> Unit) {
     val spacing = KhanaBookTheme.spacing
@@ -768,9 +841,9 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.medium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(row.dailyId, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.2f), textAlign = TextAlign.Center)
-            
-            Column(modifier = Modifier.weight(1.8f), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(row.dailyId, color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.0f), textAlign = TextAlign.Center)
+
+            Column(modifier = Modifier.weight(1.5f), horizontalAlignment = Alignment.CenterHorizontally) {
                 val statusValue = row.orderStatus
                 val statusText = when(statusValue) {
                     OrderStatus.DRAFT -> "Pending"
@@ -799,8 +872,25 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
                     )
                 }
             }
-            
-            Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
+
+            Text(
+                CurrencyUtils.formatPrice(row.amount),
+                color = if (row.orderStatus == OrderStatus.CANCELLED) KbError else MaterialTheme.kbTextPrimary,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.weight(1.3f),
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+
+            Text(
+                formatDate(row.date),
+                color = MaterialTheme.kbTextPrimary,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.weight(1.6f),
+                textAlign = TextAlign.Center
+            )
+
+            Box(modifier = Modifier.weight(1.1f), contentAlignment = Alignment.Center) {
                 Surface(
                     color = Color.Transparent,
                     border = BorderStroke(1.dp, MaterialTheme.kbPrimary),
@@ -814,14 +904,6 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
                     )
                 }
             }
-            
-            Text(
-                formatDate(row.date),
-                color = MaterialTheme.kbTextPrimary,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.weight(1.8f),
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
@@ -1067,6 +1149,18 @@ fun OrderDetailsDialog(
                                 }
                                 DetailRowLight("Status", statusText, isStatus = true, status = statusValue)
                             }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // ORDER TIMELINE Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            PaymentTimeline(bill, modifier = Modifier.padding(16.dp))
                         }
 
                         // ── Action Buttons (inside scroll — always visible, never clipped) ──

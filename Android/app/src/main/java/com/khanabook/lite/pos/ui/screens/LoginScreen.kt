@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,6 +26,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -388,6 +391,17 @@ fun LoginScreen(
                             ),
                             textAlign = TextAlign.Center
                         )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                        ) {
+                            LoginFeatureBadge(Icons.Default.Lock, "Secure Data")
+                            LoginFeatureBadge(Icons.Default.CloudOff, "Works Offline")
+                            LoginFeatureBadge(Icons.Default.Backup, "Auto Backup")
+                        }
                     }
                 }
             }
@@ -642,7 +656,7 @@ fun LoginScreen(
                                     .background(MaterialTheme.colorScheme.outlineVariant)
                             )
                             Text(
-                                text = "or continue with",
+                                text = "Quick Login",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -759,6 +773,30 @@ fun LoginScreen(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun LoginFeatureBadge(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.White.copy(alpha = 0.12f))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(14.dp)
+        )
+        Text(
+            text = label,
+            color = Color.White,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+        )
     }
 }
 

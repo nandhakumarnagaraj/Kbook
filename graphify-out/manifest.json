@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "Android/app/build.gradle.kts": {
-    "mtime": 1781256894.887856,
-    "ast_hash": "b63ece2c67f987704c18cbdca406b2a5",
+    "mtime": 1781529738.432247,
+    "ast_hash": "271e3b948ea0fbff0c5ccdcfc8df0da8",
     "semantic_hash": ""
   },
   "Android/app/google-services.json": {
@@ -450,8 +450,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/data/local/AppDatabase.kt": {
-    "mtime": 1780944671.999108,
-    "ast_hash": "faeb8bbdc315f9dde2c6922adbc48a25",
+    "mtime": 1781529498.8080666,
+    "ast_hash": "12c8217bb0c9359a0b5c8adbfca5b2cc",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/data/local/dao/BillDao.kt": {
@@ -535,8 +535,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/data/local/entity/RestaurantProfileEntity.kt": {
-    "mtime": 1780944672.0102007,
-    "ast_hash": "7080a7e53a713a1024166c0d4fefe32e",
+    "mtime": 1781516273.9115322,
+    "ast_hash": "d9cd156bda3f37a8d6ce3de0aac20ccf",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/data/local/entity/StockLogEntity.kt": {
@@ -575,8 +575,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/data/remote/api/KhanaBookApi.kt": {
-    "mtime": 1780996144.7774,
-    "ast_hash": "3fc0cd9c46044c7729fe4f99815f7e39",
+    "mtime": 1781581819.0057716,
+    "ast_hash": "f6fcb3f7932aa53e26ee98d54aebf6cd",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/data/remote/api/MasterSyncResponse.kt": {
@@ -585,8 +585,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/data/remote/dto/EasebuzzPaymentDtos.kt": {
-    "mtime": 1780944672.0199215,
-    "ast_hash": "3592ac73b64491f9c4c08907e9f1cfd3",
+    "mtime": 1781581795.9389453,
+    "ast_hash": "50b2bbd66baa777637aae734f74f15e5",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/data/remote/dto/MarketplaceOrderDtos.kt": {
@@ -640,8 +640,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/data/repository/EasebuzzPaymentRepository.kt": {
-    "mtime": 1780944672.0291088,
-    "ast_hash": "30741525e2739d5798a3ba22a7075d4a",
+    "mtime": 1781581847.8523157,
+    "ast_hash": "1f3f234f4885caac0225308193d58971",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/data/repository/EasebuzzSdkPaymentRepository.kt": {
@@ -690,8 +690,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/di/DatabaseModule.kt": {
-    "mtime": 1780944672.0351124,
-    "ast_hash": "147e9d01b2020e1af19f0f6535f68662",
+    "mtime": 1781529520.3567007,
+    "ast_hash": "0fdafb2b7f551e7fefcd0e6735c30349",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/di/NetworkModule.kt": {
@@ -790,8 +790,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/SessionManager.kt": {
-    "mtime": 1781249786.6801078,
-    "ast_hash": "9d981199521a5c1de477b15a0e597e87",
+    "mtime": 1781548207.5144067,
+    "ast_hash": "67b33df1c7819420a32bb2fbb7b7bdb6",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/domain/manager/SyncManager.kt": {
@@ -890,8 +890,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/MainActivity.kt": {
-    "mtime": 1781514764.2400887,
-    "ast_hash": "46f68690d290326b1c689ec06a37af65",
+    "mtime": 1781583412.501761,
+    "ast_hash": "6b1559cb662faee166d88806861fe104",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/components/CommonComponents.kt": {
@@ -975,18 +975,18 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/EasebuzzKycScreen.kt": {
-    "mtime": 1781421902.296889,
-    "ast_hash": "bef9f53f1d9f813936178dee2901eba2",
+    "mtime": 1781583381.962856,
+    "ast_hash": "46c659605d4e1bc21e56c5a213c23963",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/EasebuzzPaymentScreen.kt": {
-    "mtime": 1781421891.8768249,
-    "ast_hash": "c326582d05357e389a3f0a8a9aaf1d0d",
+    "mtime": 1781612215.0261025,
+    "ast_hash": "ab1632260b6f016d19022af66eeb62c8",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/HomeScreen.kt": {
-    "mtime": 1781512179.4116638,
-    "ast_hash": "e7957d0c1f37c93b78c2e6c6fc8ef5ea",
+    "mtime": 1781549472.3784232,
+    "ast_hash": "51459742f32b4160261cc6b19d7f57ad",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/InitialSyncScreen.kt": {
@@ -1000,8 +1000,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/MainScreen.kt": {
-    "mtime": 1781349675.2759886,
-    "ast_hash": "65ddcf1d1884e07b65cc980a7a493016",
+    "mtime": 1781547162.263142,
+    "ast_hash": "4c73c2c99fffb5fed04d33460209e29f",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/MarketplaceOrdersScreen.kt": {
@@ -1030,8 +1030,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/PaymentConfigSection.kt": {
-    "mtime": 1781421909.4426863,
-    "ast_hash": "e19271d32ca44fc2c4d47baacd8f0911",
+    "mtime": 1781516452.5477433,
+    "ast_hash": "b760762fe373365201cb59d25195aaa0",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/PrinterConfigSection.kt": {
@@ -1060,8 +1060,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/SettingsScreen.kt": {
-    "mtime": 1781421849.3246593,
-    "ast_hash": "b487a5746342531e2fe7a20501d72caf",
+    "mtime": 1781548197.9408698,
+    "ast_hash": "1e5b164c95dd9ecd419d141943df6296",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/SettingsSharedComponents.kt": {
@@ -1120,8 +1120,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/theme/Responsive.kt": {
-    "mtime": 1778580762.6026413,
-    "ast_hash": "aa9968828c30bbcf2ac60bdf43e3cd2b",
+    "mtime": 1781549316.54425,
+    "ast_hash": "b3765838169c959ee00165078b2125c2",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/theme/Shape.kt": {
@@ -1135,8 +1135,8 @@
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/theme/Theme.kt": {
-    "mtime": 1781149930.058149,
-    "ast_hash": "ff68ae59674f06cfc9e43864409227bb",
+    "mtime": 1781549360.678009,
+    "ast_hash": "fbce732070295b696248ff0fe6672a71",
     "semantic_hash": ""
   },
   "Android/app/src/main/java/com/khanabook/lite/pos/ui/theme/Type.kt": {
@@ -2010,18 +2010,18 @@
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/service/EasebuzzApiClient.java": {
-    "mtime": 1781458465.4936388,
-    "ast_hash": "30ecc1e73498ac27660e8401b453c3c0",
+    "mtime": 1781527442.9563942,
+    "ast_hash": "e770cd228460f09c39dd82eabbbfefdc",
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/service/EasebuzzPaymentService.java": {
-    "mtime": 1780944673.1576161,
-    "ast_hash": "4ad7fa5a18b0a89767a20930c9da2731",
+    "mtime": 1781609879.3550754,
+    "ast_hash": "73695db94db490d89fef1ebc94ffbd78",
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/service/EasebuzzWebhookService.java": {
-    "mtime": 1780944673.1656954,
-    "ast_hash": "794bf8d07d65192761ee8c6160793b1b",
+    "mtime": 1781529436.9030368,
+    "ast_hash": "8c07d99fe75645da37b7e00877a4f9e1",
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/service/EasebuzzWireApiClient.java": {
@@ -2085,8 +2085,8 @@
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/service/SubMerchantService.java": {
-    "mtime": 1781505072.6585968,
-    "ast_hash": "723d3b8289c48ee06e77bd4f9d34cb9f",
+    "mtime": 1781581361.9605217,
+    "ast_hash": "5eefb79a3eb7d7953bd7da382a25b357",
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/service/TokenBlocklistCleanupService.java": {
@@ -2275,8 +2275,8 @@
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/webadmin/controller/RestaurantPaymentConfigController.java": {
-    "mtime": 1780944673.2315187,
-    "ast_hash": "5327156b39fc9b3524b6ba317960f322",
+    "mtime": 1781581400.1319203,
+    "ast_hash": "e78e5ffc2688eb3eea49a875cfe89e49",
     "semantic_hash": ""
   },
   "server/src/main/java/com/khanabook/saas/webadmin/dto/AdminAuditEventResponse.java": {
@@ -2565,8 +2565,8 @@
     "semantic_hash": ""
   },
   "server/src/test/java/com/khanabook/saas/service/EasebuzzIntegrationTest.java": {
-    "mtime": 1781505283.4721794,
-    "ast_hash": "f963ee05ed73465156d94b93eeaab93c",
+    "mtime": 1781609879.3561044,
+    "ast_hash": "51d0888218c7642b198eecfc7fb51fd5",
     "semantic_hash": ""
   },
   "server/src/test/java/com/khanabook/saas/service/EasebuzzNewFeaturesTest.java": {
@@ -2575,8 +2575,8 @@
     "semantic_hash": ""
   },
   "server/src/test/java/com/khanabook/saas/service/EasebuzzWebhookTest.java": {
-    "mtime": 1780944673.28103,
-    "ast_hash": "0e0587e8b45bb347a09b75007dde87bb",
+    "mtime": 1781609879.3571322,
+    "ast_hash": "0a25d8879d220318e4c82306e9cf4b7e",
     "semantic_hash": ""
   },
   "server/src/test/java/com/khanabook/saas/service/ItemVariantServiceImplTest.java": {
@@ -2830,8 +2830,8 @@
     "semantic_hash": ""
   },
   "docker-compose.yml": {
-    "mtime": 1780944672.2787254,
-    "ast_hash": "6fb80e97c2482de0b7d7feaaf6f9284e",
+    "mtime": 1781599621.5376208,
+    "ast_hash": "9903454ca23827f929c5b53a14b534e1",
     "semantic_hash": ""
   },
   "easebuzz-architecture-for-review.txt": {
@@ -3757,6 +3757,106 @@
   "server/src/main/resources/db/migration/V35__add_sub_merchant_business_proofs.sql": {
     "mtime": 1781504935.9253602,
     "ast_hash": "a0bba9d951d006cfd4911ada5ea411ae",
+    "semantic_hash": ""
+  },
+  "Android/app/src/main/java/com/khanabook/lite/pos/data/local/dao/NotificationDao.kt": {
+    "mtime": 1781529458.3101068,
+    "ast_hash": "def29a65c0542276f801870d61807e6d",
+    "semantic_hash": ""
+  },
+  "Android/app/src/main/java/com/khanabook/lite/pos/data/local/entity/NotificationEntity.kt": {
+    "mtime": 1781529447.392345,
+    "ast_hash": "68a31a952ecddff92e8cdfe3cd55e64e",
+    "semantic_hash": ""
+  },
+  "Android/app/src/main/java/com/khanabook/lite/pos/data/repository/NotificationRepository.kt": {
+    "mtime": 1781530766.1657865,
+    "ast_hash": "76c4aecc7f8db2538f3327dd6a4f9802",
+    "semantic_hash": ""
+  },
+  "Android/app/src/main/java/com/khanabook/lite/pos/ui/designsystem/KhanaBookNotificationPanel.kt": {
+    "mtime": 1781544272.8967726,
+    "ast_hash": "382ffa72b58ff1df316fc4040107c225",
+    "semantic_hash": ""
+  },
+  "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/EasebuzzOnboardingScreen.kt": {
+    "mtime": 1781583477.075795,
+    "ast_hash": "4f0479d25065504ae37d96c2abeebd42",
+    "semantic_hash": ""
+  },
+  "Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/NotificationsScreen.kt": {
+    "mtime": 1781547376.9521751,
+    "ast_hash": "7d7ce1bf45ed077a02c79d0afbb1cae3",
+    "semantic_hash": ""
+  },
+  "Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/EasebuzzOnboardingViewModel.kt": {
+    "mtime": 1781583117.3290033,
+    "ast_hash": "6d2e06de05fc33fb0095b2f402231824",
+    "semantic_hash": ""
+  },
+  "Android/app/src/main/java/com/khanabook/lite/pos/ui/viewmodel/NotificationViewModel.kt": {
+    "mtime": 1781529818.8834045,
+    "ast_hash": "e08ff343d2f66c05d84f7441aff04f9d",
+    "semantic_hash": ""
+  },
+  "Android/app/src/main/java/com/khanabook/lite/pos/worker/KhanaBookFirebaseMessagingService.kt": {
+    "mtime": 1781529779.51789,
+    "ast_hash": "8bd94fe8f8c5b9654e3dae96ee60e0f9",
+    "semantic_hash": ""
+  },
+  "Android/app/src/main/java/com/khanabook/lite/pos/worker/NotificationHelper.kt": {
+    "mtime": 1781604135.6486897,
+    "ast_hash": "8c3cb02f717219cacfe186c522686bb9",
+    "semantic_hash": ""
+  },
+  "api-docs.json": {
+    "mtime": 1781601548.2840476,
+    "ast_hash": "8fcfbf61bf080e845e53a96990571b42",
+    "semantic_hash": ""
+  },
+  "scratch/test_easebuzz_initiate.ps1": {
+    "mtime": 1781605098.8342628,
+    "ast_hash": "fe4962e0d0238630a3fb7ef9caeed1de",
+    "semantic_hash": ""
+  },
+  "server/src/main/java/com/khanabook/saas/config/FirebaseConfig.java": {
+    "mtime": 1781599621.541149,
+    "ast_hash": "1af15196fd2877cd32b037dc422f823c",
+    "semantic_hash": ""
+  },
+  "server/src/main/java/com/khanabook/saas/entity/DeviceToken.java": {
+    "mtime": 1781529016.7383025,
+    "ast_hash": "6b59d14136144ff7f5baf47a8e06c0c2",
+    "semantic_hash": ""
+  },
+  "server/src/main/java/com/khanabook/saas/entity/NotificationEvent.java": {
+    "mtime": 1781529029.4114654,
+    "ast_hash": "cff8614fe84c5ff3c59ac931d27f5712",
+    "semantic_hash": ""
+  },
+  "server/src/main/java/com/khanabook/saas/repository/DeviceTokenRepository.java": {
+    "mtime": 1781529038.4163065,
+    "ast_hash": "68b907f3ae8aaae14618961d25600865",
+    "semantic_hash": ""
+  },
+  "server/src/main/java/com/khanabook/saas/repository/NotificationEventRepository.java": {
+    "mtime": 1781529048.4771805,
+    "ast_hash": "2b122a0d18770ffb7ef640fe06745d75",
+    "semantic_hash": ""
+  },
+  "server/src/main/java/com/khanabook/saas/service/PushNotificationService.java": {
+    "mtime": 1781599621.541149,
+    "ast_hash": "33addece81cadce6b6e15e55d924db37",
+    "semantic_hash": ""
+  },
+  "server/src/main/java/com/khanabook/saas/webadmin/controller/NotificationController.java": {
+    "mtime": 1781529123.5508175,
+    "ast_hash": "df47870439cfc4aa6f3b3153aff7c4ba",
+    "semantic_hash": ""
+  },
+  "server/src/main/resources/db/migration/V36__add_device_tokens_and_notifications.sql": {
+    "mtime": 1781529058.4894383,
+    "ast_hash": "b91a8bebd51103452f22dc9aa394d38b",
     "semantic_hash": ""
   }
 }

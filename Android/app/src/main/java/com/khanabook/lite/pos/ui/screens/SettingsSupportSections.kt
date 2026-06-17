@@ -35,6 +35,8 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.PendingActions
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -314,6 +316,9 @@ fun HelpSupportView(searchQuery: String) {
     val context    = LocalContext.current
     val uriHandler = LocalUriHandler.current
 
+    val settingsViewModel: com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel = hiltViewModel()
+    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
+
     val faqs = remember {
         listOf(
             FaqItem(
@@ -347,6 +352,13 @@ fun HelpSupportView(searchQuery: String) {
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
+        Spacer(Modifier.height(16.dp))
+
+        // ── KYC status card ───────────────────────────────────────────────────
+        KycStatusCard(
+            isVerified = !profile?.fssaiNumber.isNullOrBlank(),
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
         Spacer(Modifier.height(16.dp))
 
         // ── Quick action 2×2 grid ─────────────────────────────────────────────
@@ -521,6 +533,50 @@ fun HelpSupportView(searchQuery: String) {
         }
 
         Spacer(Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun KycStatusCard(isVerified: Boolean, modifier: Modifier = Modifier) {
+    val accent = if (isVerified) KbSuccess else KbWarning
+    val icon = if (isVerified) Icons.Default.Verified else Icons.Default.PendingActions
+    val title = if (isVerified) "KYC Verified" else "KYC Pending"
+    val subtitle = if (isVerified)
+        "Your business is verified and ready to accept payments."
+    else
+        "Complete your KYC to start accepting online payments."
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(accent.copy(alpha = 0.10f))
+            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(accent.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = accent)
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                color = MaterialTheme.kbTextPrimary,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                subtitle,
+                color = MaterialTheme.kbTextSecondary,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
 

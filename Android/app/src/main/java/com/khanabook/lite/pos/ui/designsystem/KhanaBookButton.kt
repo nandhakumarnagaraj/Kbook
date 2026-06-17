@@ -49,7 +49,7 @@ fun PrimaryButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(KbButtonSize.HeightLarge),
+        modifier = modifier.kbPressScale(enabled = enabled).height(KbButtonSize.HeightLarge),
         enabled = enabled && !loading,
         shape = KbShape.Medium,
         colors = ButtonDefaults.buttonColors(
@@ -80,7 +80,7 @@ fun SecondaryButton(
     val contentColor = MaterialTheme.kbTextPrimary
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.height(KbButtonSize.HeightLarge),
+        modifier = modifier.kbPressScale(enabled = enabled).height(KbButtonSize.HeightLarge),
         enabled = enabled && !loading,
         shape = KbShape.Medium,
         border = BorderStroke(1.dp, MaterialTheme.kbOutlineBold),
@@ -107,7 +107,7 @@ fun DangerButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(KbButtonSize.HeightLarge),
+        modifier = modifier.kbPressScale(enabled = enabled).height(KbButtonSize.HeightLarge),
         enabled = enabled && !loading,
         shape = KbShape.Medium,
         colors = ButtonDefaults.buttonColors(

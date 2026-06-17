@@ -131,6 +131,10 @@ fun EasebuzzPaymentScreen(
     var sdkLaunched by remember { mutableStateOf(false) }
     var verificationStarted by remember { mutableStateOf(false) }
 
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    var secondsLeft by remember { androidx.compose.runtime.mutableIntStateOf(300) }
+    var pollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
     // Scope that survives composition teardown — return verification must always run
     val sdkScope = remember { kotlinx.coroutines.MainScope() }
 
@@ -204,19 +208,35 @@ fun EasebuzzPaymentScreen(
             val verifyResponse = paymentRepository.verify(billId)
             Log.i(TAG, "Payment verification result billId=$billId status=${verifyResponse.status} txnid=${verifyResponse.txnid} easebuzzId=${verifyResponse.easebuzzId}")
             if (verifyResponse.status == "success") {
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                delay(100)
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                 screenState = PaymentScreenState.SUCCESS
                 KhanaToast.show("Payment successful!", ToastKind.Success)
+                delay(2000)
                 onPaymentComplete(verifyResponse.txnid ?: txnidFromSdk)
             } else {
                 errorMessage = if (paid) "Payment taken but verification pending — check in orders" else "Payment verification failed"
-                screenState = if (paid) PaymentScreenState.SUCCESS else PaymentScreenState.FAILED
-                if (paid) onPaymentComplete(txnidFromSdk)
+                if (paid) {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    screenState = PaymentScreenState.SUCCESS
+                    delay(2000)
+                    onPaymentComplete(txnidFromSdk)
+                } else {
+                    screenState = PaymentScreenState.FAILED
+                }
             }
         } catch (e: Exception) {
             Log.w(TAG, "Payment verification failed billId=$billId currentTxnid=$currentTxnid: ${e.message}")
             errorMessage = if (paid) "Payment taken but verification pending — check in orders" else (e.message ?: "Verification failed")
-            screenState = if (paid) PaymentScreenState.SUCCESS else PaymentScreenState.FAILED
-            if (paid) onPaymentComplete(txnidFromSdk)
+            if (paid) {
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                screenState = PaymentScreenState.SUCCESS
+                delay(2000)
+                onPaymentComplete(txnidFromSdk)
+            } else {
+                screenState = PaymentScreenState.FAILED
+            }
         }
     }
 
@@ -295,9 +315,50 @@ fun EasebuzzPaymentScreen(
         }
     }
 
-    LaunchedEffect(screenState, accessToken) {
-        if (screenState == PaymentScreenState.READY && accessToken != null && !sdkLaunched) {
-            launchSdk()
+    // Countdown effect
+    LaunchedEffect(screenState) {
+        if (screenState == PaymentScreenState.READY) {
+            secondsLeft = 300
+            while (secondsLeft > 0) {
+                delay(1000)
+                secondsLeft--
+            }
+            errorMessage = "Payment session expired"
+            screenState = PaymentScreenState.FAILED
+        }
+    }
+
+    // Background live payment status polling
+    LaunchedEffect(screenState, currentTxnid) {
+        if (screenState == PaymentScreenState.READY && currentTxnid != null) {
+            pollJob?.cancel()
+            pollJob = scope.launch {
+                var pollAttempts = 0
+                while (pollAttempts < 100) {
+                    delay(3000)
+                    try {
+                        val status = paymentRepository.getStatus(billId, refresh = true)
+                        if (status.paymentStatus == "paid" || status.paymentStatus == "success") {
+                            val verifyResponse = paymentRepository.verify(billId)
+                            if (verifyResponse.status == "success") {
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                delay(100)
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                screenState = PaymentScreenState.SUCCESS
+                                KhanaToast.show("Payment successful!", ToastKind.Success)
+                                delay(2000)
+                                onPaymentComplete(verifyResponse.txnid ?: currentTxnid)
+                            }
+                            break
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Background status polling failed: ${e.message}")
+                    }
+                    pollAttempts++
+                }
+            }
+        } else if (screenState != PaymentScreenState.READY) {
+            pollJob?.cancel()
         }
     }
 
@@ -348,6 +409,7 @@ fun EasebuzzPaymentScreen(
         lifecycle.addObserver(observer)
         onDispose {
             lifecycle.removeObserver(observer)
+            pollJob?.cancel()
         }
     }
 

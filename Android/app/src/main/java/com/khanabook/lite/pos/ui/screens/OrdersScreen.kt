@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -99,6 +100,8 @@ fun OrdersScreen(
 
     var statusFilter by rememberSaveable { mutableStateOf("All") }
     var searchQuery by rememberSaveable { mutableStateOf("") }
+    var showSearch by rememberSaveable { mutableStateOf(false) }
+    var showFilters by rememberSaveable { mutableStateOf(true) }
 
     val filteredRows = remember(allRows, statusFilter, searchQuery) {
         allRows.filter { row ->
@@ -271,6 +274,28 @@ fun OrdersScreen(
                                     color = Color.White,
                                     style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
                                 )
+                                Row(
+                                    modifier = Modifier.align(Alignment.CenterEnd),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    IconButton(onClick = {
+                                        showSearch = !showSearch
+                                        if (!showSearch) searchQuery = ""
+                                    }) {
+                                        Icon(
+                                            Icons.Default.Search,
+                                            contentDescription = "Search orders",
+                                            tint = if (showSearch) Color.White else Color.White.copy(alpha = 0.85f)
+                                        )
+                                    }
+                                    IconButton(onClick = { showFilters = !showFilters }) {
+                                        Icon(
+                                            Icons.Default.FilterList,
+                                            contentDescription = "Toggle filters",
+                                            tint = if (showFilters) Color.White else Color.White.copy(alpha = 0.85f)
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -308,34 +333,36 @@ fun OrdersScreen(
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(spacing.medium))
+                                if (showFilters) {
+                                    Spacer(modifier = Modifier.height(spacing.medium))
 
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = spacing.medium)
-                                        .background(Color(0xFF0E0822).copy(alpha = 0.6f), RoundedCornerShape(10.dp))
-                                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)), RoundedCornerShape(10.dp))
-                                ) {
-                                    Row(
+                                    Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(4.dp),
-                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                            .padding(horizontal = spacing.medium)
+                                            .background(Color(0xFF0E0822).copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                                            .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)), RoundedCornerShape(10.dp))
                                     ) {
-                                        listOf("Daily", "Weekly", "Monthly", "Custom").forEach { title ->
-                                            OrderFilterChip(
-                                                label = title,
-                                                isSelected = timeFilter == title,
-                                                onClick = {
-                                                    if (title == "Custom") {
-                                                        showDateRangePicker = true
-                                                    } else {
-                                                        viewModel.setTimeFilter(title)
-                                                    }
-                                                },
-                                                modifier = Modifier.weight(1f)
-                                            )
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(4.dp),
+                                            horizontalArrangement = Arrangement.SpaceEvenly
+                                        ) {
+                                            listOf("Daily", "Weekly", "Monthly", "Custom").forEach { title ->
+                                                OrderFilterChip(
+                                                    label = title,
+                                                    isSelected = timeFilter == title,
+                                                    onClick = {
+                                                        if (title == "Custom") {
+                                                            showDateRangePicker = true
+                                                        } else {
+                                                            viewModel.setTimeFilter(title)
+                                                        }
+                                                    },
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -431,20 +458,22 @@ fun OrdersScreen(
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(spacing.small))
+                                if (showSearch) {
+                                    Spacer(modifier = Modifier.height(spacing.small))
 
-                                KhanaBookInputField(
-                                    value = searchQuery,
-                                    onValueChange = { searchQuery = it },
-                                    label = "Search Orders",
-                                    placeholder = "Search by daily number or lifetime ID...",
-                                    leadingIcon = {
-                                        Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.kbTextTertiary)
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = spacing.medium)
-                                )
+                                    KhanaBookInputField(
+                                        value = searchQuery,
+                                        onValueChange = { searchQuery = it },
+                                        label = "Search Orders",
+                                        placeholder = "Search by daily number or lifetime ID...",
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.kbTextTertiary)
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = spacing.medium)
+                                    )
+                                }
 
                                 Spacer(modifier = Modifier.height(spacing.small))
 
@@ -578,6 +607,28 @@ fun OrdersScreen(
                                 color = Color.White,
                                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
                             )
+                            Row(
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                IconButton(onClick = {
+                                    showSearch = !showSearch
+                                    if (!showSearch) searchQuery = ""
+                                }) {
+                                    Icon(
+                                        Icons.Default.Search,
+                                        contentDescription = "Search orders",
+                                        tint = if (showSearch) Color.White else Color.White.copy(alpha = 0.85f)
+                                    )
+                                }
+                                IconButton(onClick = { showFilters = !showFilters }) {
+                                    Icon(
+                                        Icons.Default.FilterList,
+                                        contentDescription = "Toggle filters",
+                                        tint = if (showFilters) Color.White else Color.White.copy(alpha = 0.85f)
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -615,34 +666,36 @@ fun OrdersScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(spacing.medium))
+                            if (showFilters) {
+                                Spacer(modifier = Modifier.height(spacing.medium))
 
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = spacing.medium)
-                                    .background(Color(0xFF0E0822).copy(alpha = 0.6f), RoundedCornerShape(10.dp))
-                                    .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)), RoundedCornerShape(10.dp))
-                            ) {
-                                Row(
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(4.dp),
-                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                        .padding(horizontal = spacing.medium)
+                                        .background(Color(0xFF0E0822).copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)), RoundedCornerShape(10.dp))
                                 ) {
-                                    listOf("Daily", "Weekly", "Monthly", "Custom").forEach { title ->
-                                        OrderFilterChip(
-                                            label = title,
-                                            isSelected = timeFilter == title,
-                                            onClick = {
-                                                if (title == "Custom") {
-                                                    showDateRangePicker = true
-                                                } else {
-                                                    viewModel.setTimeFilter(title)
-                                                }
-                                            },
-                                            modifier = Modifier.weight(1f)
-                                        )
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(4.dp),
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
+                                        listOf("Daily", "Weekly", "Monthly", "Custom").forEach { title ->
+                                            OrderFilterChip(
+                                                label = title,
+                                                isSelected = timeFilter == title,
+                                                onClick = {
+                                                    if (title == "Custom") {
+                                                        showDateRangePicker = true
+                                                    } else {
+                                                        viewModel.setTimeFilter(title)
+                                                    }
+                                                },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -732,20 +785,22 @@ fun OrdersScreen(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(spacing.small))
+                            if (showSearch) {
+                                Spacer(modifier = Modifier.height(spacing.small))
 
-                            KhanaBookInputField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                label = "Search Orders",
-                                placeholder = "Search by daily number or lifetime ID...",
-                                leadingIcon = {
-                                    Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.kbTextTertiary)
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = spacing.medium)
-                            )
+                                KhanaBookInputField(
+                                    value = searchQuery,
+                                    onValueChange = { searchQuery = it },
+                                    label = "Search Orders",
+                                    placeholder = "Search by daily number or lifetime ID...",
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.kbTextTertiary)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = spacing.medium)
+                                )
+                            }
 
                             Spacer(modifier = Modifier.height(spacing.small))
 
@@ -2185,6 +2240,18 @@ private fun OrderDetailsPane(
                 }
                 DetailRowLight("Status", statusText, isStatus = true, status = statusValue)
             }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ORDER TIMELINE Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgPrimary),
+            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            PaymentTimeline(bill, modifier = Modifier.padding(16.dp))
         }
 
         Spacer(modifier = Modifier.height(24.dp))

@@ -128,6 +128,24 @@ class HomeViewModel @Inject constructor(
             initialValue = HomeStats()
         )
 
+    val recentBills: StateFlow<List<com.khanabook.lite.pos.data.local.entity.BillEntity>> = profileFlow
+        .filterNotNull()
+        .flatMapLatest {
+            val zoneId = "Asia/Kolkata"
+            val today = java.time.LocalDate.now(java.time.ZoneId.of(zoneId)).toString()
+            val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(today, zoneId)
+            val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(today, zoneId)
+            billRepository.getBillsByDateRange(start, end)
+                .map { bills ->
+                    bills.sortedByDescending { it.createdAt }.take(5)
+                }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     private val _marketplacePendingCount = MutableStateFlow(0)
     val marketplacePendingCount: StateFlow<Int> = _marketplacePendingCount.asStateFlow()
 

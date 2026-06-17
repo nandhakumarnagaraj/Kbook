@@ -357,6 +357,7 @@ fun CustomerInfoStep(
     // Restore from ViewModel so state survives AnimatedContent recreation when going back
     var name by remember { mutableStateOf(billingViewModel?.customerName?.value ?: "") }
     var whatsapp by remember { mutableStateOf(billingViewModel?.customerWhatsapp?.value ?: "") }
+    var orderType by remember { mutableStateOf(billingViewModel?.orderType?.value ?: "order") }
     val spacing = KhanaBookTheme.spacing
 
     val recentCustomers by (billingViewModel?.recentCustomers ?: kotlinx.coroutines.flow.flowOf(emptyList<Pair<String,String>>())).collectAsState(initial = emptyList())
@@ -393,6 +394,39 @@ fun CustomerInfoStep(
             }
             Spacer(modifier = Modifier.height(spacing.extraLarge))
         }
+
+        // Order type selector (Walk-in maps to legacy "order")
+        Text(
+            "ORDER TYPE",
+            color = MaterialTheme.kbTertiary,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+        )
+        Spacer(modifier = Modifier.height(spacing.extraSmall))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.kbBgSecondary, RoundedCornerShape(10.dp))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            listOf(
+                "Walk-in" to "order",
+                "Dine-in" to "dinein",
+                "Takeaway" to "takeaway",
+                "Delivery" to "delivery"
+            ).forEach { (label, value) ->
+                OrderTypeButton(
+                    text = label,
+                    isSelected = orderType == value,
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        orderType = value
+                        billingViewModel?.setOrderType(value)
+                    }
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(spacing.medium))
 
         if (recentCustomers.isNotEmpty()) {
             Text(
@@ -504,7 +538,7 @@ fun CustomerInfoStep(
             onClick = { if (isNextEnabled) onNext(name, whatsapp) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
+                .height(KbButtonSize.HeightLarge),
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (isNextEnabled) KbBrandSaffron else MaterialTheme.kbBgSecondary,
                 contentColor = Color.White,
@@ -520,6 +554,21 @@ fun CustomerInfoStep(
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
         }
+    }
+}
+
+@Composable
+private fun BillSummaryRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, color = MaterialTheme.kbTextSecondary, style = MaterialTheme.typography.bodySmall)
+        Text(
+            value,
+            color = MaterialTheme.kbTextPrimary,
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+        )
     }
 }
 
@@ -558,6 +607,7 @@ fun MenuSelectionStep(
     val searchResults by menuViewModel.searchResults.collectAsStateWithLifecycle()
     val searchQuery by menuViewModel.searchQuery.collectAsStateWithLifecycle()
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
+    val summary by billingViewModel.billSummary.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val connectionStatus by billingViewModel.connectionStatus.collectAsStateWithLifecycle()
     val isOffline = connectionStatus == ConnectionStatus.Unavailable
@@ -1040,6 +1090,19 @@ fun MenuSelectionStep(
                             }
                             Spacer(modifier = Modifier.height(spacing.small))
                         }
+
+                        // Subtotal + tax breakdown
+                        val cgst = summary.cgst.toDoubleOrNull() ?: 0.0
+                        val sgst = summary.sgst.toDoubleOrNull() ?: 0.0
+                        val customTax = summary.customTax.toDoubleOrNull() ?: 0.0
+                        val taxTotal = cgst + sgst + customTax
+                        BillSummaryRow("Subtotal", CurrencyUtils.formatPrice(summary.subtotal.toDoubleOrNull() ?: 0.0))
+                        if (taxTotal > 0.0) {
+                            BillSummaryRow("Tax (GST)", CurrencyUtils.formatPrice(taxTotal))
+                        }
+                        Spacer(modifier = Modifier.height(spacing.extraSmall))
+                        HorizontalDivider(color = MaterialTheme.kbOutlineSubtle, thickness = spacing.hairline)
+                        Spacer(modifier = Modifier.height(spacing.small))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -2007,7 +2070,7 @@ fun PaymentStep(
                         onFailed()
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(48.dp)
+                modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge)
         ) {
             Text(
                 "Payment Failed / Cancelled",
