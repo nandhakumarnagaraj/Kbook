@@ -8,6 +8,7 @@ import com.khanabook.lite.pos.domain.util.AppAssetStore
 import com.khanabook.lite.pos.domain.util.GlobalCrashHandler
 import com.khanabook.lite.pos.util.FlashlightInitializer
 import com.khanabook.lite.pos.worker.MasterSyncWorker
+import com.khanabook.lite.pos.worker.EasebuzzPaymentRecoveryWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -42,5 +43,6 @@ class KhanaBookApplication : Application(), Configuration.Provider {
         AppAssetStore.initialize(this)
 
         MasterSyncWorker.schedule(this)
+        EasebuzzPaymentRecoveryWorker.schedule(this)
     }
 }

@@ -174,11 +174,13 @@ fun EasebuzzKycScreen(
         val hasMerchant = s?.hasSubMerchant == true
         val kycDone = s?.kycSubmissionDate != null
         val active = s?.isActive == true
+        val pendingOtp = s?.status?.uppercase()?.replace(" ", "_") == "PENDING_OTP"
 
         listOf(
             KycStep(1, "Identity\nProof", if (hasMerchant) KycStepState.COMPLETED else KycStepState.ACTIVE),
-            KycStep(2, "Address\nProof", when {
+            KycStep(2, "OTP /\nAddress", when {
                 kycDone -> KycStepState.COMPLETED
+                pendingOtp -> KycStepState.ACTIVE   // explicit OTP step
                 hasMerchant -> KycStepState.ACTIVE
                 else -> KycStepState.PENDING
             }),
@@ -342,19 +344,117 @@ fun EasebuzzKycScreen(
                 }
 
                 when {
-                    !status.hasSubMerchant || state == "NOT_REGISTERED" || state == "NOT_STARTED" ||
-                        state == "DRAFT" || state == "FAILED" -> {
+                    // ── Not yet started ──────────────────────────────────────
+                    !status.hasSubMerchant || state == "NOT_REGISTERED" ||
+                        state == "NOT_STARTED" || state == "DRAFT" || state == "FAILED" -> {
                         BrandButton("Start Onboarding", onClick = onStartOnboarding)
                     }
 
+                    // ── Fully active ─────────────────────────────────────────
                     status.isActive || state == "ACTIVE" -> {
                         Text(
-                            "Your KYC is verified — online payments are active.",
+                            "✅  Your KYC is verified — online payments are active.",
                             color = KbSuccess,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
 
+                    // ── OTP pending (LIVE mode only) ──────────────────────────
+                    state == "PENDING_OTP" -> {
+                        KhanaBookCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = KbBrandSaffron.copy(alpha = 0.08f)
+                            ),
+                            shape = KbShape.Large
+                        ) {
+                            Column(modifier = Modifier.padding(spacing.medium)) {
+                                Text(
+                                    "📱  OTP Verification",
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = KbBrandSaffron
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    "Easebuzz sent an OTP to your registered phone. " +
+                                        "Enter it below to verify your account.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.kbTextSecondary
+                                )
+                                Spacer(Modifier.height(spacing.medium))
+                                com.khanabook.lite.pos.ui.designsystem.KhanaBookInputField(
+                                    value = otp,
+                                    onValueChange = { otp = it },
+                                    label = "Enter OTP",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                                    )
+                                )
+                                Spacer(Modifier.height(spacing.small))
+                                Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
+                                    Button(
+                                        onClick = {
+                                            scope.launch {
+                                                try {
+                                                    actionBusy = true; actionMessage = null
+                                                    val r = paymentRepository.verifyKycOtp(otp.trim())
+                                                    actionMessage = r.msg ?: r.error ?: "OTP submitted"
+                                                    refreshStatus()
+                                                } catch (e: Exception) {
+                                                    actionMessage = e.message ?: "OTP verification failed"
+                                                } finally { actionBusy = false }
+                                            }
+                                        },
+                                        enabled = !actionBusy && otp.isNotBlank(),
+                                        modifier = Modifier.weight(1f).height(48.dp),
+                                        shape = KbShape.Medium,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.kbPrimary
+                                        )
+                                    ) { Text("Verify OTP", color = MaterialTheme.kbTextOnBrand) }
+                                    OutlinedButton(
+                                        onClick = {
+                                            scope.launch {
+                                                try {
+                                                    actionBusy = true; actionMessage = null
+                                                    val r = paymentRepository.resendKycOtp()
+                                                    actionMessage = r.msg ?: r.error ?: "OTP resent"
+                                                } catch (e: Exception) {
+                                                    actionMessage = e.message ?: "Could not resend OTP"
+                                                } finally { actionBusy = false }
+                                            }
+                                        },
+                                        enabled = !actionBusy,
+                                        modifier = Modifier.weight(1f).height(48.dp),
+                                        shape = KbShape.Medium
+                                    ) { Text("Resend OTP", color = MaterialTheme.kbSecondary) }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── KYC portal upload ─────────────────────────────────────
+                    state == "PENDING_KYC" -> {
+                        BrandButton(
+                            if (actionBusy) "Opening…" else "Open KYC Portal",
+                            enabled = !actionBusy,
+                            onClick = { openKycPortal(status.kycUrl) }
+                        )
+                    }
+
+                    // ── Submitted, under review ───────────────────────────────
+                    state == "KYC_SUBMITTED" -> {
+                        Text(
+                            "⏳  Documents submitted. Easebuzz is reviewing — this can take up to 48 hours.",
+                            color = MaterialTheme.kbTextSecondary,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    // ── Rejected — fix & resubmit ─────────────────────────────
                     state == "REJECTED" -> {
                         BrandButton("Update & Resubmit Details", onClick = onResubmit)
                         Spacer(Modifier.height(spacing.small))
@@ -366,68 +466,13 @@ fun EasebuzzKycScreen(
                         ) { Text("Open KYC Portal", color = MaterialTheme.kbSecondary) }
                     }
 
-                    state == "KYC_SUBMITTED" -> {
+                    // ── Unknown/future status — safe fallback ─────────────────
+                    else -> {
                         Text(
-                            "Documents submitted. Easebuzz is reviewing — this can take a little while.",
+                            "Status: $state — please refresh or contact support.",
                             color = MaterialTheme.kbTextSecondary,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodySmall
                         )
-                    }
-
-                    else -> { // PENDING_KYC
-                        BrandButton(
-                            if (actionBusy) "Opening…" else "Open KYC Portal",
-                            enabled = !actionBusy,
-                            onClick = { openKycPortal(status.kycUrl) }
-                        )
-                        Spacer(Modifier.height(spacing.medium))
-                        // OTP step — LIVE only (Easebuzz sandbox does not issue onboarding OTPs)
-                        com.khanabook.lite.pos.ui.designsystem.KhanaBookInputField(
-                            value = otp,
-                            onValueChange = { otp = it },
-                            label = "Onboarding OTP",
-                            modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
-                            )
-                        )
-                        Spacer(Modifier.height(spacing.small))
-                        Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        try {
-                                            actionBusy = true; actionMessage = null
-                                            val r = paymentRepository.verifyKycOtp(otp.trim())
-                                            actionMessage = r.msg ?: r.error ?: "OTP submitted"
-                                            refreshStatus()
-                                        } catch (e: Exception) {
-                                            actionMessage = e.message ?: "OTP verification failed"
-                                        } finally { actionBusy = false }
-                                    }
-                                },
-                                enabled = !actionBusy && otp.isNotBlank(),
-                                modifier = Modifier.weight(1f).height(48.dp),
-                                shape = KbShape.Medium,
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbPrimary)
-                            ) { Text("Verify OTP", color = MaterialTheme.kbTextOnBrand) }
-                            OutlinedButton(
-                                onClick = {
-                                    scope.launch {
-                                        try {
-                                            actionBusy = true; actionMessage = null
-                                            val r = paymentRepository.resendKycOtp()
-                                            actionMessage = r.msg ?: r.error ?: "OTP resent"
-                                        } catch (e: Exception) {
-                                            actionMessage = e.message ?: "Could not resend OTP"
-                                        } finally { actionBusy = false }
-                                    }
-                                },
-                                enabled = !actionBusy,
-                                modifier = Modifier.weight(1f).height(48.dp),
-                                shape = KbShape.Medium
-                            ) { Text("Resend", color = MaterialTheme.kbSecondary) }
-                        }
                     }
                 }
 
@@ -700,25 +745,27 @@ private fun BrandButton(text: String, enabled: Boolean = true, onClick: () -> Un
 }
 
 private fun kycStatusLabel(state: String): String = when (state) {
-    "ACTIVE" -> "Verified"
-    "PENDING_KYC" -> "Pending KYC"
-    "KYC_SUBMITTED" -> "Under review"
-    "REJECTED" -> "Rejected"
-    "FAILED" -> "Submission failed"
-    "DRAFT" -> "Draft"
-    "NOT_REGISTERED", "NOT_STARTED" -> "Not started"
-    else -> state
+    "ACTIVE"         -> "✅ Verified"
+    "PENDING_OTP"    -> "📱 OTP Required"
+    "PENDING_KYC"    -> "📄 Pending KYC Upload"
+    "KYC_SUBMITTED"  -> "⏳ Under Review"
+    "REJECTED"       -> "❌ Rejected"
+    "FAILED"         -> "⚠️ Submission Failed"
+    "DRAFT"          -> "📝 Draft"
+    "NOT_REGISTERED", "NOT_STARTED" -> "Not Started"
+    else             -> state
 }
 
 private fun kycStatusHint(state: String): String = when (state) {
-    "ACTIVE" -> "You can accept online payments."
-    "PENDING_KYC" -> "Open the Easebuzz portal to upload your documents."
-    "KYC_SUBMITTED" -> "Easebuzz is reviewing your documents."
-    "REJECTED" -> "Your KYC was rejected. Update your details and resubmit."
-    "FAILED" -> "Onboarding submission failed. Review details and try again."
-    "DRAFT" -> "Finish onboarding to submit to Easebuzz."
-    "NOT_REGISTERED", "NOT_STARTED" -> "Start onboarding to register as an Easebuzz sub-merchant."
-    else -> ""
+    "ACTIVE"        -> "You can accept online payments through Easebuzz."
+    "PENDING_OTP"   -> "Easebuzz sent an OTP to your phone. Enter it below to proceed."
+    "PENDING_KYC"   -> "Open the Easebuzz KYC portal to upload your identity and address documents."
+    "KYC_SUBMITTED" -> "Easebuzz is reviewing your documents. Approval usually takes 24–48 hours."
+    "REJECTED"      -> "Your KYC was rejected. Update your details and resubmit documents."
+    "FAILED"        -> "Onboarding submission failed. Review your details and try again."
+    "DRAFT"         -> "Complete all fields and submit to register as an Easebuzz sub-merchant."
+    "NOT_REGISTERED", "NOT_STARTED" -> "Tap 'Start Onboarding' to register as an Easebuzz sub-merchant."
+    else            -> "Please refresh or contact KhanaBook support if this persists."
 }
 
 @Composable

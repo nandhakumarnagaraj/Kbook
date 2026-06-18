@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
@@ -487,7 +488,6 @@ fun OrdersScreen(
                                     verticalArrangement = Arrangement.spacedBy(spacing.small)
                                 ) {
                                     items(filteredRows, key = { it.billId }) { row ->
-                                        var showCancelDialog by remember { mutableStateOf(false) }
                                         var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
 
                                         OrderCard(
@@ -505,16 +505,6 @@ fun OrdersScreen(
                                                 }
                                             }
                                         )
-
-                                        if (showCancelDialog) {
-                                            CancelOrderDialog(
-                                                onDismiss = { showCancelDialog = false },
-                                                onConfirm = { reason ->
-                                                    viewModel.cancelOrder(row.billId, reason)
-                                                    showCancelDialog = false
-                                                }
-                                            )
-                                        }
 
                                         pendingPartMode?.let { mode ->
                                             PartAmountDialog(
@@ -814,7 +804,6 @@ fun OrdersScreen(
                                 verticalArrangement = Arrangement.spacedBy(spacing.small)
                             ) {
                                 items(filteredRows, key = { it.billId }) { row ->
-                                    var showCancelDialog by remember { mutableStateOf(false) }
                                     var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
 
                                     OrderCard(
@@ -832,16 +821,6 @@ fun OrdersScreen(
                                             }
                                         }
                                     )
-
-                                    if (showCancelDialog) {
-                                        CancelOrderDialog(
-                                            onDismiss = { showCancelDialog = false },
-                                            onConfirm = { reason ->
-                                                viewModel.cancelOrder(row.billId, reason)
-                                                showCancelDialog = false
-                                            }
-                                        )
-                                    }
 
                                     pendingPartMode?.let { mode ->
                                         PartAmountDialog(
@@ -868,7 +847,8 @@ fun OrdersScreen(
                     onDismiss = {
                         selectedBillId = null
                         viewModel.clearBillDetails()
-                    }
+                    },
+                    viewModel = viewModel
                 )
             }
 
@@ -1324,55 +1304,6 @@ fun OrderTableRow(
             )
         }
     }
-}
-
-@Composable
-fun CancelOrderDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    val presetReasons = listOf("Wrong order", "Customer left", "Duplicate bill", "Test bill", "Other")
-    var selectedReason by remember { mutableStateOf("Customer left") }
-    var customReason by remember { mutableStateOf("") }
-
-    KhanaBookSelectionDialog(
-        title = "Cancel Order",
-        onDismissRequest = onDismiss,
-        message = "Select a reason:",
-        options = presetReasons.map { reason ->
-            SelectionDialogOption(
-                value = reason,
-                title = reason,
-                selectedAccent = KbError,
-                onSelect = {
-                    selectedReason = reason
-                    if (reason != "Other") customReason = ""
-                }
-            )
-        },
-        selectedValue = selectedReason,
-        trailingContent = {
-            if (selectedReason == "Other") {
-                KhanaBookInputField(
-                    value = customReason,
-                    onValueChange = { customReason = it },
-                    label = "Other Reason",
-                    placeholder = "Describe the reason...",
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = false
-                )
-            }
-        },
-        cancelLabel = "Keep Order",
-        actions = {
-            TextButton(
-                onClick = {
-                    val finalReason = if (selectedReason == "Other") customReason.trim() else selectedReason
-                    if (finalReason.isNotBlank()) onConfirm(finalReason)
-                },
-                enabled = selectedReason.isNotBlank() && (selectedReason != "Other" || customReason.isNotBlank())
-            ) {
-                Text("Cancel Order", color = KbError, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-            }
-        }
-    ) {}
 }
 
 @Composable
@@ -2102,176 +2033,242 @@ private fun OrderDetailsPane(
 
     val bill = billWithItems.bill
     val items = billWithItems.items
+    val isCancelled = OrderStatus.fromDbValue(bill.orderStatus) == OrderStatus.CANCELLED
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.kbBgCard)
-            .padding(spacing.medium)
             .verticalScroll(rememberScrollState())
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Header summary block
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(spacing.medium)
         ) {
-            Column {
-                Text(
-                    text = "#KB-${bill.dailyOrderDisplay.split("-").last()}",
-                    color = MaterialTheme.kbTextPrimary,
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "INV${bill.lifetimeOrderId} · ${PaymentMode.fromDbValue(bill.paymentMode).displayLabel}",
-                    color = MaterialTheme.kbTextSecondary,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "#KB-${bill.dailyOrderDisplay.split("-").last()}",
+                        color = MaterialTheme.kbTextPrimary,
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "INV${bill.lifetimeOrderId} · ${PaymentMode.fromDbValue(bill.paymentMode).displayLabel}",
+                        color = MaterialTheme.kbTextSecondary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                OrderStatusChip(OrderStatus.fromDbValue(bill.orderStatus))
             }
-            OrderStatusChip(OrderStatus.fromDbValue(bill.orderStatus))
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = CurrencyUtils.formatPrice(bill.totalAmount),
+                color = if (isCancelled) MaterialTheme.kbTextSecondary else KbBrandSaffron,
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 36.sp,
+                    textDecoration = if (isCancelled) androidx.compose.ui.text.style.TextDecoration.LineThrough else androidx.compose.ui.text.style.TextDecoration.None
+                )
+            )
+            Text(
+                text = DateUtils.formatDisplay(bill.createdAt),
+                color = MaterialTheme.kbTextTertiary,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = CurrencyUtils.formatPrice(bill.totalAmount),
-            color = KbBrandSaffron,
-            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 36.sp)
-        )
-        Text(
-            text = DateUtils.formatDisplay(bill.createdAt),
-            color = MaterialTheme.kbTextTertiary,
-            style = MaterialTheme.typography.bodySmall
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // ORDER ITEMS Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgPrimary),
-            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-            shape = RoundedCornerShape(10.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    "ORDER ITEMS",
-                    color = KbBrandSaffron,
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+        // Cancelled banner
+        if (isCancelled) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(KbError.copy(alpha = 0.10f))
+                    .padding(horizontal = spacing.medium, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = null,
+                    tint = KbError,
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "This order was cancelled",
+                    color = KbError,
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                )
+            }
+            HorizontalDivider(color = KbError.copy(alpha = 0.20f), thickness = 1.dp)
+        }
 
-                items.forEach { item ->
+        // Cards (dimmed when cancelled)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer { alpha = if (isCancelled) 0.55f else 1f }
+                .padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // ORDER ITEMS Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgPrimary),
+                border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "ORDER ITEMS",
+                        color = KbBrandSaffron,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    items.forEach { item ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "${item.quantity}×  ${item.itemName}",
+                                color = MaterialTheme.kbTextPrimary,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = CurrencyUtils.formatPrice(item.itemTotal),
+                                color = MaterialTheme.kbTextPrimary,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(color = MaterialTheme.kbOutlineSubtle, thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val subtotalVal = bill.subtotal.toDoubleOrNull() ?: 0.0
+                    val totalVal = bill.totalAmount.toDoubleOrNull() ?: 0.0
+                    val taxVal = totalVal - subtotalVal
+
+                    DetailRowLight("Subtotal", CurrencyUtils.formatPrice(bill.subtotal))
+                    if (taxVal > 0) {
+                        val taxPct = bill.gstPercentage.toDoubleOrNull() ?: 0.0
+                        val taxLabel = if (taxPct > 0) "Tax (${taxPct.toInt()}%)" else "Tax"
+                        DetailRowLight(taxLabel, CurrencyUtils.formatPrice(taxVal.toString()))
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "${item.quantity}×  ${item.itemName}",
+                            "Total",
                             color = MaterialTheme.kbTextPrimary,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
                         Text(
-                            text = CurrencyUtils.formatPrice(item.itemTotal),
-                            color = MaterialTheme.kbTextPrimary,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                            CurrencyUtils.formatPrice(bill.totalAmount),
+                            color = if (isCancelled) MaterialTheme.kbTextSecondary else KbBrandSaffron,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                textDecoration = if (isCancelled) androidx.compose.ui.text.style.TextDecoration.LineThrough else androidx.compose.ui.text.style.TextDecoration.None
+                            )
                         )
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(color = MaterialTheme.kbOutlineSubtle, thickness = 1.dp)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                val subtotalVal = bill.subtotal.toDoubleOrNull() ?: 0.0
-                val totalVal = bill.totalAmount.toDoubleOrNull() ?: 0.0
-                val taxVal = totalVal - subtotalVal
-
-                DetailRowLight("Subtotal", CurrencyUtils.formatPrice(bill.subtotal))
-                if (taxVal > 0) {
-                    val taxPct = bill.gstPercentage.toDoubleOrNull() ?: 0.0
-                    val taxLabel = if (taxPct > 0) "Tax (${taxPct.toInt()}%)" else "Tax"
-                    DetailRowLight(taxLabel, CurrencyUtils.formatPrice(taxVal.toString()))
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+            // PAYMENT DETAILS Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgPrimary),
+                border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        "Total",
-                        color = MaterialTheme.kbTextPrimary,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Text(
-                        CurrencyUtils.formatPrice(bill.totalAmount),
+                        "PAYMENT DETAILS",
                         color = KbBrandSaffron,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                     )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    DetailRowLight("Method", PaymentMode.fromDbValue(bill.paymentMode).displayLabel)
+                    DetailRowLight("Invoice No", "INV${bill.lifetimeOrderId}")
+                    if (bill.orderType.isNotBlank() && bill.orderType != "UNKNOWN" && bill.orderType != "order") {
+                        val orderTypeLabel = when (bill.orderType.lowercase()) {
+                            "dinein", "dine_in" -> "Dine In"
+                            "takeaway", "take_away" -> "Takeaway"
+                            "delivery" -> "Delivery"
+                            else -> bill.orderType.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }
+                        }
+                        DetailRowLight("Order Type", orderTypeLabel)
+                    }
+                    DetailRowLight("Time", DateUtils.formatDisplay(bill.createdAt))
+
+                    val statusValue = OrderStatus.fromDbValue(bill.orderStatus)
+                    val statusText = when (statusValue) {
+                        OrderStatus.DRAFT -> "Pending"
+                        else -> statusValue.name.lowercase().replaceFirstChar { it.uppercase() }
+                    }
+                    DetailRowLight("Status", statusText, isStatus = true, status = statusValue)
                 }
+            }
+
+            // ORDER TIMELINE Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgPrimary),
+                border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                PaymentTimeline(bill, modifier = Modifier.padding(16.dp))
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // PAYMENT DETAILS Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgPrimary),
-            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-            shape = RoundedCornerShape(10.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    "PAYMENT DETAILS",
-                    color = KbBrandSaffron,
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                DetailRowLight("Method", PaymentMode.fromDbValue(bill.paymentMode).displayLabel)
-                DetailRowLight("Transaction ID", "INV${bill.lifetimeOrderId}")
-                DetailRowLight("Time", DateUtils.formatDisplay(bill.createdAt))
-
-                val statusValue = OrderStatus.fromDbValue(bill.orderStatus)
-                val statusText = when (statusValue) {
-                    OrderStatus.DRAFT -> "Pending"
-                    else -> statusValue.name.lowercase().replaceFirstChar { it.uppercase() }
-                }
-                DetailRowLight("Status", statusText, isStatus = true, status = statusValue)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // ORDER TIMELINE Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.kbBgPrimary),
-            border = BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle),
-            shape = RoundedCornerShape(10.dp)
-        ) {
-            PaymentTimeline(bill, modifier = Modifier.padding(16.dp))
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
+        // Action Buttons
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = spacing.medium)
+                .padding(bottom = spacing.medium),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedButton(
-                onClick = { onPrintKds?.invoke(billWithItems) },
-                modifier = Modifier.weight(1f).height(KbButtonSize.HeightLarge),
-                border = BorderStroke(1.dp, KbPurpleAccent),
-                shape = KbShape.Medium
-            ) {
-                Text("Reprint KOT", color = KbPurpleAccent, style = MaterialTheme.typography.titleMedium)
+            if (isCancelled) {
+                Button(
+                    onClick = { /* close pane */ },
+                    modifier = Modifier.fillMaxWidth().height(KbButtonSize.HeightLarge),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.kbOutlineSubtle),
+                    shape = KbShape.Medium
+                ) {
+                    Text("Close", color = MaterialTheme.kbTextPrimary, style = MaterialTheme.typography.titleMedium)
+                }
+            } else {
+                OutlinedButton(
+                    onClick = { onPrintKds?.invoke(billWithItems) },
+                    modifier = Modifier.weight(1f).height(KbButtonSize.HeightLarge),
+                    border = BorderStroke(1.dp, KbPurpleAccent),
+                    shape = KbShape.Medium
+                ) {
+                    Text("Reprint KOT", color = KbPurpleAccent, style = MaterialTheme.typography.titleMedium)
+                }
+                PrimaryButton(
+                    text = "Reprint Bill",
+                    modifier = Modifier.weight(1f),
+                    onClick = { onPrintReceipt?.invoke(billWithItems) }
+                )
             }
-            PrimaryButton(
-                text = "Reprint Bill",
-                modifier = Modifier.weight(1f),
-                onClick = { onPrintReceipt?.invoke(billWithItems) }
-            )
         }
     }
 }

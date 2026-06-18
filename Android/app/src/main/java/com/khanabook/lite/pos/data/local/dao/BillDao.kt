@@ -75,6 +75,36 @@ interface BillDao {
     @Query("UPDATE bills SET order_status = 'cancelled', cancel_reason = :reason, is_synced = 0, updated_at = :updatedAt WHERE id = :id")
     suspend fun cancelBill(id: Long, reason: String, updatedAt: Long)
 
+    /**
+     * All Easebuzz (online) draft bills older than [olderThanMs] ms — for background payment recovery.
+     *
+     * Easebuzz orders are stored with payment_mode = 'online' (PaymentMode.ONLINE.dbValue) and
+     * payment_status = 'pending' until the gateway confirms. gateway_txn_id is NOT set at draft
+     * creation (only after the payment result arrives), so we must not filter on it here — these
+     * are exactly the started-but-unconfirmed orders the worker needs to reconcile.
+     */
+    @Query("""
+        SELECT * FROM bills
+        WHERE order_status = 'draft'
+          AND payment_mode = 'online'
+          AND payment_status = 'pending'
+          AND created_at < :olderThanMs
+          AND is_deleted = 0
+        ORDER BY created_at ASC
+    """)
+    suspend fun getPendingEasebuzzDrafts(olderThanMs: Long): List<BillEntity>
+
+    /** Mark a bill as completed after gateway payment confirmed. */
+    @Query("""
+        UPDATE bills SET
+            order_status = 'completed',
+            payment_status = 'paid',
+            is_synced = 0,
+            updated_at = :updatedAt
+        WHERE id = :id
+    """)
+    suspend fun markBillCompleted(id: Long, updatedAt: Long)
+
     @Query("""
         UPDATE bills SET order_status = 'cancelled', payment_status = 'failed',
         cancel_reason = :reason, is_synced = 0, updated_at = :updatedAt

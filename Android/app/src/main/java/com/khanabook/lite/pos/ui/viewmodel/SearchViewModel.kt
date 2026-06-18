@@ -88,9 +88,20 @@ class SearchViewModel @Inject constructor(
         }
     }
 
+    /** Guards against double-submitting a gateway refund (fast double-tap / two screens). */
+    private var refundInFlight = false
+
     fun refundEasebuzz(billId: Long, amount: String, reason: String) {
+        if (refundInFlight) return
         viewModelScope.launch {
+            refundInFlight = true
             try {
+                // Don't refund twice — bail if this bill already shows refunded.
+                val existing = billRepository.getBillById(billId)
+                if (existing?.paymentStatus.equals("refunded", ignoreCase = true)) {
+                    _refundResult.value = RefundResult(false, "This order has already been refunded.")
+                    return@launch
+                }
                 val deviceId = sessionManager.getDeviceId()
                 val request = EasebuzzRefundRequest(amount = amount, reason = reason)
                 val response = khanaBookApi.refundEasebuzzPayment(billId, deviceId, request)
@@ -109,6 +120,8 @@ class SearchViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _refundResult.value = RefundResult(false, e.localizedMessage ?: "Refund failed")
+            } finally {
+                refundInFlight = false
             }
         }
     }

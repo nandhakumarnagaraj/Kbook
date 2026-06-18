@@ -17,7 +17,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ReportsViewModel @Inject constructor(
-    private val billRepository: BillRepository
+    private val billRepository: BillRepository,
+    private val khanaBookApi: com.khanabook.lite.pos.data.remote.api.KhanaBookApi,
+    private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager
 ) : ViewModel() {
 
     private val reportGenerator = ReportGenerator(billRepository)
@@ -173,6 +175,10 @@ class ReportsViewModel @Inject constructor(
                         else row
                     }
                 }
+                // Refresh the open detail dialog, if it's showing this bill
+                if (_selectedBillDetails.value?.bill?.id == billId) {
+                    _selectedBillDetails.value = reportGenerator.getOrderDetail(billId)
+                }
             } catch (e: Exception) {
                 _error.value = UserMessageSanitizer.sanitize(
                     e,
@@ -265,5 +271,66 @@ class ReportsViewModel @Inject constructor(
         sb.append("─".repeat(28)).append("\n")
         sb.append("Powered by KhanaBook")
         return sb.toString()
+    }
+
+    // ── Cancel / Refund ──────────────────────────────────────────────────
+
+    data class ActionResult(val success: Boolean, val message: String)
+
+    private val _actionResult = MutableStateFlow<ActionResult?>(null)
+    val actionResult: StateFlow<ActionResult?> = _actionResult
+
+    fun clearActionResult() { _actionResult.value = null }
+
+    /** Guards against double-submitting a gateway refund (fast double-tap / two screens). */
+    private var refundInFlight = false
+
+    /**
+     * Initiate Easebuzz gateway refund.
+     * Also calls [BillRepository.refundBill] to update local DB status.
+     */
+    fun initiateEasebuzzRefund(billId: Long, amount: String, reason: String) {
+        if (refundInFlight) return
+        viewModelScope.launch {
+            refundInFlight = true
+            try {
+                // Don't refund twice — bail if the server/local copy already shows refunded.
+                val existing = billRepository.getBillById(billId)
+                if (existing?.paymentStatus.equals("refunded", ignoreCase = true)) {
+                    _actionResult.value = ActionResult(false, "This order has already been refunded.")
+                    return@launch
+                }
+                val deviceId = sessionManager.getDeviceId()
+                val request = com.khanabook.lite.pos.data.remote.dto.EasebuzzRefundRequest(
+                    amount = amount,
+                    reason = reason
+                )
+                val response = khanaBookApi.refundEasebuzzPayment(billId, deviceId, request)
+                if (response.status.equals("success", ignoreCase = true) ||
+                    response.status.equals("1", ignoreCase = true)
+                ) {
+                    billRepository.refundBill(billId, amount, reason)
+                    refreshSelectedBill(billId)
+                    _actionResult.value = ActionResult(
+                        true,
+                        "Refund of ₹$amount initiated. Reaches customer in 3–7 business days."
+                    )
+                } else {
+                    _actionResult.value = ActionResult(false, response.error ?: "Refund failed")
+                }
+            } catch (e: Exception) {
+                _actionResult.value = ActionResult(false, e.localizedMessage ?: "Refund failed")
+            } finally {
+                refundInFlight = false
+            }
+        }
+    }
+
+    /** Refresh the currently selected bill after an action. */
+    private suspend fun refreshSelectedBill(billId: Long) {
+        val updated = billRepository.getBillWithItemsById(billId)
+        _selectedBillDetails.value = updated
+        // Also refresh the list row
+        loadReports(currentFrom, currentTo)
     }
 }

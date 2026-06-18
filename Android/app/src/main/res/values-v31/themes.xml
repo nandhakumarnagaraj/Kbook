@@ -10,7 +10,9 @@
         <item name="android:windowDisablePreview">false</item>
         <item name="android:windowIsTranslucent">false</item>
         <item name="android:windowSplashScreenBackground">@color/splash_bg</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_logo_with_glow</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_khanabook_logo</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/splash_bg</item>
+        <item name="android:windowSplashScreenBrandingImage">@drawable/ic_khanabook_logo</item>
     </style>
 
 </resources>

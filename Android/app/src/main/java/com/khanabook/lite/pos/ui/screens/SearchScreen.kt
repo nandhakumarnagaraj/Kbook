@@ -506,18 +506,26 @@ fun SearchScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     )
 
+                                    val paymentStatus = currentResult.bill.paymentStatus.lowercase()
+                                    val isFullyRefunded = paymentStatus == "refunded"
+                                    val isPartiallyRefunded = paymentStatus == "partially_refunded"
+                                    val alreadyRefunded = isFullyRefunded || isPartiallyRefunded
+
                                     val canRefund = (currentResult.bill.orderStatus.equals("completed", ignoreCase = true) ||
                                             currentResult.bill.orderStatus.equals("paid", ignoreCase = true)) &&
-                                            !currentResult.bill.paymentStatus.equals("refunded", ignoreCase = true)
+                                            !isFullyRefunded
 
                                     if (canRefund) {
-                                        val isOnline = currentResult.bill.paymentMode.equals("ONLINE", ignoreCase = true)
+                                        val isOnline = PaymentMode.fromDbValue(currentResult.bill.paymentMode) == PaymentMode.ONLINE
                                         val hasGatewayTxn = !currentResult.bill.gatewayTxnId.isNullOrBlank()
+                                        val totalAmt = currentResult.bill.totalAmount.toDoubleOrNull() ?: 0.0
+                                        val alreadyRefundedAmt = currentResult.bill.refundAmount.toDoubleOrNull() ?: 0.0
+                                        val remainingAmt = (totalAmt - alreadyRefundedAmt).toString()
 
                                         if (isOnline && hasGatewayTxn) {
                                             Button(
                                                 onClick = {
-                                                    refundAmount = currentResult.bill.totalAmount
+                                                    refundAmount = remainingAmt
                                                     refundReason = ""
                                                     isEasebuzzRefund = true
                                                     showRefundDialog = true
@@ -534,7 +542,7 @@ fun SearchScreen(
 
                                         Button(
                                             onClick = {
-                                                refundAmount = currentResult.bill.totalAmount
+                                                refundAmount = remainingAmt
                                                 refundReason = ""
                                                 isEasebuzzRefund = false
                                                 showRefundDialog = true

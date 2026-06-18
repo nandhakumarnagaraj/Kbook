@@ -123,6 +123,28 @@ class BillRepository(
         triggerBackgroundSync()
     }
 
+    suspend fun markBillCompleted(id: Long) {
+        val current = billDao.getBillById(id) ?: return
+        // Only deduct stock if this bill hasn't already been counted as completed/paid —
+        // mirrors updateOrderStatus() so background-recovered payments consume inventory too.
+        val wasDeducted = current.orderStatus.equals("completed", ignoreCase = true) ||
+                current.orderStatus.equals("paid", ignoreCase = true)
+
+        billDao.markBillCompleted(id, System.currentTimeMillis())
+
+        if (!wasDeducted) {
+            val billWithItems = billDao.getBillWithItemsById(id)
+            billWithItems?.let { inventoryConsumptionManager?.consumeMaterialsForBill(it.items) }
+        }
+        triggerBackgroundSync()
+    }
+
+    /** Online (Easebuzz) bills with payment_mode='online', payment_status='pending', order_status='draft', older than [olderThanMinutes] min. */
+    suspend fun getPendingEasebuzzDrafts(olderThanMinutes: Long = 2): List<com.khanabook.lite.pos.data.local.entity.BillEntity> {
+        val cutoffMs = System.currentTimeMillis() - (olderThanMinutes * 60 * 1000L)
+        return billDao.getPendingEasebuzzDrafts(cutoffMs)
+    }
+
     suspend fun cancelStalePendingOnlineDrafts(): Int {
         val cancelled = billDao.cancelStalePendingOnlineDrafts(
             reason = "Superseded by new payment attempt",
@@ -230,12 +252,19 @@ class BillRepository(
 
     suspend fun refundBill(id: Long, amount: String, reason: String) {
         val current = billDao.getBillById(id) ?: return
+        val total = current.totalAmount.toDoubleOrNull() ?: 0.0
+        val refundAmt = amount.toDoubleOrNull() ?: 0.0
+        val isFullRefund = refundAmt >= total - 0.01
+
+        val newPaymentStatus = if (isFullRefund) "refunded" else "partially_refunded"
+        val newOrderStatus = if (isFullRefund) "cancelled" else current.orderStatus
+
         billDao.updateBill(
             current.copy(
                 refundAmount = amount,
-                paymentStatus = "refunded",
-                orderStatus = "cancelled",
-                cancelReason = reason.ifBlank { "Refunded" },
+                paymentStatus = newPaymentStatus,
+                orderStatus = newOrderStatus,
+                cancelReason = if (isFullRefund) reason.ifBlank { "Refunded" } else current.cancelReason,
                 isSynced = false,
                 updatedAt = System.currentTimeMillis()
             )
