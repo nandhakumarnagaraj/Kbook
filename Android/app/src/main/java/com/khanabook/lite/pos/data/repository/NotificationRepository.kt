@@ -1,10 +1,19 @@
 package com.khanabook.lite.pos.data.repository
 
+import android.content.Context
+import android.content.SharedPreferences
+import android.util.Log
 import com.khanabook.lite.pos.data.local.dao.NotificationDao
 import com.khanabook.lite.pos.data.local.entity.NotificationEntity
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.domain.manager.SessionManager
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,12 +21,15 @@ data class NotificationCounts(
     val unreadCount: Int = 0
 )
 
+@OptIn(DelicateCoroutinesApi::class)
 @Singleton
 class NotificationRepository @Inject constructor(
     private val notificationDao: NotificationDao,
     private val api: KhanaBookApi,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    @ApplicationContext private val context: Context
 ) {
+    private val prefs: SharedPreferences = context.getSharedPreferences("notification_prefs", Context.MODE_PRIVATE)
     fun getNotifications(): Flow<List<NotificationEntity>> =
         notificationDao.getNotifications()
 
@@ -95,7 +107,41 @@ class NotificationRepository @Inject constructor(
             )
         } catch (e: Exception) {
             android.util.Log.e("NotifRepo", "Failed to register device token: ${e.message}")
+            // Schedule retry for failed registration
+            scheduleTokenRegistrationRetry(token)
         }
+    }
+
+    private fun scheduleTokenRegistrationRetry(token: String) {
+        GlobalScope.launch(Dispatchers.IO) {
+            delay(5000)
+            try {
+                api.registerDeviceToken(
+                    mapOf(
+                        "token" to token,
+                        "platform" to "android",
+                        "deviceId" to sessionManager.getDeviceId()
+                    )
+                )
+                Log.d("NotifRepo", "Device token registered successfully after retry")
+            } catch (e: Exception) {
+                Log.e("NotifRepo", "Device token registration retry failed: ${e.message}")
+                if (shouldKeepRetryingToken(token)) {
+                    scheduleTokenRegistrationRetry(token)
+                }
+            }
+        }
+    }
+
+    private fun shouldKeepRetryingToken(token: String): Boolean {
+        val retryCount = prefs.getInt("fcm_retry_count_$token", 0)
+        incrementRetryCount(token)
+        return retryCount < 5
+    }
+
+    private fun incrementRetryCount(token: String) {
+        val currentCount = prefs.getInt("fcm_retry_count_$token", 0)
+        prefs.edit().putInt("fcm_retry_count_$token", currentCount + 1).apply()
     }
 
     suspend fun unregisterDeviceToken() {

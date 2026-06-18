@@ -3,8 +3,10 @@ package com.khanabook.lite.pos.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.messaging.FirebaseMessaging
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
+import com.khanabook.lite.pos.data.repository.NotificationRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
 import com.khanabook.lite.pos.domain.manager.AuthManager
@@ -16,6 +18,8 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 private const val TAG = "AuthViewModel"
 
@@ -30,7 +34,8 @@ constructor(
         private val restaurantRepository: RestaurantRepository,
         private val syncManager: SyncManager,
         private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
-        private val authManager: AuthManager
+        private val authManager: AuthManager,
+        private val notificationRepository: NotificationRepository
 ) : ViewModel() {
 
     init {
@@ -207,10 +212,28 @@ constructor(
 
     private suspend fun handleLoginSuccess(user: UserEntity): Result<Unit> {
         sessionManager.clearLockout()
-
-        // Keep the existing sync cursor on routine logins. Resetting it on every login
-        // forces a full pull and can overwrite newer local state with stale server data.
+        viewModelScope.launch { registerDeviceTokenAfterLogin() }
         return Result.success(Unit)
+    }
+
+    private suspend fun registerDeviceTokenAfterLogin() {
+        try {
+            val token = suspendCancellableCoroutine<String?> { cont ->
+                FirebaseMessaging.getInstance().token
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            cont.resume(task.result)
+                        } else {
+                            cont.resume(null)
+                        }
+                    }
+            }
+            if (token != null) {
+                notificationRepository.registerDeviceToken(token)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to register FCM token after login: ${e.message}")
+        }
     }
 
     fun sendOtp(phoneNumber: String, purpose: String = "signup") {
