@@ -30,7 +30,8 @@ class UserRepository(
         private val userDao: UserDao,
         private val sessionManager: SessionManager,
         private val workManager: WorkManager,
-        private val api: KhanaBookApi
+        private val api: KhanaBookApi,
+        private val notificationRepository: NotificationRepository
 ) {
     private fun normalizeAllowedRole(role: String?): String {
         return when (role) {
@@ -139,6 +140,7 @@ class UserRepository(
             )
 
             setCurrentUser(localUser)
+            notificationRepository.registerCurrentDeviceTokenInBackground()
             Result.success(localUser)
         } catch (e: Exception) {
             Result.failure(mapBackendException(e))
@@ -172,6 +174,7 @@ class UserRepository(
             )
 
             setCurrentUser(localUser)
+            notificationRepository.registerCurrentDeviceTokenInBackground()
             Result.success(localUser)
         } catch (e: Exception) {
             Result.failure(mapBackendException(e))
@@ -206,6 +209,7 @@ class UserRepository(
             )
 
             setCurrentUser(localUser)
+            notificationRepository.registerCurrentDeviceTokenInBackground()
             Result.success(localUser)
         } catch (e: Exception) {
             Result.failure(mapBackendException(e))
@@ -220,6 +224,7 @@ class UserRepository(
             _currentUser.value = user
             if (user != null) {
                 sessionManager.savePersistedLoginId(user.persistedLoginIdentity())
+                notificationRepository.registerCurrentDeviceTokenInBackground()
             }
         } else {
             val loginId = sessionManager.getPersistedLoginId()
@@ -229,6 +234,7 @@ class UserRepository(
                 user?.let {
                     sessionManager.saveActiveUserId(it.id)
                     sessionManager.saveActiveUserRole(normalizeAllowedRole(it.role))
+                    notificationRepository.registerCurrentDeviceTokenInBackground()
                 }
             }
         }

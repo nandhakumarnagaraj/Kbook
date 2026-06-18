@@ -22,6 +22,7 @@ import com.khanabook.lite.pos.data.repository.InventoryRepository
 import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.data.repository.MarketplaceOrderRepository
 import com.khanabook.lite.pos.data.repository.MenuRepository
+import com.khanabook.lite.pos.data.repository.NotificationRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.StorefrontOrderRepository
@@ -195,8 +196,9 @@ object DatabaseModule {
         userDao: UserDao,
         sessionManager: SessionManager,
         workManager: androidx.work.WorkManager,
-        api: KhanaBookApi
-    ) = UserRepository(userDao, sessionManager, workManager, api)
+        api: KhanaBookApi,
+        notificationRepository: NotificationRepository
+    ) = UserRepository(userDao, sessionManager, workManager, api, notificationRepository)
 
     @Provides
     @Singleton

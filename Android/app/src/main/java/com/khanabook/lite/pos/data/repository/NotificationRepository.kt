@@ -3,6 +3,7 @@ package com.khanabook.lite.pos.data.repository
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import com.google.firebase.messaging.FirebaseMessaging
 import com.khanabook.lite.pos.data.local.dao.NotificationDao
 import com.khanabook.lite.pos.data.local.entity.NotificationEntity
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
@@ -14,6 +15,8 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -142,6 +145,32 @@ class NotificationRepository @Inject constructor(
     private fun incrementRetryCount(token: String) {
         val currentCount = prefs.getInt("fcm_retry_count_$token", 0)
         prefs.edit().putInt("fcm_retry_count_$token", currentCount + 1).apply()
+    }
+
+    suspend fun registerCurrentDeviceToken() {
+        try {
+            val token = suspendCancellableCoroutine<String> { continuation ->
+                FirebaseMessaging.getInstance().token
+                    .addOnSuccessListener { token ->
+                        if (continuation.isActive) continuation.resume(token)
+                    }
+                    .addOnFailureListener { e ->
+                        android.util.Log.w("NotifRepo", "Failed to fetch FCM token: ${e.message}")
+                        if (continuation.isActive) continuation.resume("")
+                    }
+            }
+            if (token.isNotBlank()) {
+                registerDeviceToken(token)
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("NotifRepo", "Failed to sync current device token: ${e.message}")
+        }
+    }
+
+    fun registerCurrentDeviceTokenInBackground() {
+        GlobalScope.launch(Dispatchers.IO) {
+            registerCurrentDeviceToken()
+        }
     }
 
     suspend fun unregisterDeviceToken() {

@@ -108,7 +108,6 @@ public class PushNotificationService {
             "notificationId", event.getId().toString(),
             "amount", amount != null ? amount.toPlainString() : ""
         );
-
         MulticastMessage multicast = MulticastMessage.builder()
             .setNotification(notification)
             .putAllData(data)
