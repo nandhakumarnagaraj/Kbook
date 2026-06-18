@@ -21,11 +21,16 @@ public class FirebaseConfig {
     @Bean
     public FirebaseApp firebaseApp() {
         String credentialsPath = System.getenv("FIREBASE_CREDENTIALS_PATH");
+        // Read project ID from env or fall back to the correct project name
+        String projectId = System.getenv("FIREBASE_PROJECT_ID");
+        if (projectId == null || projectId.isBlank()) {
+            projectId = "new-khanabook-li";
+        }
 
         try (FileInputStream serviceAccount = new FileInputStream(credentialsPath)) {
             FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                .setProjectId("khanabook-lite")
+                .setProjectId(projectId)
                 .build();
 
             try {
