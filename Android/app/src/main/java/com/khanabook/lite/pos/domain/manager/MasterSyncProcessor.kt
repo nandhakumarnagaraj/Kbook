@@ -106,6 +106,24 @@ class MasterSyncProcessor @Inject constructor(
 
     private fun String?.orFallback(default: String): String = this?.takeUnless { it.isBlank() } ?: default
 
+    private fun <T> List<T>.filterByRestaurant(
+        label: String,
+        currentRestaurantId: Long,
+        getId: (T) -> Long,
+    ): List<T> {
+        val (valid, stale) = this.partition { getId(it) == currentRestaurantId }
+        if (stale.isNotEmpty()) {
+            Log.w("MasterSyncProcessor", "Skipping ${stale.size} $label records with wrong restaurantId")
+            stale.forEach { record ->
+                Log.d(
+                    "MasterSyncProcessor",
+                    "Stale $label remapped from restaurantId=${getId(record)} to current=$currentRestaurantId"
+                )
+            }
+        }
+        return valid
+    }
+
     private fun <T> logSkippedRecords(label: String, skipped: List<T>, describe: (T) -> String) {
         if (skipped.isEmpty()) return
         val preview = skipped.take(5).joinToString("; ") { describe(it) }
@@ -220,7 +238,7 @@ class MasterSyncProcessor @Inject constructor(
 
         pushBatches(
             label = "categories",
-            records = categoryDao.getUnsyncedCategories(),
+            records = categoryDao.getUnsyncedCategories().filterByRestaurant("categories", restaurantId) { it.restaurantId },
             transform = CategoryEntity::toSyncDto,
             push = api::pushCategories,
             markSynced = categoryDao::markCategoriesAsSynced
@@ -228,7 +246,7 @@ class MasterSyncProcessor @Inject constructor(
 
         pushBatches(
             label = "menu items",
-            records = menuDao.getUnsyncedMenuItems(),
+            records = menuDao.getUnsyncedMenuItems().filterByRestaurant("menu items", restaurantId) { it.restaurantId },
             transform = MenuItemEntity::toSyncDto,
             push = api::pushMenuItems,
             markSynced = menuDao::markMenuItemsAsSynced
@@ -236,7 +254,7 @@ class MasterSyncProcessor @Inject constructor(
 
         pushBatches(
             label = "item variants",
-            records = menuDao.getUnsyncedItemVariants(),
+            records = menuDao.getUnsyncedItemVariants().filterByRestaurant("item variants", restaurantId) { it.restaurantId },
             transform = ItemVariantEntity::toSyncDto,
             push = api::pushItemVariants,
             markSynced = menuDao::markItemVariantsAsSynced
@@ -244,7 +262,7 @@ class MasterSyncProcessor @Inject constructor(
 
         pushBatches(
             label = "stock logs",
-            records = inventoryDao.getUnsyncedStockLogs(),
+            records = inventoryDao.getUnsyncedStockLogs().filterByRestaurant("stock logs", restaurantId) { it.restaurantId },
             transform = StockLogEntity::toSyncDto,
             push = api::pushStockLogs,
             markSynced = inventoryDao::markStockLogsAsSynced,

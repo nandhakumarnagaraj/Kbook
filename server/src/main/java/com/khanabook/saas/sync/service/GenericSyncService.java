@@ -105,6 +105,8 @@ public class GenericSyncService {
 					log.warn("restaurantId unset on {} record (device={}) — will be assigned tenantId={}",
 							record.getClass().getSimpleName(), record.getDeviceId(), tenantId);
 				} else if (!rid.equals(tenantId)) {
+					log.warn("Cross-tenant block: record restaurantId={} != JWT tenantId={} deviceId={} type={}",
+							rid, tenantId, record.getDeviceId(), record.getClass().getSimpleName());
 					throw new org.springframework.security.access.AccessDeniedException(
 							"Permission denied: Accessing other restaurant data is forbidden.");
 				}
