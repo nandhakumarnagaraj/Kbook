@@ -55,6 +55,10 @@ services:
       EASEBUZZ_WEBHOOK_URL: ${EASEBUZZ_WEBHOOK_URL}
       EASEBUZZ_WIRE_BASE_URL: ${EASEBUZZ_WIRE_BASE_URL:-https://testdashboard.easebuzz.in}
       EASEBUZZ_WIRE_API_KEY: ${EASEBUZZ_WIRE_API_KEY}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET}
+      FIREBASE_REFRESH_TOKEN: ${FIREBASE_REFRESH_TOKEN}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
     command: ["sh", "-c", "sleep 3 && java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom -jar app.jar"]
     volumes:
       - /var/www/kbook.iadv.cloud.v2/server/uploads:/app/uploads
