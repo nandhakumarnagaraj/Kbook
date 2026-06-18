@@ -19,6 +19,7 @@ public class MarketplaceOrderService {
 
     private static final Logger log = LoggerFactory.getLogger(MarketplaceOrderService.class);
     private final MarketplaceOrderRepository orderRepo;
+    private final PushNotificationService pushNotificationService;
 
     @Transactional(readOnly = true)
     public List<MarketplaceOrder> getOrders(Long restaurantId) {
@@ -111,5 +112,44 @@ public class MarketplaceOrderService {
             throw new RuntimeException("Order does not belong to this restaurant");
         }
         return order;
+    }
+
+    /**
+     * Save a new marketplace order from webhook and push an alert to the restaurant device.
+     */
+    @Transactional
+    @CacheEvict(value = "orderCounts", key = "#order.restaurantId")
+    public MarketplaceOrder createOrder(MarketplaceOrder order) {
+        MarketplaceOrder saved = orderRepo.save(order);
+        log.info("New marketplace order {} saved for restaurantId={} platform={}",
+            saved.getId(), saved.getRestaurantId(), saved.getPlatform());
+        notifyNewOrder(saved);
+        return saved;
+    }
+
+    /** Fire a high-priority push for a new incoming marketplace order. */
+    private void notifyNewOrder(MarketplaceOrder order) {
+        try {
+            String platform = order.getPlatform() != null
+                ? capitalize(order.getPlatform()) : "Marketplace";
+            String customer = order.getCustomerName() != null ? order.getCustomerName() : "Customer";
+            String amount   = order.getTotalAmount() != null ? "₹" + order.getTotalAmount() : "";
+            pushNotificationService.pushToRestaurant(
+                order.getRestaurantId(),
+                "New " + platform + " Order!",
+                customer + " ordered " + amount + " — tap to accept",
+                "marketplace_order",
+                order.getId() != null ? order.getId().toString() : null,
+                "marketplace_order",
+                order.getTotalAmount()
+            );
+        } catch (Exception e) {
+            log.warn("Failed to push new marketplace order notification: {}", e.getMessage());
+        }
+    }
+
+    private static String capitalize(String s) {
+        if (s == null || s.isEmpty()) return s;
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase();
     }
 }

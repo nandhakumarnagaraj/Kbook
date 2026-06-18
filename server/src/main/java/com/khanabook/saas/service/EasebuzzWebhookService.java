@@ -179,6 +179,19 @@ public class EasebuzzWebhookService {
         if ("refunded".equalsIgnoreCase(status)) {
             bill.setPaymentStatus("refunded");
             bill.setGatewayStatus("refunded");
+
+            // Push refund-completed notification to restaurant
+            String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + bill.getId();
+            String amountDisplay = refundAmount != null ? "₹" + refundAmount : "";
+            pushNotificationService.pushToRestaurant(
+                bill.getRestaurantId(),
+                "Refund Completed",
+                "Order " + displayOrder + " — " + amountDisplay + " refunded to customer",
+                "refund",
+                String.valueOf(bill.getId()),
+                "bill",
+                refundAmount != null ? new java.math.BigDecimal(refundAmount) : null
+            );
         } else if ("queued".equalsIgnoreCase(status) || "accepted".equalsIgnoreCase(status)) {
             bill.setGatewayStatus("refund_" + status.toLowerCase());
         } else {

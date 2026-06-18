@@ -4,6 +4,7 @@ import com.khanabook.saas.entity.MarketplaceOrder;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.MarketplaceOrderRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.service.MarketplaceOrderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ public class MarketplaceWebhookController {
 
     private static final Logger log = LoggerFactory.getLogger(MarketplaceWebhookController.class);
     private final MarketplaceOrderRepository orderRepo;
+    private final MarketplaceOrderService marketplaceOrderService;
     private final RestaurantProfileRepository profileRepo;
     private final ObjectMapper objectMapper;
 
@@ -150,7 +152,7 @@ public class MarketplaceWebhookController {
             order.setRawPayload(rawPayloadJson);
             order.setCreatedAt(now);
             order.setUpdatedAt(now);
-            orderRepo.save(order);
+            marketplaceOrderService.createOrder(order);  // saves + pushes notification
             log.info("{} order received orderId={} restaurantId={}", platform, platformOrderId, restaurantId);
             return ResponseEntity.ok(Map.of("status", "received", "order_id", order.getId()));
         } catch (Exception e) {

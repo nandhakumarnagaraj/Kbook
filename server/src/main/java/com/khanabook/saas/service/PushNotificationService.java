@@ -116,7 +116,7 @@ public class PushNotificationService {
             .setAndroidConfig(AndroidConfig.builder()
                 .setPriority(AndroidConfig.Priority.HIGH)
                 .setNotification(AndroidNotification.builder()
-                    .setChannelId("khanabook_general")
+                    .setChannelId(resolveChannelId(notificationType))
                     .setSound("default")
                     .setPriority(AndroidNotification.Priority.HIGH)
                     .build())
@@ -173,6 +173,19 @@ public class PushNotificationService {
         event.setIsPushed(false);
         event.setCreatedAt(System.currentTimeMillis());
         return notificationEventRepo.save(event);
+    }
+
+    /** Map notification type to the correct Android channel ID. */
+    private String resolveChannelId(String type) {
+        if (type == null) return "khanabook_system";
+        return switch (type) {
+            case "payment_received"  -> "khanabook_payment";
+            case "refund"            -> "khanabook_refund";
+            case "kyc"               -> "khanabook_kyc";
+            case "settlement"        -> "khanabook_settlement";
+            case "marketplace_order" -> "khanabook_payment";
+            default                  -> "khanabook_system";
+        };
     }
 
     public List<NotificationEvent> getNotifications(Long restaurantId, int limit) {

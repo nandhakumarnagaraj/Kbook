@@ -17,6 +17,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.launch
@@ -60,6 +63,9 @@ class MainActivity : FragmentActivity() {
 
     companion object {
         private const val UI_SCALE_TAG = "UI_SCALE_DEBUG"
+        // Shared flow so onNewIntent can push deep link routes into Compose
+        private val _pendingNavRoute = MutableStateFlow<String?>(null)
+        val pendingNavRoute: StateFlow<String?> = _pendingNavRoute.asStateFlow()
     }
 
     /**
@@ -90,6 +96,17 @@ class MainActivity : FragmentActivity() {
             )
         }
         super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
+
+    /** Route a notification tap to the correct screen. Called after nav is set up. */
+    private fun extractNotificationRoute(intent: Intent?): String? {
+        val type = intent?.getStringExtra("notification_type") ?: return null
+        return when (type) {
+            "payment_received", "refund" -> "main/1"   // Orders tab
+            "marketplace_order"          -> "marketplace_orders"
+            "kyc", "settlement", "system" -> "notifications"
+            else                          -> "notifications"
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -203,7 +220,35 @@ class MainActivity : FragmentActivity() {
                         }
                     }
                 }
-                
+
+                // Deep link: handle notification tap that launched/resumed the app
+                LaunchedEffect(navController) {
+                    val route = extractNotificationRoute(intent)
+                    if (route != null && sessionManager.getAuthToken() != null) {
+                        // Wait until we're past splash/login before navigating
+                        navController.addOnDestinationChangedListener { _, dest, _ ->
+                            val d = dest.route
+                            if (d != null && d != "splash" && d != "login" && d != "signup" && d != "initial_sync" && d != "app_lock") {
+                                navController.removeOnDestinationChangedListener { _, _, _ -> }
+                                navController.navigate(route) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Handle onNewIntent deep links (app already open when notification tapped)
+                val pendingRoute by MainActivity.pendingNavRoute.collectAsState()
+                LaunchedEffect(pendingRoute) {
+                    val route = pendingRoute ?: return@LaunchedEffect
+                    if (sessionManager.getAuthToken() != null) {
+                        navController.navigate(route) { launchSingleTop = true }
+                        _pendingNavRoute.value = null  // consume
+                    }
+                }
+
+
                 // Only intercept back if we are on the MainScreen (any tab)
                 // Sub-screens handle their own back navigation through NavHost
                 val isAtRoot = currentRoute?.startsWith("main/") == true
@@ -513,6 +558,11 @@ class MainActivity : FragmentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         PaymentReturnManager.handleIntent(intent)
+        // App already open: push route into StateFlow so Compose navigates immediately
+        val route = extractNotificationRoute(intent)
+        if (route != null) {
+            _pendingNavRoute.value = route
+        }
     }
 
     override fun onResume() {
