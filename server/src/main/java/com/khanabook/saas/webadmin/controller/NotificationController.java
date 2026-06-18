@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,19 @@ import java.util.Map;
 public class NotificationController {
 
     private final PushNotificationService pushNotificationService;
+
+    /** Test endpoint: send a welcome/greeting push to all active devices */
+    @PostMapping("/test")
+    public ResponseEntity<Map<String, Object>> sendTestNotification(@RequestBody(required = false) Map<String, String> data) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        if (restaurantId == null) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "No restaurant context"));
+        }
+        String title = data != null ? data.getOrDefault("title", "👋 Welcome to KhanaBook!") : "👋 Welcome to KhanaBook!";
+        String message = data != null ? data.getOrDefault("message", "Your push notifications are working perfectly.") : "Your push notifications are working perfectly.";
+        pushNotificationService.pushToRestaurant(restaurantId, title, message, "system", null, null, BigDecimal.ZERO);
+        return ResponseEntity.ok(Map.of("status", "success", "message", "Test notification sent"));
+    }
 
     /** Register FCM device token for push notifications */
     @PostMapping("/device-token")
