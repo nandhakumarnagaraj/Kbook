@@ -19,11 +19,11 @@ import com.khanabook.lite.pos.R
 object NotificationHelper {
 
     // ── Channel IDs ──────────────────────────────────────────────
-    const val CHANNEL_PAYMENT = "khanabook_payment"
-    const val CHANNEL_REFUND = "khanabook_refund"
-    const val CHANNEL_KYC = "khanabook_kyc"
-    const val CHANNEL_SETTLEMENT = "khanabook_settlement"
-    const val CHANNEL_SYSTEM = "khanabook_system"
+    const val CHANNEL_PAYMENT = "khanabook_payment_v2"
+    const val CHANNEL_REFUND = "khanabook_refund_v2"
+    const val CHANNEL_KYC = "khanabook_kyc_v2"
+    const val CHANNEL_SETTLEMENT = "khanabook_settlement_v2"
+    const val CHANNEL_SYSTEM = "khanabook_system_v2"
 
     private const val GROUP_PAYMENTS = "khanabook_group_payments"
     private const val GROUP_SYSTEM = "khanabook_group_system"
@@ -73,8 +73,6 @@ object NotificationHelper {
             enableVibration(true)
             setShowBadge(true)
             group = GROUP_PAYMENTS
-            // Saffron accent — use brand color for light indicator
-            // Easebuzz ePOS uses #F97316 (saffron) for payment alerts
             setSound(
                 RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
                 AudioAttributes.Builder()
@@ -91,7 +89,7 @@ object NotificationHelper {
         val channel = NotificationChannel(
             CHANNEL_REFUND,
             "Refund Updates",
-            NotificationManager.IMPORTANCE_DEFAULT
+            NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "Refund status updates and confirmations"
             enableVibration(true)
@@ -113,12 +111,19 @@ object NotificationHelper {
         val channel = NotificationChannel(
             CHANNEL_KYC,
             "KYC Verification",
-            NotificationManager.IMPORTANCE_DEFAULT
+            NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "KYC approval, rejection, and document alerts"
             enableVibration(true)
             setShowBadge(true)
             group = GROUP_SYSTEM
+            setSound(
+                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
         }
         return channel
     }
@@ -128,12 +133,19 @@ object NotificationHelper {
         val channel = NotificationChannel(
             CHANNEL_SETTLEMENT,
             "Settlements",
-            NotificationManager.IMPORTANCE_DEFAULT
+            NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "Daily settlement and payout notifications"
             enableVibration(true)
             setShowBadge(true)
             group = GROUP_PAYMENTS
+            setSound(
+                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
         }
         return channel
     }
@@ -143,10 +155,19 @@ object NotificationHelper {
         val channel = NotificationChannel(
             CHANNEL_SYSTEM,
             "System Alerts",
-            NotificationManager.IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "Sync status, updates, and system notifications"
-            setShowBadge(false)
+            enableVibration(true)
+            setShowBadge(true)
+            group = GROUP_SYSTEM
+            setSound(
+                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
         }
         return channel
     }
@@ -169,5 +190,45 @@ object NotificationHelper {
             .setPriority(priority)
             .setCategory(NotificationCompat.CATEGORY_EVENT)
             .setGroup(channelId) // group by channel
+    }
+
+    /**
+     * Generates a circular large icon bitmap with the specified background color
+     * and a white-tinted icon in the center (LinkedIn-style).
+     */
+    fun getCircularLargeIcon(
+        context: Context,
+        backgroundColor: Int,
+        iconResId: Int
+    ): android.graphics.Bitmap? {
+        return try {
+            val size = (context.resources.displayMetrics.density * 48).toInt() // 48dp
+            val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bitmap)
+
+            // Draw circular background
+            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = backgroundColor
+                style = android.graphics.Paint.Style.FILL
+            }
+            val radius = size / 2f
+            canvas.drawCircle(radius, radius, radius, paint)
+
+            // Draw icon in the center
+            val drawable = androidx.core.content.ContextCompat.getDrawable(context, iconResId) ?: return bitmap
+            drawable.mutate()
+            drawable.colorFilter = android.graphics.PorterDuffColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+
+            // Scale the drawable to fit nicely inside the circle (55% of the circle size)
+            val iconSize = (size * 0.55f).toInt()
+            val margin = (size - iconSize) / 2
+            drawable.setBounds(margin, margin, margin + iconSize, margin + iconSize)
+            drawable.draw(canvas)
+
+            bitmap
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 }

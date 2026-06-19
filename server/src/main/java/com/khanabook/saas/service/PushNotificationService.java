@@ -116,13 +116,9 @@ public class PushNotificationService {
         NotificationEvent event = saveNotificationEvent(restaurantId, title, message,
             notificationType, referenceId, referenceType, amount);
 
-        // Build FCM message
-        Notification notification = Notification.builder()
-            .setTitle(title)
-            .setBody(message)
-            .build();
-
         Map<String, String> data = Map.of(
+            "title", title != null ? title : "",
+            "message", message != null ? message : "",
             "type", notificationType != null ? notificationType : "",
             "referenceId", referenceId != null ? referenceId : "",
             "referenceType", referenceType != null ? referenceType : "",
@@ -130,16 +126,10 @@ public class PushNotificationService {
             "amount", amount != null ? amount.toPlainString() : ""
         );
         MulticastMessage multicast = MulticastMessage.builder()
-            .setNotification(notification)
             .putAllData(data)
             .addAllTokens(tokens.stream().map(DeviceToken::getToken).toList())
             .setAndroidConfig(AndroidConfig.builder()
                 .setPriority(AndroidConfig.Priority.HIGH)
-                .setNotification(AndroidNotification.builder()
-                    .setChannelId(resolveChannelId(notificationType))
-                    .setSound("default")
-                    .setPriority(AndroidNotification.Priority.HIGH)
-                    .build())
                 .build())
             .build();
 
@@ -197,14 +187,14 @@ public class PushNotificationService {
 
     /** Map notification type to the correct Android channel ID. */
     private String resolveChannelId(String type) {
-        if (type == null) return "khanabook_system";
+        if (type == null) return "khanabook_system_v2";
         return switch (type) {
-            case "payment_received"  -> "khanabook_payment";
-            case "refund"            -> "khanabook_refund";
-            case "kyc"               -> "khanabook_kyc";
-            case "settlement"        -> "khanabook_settlement";
-            case "marketplace_order" -> "khanabook_payment";
-            default                  -> "khanabook_system";
+            case "payment_received"  -> "khanabook_payment_v2";
+            case "refund"            -> "khanabook_refund_v2";
+            case "kyc"               -> "khanabook_kyc_v2";
+            case "settlement"        -> "khanabook_settlement_v2";
+            case "marketplace_order" -> "khanabook_payment_v2";
+            default                  -> "khanabook_system_v2";
         };
     }
 
@@ -227,29 +217,24 @@ public class PushNotificationService {
         notificationEventRepo.markAllAsRead(restaurantId, System.currentTimeMillis());
     }
 
-    /**
-     * Send direct push notification to a specific device token for testing/diagnostic purposes.
-     */
     public String sendDirectPush(String token, String title, String body, Map<String, String> data) throws FirebaseMessagingException {
         if (firebaseApp == null) {
             log.warn("Firebase not configured, skipping direct push to token={}", token);
             return null;
         }
-        Notification notification = Notification.builder()
-            .setTitle(title)
-            .setBody(body)
-            .build();
+
+        java.util.Map<String, String> payloadData = new java.util.HashMap<>();
+        if (data != null) {
+            payloadData.putAll(data);
+        }
+        payloadData.put("title", title != null ? title : "");
+        payloadData.put("message", body != null ? body : "");
 
         Message message = Message.builder()
             .setToken(token)
-            .setNotification(notification)
-            .putAllData(data)
+            .putAllData(payloadData)
             .setAndroidConfig(AndroidConfig.builder()
                 .setPriority(AndroidConfig.Priority.HIGH)
-                .setNotification(AndroidNotification.builder()
-                    .setSound("default")
-                    .setPriority(AndroidNotification.Priority.HIGH)
-                    .build())
                 .build())
             .build();
 

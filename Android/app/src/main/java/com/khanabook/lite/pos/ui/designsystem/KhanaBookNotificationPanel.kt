@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.ui.designsystem
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -81,15 +82,19 @@ fun NotificationBellIcon(
 fun NotificationRow(
     notification: NotificationEntity,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPayFssai: ((String) -> Unit)? = null,
+    onViewKyc: (() -> Unit)? = null,
+    onMarketplaceOrders: (() -> Unit)? = null,
+    onOrderStatus: (() -> Unit)? = null
 ) {
     // Semantic colors mapped to Easebuzz ePOS status palette:
-    // settlement → blue (#1890ff), success → green, refund/cancel → red, kyc → violet, brand → purple (#6D44E5)
     val (icon, iconColor) = when (notification.notificationType) {
         "payment_received" -> Icons.Default.Payment to KbSuccess
         "refund" -> Icons.Default.Replay to KbAccentRed
         "kyc" -> Icons.Default.VerifiedUser to KbAccentViolet
         "settlement" -> Icons.Default.AccountBalance to KbAccentBlue
+        "fssai_expiry" -> Icons.Default.WarningAmber to KbBrandSaffron
         else -> Icons.Default.Notifications to KbAccentPurple
     }
 
@@ -97,27 +102,37 @@ fun NotificationRow(
         formatNotificationTime(notification.createdAt)
     }
 
-    Surface(
+    Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        color = if (!notification.isRead)
-            KbAccentPurple.copy(alpha = 0.06f)
-        else
-            Color.Transparent,
-        shape = KbShape.Small
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+        shape = KbShape.Medium,
+        colors = CardDefaults.cardColors(
+            containerColor = if (!notification.isRead) {
+                if (notification.notificationType == "fssai_expiry") KbBrandSaffron.copy(alpha = 0.05f)
+                else KbAccentPurple.copy(alpha = 0.05f)
+            } else {
+                MaterialTheme.kbBgCard
+            }
+        ),
+        border = if (!notification.isRead) {
+            BorderStroke(1.dp, (if (notification.notificationType == "fssai_expiry") KbBrandSaffron else KbAccentPurple).copy(alpha = 0.2f))
+        } else {
+            BorderStroke(1.dp, MaterialTheme.kbOutlineSubtle)
+        }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Icon circle
             Box(
                 modifier = Modifier
-                    .size(38.dp)
+                    .size(40.dp)
                     .background(iconColor.copy(alpha = 0.12f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -137,70 +152,113 @@ fun NotificationRow(
                 ) {
                     Text(
                         text = notification.title,
-                        color = if (notification.isRead)
-                            MaterialTheme.kbTextPrimary.copy(alpha = 0.7f)
-                        else
-                            MaterialTheme.kbTextPrimary,
+                        color = MaterialTheme.kbTextPrimary,
                         style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = if (notification.isRead) FontWeight.Normal else FontWeight.SemiBold
+                            fontWeight = if (notification.isRead) FontWeight.Medium else FontWeight.Bold
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
 
-                    if (!notification.isRead) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(KbAccentPurple, CircleShape)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = timeText,
+                            color = MaterialTheme.kbTextTertiary,
+                            style = MaterialTheme.typography.labelSmall
                         )
+                        if (!notification.isRead) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(
+                                        if (notification.notificationType == "fssai_expiry") KbBrandSaffron else KbAccentPurple,
+                                        CircleShape
+                                    )
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 notification.message?.let { msg ->
                     Text(
                         text = msg,
                         color = MaterialTheme.kbTextSecondary,
                         style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2,
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
                 }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccessTime,
-                        contentDescription = null,
-                        tint = MaterialTheme.kbTextTertiary,
-                        modifier = Modifier.size(10.dp)
-                    )
-                    Text(
-                        text = timeText,
-                        color = MaterialTheme.kbTextTertiary,
-                        style = MaterialTheme.typography.labelSmall
-                    )
+                notification.amount?.let { amt ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Surface(
+                        shape = KbShape.ExtraSmall,
+                        color = KbSuccess.copy(alpha = 0.1f)
+                    ) {
+                        Text(
+                            text = "₹$amt",
+                            color = KbSuccess,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
 
-                    notification.amount?.let { amt ->
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Surface(
-                            shape = KbShape.ExtraSmall,
-                            color = KbSuccess.copy(alpha = 0.1f)
-                        ) {
-                            Text(
-                                text = "₹$amt",
-                                color = KbSuccess,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
-                            )
+                // Inline LinkedIn-style Action CTAs
+                val showActions = !notification.isRead && (
+                    (notification.notificationType == "fssai_expiry" && onPayFssai != null) ||
+                    (notification.notificationType == "kyc" && onViewKyc != null) ||
+                    (notification.notificationType == "marketplace_order" && onMarketplaceOrders != null)
+                )
+
+                if (showActions) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        when (notification.notificationType) {
+                            "fssai_expiry" -> {
+                                Button(
+                                    onClick = { onPayFssai?.invoke(notification.referenceId ?: "") },
+                                    colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                    shape = KbShape.Small,
+                                    modifier = Modifier.height(30.dp)
+                                ) {
+                                    Text("Pay Renewal", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                            "kyc" -> {
+                                Button(
+                                    onClick = { onViewKyc?.invoke() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = KbAccentPurple),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                    shape = KbShape.Small,
+                                    modifier = Modifier.height(30.dp)
+                                ) {
+                                    Text("Verify KYC Status", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                            "marketplace_order" -> {
+                                Button(
+                                    onClick = { onMarketplaceOrders?.invoke() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = KbBrandSaffron),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                    shape = KbShape.Small,
+                                    modifier = Modifier.height(30.dp)
+                                ) {
+                                    Text("View Orders", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
                         }
                     }
                 }
@@ -221,7 +279,11 @@ fun NotificationListPanel(
     onMarkAllRead: () -> Unit,
     onRefresh: () -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPayFssai: ((String) -> Unit)? = null,
+    onViewKyc: (() -> Unit)? = null,
+    onMarketplaceOrders: (() -> Unit)? = null,
+    onOrderStatus: (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier
@@ -305,7 +367,11 @@ fun NotificationListPanel(
                 items(notifications, key = { it.id }) { notification ->
                     NotificationRow(
                         notification = notification,
-                        onClick = { onNotificationClick(notification) }
+                        onClick = { onNotificationClick(notification) },
+                        onPayFssai = onPayFssai,
+                        onViewKyc = onViewKyc,
+                        onMarketplaceOrders = onMarketplaceOrders,
+                        onOrderStatus = onOrderStatus
                     )
                 }
             }
@@ -326,6 +392,7 @@ fun NotificationListPanel(
         }
     }
 }
+
 
 // ── Helpers ─────────────────────────────────────────────────
 

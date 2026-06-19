@@ -436,7 +436,9 @@ class MainActivity : FragmentActivity() {
                             onNewBill = { navController.navigate("new_bill") },
                             onOrderStatus = { navController.navigate("order_status") },
                             onMarketplaceOrders = { navController.navigate("marketplace_orders") },
-                            onReprintKds = { navController.navigate("reprint_kds") }
+                            onReprintKds = { navController.navigate("reprint_kds") },
+                            onPayFssai = { fssai -> navController.navigate("fssai_renewal?fssaiNo=$fssai") },
+                            onViewKyc = { navController.navigate("easebuzz_kyc") }
                         )
                     }
                     composable(

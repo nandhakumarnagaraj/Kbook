@@ -35,6 +35,8 @@ fun NotificationsScreen(
     onOrderStatus: () -> Unit,
     onMarketplaceOrders: () -> Unit,
     onReprintKds: () -> Unit,
+    onPayFssai: (String) -> Unit,
+    onViewKyc: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
     notificationViewModel: NotificationViewModel = hiltViewModel()
 ) {
@@ -117,7 +119,9 @@ fun NotificationsScreen(
                 onReprintKds = { onReprintKds() },
                 onOrderStatus = { onOrderStatus() },
                 onNewBill = { onNewBill() },
-                onDismiss = onBack
+                onDismiss = onBack,
+                onPayFssai = onPayFssai,
+                onViewKyc = onViewKyc
             )
             Spacer(modifier = Modifier.height(24.dp))
         }

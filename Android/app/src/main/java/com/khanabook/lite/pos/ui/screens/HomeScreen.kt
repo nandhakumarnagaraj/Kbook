@@ -1422,7 +1422,9 @@ internal fun NotificationCenterSheet(
     onOrderStatus: () -> Unit,
     onNewBill: () -> Unit,
     onDismiss: () -> Unit,
-    showHeader: Boolean = true
+    showHeader: Boolean = true,
+    onPayFssai: (String) -> Unit = {},
+    onViewKyc: () -> Unit = {}
 ) {
     val spacing = KhanaBookTheme.spacing
     Column(
@@ -1702,7 +1704,11 @@ internal fun NotificationCenterSheet(
                 pushNotifications.take(6).forEach { notification ->
                     com.khanabook.lite.pos.ui.designsystem.NotificationRow(
                         notification = notification,
-                        onClick = { onNotificationClick(notification) }
+                        onClick = { onNotificationClick(notification) },
+                        onPayFssai = onPayFssai,
+                        onViewKyc = onViewKyc,
+                        onMarketplaceOrders = onMarketplaceOrders,
+                        onOrderStatus = onOrderStatus
                     )
                 }
                 if (pushUnreadCount > 0) {

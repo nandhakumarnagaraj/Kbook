@@ -94,6 +94,29 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Parse HTML formatting (e.g. bolding key variables like order IDs, amounts, dates)
+        val formattedTitle: CharSequence = androidx.core.text.HtmlCompat.fromHtml(
+            title,
+            androidx.core.text.HtmlCompat.FROM_HTML_MODE_LEGACY
+        )
+        val formattedBody: CharSequence = androidx.core.text.HtmlCompat.fromHtml(
+            body,
+            androidx.core.text.HtmlCompat.FROM_HTML_MODE_LEGACY
+        )
+
+        // Select color based on notification type:
+        // Saffron for FSSAI/warning/marketplace, green for payments, red for refunds, violet for KYC, blue for settlements
+        val colorInt = when (type) {
+            "payment_received" -> 0xFF16A34A.toInt() // Green
+            "refund" -> 0xFFEF4444.toInt() // Red
+            "kyc" -> 0xFF8B5CF6.toInt() // Violet
+            "settlement" -> 0xFF0284C7.toInt() // Blue
+            "fssai_expiry", "marketplace_order" -> 0xFFF97316.toInt() // Saffron
+            else -> 0xFF7C5CDB.toInt() // Purple (system default)
+        }
+
+        val largeIcon = NotificationHelper.getCircularLargeIcon(this, colorInt, R.drawable.ic_notification_bell)
+
         val builder = NotificationHelper.buildNotification(
             context = this,
             id = id,
@@ -102,6 +125,11 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
             body = body
         ).apply {
             setContentIntent(pendingIntent)
+            setContentTitle(formattedTitle)
+            setContentText(formattedBody)
+            setStyle(NotificationCompat.BigTextStyle().bigText(formattedBody))
+            largeIcon?.let { setLargeIcon(it) }
+            setColor(colorInt)
 
             if (type == "fssai_expiry" && !referenceId.isNullOrBlank()) {
                 val payIntent = Intent(this@KhanaBookFirebaseMessagingService, MainActivity::class.java).apply {
