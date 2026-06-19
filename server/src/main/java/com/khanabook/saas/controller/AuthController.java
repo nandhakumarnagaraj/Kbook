@@ -176,6 +176,34 @@ public class AuthController {
 		return ResponseEntity.ok().build();
 	}
 
+	@Profile("dev")
+	@GetMapping("/dev-debug-signup")
+	public ResponseEntity<?> devDebugSignup(@RequestParam String phone) {
+		try {
+			SignupRequest req = new SignupRequest();
+			req.setPhoneNumber(phone);
+			req.setName("Debug User");
+			req.setPassword("admin123");
+			req.setOtp("123456");
+			req.setDeviceId("DEBUG_DEV");
+			authService.devSignup(req);
+			return ResponseEntity.ok(Map.of("status", "success", "message", "Signed up successfully"));
+		} catch (org.springframework.dao.DataIntegrityViolationException e) {
+			log.error("Debug signup DataIntegrityViolationException", e);
+			return ResponseEntity.status(409).body(Map.of(
+				"status", "error",
+				"message", e.getMessage(),
+				"mostSpecificCause", e.getMostSpecificCause().getMessage()
+			));
+		} catch (Exception e) {
+			log.error("Debug signup Exception", e);
+			return ResponseEntity.status(500).body(Map.of(
+				"status", "error",
+				"message", e.getMessage()
+			));
+		}
+	}
+
 
 
 	@Data
