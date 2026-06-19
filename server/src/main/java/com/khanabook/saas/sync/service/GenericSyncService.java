@@ -9,6 +9,7 @@ import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import com.khanabook.saas.sync.repository.SyncRepository;
 import com.khanabook.saas.exception.BusinessRuleException;
+import com.khanabook.saas.service.PushNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,9 @@ public class GenericSyncService {
 	private final MenuItemRepository menuItemRepository;
 	private final ItemVariantRepository itemVariantRepository;
 	private final CategoryRepository categoryRepository;
+
+	@org.springframework.beans.factory.annotation.Autowired(required = false)
+	private PushNotificationService pushNotificationService;
 
 	private User findExistingUserByIdentity(Long tenantId, User incomingUser,
 			com.khanabook.saas.repository.UserRepository userRepository) {
@@ -123,6 +127,9 @@ public class GenericSyncService {
 
 		List<Long> successfulLocalIds = new ArrayList<>();
 		List<Long> failedLocalIds = new ArrayList<>();
+		List<Bill> newBills = new ArrayList<>();
+		List<BillPayment> newPayments = new ArrayList<>();
+		List<Bill> cancelledBills = new ArrayList<>();
 
 		for (T record : payload) {
 			if (record.getLocalId() == null && record.getId() != null) {
@@ -340,9 +347,13 @@ public class GenericSyncService {
 							// Relational ID Resolution for Updates
 							resolveRelationalIds(incomingRecord, idMaps);
 
-							if (incomingRecord instanceof Bill incomingBill && existingRecord instanceof Bill existingBill
-									&& hasBackendGatewayPayment(targetTenantId, existingBill.getId())) {
-								preserveGatewayOwnedBillState(incomingBill, existingBill);
+							if (incomingRecord instanceof Bill incomingBill && existingRecord instanceof Bill existingBill) {
+								if (!"cancelled".equalsIgnoreCase(existingBill.getPaymentStatus()) && "cancelled".equalsIgnoreCase(incomingBill.getPaymentStatus())) {
+									cancelledBills.add(incomingBill);
+								}
+								if (hasBackendGatewayPayment(targetTenantId, existingBill.getId())) {
+									preserveGatewayOwnedBillState(incomingBill, existingBill);
+								}
 							}
 
 							if (incomingRecord instanceof RestaurantProfile incomingProfile
@@ -370,6 +381,11 @@ public class GenericSyncService {
 
 						if (incomingRecord instanceof RestaurantProfile incomingProfile) {
 							incomingProfile.setTimezone("Asia/Kolkata");
+						}
+						if (incomingRecord instanceof Bill) {
+							newBills.add((Bill) incomingRecord);
+						} else if (incomingRecord instanceof BillPayment) {
+							newPayments.add((BillPayment) incomingRecord);
 						}
 
 						T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
@@ -449,6 +465,74 @@ public class GenericSyncService {
 		}
 
 		log.info("Successfully batch synced {} records for Tenant ID: {}", successfulLocalIds.size(), tenantId);
+
+		// ── Push Sync Notifications ──────────────────────────────────────
+		if (pushNotificationService != null) {
+			if (repository instanceof BillRepository) {
+				for (Bill bill : newBills) {
+					if (successfulLocalIds.contains(bill.getLocalId())) {
+						try {
+							String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + bill.getId();
+							String amountDisplay = bill.getTotalAmount() != null ? "₹" + bill.getTotalAmount() : "";
+							pushNotificationService.pushToRestaurant(
+								bill.getRestaurantId(),
+								"New Order Received",
+								"Order " + displayOrder + " created. Total: " + amountDisplay,
+								"payment_received",
+								String.valueOf(bill.getId() != null ? bill.getId() : bill.getLocalId()),
+								"bill",
+								bill.getTotalAmount()
+							);
+						} catch (Exception e) {
+							log.warn("Failed to push sync order notification: {}", e.getMessage());
+						}
+					}
+				}
+				for (Bill bill : cancelledBills) {
+					if (successfulLocalIds.contains(bill.getLocalId())) {
+						try {
+							String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + bill.getId();
+							pushNotificationService.pushToRestaurant(
+								bill.getRestaurantId(),
+								"Order Cancelled",
+								"Order " + displayOrder + " has been cancelled. Reason: " + (bill.getCancelReason() != null ? bill.getCancelReason() : "None specified"),
+								"refund",
+								String.valueOf(bill.getId() != null ? bill.getId() : bill.getLocalId()),
+								"bill",
+								bill.getTotalAmount()
+							);
+						} catch (Exception e) {
+							log.warn("Failed to push cancellation notification: {}", e.getMessage());
+						}
+					}
+				}
+			}
+
+			if (repository instanceof BillPaymentRepository) {
+				for (BillPayment bp : newPayments) {
+					if (successfulLocalIds.contains(bp.getLocalId())) {
+						try {
+							String displayOrder = billRepository.findById(bp.getBillId())
+								.map(b -> b.getDailyOrderDisplay() != null ? b.getDailyOrderDisplay() : "#" + b.getId())
+								.orElse("#" + bp.getBillId());
+							String method = bp.getPaymentMode() != null ? bp.getPaymentMode() : "cash";
+							String amountStr = bp.getAmount() != null ? "₹" + bp.getAmount() : "";
+							pushNotificationService.pushToRestaurant(
+								bp.getRestaurantId(),
+								"Payment Received",
+								"Received " + amountStr + " for Order " + displayOrder + " via " + method,
+								"payment_received",
+								String.valueOf(bp.getBillId()),
+								"bill",
+								bp.getAmount()
+							);
+						} catch (Exception e) {
+							log.warn("Failed to push sync payment notification: {}", e.getMessage());
+						}
+					}
+				}
+			}
+		}
 
 		log.info("Push sync completed tenantId={} success={} failed={} saved={}",
 				tenantId, successfulLocalIds.size(), failedLocalIds.size(), allRecordsToSave.size());

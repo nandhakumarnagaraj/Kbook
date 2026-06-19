@@ -29,6 +29,7 @@ public class SubMerchantService {
     private final EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
     private final EasebuzzPayoutRepository payoutRepo;
     private final RestaurantProfileRepository restaurantProfileRepo;
+    private final PushNotificationService pushNotificationService;
 
     public List<EasebuzzSubMerchant> listAll() {
         return subMerchantRepo.findAll();
@@ -112,18 +113,52 @@ public class SubMerchantService {
         subMerchantRepo.save(sm);
         ensureEasebuzzEnabled(sm.getRestaurantId());
         log.info("Sub-merchant {} assigned Easebuzz ID: {}, easebuzzEnabled set to true for restaurant {}", id, subMerchantId, sm.getRestaurantId());
+        
+        try {
+            pushNotificationService.pushToRestaurant(
+                sm.getRestaurantId(),
+                "Sub-Merchant Linked",
+                "Easebuzz sub-merchant account linked successfully. KYC verification is pending.",
+                "kyc",
+                String.valueOf(sm.getId()),
+                "submerchant",
+                java.math.BigDecimal.ZERO
+            );
+        } catch (Exception e) {
+            log.warn("Failed to push submerchant link notification: {}", e.getMessage());
+        }
+        
         return sm;
     }
 
     @Transactional
     public EasebuzzSubMerchant updateStatus(Long id, String newStatus) {
         EasebuzzSubMerchant sm = getById(id);
+        String oldStatus = sm.getStatus();
         sm.setStatus(newStatus);
         sm.setUpdatedAt(System.currentTimeMillis());
         if ("ACTIVE".equals(newStatus)) {
             sm.setKycActivatedAt(System.currentTimeMillis());
         }
-        return subMerchantRepo.save(sm);
+        EasebuzzSubMerchant saved = subMerchantRepo.save(sm);
+        
+        if (!newStatus.equals(oldStatus)) {
+            try {
+                pushNotificationService.pushToRestaurant(
+                    sm.getRestaurantId(),
+                    "KYC Status Updated",
+                    "Your sub-merchant status is now: " + newStatus,
+                    "kyc",
+                    String.valueOf(sm.getId()),
+                    "submerchant",
+                    java.math.BigDecimal.ZERO
+                );
+            } catch (Exception e) {
+                log.warn("Failed to push KYC status update notification: {}", e.getMessage());
+            }
+        }
+        
+        return saved;
     }
 
     @Transactional
@@ -223,6 +258,22 @@ public class SubMerchantService {
                 }
                 sm.setUpdatedAt(now);
                 subMerchantRepo.save(sm);
+                
+                try {
+                    String statusMessage = "True".equalsIgnoreCase(kycStatus) ? "Approved & Activated! 🚀" :
+                                           "False".equalsIgnoreCase(kycStatus) ? "Rejected/Needs attention ⚠️" : "Pending Verification ⏳";
+                    pushNotificationService.pushToRestaurant(
+                        sm.getRestaurantId(),
+                        "KYC Status Update",
+                        "Your sub-merchant KYC status is now: " + statusMessage,
+                        "kyc",
+                        String.valueOf(sm.getId()),
+                        "submerchant",
+                        java.math.BigDecimal.ZERO
+                    );
+                } catch (Exception e) {
+                    log.warn("Failed to push KYC status update notification: {}", e.getMessage());
+                }
             }
             event.setProcessed(true);
             webhookEventRepo.save(event);

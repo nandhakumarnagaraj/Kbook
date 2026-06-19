@@ -250,6 +250,21 @@ public class EasebuzzWebhookService {
                 payout.setUpdatedAt(System.currentTimeMillis());
                 payoutRepo.save(payout);
                 log.info("Updated payout record {} to status={}", requestId, status);
+                
+                try {
+                    String amountDisplay = payout.getAmount() != null ? "₹" + payout.getAmount() : "";
+                    pushNotificationService.pushToRestaurant(
+                        payout.getRestaurantId(),
+                        "Payout Status Updated",
+                        "Payout of " + amountDisplay + " status updated to: " + status,
+                        "settlement",
+                        String.valueOf(payout.getId()),
+                        "payout",
+                        payout.getAmount()
+                    );
+                } catch (Exception e) {
+                    log.warn("Failed to push payout status notification: {}", e.getMessage());
+                }
             });
         }
 

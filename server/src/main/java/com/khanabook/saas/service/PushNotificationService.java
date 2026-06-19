@@ -6,6 +6,7 @@ import com.khanabook.saas.entity.DeviceToken;
 import com.khanabook.saas.entity.NotificationEvent;
 import com.khanabook.saas.repository.DeviceTokenRepository;
 import com.khanabook.saas.repository.NotificationEventRepository;
+import com.khanabook.saas.repository.RestaurantProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,14 +24,17 @@ public class PushNotificationService {
 
     private final DeviceTokenRepository deviceTokenRepo;
     private final NotificationEventRepository notificationEventRepo;
+    private final RestaurantProfileRepository restaurantProfileRepo;
     private final FirebaseApp firebaseApp;
 
     @Autowired
     public PushNotificationService(DeviceTokenRepository deviceTokenRepo,
                                    NotificationEventRepository notificationEventRepo,
+                                   RestaurantProfileRepository restaurantProfileRepo,
                                    @Autowired(required = false) FirebaseApp firebaseApp) {
         this.deviceTokenRepo = deviceTokenRepo;
         this.notificationEventRepo = notificationEventRepo;
+        this.restaurantProfileRepo = restaurantProfileRepo;
         this.firebaseApp = firebaseApp;
         if (firebaseApp == null) {
             log.warn("FirebaseApp not available. Push notifications will be DISABLED.");
@@ -59,7 +63,24 @@ public class PushNotificationService {
         long now = System.currentTimeMillis();
         if (dt.getCreatedAt() == null) dt.setCreatedAt(now);
         dt.setUpdatedAt(now);
-        return deviceTokenRepo.save(dt);
+        DeviceToken saved = deviceTokenRepo.save(dt);
+        try {
+            restaurantProfileRepo.findByRestaurantId(restaurantId).ifPresent(profile -> {
+                String shopName = profile.getShopName() != null ? profile.getShopName() : "Restaurant";
+                this.pushToRestaurant(
+                    restaurantId,
+                    "Welcome back!",
+                    "Welcome back to " + shopName + ". Push notifications are active.",
+                    "system",
+                    null,
+                    null,
+                    BigDecimal.ZERO
+                );
+            });
+        } catch (Exception e) {
+            log.warn("Failed to push welcome notification: {}", e.getMessage());
+        }
+        return saved;
     }
 
     /**
