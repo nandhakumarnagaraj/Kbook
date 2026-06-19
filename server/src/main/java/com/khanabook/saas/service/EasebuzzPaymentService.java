@@ -2,6 +2,9 @@ package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.EasebuzzWebhookEvent;
+import com.khanabook.saas.entity.FssaiRenewal;
+import com.khanabook.saas.repository.FssaiRenewalRepository;
+import com.khanabook.saas.repository.FssaiTrackerRepository;
 import com.khanabook.saas.entity.EasebuzzSubMerchant;
 import com.khanabook.saas.exception.EntityNotFoundException;
 import com.khanabook.saas.repository.BillRepository;
@@ -29,6 +32,8 @@ public class EasebuzzPaymentService {
     private final SubMerchantService subMerchantService;
     private final com.khanabook.saas.config.EasebuzzProperties props;
     private final ChargebackPreventionService chargebackService;
+    private final FssaiRenewalRepository fssaiRenewalRepo;
+    private final FssaiTrackerRepository fssaiTrackerRepo;
 
     @Transactional
     public Map<String, Object> createOrder(Long billId, Long restaurantId) {
@@ -325,6 +330,93 @@ public class EasebuzzPaymentService {
             return Map.of("status", "failure", "error", "No gateway transaction found");
         }
         return easebuzzApi.cancelTransaction(bill.getGatewayTxnId(), bill.getTotalAmount().toString());
+    }
+
+    @Transactional
+    public Map<String, Object> createFssaiRenewalOrder(Integer years, String fssaiNumber, Long restaurantId) {
+        if (years == null || years < 1 || years > 5) {
+            return Map.of("status", "failure", "error", "years must be between 1 and 5");
+        }
+        if (fssaiNumber == null || fssaiNumber.length() != 14) {
+            return Map.of("status", "failure", "error", "fssaiNumber must be 14 digits");
+        }
+
+        BigDecimal amount = new BigDecimal(years).multiply(new BigDecimal("1000.00")); // ₹1000 per year
+        String amountStr = String.format("%.2f", amount);
+
+        // Generate unique txnid: max 40 chars
+        String txnSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        String restTail = String.format("%05d", restaurantId % 100000);
+        String txnid = "KBF" + restTail + txnSuffix;
+
+        FssaiRenewal renewal = new FssaiRenewal();
+        renewal.setRestaurantId(restaurantId);
+        renewal.setFssaiNumber(fssaiNumber);
+        renewal.setYears(years);
+        renewal.setAmount(amount);
+        renewal.setStatus("PENDING");
+        renewal.setEasebuzzTxnId(txnid);
+        renewal.setCreatedAt(System.currentTimeMillis());
+        renewal.setUpdatedAt(System.currentTimeMillis());
+        fssaiRenewalRepo.save(renewal);
+
+        Map<String, String> data = new HashMap<>();
+        data.put("txnid", txnid);
+        data.put("amount", amountStr);
+        data.put("productinfo", "FSSAIRenewal" + years + "Years");
+        data.put("firstname", "Shop" + restaurantId);
+        data.put("surl", props.getReturnUrl());
+        data.put("furl", props.getReturnUrl());
+
+        data.put("udf1", "fssai_renewal");
+        data.put("udf2", restaurantId.toString());
+        data.put("udf3", fssaiNumber);
+        data.put("udf4", years.toString());
+
+        try {
+            EasebuzzSubMerchant sm = subMerchantService.getByRestaurantId(restaurantId);
+            if (sm.getContactEmail() != null) {
+                data.put("email", sm.getContactEmail());
+            }
+            if (sm.getContactPhone() != null) {
+                data.put("phone", sm.getContactPhone());
+            }
+            String subMerchantId = sm.getSubMerchantId();
+            if (subMerchantId != null && !subMerchantId.isBlank()) {
+                data.put("sub_merchant_id", subMerchantId);
+            }
+        } catch (Exception e) {
+            // Proceed as parent merchant
+        }
+
+        if (!data.containsKey("phone") || data.get("phone").isBlank()) {
+            data.put("phone", "9000000000");
+        }
+        if (!data.containsKey("email") || data.get("email").isBlank()) {
+            data.put("email", "info@khanabook.in");
+        }
+
+        log.info("Initiating Easebuzz payment for FSSAI renewal restaurantId={} txnid={} amount={}",
+                restaurantId, txnid, amountStr);
+        Map<String, Object> result = easebuzzApi.initiatePayment(data);
+        String status = (String) result.getOrDefault("status", "failure");
+
+        if ("success".equalsIgnoreCase(status)) {
+            String accessToken = (String) result.get("access_token");
+            String paymentUrl = (String) result.get("payment_url");
+            return Map.of(
+                    "status", "success",
+                    "txnid", txnid,
+                    "access_token", accessToken != null ? accessToken : "",
+                    "payment_url", paymentUrl != null ? paymentUrl : "",
+                    "amount", amount,
+                    "pay_mode", props.getPayMode()
+            );
+        }
+
+        renewal.setStatus("FAILED");
+        fssaiRenewalRepo.save(renewal);
+        return Map.of("status", "failure", "error", result.getOrDefault("error", "Payment initiation failed"));
     }
 
     private void saveGatewayEventIfPresent(Bill bill, String easebuzzId, String status) {

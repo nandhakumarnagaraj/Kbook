@@ -42,6 +42,24 @@ public class PaymentController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/create-fssai-order")
+    public ResponseEntity<Map<String, Object>> createFssaiOrder(@RequestBody Map<String, Object> request) {
+        Object yearsObj = request.get("years");
+        Object fssaiNumberObj = request.get("fssaiNumber");
+        Object restaurantIdObj = request.get("restaurantId");
+        if (yearsObj == null || fssaiNumberObj == null || restaurantIdObj == null) {
+            return ResponseEntity.badRequest().body(Map.of("status", "failure", "error", "years, fssaiNumber and restaurantId are required"));
+        }
+        Integer years = Integer.valueOf(yearsObj.toString());
+        String fssaiNumber = fssaiNumberObj.toString();
+        Long restaurantId = Long.valueOf(restaurantIdObj.toString());
+        Map<String, Object> result = paymentService.createFssaiRenewalOrder(years, fssaiNumber, restaurantId);
+        if ("failure".equals(result.get("status"))) {
+            return ResponseEntity.badRequest().body(result);
+        }
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/status/{billId}")
     public ResponseEntity<Map<String, Object>> getStatus(
             @PathVariable Long billId,

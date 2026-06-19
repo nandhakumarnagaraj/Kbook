@@ -7,6 +7,8 @@ import com.khanabook.saas.entity.EasebuzzPayout;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.EasebuzzWebhookEventRepository;
 import com.khanabook.saas.repository.EasebuzzPayoutRepository;
+import com.khanabook.saas.repository.FssaiRenewalRepository;
+import com.khanabook.saas.repository.FssaiTrackerRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +33,8 @@ public class EasebuzzWebhookService {
     private final EasebuzzPayoutRepository payoutRepo;
     private final org.springframework.core.env.Environment env;
     private final PushNotificationService pushNotificationService;
+    private final FssaiRenewalRepository fssaiRenewalRepo;
+    private final FssaiTrackerRepository fssaiTrackerRepo;
 
     @Transactional
     public Map<String, Object> handlePaymentWebhook(Map<String, String> payload) {
@@ -49,50 +53,91 @@ public class EasebuzzWebhookService {
 
         log.info("Payment webhook received txnid={} status={}", txnid, status);
         if ("success".equalsIgnoreCase(status) && udf1 != null) {
-            try {
-                Long billId = Long.parseLong(udf1);
-                billRepo.findById(billId).ifPresent(bill -> {
-                    // Idempotency guard: skip if already marked paid
-                    if ("paid".equals(bill.getPaymentStatus())) {
-                        log.info("Bill {} already paid, skipping duplicate webhook txnid={}", billId, txnid);
-                        return;
-                    }
-                    bill.setGatewayTxnId(txnid);
-                    bill.setGatewayStatus("success");
-                    bill.setPaymentStatus("paid");
-                    bill.setPaidAt(System.currentTimeMillis());
-                    if (amountStr != null) {
-                        bill.setSettledAmount(new BigDecimal(amountStr));
-                    }
-                    billRepo.save(bill);
-                    saveGatewayEvent(bill, txnid, easebuzzId, status, amountStr, payload);
-                    log.info("Bill {} marked paid via webhook txnid={}", billId, txnid);
+            if ("fssai_renewal".equalsIgnoreCase(udf1)) {
+                handleFssaiRenewalSuccess(payload);
+            } else {
+                try {
+                    Long billId = Long.parseLong(udf1);
+                    billRepo.findById(billId).ifPresent(bill -> {
+                        // Idempotency guard: skip if already marked paid
+                        if ("paid".equals(bill.getPaymentStatus())) {
+                            log.info("Bill {} already paid, skipping duplicate webhook txnid={}", billId, txnid);
+                            return;
+                        }
+                        bill.setGatewayTxnId(txnid);
+                        bill.setGatewayStatus("success");
+                        bill.setPaymentStatus("paid");
+                        bill.setPaidAt(System.currentTimeMillis());
+                        if (amountStr != null) {
+                            bill.setSettledAmount(new BigDecimal(amountStr));
+                        }
+                        billRepo.save(bill);
+                        saveGatewayEvent(bill, txnid, easebuzzId, status, amountStr, payload);
+                        log.info("Bill {} marked paid via webhook txnid={}", billId, txnid);
 
-                    // Send push notification for payment received
-                    String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + billId;
-                    String amountDisplay = amountStr != null ? "₹" + amountStr : "";
-                    pushNotificationService.pushToRestaurant(
-                        bill.getRestaurantId(),
-                        "Payment Received",
-                        "Order " + displayOrder + " — " + amountDisplay + " paid successfully",
-                        "payment_received",
-                        String.valueOf(billId),
-                        "bill",
-                        amountStr != null ? new BigDecimal(amountStr) : null
-                    );
+                        // Send push notification for payment received
+                        String displayOrder = bill.getDailyOrderDisplay() != null ? bill.getDailyOrderDisplay() : "#" + billId;
+                        String amountDisplay = amountStr != null ? "₹" + amountStr : "";
+                        pushNotificationService.pushToRestaurant(
+                            bill.getRestaurantId(),
+                            "Payment Received",
+                            "Order " + displayOrder + " — " + amountDisplay + " paid successfully",
+                            "payment_received",
+                            String.valueOf(billId),
+                            "bill",
+                            amountStr != null ? new BigDecimal(amountStr) : null
+                        );
 
-                    // Trigger post-transaction split
-                    if (easebuzzId != null && !easebuzzId.isBlank()) {
-                        postSplitService.createPostSplitAsync(billId, easebuzzId, txnid);
-                    } else {
-                        log.warn("Post-split skipped for billId={} : missing easebuzz_id", billId);
-                    }
-                });
-            } catch (NumberFormatException e) {
-                log.warn("Invalid billId in webhook udf1: {}", udf1);
+                        // Trigger post-transaction split
+                        if (easebuzzId != null && !easebuzzId.isBlank()) {
+                            postSplitService.createPostSplitAsync(billId, easebuzzId, txnid);
+                        } else {
+                            log.warn("Post-split skipped for billId={} : missing easebuzz_id", billId);
+                        }
+                    });
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid billId in webhook udf1: {}", udf1);
+                }
             }
         }
         return Map.of("status", "received");
+    }
+
+    private void handleFssaiRenewalSuccess(Map<String, String> payload) {
+        String txnid = payload.get("txnid");
+        String easebuzzId = payload.getOrDefault("easebuzz_id", payload.get("easepayid"));
+        String amountStr = payload.get("amount");
+
+        fssaiRenewalRepo.findByEasebuzzTxnId(txnid).ifPresent(renewal -> {
+            if ("SUCCESS".equals(renewal.getStatus())) {
+                log.info("FSSAI renewal transaction {} already processed", txnid);
+                return;
+            }
+            renewal.setStatus("SUCCESS");
+            renewal.setUpdatedAt(System.currentTimeMillis());
+            fssaiRenewalRepo.save(renewal);
+
+            // Update FssaiTracker status to RENEWAL_PAID
+            fssaiTrackerRepo.findByRestaurantId(renewal.getRestaurantId()).ifPresent(tracker -> {
+                tracker.setStatus("RENEWAL_PAID");
+                tracker.setLastUpdatedOn(java.time.LocalDate.now());
+                fssaiTrackerRepo.save(tracker);
+            });
+
+            log.info("FSSAI renewal status updated to SUCCESS for restaurantId={} txnid={}",
+                    renewal.getRestaurantId(), txnid);
+
+            // Send push notification to confirm FSSAI renewal payment received
+            pushNotificationService.pushToRestaurant(
+                    renewal.getRestaurantId(),
+                    "FSSAI Renewal Paid",
+                    "Your FSSAI renewal payment of ₹" + amountStr + " was received successfully. We are processing your compliance renewal.",
+                    "system",
+                    renewal.getFssaiNumber(),
+                    "fssai",
+                    amountStr != null ? new BigDecimal(amountStr) : BigDecimal.ZERO
+            );
+        });
     }
 
     @Transactional

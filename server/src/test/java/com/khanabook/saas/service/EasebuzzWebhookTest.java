@@ -5,6 +5,10 @@ import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.EasebuzzPayoutRepository;
 import com.khanabook.saas.repository.EasebuzzWebhookEventRepository;
+import com.khanabook.saas.repository.FssaiRenewalRepository;
+import com.khanabook.saas.repository.FssaiTrackerRepository;
+import com.khanabook.saas.entity.FssaiRenewal;
+import com.khanabook.saas.entity.FssaiTracker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +36,8 @@ class EasebuzzWebhookTest {
     @Mock private SubMerchantService subMerchantService;
     @Mock private EasebuzzPayoutRepository payoutRepo;
     @Mock private PushNotificationService pushNotificationService;
+    @Mock private FssaiRenewalRepository fssaiRenewalRepo;
+    @Mock private FssaiTrackerRepository fssaiTrackerRepo;
 
     @InjectMocks
     private EasebuzzWebhookService webhookService;
@@ -138,6 +144,50 @@ class EasebuzzWebhookTest {
         Map<String, Object> response = webhookService.handlePayoutWebhook(payload);
 
         assertEquals("received", response.get("status"));
+    }
+
+    @Test
+    void testHandleFssaiRenewalWebhookSuccess() throws Exception {
+        Map<String, String> payload = new HashMap<>();
+        payload.put("txnid", "KBF9501TEST");
+        payload.put("status", "success");
+        payload.put("amount", "2000.00");
+        payload.put("udf1", "fssai_renewal");
+        payload.put("udf2", "9501");
+        payload.put("udf3", "13023001000255");
+        payload.put("udf4", "2");
+
+        String hash = generateReverseHash(payload);
+        payload.put("hash", hash);
+
+        FssaiRenewal renewal = new FssaiRenewal();
+        renewal.setRestaurantId(9501L);
+        renewal.setFssaiNumber("13023001000255");
+        renewal.setYears(2);
+        renewal.setEasebuzzTxnId("KBF9501TEST");
+        renewal.setStatus("PENDING");
+
+        when(fssaiRenewalRepo.findByEasebuzzTxnId("KBF9501TEST")).thenReturn(Optional.of(renewal));
+        
+        FssaiTracker tracker = new FssaiTracker();
+        tracker.setRestaurantId(9501L);
+        when(fssaiTrackerRepo.findByRestaurantId(9501L)).thenReturn(Optional.of(tracker));
+
+        Map<String, Object> response = webhookService.handlePaymentWebhook(payload);
+
+        assertEquals("received", response.get("status"));
+        assertEquals("SUCCESS", renewal.getStatus());
+        assertEquals("RENEWAL_PAID", tracker.getStatus());
+        
+        verify(pushNotificationService, times(1)).pushToRestaurant(
+                eq(9501L),
+                eq("FSSAI Renewal Paid"),
+                anyString(),
+                eq("system"),
+                eq("13023001000255"),
+                eq("fssai"),
+                eq(new java.math.BigDecimal("2000.00"))
+        );
     }
 
     // --- Helpers ---
