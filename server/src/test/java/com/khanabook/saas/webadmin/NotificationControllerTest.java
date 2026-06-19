@@ -37,10 +37,25 @@ class NotificationControllerTest extends BaseIntegrationTest {
     @MockBean
     private PushNotificationService pushNotificationService;
 
+    @MockBean
+    private com.khanabook.saas.service.FssaiTrackerService fssaiTrackerService;
+
     @org.junit.jupiter.api.BeforeEach
     void cleanDb() {
         userRepository.deleteAll();
         restaurantProfileRepository.deleteAll();
+    }
+
+    @Test
+    void testTriggerFssaiTrack() throws Exception {
+        String token = persistUserAndGetToken("owner-notify@test.com", RESTAURANT_ID, UserRole.OWNER);
+
+        mockMvc.perform(post("/notifications/test/fssai")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"));
+
+        Mockito.verify(fssaiTrackerService).trackFssaiLicenses();
     }
 
     @Test

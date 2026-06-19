@@ -71,10 +71,10 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
         }
 
         // Show Android system notification
-        showNotification(notificationId, title, body, type)
+        showNotification(notificationId, title, body, type, referenceId)
     }
 
-    private fun showNotification(id: Long, title: String, body: String, type: String) {
+    private fun showNotification(id: Long, title: String, body: String, type: String, referenceId: String?) {
         val channelId = when (type) {
             "payment_received" -> NotificationHelper.CHANNEL_PAYMENT
             "refund" -> NotificationHelper.CHANNEL_REFUND
@@ -94,7 +94,7 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationHelper.buildNotification(
+        val builder = NotificationHelper.buildNotification(
             context = this,
             id = id,
             channelId = channelId,
@@ -102,9 +102,34 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
             body = body
         ).apply {
             setContentIntent(pendingIntent)
-        }.build()
+
+            if (type == "fssai_expiry" && !referenceId.isNullOrBlank()) {
+                val payIntent = Intent(this@KhanaBookFirebaseMessagingService, MainActivity::class.java).apply {
+                    action = "ACTION_PAY_FSSAI"
+                    putExtra("fssai_number", referenceId)
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                }
+                val payPendingIntent = PendingIntent.getActivity(
+                    this@KhanaBookFirebaseMessagingService, id.toInt() + 1000, payIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+
+                val remindIntent = Intent(this@KhanaBookFirebaseMessagingService, NotificationActionReceiver::class.java).apply {
+                    action = "ACTION_REMIND_LATER"
+                    putExtra("fssai_number", referenceId)
+                    putExtra("notification_id", id.toInt())
+                }
+                val remindPendingIntent = PendingIntent.getBroadcast(
+                    this@KhanaBookFirebaseMessagingService, id.toInt() + 2000, remindIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+
+                addAction(R.drawable.ic_notification_bell, "Pay Now", payPendingIntent)
+                addAction(R.drawable.ic_notification_bell, "Remind Me Later", remindPendingIntent)
+            }
+        }
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(id.toInt(), notification)
+        notificationManager.notify(id.toInt(), builder.build())
     }
 }

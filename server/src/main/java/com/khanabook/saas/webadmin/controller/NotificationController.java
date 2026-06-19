@@ -18,6 +18,7 @@ import java.util.Map;
 public class NotificationController {
 
     private final PushNotificationService pushNotificationService;
+    private final com.khanabook.saas.service.FssaiTrackerService fssaiTrackerService;
 
     /** Test endpoint: send a welcome/greeting push to all active devices */
     @PostMapping("/test")
@@ -30,6 +31,13 @@ public class NotificationController {
         String message = data != null ? data.getOrDefault("message", "Your push notifications are working perfectly.") : "Your push notifications are working perfectly.";
         pushNotificationService.pushToRestaurant(restaurantId, title, message, "system", null, null, BigDecimal.ZERO);
         return ResponseEntity.ok(Map.of("status", "success", "message", "Test notification sent"));
+    }
+
+    /** Trigger the FSSAI tracking job manually for testing */
+    @PostMapping("/test/fssai")
+    public ResponseEntity<Map<String, Object>> triggerFssaiTrack() {
+        fssaiTrackerService.trackFssaiLicenses();
+        return ResponseEntity.ok(Map.of("status", "success", "message", "FSSAI tracking job triggered manually"));
     }
 
     /** Register FCM device token for push notifications */
