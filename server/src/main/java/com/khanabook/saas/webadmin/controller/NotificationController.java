@@ -5,6 +5,7 @@ import com.khanabook.saas.entity.NotificationEvent;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.PushNotificationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +16,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/notifications")
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationController {
 
     private final PushNotificationService pushNotificationService;
@@ -38,6 +40,36 @@ public class NotificationController {
     public ResponseEntity<Map<String, Object>> triggerFssaiTrack() {
         fssaiTrackerService.trackFssaiLicenses();
         return ResponseEntity.ok(Map.of("status", "success", "message", "FSSAI tracking job triggered manually"));
+    }
+
+    /** Send a direct push notification to a specific token for debugging/testing */
+    @PostMapping("/test/direct-push")
+    public ResponseEntity<Map<String, Object>> sendDirectPush(@RequestBody Map<String, Object> payload) {
+        String token = (String) payload.get("token");
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "token is required"));
+        }
+        String title = (String) payload.getOrDefault("title", "FSSAI License Expiring Soon");
+        String body = (String) payload.getOrDefault("body", "Your FSSAI license for Demo Restaurant expires in 30 days. Renew now to avoid penalties.");
+        Map<String, String> data = (Map<String, String>) payload.get("data");
+        if (data == null) {
+            data = Map.of(
+                "type", "FSSAI_ALERT",
+                "restaurantId", "REST001",
+                "daysLeft", "30"
+            );
+        }
+
+        try {
+            String messageId = pushNotificationService.sendDirectPush(token, title, body, data);
+            if (messageId == null) {
+                return ResponseEntity.ok(Map.of("status", "skipped", "reason", "Firebase not configured"));
+            }
+            return ResponseEntity.ok(Map.of("status", "success", "messageId", messageId));
+        } catch (Exception e) {
+            log.error("Failed to send direct push notification", e);
+            return ResponseEntity.status(500).body(Map.of("status", "error", "message", e.getMessage()));
+        }
     }
 
     /** Register FCM device token for push notifications */

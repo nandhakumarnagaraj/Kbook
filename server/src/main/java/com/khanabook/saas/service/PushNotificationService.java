@@ -226,4 +226,33 @@ public class PushNotificationService {
     public void markAllAsRead(Long restaurantId) {
         notificationEventRepo.markAllAsRead(restaurantId, System.currentTimeMillis());
     }
+
+    /**
+     * Send direct push notification to a specific device token for testing/diagnostic purposes.
+     */
+    public String sendDirectPush(String token, String title, String body, Map<String, String> data) throws FirebaseMessagingException {
+        if (firebaseApp == null) {
+            log.warn("Firebase not configured, skipping direct push to token={}", token);
+            return null;
+        }
+        Notification notification = Notification.builder()
+            .setTitle(title)
+            .setBody(body)
+            .build();
+
+        Message message = Message.builder()
+            .setToken(token)
+            .setNotification(notification)
+            .putAllData(data)
+            .setAndroidConfig(AndroidConfig.builder()
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .setNotification(AndroidNotification.builder()
+                    .setSound("default")
+                    .setPriority(AndroidNotification.Priority.HIGH)
+                    .build())
+                .build())
+            .build();
+
+        return FirebaseMessaging.getInstance(firebaseApp).send(message);
+    }
 }

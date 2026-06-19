@@ -147,7 +147,8 @@ public class FssaiTrackerService {
 
     private void sendRenewalNotification(RestaurantProfile profile, FssaiTracker tracker, long daysToExpiry) {
         String shopName = profile.getShopName() != null ? profile.getShopName() : "Your restaurant";
-        String title = "⚠️ FSSAI License Expiring Soon!";
+        String severity = (daysToExpiry <= 7) ? "CRITICAL" : "WARNING";
+        String title = (daysToExpiry <= 7) ? "🚨 FSSAI License Expiring Critical!" : "⚠️ FSSAI License Expiring Soon!";
         String message = String.format(
             "Your FSSAI license (%s) for %s will expire in %d days (%s). Please renew it immediately to avoid penalties.",
             profile.getFssaiNumber(),
@@ -156,7 +157,7 @@ public class FssaiTrackerService {
             tracker.getExpiryDate().format(DATE_FORMATTER)
         );
 
-        log.info("Sending FSSAI renewal push notification to restaurantId={}", profile.getRestaurantId());
+        log.info("Sending FSSAI renewal push notification to restaurantId={} severity={}", profile.getRestaurantId(), severity);
 
         // Dispatch notification of type "fssai_expiry" to attach actions (Pay Now / Remind Later)
         pushNotificationService.pushToRestaurant(
@@ -165,7 +166,7 @@ public class FssaiTrackerService {
             message,
             "fssai_expiry",
             profile.getFssaiNumber(), // referenceId is the license number
-            "fssai",
+            severity,                 // referenceType acts as severity payload
             BigDecimal.ZERO
         );
     }

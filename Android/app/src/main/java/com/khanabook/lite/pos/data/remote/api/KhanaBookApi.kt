@@ -134,6 +134,12 @@ interface KhanaBookApi {
             @Body request: CreateEasebuzzOrderRequest
         ): CreateEasebuzzOrderResponse
 
+        @POST("api/v2/payments/easebuzz/create-fssai-order")
+        suspend fun createFssaiOrder(
+            @Query("deviceId") deviceId: String,
+            @Body request: Map<String, @JvmSuppressWildcards Any>
+        ): Map<String, @JvmSuppressWildcards Any>
+
         @GET("api/v2/payments/easebuzz/status/{billId}")
         suspend fun getEasebuzzPaymentStatus(
             @Path("billId") billId: Long,

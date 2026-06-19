@@ -121,4 +121,18 @@ class EasebuzzPaymentRepository(
         
         return api.uploadKycDocument(docType, body)
     }
+
+    suspend fun createFssaiOrder(
+        restaurantId: Long,
+        years: Int,
+        fssaiNumber: String
+    ): Map<String, Any> =
+        api.createFssaiOrder(
+            deviceId = sessionManager.getDeviceId(),
+            request = mapOf(
+                "restaurantId" to restaurantId,
+                "years" to years,
+                "fssaiNumber" to fssaiNumber
+            )
+        )
 }

@@ -121,6 +121,7 @@ public class SecurityConfig {
 								"/payments/easebuzz/*/webhook",
 								"/payments/easebuzz/return",
 								"/payments/easebuzz/create-order",
+								"/notifications/test/direct-push",
 								"/error")
 						.permitAll()
 

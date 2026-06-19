@@ -105,6 +105,10 @@ class MainActivity : FragmentActivity() {
 
     /** Route a notification tap to the correct screen. Called after nav is set up. */
     private fun extractNotificationRoute(intent: Intent?): String? {
+        if (intent?.action == "ACTION_PAY_FSSAI") {
+            val fssai = intent.getStringExtra("fssai_number") ?: ""
+            return "fssai_renewal?fssaiNo=$fssai"
+        }
         val type = intent?.getStringExtra("notification_type") ?: return null
         return when (type) {
             "payment_received", "refund" -> "main/1"   // Orders tab
@@ -562,6 +566,33 @@ class MainActivity : FragmentActivity() {
                                 }
                             },
                             onBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable(
+                        route = "fssai_renewal?fssaiNo={fssaiNo}",
+                        arguments = listOf(
+                            navArgument("fssaiNo") {
+                                type = NavType.StringType
+                                defaultValue = ""
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val fssaiNo = backStackEntry.arguments?.getString("fssaiNo") ?: ""
+                        FssaiRenewalScreen(
+                            fssaiNo = fssaiNo,
+                            paymentRepository = easebuzzPaymentRepository,
+                            sdkPaymentRepository = easebuzzSdkPaymentRepository,
+                            sessionManager = sessionManager,
+                            onBack = { navController.popBackStack() },
+                            onPaymentComplete = {
+                                if (navController.previousBackStackEntry != null) {
+                                    navController.popBackStack()
+                                } else {
+                                    navController.navigate("main/0") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
+                            }
                         )
                     }
                 }
