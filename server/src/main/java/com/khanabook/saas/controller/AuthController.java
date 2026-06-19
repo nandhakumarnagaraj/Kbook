@@ -177,7 +177,7 @@ public class AuthController {
 	}
 
 	@Profile("dev")
-	@GetMapping("/dev-debug-signup")
+	@GetMapping("/signup/dev-debug")
 	public ResponseEntity<?> devDebugSignup(@RequestParam String phone) {
 		try {
 			SignupRequest req = new SignupRequest();
