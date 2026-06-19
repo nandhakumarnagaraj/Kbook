@@ -188,18 +188,14 @@ public class AuthController {
 			req.setDeviceId("DEBUG_DEV");
 			authService.devSignup(req);
 			return ResponseEntity.ok(Map.of("status", "success", "message", "Signed up successfully"));
-		} catch (org.springframework.dao.DataIntegrityViolationException e) {
-			log.error("Debug signup DataIntegrityViolationException", e);
-			return ResponseEntity.status(409).body(Map.of(
-				"status", "error",
-				"message", e.getMessage(),
-				"mostSpecificCause", e.getMostSpecificCause().getMessage()
-			));
-		} catch (Exception e) {
-			log.error("Debug signup Exception", e);
+		} catch (Throwable e) {
+			java.io.StringWriter sw = new java.io.StringWriter();
+			e.printStackTrace(new java.io.PrintWriter(sw));
 			return ResponseEntity.status(500).body(Map.of(
 				"status", "error",
-				"message", e.getMessage()
+				"message", e.getMessage() != null ? e.getMessage() : "null",
+				"type", e.getClass().getName(),
+				"stackTrace", sw.toString()
 			));
 		}
 	}
