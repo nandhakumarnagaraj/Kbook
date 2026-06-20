@@ -236,6 +236,29 @@ constructor(
         }
     }
 
+    fun registerDeviceTokenOnStartup() {
+        viewModelScope.launch {
+            try {
+                val token = suspendCancellableCoroutine<String?> { cont ->
+                    FirebaseMessaging.getInstance().token
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                cont.resume(task.result)
+                            } else {
+                                cont.resume(null)
+                            }
+                        }
+                }
+                if (token != null) {
+                    notificationRepository.registerDeviceToken(token)
+                    Log.i(TAG, "FCM token registered successfully on startup: ${token.take(20)}...")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to register FCM token on startup: ${e.message}")
+            }
+        }
+    }
+
     fun sendOtp(phoneNumber: String, purpose: String = "signup") {
         viewModelScope.launch {
             if (purpose == "signup") {
