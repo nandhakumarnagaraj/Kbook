@@ -26,6 +26,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Notification permission for Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name="com.khanabook.lite.pos.KhanaBookApplication"
@@ -93,6 +94,14 @@
         <receiver
             android:name="com.khanabook.lite.pos.worker.NotificationActionReceiver"
             android:exported="false" />
+
+        <receiver
+            android:name="com.khanabook.lite.pos.worker.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"
