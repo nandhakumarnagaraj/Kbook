@@ -36,8 +36,12 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d(TAG, "New FCM token: ${token.take(20)}...")
-        CoroutineScope(Dispatchers.IO).launch {
-            notificationRepository.registerDeviceToken(token)
+        kotlinx.coroutines.runBlocking {
+            try {
+                notificationRepository.registerDeviceToken(token)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to register new FCM token", e)
+            }
         }
     }
 
@@ -54,20 +58,25 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
         val notificationId = (message.data["notificationId"]?.toLongOrNull()
             ?: System.currentTimeMillis())
 
-        // Save to local Room database and show system notification
-        CoroutineScope(Dispatchers.IO).launch {
-            val entity = NotificationEntity(
-                id = notificationId,
-                serverId = notificationId,
-                notificationType = type,
-                title = title,
-                message = body,
-                referenceId = referenceId,
-                referenceType = referenceType,
-                amount = amount,
-                createdAt = System.currentTimeMillis()
-            )
-            notificationRepository.insertLocal(entity)
+        // Save to local Room database synchronously using runBlocking
+        // to prevent process termination before the write finishes.
+        kotlinx.coroutines.runBlocking {
+            try {
+                val entity = NotificationEntity(
+                    id = notificationId,
+                    serverId = notificationId,
+                    notificationType = type,
+                    title = title,
+                    message = body,
+                    referenceId = referenceId,
+                    referenceType = referenceType,
+                    amount = amount,
+                    createdAt = System.currentTimeMillis()
+                )
+                notificationRepository.insertLocal(entity)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to insert local notification in background", e)
+            }
         }
 
         // Show Android system notification

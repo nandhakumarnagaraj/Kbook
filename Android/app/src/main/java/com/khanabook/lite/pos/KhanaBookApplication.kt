@@ -42,6 +42,9 @@ class KhanaBookApplication : Application(), Configuration.Provider {
         GlobalCrashHandler.initialize(this)
         AppAssetStore.initialize(this)
 
+        // Initialize notification channels for background pushes
+        com.khanabook.lite.pos.worker.NotificationHelper.createChannels(this)
+
         MasterSyncWorker.schedule(this)
         EasebuzzPaymentRecoveryWorker.schedule(this)
     }

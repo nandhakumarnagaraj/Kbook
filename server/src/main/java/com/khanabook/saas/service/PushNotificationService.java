@@ -116,6 +116,12 @@ public class PushNotificationService {
         NotificationEvent event = saveNotificationEvent(restaurantId, title, message,
             notificationType, referenceId, referenceType, amount);
 
+        // Build Notification block for automatic background OS display
+        Notification fcmNotification = Notification.builder()
+            .setTitle(title)
+            .setBody(message)
+            .build();
+
         Map<String, String> data = Map.of(
             "title", title != null ? title : "",
             "message", message != null ? message : "",
@@ -125,11 +131,20 @@ public class PushNotificationService {
             "notificationId", event.getId().toString(),
             "amount", amount != null ? amount.toPlainString() : ""
         );
+
+        // Android-specific configuration (high priority, channel ID, sound)
+        AndroidNotification.Builder androidNotificationBuilder = AndroidNotification.builder()
+            .setChannelId(resolveChannelId(notificationType))
+            .setSound("default")
+            .setPriority(AndroidNotification.Priority.HIGH);
+
         MulticastMessage multicast = MulticastMessage.builder()
+            .setNotification(fcmNotification) // Combined payload!
             .putAllData(data)
             .addAllTokens(tokens.stream().map(DeviceToken::getToken).toList())
             .setAndroidConfig(AndroidConfig.builder()
                 .setPriority(AndroidConfig.Priority.HIGH)
+                .setNotification(androidNotificationBuilder.build())
                 .build())
             .build();
 
@@ -230,11 +245,26 @@ public class PushNotificationService {
         payloadData.put("title", title != null ? title : "");
         payloadData.put("message", body != null ? body : "");
 
+        Notification fcmNotification = Notification.builder()
+            .setTitle(title)
+            .setBody(body)
+            .build();
+
+        String notificationType = data != null ? data.get("type") : "system";
+        String referenceId = data != null ? data.get("referenceId") : null;
+
+        AndroidNotification.Builder androidNotificationBuilder = AndroidNotification.builder()
+            .setChannelId(resolveChannelId(notificationType))
+            .setSound("default")
+            .setPriority(AndroidNotification.Priority.HIGH);
+
         Message message = Message.builder()
             .setToken(token)
+            .setNotification(fcmNotification)
             .putAllData(payloadData)
             .setAndroidConfig(AndroidConfig.builder()
                 .setPriority(AndroidConfig.Priority.HIGH)
+                .setNotification(androidNotificationBuilder.build())
                 .build())
             .build();
 

@@ -106,14 +106,14 @@ class MainActivity : FragmentActivity() {
     /** Route a notification tap to the correct screen. Called after nav is set up. */
     private fun extractNotificationRoute(intent: Intent?): String? {
         if (intent?.action == "ACTION_PAY_FSSAI") {
-            val fssai = intent.getStringExtra("fssai_number") ?: ""
+            val fssai = intent.getStringExtra("fssai_number") ?: intent.getStringExtra("referenceId") ?: ""
             return "fssai_renewal?fssaiNo=$fssai"
         }
-        val type = intent?.getStringExtra("notification_type") ?: return null
+        val type = intent?.getStringExtra("notification_type") ?: intent?.getStringExtra("type") ?: return null
         return when (type) {
             "payment_received", "refund" -> "main/1"   // Orders tab
             "marketplace_order"          -> "marketplace_orders"
-            "kyc", "settlement", "system" -> "notifications"
+            "kyc", "settlement", "system", "fssai_expiry", "FSSAI_ALERT" -> "notifications"
             else                          -> "notifications"
         }
     }
