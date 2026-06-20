@@ -148,7 +148,7 @@ fun NotificationReliabilityView(
                             contentColor = if (isBatteryIgnored) MaterialTheme.kbTextSecondary else Color.White
                         ),
                         shape = KbShape.Small,
-                        modifier = Modifier.height(36.dp)
+                        modifier = Modifier.height(48.dp)
                     ) {
                         Text(
                             text = if (isBatteryIgnored) "Disabled" else "Disable",
@@ -188,7 +188,7 @@ fun NotificationReliabilityView(
                                 contentColor = Color.White
                             ),
                             shape = KbShape.Small,
-                            modifier = Modifier.height(36.dp)
+                            modifier = Modifier.height(48.dp)
                         ) {
                             Text(
                                 text = "Settings",

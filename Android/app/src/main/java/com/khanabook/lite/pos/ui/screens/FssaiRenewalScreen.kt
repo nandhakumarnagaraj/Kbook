@@ -262,7 +262,7 @@ fun FssaiRenewalScreen(
                     val renewalPrice = selectedYears * 1000.00
                     KhanaBookCard(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = KbBrandSaffron.copy(alpha = 0.04f))
+                        colors = CardDefaults.cardColors(containerColor = KbBrandSaffron.copy(alpha = 0.10f))
                     ) {
                         Column(
                             modifier = Modifier.padding(spacing.medium),
