@@ -67,10 +67,17 @@ public class PushNotificationService {
         try {
             restaurantProfileRepo.findByRestaurantId(restaurantId).ifPresent(profile -> {
                 String shopName = profile.getShopName() != null ? profile.getShopName() : "Restaurant";
+                String customWelcome = profile.getCustomWelcomeMessage();
+                String body;
+                if (customWelcome != null && !customWelcome.isBlank()) {
+                    body = customWelcome.replace("{shopName}", shopName);
+                } else {
+                    body = "Welcome back to " + shopName + ". Push notifications are active.";
+                }
                 this.pushToRestaurant(
                     restaurantId,
                     "Welcome back!",
-                    "Welcome back to " + shopName + ". Push notifications are active.",
+                    body,
                     "system",
                     null,
                     null,

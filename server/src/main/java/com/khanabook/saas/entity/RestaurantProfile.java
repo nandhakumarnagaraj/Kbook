@@ -199,6 +199,12 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "last_reset_date_proper")
 	private java.time.LocalDate lastResetDateProper;
 
+	@Column(name = "custom_welcome_message", length = 500)
+	private String customWelcomeMessage;
+
+	@Column(name = "custom_fssai_message", length = 500)
+	private String customFssaiMessage;
+
 	@jakarta.persistence.PrePersist
 	@jakarta.persistence.PreUpdate
 	public void syncDates() {

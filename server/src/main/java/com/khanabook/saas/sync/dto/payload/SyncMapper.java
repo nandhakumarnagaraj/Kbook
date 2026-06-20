@@ -88,6 +88,8 @@ public class SyncMapper {
                 dto.setLogoUrl(entity.getLogoUrl());
                 dto.setLogoVersion(entity.getLogoVersion());
                 dto.setCountry(entity.getCountry());
+                dto.setCustomWelcomeMessage(entity.getCustomWelcomeMessage());
+                dto.setCustomFssaiMessage(entity.getCustomFssaiMessage());
                 dto.setCurrency(entity.getCurrency());
                 dto.setTimezone(entity.getTimezone());
                 dto.setGstEnabled(entity.getGstEnabled());
@@ -266,6 +268,8 @@ public class SyncMapper {
                 entity.setLogoUrl(dto.getLogoUrl());
                 entity.setLogoVersion(dto.getLogoVersion());
                 entity.setCountry(dto.getCountry());
+                entity.setCustomWelcomeMessage(dto.getCustomWelcomeMessage());
+                entity.setCustomFssaiMessage(dto.getCustomFssaiMessage());
                 entity.setCurrency(dto.getCurrency());
                 entity.setTimezone(dto.getTimezone());
                 entity.setGstEnabled(dto.getGstEnabled());

@@ -78,4 +78,6 @@ public class RestaurantProfileDTO {
     private String swiggyWebhookSecret;
     private Boolean printCustomerWhatsapp;
     private String lastResetDateProper;
+    private String customWelcomeMessage;
+    private String customFssaiMessage;
 }
