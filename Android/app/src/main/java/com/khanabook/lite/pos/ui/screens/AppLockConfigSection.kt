@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.Password
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.TextIncrease
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.foundation.BorderStroke
@@ -189,9 +190,21 @@ fun SettingsListView(
                             .putBoolean("is_sound_box_enabled", enabled)
                             .apply()
                     }
+                ),
+                SettingsItemInfo(
+                    icon = Icons.Outlined.NotificationsActive,
+                    title = "Notification Reliability",
+                    subtitle = "Battery saver & auto-start settings",
+                    iconBg = KbAccentGreen.copy(alpha = KbOpacity.Border),
+                    iconTint = KbAccentGreen
                 )
             ),
-            onItemClick = { index -> if (index == 0) onSelectItem("ui_scale") }
+            onItemClick = { index ->
+                when (index) {
+                    0 -> onSelectItem("ui_scale")
+                    3 -> onSelectItem("notification_reliability")
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(spacing.medium))

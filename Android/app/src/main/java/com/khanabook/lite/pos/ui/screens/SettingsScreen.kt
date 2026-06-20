@@ -96,7 +96,7 @@ fun SettingsScreen(
     val toastScope = rememberCoroutineScope()
     val ctx = LocalContext.current
 
-    val settingsSubSections = setOf("app_lock", "change_password", "help_support", "about_app")
+    val settingsSubSections = setOf("app_lock", "change_password", "help_support", "about_app", "notification_reliability")
 
     BackHandler {
         when {
@@ -150,6 +150,7 @@ fun SettingsScreen(
                 "change_password" -> "Change Password"
                 "help_support" -> "Help & Support"
                 "about_app" -> "About App"
+                "notification_reliability" -> "Notification Reliability"
                 "menu" -> "Profile"
                 else -> "Profile"
             },
@@ -346,6 +347,9 @@ fun SettingsScreen(
                             "about_app" -> {
                                 AboutAppView()
                             }
+                            "notification_reliability" -> {
+                                NotificationReliabilityView(onBack = { section = "security" })
+                            }
                         }
                     }
                 }
@@ -437,6 +441,9 @@ fun SettingsScreen(
                         }
                         "about_app" -> {
                             AboutAppView()
+                        }
+                        "notification_reliability" -> {
+                            NotificationReliabilityView(onBack = { section = "security" })
                         }
                     }
                 }
