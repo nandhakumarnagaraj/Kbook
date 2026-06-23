@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName
 @Entity(tableName = "restaurant_profile")
 data class RestaurantProfileEntity(
     @SerializedName("localId") @PrimaryKey
-    val id: Int = 1,
+    val id: Long = 1L,
     @ColumnInfo(name = "shop_name")
     val shopName: String? = null,
     @ColumnInfo(name = "shop_address")

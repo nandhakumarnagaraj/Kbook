@@ -13,8 +13,8 @@ interface InventoryDao {
     @Query("SELECT * FROM stock_logs WHERE menu_item_id = :itemId ORDER BY created_at DESC")
     fun getLogsForItem(itemId: Long): Flow<List<StockLogEntity>>
 
-    @Query("SELECT * FROM stock_logs ORDER BY created_at DESC LIMIT 100")
-    fun getAllLogs(): Flow<List<StockLogEntity>>
+    @Query("SELECT * FROM stock_logs WHERE restaurant_id = :restaurantId ORDER BY created_at DESC LIMIT 100")
+    fun getAllLogs(restaurantId: Long): Flow<List<StockLogEntity>>
 
 
     @Query("SELECT * FROM stock_logs WHERE is_synced = 0")

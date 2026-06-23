@@ -9,25 +9,31 @@ interface RestaurantDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveProfile(profile: RestaurantProfileEntity)
 
+    @Query("SELECT * FROM restaurant_profile WHERE restaurant_id = :restaurantId LIMIT 1")
+    suspend fun getProfile(restaurantId: Long): RestaurantProfileEntity?
+
     @Query("SELECT * FROM restaurant_profile WHERE id = 1 LIMIT 1")
     suspend fun getProfile(): RestaurantProfileEntity?
+
+    @Query("SELECT * FROM restaurant_profile WHERE restaurant_id = :restaurantId LIMIT 1")
+    fun getProfileFlow(restaurantId: Long): Flow<RestaurantProfileEntity?>
 
     @Query("SELECT * FROM restaurant_profile WHERE id = 1 LIMIT 1")
     fun getProfileFlow(): Flow<RestaurantProfileEntity?>
 
     @Query(
-        "UPDATE restaurant_profile SET daily_order_counter = :counter, last_reset_date = :date, is_synced = 0, updated_at = :updatedAt WHERE id = 1"
+        "UPDATE restaurant_profile SET daily_order_counter = :counter, last_reset_date = :date, is_synced = 0, updated_at = :updatedAt WHERE restaurant_id = :restaurantId"
     )
-    suspend fun resetDailyCounter(counter: Long, date: String, updatedAt: Long)
+    suspend fun resetDailyCounter(restaurantId: Long, counter: Long, date: String, updatedAt: Long)
 
     @Query(
-        "UPDATE restaurant_profile SET daily_order_counter = daily_order_counter + 1, lifetime_order_counter = lifetime_order_counter + 1, is_synced = 0, updated_at = :updatedAt WHERE id = 1"
+        "UPDATE restaurant_profile SET daily_order_counter = daily_order_counter + 1, lifetime_order_counter = lifetime_order_counter + 1, is_synced = 0, updated_at = :updatedAt WHERE restaurant_id = :restaurantId"
     )
-    suspend fun incrementOrderCounters(updatedAt: Long)
+    suspend fun incrementOrderCounters(restaurantId: Long, updatedAt: Long)
 
     @Transaction
-    suspend fun incrementAndGetCounters(): Pair<Long, Long> {
-        val profile = getProfile() ?: throw Exception("Profile not found")
+    suspend fun incrementAndGetCounters(restaurantId: Long): Pair<Long, Long> {
+        val profile = getProfile(restaurantId) ?: throw Exception("Profile not found")
         
         val zoneId = java.time.ZoneId.of("Asia/Kolkata")
         val today = java.time.LocalDate.now(zoneId).toString()
@@ -37,24 +43,24 @@ interface RestaurantDao {
         if (isNewDay) {
             // Reset to 1 on a new day
             val nextDailyCounter = 1L
-            resetDailyCounter(nextDailyCounter, today, now)
-            incrementLifetimeCounterOnly(now)
+            resetDailyCounter(restaurantId, nextDailyCounter, today, now)
+            incrementLifetimeCounterOnly(restaurantId, now)
             
-            val updated = getProfile() ?: throw Exception("Profile lost during update")
+            val updated = getProfile(restaurantId) ?: throw Exception("Profile lost during update")
             return Pair(nextDailyCounter, updated.lifetimeOrderCounter)
         } else {
-            incrementOrderCounters(now)
-            val updated = getProfile() ?: throw Exception("Profile lost during update")
+            incrementOrderCounters(restaurantId, now)
+            val updated = getProfile(restaurantId) ?: throw Exception("Profile lost during update")
             return Pair(updated.dailyOrderCounter, updated.lifetimeOrderCounter)
         }
     }
 
-    @Query("UPDATE restaurant_profile SET lifetime_order_counter = lifetime_order_counter + 1, is_synced = 0, updated_at = :updatedAt WHERE id = 1")
-    suspend fun incrementLifetimeCounterOnly(updatedAt: Long)
+    @Query("UPDATE restaurant_profile SET lifetime_order_counter = lifetime_order_counter + 1, is_synced = 0, updated_at = :updatedAt WHERE restaurant_id = :restaurantId")
+    suspend fun incrementLifetimeCounterOnly(restaurantId: Long, updatedAt: Long)
 
     @Transaction
-    suspend fun updateCounters(daily: Long, lifetime: Long) {
-        val current = getProfile() ?: return
+    suspend fun updateCounters(restaurantId: Long, daily: Long, lifetime: Long) {
+        val current = getProfile(restaurantId) ?: return
         val zoneId = java.time.ZoneId.of("Asia/Kolkata")
         val today = java.time.LocalDate.now(zoneId).toString()
         saveProfile(current.copy(
@@ -67,17 +73,17 @@ interface RestaurantDao {
     }
 
     @Query(
-        "UPDATE restaurant_profile SET lifetime_order_counter = :counter, is_synced = 0, updated_at = :updatedAt WHERE id = 1"
+        "UPDATE restaurant_profile SET lifetime_order_counter = :counter, is_synced = 0, updated_at = :updatedAt WHERE restaurant_id = :restaurantId"
     )
-    suspend fun updateLifetimeCounter(counter: Long, updatedAt: Long)
+    suspend fun updateLifetimeCounter(restaurantId: Long, counter: Long, updatedAt: Long)
 
-    @Query("UPDATE restaurant_profile SET logo_path = :path, is_synced = 0, updated_at = :updatedAt WHERE id = 1")
-    suspend fun updateLogoPath(path: String?, updatedAt: Long)
+    @Query("UPDATE restaurant_profile SET logo_path = :path, is_synced = 0, updated_at = :updatedAt WHERE restaurant_id = :restaurantId")
+    suspend fun updateLogoPath(restaurantId: Long, path: String?, updatedAt: Long)
 
     @Query(
-        "UPDATE restaurant_profile SET logo_url = :url, logo_version = :version, logo_path = NULL, is_synced = :isSynced, updated_at = :updatedAt WHERE id = 1"
+        "UPDATE restaurant_profile SET logo_url = :url, logo_version = :version, logo_path = NULL, is_synced = :isSynced, updated_at = :updatedAt WHERE restaurant_id = :restaurantId"
     )
-    suspend fun updateLogoUrl(url: String?, version: Int, isSynced: Boolean, updatedAt: Long)
+    suspend fun updateLogoUrl(restaurantId: Long, url: String?, version: Int, isSynced: Boolean, updatedAt: Long)
 
     @Query("SELECT * FROM restaurant_profile WHERE is_synced = 0")
     suspend fun getUnsyncedRestaurantProfiles(): List<RestaurantProfileEntity>

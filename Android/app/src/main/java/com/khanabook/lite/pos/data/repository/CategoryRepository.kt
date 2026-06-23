@@ -18,7 +18,8 @@ class CategoryRepository(
         private val workManager: WorkManager
 ) {
     suspend fun insertCategory(category: CategoryEntity): Long {
-        val existing = categoryDao.getCategoryByName(category.name)
+        val restaurantId = sessionManager.getRestaurantId()
+        val existing = categoryDao.getCategoryByName(category.name, restaurantId)
         if (existing != null) {
             if (existing.isDeleted) {
                 // Undelete
@@ -37,7 +38,6 @@ class CategoryRepository(
             }
         }
 
-        val restaurantId = sessionManager.getRestaurantId()
         val deviceId = sessionManager.getDeviceId()
 
         val enrichedCategory =
@@ -65,11 +65,13 @@ class CategoryRepository(
     }
 
     fun getAllCategoriesFlow(): Flow<List<CategoryEntity>> {
-        return categoryDao.getAllCategoriesFlow()
+        val restaurantId = sessionManager.getRestaurantId()
+        return categoryDao.getAllCategoriesFlow(restaurantId)
     }
 
     fun getActiveCategoriesFlow(): Flow<List<CategoryEntity>> {
-        return categoryDao.getActiveCategoriesFlow()
+        val restaurantId = sessionManager.getRestaurantId()
+        return categoryDao.getActiveCategoriesFlow(restaurantId)
     }
 
     suspend fun toggleActive(id: Long, isActive: Boolean) {

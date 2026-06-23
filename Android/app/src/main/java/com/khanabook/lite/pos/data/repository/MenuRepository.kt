@@ -40,31 +40,38 @@ class MenuRepository(
     }
 
     suspend fun getItemById(id: Long): MenuItemEntity? {
-        return menuDao.getItemById(id)
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.getItemById(id, restaurantId)
     }
 
     suspend fun getItemOnce(id: Long): MenuItemEntity? {
-        return menuDao.getItemById(id)
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.getItemById(id, restaurantId)
     }
 
     suspend fun getItemByName(name: String): MenuItemEntity? {
-        return menuDao.getItemByName(name)
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.getItemByName(name, restaurantId)
     }
 
     suspend fun getMenuItemByCode(code: String): MenuItemEntity? {
-        return menuDao.getItemByBarcode(code)
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.getItemByBarcode(code, restaurantId)
     }
 
     suspend fun getAllMenuItemsOnce(): List<MenuItemEntity> {
-        return menuDao.getAllMenuItemsOnce()
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.getAllMenuItemsOnce(restaurantId)
     }
 
     suspend fun getAllVariantsOnce(): List<ItemVariantEntity> {
-        return menuDao.getAllVariantsOnce()
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.getAllVariantsOnce(restaurantId)
     }
 
     suspend fun updateStock(id: Long, delta: String) {
-        val current = menuDao.getItemById(id) ?: return
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = menuDao.getItemById(id, restaurantId) ?: return
         val newStock = try {
             java.math.BigDecimal(current.currentStock.ifBlank { "0.0" })
                 .add(java.math.BigDecimal(delta.ifBlank { "0.0" }))
@@ -77,34 +84,41 @@ class MenuRepository(
     }
 
     fun getItemsByCategoryFlow(categoryId: Long): Flow<List<MenuItemEntity>> {
-        return menuDao.getItemsByCategoryFlow(categoryId)
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.getItemsByCategoryFlow(categoryId, restaurantId)
     }
 
     /** One-shot, non-flow fetch – safe to call from any coroutine context. */
     suspend fun getItemsByCategoryOnce(categoryId: Long): List<MenuItemEntity> {
-        return menuDao.getItemsByCategoryOnce(categoryId)
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.getItemsByCategoryOnce(categoryId, restaurantId)
     }
 
     fun getAllItemsFlow(): Flow<List<MenuItemEntity>> {
-        return menuDao.getAllItemsFlow()
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.getAllItemsFlow(restaurantId)
     }
 
     fun getMenuWithVariantsByCategoryFlow(categoryId: Long): Flow<List<MenuWithVariants>> {
-        return menuDao.getMenuWithVariantsByCategoryFlow(categoryId)
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.getMenuWithVariantsByCategoryFlow(categoryId, restaurantId)
             .map { list -> list.map { it.copy(variants = it.variants.filterNot(ItemVariantEntity::isDeleted)) } }
     }
 
     fun searchItems(query: String): Flow<List<MenuItemEntity>> {
-        return menuDao.searchItems("%$query%")
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.searchItems("%$query%", restaurantId)
     }
 
     fun searchMenuWithVariants(query: String): Flow<List<MenuWithVariants>> {
-        return menuDao.searchMenuWithVariants("%$query%")
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.searchMenuWithVariants("%$query%", restaurantId)
             .map { list -> list.map { it.copy(variants = it.variants.filterNot(ItemVariantEntity::isDeleted)) } }
     }
 
     suspend fun toggleItemAvailability(id: Long, isAvailable: Boolean) {
-        val current = menuDao.getItemById(id) ?: return
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = menuDao.getItemById(id, restaurantId) ?: return
         updateItem(current.copy(isAvailable = isAvailable))
     }
 
@@ -135,7 +149,8 @@ class MenuRepository(
     }
 
     suspend fun updateVariantStock(id: Long, delta: String) {
-        val current = menuDao.getVariantById(id) ?: return
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = menuDao.getVariantById(id, restaurantId) ?: return
         val newStock = try {
             java.math.BigDecimal(current.currentStock.ifBlank { "0.0" })
                 .add(java.math.BigDecimal(delta.ifBlank { "0.0" }))
@@ -153,7 +168,8 @@ class MenuRepository(
     }
 
     fun getVariantsForItemFlow(itemId: Long): Flow<List<ItemVariantEntity>> {
-        return menuDao.getVariantsForItemFlow(itemId)
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.getVariantsForItemFlow(itemId, restaurantId)
     }
 
     private fun triggerBackgroundSync() {

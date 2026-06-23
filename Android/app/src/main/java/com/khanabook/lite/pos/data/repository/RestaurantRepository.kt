@@ -19,9 +19,11 @@ class RestaurantRepository(
         private val api: com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 ) {
     suspend fun saveProfile(profile: RestaurantProfileEntity) {
+        val restaurantId = sessionManager.getRestaurantId()
         val enriched =
                 profile.copy(
-                        restaurantId = sessionManager.getRestaurantId(),
+                        id = restaurantId,
+                        restaurantId = restaurantId,
                         deviceId = sessionManager.getDeviceId(),
                         isSynced = false,
                         updatedAt = System.currentTimeMillis()
@@ -31,27 +33,32 @@ class RestaurantRepository(
     }
 
     suspend fun getProfile(): RestaurantProfileEntity? {
-        return restaurantDao.getProfile()
+        val restaurantId = sessionManager.getRestaurantId()
+        return if (restaurantId > 0) restaurantDao.getProfile(restaurantId) else restaurantDao.getProfile()
     }
 
     fun getProfileFlow(): Flow<RestaurantProfileEntity?> {
-        return restaurantDao.getProfileFlow()
+        val restaurantId = sessionManager.getRestaurantId()
+        return if (restaurantId > 0) restaurantDao.getProfileFlow(restaurantId) else restaurantDao.getProfileFlow()
     }
 
     suspend fun resetDailyCounter(counter: Long, date: String) {
-        restaurantDao.resetDailyCounter(counter, date, System.currentTimeMillis())
+        val restaurantId = sessionManager.getRestaurantId()
+        restaurantDao.resetDailyCounter(restaurantId, counter, date, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 
     suspend fun incrementOrderCounters() {
-        restaurantDao.incrementOrderCounters(System.currentTimeMillis())
+        val restaurantId = sessionManager.getRestaurantId()
+        restaurantDao.incrementOrderCounters(restaurantId, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 
     suspend fun incrementAndGetCounters(requireServer: Boolean = false): Pair<Long, Long> {
+        val restaurantId = sessionManager.getRestaurantId()
         return try {
             val response = api.incrementCounters()
-            restaurantDao.updateCounters(response.dailyCounter, response.lifetimeCounter)
+            restaurantDao.updateCounters(restaurantId, response.dailyCounter, response.lifetimeCounter)
             Pair(response.dailyCounter, response.lifetimeCounter)
         } catch (e: Exception) {
             if (requireServer) {
@@ -60,23 +67,26 @@ class RestaurantRepository(
                     e
                 )
             }
-            val counters = restaurantDao.incrementAndGetCounters()
+            val counters = restaurantDao.incrementAndGetCounters(restaurantId)
             triggerBackgroundSync()
             counters
         }
     }
 
     suspend fun updateLogoPath(path: String?) {
-        restaurantDao.updateLogoPath(path, System.currentTimeMillis())
+        val restaurantId = sessionManager.getRestaurantId()
+        restaurantDao.updateLogoPath(restaurantId, path, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 
     suspend fun uploadLogo(file: MultipartBody.Part): String {
-        val current = restaurantDao.getProfile()
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = if (restaurantId > 0) restaurantDao.getProfile(restaurantId) else restaurantDao.getProfile()
         val response = api.uploadLogo(file)
         val version = response.logoVersion.takeIf { it > 0 }
             ?: ((current?.logoVersion ?: 0) + 1)
         restaurantDao.updateLogoUrl(
+            restaurantId,
             response.logoUrl,
             version,
             current?.isSynced ?: true,

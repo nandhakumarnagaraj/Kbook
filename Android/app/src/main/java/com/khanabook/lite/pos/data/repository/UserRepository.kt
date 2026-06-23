@@ -354,7 +354,8 @@ class UserRepository(
     }
 
     fun getAllUsers(): Flow<List<UserEntity>> {
-        return userDao.getAllUsers()
+        val restaurantId = sessionManager.getRestaurantId()
+        return userDao.getAllUsers(restaurantId)
     }
 
     suspend fun setActivationStatus(userId: Long, isActive: Boolean) {

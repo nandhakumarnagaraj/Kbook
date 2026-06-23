@@ -22,7 +22,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 44,
+        version = 45,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -37,6 +37,12 @@ abstract class AppDatabase : RoomDatabase() {
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
+
+            val MIGRATION_44_45 = object : Migration(44, 45) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("UPDATE restaurant_profile SET id = restaurant_id WHERE id = 1 AND restaurant_id > 0")
+                }
+            }
 
             val MIGRATION_43_44 = object : Migration(43, 44) {
                 override fun migrate(db: SupportSQLiteDatabase) {

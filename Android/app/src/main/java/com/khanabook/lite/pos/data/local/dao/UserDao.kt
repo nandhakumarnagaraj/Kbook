@@ -44,8 +44,8 @@ interface UserDao {
         serverUpdatedAt: Long
     )
 
-    @Query("SELECT * FROM users WHERE is_deleted = 0 ORDER BY name ASC")
-    fun getAllUsers(): Flow<List<UserEntity>>
+    @Query("SELECT * FROM users WHERE is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY name ASC")
+    fun getAllUsers(restaurantId: Long): Flow<List<UserEntity>>
 
     @Query(
         "UPDATE users SET is_active = :isActive, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"

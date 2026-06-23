@@ -45,7 +45,8 @@ class InventoryRepository(
     }
 
     suspend fun updateThreshold(menuItemId: Long, threshold: Double) {
-        val current = menuDao.getItemById(menuItemId) ?: return
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = menuDao.getItemById(menuItemId, restaurantId) ?: return
         menuDao.updateItem(
             current.copy(
                 lowStockThreshold = threshold.toString(),
@@ -57,7 +58,8 @@ class InventoryRepository(
     }
 
     suspend fun updateVariantThreshold(variantId: Long, threshold: Double) {
-        val current = menuDao.getVariantById(variantId) ?: return
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = menuDao.getVariantById(variantId, restaurantId) ?: return
         menuDao.updateVariant(
             current.copy(
                 lowStockThreshold = threshold.toString(),
@@ -71,7 +73,10 @@ class InventoryRepository(
     fun getLogsForItem(itemId: Long): Flow<List<StockLogEntity>> =
             inventoryDao.getLogsForItem(itemId)
 
-    fun getAllLogs(): Flow<List<StockLogEntity>> = inventoryDao.getAllLogs()
+    fun getAllLogs(): Flow<List<StockLogEntity>> {
+        val restaurantId = sessionManager.getRestaurantId()
+        return inventoryDao.getAllLogs(restaurantId)
+    }
 
     private fun triggerBackgroundSync() {
         val constraints =

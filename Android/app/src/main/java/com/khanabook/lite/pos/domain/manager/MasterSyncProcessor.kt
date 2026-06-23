@@ -191,7 +191,7 @@ class MasterSyncProcessor @Inject constructor(
             return false
         }
 
-        val profile = restaurantDao.getProfile()
+        val profile = restaurantDao.getProfile(restaurantId) ?: restaurantDao.getProfile()
         // Embed kitchen printer into restaurant profile before pushing.
         syncKitchenPrinterIntoProfile(profile)
 
@@ -299,13 +299,14 @@ class MasterSyncProcessor @Inject constructor(
 
     suspend fun insertMasterData(masterData: MasterSyncResponse) = database.withTransaction {
         if (masterData.profiles.isNotEmpty()) {
-            val currentLocalProfile = restaurantDao.getProfile()
+            val restaurantId = sessionManager.getRestaurantId()
+            val currentLocalProfile = if (restaurantId > 0) restaurantDao.getProfile(restaurantId) else restaurantDao.getProfile()
             restaurantDao.insertSyncedRestaurantProfiles(
                 masterData.profiles.map { remoteProfile ->
                     val localProfile = currentLocalProfile
                     val useRemoteLogo = remoteProfile.logoVersion > (localProfile?.logoVersion ?: 0)
                     RestaurantProfileEntity(
-                        id = currentLocalProfile?.id ?: 1,
+                        id = remoteProfile.restaurantId ?: (currentLocalProfile?.id ?: 1L),
                         shopName = remoteProfile.shopName.orFallback("My Shop"),
                         shopAddress = remoteProfile.shopAddress.orFallback(""),
                         whatsappNumber = remoteProfile.whatsappNumber.orFallback(""),

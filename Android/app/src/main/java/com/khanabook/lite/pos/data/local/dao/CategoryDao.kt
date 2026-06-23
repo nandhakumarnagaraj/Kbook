@@ -13,20 +13,20 @@ interface CategoryDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertCategory(category: CategoryEntity): Long
 
-    @Query("SELECT * FROM categories WHERE is_deleted = 0 ORDER BY sort_order ASC")
-    fun getAllCategoriesFlow(): Flow<List<CategoryEntity>>
+    @Query("SELECT * FROM categories WHERE is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY sort_order ASC")
+    fun getAllCategoriesFlow(restaurantId: Long): Flow<List<CategoryEntity>>
 
-    @Query("SELECT * FROM categories WHERE is_deleted = 0")
-    suspend fun getAllCategoriesOnce(): List<CategoryEntity>
+    @Query("SELECT * FROM categories WHERE is_deleted = 0 AND restaurant_id = :restaurantId")
+    suspend fun getAllCategoriesOnce(restaurantId: Long): List<CategoryEntity>
 
     @Query("SELECT * FROM categories WHERE id = :id LIMIT 1")
     suspend fun getCategoryById(id: Long): CategoryEntity?
 
-    @Query("SELECT * FROM categories WHERE name = :name COLLATE NOCASE LIMIT 1")
-    suspend fun getCategoryByName(name: String): CategoryEntity?
+    @Query("SELECT * FROM categories WHERE name = :name AND restaurant_id = :restaurantId COLLATE NOCASE LIMIT 1")
+    suspend fun getCategoryByName(name: String, restaurantId: Long): CategoryEntity?
 
-    @Query("SELECT * FROM categories WHERE is_active = 1 AND is_deleted = 0 ORDER BY sort_order ASC")
-    fun getActiveCategoriesFlow(): Flow<List<CategoryEntity>>
+    @Query("SELECT * FROM categories WHERE is_active = 1 AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY sort_order ASC")
+    fun getActiveCategoriesFlow(restaurantId: Long): Flow<List<CategoryEntity>>
 
     @Query("UPDATE categories SET is_active = :isActive WHERE id = :id")
     suspend fun toggleActive(id: Long, isActive: Boolean)
