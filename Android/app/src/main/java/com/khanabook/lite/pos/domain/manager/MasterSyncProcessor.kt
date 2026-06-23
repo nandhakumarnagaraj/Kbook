@@ -255,7 +255,13 @@ class MasterSyncProcessor @Inject constructor(
             markSynced = inventoryDao::markStockLogsAsSynced
         )
 
-        val unsyncedBills = billDao.getUnsyncedBills()
+        val activeUserId = sessionManager.getActiveUserId()
+        if (activeUserId == null) {
+            Log.w("MasterSyncProcessor", "Push aborted: activeUserId not set in session")
+            return false
+        }
+
+        val unsyncedBills = billDao.getUnsyncedBillsForUser(activeUserId)
         val validBills = unsyncedBills.filter { it.restaurantId == restaurantId }
         val skippedBills = unsyncedBills.size - validBills.size
         if (skippedBills > 0) {
@@ -270,7 +276,7 @@ class MasterSyncProcessor @Inject constructor(
             onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId) } }
         )
 
-        val unsyncedBillItems = billDao.getUnsyncedBillItems().filter { it.restaurantId == restaurantId }
+        val unsyncedBillItems = billDao.getUnsyncedBillItemsForUser(activeUserId).filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "bill items",
             records = unsyncedBillItems,
@@ -279,7 +285,7 @@ class MasterSyncProcessor @Inject constructor(
             markSynced = billDao::markBillItemsAsSynced
         )
 
-        val unsyncedBillPayments = billDao.getUnsyncedBillPayments().filter { it.restaurantId == restaurantId }
+        val unsyncedBillPayments = billDao.getUnsyncedBillPaymentsForUser(activeUserId).filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "bill payments",
             records = unsyncedBillPayments,

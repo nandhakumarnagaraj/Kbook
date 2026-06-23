@@ -125,6 +125,26 @@ interface BillDao {
     @Query("SELECT * FROM bills WHERE is_synced = 0")
     suspend fun getUnsyncedBills(): List<BillEntity>
 
+    @Query("SELECT * FROM bills WHERE is_synced = 0 AND owner_user_id = :userId")
+    suspend fun getUnsyncedBillsForUser(userId: Long): List<BillEntity>
+
+    @Query("""
+        SELECT bi.* FROM bill_items bi
+        INNER JOIN bills b ON bi.bill_id = b.id
+        WHERE bi.is_synced = 0 AND b.owner_user_id = :userId
+    """)
+    suspend fun getUnsyncedBillItemsForUser(userId: Long): List<BillItemEntity>
+
+    @Query("""
+        SELECT bp.* FROM bill_payments bp
+        INNER JOIN bills b ON bp.bill_id = b.id
+        WHERE bp.is_synced = 0 AND b.owner_user_id = :userId
+    """)
+    suspend fun getUnsyncedBillPaymentsForUser(userId: Long): List<BillPaymentEntity>
+
+    @Query("SELECT COUNT(*) FROM bills WHERE is_synced = 0 AND owner_user_id = :userId")
+    fun getUnsyncedCountForUser(userId: Long): Flow<Int>
+
     @Query("UPDATE bills SET is_synced = 1 WHERE id IN (:billIds)")
     suspend fun markBillsAsSynced(billIds: List<Long>)
 

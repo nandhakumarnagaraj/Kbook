@@ -395,7 +395,9 @@ class BillingViewModel @Inject constructor(
                 createdAt = System.currentTimeMillis(),
                 paidAt = null,
                 lastResetDate = profile.lastResetDate ?: "",
-                publicToken = UUID.randomUUID().toString()
+                publicToken = UUID.randomUUID().toString(),
+                ownerUserId = sessionManager.getActiveUserId(),
+                ownerRestaurantId = sessionManager.getRestaurantId()
             )
 
             val items = _cartItems.value.map { cartItem ->
@@ -618,7 +620,9 @@ class BillingViewModel @Inject constructor(
                 createdAt = System.currentTimeMillis(),
                 paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null,
                 lastResetDate = profile.lastResetDate ?: "",
-                publicToken = UUID.randomUUID().toString()
+                publicToken = UUID.randomUUID().toString(),
+                ownerUserId = sessionManager.getActiveUserId(),
+                ownerRestaurantId = sessionManager.getRestaurantId()
             )
 
             val items = _cartItems.value.map { cartItem ->

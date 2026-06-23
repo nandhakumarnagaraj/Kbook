@@ -24,6 +24,7 @@ class AuthInterceptorTest {
     @Before
     fun setUp() {
         sessionManager = mockk()
+        every { sessionManager.getDeviceId() } returns "device-123"
         authInterceptor = AuthInterceptor(sessionManager)
         chain = mockk()
         mockResponse = Response.Builder()

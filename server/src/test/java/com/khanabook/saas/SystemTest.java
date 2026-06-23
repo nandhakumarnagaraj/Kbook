@@ -210,6 +210,50 @@ class SystemTest extends BaseIntegrationTest {
         assertThat(resp.getBody()).contains("idToken");
     }
 
+    @Test
+    void billPush_mismatchedTenantId_returns403() {
+        String token = signupAndGetToken();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        String payload = "[" +
+            "  {" +
+            "    \"localId\": 1," +
+            "    \"deviceId\": \"DEVICE_SYS\"," +
+            "    \"restaurantId\": 999999," +
+            "    \"updatedAt\": 1690000000000," +
+            "    \"createdAt\": 1690000000000," +
+            "    \"dailyOrderId\": 1," +
+            "    \"dailyOrderDisplay\": \"D1\"," +
+            "    \"lifetimeOrderId\": 1," +
+            "    \"orderType\": \"order\"," +
+            "    \"subtotal\": 100.00," +
+            "    \"gstPercentage\": 5.00," +
+            "    \"cgstAmount\": 2.50," +
+            "    \"sgstAmount\": 2.50," +
+            "    \"customTaxAmount\": 0.00," +
+            "    \"totalAmount\": 105.00," +
+            "    \"paymentMode\": \"cash\"," +
+            "    \"paymentStatus\": \"success\"," +
+            "    \"orderStatus\": \"completed\"" +
+            "  }" +
+            "]";
+
+        HttpEntity<String> req = new HttpEntity<>(payload, headers);
+
+        ResponseEntity<String> resp = rest.exchange(
+            "/sync/bills/push",
+            HttpMethod.POST,
+            req,
+            String.class
+        );
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+
     
 
     private String signupAndGetToken() {

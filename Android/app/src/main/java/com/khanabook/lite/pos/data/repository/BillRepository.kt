@@ -10,6 +10,7 @@ import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.local.entity.BillItemEntity
 import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +20,8 @@ class BillRepository(
         private val restaurantDao: com.khanabook.lite.pos.data.local.dao.RestaurantDao,
         private val inventoryConsumptionManager: InventoryConsumptionManager? = null,
         private val workManager: WorkManager,
-        private val kitchenPrintQueueRepository: KitchenPrintQueueRepository? = null
+        private val kitchenPrintQueueRepository: KitchenPrintQueueRepository? = null,
+        private val sessionManager: SessionManager
 ) {
 
     suspend fun insertFullBill(
@@ -189,7 +191,8 @@ class BillRepository(
     }
 
     fun getUnsyncedCount(): Flow<Int> {
-        return billDao.getUnsyncedCount()
+        val activeUserId = sessionManager.getActiveUserId() ?: -1L
+        return billDao.getUnsyncedCountForUser(activeUserId)
     }
 
     suspend fun getTopSellingItemsInRange(startMillis: Long, endMillis: Long, limit: Int): List<com.khanabook.lite.pos.domain.model.TopSellingItem> {

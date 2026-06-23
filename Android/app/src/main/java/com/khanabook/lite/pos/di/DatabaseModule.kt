@@ -136,7 +136,8 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_39_40,
                 AppDatabase.MIGRATION_40_41,
                 AppDatabase.MIGRATION_41_42,
-                AppDatabase.MIGRATION_42_43
+                AppDatabase.MIGRATION_42_43,
+                AppDatabase.MIGRATION_43_44
             )
             .build()
     }
@@ -239,13 +240,15 @@ object DatabaseModule {
         restaurantDao: RestaurantDao,
         inventoryConsumptionManager: InventoryConsumptionManager,
         workManager: androidx.work.WorkManager,
-        kitchenPrintQueueRepository: KitchenPrintQueueRepository
+        kitchenPrintQueueRepository: KitchenPrintQueueRepository,
+        sessionManager: SessionManager
     ) = BillRepository(
         billDao,
         restaurantDao,
         inventoryConsumptionManager,
         workManager,
-        kitchenPrintQueueRepository
+        kitchenPrintQueueRepository,
+        sessionManager
     )
 
     @Provides

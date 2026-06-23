@@ -86,5 +86,9 @@ data class BillEntity(
     @SerializedName("cancelReason")
     @ColumnInfo(name = "cancel_reason", defaultValue = "") val cancelReason: String = "",
     @SerializedName("publicToken")
-    @ColumnInfo(name = "public_token") val publicToken: String? = null
+    @ColumnInfo(name = "public_token") val publicToken: String? = null,
+    @SerializedName("ownerUserId")
+    @ColumnInfo(name = "owner_user_id", defaultValue = "NULL") val ownerUserId: Long? = null,
+    @SerializedName("ownerRestaurantId")
+    @ColumnInfo(name = "owner_restaurant_id", defaultValue = "NULL") val ownerRestaurantId: Long? = null
 )

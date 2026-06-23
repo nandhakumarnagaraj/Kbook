@@ -7,6 +7,7 @@ import com.khanabook.lite.pos.data.local.entity.BillItemEntity
 import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager
+import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import io.mockk.coVerify
 import io.mockk.every
@@ -23,6 +24,7 @@ class BillRepositoryTest {
     private lateinit var restaurantDao: com.khanabook.lite.pos.data.local.dao.RestaurantDao
     private lateinit var inventoryConsumptionManager: InventoryConsumptionManager
     private lateinit var workManager: WorkManager
+    private lateinit var sessionManager: SessionManager
     private lateinit var billRepository: BillRepository
 
     @Before
@@ -35,7 +37,16 @@ class BillRepositoryTest {
         restaurantDao = mockk(relaxed = true)
         inventoryConsumptionManager = mockk(relaxed = true)
         workManager = mockk(relaxed = true)
-        billRepository = BillRepository(billDao, restaurantDao, inventoryConsumptionManager, workManager)
+        sessionManager = mockk(relaxed = true)
+        every { sessionManager.getActiveUserId() } returns 12345L
+        
+        billRepository = BillRepository(
+            billDao = billDao,
+            restaurantDao = restaurantDao,
+            inventoryConsumptionManager = inventoryConsumptionManager,
+            workManager = workManager,
+            sessionManager = sessionManager
+        )
     }
 
     @After

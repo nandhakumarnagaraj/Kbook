@@ -25,6 +25,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
+class PendingSyncException(val unsyncedCount: Int) : Exception("Cannot logout: $unsyncedCount unsynced items remaining")
+
 sealed class LogoutState {
     object Idle : LogoutState()
     object AttemptingPush : LogoutState()
@@ -68,10 +70,21 @@ class LogoutViewModel @Inject constructor(
                     } catch (e: Exception) {
                         Log.w(debugTag, "Immediate sync before logout failed; preserving local DB: ${e.message}")
                     }
-                    performSoftLogout()
+                    val finalSummary = getUnsyncedDataSummary()
+                    if (finalSummary.totalCount > 0) {
+                        _logoutState.value = LogoutState.WarningOfflineData(
+                            totalCount = finalSummary.totalCount,
+                            summary = finalSummary.summary
+                        )
+                        throw PendingSyncException(finalSummary.totalCount)
+                    } else {
+                        performHardLogout()
+                    }
                 } else {
                     performHardLogout()
                 }
+            } catch (e: PendingSyncException) {
+                Log.w(debugTag, "Logout aborted due to pending sync data: ${e.message}")
             } catch (e: Exception) {
                 Log.w(debugTag, "Logout pre-check failed; preserving local DB: ${e.message}")
                 performSoftLogout()
@@ -139,15 +152,18 @@ class LogoutViewModel @Inject constructor(
     }
 
     private suspend fun getUnsyncedDataSummary(): UnsyncedDataSummary = coroutineScope {
-        val profileCount = async { appDatabase.restaurantDao().getUnsyncedRestaurantProfiles().size }
-        val userCount = async { appDatabase.userDao().getUnsyncedUsers().size }
-        val categoryCount = async { appDatabase.categoryDao().getUnsyncedCategories().size }
-        val menuItemCount = async { appDatabase.menuDao().getUnsyncedMenuItems().size }
-        val variantCount = async { appDatabase.menuDao().getUnsyncedItemVariants().size }
-        val stockLogCount = async { appDatabase.inventoryDao().getUnsyncedStockLogs().size }
-        val billCount = async { appDatabase.billDao().getUnsyncedBills().size }
-        val billItemCount = async { appDatabase.billDao().getUnsyncedBillItems().size }
-        val billPaymentCount = async { appDatabase.billDao().getUnsyncedBillPayments().size }
+        val activeUserId = sessionManager.getActiveUserId() ?: -1L
+        val activeRestaurantId = sessionManager.getRestaurantId()
+
+        val profileCount = async { appDatabase.restaurantDao().getUnsyncedRestaurantProfiles().filter { it.restaurantId == activeRestaurantId }.size }
+        val userCount = async { appDatabase.userDao().getUnsyncedUsers().filter { it.restaurantId == activeRestaurantId }.size }
+        val categoryCount = async { appDatabase.categoryDao().getUnsyncedCategories().filter { it.restaurantId == activeRestaurantId }.size }
+        val menuItemCount = async { appDatabase.menuDao().getUnsyncedMenuItems().filter { it.restaurantId == activeRestaurantId }.size }
+        val variantCount = async { appDatabase.menuDao().getUnsyncedItemVariants().filter { it.restaurantId == activeRestaurantId }.size }
+        val stockLogCount = async { appDatabase.inventoryDao().getUnsyncedStockLogs().filter { it.restaurantId == activeRestaurantId }.size }
+        val billCount = async { appDatabase.billDao().getUnsyncedBillsForUser(activeUserId).size }
+        val billItemCount = async { appDatabase.billDao().getUnsyncedBillItemsForUser(activeUserId).size }
+        val billPaymentCount = async { appDatabase.billDao().getUnsyncedBillPaymentsForUser(activeUserId).size }
 
         val pc = profileCount.await()
         val uc = userCount.await()
