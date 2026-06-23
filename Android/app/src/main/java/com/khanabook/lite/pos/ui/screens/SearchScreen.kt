@@ -131,12 +131,26 @@ fun SearchScreen(
                 ) {
                     Tab(
                         selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
+                        onClick = {
+                            if (selectedTab != 0) {
+                                selectedTab = 0
+                                dailyId = ""
+                                lifetimeQuery = ""
+                                viewModel.clearSearch()
+                            }
+                        },
                         text = { Text("Order No", style = MaterialTheme.typography.labelLarge) }
                     )
                     Tab(
                         selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
+                        onClick = {
+                            if (selectedTab != 1) {
+                                selectedTab = 1
+                                dailyId = ""
+                                lifetimeQuery = ""
+                                viewModel.clearSearch()
+                            }
+                        },
                         text = { Text("Invoice No", style = MaterialTheme.typography.labelLarge) }
                     )
                 }

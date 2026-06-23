@@ -282,6 +282,7 @@ private fun KdsBillCard(
 ) {
     val spacing = KhanaBookTheme.spacing
     val bill = billWithItems.bill
+    val isCancelled = bill.orderStatus == "cancelled"
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -316,7 +317,7 @@ private fun KdsBillCard(
                         shape = CircleShape
                     ) {
                         Text(
-                            text = "KDS PENDING",
+                            text = if (isCancelled) "CANCELLED" else "KDS PENDING",
                             color = DangerRed,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
@@ -355,16 +356,27 @@ private fun KdsBillCard(
                     Text("Total", color = TextLight, style = MaterialTheme.typography.titleMedium)
                     Text(CurrencyUtils.formatPrice(bill.totalAmount), color = PrimaryGold, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
+                if (isCancelled) {
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    Text(
+                        text = "This order has been cancelled, due to that it can't be printed.",
+                        color = DangerRed,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(vertical = spacing.small)
+                    )
+                }
                 Spacer(modifier = Modifier.height(spacing.medium))
                 Button(
-                    onClick = { onPrint(billWithItems) },
+                    onClick = { if (!isCancelled) onPrint(billWithItems) },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                    shape = RoundedCornerShape(10.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = if (isCancelled) Color.Gray else PrimaryGold),
+                    shape = RoundedCornerShape(10.dp),
+                    enabled = !isCancelled
                 ) {
-                    Icon(Icons.Default.Print, null, tint = DarkBrown1, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+                    Icon(Icons.Default.Print, null, tint = if (isCancelled) Color.DarkGray else DarkBrown1, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Reprint KDS", color = DarkBrown1, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Reprint KDS", color = if (isCancelled) Color.DarkGray else DarkBrown1, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }

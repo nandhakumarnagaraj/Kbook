@@ -39,7 +39,7 @@ class InitialSyncViewModel @Inject constructor(
         viewModelScope.launch {
             _syncState.value = InitialSyncState.Syncing
             try {
-                val result = syncManager.performMasterPull()
+                val result = syncManager.performFullSync()
 
                 if (result.isSuccess) {
                     sessionManager.setInitialSyncCompleted(true)

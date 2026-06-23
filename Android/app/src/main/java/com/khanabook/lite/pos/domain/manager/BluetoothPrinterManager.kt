@@ -155,7 +155,12 @@ class BluetoothPrinterManager(private val context: Context) {
     @Suppress("MissingPermission")
     fun getPairedDevices(): List<BluetoothDevice> {
         if (!hasRequiredPermissions()) return emptyList()
-        return bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
+        return try {
+            bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
+        } catch (e: SecurityException) {
+            Log.e(TAG, "SecurityException in getPairedDevices: bluetooth permission revoked", e)
+            emptyList()
+        }
     }
 
     private val discoveryReceiver = object : BroadcastReceiver() {
@@ -224,8 +229,12 @@ class BluetoothPrinterManager(private val context: Context) {
 
         ContextCompat.registerReceiver(context, discoveryReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
-        bluetoothAdapter?.cancelDiscovery()
-        bluetoothAdapter?.startDiscovery()
+        try {
+            bluetoothAdapter?.cancelDiscovery()
+            bluetoothAdapter?.startDiscovery()
+        } catch (e: SecurityException) {
+            Log.e(TAG, "SecurityException in startScan: bluetooth permission revoked", e)
+        }
     }
 
     @Suppress("MissingPermission")
@@ -279,13 +288,26 @@ class BluetoothPrinterManager(private val context: Context) {
                 printerMutex.withLock { lastConnectedMac = mac }
                 return true
             }
-
             // Close stale resources (may block briefly — outside global mutex).
             try { staleStream?.close() } catch (_: Exception) {}
             try { staleSocket?.close() } catch (_: Exception) {}
 
             _isConnecting.value = true
             try {
+                if (device.bondState == BluetoothDevice.BOND_NONE) {
+                    Log.d(TAG, "Device $mac is not paired. Initiating bonding...")
+                    try {
+                        device.createBond()
+                        var retries = 30
+                        while (device.bondState == BluetoothDevice.BOND_BONDING && retries > 0) {
+                            kotlinx.coroutines.delay(500)
+                            retries--
+                        }
+                    } catch (e: SecurityException) {
+                        Log.e(TAG, "SecurityException during createBond for $mac", e)
+                    }
+                }
+
                 bluetoothAdapter?.cancelDiscovery()
 
                 var socket: BluetoothSocket? = null
@@ -349,6 +371,25 @@ class BluetoothPrinterManager(private val context: Context) {
     }
 
     /**
+     * Sends raw bytes to a specific printer by MAC address.
+     * Thread-safe and supports concurrent printing.
+     */
+    suspend fun printBytesTo(mac: String, data: ByteArray): Boolean {
+        val stream = printerMutex.withLock { outputStreams[mac] } ?: run {
+            Log.e(TAG, "printBytesTo: No output stream for printer $mac")
+            return false
+        }
+        return try {
+            stream.write(data)
+            stream.flush()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send data to printer $mac", e)
+            false
+        }
+    }
+
+    /**
      * Disconnects a specific printer by MAC, leaving other connections intact.
      */
     suspend fun disconnect(mac: String) {
@@ -360,6 +401,9 @@ class BluetoothPrinterManager(private val context: Context) {
             if (lastConnectedMac == mac) lastConnectedMac = activeSockets.keys.firstOrNull()
             _isConnected.value = activeSockets.isNotEmpty()
             Pair(s, str)
+        }
+        if (stream != null || socket != null) {
+            try { kotlinx.coroutines.delay(400) } catch (_: Exception) {}
         }
         try { stream?.close() } catch (e: Exception) { Log.w(TAG, "Error closing stream for $mac", e) }
         try { socket?.close() } catch (e: Exception) { Log.w(TAG, "Error closing socket for $mac", e) }

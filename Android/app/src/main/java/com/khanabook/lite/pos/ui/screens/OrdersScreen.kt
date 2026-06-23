@@ -580,12 +580,25 @@ fun OrderTableRow(
                     onDismissRequest = { payModeExpanded = false },
                     modifier = Modifier.background(DarkBrown2)
                 ) {
-                    enabledModes.forEach { mode ->
+                    PaymentMode.values().forEach { mode ->
                         DropdownMenuItem(
                             text = { Text(mode.displayLabel, color = TextLight, style = MaterialTheme.typography.bodySmall) },
                             onClick = { onPayModeChange(mode); payModeExpanded = false }
                         )
                     }
+                    HorizontalDivider(color = BorderGold.copy(alpha = 0.3f))
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = "Note: Enable configurations in Settings for all payment methods to use them on new orders.",
+                                color = TextGold,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 2
+                            )
+                        },
+                        onClick = {},
+                        enabled = false
+                    )
                 }
             }
 

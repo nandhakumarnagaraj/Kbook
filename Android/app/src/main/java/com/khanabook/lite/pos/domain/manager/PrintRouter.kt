@@ -9,6 +9,11 @@ import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.domain.util.InvoiceFormatter
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.asSharedFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -38,11 +43,14 @@ class PrintRouter @Inject constructor(
         private const val TAG = "PrintRouter"
     }
 
+    private val _printResults = kotlinx.coroutines.flow.MutableSharedFlow<Pair<Long, PrintDispatchResult>>(extraBufferCapacity = 16)
+    val printResults = _printResults.asSharedFlow()
+
     suspend fun printBill(
         bill: BillWithItems,
         restaurantProfile: RestaurantProfileEntity?,
         mode: PrintDispatchMode
-    ): PrintDispatchResult {
+    ): PrintDispatchResult = coroutineScope {
         val resolvedTargets = resolveTargets(restaurantProfile, mode)
         val immediateTargets = resolvedTargets.toMutableList()
         var kitchenQueued = false
@@ -79,7 +87,7 @@ class PrintRouter @Inject constructor(
         }
 
         if (immediateTargets.isEmpty()) {
-            return PrintDispatchResult(
+            return@coroutineScope PrintDispatchResult(
                 attempted = 0,
                 succeeded = 0,
                 successTargets = emptyList(),
@@ -89,81 +97,72 @@ class PrintRouter @Inject constructor(
             )
         }
 
-        var successCount = 0
-        val successTargets = mutableListOf<String>()
-        val failures = mutableListOf<String>()
+        val printJobs = immediateTargets.map { target ->
+            async(Dispatchers.IO) {
+                val isKitchenTarget = target.role == PrinterRole.KITCHEN.name
+                var claimedQueuedJob = false
+                var success = false
+                var errorMsg = ""
 
-        for (target in immediateTargets) {
-            val isKitchenTarget = target.role == PrinterRole.KITCHEN.name
-            var claimedQueuedJob = false
-            repeat(target.copies.coerceAtLeast(1)) {
-                if (!claimedQueuedJob && isKitchenTarget && mode == PrintDispatchMode.AUTO) {
-                    claimedQueuedJob = kitchenPrintQueueManager.claimPendingForDirectPrint(
-                        bill.bill.id,
-                        target.macAddress
-                    )
+                repeat(target.copies.coerceAtLeast(1)) {
+                    if (!claimedQueuedJob && isKitchenTarget && mode == PrintDispatchMode.AUTO) {
+                        claimedQueuedJob = kitchenPrintQueueManager.claimPendingForDirectPrint(
+                            bill.bill.id,
+                            target.macAddress
+                        )
+                    }
+                    try {
+                        if (!printerManager.connect(target.macAddress)) {
+                            errorMsg = "connection failed"
+                            return@repeat
+                        }
+                        val printProfile = restaurantProfile?.copy(
+                            paperSize = target.paperSize,
+                            includeLogoInPrint = target.includeLogo
+                        ) ?: return@repeat
+                        val bytes = when (PrinterRole.fromValue(target.role)) {
+                            PrinterRole.CUSTOMER -> InvoiceFormatter.formatForThermalPrinter(bill, printProfile, context)
+                            PrinterRole.KITCHEN -> KitchenTicketFormatter.format(bill, restaurantProfile, target)
+                        }
+                        if (printerManager.printBytesTo(target.macAddress, bytes)) {
+                            success = true
+                        } else {
+                            errorMsg = "print failed"
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed printing to ${target.name}", e)
+                        errorMsg = e.message ?: "unexpected error"
+                    } finally {
+                        printerManager.disconnect(target.macAddress)
+                    }
                 }
-                try {
-                    if (!printerManager.connect(target.macAddress)) {
-                        val queued = maybeQueueKitchenRetry(
-                            bill.bill.id,
-                            target,
-                            mode,
-                            "connection failed",
-                            incrementAttempts = !claimedQueuedJob
-                        )
-                        if (queued) {
-                            kitchenQueued = true
-                            kitchenQueueReason = kitchenQueueReason ?: "offline"
-                        }
-                        failures += "${target.name}: connection failed"
-                        return@repeat
-                    }
-                    val printProfile = restaurantProfile?.copy(
-                        paperSize = target.paperSize,
-                        includeLogoInPrint = target.includeLogo
-                    ) ?: return@repeat
-                    val bytes = when (PrinterRole.fromValue(target.role)) {
-                        PrinterRole.CUSTOMER -> InvoiceFormatter.formatForThermalPrinter(bill, printProfile, context)
-                        PrinterRole.KITCHEN -> KitchenTicketFormatter.format(bill, restaurantProfile, target)
-                    }
-                    if (printerManager.printBytes(bytes)) {
-                        maybeClearKitchenQueue(bill.bill.id, target)
-                        successCount += 1
-                        successTargets += target.role
-                    } else {
-                        val queued = maybeQueueKitchenRetry(
-                            bill.bill.id,
-                            target,
-                            mode,
-                            "print failed",
-                            incrementAttempts = !claimedQueuedJob
-                        )
-                        if (queued) {
-                            kitchenQueued = true
-                            kitchenQueueReason = kitchenQueueReason ?: "print_failed"
-                        }
-                        failures += "${target.name}: print failed"
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed printing to ${target.name}", e)
-                    val queued = maybeQueueKitchenRetry(
+
+                if (success) {
+                    maybeClearKitchenQueue(bill.bill.id, target)
+                } else {
+                    maybeQueueKitchenRetry(
                         bill.bill.id,
                         target,
                         mode,
-                        e.message ?: "unexpected error",
+                        errorMsg,
                         incrementAttempts = !claimedQueuedJob
                     )
-                    if (queued) {
-                        kitchenQueued = true
-                        kitchenQueueReason = kitchenQueueReason ?: "print_failed"
-                    }
-                    failures += "${target.name}: ${e.message ?: "unexpected error"}"
                 }
+                Triple(target.role, success, errorMsg)
             }
         }
 
-        return PrintDispatchResult(
+        val completedJobs = printJobs.awaitAll()
+        val successTargets = completedJobs.filter { it.second }.map { it.first }
+        val successCount = successTargets.size
+        val failures = completedJobs.filter { !it.second }.map { "${it.first}: ${it.third}" }
+
+        if (failures.any { it.startsWith(PrinterRole.KITCHEN.name) } && mode == PrintDispatchMode.AUTO) {
+            kitchenQueued = true
+            kitchenQueueReason = kitchenQueueReason ?: "print_failed"
+        }
+
+        val result = PrintDispatchResult(
             attempted = immediateTargets.sumOf { it.copies.coerceAtLeast(1) },
             succeeded = successCount,
             successTargets = successTargets,
@@ -171,6 +170,8 @@ class PrintRouter @Inject constructor(
             kitchenQueued = kitchenQueued,
             kitchenQueueReason = kitchenQueueReason
         )
+        _printResults.emit(Pair(bill.bill.id, result))
+        result
     }
 
     private suspend fun resolveTargets(

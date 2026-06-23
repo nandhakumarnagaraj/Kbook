@@ -24,7 +24,8 @@ class MasterSyncProcessor @Inject constructor(
     private val categoryDao: CategoryDao,
     private val menuDao: MenuDao,
     private val inventoryDao: InventoryDao,
-    private val printerProfileDao: PrinterProfileDao
+    private val printerProfileDao: PrinterProfileDao,
+    private val sessionManager: SessionManager
 ) {
     private fun normalizeUserRole(role: String?): String {
         return when (role) {
@@ -153,12 +154,16 @@ class MasterSyncProcessor @Inject constructor(
     }
 
     suspend fun pushSingleBill(billLocalId: Long) {
-        val profile = restaurantDao.getProfile()
-        val restaurantId = profile?.restaurantId ?: 0L
-        if (restaurantId <= 0L) throw IllegalStateException("Push phase aborted: restaurantId not set")
+        val restaurantId = sessionManager.getRestaurantId()
+        if (restaurantId <= 0L) throw IllegalStateException("Push phase aborted: restaurantId not set in session")
 
         val bill = billDao.getBillById(billLocalId)
             ?: throw IllegalStateException("Bill $billLocalId not found locally")
+
+        if (bill.restaurantId != restaurantId) {
+            Log.w("MasterSyncProcessor", "pushSingleBill: Bill restaurantId (${bill.restaurantId}) does not match session restaurantId ($restaurantId). Skipping.")
+            return
+        }
 
         pushBatches(
             label = "bill",
@@ -180,59 +185,71 @@ class MasterSyncProcessor @Inject constructor(
 
     suspend fun pushAll(): Boolean {
         // Guard: never push data with an invalid tenant
-        val profile = restaurantDao.getProfile()
-        val restaurantId = profile?.restaurantId ?: 0L
+        val restaurantId = sessionManager.getRestaurantId()
         if (restaurantId <= 0L) {
             Log.w("MasterSyncProcessor", "Push aborted: restaurantId not set (value=$restaurantId)")
             return false
         }
 
+        val profile = restaurantDao.getProfile()
         // Embed kitchen printer into restaurant profile before pushing.
         syncKitchenPrinterIntoProfile(profile)
 
+        val unsyncedProfiles = restaurantDao.getUnsyncedRestaurantProfiles()
+        val validProfiles = unsyncedProfiles.filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "restaurant profiles",
-            records = restaurantDao.getUnsyncedRestaurantProfiles(),
+            records = validProfiles,
             transform = RestaurantProfileEntity::toSyncDto,
             push = api::pushRestaurantProfiles,
             markSynced = restaurantDao::markRestaurantProfilesAsSynced
         )
 
+        val unsyncedUsers = userDao.getUnsyncedUsers()
+        val validUsers = unsyncedUsers.filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "users",
-            records = userDao.getUnsyncedUsers(),
+            records = validUsers,
             transform = UserEntity::toSyncDto,
             push = api::pushUsers,
             markSynced = userDao::markUsersAsSynced
         )
 
+        val unsyncedCategories = categoryDao.getUnsyncedCategories()
+        val validCategories = unsyncedCategories.filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "categories",
-            records = categoryDao.getUnsyncedCategories(),
+            records = validCategories,
             transform = CategoryEntity::toSyncDto,
             push = api::pushCategories,
             markSynced = categoryDao::markCategoriesAsSynced
         )
 
+        val unsyncedMenuItems = menuDao.getUnsyncedMenuItems()
+        val validMenuItems = unsyncedMenuItems.filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "menu items",
-            records = menuDao.getUnsyncedMenuItems(),
+            records = validMenuItems,
             transform = MenuItemEntity::toSyncDto,
             push = api::pushMenuItems,
             markSynced = menuDao::markMenuItemsAsSynced
         )
 
+        val unsyncedVariants = menuDao.getUnsyncedItemVariants()
+        val validVariants = unsyncedVariants.filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "item variants",
-            records = menuDao.getUnsyncedItemVariants(),
+            records = validVariants,
             transform = ItemVariantEntity::toSyncDto,
             push = api::pushItemVariants,
             markSynced = menuDao::markItemVariantsAsSynced
         )
 
+        val unsyncedStockLogs = inventoryDao.getUnsyncedStockLogs()
+        val validStockLogs = unsyncedStockLogs.filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "stock logs",
-            records = inventoryDao.getUnsyncedStockLogs(),
+            records = validStockLogs,
             transform = StockLogEntity::toSyncDto,
             push = api::pushStockLogs,
             markSynced = inventoryDao::markStockLogsAsSynced
@@ -253,9 +270,10 @@ class MasterSyncProcessor @Inject constructor(
             onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId) } }
         )
 
+        val unsyncedBillItems = billDao.getUnsyncedBillItems().filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "bill items",
-            records = billDao.getUnsyncedBillItems().filter { it.restaurantId == restaurantId },
+            records = unsyncedBillItems,
             transform = BillItemEntity::toSyncDto,
             push = api::pushBillItems,
             markSynced = billDao::markBillItemsAsSynced

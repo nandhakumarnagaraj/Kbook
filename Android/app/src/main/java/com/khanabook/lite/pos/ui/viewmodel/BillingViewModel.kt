@@ -93,6 +93,67 @@ class BillingViewModel @Inject constructor(
         }
             .onEach { _billSummary.value = it }
             .launchIn(viewModelScope)
+
+        viewModelScope.launch {
+            printRouter.printResults.collect { (billId, result) ->
+                val lastBillId = _lastBill.value?.bill?.id
+                if (lastBillId == billId) {
+                    val kitchenQueued = result.kitchenQueued ||
+                        kitchenPrintQueueRepository.hasPendingForBill(billId)
+                    if (result.attempted == 0) {
+                        withContext(Dispatchers.Main) {
+                            _printStatus.value = if (kitchenQueued) {
+                                when (result.kitchenQueueReason) {
+                                    "not_configured" ->
+                                        "Kitchen printer not configured. KDS queued."
+                                    else ->
+                                        "Kitchen printer offline. KDS queued."
+                                }
+                            } else {
+                                "No auto-print target configured."
+                            }
+                        }
+                    } else if (kitchenQueued && result.succeeded > 0) {
+                        withContext(Dispatchers.Main) {
+                            _printStatus.value = if (result.successTargets.contains(PrinterRole.KITCHEN.name)) {
+                                "Printed Kitchen ticket"
+                            } else {
+                                "Printed customer receipt. KDS queued."
+                            }
+                        }
+                    } else if (kitchenQueued) {
+                        withContext(Dispatchers.Main) {
+                            _printStatus.value = when (result.kitchenQueueReason) {
+                                "not_configured" ->
+                                    "Kitchen printer not configured. KDS queued."
+                                else ->
+                                    "Kitchen printer offline. KDS queued."
+                            }
+                        }
+                    } else if (result.failures.isEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            _printStatus.value = when {
+                                result.successTargets.contains(PrinterRole.KITCHEN.name) ->
+                                    "Printed Kitchen ticket"
+                                else -> buildPrintStatusMessage(
+                                    prefix = "Printed",
+                                    targets = result.successTargets
+                                )
+                            }
+                        }
+                    } else if (result.succeeded > 0) {
+                        withContext(Dispatchers.Main) {
+                            _printStatus.value = buildPartialPrintStatus(result)
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            _error.value = "Auto-print failed. Bill saved."
+                            _printStatus.value = "Printing failed for all configured printers."
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private val _customerName = MutableStateFlow("")
@@ -635,72 +696,16 @@ class BillingViewModel @Inject constructor(
             }
 
             // Launch auto-print asynchronously — never blocks bill completion
+            // Launch auto-print via PrintService (Foreground Service) to handle background lifecycle safely
             if (inserted != null && status == PaymentStatus.SUCCESS) {
-                viewModelScope.launch(Dispatchers.IO) {
-                    try {
-                        val result = printRouter.printBill(inserted, profile, PrintDispatchMode.AUTO)
-                        val kitchenQueued = result.kitchenQueued ||
-                            kitchenPrintQueueRepository.hasPendingForBill(inserted.bill.id)
-                        if (result.attempted == 0) {
-                            withContext(Dispatchers.Main) {
-                                _printStatus.value = if (kitchenQueued) {
-                                    when (result.kitchenQueueReason) {
-                                        "not_configured" ->
-                                            "Kitchen printer not configured. Bill saved. KDS queued."
-                                        else ->
-                                            "Kitchen printer offline. Bill saved. KDS queued."
-                                    }
-                                } else {
-                                    "No auto-print target configured."
-                                }
-                            }
-                        } else if (kitchenQueued && result.succeeded > 0) {
-                            withContext(Dispatchers.Main) {
-                                _printStatus.value = if (result.successTargets.contains(PrinterRole.KITCHEN.name)) {
-                                    "Printed Kitchen ticket"
-                                } else {
-                                    "Printed customer receipt. KDS queued."
-                                }
-                            }
-                        } else if (kitchenQueued) {
-                            withContext(Dispatchers.Main) {
-                                _printStatus.value = when (result.kitchenQueueReason) {
-                                    "not_configured" ->
-                                        "Kitchen printer not configured. Bill saved. KDS queued."
-                                    else ->
-                                        "Kitchen printer offline. Bill saved. KDS queued."
-                                }
-                            }
-                        } else if (result.failures.isEmpty()) {
-                            withContext(Dispatchers.Main) {
-                                _printStatus.value = when {
-                                    result.successTargets.contains(PrinterRole.KITCHEN.name) ->
-                                        "Printed Kitchen ticket"
-                                    else -> buildPrintStatusMessage(
-                                        prefix = "Printed",
-                                        targets = result.successTargets
-                                    )
-                                }
-                            }
-                        } else if (result.succeeded > 0) {
-                            withContext(Dispatchers.Main) {
-                                _printStatus.value = buildPartialPrintStatus(result)
-                            }
-                        } else {
-                            withContext(Dispatchers.Main) {
-                                _error.value = "Auto-print failed. Bill saved."
-                                _printStatus.value = "Printing failed for all configured printers."
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Auto-print failed", e)
-                        withContext(Dispatchers.Main) {
-                            _error.value = UserMessageSanitizer.sanitize(
-                                e,
-                                "Unable to print invoice. Bill saved successfully."
-                            )
-                        }
-                    }
+                try {
+                    com.khanabook.lite.pos.domain.manager.PrintService.startPrintJob(
+                        context = appContext,
+                        billId = inserted.bill.id,
+                        mode = PrintDispatchMode.AUTO
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to start PrintService for auto-print", e)
                 }
             }
 

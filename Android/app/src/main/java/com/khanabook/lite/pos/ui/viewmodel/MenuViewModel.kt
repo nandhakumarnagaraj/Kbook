@@ -438,33 +438,95 @@ class MenuViewModel @Inject constructor(
     fun processMenuImage(context: Context, bitmap: android.graphics.Bitmap) {
         _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Analysing image...", error = null) }
         
-        val scaledBitmap = scaleBitmapIfNeeded(bitmap)
-        val image = com.google.mlkit.vision.common.InputImage.fromBitmap(scaledBitmap, 0)
-        val recognizer = com.google.mlkit.vision.text.TextRecognition.getClient(
-            com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS
-        )
-
-        recognizer.process(image)
-            .addOnSuccessListener { visionText ->
-                if (visionText.text.isBlank()) {
-                    _ocrImportUiState.update { it.copy(
-                        isProcessing = false,
-                        error = "No text found. Ensure the menu is well-lit and in focus."
-                    )}
-                } else {
-                    processSpatialVisionText(visionText)
-                }
+        viewModelScope.launch {
+            val scaledBitmap = scaleBitmapIfNeeded(bitmap)
+            val sharpness = withContext(kotlinx.coroutines.Dispatchers.Default) {
+                calculateSharpness(scaledBitmap)
             }
-            .addOnFailureListener {
+            
+            Log.d("MenuViewModel", "Calculated image sharpness: $sharpness")
+            
+            if (sharpness < 35.0) {
                 _ocrImportUiState.update { it.copy(
                     isProcessing = false,
-                    error = "Recognition failed. Try with better lighting or a clearer photo."
+                    error = "The scanned image is too blurry. Please try again with a clearer, well-focused photo."
                 )}
-            }
-            .addOnCompleteListener {
-                recognizer.close()
                 if (scaledBitmap != bitmap) scaledBitmap.recycle()
+                return@launch
             }
+            
+            val image = com.google.mlkit.vision.common.InputImage.fromBitmap(scaledBitmap, 0)
+            val recognizer = com.google.mlkit.vision.text.TextRecognition.getClient(
+                com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS
+            )
+
+            recognizer.process(image)
+                .addOnSuccessListener { visionText ->
+                    if (visionText.text.isBlank()) {
+                        _ocrImportUiState.update { it.copy(
+                            isProcessing = false,
+                            error = "No text found. Ensure the menu is well-lit and in focus."
+                        )}
+                    } else {
+                        processSpatialVisionText(visionText)
+                    }
+                }
+                .addOnFailureListener {
+                    _ocrImportUiState.update { it.copy(
+                        isProcessing = false,
+                        error = "Recognition failed. Try with better lighting or a clearer photo."
+                    )}
+                }
+                .addOnCompleteListener {
+                    recognizer.close()
+                    if (scaledBitmap != bitmap) scaledBitmap.recycle()
+                }
+        }
+    }
+
+    private fun calculateSharpness(bitmap: android.graphics.Bitmap): Double {
+        val width = bitmap.width
+        val height = bitmap.height
+        val sampleStep = 8
+        var totalDiff = 0.0
+        var count = 0
+
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        for (y in 0 until height - sampleStep step sampleStep) {
+            for (x in 0 until width - sampleStep step sampleStep) {
+                val idx = y * width + x
+                val idxRight = idx + 1
+                val idxBottom = idx + width
+
+                val c = pixels[idx]
+                val r = (c shr 16) and 0xFF
+                val g = (c shr 8) and 0xFF
+                val b = c and 0xFF
+                val gray = 0.299 * r + 0.587 * g + 0.114 * b
+
+                val cRight = pixels[idxRight]
+                val rRight = (cRight shr 16) and 0xFF
+                val gRight = (cRight shr 8) and 0xFF
+                val bRight = cRight and 0xFF
+                val grayRight = 0.299 * rRight + 0.587 * gRight + 0.114 * bRight
+
+                val cBottom = pixels[idxBottom]
+                val rBottom = (cBottom shr 16) and 0xFF
+                val gBottom = (cBottom shr 8) and 0xFF
+                val bBottom = cBottom and 0xFF
+                val grayBottom = 0.299 * rBottom + 0.587 * gBottom + 0.114 * bBottom
+
+                val diffX = Math.abs(gray - grayRight)
+                val diffY = Math.abs(gray - grayBottom)
+                
+                totalDiff += (diffX * diffX + diffY * diffY)
+                count++
+            }
+        }
+
+        return if (count > 0) totalDiff / count else 0.0
     }
 
     private fun processSpatialVisionText(visionText: com.google.mlkit.vision.text.Text) {

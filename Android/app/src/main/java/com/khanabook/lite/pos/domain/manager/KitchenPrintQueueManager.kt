@@ -119,7 +119,7 @@ class KitchenPrintQueueManager @Inject constructor(
                 }
 
                 val bytes = KitchenTicketFormatter.format(bill, restaurantProfile, printerProfile)
-                if (printerManager.printBytes(bytes)) {
+                if (printerManager.printBytesTo(printerMac, bytes)) {
                     queueRepository.markSent(job.id)
                 } else {
                     queueRepository.markPending(job.id, "print failed")
@@ -129,6 +129,8 @@ class KitchenPrintQueueManager @Inject constructor(
                 Log.w(TAG, "Failed retrying queued kitchen ticket for billId=${job.billId}", e)
                 queueRepository.markPending(job.id, e.message ?: "unexpected error")
                 break
+            } finally {
+                printerManager.disconnect(printerMac)
             }
         }
     }

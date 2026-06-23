@@ -1050,300 +1050,325 @@ fun PaymentStep(
                     .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (showQrCode) {
-            Text("Scan to Pay", color = PrimaryGold, style = MaterialTheme.typography.headlineSmall)
-            Spacer(modifier = Modifier.height(spacing.medium))
-
-            Box(
-                modifier =
-                Modifier.size(200.dp)
-                    .background(Color.White, RoundedCornerShape(12.dp))
-                    .border(2.dp, PrimaryGold, RoundedCornerShape(12.dp))
-                    .padding(spacing.smallMedium)
-                    .clickable { showQrModal = true },
-                contentAlignment = Alignment.Center
-            ) {
-                val qrBitmap1 = dynamicUpiQrBitmap
-                when {
-                    qrBitmap1 != null -> Image(
-                        bitmap = qrBitmap1.asImageBitmap(),
-                        contentDescription = "Scan to pay ${profile?.upiHandle}",
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    else -> Icon(
-                        Icons.Default.QrCode,
-                        null,
-                        modifier = Modifier.size(KhanaBookTheme.iconSize.hero),
-                        tint = Color.LightGray
-                    )
-                }
-            }
-            Text(
-                "Tap to Enlarge",
-                color = PrimaryGold.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(top = spacing.extraSmall)
-            )
-            if (!canGenerateAmountQr) {
-                Text(
-                    when {
-                        profile?.upiHandle.isNullOrBlank() -> "Set UPI ID in Payment Configuration"
-                        !isAmountValid -> "Enter a valid UPI split amount"
-                        else -> "Add items before scanning UPI QR"
-                    },
-                    color = DangerRed,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(top = spacing.extraSmall)
-                )
-            }
-            Spacer(modifier = Modifier.height(spacing.large))
-        }
-
-        if (showQrModal && dynamicUpiQrBitmap != null) {
-            KhanaBookDialog(
-                onDismissRequest = { showQrModal = false },
-                title = "Scan to Pay",
-                content = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .background(Color.White, RoundedCornerShape(12.dp))
-                            .padding(spacing.medium),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            bitmap = dynamicUpiQrBitmap!!.asImageBitmap(),
-                            contentDescription = "Enlarged QR Code",
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(spacing.medium))
-                    Text(
-                        "UPI ID: ${profile?.upiHandle}",
-                        color = TextGold,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-                },
-                actions = {
-                    TextButton(onClick = { showQrModal = false }) {
-                        Text("Close", color = PrimaryGold)
-                    }
-                }
-            )
-        }
-
-        if (!isUpiMode) {
-            Spacer(modifier = Modifier.height(spacing.large))
+        if (enabledModes.isEmpty()) {
+            Spacer(modifier = Modifier.height(spacing.huge))
             Icon(
                 Icons.Default.Payment,
                 null,
-                tint = PrimaryGold.copy(alpha = 0.3f),
+                tint = DangerRed.copy(alpha = 0.5f),
                 modifier = Modifier.size(KhanaBookTheme.iconSize.heroCircle)
             )
             Spacer(modifier = Modifier.height(spacing.medium))
             Text(
-                "Complete Payment",
-                color = TextLight,
-                style = MaterialTheme.typography.titleLarge
+                "Please configure the payment option and add payment methods",
+                color = DangerRed,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(spacing.large))
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .bringIntoViewRequester(relocationRequester)
-                .padding(vertical = spacing.small)
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = spacing.small),
-                colors = CardDefaults.cardColors(containerColor = CardBG),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f))
+            Button(
+                onClick = onBackToMenu,
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Column(modifier = Modifier.padding(spacing.medium)) {
-                    Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Payable Amount", color = TextGold, style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                                "₹${"%.2f".format(summary.total.toDoubleOrNull() ?: 0.0)}",
-                                color = PrimaryGold,
-                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold)
-                        )
-                    }
-                }
+                Text("Go Back", color = DarkBrown1)
             }
+        } else {
+            if (showQrCode) {
+                Text("Scan to Pay", color = PrimaryGold, style = MaterialTheme.typography.headlineSmall)
+                Spacer(modifier = Modifier.height(spacing.medium))
 
-            Spacer(modifier = Modifier.height(spacing.medium))
-
-            Text(
-                    "Select Payment Mode:",
-                    color = TextLight,
-                    modifier = Modifier.align(Alignment.Start),
-                    style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(modifier = Modifier.height(spacing.small))
-            Box(
+                Box(
                     modifier =
-                            Modifier.fillMaxWidth()
-                                    .height(56.dp)
-                                    .background(BrownSelected, RoundedCornerShape(8.dp))
-                                    .border(1.dp, BorderGold)
-                                    .clickable { expanded = true }
-                                    .padding(horizontal = spacing.medium),
-                    contentAlignment = Alignment.CenterStart
-            ) {
-                Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Modifier.size(200.dp)
+                        .background(Color.White, RoundedCornerShape(12.dp))
+                        .border(2.dp, PrimaryGold, RoundedCornerShape(12.dp))
+                        .padding(spacing.smallMedium)
+                        .clickable { showQrModal = true },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(selectedMode.displayLabel, color = PrimaryGold, style = MaterialTheme.typography.bodyLarge)
-                    Icon(Icons.Default.ArrowDropDown, null, tint = PrimaryGold)
-                }
-                DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        modifier = Modifier.background(DarkBrown2)
-                ) {
-                    enabledModes.forEach { mode ->
-                        DropdownMenuItem(
-                                text = { Text(mode.displayLabel, color = TextLight) },
-                                onClick = {
-                                    selectedMode = mode
-                                    expanded = false
-                                }
+                    val qrBitmap1 = dynamicUpiQrBitmap
+                    when {
+                        qrBitmap1 != null -> Image(
+                            bitmap = qrBitmap1.asImageBitmap(),
+                            contentDescription = "Scan to pay ${profile?.upiHandle}",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        else -> Icon(
+                            Icons.Default.QrCode,
+                            null,
+                            modifier = Modifier.size(KhanaBookTheme.iconSize.hero),
+                            tint = Color.LightGray
                         )
                     }
                 }
-            }
-
-            if (isSplitMode) {
-                Spacer(modifier = Modifier.height(spacing.large))
-                val labels =
-                        when (selectedMode) {
-                            PaymentMode.PART_CASH_UPI -> "Cash Amount" to "UPI Amount"
-                            PaymentMode.PART_CASH_POS -> "Cash Amount" to "POS Amount"
-                            PaymentMode.PART_UPI_POS -> "UPI Amount" to "POS Amount"
-                            else -> "" to ""
-                        }
-
-                val p1Requester = remember { BringIntoViewRequester() }
-                val p2Requester = remember { BringIntoViewRequester() }
-
-                Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)
-                ) {
-                    Box(modifier = Modifier.weight(1f).bringIntoViewRequester(p1Requester)) {
-                        ParchmentTextField(
-                                value = p1Text,
-                                onValueChange = { p1Text = it },
-                                label = labels.first,
-                                modifier = Modifier.onFocusChanged {
-                                    if (it.isFocused) {
-                                        scope.launch { p1Requester.bringIntoView() }
-                                    }
-                                },
-                                isError = !isAmountValid,
-                                keyboardOptions =
-                                        androidx.compose.foundation.text.KeyboardOptions(
-                                                keyboardType =
-                                                        androidx.compose.ui.text.input.KeyboardType
-                                                                .Decimal
-                                        )
-                        )
-                    }
-                    Box(modifier = Modifier.weight(1f).bringIntoViewRequester(p2Requester)) {
-                        ParchmentTextField(
-                                value = p2Text,
-                                onValueChange = { p2Text = it },
-                                label = labels.second,
-                                modifier = Modifier.onFocusChanged {
-                                    if (it.isFocused) {
-                                        scope.launch { p2Requester.bringIntoView() }
-                                    }
-                                },
-                                isError = !isAmountValid,
-                                keyboardOptions =
-                                        androidx.compose.foundation.text.KeyboardOptions(
-                                                keyboardType =
-                                                        androidx.compose.ui.text.input.KeyboardType
-                                                                .Decimal
-                                        )
-                        )
-                    }
-                }
-
-                if (!isAmountValid) {
+                Text(
+                    "Tap to Enlarge",
+                    color = PrimaryGold.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(top = spacing.extraSmall)
+                )
+                if (!canGenerateAmountQr) {
                     Text(
-                            "Sum must equal ${CurrencyUtils.formatPrice(summary.total)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
-                            color = DangerRed,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(top = spacing.extraSmall).align(Alignment.Start)
+                        when {
+                            profile?.upiHandle.isNullOrBlank() -> "Set UPI ID in Payment Configuration"
+                            !isAmountValid -> "Enter a valid UPI split amount"
+                            else -> "Add items before scanning UPI QR"
+                        },
+                        color = DangerRed,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(top = spacing.extraSmall)
                     )
                 }
+                Spacer(modifier = Modifier.height(spacing.large))
             }
-        }
 
-        LaunchedEffect(resumePendingPayment) {
-            if (!resumePendingPayment) return@LaunchedEffect
-            val pendingBillId = viewModel.getLatestPendingOnlineBillId() ?: return@LaunchedEffect
-            if (!viewModel.restorePendingOnlineBill(pendingBillId)) return@LaunchedEffect
-        }
-
-        Spacer(modifier = Modifier.height(spacing.extraLarge))
-        Button(
-                onClick = {
-                    if (!isAmountValid) return@Button
-                    scope.launch {
-                        viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                        if (viewModel.completeOrder(PaymentStatus.SUCCESS)) {
-                            viewModel.clearGatewayResult()
-                            onComplete()
+            if (showQrModal && dynamicUpiQrBitmap != null) {
+                KhanaBookDialog(
+                    onDismissRequest = { showQrModal = false },
+                    title = "Scan to Pay",
+                    content = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                                .background(Color.White, RoundedCornerShape(12.dp))
+                                .padding(spacing.medium),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                bitmap = dynamicUpiQrBitmap!!.asImageBitmap(),
+                                contentDescription = "Enlarged QR Code",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(spacing.medium))
+                        Text(
+                            "UPI ID: ${profile?.upiHandle}",
+                            color = TextGold,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    },
+                    actions = {
+                        TextButton(onClick = { showQrModal = false }) {
+                            Text("Close", color = PrimaryGold)
                         }
                     }
-                },
+                )
+            }
+
+            if (!isUpiMode) {
+                Spacer(modifier = Modifier.height(spacing.large))
+                Icon(
+                    Icons.Default.Payment,
+                    null,
+                    tint = PrimaryGold.copy(alpha = 0.3f),
+                    modifier = Modifier.size(KhanaBookTheme.iconSize.heroCircle)
+                )
+                Spacer(modifier = Modifier.height(spacing.medium))
+                Text(
+                    "Complete Payment",
+                    color = TextLight,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.height(spacing.large))
+            }
+
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                colors =
-                        ButtonDefaults.buttonColors(
-                                containerColor = if (isAmountValid) SuccessGreen else Color.Gray
-                        ),
-                shape = RoundedCornerShape(12.dp),
-                enabled = isAmountValid
-        ) {
-            Text(
-                    "Payment Successful",
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleMedium
-            )
-        }
-        Spacer(modifier = Modifier.height(spacing.smallMedium))
-        TextButton(
-                onClick = {
-                    scope.launch {
-                        viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                        viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
-                        viewModel.clearGatewayResult()
-                        PaymentReturnManager.clearLatestEvent()
-                        onFailed()
+                    .bringIntoViewRequester(relocationRequester)
+                    .padding(vertical = spacing.small)
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = spacing.small),
+                    colors = CardDefaults.cardColors(containerColor = CardBG),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f))
+                ) {
+                    Column(modifier = Modifier.padding(spacing.medium)) {
+                        Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Payable Amount", color = TextGold, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                    "₹${"%.2f".format(summary.total.toDoubleOrNull() ?: 0.0)}",
+                                    color = PrimaryGold,
+                                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold)
+                            )
+                        }
                     }
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp)
-        ) {
-            Text(
-                "Payment Failed / Cancelled",
-                color = DangerRed,
-                style = MaterialTheme.typography.bodyMedium
-            )
+                }
+
+                Spacer(modifier = Modifier.height(spacing.medium))
+
+                Text(
+                        "Select Payment Mode:",
+                        color = TextLight,
+                        modifier = Modifier.align(Alignment.Start),
+                        style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+                Box(
+                        modifier =
+                                Modifier.fillMaxWidth()
+                                        .height(56.dp)
+                                        .background(BrownSelected, RoundedCornerShape(8.dp))
+                                        .border(1.dp, BorderGold)
+                                        .clickable { expanded = true }
+                                        .padding(horizontal = spacing.medium),
+                        contentAlignment = Alignment.CenterStart
+                ) {
+                    Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(selectedMode.displayLabel, color = PrimaryGold, style = MaterialTheme.typography.bodyLarge)
+                        Icon(Icons.Default.ArrowDropDown, null, tint = PrimaryGold)
+                    }
+                    DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.background(DarkBrown2)
+                    ) {
+                        enabledModes.forEach { mode ->
+                            DropdownMenuItem(
+                                    text = { Text(mode.displayLabel, color = TextLight) },
+                                    onClick = {
+                                        selectedMode = mode
+                                        expanded = false
+                                    }
+                            )
+                        }
+                    }
+                }
+
+                if (isSplitMode) {
+                    Spacer(modifier = Modifier.height(spacing.large))
+                    val labels =
+                            when (selectedMode) {
+                                PaymentMode.PART_CASH_UPI -> "Cash Amount" to "UPI Amount"
+                                PaymentMode.PART_CASH_POS -> "Cash Amount" to "POS Amount"
+                                PaymentMode.PART_UPI_POS -> "UPI Amount" to "POS Amount"
+                                else -> "" to ""
+                            }
+
+                    val p1Requester = remember { BringIntoViewRequester() }
+                    val p2Requester = remember { BringIntoViewRequester() }
+
+                    Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium)
+                    ) {
+                        Box(modifier = Modifier.weight(1f).bringIntoViewRequester(p1Requester)) {
+                            ParchmentTextField(
+                                    value = p1Text,
+                                    onValueChange = { p1Text = it },
+                                    label = labels.first,
+                                    modifier = Modifier.onFocusChanged {
+                                        if (it.isFocused) {
+                                            scope.launch { p1Requester.bringIntoView() }
+                                        }
+                                    },
+                                    isError = !isAmountValid,
+                                    keyboardOptions =
+                                            androidx.compose.foundation.text.KeyboardOptions(
+                                                    keyboardType =
+                                                            androidx.compose.ui.text.input.KeyboardType
+                                                                    .Decimal
+                                            )
+                            )
+                        }
+                        Box(modifier = Modifier.weight(1f).bringIntoViewRequester(p2Requester)) {
+                            ParchmentTextField(
+                                    value = p2Text,
+                                    onValueChange = { p2Text = it },
+                                    label = labels.second,
+                                    modifier = Modifier.onFocusChanged {
+                                        if (it.isFocused) {
+                                            scope.launch { p2Requester.bringIntoView() }
+                                        }
+                                    },
+                                    isError = !isAmountValid,
+                                    keyboardOptions =
+                                            androidx.compose.foundation.text.KeyboardOptions(
+                                                    keyboardType =
+                                                            androidx.compose.ui.text.input.KeyboardType
+                                                                    .Decimal
+                                            )
+                            )
+                        }
+                    }
+
+                    if (!isAmountValid) {
+                        Text(
+                                "Sum must equal ${CurrencyUtils.formatPrice(summary.total)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
+                                color = DangerRed,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(top = spacing.extraSmall).align(Alignment.Start)
+                        )
+                    }
+                }
+            }
+
+            LaunchedEffect(resumePendingPayment) {
+                if (!resumePendingPayment) return@LaunchedEffect
+                val pendingBillId = viewModel.getLatestPendingOnlineBillId() ?: return@LaunchedEffect
+                if (!viewModel.restorePendingOnlineBill(pendingBillId)) return@LaunchedEffect
+            }
+
+            Spacer(modifier = Modifier.height(spacing.extraLarge))
+            Button(
+                    onClick = {
+                        if (!isAmountValid) return@Button
+                        scope.launch {
+                            viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                            if (viewModel.completeOrder(PaymentStatus.SUCCESS)) {
+                                viewModel.clearGatewayResult()
+                                onComplete()
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors =
+                            ButtonDefaults.buttonColors(
+                                    containerColor = if (isAmountValid) SuccessGreen else Color.Gray
+                            ),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = isAmountValid
+            ) {
+                Text(
+                        "Payment Successful",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium
+                )
+            }
+            Spacer(modifier = Modifier.height(spacing.smallMedium))
+            TextButton(
+                    onClick = {
+                        scope.launch {
+                            viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                            viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
+                            viewModel.clearGatewayResult()
+                            PaymentReturnManager.clearLatestEvent()
+                            onFailed()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Text(
+                    "Payment Failed / Cancelled",
+                    color = DangerRed,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }
