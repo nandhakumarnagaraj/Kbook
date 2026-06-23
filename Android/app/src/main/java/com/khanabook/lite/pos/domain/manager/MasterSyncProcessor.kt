@@ -298,8 +298,8 @@ class MasterSyncProcessor @Inject constructor(
     }
 
     suspend fun insertMasterData(masterData: MasterSyncResponse) = database.withTransaction {
+        val restaurantId = sessionManager.getRestaurantId()
         if (masterData.profiles.isNotEmpty()) {
-            val restaurantId = sessionManager.getRestaurantId()
             val currentLocalProfile = if (restaurantId > 0) restaurantDao.getProfile(restaurantId) else restaurantDao.getProfile()
             restaurantDao.insertSyncedRestaurantProfiles(
                 masterData.profiles.map { remoteProfile ->
@@ -771,7 +771,7 @@ class MasterSyncProcessor @Inject constructor(
         // After pulling all data, ensure counters are never behind the actual bills on server.
         // This prevents duplicate order IDs after app reinstall or data clear, where the server
         // profile's counters can be stale (lagging behind the latest bills).
-        val currentProfile = restaurantDao.getProfile()
+        val currentProfile = if (restaurantId > 0) restaurantDao.getProfile(restaurantId) else restaurantDao.getProfile()
         if (currentProfile != null && masterData.bills.isNotEmpty()) {
             val maxLifetime = masterData.bills.maxOfOrNull { it.lifetimeOrderId ?: 0L } ?: 0L
             val timezone = "Asia/Kolkata"

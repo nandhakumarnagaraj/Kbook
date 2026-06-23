@@ -187,7 +187,8 @@ class BillRepository(
     }
 
     fun getProfileFlow(): Flow<com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?> {
-        return restaurantDao.getProfileFlow()
+        val restaurantId = sessionManager.getRestaurantId()
+        return if (restaurantId > 0) restaurantDao.getProfileFlow(restaurantId) else restaurantDao.getProfileFlow()
     }
 
     fun getUnsyncedCount(): Flow<Int> {
