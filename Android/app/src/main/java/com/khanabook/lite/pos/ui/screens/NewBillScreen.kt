@@ -1472,28 +1472,43 @@ fun SuccessStep(
     val tts = remember { mutableStateOf<TextToSpeech?>(null) }
 
     DisposableEffect(context) {
-        val engine = TextToSpeech(context.applicationContext) { status ->
-            isTtsReady = status == TextToSpeech.SUCCESS
-            if (status == TextToSpeech.SUCCESS) {
-                tts.value?.language = Locale("en", "IN")
+        var engine: TextToSpeech? = null
+        try {
+            engine = TextToSpeech(context.applicationContext) { status ->
+                isTtsReady = status == TextToSpeech.SUCCESS
             }
+            tts.value = engine
+        } catch (e: Exception) {
+            android.util.Log.e("NewBillScreen", "Failed to initialize TextToSpeech engine", e)
+            isTtsReady = false
         }
-        tts.value = engine
         onDispose {
-            engine.stop()
-            engine.shutdown()
+            try {
+                engine?.stop()
+                engine?.shutdown()
+            } catch (e: Exception) {
+                android.util.Log.e("NewBillScreen", "Error during TextToSpeech shutdown", e)
+            }
             tts.value = null
+            isTtsReady = false
         }
     }
 
     LaunchedEffect(isTtsReady, lastBill?.bill?.id) {
         if (!isTtsReady || lastBill == null) return@LaunchedEffect
-        tts.value?.speak(
-            "Payment of ${formatAmountForSpeech(totalAmount)} received successfully.",
-            TextToSpeech.QUEUE_FLUSH,
-            null,
-            "payment-success-${lastBill?.bill?.id}"
-        )
+        tts.value?.let { ttsEngine ->
+            try {
+                ttsEngine.language = Locale("en", "IN")
+                ttsEngine.speak(
+                    "Payment of ${formatAmountForSpeech(totalAmount)} received successfully.",
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    "payment-success-${lastBill?.bill?.id}"
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("NewBillScreen", "Failed to speak total amount via TTS", e)
+            }
+        }
     }
 
     Column(

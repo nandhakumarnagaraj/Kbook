@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
@@ -66,11 +67,20 @@ class PrintService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-        } else 0
-        
-        startForeground(NOTIFICATION_ID, getNotification(), type)
+        try {
+            val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            } else 0
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, getNotification(), type)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed starting PrintService in foreground with type connectedDevice", e)
+            try {
+                // Fallback: start foreground using framework method
+                startForeground(NOTIFICATION_ID, getNotification())
+            } catch (ex: Throwable) {
+                Log.e(TAG, "Failed fallback startForeground", ex)
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

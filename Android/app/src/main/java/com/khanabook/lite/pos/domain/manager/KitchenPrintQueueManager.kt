@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -47,6 +48,12 @@ class KitchenPrintQueueManager @Inject constructor(
     }
 
     fun initialize() = Unit
+
+    fun destroy() {
+        try {
+            scope.cancel()
+        } catch (_: Exception) {}
+    }
 
     suspend fun enqueue(
         billId: Long,
@@ -129,8 +136,6 @@ class KitchenPrintQueueManager @Inject constructor(
                 Log.w(TAG, "Failed retrying queued kitchen ticket for billId=${job.billId}", e)
                 queueRepository.markPending(job.id, e.message ?: "unexpected error")
                 break
-            } finally {
-                printerManager.disconnect(printerMac)
             }
         }
     }

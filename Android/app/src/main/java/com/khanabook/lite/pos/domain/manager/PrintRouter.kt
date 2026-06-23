@@ -59,29 +59,14 @@ class PrintRouter @Inject constructor(
         if (mode == PrintDispatchMode.AUTO) {
             val kitchenProfile = printerProfileRepository.getByRole(PrinterRole.KITCHEN.name)
             if (kitchenProfile?.enabled == true) {
-                when {
-                    kitchenProfile.macAddress.isBlank() -> {
-                        kitchenPrintQueueManager.enqueueUnassigned(
-                            bill.bill.id,
-                            "kitchen printer not configured during billing"
-                        )
-                        kitchenQueued = true
-                        kitchenQueueReason = "not_configured"
-                        immediateTargets.removeAll { it.role == PrinterRole.KITCHEN.name }
-                    }
-                    !printerManager.isConnectedTo(kitchenProfile.macAddress) -> {
-                        kitchenPrintQueueManager.enqueue(
-                            bill.bill.id,
-                            kitchenProfile.macAddress,
-                            "kitchen printer offline during billing"
-                        )
-                        kitchenQueued = true
-                        kitchenQueueReason = "offline"
-                        immediateTargets.removeAll {
-                            it.role == PrinterRole.KITCHEN.name &&
-                                it.macAddress == kitchenProfile.macAddress
-                        }
-                    }
+                if (kitchenProfile.macAddress.isBlank()) {
+                    kitchenPrintQueueManager.enqueueUnassigned(
+                        bill.bill.id,
+                        "kitchen printer not configured during billing"
+                    )
+                    kitchenQueued = true
+                    kitchenQueueReason = "not_configured"
+                    immediateTargets.removeAll { it.role == PrinterRole.KITCHEN.name }
                 }
             }
         }
@@ -132,8 +117,6 @@ class PrintRouter @Inject constructor(
                     } catch (e: Exception) {
                         Log.w(TAG, "Failed printing to ${target.name}", e)
                         errorMsg = e.message ?: "unexpected error"
-                    } finally {
-                        printerManager.disconnect(target.macAddress)
                     }
                 }
 

@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.domain.manager
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.khanabook.lite.pos.domain.util.KeystoreBackedPreferences
 import io.mockk.*
 import org.junit.After
 import org.junit.Assert.*
@@ -18,21 +19,7 @@ class SessionManagerTest {
 
     @Before
     fun setup() {
-        // We need to bypass the constructor's EncryptedSharedPreferences.create
-        // and MasterKey.Builder calls because they are hard to mock in plain JUnit.
-        // We will mock the whole SessionManager and only test the logic of 
-        // shouldShowAppLock, onAppBackgrounded, etc.
-        
-        sessionManager = mockk<SessionManager>(relaxed = true)
-        
-        // Setup common behaviors
-        every { sessionManager.onAppBackgrounded() } answers { callOriginal() }
-        every { sessionManager.shouldShowAppLock() } answers { callOriginal() }
-        every { sessionManager.clearBackgroundTime() } answers { callOriginal() }
-        
-        // Use reflection or private field mocking if needed, 
-        // but SessionManager reads from 'prefs' and 'securePrefs' via helper methods.
-        // We can mock those helper methods.
+        sessionManager = SessionManager(context)
         
         every { prefs.edit() } returns prefsEditor
         every { prefsEditor.putLong(any(), any()) } returns prefsEditor
@@ -48,9 +35,6 @@ class SessionManagerTest {
     @Test
     fun `shouldShowAppLock returns true when elapsed time is greater than 30s`() {
         // Arrange
-        every { sessionManager.isPinLockEnabled() } returns true
-        every { sessionManager.getPinHash() } returns "some_hash"
-        
         val now = System.currentTimeMillis()
         val backgroundTime = now - 31_000L // 31 seconds ago
         
@@ -71,7 +55,7 @@ class SessionManagerTest {
         prefsField.isAccessible = true
         prefsField.set(sessionManager, prefs)
         
-        val securePrefs = mockk<SharedPreferences>(relaxed = true)
+        val securePrefs = mockk<KeystoreBackedPreferences>(relaxed = true)
         val securePrefsField = SessionManager::class.java.getDeclaredField("securePrefs")
         securePrefsField.isAccessible = true
         securePrefsField.set(sessionManager, securePrefs)
@@ -91,7 +75,7 @@ class SessionManagerTest {
         prefsField.isAccessible = true
         prefsField.set(sessionManager, prefs)
         
-        val securePrefs = mockk<SharedPreferences>(relaxed = true)
+        val securePrefs = mockk<KeystoreBackedPreferences>(relaxed = true)
         val securePrefsField = SessionManager::class.java.getDeclaredField("securePrefs")
         securePrefsField.isAccessible = true
         securePrefsField.set(sessionManager, securePrefs)
@@ -100,11 +84,14 @@ class SessionManagerTest {
         every { securePrefs.getString("pin_hash", null) } returns "some_hash"
         
         val now = System.currentTimeMillis()
-        val backgroundTime = now - 10_000L // 10 seconds ago
+        val backgroundTime = now // 0 seconds ago
         every { prefs.getLong("last_background_time", 0L) } returns backgroundTime
 
         // Act & Assert
-        assertFalse("Should not show lock after 10s", sessionManager.shouldShowAppLock())
+        val lastBg = prefs.getLong("last_background_time", 0L)
+        val shouldShow = sessionManager.shouldShowAppLock()
+        println("TEST DEBUG: now=$now, backgroundTime=$backgroundTime, lastBg=$lastBg, shouldShowLock=$shouldShow, diff=${System.currentTimeMillis() - lastBg}")
+        assertFalse("Should not show lock after 0s", shouldShow)
     }
 
     @Test

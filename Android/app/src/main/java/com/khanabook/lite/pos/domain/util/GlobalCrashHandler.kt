@@ -35,7 +35,7 @@ class GlobalCrashHandler(private val context: Context) : Thread.UncaughtExceptio
       prefs.edit().apply {
         putLong("last_crash_time", now)
         putInt("crash_count", newCrashCount)
-        apply()
+        commit()
       }
 
       if (newCrashCount >= 3) {
@@ -70,7 +70,7 @@ class GlobalCrashHandler(private val context: Context) : Thread.UncaughtExceptio
       prefs.edit().apply {
         putString("last_crash_log", stackTrace)
         putLong("last_crash_time", System.currentTimeMillis())
-        apply()
+        commit()
       }
     } catch (e: Exception) {
       logCrash("Failed to save crash log", e)

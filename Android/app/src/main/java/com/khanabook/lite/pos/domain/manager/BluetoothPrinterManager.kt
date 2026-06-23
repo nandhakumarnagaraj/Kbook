@@ -260,12 +260,12 @@ class BluetoothPrinterManager(private val context: Context) {
         ensureConnectionReceiverRegistered()
         val mac = device.address
 
-        // Phase 1 (fast, global mutex): check if socket is already live.
+        // Phase 1 (fast, global mutex): pull stale entry if socket is missing/disconnected.
         var staleSocket: BluetoothSocket? = null
         var staleStream: OutputStream? = null
-        val reuse = printerMutex.withLock {
-            if (activeSockets[mac]?.isConnected == true) {
-                lastConnectedMac = mac
+        val hasLiveSocket = printerMutex.withLock {
+            val socket = activeSockets[mac]
+            if (socket != null && socket.isConnected) {
                 true
             } else {
                 // Pull stale entry out of the map so we can close it outside the mutex.
@@ -278,19 +278,44 @@ class BluetoothPrinterManager(private val context: Context) {
                 false
             }
         }
-        if (reuse) return true
 
-        // Phase 2 (per-MAC mutex, OUTSIDE global mutex): close stale socket, open new one.
+        // Phase 2 (per-MAC mutex, OUTSIDE global mutex): verify live socket or connect new one.
         return socketMutex(mac).withLock {
-            // Double-check — another coroutine may have connected while we waited.
-            val alreadyConnected = printerMutex.withLock { activeSockets[mac]?.isConnected == true }
-            if (alreadyConnected) {
-                printerMutex.withLock { lastConnectedMac = mac }
-                return true
-            }
-            // Close stale resources (may block briefly — outside global mutex).
+            // Close stale resources (if pulled in Phase 1).
             try { staleStream?.close() } catch (_: Exception) {}
             try { staleSocket?.close() } catch (_: Exception) {}
+
+            // Check if we have a live socket to verify.
+            val currentSocket = printerMutex.withLock { activeSockets[mac] }
+            val currentStream = printerMutex.withLock { outputStreams[mac] }
+            if (currentSocket?.isConnected == true && currentStream != null) {
+                var isAlive = false
+                try {
+                    // Try to write a zero-byte to verify if the socket is still open
+                    currentStream.write(byteArrayOf(0))
+                    currentStream.flush()
+                    isAlive = true
+                } catch (e: Exception) {
+                    Log.d(TAG, "Durable socket for $mac found dead on dummy write. Disconnecting...")
+                }
+                if (isAlive) {
+                    printerMutex.withLock { lastConnectedMac = mac }
+                    return@withLock true
+                } else {
+                    // Pull dead entry out of map and close it outside the lock.
+                    val deadSocket = printerMutex.withLock {
+                        val s = activeSockets.remove(mac)
+                        outputStreams.remove(mac)
+                        _connectedDeviceMacs.value = _connectedDeviceMacs.value - mac
+                        if (_connectedDeviceMac.value == mac) _connectedDeviceMac.value = activeSockets.keys.firstOrNull()
+                        if (lastConnectedMac == mac) lastConnectedMac = activeSockets.keys.firstOrNull()
+                        _isConnected.value = activeSockets.isNotEmpty()
+                        s
+                    }
+                    try { currentStream.close() } catch (_: Exception) {}
+                    try { deadSocket?.close() } catch (_: Exception) {}
+                }
+            }
 
             _isConnecting.value = true
             try {
@@ -366,6 +391,7 @@ class BluetoothPrinterManager(private val context: Context) {
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send data to printer $mac", e)
+            disconnect(mac)
             false
         }
     }
@@ -385,6 +411,7 @@ class BluetoothPrinterManager(private val context: Context) {
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send data to printer $mac", e)
+            disconnect(mac)
             false
         }
     }
