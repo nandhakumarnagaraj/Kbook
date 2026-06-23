@@ -200,7 +200,7 @@ fun buildPendingInvoiceShareUrl(billWithItems: BillWithItems): String? {
  * text/PDF fallback is generated for WhatsApp.
  */
 fun shareInvoiceViaWhatsAppLink(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
-    val link = buildPendingInvoiceShareUrl(billWithItems) ?: buildInvoiceShareUrl(billWithItems)
+    val link = buildInvoiceShareUrl(billWithItems) ?: buildPendingInvoiceShareUrl(billWithItems)
     if (link == null) {
         Toast.makeText(context, "Sync pending. Try again after the invoice syncs.", Toast.LENGTH_SHORT).show()
         return
@@ -209,7 +209,7 @@ fun shareInvoiceViaWhatsAppLink(context: Context, billWithItems: BillWithItems, 
 }
 
 fun shareInstantInvoiceLink(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
-    val link = buildPendingInvoiceShareUrl(billWithItems) ?: buildInvoiceShareUrl(billWithItems)
+    val link = buildInvoiceShareUrl(billWithItems) ?: buildPendingInvoiceShareUrl(billWithItems)
     if (link == null) {
         Toast.makeText(context, "Invoice link not ready. Sharing invoice text.", Toast.LENGTH_SHORT).show()
         shareInvoiceTextViaWhatsApp(context, billWithItems, profile)

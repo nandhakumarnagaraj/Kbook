@@ -171,9 +171,11 @@ constructor(
 
     private suspend fun handleLoginSuccess(user: UserEntity): Result<Unit> {
         sessionManager.clearLockout()
-
-        // Keep the existing sync cursor on routine logins. Resetting it on every login
-        // forces a full pull and can overwrite newer local state with stale server data.
+        // Login must re-bootstrap the restaurant's data set. The session-scoped
+        // sync completion flag alone is not enough because performFullSync() still
+        // uses the saved lastSyncTimestamp as its checkpoint.
+        sessionManager.saveLastSyncTimestamp(0L)
+        sessionManager.setInitialSyncCompleted(false)
         return Result.success(Unit)
     }
 
