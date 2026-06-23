@@ -59,7 +59,7 @@ class CategoryRepository(
                 OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
         workManager.enqueueUniqueWork(
             "MasterSyncWorker_OneTime",
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.KEEP,
             syncWorkRequest
         )
     }
@@ -75,17 +75,19 @@ class CategoryRepository(
     }
 
     suspend fun toggleActive(id: Long, isActive: Boolean) {
-        val current = categoryDao.getCategoryById(id) ?: return
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = categoryDao.getCategoryById(id, restaurantId) ?: return
         updateCategory(current.copy(isActive = isActive))
     }
 
     suspend fun deleteCategory(category: CategoryEntity) {
+        val restaurantId = sessionManager.getRestaurantId()
         val now = System.currentTimeMillis()
-        categoryDao.markDeleted(category.id, now)
-        val itemIds = menuDao.getItemIdsByCategory(category.id)
-        menuDao.markItemsDeletedByCategory(category.id, now)
+        categoryDao.markDeleted(category.id, now, restaurantId)
+        val itemIds = menuDao.getItemIdsByCategory(category.id, restaurantId)
+        menuDao.markItemsDeletedByCategory(category.id, now, restaurantId)
         itemIds.forEach { itemId ->
-            menuDao.markVariantsDeletedByItem(itemId, now)
+            menuDao.markVariantsDeletedByItem(itemId, now, restaurantId)
         }
         triggerBackgroundSync()
     }

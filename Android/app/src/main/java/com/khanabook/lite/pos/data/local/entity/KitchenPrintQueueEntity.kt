@@ -21,6 +21,8 @@ data class KitchenPrintQueueEntity(
     val id: Long = 0,
     @ColumnInfo(name = "bill_id")
     val billId: Long,
+    @ColumnInfo(name = "restaurant_id", defaultValue = "0")
+    val restaurantId: Long = 0,
     @ColumnInfo(name = "printer_mac")
     val printerMac: String,
     val attempts: Int = 0,

@@ -7,12 +7,14 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "printer_profiles",
-    indices = [Index(value = ["role"], unique = true)]
+    indices = [Index(value = ["restaurant_id", "role"], unique = true)]
 )
 data class PrinterProfileEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val role: String,
+    @ColumnInfo(name = "restaurant_id", defaultValue = "0")
+    val restaurantId: Long = 0,
     val name: String,
     @ColumnInfo(name = "mac_address")
     val macAddress: String,

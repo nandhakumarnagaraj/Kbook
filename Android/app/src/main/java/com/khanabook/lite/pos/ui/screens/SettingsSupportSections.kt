@@ -189,7 +189,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
                     Text(
-                        "Unsynced data will be removed from this device after sign out.",
+                        "Unsynced data will stay on this device and sync after you sign in again.",
                         color = TextGold.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.bodyMedium
                     )

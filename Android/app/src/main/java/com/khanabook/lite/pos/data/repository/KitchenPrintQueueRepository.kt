@@ -3,16 +3,18 @@ package com.khanabook.lite.pos.data.repository
 import com.khanabook.lite.pos.data.local.dao.KitchenPrintQueueDao
 import com.khanabook.lite.pos.data.local.entity.KitchenPrintDispatchStatus
 import com.khanabook.lite.pos.data.local.entity.KitchenPrintQueueEntity
+import com.khanabook.lite.pos.domain.manager.SessionManager
 import kotlinx.coroutines.flow.Flow
 
 class KitchenPrintQueueRepository(
-    private val kitchenPrintQueueDao: KitchenPrintQueueDao
+    private val kitchenPrintQueueDao: KitchenPrintQueueDao,
+    private val sessionManager: SessionManager
 ) {
     companion object {
         const val UNASSIGNED_PRINTER_MAC = ""
     }
 
-    fun getPendingCountFlow(): Flow<Int> = kitchenPrintQueueDao.getPendingCountFlow()
+    fun getPendingCountFlow(): Flow<Int> = kitchenPrintQueueDao.getPendingCountFlow(sessionManager.getRestaurantId())
 
     suspend fun hasPendingForBill(billId: Long): Boolean =
         kitchenPrintQueueDao.getPendingCountForBill(billId) > 0
@@ -29,6 +31,7 @@ class KitchenPrintQueueRepository(
             KitchenPrintQueueEntity(
                 id = existing?.id ?: 0,
                 billId = billId,
+                restaurantId = existing?.restaurantId ?: sessionManager.getRestaurantId(),
                 printerMac = printerMac,
                 attempts = when {
                     incrementAttempts && existing != null -> existing.attempts + 1
@@ -48,7 +51,7 @@ class KitchenPrintQueueRepository(
     }
 
     suspend fun getPendingForPrinter(printerMac: String): List<KitchenPrintQueueEntity> =
-        kitchenPrintQueueDao.getPendingForPrinter(printerMac)
+        kitchenPrintQueueDao.getPendingForPrinter(printerMac, sessionManager.getRestaurantId())
 
     suspend fun getByBillAndPrinter(billId: Long, printerMac: String): KitchenPrintQueueEntity? =
         kitchenPrintQueueDao.getByBillAndPrinter(billId, printerMac)

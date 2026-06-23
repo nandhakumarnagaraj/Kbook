@@ -62,10 +62,22 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         securePrefs.putString("device_id", deviceId)
     }
 
-    fun getLastSyncTimestamp(): Long = prefs.getLong("last_sync_timestamp", 0L)
+    fun getLastSyncTimestamp(): Long {
+        val restaurantId = getRestaurantId()
+        if (restaurantId <= 0L) return prefs.getLong("last_sync_timestamp", 0L)
+        val scopedKey = "last_sync_timestamp_$restaurantId"
+        return prefs.getLong(scopedKey, 0L)
+    }
 
     fun saveLastSyncTimestamp(timestamp: Long) {
-        prefs.edit().putLong("last_sync_timestamp", timestamp).apply()
+        val restaurantId = getRestaurantId()
+        val editor = prefs.edit()
+        if (restaurantId > 0L) {
+            editor.putLong("last_sync_timestamp_$restaurantId", timestamp)
+        } else {
+            editor.putLong("last_sync_timestamp", timestamp)
+        }
+        editor.apply()
     }
 
     fun getRestaurantId(): Long = prefs.getLong("restaurant_id", 0L)
@@ -75,10 +87,21 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     }
 
     fun setInitialSyncCompleted(isCompleted: Boolean) {
-        prefs.edit().putBoolean("initial_sync_completed", isCompleted).apply()
+        val restaurantId = getRestaurantId()
+        val editor = prefs.edit()
+        if (restaurantId > 0L) {
+            editor.putBoolean("initial_sync_completed_$restaurantId", isCompleted)
+        } else {
+            editor.putBoolean("initial_sync_completed", isCompleted)
+        }
+        editor.apply()
     }
 
-    fun isInitialSyncCompleted(): Boolean = prefs.getBoolean("initial_sync_completed", false)
+    fun isInitialSyncCompleted(): Boolean {
+        val restaurantId = getRestaurantId()
+        if (restaurantId <= 0L) return prefs.getBoolean("initial_sync_completed", false)
+        return prefs.getBoolean("initial_sync_completed_$restaurantId", false)
+    }
 
     fun getActiveUserId(): Long? {
         val id = prefs.getLong("active_user_id", -1L)

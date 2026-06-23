@@ -47,21 +47,21 @@ class BillRepository(
                 OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
         workManager.enqueueUniqueWork(
             "MasterSyncWorker_OneTime",
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.KEEP,
             syncWorkRequest
         )
     }
 
     suspend fun getBillById(id: Long): BillEntity? {
-        return billDao.getBillById(id)
+        return billDao.getBillById(id, sessionManager.getRestaurantId())
     }
 
     suspend fun getBillWithItemsById(id: Long): BillWithItems? {
-        return billDao.getBillWithItemsById(id)
+        return billDao.getBillWithItemsById(id, sessionManager.getRestaurantId())
     }
 
     suspend fun getBillWithItemsByLifetimeId(id: Long): BillWithItems? {
-        return billDao.getBillWithItemsByLifetimeId(id)
+        return billDao.getBillWithItemsByLifetimeId(id, sessionManager.getRestaurantId())
     }
 
     suspend fun updateBill(bill: BillEntity) {
@@ -77,25 +77,27 @@ class BillRepository(
     suspend fun getBillByDailyIdAndDate(displayId: String, date: String): BillEntity? {
         val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(date)
         val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(date)
-        return billDao.getBillByDailyIdAndDate(displayId, start, end)
+        return billDao.getBillByDailyIdAndDate(displayId, start, end, sessionManager.getRestaurantId())
     }
 
     suspend fun getBillByDailyIntIdAndDate(dailyId: Long, date: String): BillEntity? {
         val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(date)
         val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(date)
-        return billDao.getBillByDailyIntIdAndDate(dailyId, start, end)
+        return billDao.getBillByDailyIntIdAndDate(dailyId, start, end, sessionManager.getRestaurantId())
     }
 
     fun getDraftBills(): Flow<List<BillEntity>> {
-        return billDao.getDraftBills()
+        return billDao.getDraftBills(sessionManager.getRestaurantId())
     }
 
     suspend fun getLatestPendingOnlineBill(): BillEntity? {
-        return billDao.getLatestPendingOnlineBill()
+        val activeUserId = sessionManager.getActiveUserId() ?: -1L
+        return billDao.getLatestPendingOnlineBill(sessionManager.getRestaurantId(), activeUserId)
     }
 
     suspend fun updateOrderStatus(id: Long, status: String) {
-        val current = billDao.getBillById(id) ?: return
+        val restaurantId = sessionManager.getRestaurantId()
+        val current = billDao.getBillById(id, restaurantId) ?: return
         
         
         val wasDeducted = current.orderStatus.equals("completed", ignoreCase = true) || 
@@ -113,14 +115,14 @@ class BillRepository(
 
         
         if (isBecomingDeducted && !wasDeducted) {
-            val billWithItems = billDao.getBillWithItemsById(id)
+            val billWithItems = billDao.getBillWithItemsById(id, restaurantId)
             billWithItems?.let { inventoryConsumptionManager?.consumeMaterialsForBill(it.items) }
         }
         triggerBackgroundSync()
     }
 
     suspend fun cancelOrder(id: Long, reason: String) {
-        billDao.cancelBill(id, reason, System.currentTimeMillis())
+        billDao.cancelBill(id, reason, System.currentTimeMillis(), sessionManager.getRestaurantId())
         kitchenPrintQueueRepository?.deleteByBillId(id)
         triggerBackgroundSync()
     }
@@ -128,14 +130,15 @@ class BillRepository(
     suspend fun cancelStalePendingOnlineDrafts(): Int {
         val cancelled = billDao.cancelStalePendingOnlineDrafts(
             reason = "Superseded by new payment attempt",
-            updatedAt = System.currentTimeMillis()
+            updatedAt = System.currentTimeMillis(),
+            restaurantId = sessionManager.getRestaurantId()
         )
         if (cancelled > 0) triggerBackgroundSync()
         return cancelled
     }
 
     suspend fun updatePaymentMode(id: Long, mode: String, partAmount1: String = "0.0", partAmount2: String = "0.0") {
-        val current = billDao.getBillById(id) ?: return
+        val current = billDao.getBillById(id, sessionManager.getRestaurantId()) ?: return
         if (current.orderStatus.equals("cancelled", ignoreCase = true)) return
         billDao.updateBill(
             current.copy(
@@ -150,7 +153,7 @@ class BillRepository(
     }
 
     suspend fun updatePaymentStatus(id: Long, status: String) {
-        val current = billDao.getBillById(id) ?: return
+        val current = billDao.getBillById(id, sessionManager.getRestaurantId()) ?: return
         billDao.updateBill(
             current.copy(
                 paymentStatus = status,
@@ -183,7 +186,7 @@ class BillRepository(
     }
 
     fun getBillsByDateRange(startMillis: Long, endMillis: Long): Flow<List<BillEntity>> {
-        return billDao.getBillsByDateRange(startMillis, endMillis)
+        return billDao.getBillsByDateRange(startMillis, endMillis, sessionManager.getRestaurantId())
     }
 
     fun getProfileFlow(): Flow<com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?> {
@@ -193,15 +196,15 @@ class BillRepository(
 
     fun getUnsyncedCount(): Flow<Int> {
         val activeUserId = sessionManager.getActiveUserId() ?: -1L
-        return billDao.getUnsyncedCountForUser(activeUserId)
+        return billDao.getUnsyncedCountForUser(activeUserId, sessionManager.getRestaurantId())
     }
 
     suspend fun getTopSellingItemsInRange(startMillis: Long, endMillis: Long, limit: Int): List<com.khanabook.lite.pos.domain.model.TopSellingItem> {
-        return billDao.getTopSellingItemsInRange(startMillis, endMillis, limit)
+        return billDao.getTopSellingItemsInRange(startMillis, endMillis, limit, sessionManager.getRestaurantId())
     }
 
     suspend fun getRecentCustomers(limit: Int = 5): List<Pair<String, String>> {
-        return billDao.getRecentBillsWithCustomers()
+        return billDao.getRecentBillsWithCustomers(sessionManager.getRestaurantId())
             .distinctBy { it.customerWhatsapp }
             .take(limit)
             .mapNotNull { bill ->
@@ -211,14 +214,14 @@ class BillRepository(
     }
 
     suspend fun getBillWithItemsByInvoiceNo(invoiceNo: Long): BillWithItems? {
-        return billDao.getBillByLifetimeNo(invoiceNo)?.let { bill ->
-            billDao.getBillWithItemsById(bill.id)
+        return billDao.getBillByLifetimeNo(invoiceNo, sessionManager.getRestaurantId())?.let { bill ->
+            billDao.getBillWithItemsById(bill.id, sessionManager.getRestaurantId())
         }
     }
 
     suspend fun getBillsWithPendingKds(): List<BillWithItems> {
-        return billDao.getBillsWithPendingKds().mapNotNull { bill ->
-            billDao.getBillWithItemsById(bill.id)
+        return billDao.getBillsWithPendingKds(sessionManager.getRestaurantId()).mapNotNull { bill ->
+            billDao.getBillWithItemsById(bill.id, sessionManager.getRestaurantId())
         }
     }
 }

@@ -147,7 +147,8 @@ class SyncManager @Inject constructor(
         lastSyncTimestamp: Long,
         deviceId: String
     ): List<MasterSyncResponse> {
-        return listOf(api.pullMasterSync(lastSyncTimestamp, deviceId))
+        val isBootstrapPull = lastSyncTimestamp == 0L
+        return listOf(api.pullMasterSync(lastSyncTimestamp, deviceId, ignoreDeviceId = isBootstrapPull))
     }
 
     private fun mergeMasterSyncPages(pages: List<MasterSyncResponse>): MasterSyncResponse {

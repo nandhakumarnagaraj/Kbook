@@ -17,11 +17,12 @@ interface KitchenPrintQueueDao {
         """
         SELECT * FROM kitchen_print_queue
         WHERE (printer_mac = :printerMac OR printer_mac = '')
+          AND restaurant_id = :restaurantId
           AND dispatch_status = '${KitchenPrintDispatchStatus.PENDING}'
         ORDER BY created_at ASC
         """
     )
-    suspend fun getPendingForPrinter(printerMac: String): List<KitchenPrintQueueEntity>
+    suspend fun getPendingForPrinter(printerMac: String, restaurantId: Long): List<KitchenPrintQueueEntity>
 
     @Query("SELECT * FROM kitchen_print_queue WHERE bill_id = :billId AND printer_mac = :printerMac LIMIT 1")
     suspend fun getByBillAndPrinter(billId: Long, printerMac: String): KitchenPrintQueueEntity?
@@ -32,10 +33,11 @@ interface KitchenPrintQueueDao {
     @Query(
         """
         SELECT COUNT(*) FROM kitchen_print_queue
-        WHERE dispatch_status != '${KitchenPrintDispatchStatus.SENT}'
+        WHERE restaurant_id = :restaurantId
+          AND dispatch_status != '${KitchenPrintDispatchStatus.SENT}'
         """
     )
-    fun getPendingCountFlow(): Flow<Int>
+    fun getPendingCountFlow(restaurantId: Long): Flow<Int>
 
     @Query(
         """
@@ -123,9 +125,10 @@ interface KitchenPrintQueueDao {
     @Query(
         """
         SELECT DISTINCT kpq.bill_id FROM kitchen_print_queue kpq
-        WHERE kpq.dispatch_status != '${KitchenPrintDispatchStatus.SENT}'
+        WHERE kpq.restaurant_id = :restaurantId
+          AND kpq.dispatch_status != '${KitchenPrintDispatchStatus.SENT}'
         ORDER BY kpq.created_at DESC
         """
     )
-    suspend fun getBillIdsWithPendingKds(): List<Long>
+    suspend fun getBillIdsWithPendingKds(restaurantId: Long): List<Long>
 }

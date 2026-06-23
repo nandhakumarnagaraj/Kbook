@@ -56,10 +56,7 @@ public class MasterSyncController {
 		// but transactional data must stay device-scoped unless the caller explicitly
 		// requests a cross-device recovery pull.
 		boolean sharedDataCrossDevice = ignoreDeviceId || firstSync;
-		// On first sync (re-login after logout), also include own-device bills so they
-		// are restored. Without this, bills created before logout are invisible after login
-		// because the deviceId filter excludes them.
-		boolean transactionalCrossDevice = ignoreDeviceId || firstSync;
+		boolean transactionalCrossDevice = ignoreDeviceId;
 
 		MasterSyncResponseDTO response = new MasterSyncResponseDTO();
 		response.setServerTimestamp(currentServerTime);

@@ -123,9 +123,10 @@ class MenuRepository(
     }
 
     suspend fun deleteItem(item: MenuItemEntity) {
+        val restaurantId = sessionManager.getRestaurantId()
         val now = System.currentTimeMillis()
-        menuDao.markItemDeleted(item.id, now)
-        menuDao.markVariantsDeletedByItem(item.id, now)
+        menuDao.markItemDeleted(item.id, now, restaurantId)
+        menuDao.markVariantsDeletedByItem(item.id, now, restaurantId)
         triggerBackgroundSync()
     }
 
@@ -163,7 +164,7 @@ class MenuRepository(
     }
 
     suspend fun deleteVariant(variant: ItemVariantEntity) {
-        menuDao.markVariantDeleted(variant.id, System.currentTimeMillis())
+        menuDao.markVariantDeleted(variant.id, System.currentTimeMillis(), sessionManager.getRestaurantId())
         triggerBackgroundSync()
     }
 
@@ -179,7 +180,7 @@ class MenuRepository(
                 OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
         workManager.enqueueUniqueWork(
             "MasterSyncWorker_OneTime",
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.KEEP,
             syncWorkRequest
         )
     }

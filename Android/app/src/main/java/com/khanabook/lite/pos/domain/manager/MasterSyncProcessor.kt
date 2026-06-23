@@ -157,7 +157,7 @@ class MasterSyncProcessor @Inject constructor(
         val restaurantId = sessionManager.getRestaurantId()
         if (restaurantId <= 0L) throw IllegalStateException("Push phase aborted: restaurantId not set in session")
 
-        val bill = billDao.getBillById(billLocalId)
+        val bill = billDao.getBillById(billLocalId, restaurantId)
             ?: throw IllegalStateException("Bill $billLocalId not found locally")
 
         if (bill.restaurantId != restaurantId) {
@@ -170,16 +170,16 @@ class MasterSyncProcessor @Inject constructor(
             records = listOf(bill),
             transform = BillEntity::toSyncDto,
             push = api::pushBills,
-            markSynced = billDao::markBillsAsSynced,
-            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId) } }
+            markSynced = { ids -> billDao.markBillsAsSynced(ids, restaurantId) },
+            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
         )
 
         pushBatches(
             label = "bill items",
-            records = billDao.getUnsyncedBillItems().filter { it.billId == billLocalId },
+            records = billDao.getUnsyncedBillItems(restaurantId).filter { it.billId == billLocalId },
             transform = BillItemEntity::toSyncDto,
             push = api::pushBillItems,
-            markSynced = billDao::markBillItemsAsSynced
+            markSynced = { ids -> billDao.markBillItemsAsSynced(ids, restaurantId) }
         )
     }
 
@@ -215,44 +215,44 @@ class MasterSyncProcessor @Inject constructor(
             markSynced = userDao::markUsersAsSynced
         )
 
-        val unsyncedCategories = categoryDao.getUnsyncedCategories()
+        val unsyncedCategories = categoryDao.getUnsyncedCategories(restaurantId)
         val validCategories = unsyncedCategories.filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "categories",
             records = validCategories,
             transform = CategoryEntity::toSyncDto,
             push = api::pushCategories,
-            markSynced = categoryDao::markCategoriesAsSynced
+            markSynced = { ids -> categoryDao.markCategoriesAsSynced(ids, restaurantId) }
         )
 
-        val unsyncedMenuItems = menuDao.getUnsyncedMenuItems()
+        val unsyncedMenuItems = menuDao.getUnsyncedMenuItems(restaurantId)
         val validMenuItems = unsyncedMenuItems.filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "menu items",
             records = validMenuItems,
             transform = MenuItemEntity::toSyncDto,
             push = api::pushMenuItems,
-            markSynced = menuDao::markMenuItemsAsSynced
+            markSynced = { ids -> menuDao.markMenuItemsAsSynced(ids, restaurantId) }
         )
 
-        val unsyncedVariants = menuDao.getUnsyncedItemVariants()
+        val unsyncedVariants = menuDao.getUnsyncedItemVariants(restaurantId)
         val validVariants = unsyncedVariants.filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "item variants",
             records = validVariants,
             transform = ItemVariantEntity::toSyncDto,
             push = api::pushItemVariants,
-            markSynced = menuDao::markItemVariantsAsSynced
+            markSynced = { ids -> menuDao.markItemVariantsAsSynced(ids, restaurantId) }
         )
 
-        val unsyncedStockLogs = inventoryDao.getUnsyncedStockLogs()
+        val unsyncedStockLogs = inventoryDao.getUnsyncedStockLogs(restaurantId)
         val validStockLogs = unsyncedStockLogs.filter { it.restaurantId == restaurantId }
         pushBatches(
             label = "stock logs",
             records = validStockLogs,
             transform = StockLogEntity::toSyncDto,
             push = api::pushStockLogs,
-            markSynced = inventoryDao::markStockLogsAsSynced
+            markSynced = { ids -> inventoryDao.markStockLogsAsSynced(ids, restaurantId) }
         )
 
         val activeUserId = sessionManager.getActiveUserId()
@@ -261,7 +261,7 @@ class MasterSyncProcessor @Inject constructor(
             return false
         }
 
-        val unsyncedBills = billDao.getUnsyncedBillsForUser(activeUserId)
+        val unsyncedBills = billDao.getUnsyncedBillsForUser(activeUserId, restaurantId)
         val validBills = unsyncedBills.filter { it.restaurantId == restaurantId }
         val skippedBills = unsyncedBills.size - validBills.size
         if (skippedBills > 0) {
@@ -272,26 +272,26 @@ class MasterSyncProcessor @Inject constructor(
             records = validBills,
             transform = BillEntity::toSyncDto,
             push = api::pushBills,
-            markSynced = billDao::markBillsAsSynced,
-            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId) } }
+            markSynced = { ids -> billDao.markBillsAsSynced(ids, restaurantId) },
+            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
         )
 
-        val unsyncedBillItems = billDao.getUnsyncedBillItemsForUser(activeUserId).filter { it.restaurantId == restaurantId }
+        val unsyncedBillItems = billDao.getUnsyncedBillItemsForUser(activeUserId, restaurantId)
         pushBatches(
             label = "bill items",
             records = unsyncedBillItems,
             transform = BillItemEntity::toSyncDto,
             push = api::pushBillItems,
-            markSynced = billDao::markBillItemsAsSynced
+            markSynced = { ids -> billDao.markBillItemsAsSynced(ids, restaurantId) }
         )
 
-        val unsyncedBillPayments = billDao.getUnsyncedBillPaymentsForUser(activeUserId).filter { it.restaurantId == restaurantId }
+        val unsyncedBillPayments = billDao.getUnsyncedBillPaymentsForUser(activeUserId, restaurantId)
         pushBatches(
             label = "bill payments",
             records = unsyncedBillPayments,
             transform = BillPaymentEntity::toSyncDto,
             push = api::pushBillPayments,
-            markSynced = billDao::markBillPaymentsAsSynced
+            markSynced = { ids -> billDao.markBillPaymentsAsSynced(ids, restaurantId) }
         )
 
         return true
@@ -305,6 +305,7 @@ class MasterSyncProcessor @Inject constructor(
                 masterData.profiles.map { remoteProfile ->
                     val localProfile = currentLocalProfile
                     val useRemoteLogo = remoteProfile.logoVersion > (localProfile?.logoVersion ?: 0)
+                    val useRemoteUpiQr = remoteProfile.upiQrVersion > (localProfile?.upiQrVersion ?: 0)
                     RestaurantProfileEntity(
                         id = remoteProfile.restaurantId ?: (currentLocalProfile?.id ?: 1L),
                         shopName = remoteProfile.shopName.orFallback("My Shop"),
@@ -326,9 +327,9 @@ class MasterSyncProcessor @Inject constructor(
                         customTaxPercentage = remoteProfile.customTaxPercentage ?: 0.0,
                         currency = remoteProfile.currency.orFallback(currentLocalProfile?.currency ?: "INR"),
                         upiEnabled = remoteProfile.upiEnabled ?: false,
-                        upiQrPath = null,
-                        upiQrUrl = null,
-                        upiQrVersion = 0,
+                        upiQrPath = if (useRemoteUpiQr) remoteProfile.upiQrPath else localProfile?.upiQrPath,
+                        upiQrUrl = if (useRemoteUpiQr) remoteProfile.upiQrUrl else localProfile?.upiQrUrl,
+                        upiQrVersion = maxOf(remoteProfile.upiQrVersion, localProfile?.upiQrVersion ?: 0),
                         upiHandle = remoteProfile.upiHandle.orFallback(""),
                         upiMobile = remoteProfile.upiMobile.orFallback(""),
                         cashEnabled = remoteProfile.cashEnabled ?: true,
@@ -372,11 +373,15 @@ class MasterSyncProcessor @Inject constructor(
             masterData.profiles.firstOrNull()?.let { remoteProfile ->
                 val mac = remoteProfile.kitchenPrinterMac
                 if (!mac.isNullOrBlank()) {
-                    val existing = printerProfileDao.getByRole(com.khanabook.lite.pos.domain.model.PrinterRole.KITCHEN.name)
+                    val existing = printerProfileDao.getByRole(
+                        com.khanabook.lite.pos.domain.model.PrinterRole.KITCHEN.name,
+                        remoteProfile.restaurantId ?: restaurantId
+                    )
                     printerProfileDao.upsert(
                         PrinterProfileEntity(
                             id = existing?.id ?: 0,
                             role = com.khanabook.lite.pos.domain.model.PrinterRole.KITCHEN.name,
+                            restaurantId = remoteProfile.restaurantId ?: restaurantId,
                             name = remoteProfile.kitchenPrinterName ?: "Kitchen Printer",
                             macAddress = mac,
                             enabled = remoteProfile.kitchenPrinterEnabled ?: true,
@@ -411,7 +416,7 @@ class MasterSyncProcessor @Inject constructor(
                     remoteUser.whatsappNumber?.takeIf { it.isNotBlank() }?.let { localUsersByIdentity["whatsapp:$it"] }
                 ).firstOrNull()
                 val remoteIdentity = remoteUser.loginId?.takeIf { it.isNotBlank() } ?: remoteUser.email
-                val assignedLocalId = localUser?.id ?: remoteUser.id
+                val assignedLocalId = localUser?.id ?: remoteUser.serverId ?: remoteUser.id
                 // Track: original device local id → id we will persist on this device
                 remoteUserIdToLocalId[remoteUser.id] = assignedLocalId
 
@@ -446,7 +451,7 @@ class MasterSyncProcessor @Inject constructor(
             categoryDao.insertSyncedCategories(
                 masterData.categories.map { remoteCategory ->
                     CategoryEntity(
-                        id = remoteCategory.id,
+                        id = remoteCategory.serverId ?: remoteCategory.id,
                         name = remoteCategory.name.orFallback("Category"),
                         isVeg = remoteCategory.isVeg,
                         sortOrder = remoteCategory.sortOrder ?: 0,
@@ -464,7 +469,7 @@ class MasterSyncProcessor @Inject constructor(
         }
 
         // Fetch category ID mapping
-        val categoryIdMap = categoryDao.getAllCategoryServerIds().associate { it.serverId to it.id }
+        val categoryIdMap = categoryDao.getAllCategoryServerIds(restaurantId).associate { it.serverId to it.id }
         val knownCategoryIds = categoryIdMap.values.toMutableSet()
 
         if (masterData.menuItems.isNotEmpty()) {
@@ -480,7 +485,7 @@ class MasterSyncProcessor @Inject constructor(
                         null
                     } else {
                         MenuItemEntity(
-                        id = remoteMenuItem.localId ?: remoteMenuItem.serverId ?: 0L,
+                        id = remoteMenuItem.serverId ?: remoteMenuItem.localId ?: 0L,
                         categoryId = localCategoryId ?: 0L,
                         name = remoteMenuItem.name.orFallback("Unnamed Item"),
                         basePrice = remoteMenuItem.basePrice.toSafeString(),
@@ -516,7 +521,7 @@ class MasterSyncProcessor @Inject constructor(
         }
 
         // Fetch menu item ID mapping
-        val menuItemIdMap = menuDao.getAllMenuItemServerIds().associate { it.serverId to it.id }
+        val menuItemIdMap = menuDao.getAllMenuItemServerIds(restaurantId).associate { it.serverId to it.id }
         val knownMenuItemIds = menuItemIdMap.values.toMutableSet()
 
         if (masterData.itemVariants.isNotEmpty()) {
@@ -529,7 +534,7 @@ class MasterSyncProcessor @Inject constructor(
                         null
                     } else {
                         ItemVariantEntity(
-                        id = remoteVariant.localId ?: remoteVariant.serverId ?: 0L,
+                        id = remoteVariant.serverId ?: remoteVariant.localId ?: 0L,
                         menuItemId = localMenuItemId ?: 0L,
                         variantName = remoteVariant.variantName.orFallback("Default"),
                         price = remoteVariant.price.toSafeString(),
@@ -562,11 +567,11 @@ class MasterSyncProcessor @Inject constructor(
         }
 
         // Fetch variant ID mapping
-        val variantIdMap = menuDao.getAllVariantServerIds().associate { it.serverId to it.id }
+        val variantIdMap = menuDao.getAllVariantServerIds(restaurantId).associate { it.serverId to it.id }
         val knownVariantIds = variantIdMap.values.toMutableSet()
 
         if (masterData.stockLogs.isNotEmpty()) {
-            inventoryDao.deleteAllSyncedStockLogs()
+            inventoryDao.deleteAllSyncedStockLogs(restaurantId)
             val resolvedStockLogs = masterData.stockLogs.mapNotNull { remoteStockLog ->
                     val localMenuItemId = remoteStockLog.serverMenuItemId?.let { serverId ->
                         menuItemIdMap[serverId] ?: serverId
@@ -628,7 +633,7 @@ class MasterSyncProcessor @Inject constructor(
                         exists
                     }
                     BillEntity(
-                        id = remoteBill.id,
+                        id = remoteBill.serverId ?: remoteBill.id,
                         restaurantId = remoteBill.restaurantId ?: 0L,
                         deviceId = remoteBill.deviceId.orFallback(""),
                         dailyOrderId = remoteBill.dailyOrderId ?: 0,
@@ -665,11 +670,11 @@ class MasterSyncProcessor @Inject constructor(
         }
 
         // Get mapping of serverId to localId for bills to ensure items are linked correctly
-        val billServerIdMap = billDao.getAllBillServerIds().associate { it.serverId to it.id }
+        val billServerIdMap = billDao.getAllBillServerIds(restaurantId).associate { it.serverId to it.id }
         val knownBillIds = billServerIdMap.values.toMutableSet()
 
         if (masterData.billItems.isNotEmpty()) {
-            billDao.deleteAllSyncedBillItems()
+            billDao.deleteAllSyncedBillItems(restaurantId)
             val resolvedBillItems = masterData.billItems.mapNotNull { remoteBillItem ->
                     val localBillId = remoteBillItem.serverBillId?.let { serverId ->
                         billServerIdMap[serverId] ?: serverId
@@ -728,7 +733,7 @@ class MasterSyncProcessor @Inject constructor(
         }
 
         if (masterData.billPayments.isNotEmpty()) {
-            billDao.deleteAllSyncedBillPayments()
+            billDao.deleteAllSyncedBillPayments(restaurantId)
             val resolvedBillPayments = masterData.billPayments.mapNotNull { remoteBillPayment ->
                     val localBillId = remoteBillPayment.serverBillId?.let { serverId ->
                         billServerIdMap[serverId] ?: serverId
@@ -807,7 +812,10 @@ class MasterSyncProcessor @Inject constructor(
      */
     private suspend fun syncKitchenPrinterIntoProfile(profile: RestaurantProfileEntity?) {
         if (profile == null) return
-        val kitchen = printerProfileDao.getByRole(com.khanabook.lite.pos.domain.model.PrinterRole.KITCHEN.name)
+        val kitchen = printerProfileDao.getByRole(
+            com.khanabook.lite.pos.domain.model.PrinterRole.KITCHEN.name,
+            profile.restaurantId
+        )
         val mac = kitchen?.macAddress?.takeIf { it.isNotBlank() }
 
         val unchanged = profile.kitchenPrinterMac == mac &&

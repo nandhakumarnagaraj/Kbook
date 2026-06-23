@@ -103,7 +103,7 @@ class RestaurantRepository(
                 OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
         workManager.enqueueUniqueWork(
                 "MasterSyncWorker_OneTime",
-                ExistingWorkPolicy.REPLACE,
+                ExistingWorkPolicy.KEEP,
                 syncWorkRequest
         )
     }

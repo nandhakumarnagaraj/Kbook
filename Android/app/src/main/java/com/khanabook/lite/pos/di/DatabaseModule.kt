@@ -138,7 +138,9 @@ object DatabaseModule {
                 AppDatabase.MIGRATION_41_42,
                 AppDatabase.MIGRATION_42_43,
                 AppDatabase.MIGRATION_43_44,
-                AppDatabase.MIGRATION_44_45
+                AppDatabase.MIGRATION_44_45,
+                AppDatabase.MIGRATION_45_46,
+                AppDatabase.MIGRATION_46_47
             )
             .build()
     }
@@ -220,14 +222,16 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun providePrinterProfileRepository(
-        printerProfileDao: PrinterProfileDao
-    ) = PrinterProfileRepository(printerProfileDao)
+        printerProfileDao: PrinterProfileDao,
+        sessionManager: SessionManager
+    ) = PrinterProfileRepository(printerProfileDao, sessionManager)
 
     @Provides
     @Singleton
     fun provideKitchenPrintQueueRepository(
-        kitchenPrintQueueDao: KitchenPrintQueueDao
-    ) = KitchenPrintQueueRepository(kitchenPrintQueueDao)
+        kitchenPrintQueueDao: KitchenPrintQueueDao,
+        sessionManager: SessionManager
+    ) = KitchenPrintQueueRepository(kitchenPrintQueueDao, sessionManager)
 
     @Provides
     @Singleton

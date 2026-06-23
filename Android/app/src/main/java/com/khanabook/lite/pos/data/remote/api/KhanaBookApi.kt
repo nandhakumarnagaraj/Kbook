@@ -77,7 +77,8 @@ interface KhanaBookApi {
         @GET("api/v1/sync/master/pull")
         suspend fun pullMasterSync(
             @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
-            @Query("deviceId") deviceId: String
+            @Query("deviceId") deviceId: String,
+            @Query("ignoreDeviceId") ignoreDeviceId: Boolean = false
         ): MasterSyncResponse
 
         // ── Counters ─────────────────────────────────────────────────────────

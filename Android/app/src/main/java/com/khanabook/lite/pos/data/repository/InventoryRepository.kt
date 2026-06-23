@@ -21,8 +21,9 @@ class InventoryRepository(
         private val workManager: WorkManager
 ) {
     suspend fun adjustStock(menuItemId: Long, delta: Double, reason: String) {
+        val restaurantId = sessionManager.getRestaurantId()
         val now = System.currentTimeMillis()
-        menuDao.updateStock(menuItemId, delta)
+        menuDao.updateStock(menuItemId, delta, restaurantId)
         insertStockLog(
                 StockLogEntity(
                         menuItemId = menuItemId,
@@ -71,7 +72,7 @@ class InventoryRepository(
     }
 
     fun getLogsForItem(itemId: Long): Flow<List<StockLogEntity>> =
-            inventoryDao.getLogsForItem(itemId)
+            inventoryDao.getLogsForItem(itemId, sessionManager.getRestaurantId())
 
     fun getAllLogs(): Flow<List<StockLogEntity>> {
         val restaurantId = sessionManager.getRestaurantId()
@@ -85,7 +86,7 @@ class InventoryRepository(
                 OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
         workManager.enqueueUniqueWork(
             "MasterSyncWorker_OneTime",
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.KEEP,
             syncWorkRequest
         )
     }

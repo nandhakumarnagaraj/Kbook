@@ -22,7 +22,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 45,
+        version = 47,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -37,6 +37,30 @@ abstract class AppDatabase : RoomDatabase() {
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
+
+            val MIGRATION_46_47 = object : Migration(46, 47) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE `printer_profiles` ADD COLUMN `restaurant_id` INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("DROP INDEX IF EXISTS `index_printer_profiles_role`")
+                    db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_printer_profiles_restaurant_id_role` ON `printer_profiles` (`restaurant_id`, `role`)")
+                }
+            }
+
+            val MIGRATION_45_46 = object : Migration(45, 46) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE `kitchen_print_queue` ADD COLUMN `restaurant_id` INTEGER NOT NULL DEFAULT 0")
+                    // Backfill from the owning bill's restaurant so existing queued jobs stay scoped.
+                    db.execSQL(
+                        """
+                        UPDATE `kitchen_print_queue`
+                        SET `restaurant_id` = (
+                            SELECT `restaurant_id` FROM `bills` WHERE `bills`.`id` = `kitchen_print_queue`.`bill_id`
+                        )
+                        WHERE `bill_id` IN (SELECT `id` FROM `bills`)
+                        """.trimIndent()
+                    )
+                }
+            }
 
             val MIGRATION_44_45 = object : Migration(44, 45) {
                 override fun migrate(db: SupportSQLiteDatabase) {
