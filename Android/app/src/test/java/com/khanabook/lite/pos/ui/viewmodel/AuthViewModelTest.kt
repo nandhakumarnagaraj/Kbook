@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
+import android.content.Context
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
@@ -31,6 +32,7 @@ import retrofit2.Response
 class AuthViewModelTest {
 
     private lateinit var viewModel: AuthViewModel
+    private val context: Context = mockk(relaxed = true)
     private val userRepository: UserRepository = mockk(relaxed = true)
     private val restaurantRepository: RestaurantRepository = mockk(relaxed = true)
     private val syncManager: SyncManager = mockk(relaxed = true)
@@ -47,7 +49,14 @@ class AuthViewModelTest {
         every { android.util.Log.e(any(), any(), any()) } returns 0
         every { userRepository.currentUser } returns MutableStateFlow(null)
 
+        every { context.getDatabasePath(any()) } returns java.io.File("non_existent_path")
+
+        io.mockk.mockkStatic(androidx.work.WorkManager::class)
+        val mockWorkManager = mockk<androidx.work.WorkManager>(relaxed = true)
+        every { androidx.work.WorkManager.getInstance(any()) } returns mockWorkManager
+
         viewModel = AuthViewModel(
+            context,
             userRepository,
             restaurantRepository,
             syncManager,

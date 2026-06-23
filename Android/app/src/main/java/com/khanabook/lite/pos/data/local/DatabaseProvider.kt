@@ -1,0 +1,190 @@
+package com.khanabook.lite.pos.data.local
+
+import android.content.Context
+import android.util.Log
+import androidx.room.Room
+import com.khanabook.lite.pos.data.local.AppDatabase
+import com.khanabook.lite.pos.di.DatabaseModule
+import com.khanabook.lite.pos.domain.manager.SessionManager
+import dagger.hilt.android.qualifiers.ApplicationContext
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+
+@Singleton
+class DatabaseProvider @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val sessionManager: SessionManager
+) {
+    private val tag = "DatabaseProvider"
+    private var activeDatabase: AppDatabase? = null
+    private var activeRestaurantId: Long = -1L
+
+    private val databaseState = MutableStateFlow<AppDatabase?>(null)
+
+    val activeDatabaseFlow: Flow<AppDatabase> = databaseState
+        .filterNotNull()
+        .distinctUntilChanged()
+
+    @Synchronized
+    fun getDatabase(): AppDatabase {
+        val restaurantId = sessionManager.getRestaurantId()
+        if (activeDatabase == null || activeRestaurantId != restaurantId) {
+            activeDatabase?.close()
+            activeRestaurantId = restaurantId
+            val dbName = if (restaurantId > 0) {
+                "khanabook_lite_db_$restaurantId"
+            } else {
+                "khanabook_lite_db"
+            }
+
+            // Check if legacy data needs migration
+            if (restaurantId > 0) {
+                migrateLegacyDataIfNecessary(restaurantId)
+            }
+
+            activeDatabase = buildDatabaseWithName(context, dbName)
+            databaseState.value = activeDatabase
+            Log.i(tag, "Opened database instance: $dbName")
+        }
+        return activeDatabase!!
+    }
+
+    @Synchronized
+    fun closeDatabase() {
+        activeDatabase?.close()
+        activeDatabase = null
+        databaseState.value = null
+        activeRestaurantId = -1L
+        Log.i(tag, "Closed active database instance")
+    }
+
+    private fun buildDatabaseWithName(context: Context, dbName: String): AppDatabase {
+        val passphrase = DatabaseModule.getOrCreateDbPassphrase(context)
+        val factory = SupportOpenHelperFactory(passphrase)
+
+        return Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            dbName
+        )
+            .openHelperFactory(factory)
+            .addMigrations(
+                AppDatabase.MIGRATION_17_18,
+                AppDatabase.MIGRATION_18_19,
+                AppDatabase.MIGRATION_21_22,
+                AppDatabase.MIGRATION_23_24,
+                AppDatabase.MIGRATION_26_27,
+                AppDatabase.MIGRATION_27_28,
+                AppDatabase.MIGRATION_28_29,
+                AppDatabase.MIGRATION_29_30,
+                AppDatabase.MIGRATION_30_31,
+                AppDatabase.MIGRATION_31_32,
+                AppDatabase.MIGRATION_32_33,
+                AppDatabase.MIGRATION_33_34,
+                AppDatabase.MIGRATION_34_35,
+                AppDatabase.MIGRATION_35_36,
+                AppDatabase.MIGRATION_36_37,
+                AppDatabase.MIGRATION_37_38,
+                AppDatabase.MIGRATION_38_39,
+                AppDatabase.MIGRATION_39_40,
+                AppDatabase.MIGRATION_40_41,
+                AppDatabase.MIGRATION_41_42,
+                AppDatabase.MIGRATION_42_43,
+                AppDatabase.MIGRATION_43_44,
+                AppDatabase.MIGRATION_44_45,
+                AppDatabase.MIGRATION_45_46,
+                AppDatabase.MIGRATION_46_47
+            )
+            .build()
+    }
+
+    private fun migrateLegacyDataIfNecessary(restaurantId: Long) {
+        val legacyDbFile = context.getDatabasePath("khanabook_lite_db")
+        if (!legacyDbFile.exists()) return
+
+        val newDbFile = context.getDatabasePath("khanabook_lite_db_$restaurantId")
+        if (newDbFile.exists()) return
+
+        Log.i(tag, "Found legacy database and no restaurant database for $restaurantId. Starting data migration.")
+
+        var legacyDb: AppDatabase? = null
+        var newDb: AppDatabase? = null
+        try {
+            legacyDb = buildDatabaseWithName(context, "khanabook_lite_db")
+            newDb = buildDatabaseWithName(context, "khanabook_lite_db_$restaurantId")
+
+            newDb.runInTransaction {
+                runBlocking {
+                    // 1. Migrate Users
+                    val users = legacyDb!!.userDao().getAllUsersOnce().filter { it.restaurantId == restaurantId }
+                    if (users.isNotEmpty()) {
+                        newDb!!.userDao().insertSyncedUsers(users)
+                    }
+
+                    // 2. Migrate RestaurantProfile
+                    val profiles = legacyDb!!.restaurantDao().getUnsyncedRestaurantProfiles().filter { it.restaurantId == restaurantId }
+                    if (profiles.isNotEmpty()) {
+                        newDb!!.restaurantDao().insertSyncedRestaurantProfiles(profiles)
+                    }
+                    legacyDb!!.restaurantDao().getProfile(restaurantId)?.let {
+                        newDb!!.restaurantDao().saveProfile(it)
+                    }
+
+                    // 3. Migrate Categories
+                    val categories = legacyDb!!.categoryDao().getAllCategoriesOnce(restaurantId)
+                    if (categories.isNotEmpty()) {
+                        newDb!!.categoryDao().insertSyncedCategories(categories)
+                    }
+
+                    // 4. Migrate MenuItems & Variants
+                    val menuItems = legacyDb!!.menuDao().getAllMenuItemsOnce(restaurantId)
+                    if (menuItems.isNotEmpty()) {
+                        newDb!!.menuDao().insertSyncedMenuItems(menuItems)
+                    }
+                    val variants = legacyDb!!.menuDao().getAllVariantsOnce(restaurantId)
+                    if (variants.isNotEmpty()) {
+                        newDb!!.menuDao().insertSyncedItemVariants(variants)
+                    }
+
+                    // 5. Migrate StockLogs
+                    val unsyncedStock = legacyDb!!.inventoryDao().getUnsyncedStockLogs(restaurantId)
+                    if (unsyncedStock.isNotEmpty()) {
+                        newDb!!.inventoryDao().insertSyncedStockLogs(unsyncedStock)
+                    }
+
+                    // 6. Migrate Bills, BillItems, BillPayments
+                    val unsyncedBills = legacyDb!!.billDao().getUnsyncedBills(restaurantId)
+                    if (unsyncedBills.isNotEmpty()) {
+                        newDb!!.billDao().insertSyncedBills(unsyncedBills)
+                    }
+                    val unsyncedItems = legacyDb!!.billDao().getUnsyncedBillItems(restaurantId)
+                    if (unsyncedItems.isNotEmpty()) {
+                        newDb!!.billDao().insertSyncedBillItems(unsyncedItems)
+                    }
+                    val unsyncedPayments = legacyDb!!.billDao().getUnsyncedBillPayments(restaurantId)
+                    if (unsyncedPayments.isNotEmpty()) {
+                        newDb!!.billDao().insertSyncedBillPayments(unsyncedPayments)
+                    }
+
+                    // Migrate Printer Profiles
+                    val printerProfiles = legacyDb!!.printerProfileDao().getAll(restaurantId)
+                    if (printerProfiles.isNotEmpty()) {
+                        printerProfiles.forEach { newDb!!.printerProfileDao().upsert(it) }
+                    }
+                }
+            }
+            Log.i(tag, "Data migration completed successfully for restaurant $restaurantId")
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to migrate legacy data to restaurant-specific database", e)
+        } finally {
+            legacyDb?.close()
+            newDb?.close()
+        }
+    }
+}

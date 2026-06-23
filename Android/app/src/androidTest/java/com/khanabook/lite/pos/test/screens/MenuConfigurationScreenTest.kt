@@ -35,6 +35,8 @@ class MenuConfigurationScreenTest {
             KhanaBookLiteTheme {
                 ModeSelectionView(
                     selectedCategoryName = "Biryani",
+                    totalCategoriesCount = 0,
+                    totalItemsCount = 0,
                     onManualClick = {},
                     onSmartImportClick = {},
                     onGalleryClick = {},
@@ -62,10 +64,8 @@ class MenuConfigurationScreenTest {
                     onCategorySelect = {},
                     onAddCategory = {},
                     onUpdateCategory = {},
-                    onDeleteCategory = {},
                     onAddItem = { _, _, _, _ -> },
                     onUpdateItem = {},
-                    onDeleteItem = {},
                     onToggleAvailability = { _, _ -> },
                     onAddVariant = { _, _, _ -> },
                     onUpdateVariant = {},

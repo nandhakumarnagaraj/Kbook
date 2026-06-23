@@ -5,14 +5,8 @@ import android.util.Base64
 import android.util.Log
 import androidx.room.Room
 import com.khanabook.lite.pos.data.local.AppDatabase
-import com.khanabook.lite.pos.data.local.dao.BillDao
-import com.khanabook.lite.pos.data.local.dao.CategoryDao
-import com.khanabook.lite.pos.data.local.dao.InventoryDao
-import com.khanabook.lite.pos.data.local.dao.KitchenPrintQueueDao
-import com.khanabook.lite.pos.data.local.dao.MenuDao
-import com.khanabook.lite.pos.data.local.dao.PrinterProfileDao
-import com.khanabook.lite.pos.data.local.dao.RestaurantDao
-import com.khanabook.lite.pos.data.local.dao.UserDao
+import com.khanabook.lite.pos.data.local.DatabaseProvider
+import com.khanabook.lite.pos.data.local.dao.*
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.CategoryRepository
@@ -47,7 +41,7 @@ object DatabaseModule {
     private fun getSecureDbPrefs(context: Context): KeystoreBackedPreferences =
         KeystoreBackedPreferences(context, SECURE_DB_PREFS)
 
-    private fun getOrCreateDbPassphrase(context: Context): ByteArray {
+    internal fun getOrCreateDbPassphrase(context: Context): ByteArray {
         try {
             val sharedPrefs = getSecureDbPrefs(context)
             migrateLegacyDbKeyIfNeeded(context, sharedPrefs)
@@ -146,43 +140,18 @@ object DatabaseModule {
     }
 
     @Provides
-    @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
-        return try {
-            buildDatabase(context, getOrCreateDbPassphrase(context))
-        } catch (e: Exception) {
-            if (!shouldRecoverFromDbOpenFailure(e)) {
-                throw e
-            }
-
-            val quarantinedFiles = runCatching { quarantineDatabaseFiles(context) }
-                .getOrElse {
-                    Log.e(TAG, "Failed to quarantine unusable encrypted database.", it)
-                    emptyList()
-                }
-
-            Log.e(
-                TAG,
-                "Detected unusable encrypted database. Failing safe to avoid silent local data loss. Quarantined files=$quarantinedFiles",
-                e
-            )
-            throw IllegalStateException(
-                "Local billing database could not be opened safely. " +
-                    "Automatic reset is disabled to avoid data loss. " +
-                    "Quarantined files: ${quarantinedFiles.joinToString()}",
-                e
-            )
-        }
+    fun provideDatabase(databaseProvider: DatabaseProvider): AppDatabase {
+        return databaseProvider.getDatabase()
     }
 
-    @Provides fun provideUserDao(database: AppDatabase) = database.userDao()
-    @Provides fun provideRestaurantDao(database: AppDatabase) = database.restaurantDao()
-    @Provides fun provideCategoryDao(database: AppDatabase) = database.categoryDao()
-    @Provides fun provideMenuDao(database: AppDatabase) = database.menuDao()
-    @Provides fun providePrinterProfileDao(database: AppDatabase) = database.printerProfileDao()
-    @Provides fun provideKitchenPrintQueueDao(database: AppDatabase) = database.kitchenPrintQueueDao()
-    @Provides fun provideBillDao(database: AppDatabase) = database.billDao()
-    @Provides fun provideInventoryDao(database: AppDatabase) = database.inventoryDao()
+    @Provides @Singleton fun provideUserDao(databaseProvider: DatabaseProvider): UserDao = TenantUserDao(databaseProvider)
+    @Provides @Singleton fun provideRestaurantDao(databaseProvider: DatabaseProvider): RestaurantDao = TenantRestaurantDao(databaseProvider)
+    @Provides @Singleton fun provideCategoryDao(databaseProvider: DatabaseProvider): CategoryDao = TenantCategoryDao(databaseProvider)
+    @Provides @Singleton fun provideMenuDao(databaseProvider: DatabaseProvider): MenuDao = TenantMenuDao(databaseProvider)
+    @Provides @Singleton fun providePrinterProfileDao(databaseProvider: DatabaseProvider): PrinterProfileDao = TenantPrinterProfileDao(databaseProvider)
+    @Provides @Singleton fun provideKitchenPrintQueueDao(databaseProvider: DatabaseProvider): KitchenPrintQueueDao = TenantKitchenPrintQueueDao(databaseProvider)
+    @Provides @Singleton fun provideBillDao(databaseProvider: DatabaseProvider): BillDao = TenantBillDao(databaseProvider)
+    @Provides @Singleton fun provideInventoryDao(databaseProvider: DatabaseProvider): InventoryDao = TenantInventoryDao(databaseProvider)
 
     @Provides
     @Singleton

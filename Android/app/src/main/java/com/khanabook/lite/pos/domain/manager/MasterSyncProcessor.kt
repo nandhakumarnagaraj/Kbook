@@ -3,7 +3,7 @@ package com.khanabook.lite.pos.domain.manager
 import android.util.Log
 import androidx.room.withTransaction
 import com.khanabook.lite.pos.BuildConfig
-import com.khanabook.lite.pos.data.local.AppDatabase
+import com.khanabook.lite.pos.data.local.DatabaseProvider
 import com.khanabook.lite.pos.data.local.dao.*
 import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
@@ -17,7 +17,7 @@ import retrofit2.HttpException
 @Singleton
 class MasterSyncProcessor @Inject constructor(
     private val api: KhanaBookApi,
-    private val database: AppDatabase,
+    private val databaseProvider: DatabaseProvider,
     private val billDao: BillDao,
     private val restaurantDao: RestaurantDao,
     private val userDao: UserDao,
@@ -297,7 +297,7 @@ class MasterSyncProcessor @Inject constructor(
         return true
     }
 
-    suspend fun insertMasterData(masterData: MasterSyncResponse) = database.withTransaction {
+    suspend fun insertMasterData(masterData: MasterSyncResponse) = databaseProvider.getDatabase().withTransaction {
         val restaurantId = sessionManager.getRestaurantId()
         if (masterData.profiles.isNotEmpty()) {
             val currentLocalProfile = if (restaurantId > 0) restaurantDao.getProfile(restaurantId) else restaurantDao.getProfile()

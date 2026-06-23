@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,7 +12,9 @@ import com.khanabook.lite.pos.domain.manager.AuthManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
 import com.khanabook.lite.pos.domain.util.BackendException
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
+import com.khanabook.lite.pos.worker.MasterSyncWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +29,7 @@ private const val MAX_FAILED_ATTEMPTS = 5
 class AuthViewModel
 @Inject
 constructor(
+        @ApplicationContext private val context: Context,
         private val userRepository: UserRepository,
         private val restaurantRepository: RestaurantRepository,
         private val syncManager: SyncManager,
@@ -171,11 +175,20 @@ constructor(
 
     private suspend fun handleLoginSuccess(user: UserEntity): Result<Unit> {
         sessionManager.clearLockout()
-        // Login must re-bootstrap the restaurant's data set. The session-scoped
-        // sync completion flag alone is not enough because performFullSync() still
-        // uses the saved lastSyncTimestamp as its checkpoint.
-        sessionManager.saveLastSyncTimestamp(0L)
-        sessionManager.setInitialSyncCompleted(false)
+        val restaurantId = user.restaurantId
+        val dbFile = context.getDatabasePath("khanabook_lite_db_$restaurantId")
+        if (!dbFile.exists()) {
+            // First time login for this restaurant on this device:
+            // Must bootstrap the database from scratch.
+            sessionManager.saveLastSyncTimestamp(0L)
+            sessionManager.setInitialSyncCompleted(false)
+        } else {
+            // Re-login: Database exists and has data.
+            // Retain the existing sync timestamp to prevent 409 conflict
+            // and avoid re-downloading all history.
+            sessionManager.setInitialSyncCompleted(true)
+        }
+        MasterSyncWorker.schedule(context)
         return Result.success(Unit)
     }
 

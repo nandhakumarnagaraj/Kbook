@@ -6,7 +6,7 @@ import androidx.credentials.CredentialManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.BuildConfig
-import com.khanabook.lite.pos.data.local.AppDatabase
+import com.khanabook.lite.pos.data.local.DatabaseProvider
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.work.WorkManager
 import javax.inject.Inject
 
 class PendingSyncException(val unsyncedCount: Int) : Exception("Cannot logout: $unsyncedCount unsynced items remaining")
@@ -42,11 +43,12 @@ sealed class LogoutState {
 class LogoutViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val sessionManager: SessionManager,
-    private val appDatabase: AppDatabase,
+    private val databaseProvider: DatabaseProvider,
     private val billRepository: BillRepository,
     private val syncManager: SyncManager,
     private val userRepository: UserRepository,
-    private val api: KhanaBookApi
+    private val api: KhanaBookApi,
+    private val workManager: WorkManager
 ) : ViewModel() {
     private val debugTag = "KhanaBookDebugAuth"
 
@@ -120,6 +122,8 @@ class LogoutViewModel @Inject constructor(
             }
             userRepository.setCurrentUser(null)
             withContext(Dispatchers.IO) {
+                workManager.cancelUniqueWork("MasterSyncWorker_OneTime")
+                workManager.cancelUniqueWork("MasterSyncWorker")
                 sessionManager.clearAuthOnly()
             }
             if (BuildConfig.DEBUG) Log.d(debugTag, "performSoftLogout: token cleared, local DB preserved for re-login sync")
@@ -147,8 +151,18 @@ class LogoutViewModel @Inject constructor(
             }
             userRepository.setCurrentUser(null)
             withContext(Dispatchers.IO) {
+                workManager.cancelUniqueWork("MasterSyncWorker_OneTime")
+                workManager.cancelUniqueWork("MasterSyncWorker")
+                databaseProvider.closeDatabase()
+                context.databaseList().forEach { dbName ->
+                    if (dbName.startsWith("khanabook_lite_db")) {
+                        val deleted = context.deleteDatabase(dbName)
+                        if (BuildConfig.DEBUG) {
+                            Log.d(debugTag, "Deleted database $dbName: $deleted")
+                        }
+                    }
+                }
                 sessionManager.clearSession()
-                appDatabase.clearAllTables()
             }
             if (BuildConfig.DEBUG) Log.d(debugTag, "performHardLogout: completed clearSession + cleared DB")
             _logoutState.value = LogoutState.LoggedOut
@@ -159,15 +173,16 @@ class LogoutViewModel @Inject constructor(
         val activeUserId = sessionManager.getActiveUserId() ?: -1L
         val activeRestaurantId = sessionManager.getRestaurantId()
 
-        val profileCount = async { appDatabase.restaurantDao().getUnsyncedRestaurantProfiles().filter { it.restaurantId == activeRestaurantId }.size }
-        val userCount = async { appDatabase.userDao().getUnsyncedUsers().filter { it.restaurantId == activeRestaurantId }.size }
-        val categoryCount = async { appDatabase.categoryDao().getUnsyncedCategories(activeRestaurantId).size }
-        val menuItemCount = async { appDatabase.menuDao().getUnsyncedMenuItems(activeRestaurantId).size }
-        val variantCount = async { appDatabase.menuDao().getUnsyncedItemVariants(activeRestaurantId).size }
-        val stockLogCount = async { appDatabase.inventoryDao().getUnsyncedStockLogs(activeRestaurantId).size }
-        val billCount = async { appDatabase.billDao().getUnsyncedBillsForUser(activeUserId, activeRestaurantId).size }
-        val billItemCount = async { appDatabase.billDao().getUnsyncedBillItemsForUser(activeUserId, activeRestaurantId).size }
-        val billPaymentCount = async { appDatabase.billDao().getUnsyncedBillPaymentsForUser(activeUserId, activeRestaurantId).size }
+        val database = databaseProvider.getDatabase()
+        val profileCount = async { database.restaurantDao().getUnsyncedRestaurantProfiles().filter { it.restaurantId == activeRestaurantId }.size }
+        val userCount = async { database.userDao().getUnsyncedUsers().filter { it.restaurantId == activeRestaurantId }.size }
+        val categoryCount = async { database.categoryDao().getUnsyncedCategories(activeRestaurantId).size }
+        val menuItemCount = async { database.menuDao().getUnsyncedMenuItems(activeRestaurantId).size }
+        val variantCount = async { database.menuDao().getUnsyncedItemVariants(activeRestaurantId).size }
+        val stockLogCount = async { database.inventoryDao().getUnsyncedStockLogs(activeRestaurantId).size }
+        val billCount = async { database.billDao().getUnsyncedBillsForUser(activeUserId, activeRestaurantId).size }
+        val billItemCount = async { database.billDao().getUnsyncedBillItemsForUser(activeUserId, activeRestaurantId).size }
+        val billPaymentCount = async { database.billDao().getUnsyncedBillPaymentsForUser(activeUserId, activeRestaurantId).size }
 
         val pc = profileCount.await()
         val uc = userCount.await()
