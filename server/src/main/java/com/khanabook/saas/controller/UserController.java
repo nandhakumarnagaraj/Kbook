@@ -1,12 +1,10 @@
 package com.khanabook.saas.controller;
 
 import com.khanabook.saas.entity.User;
-import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.service.OtpRateLimiter;
 import com.khanabook.saas.service.UserService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.dto.payload.*;
-import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,14 +23,12 @@ public class UserController {
 	private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
 	private final UserService service;
-	private final GenericSyncService genericSyncService;
-	private final UserRepository userRepository;
 	private final OtpRateLimiter otpRateLimiter;
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<UserDTO> payload) {
-		return ResponseEntity.ok(genericSyncService.handlePushSync(TenantContext.getCurrentTenant(),
-				SyncMapper.mapToEntityList(payload, User.class), userRepository));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),
+				SyncMapper.mapToEntityList(payload, User.class)));
 	}
 
 	@GetMapping("/pull")

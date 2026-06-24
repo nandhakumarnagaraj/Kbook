@@ -134,8 +134,17 @@ public class MenuExtractionController {
     })
     @GetMapping("/jobs/{jobId}")
     public ResponseEntity<?> getJobStatus(@Parameter(description = "Menu extraction job ID") @PathVariable Long jobId) {
+        Long restaurantId = TenantContext.getCurrentTenant();
+        if (restaurantId == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
         return jobRepository.findById(jobId)
-                .map(job -> ResponseEntity.ok((Object) job))
+                .map(job -> {
+                    if (!restaurantId.equals(job.getRestaurantId())) {
+                        return ResponseEntity.status(403).body(Map.of("error", "Forbidden: Access to this job is denied"));
+                    }
+                    return ResponseEntity.ok((Object) job);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 }

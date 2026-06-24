@@ -1,11 +1,9 @@
 package com.khanabook.saas.controller;
 
 import com.khanabook.saas.entity.BillItem;
-import com.khanabook.saas.repository.BillItemRepository;
 import com.khanabook.saas.service.BillItemService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.dto.payload.*;
-import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,15 +18,13 @@ import com.khanabook.saas.security.TenantContext;
 public class BillItemController {
 	private static final Logger log = LoggerFactory.getLogger(BillItemController.class);
 	private final BillItemService service;
-	private final GenericSyncService genericSyncService;
-	private final BillItemRepository billItemRepository;
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillItemDTO> payload) {
 		log.info("Received bill items push for {} items for Tenant: {}", payload.size(),
 				TenantContext.getCurrentTenant());
-		return ResponseEntity.ok(genericSyncService.handlePushSync(TenantContext.getCurrentTenant(),
-				SyncMapper.mapToEntityList(payload, BillItem.class), billItemRepository));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),
+				SyncMapper.mapToEntityList(payload, BillItem.class)));
 	}
 
 	@GetMapping("/pull")

@@ -1,11 +1,9 @@
 package com.khanabook.saas.controller;
 
 import com.khanabook.saas.entity.ItemVariant;
-import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.service.ItemVariantService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.dto.payload.*;
-import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,13 +15,11 @@ import com.khanabook.saas.security.TenantContext;
 @RequiredArgsConstructor
 public class ItemVariantController {
 	private final ItemVariantService service;
-	private final GenericSyncService genericSyncService;
-	private final ItemVariantRepository itemVariantRepository;
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<ItemVariantDTO> payload) {
-		return ResponseEntity.ok(genericSyncService.handlePushSync(TenantContext.getCurrentTenant(),
-				SyncMapper.mapToEntityList(payload, ItemVariant.class), itemVariantRepository));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),
+				SyncMapper.mapToEntityList(payload, ItemVariant.class)));
 	}
 
 	@GetMapping("/pull")

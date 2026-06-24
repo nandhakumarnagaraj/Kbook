@@ -1,11 +1,9 @@
 package com.khanabook.saas.controller;
 
 import com.khanabook.saas.entity.RestaurantProfile;
-import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.service.RestaurantProfileService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.dto.payload.*;
-import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,13 +15,11 @@ import com.khanabook.saas.security.TenantContext;
 @RequiredArgsConstructor
 public class RestaurantProfileController {
 	private final RestaurantProfileService service;
-	private final GenericSyncService genericSyncService;
-	private final RestaurantProfileRepository restaurantProfileRepository;
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<RestaurantProfileDTO> payload) {
-		return ResponseEntity.ok(genericSyncService.handlePushSync(TenantContext.getCurrentTenant(),
-				SyncMapper.mapToEntityList(payload, RestaurantProfile.class), restaurantProfileRepository));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),
+				SyncMapper.mapToEntityList(payload, RestaurantProfile.class)));
 	}
 
 	@GetMapping("/pull")

@@ -11,12 +11,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.khanabook.saas.entity.Category;
-import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.CategoryService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.dto.payload.*;
-import com.khanabook.saas.sync.service.GenericSyncService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,13 +23,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CategoryController {
 	private final CategoryService service;
-	private final GenericSyncService genericSyncService;
-	private final CategoryRepository categoryRepository;
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<CategoryDTO> payload) {
-		return ResponseEntity.ok(genericSyncService.handlePushSync(TenantContext.getCurrentTenant(),
-				SyncMapper.mapToEntityList(payload, Category.class), categoryRepository));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),
+				SyncMapper.mapToEntityList(payload, Category.class)));
 	}
 
 	@GetMapping("/pull")

@@ -1,11 +1,9 @@
 package com.khanabook.saas.controller;
 
 import com.khanabook.saas.entity.StockLog;
-import com.khanabook.saas.repository.StockLogRepository;
 import com.khanabook.saas.service.StockLogService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.dto.payload.*;
-import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,13 +15,11 @@ import com.khanabook.saas.security.TenantContext;
 @RequiredArgsConstructor
 public class StockLogController {
 	private final StockLogService service;
-	private final GenericSyncService genericSyncService;
-	private final StockLogRepository stockLogRepository;
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<StockLogDTO> payload) {
-		return ResponseEntity.ok(genericSyncService.handlePushSync(TenantContext.getCurrentTenant(),
-				SyncMapper.mapToEntityList(payload, StockLog.class), stockLogRepository));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(),
+				SyncMapper.mapToEntityList(payload, StockLog.class)));
 	}
 
 	@GetMapping("/pull")

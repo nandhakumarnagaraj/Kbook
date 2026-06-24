@@ -84,13 +84,14 @@ public class MenuItemServiceImpl implements MenuItemService {
 	}
 
 	private void resolveDuplicateMenuItem(Long tenantId, MenuItem item) {
-		if (item.getCategoryId() == null) {
+		Long categoryIdToUse = item.getServerCategoryId() != null ? item.getServerCategoryId() : item.getCategoryId();
+		if (categoryIdToUse == null) {
 			return;
 		}
 
 		Optional<MenuItem> duplicate = repository.findActiveDuplicateByNormalizedName(
 				tenantId,
-				item.getCategoryId(),
+				categoryIdToUse,
 				normalizeMenuItemName(item.getName())
 		);
 
