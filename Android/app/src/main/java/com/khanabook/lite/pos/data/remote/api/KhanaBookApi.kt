@@ -96,37 +96,4 @@ interface KhanaBookApi {
         @Multipart
         @POST("api/v1/restaurants/logo")
         suspend fun uploadLogo(@Part file: MultipartBody.Part): LogoUploadResponse
-
-        // ── Storefront ───────────────────────────────────────────────────────
-        @GET("api/v1/storefront/orders")
-        suspend fun getStorefrontOrders(): List<MerchantCustomerOrderSummaryResponse>
-
-        @GET("api/v1/storefront/orders/{orderId}")
-        suspend fun getStorefrontOrder(@Path("orderId") orderId: Long): MerchantCustomerOrderDetailResponse
-
-        @PATCH("api/v1/storefront/orders/{orderId}/status")
-        suspend fun updateStorefrontOrderStatus(
-                @Path("orderId") orderId: Long,
-                @Body request: UpdateCustomerOrderStatusRequest
-        ): MerchantCustomerOrderDetailResponse
-
-        // ── Easebuzz Payments ────────────────────────────────────────────────
-        @POST("api/v1/payments/easebuzz/order")
-        suspend fun createEasebuzzOrder(
-            @Query("deviceId") deviceId: String,
-            @Body request: CreateEasebuzzOrderRequest
-        ): CreateEasebuzzOrderResponse
-
-        @GET("api/v1/payments/easebuzz/status")
-        suspend fun getEasebuzzPaymentStatus(
-            @Query("deviceId") deviceId: String,
-            @Query("billId") billId: Long,
-            @Query("refresh") refresh: Boolean = false
-        ): EasebuzzPaymentStatusResponse
-
-        @POST("api/v1/payments/easebuzz/verify")
-        suspend fun verifyEasebuzzPayment(
-            @Query("deviceId") deviceId: String,
-            @Query("billId") billId: Long
-        ): EasebuzzPaymentStatusResponse
 }
