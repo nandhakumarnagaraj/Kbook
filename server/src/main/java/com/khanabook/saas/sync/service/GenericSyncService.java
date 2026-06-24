@@ -261,8 +261,17 @@ public class GenericSyncService {
 							if (java.util.Objects.equals(existingBill.getDeviceId(), incomingBill.getDeviceId())) {
 								existingRecord = (T) existingBill;
 							} else {
-								throw new IllegalStateException(
-										"Sync rejected: lifetime order ID already belongs to another device");
+								// Last-Write-Wins (LWW) conflict resolution:
+								// If the incoming bill is newer or equal, we take ownership and overwrite the existing record.
+								if (incomingBill.getUpdatedAt() >= existingBill.getUpdatedAt()) {
+									log.info("LWW: Re-associating bill lifetimeOrderId={} from old device {} to new device {}",
+											incomingBill.getLifetimeOrderId(), existingBill.getDeviceId(), incomingBill.getDeviceId());
+									existingRecord = (T) existingBill;
+								} else {
+									// If incoming is older, we reject the sync item
+									throw new IllegalStateException(
+											"Sync rejected: lifetime order ID already belongs to another device and server version is newer");
+								}
 							}
 						}
 					}
