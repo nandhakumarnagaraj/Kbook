@@ -93,7 +93,8 @@ class SyncManager @Inject constructor(
                 Result.failure(SyncConflictException(e, recoverySucceeded))
             } catch (e: Exception) {
                 if (e is HttpException && e.code() == 409) {
-                    logWarn("HTTP 409 during sync; treating as conflict", e)
+                    val errorBody = try { e.response()?.errorBody()?.string() } catch (ignored: Exception) { null }
+                    logError("HTTP 409 Conflict body: $errorBody", e)
                     val recoverySucceeded = runCatching { pullAndPersistMasterData(syncCheckpointTimestamp, deviceId) }
                         .onFailure { pullError -> logError("Conflict recovery pull failed", pullError) }
                         .isSuccess

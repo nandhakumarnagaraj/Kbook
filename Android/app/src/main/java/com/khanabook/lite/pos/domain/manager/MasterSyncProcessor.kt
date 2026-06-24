@@ -82,9 +82,8 @@ class MasterSyncProcessor @Inject constructor(
                 }
             } catch (e: Exception) {
                 if (e is HttpException && e.code() == 409) {
-                    logWarn(
-                        "Conflict while pushing $label batch ${index + 1}/${batches.size}"
-                    )
+                    val errorBody = try { e.response()?.errorBody()?.string() } catch (ignored: Exception) { null }
+                    Log.e("MasterSyncProcessor", "Conflict while pushing $label batch ${index + 1}/${batches.size}. Body: $errorBody", e)
                     throw SyncConflictException(e)
                 }
                 logError(
@@ -165,10 +164,11 @@ class MasterSyncProcessor @Inject constructor(
             return
         }
 
+        val serverCreatedBy = bill.createdBy?.let { userDao.getUserById(it)?.serverId }
         pushBatches(
             label = "bill",
             records = listOf(bill),
-            transform = BillEntity::toSyncDto,
+            transform = { it.toSyncDto(serverCreatedBy) },
             push = api::pushBills,
             markSynced = { ids -> billDao.markBillsAsSynced(ids, restaurantId) },
             onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
@@ -267,10 +267,11 @@ class MasterSyncProcessor @Inject constructor(
         if (skippedBills > 0) {
             Log.w("MasterSyncProcessor", "Skipping $skippedBills bill(s) with mismatched restaurantId (expected=$restaurantId)")
         }
+        val userMap = userDao.getAllUsersOnce().associate { it.id to it.serverId }
         pushBatches(
             label = "bills",
             records = validBills,
-            transform = BillEntity::toSyncDto,
+            transform = { bill -> bill.toSyncDto(userMap[bill.createdBy]) },
             push = api::pushBills,
             markSynced = { ids -> billDao.markBillsAsSynced(ids, restaurantId) },
             onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }

@@ -20,6 +20,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.collectLatest
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
@@ -52,6 +54,8 @@ import javax.inject.Inject
 class MainActivity : FragmentActivity() {
 
     @Inject lateinit var sessionManager: SessionManager
+    @Inject lateinit var syncManager: com.khanabook.lite.pos.domain.manager.SyncManager
+    @Inject lateinit var networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor
     private var lastBackPressTime: Long = 0
 
     companion object {
@@ -97,6 +101,18 @@ class MainActivity : FragmentActivity() {
 
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        lifecycleScope.launch {
+            networkMonitor.status.collectLatest { status ->
+                if (status == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) {
+                    val token = sessionManager.getAuthToken()
+                    if (!token.isNullOrBlank()) {
+                        Log.i("MainActivity", "Network reconnected. Triggering automatic background sync.")
+                        syncManager.performFullSync()
+                    }
+                }
+            }
+        }
 
         setContent {
             val prefs = remember { applicationContext.getSharedPreferences("session_prefs", Context.MODE_PRIVATE) }

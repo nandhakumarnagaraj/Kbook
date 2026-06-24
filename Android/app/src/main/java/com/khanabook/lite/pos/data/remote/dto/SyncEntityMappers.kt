@@ -16,8 +16,8 @@ import com.khanabook.lite.pos.data.local.entity.*
  *   - Fields not in the DTO (isSynced, Room-only state) are intentionally dropped.
  */
 
-fun BillEntity.toSyncDto() = BillSyncDto(
-    id              = id,
+fun BillEntity.toSyncDto(serverCreatedBy: Long? = null) = BillSyncDto(
+    localDbId       = id,
     restaurantId    = restaurantId,
     deviceId        = deviceId,
     localId         = id,
@@ -40,7 +40,7 @@ fun BillEntity.toSyncDto() = BillSyncDto(
     paymentStatus   = paymentStatus,
     orderStatus     = orderStatus,
     cancelReason    = cancelReason,
-    createdBy       = createdBy,
+    createdBy       = serverCreatedBy ?: createdBy,
     createdAt       = createdAt,
     paidAt          = paidAt,
     updatedAt       = updatedAt,
@@ -52,7 +52,7 @@ fun BillEntity.toSyncDto() = BillSyncDto(
 )
 
 fun BillItemEntity.toSyncDto() = BillItemSyncDto(
-    id              = id,
+    localDbId       = id,
     restaurantId    = restaurantId,
     deviceId        = deviceId,
     localId         = id,
@@ -75,7 +75,7 @@ fun BillItemEntity.toSyncDto() = BillItemSyncDto(
 )
 
 fun BillPaymentEntity.toSyncDto() = BillPaymentSyncDto(
-    id              = id,
+    localDbId       = id,
     restaurantId    = restaurantId,
     deviceId        = deviceId,
     localId         = id,
@@ -94,7 +94,7 @@ fun BillPaymentEntity.toSyncDto() = BillPaymentSyncDto(
 )
 
 fun CategoryEntity.toSyncDto() = CategorySyncDto(
-    id              = id,
+    localDbId       = id,
     restaurantId    = restaurantId,
     deviceId        = deviceId,
     localId         = id,
@@ -109,7 +109,7 @@ fun CategoryEntity.toSyncDto() = CategorySyncDto(
 )
 
 fun MenuItemEntity.toSyncDto() = MenuItemSyncDto(
-    id               = id,
+    localDbId        = id,
     restaurantId     = restaurantId,
     deviceId         = deviceId,
     localId          = id,
@@ -133,7 +133,7 @@ fun MenuItemEntity.toSyncDto() = MenuItemSyncDto(
 )
 
 fun ItemVariantEntity.toSyncDto() = ItemVariantSyncDto(
-    id               = id,
+    localDbId        = id,
     restaurantId     = restaurantId,
     deviceId         = deviceId,
     localId          = id,
@@ -152,7 +152,7 @@ fun ItemVariantEntity.toSyncDto() = ItemVariantSyncDto(
 )
 
 fun StockLogEntity.toSyncDto() = StockLogSyncDto(
-    id               = id,
+    localDbId        = id,
     restaurantId     = restaurantId,
     deviceId         = deviceId,
     localId          = id,
@@ -171,7 +171,7 @@ fun StockLogEntity.toSyncDto() = StockLogSyncDto(
 )
 
 fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
-    id               = id.toLong(),
+    localDbId        = id.toLong(),
     restaurantId     = restaurantId,
     deviceId         = deviceId,
     localId          = id.toLong(),
@@ -224,7 +224,7 @@ fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
 )
 
 fun UserEntity.toSyncDto() = UserSyncDto(
-    id              = id,
+    localDbId       = id,
     restaurantId    = restaurantId,
     deviceId        = deviceId,
     localId         = id,

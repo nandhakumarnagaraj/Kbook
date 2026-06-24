@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName
 // changes do not silently alter the push/pull JSON contract.
 
 data class BillSyncDto(
-    @SerializedName("id") val id: Long,
+    val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,
     @SerializedName("deviceId") val deviceId: String,
     @SerializedName("localId") val localId: Long,
@@ -41,7 +41,7 @@ data class BillSyncDto(
 )
 
 data class BillItemSyncDto(
-    @SerializedName("id") val id: Long,
+    val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,
     @SerializedName("deviceId") val deviceId: String,
     @SerializedName("localId") val localId: Long,
@@ -64,7 +64,7 @@ data class BillItemSyncDto(
 )
 
 data class BillPaymentSyncDto(
-    @SerializedName("id") val id: Long,
+    val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,
     @SerializedName("deviceId") val deviceId: String,
     @SerializedName("localId") val localId: Long,
@@ -83,7 +83,7 @@ data class BillPaymentSyncDto(
 )
 
 data class CategorySyncDto(
-    @SerializedName("id") val id: Long,
+    val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,
     @SerializedName("deviceId") val deviceId: String,
     @SerializedName("localId") val localId: Long,
@@ -98,7 +98,7 @@ data class CategorySyncDto(
 )
 
 data class MenuItemSyncDto(
-    @SerializedName("id") val id: Long,
+    val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,
     @SerializedName("deviceId") val deviceId: String,
     @SerializedName("localId") val localId: Long,
@@ -120,7 +120,7 @@ data class MenuItemSyncDto(
 )
 
 data class ItemVariantSyncDto(
-    @SerializedName("id") val id: Long,
+    val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,
     @SerializedName("deviceId") val deviceId: String,
     @SerializedName("localId") val localId: Long,
@@ -139,7 +139,7 @@ data class ItemVariantSyncDto(
 )
 
 data class StockLogSyncDto(
-    @SerializedName("id") val id: Long,
+    val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,
     @SerializedName("deviceId") val deviceId: String,
     @SerializedName("localId") val localId: Long,
@@ -157,7 +157,7 @@ data class StockLogSyncDto(
 )
 
 data class RestaurantProfileSyncDto(
-    @SerializedName("id") val id: Long,
+    val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,
     @SerializedName("deviceId") val deviceId: String,
     @SerializedName("localId") val localId: Long,
@@ -210,7 +210,7 @@ data class RestaurantProfileSyncDto(
 )
 
 data class UserSyncDto(
-    @SerializedName("id") val id: Long,
+    val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,
     @SerializedName("deviceId") val deviceId: String,
     @SerializedName("localId") val localId: Long,
