@@ -507,21 +507,4 @@ class TenantInventoryDao @Inject constructor(
 
     override fun getLogsForItem(itemId: Long, restaurantId: Long): Flow<List<StockLogEntity>> = runFlow { it.inventoryDao().getLogsForItem(itemId, restaurantId) }
     override fun getAllLogs(restaurantId: Long): Flow<List<StockLogEntity>> = runFlow { it.inventoryDao().getAllLogs(restaurantId) }
-    override suspend fun getUnsyncedStockLogs(restaurantId: Long): List<StockLogEntity> = dao.getUnsyncedStockLogs(restaurantId)
-
-    override suspend fun markStockLogsAsSynced(ids: List<Long>, restaurantId: Long) {
-        dao.markStockLogsAsSynced(ids, restaurantId)
-    }
-
-    override suspend fun updateServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long) {
-        dao.updateServerIdByLocalId(localId, serverId, restaurantId)
-    }
-
-    override suspend fun insertSyncedStockLogs(items: List<StockLogEntity>) {
-        dao.insertSyncedStockLogs(items)
-    }
-
-    override suspend fun deleteAllSyncedStockLogs(restaurantId: Long) {
-        dao.deleteAllSyncedStockLogs(restaurantId)
-    }
 }

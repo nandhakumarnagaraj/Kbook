@@ -151,25 +151,6 @@ fun ItemVariantEntity.toSyncDto() = ItemVariantSyncDto(
     serverUpdatedAt  = serverUpdatedAt,
 )
 
-fun StockLogEntity.toSyncDto() = StockLogSyncDto(
-    localDbId        = id,
-    restaurantId     = restaurantId,
-    deviceId         = deviceId,
-    localId          = id,
-    serverId         = serverId,
-    menuItemId       = menuItemId,
-    serverMenuItemId = serverMenuItemId,
-    variantId        = variantId,
-    serverVariantId  = serverVariantId,
-    // delta is String in entity; DTO expects Int. Parse safely, default 0.
-    delta            = delta.toIntOrNull() ?: 0,
-    reason           = reason,
-    createdAt        = createdAt,
-    updatedAt        = updatedAt,
-    isDeleted        = isDeleted,
-    serverUpdatedAt  = serverUpdatedAt,
-)
-
 fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
     localDbId        = id.toLong(),
     restaurantId     = restaurantId,

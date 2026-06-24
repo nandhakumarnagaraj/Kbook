@@ -204,7 +204,6 @@ class SyncManager @Inject constructor(
                 categories = acc.categories + page.categories,
                 menuItems = acc.menuItems + page.menuItems,
                 itemVariants = acc.itemVariants + page.itemVariants,
-                stockLogs = acc.stockLogs + page.stockLogs,
                 bills = acc.bills + page.bills,
                 billItems = acc.billItems + page.billItems,
                 billPayments = acc.billPayments + page.billPayments

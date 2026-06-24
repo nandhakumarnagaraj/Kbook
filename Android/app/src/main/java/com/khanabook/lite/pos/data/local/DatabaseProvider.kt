@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 
 @Singleton
 class DatabaseProvider @Inject constructor(
@@ -158,10 +159,10 @@ class DatabaseProvider @Inject constructor(
                         newDb!!.menuDao().insertSyncedItemVariants(variants)
                     }
 
-                    // 5. Migrate StockLogs
-                    val unsyncedStock = legacyDb!!.inventoryDao().getUnsyncedStockLogs(restaurantId)
-                    if (unsyncedStock.isNotEmpty()) {
-                        newDb!!.inventoryDao().insertSyncedStockLogs(unsyncedStock)
+                    // 5. Migrate StockLogs as local-only history
+                    val stockLogs = legacyDb!!.inventoryDao().getAllLogs(restaurantId).first()
+                    if (stockLogs.isNotEmpty()) {
+                        stockLogs.forEach { newDb!!.inventoryDao().insertStockLog(it.copy(isSynced = true)) }
                     }
 
                     // 6. Migrate Bills, BillItems, BillPayments

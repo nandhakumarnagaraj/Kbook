@@ -262,17 +262,6 @@ class MasterSyncProcessor @Inject constructor(
             onServerIds = { map -> map.forEach { (localId, serverId) -> menuDao.updateVariantServerIdByLocalId(localId, serverId, restaurantId) } }
         )
 
-        val unsyncedStockLogs = inventoryDao.getUnsyncedStockLogs(restaurantId)
-        val validStockLogs = unsyncedStockLogs.filter { it.restaurantId == restaurantId }
-        pushBatches(
-            label = "stock logs",
-            records = validStockLogs,
-            transform = StockLogEntity::toSyncDto,
-            push = api::pushStockLogs,
-            markSynced = { ids -> inventoryDao.markStockLogsAsSynced(ids, restaurantId) },
-            onServerIds = { map -> map.forEach { (localId, serverId) -> inventoryDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
-        )
-
         // ── Reconcile any bills that were pushed successfully in a previous cycle
         // but whose local isSynced flag was never flipped (e.g. response lost mid-air).
         // reconcileServerAcknowledgedBills() also catches the 409-loop case where the
@@ -618,55 +607,6 @@ class MasterSyncProcessor @Inject constructor(
         // Fetch variant ID mapping
         val variantIdMap = menuDao.getAllVariantServerIds(restaurantId).associate { it.serverId to it.id }
         val knownVariantIds = variantIdMap.values.toMutableSet()
-
-        if (masterData.stockLogs.isNotEmpty()) {
-            inventoryDao.deleteAllSyncedStockLogs(restaurantId)
-            val resolvedStockLogs = masterData.stockLogs.mapNotNull { remoteStockLog ->
-                    val localMenuItemId = remoteStockLog.serverMenuItemId?.let { serverId ->
-                        menuItemIdMap[serverId] ?: serverId
-                    } ?: remoteStockLog.menuItemId
-                    val localVariantId = remoteStockLog.serverVariantId?.let { serverId ->
-                        variantIdMap[serverId] ?: serverId
-                    } ?: remoteStockLog.variantId
-
-                    if (localMenuItemId !in knownMenuItemIds || (localVariantId != null && localVariantId !in knownVariantIds)) {
-                        null
-                    } else {
-                        StockLogEntity(
-                        id = 0, // Auto-generate
-                        menuItemId = localMenuItemId,
-                        variantId = localVariantId,
-                        delta = remoteStockLog.delta,
-                        reason = remoteStockLog.reason.orFallback("adjustment"),
-                        createdAt = remoteStockLog.createdAt ?: System.currentTimeMillis(),
-                        restaurantId = remoteStockLog.restaurantId ?: 0L,
-                        deviceId = remoteStockLog.deviceId.orFallback(""),
-                        isSynced = true,
-                        updatedAt = remoteStockLog.updatedAt,
-                        isDeleted = remoteStockLog.isDeleted ?: false,
-                        serverId = remoteStockLog.serverId,
-                        serverMenuItemId = remoteStockLog.serverMenuItemId,
-                        serverVariantId = remoteStockLog.serverVariantId,
-                        serverUpdatedAt = remoteStockLog.serverUpdatedAt ?: 0L
-                    )
-                    }
-                }
-            logSkippedRecords(
-                label = "stock log",
-                skipped = masterData.stockLogs.filter { remoteStockLog ->
-                    val localMenuItemId = remoteStockLog.serverMenuItemId?.let { serverId ->
-                        menuItemIdMap[serverId] ?: serverId
-                    } ?: remoteStockLog.menuItemId
-                    val localVariantId = remoteStockLog.serverVariantId?.let { serverId ->
-                        variantIdMap[serverId] ?: serverId
-                    } ?: remoteStockLog.variantId
-                    localMenuItemId !in knownMenuItemIds || (localVariantId != null && localVariantId !in knownVariantIds)
-                }
-            ) { remoteStockLog ->
-                "stockLogId=${remoteStockLog.id}, menuItemId=${remoteStockLog.menuItemId}, serverMenuItemId=${remoteStockLog.serverMenuItemId}, variantId=${remoteStockLog.variantId}, serverVariantId=${remoteStockLog.serverVariantId}"
-            }
-            inventoryDao.insertSyncedStockLogs(resolvedStockLogs)
-        }
 
         if (masterData.bills.isNotEmpty()) {
             val repairedBills = mutableListOf<String>()

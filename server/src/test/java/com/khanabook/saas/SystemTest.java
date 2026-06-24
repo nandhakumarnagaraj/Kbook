@@ -155,7 +155,7 @@ class SystemTest extends BaseIntegrationTest {
     
 
     @Test
-    void masterSync_pull_returnsAllNineCollections() {
+    void masterSync_pull_returnsAllEightCollections() {
         String token = signupAndGetToken();
 
         ResponseEntity<String> resp = rest.exchange(
@@ -170,7 +170,6 @@ class SystemTest extends BaseIntegrationTest {
         assertThat(body).contains("categories");
         assertThat(body).contains("menuItems");
         assertThat(body).contains("itemVariants");
-        assertThat(body).contains("stockLogs");
         assertThat(body).contains("bills");
         assertThat(body).contains("billItems");
         assertThat(body).contains("billPayments");
