@@ -11,7 +11,6 @@ public class MasterSyncResponseDTO {
     private List<CategoryDTO> categories;
     private List<MenuItemDTO> menuItems;
     private List<ItemVariantDTO> itemVariants;
-    private List<StockLogDTO> stockLogs;
     private List<BillDTO> bills;
     private List<BillItemDTO> billItems;
     private List<BillPaymentDTO> billPayments;

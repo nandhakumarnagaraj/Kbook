@@ -27,7 +27,6 @@ public class MasterSyncController {
 	private final CategoryService categoryService;
 	private final MenuItemService menuItemService;
 	private final ItemVariantService itemVariantService;
-	private final StockLogService stockLogService;
 	private final BillService billService;
 	private final BillItemService billItemService;
 	private final BillPaymentService billPaymentService;
@@ -65,7 +64,6 @@ public class MasterSyncController {
 		response.setCategories(SyncMapper.mapList(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), CategoryDTO.class));
 		response.setMenuItems(SyncMapper.mapList(menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), MenuItemDTO.class));
 		response.setItemVariants(SyncMapper.mapList(itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), ItemVariantDTO.class));
-		response.setStockLogs(SyncMapper.mapList(stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), StockLogDTO.class));
 		response.setBills(SyncMapper.mapList(billService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), BillDTO.class));
 		response.setBillItems(SyncMapper.mapList(billItemService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), BillItemDTO.class));
 		response.setBillPayments(SyncMapper.mapList(billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), BillPaymentDTO.class));
@@ -75,16 +73,15 @@ public class MasterSyncController {
 		int categoriesCount = response.getCategories() == null ? 0 : response.getCategories().size();
 		int menuItemsCount = response.getMenuItems() == null ? 0 : response.getMenuItems().size();
 		int itemVariantsCount = response.getItemVariants() == null ? 0 : response.getItemVariants().size();
-		int stockLogsCount = response.getStockLogs() == null ? 0 : response.getStockLogs().size();
 		int billsCount = response.getBills() == null ? 0 : response.getBills().size();
 		int billItemsCount = response.getBillItems() == null ? 0 : response.getBillItems().size();
 		int billPaymentsCount = response.getBillPayments() == null ? 0 : response.getBillPayments().size();
 
 		log.info("Master sync pull tenantId={} deviceId={} firstSync={} explicitIgnoreDeviceId={} sharedDataCrossDevice={} transactionalCrossDevice={} profiles={} users={} categories={} " +
-				"menuItems={} variants={} stockLogs={} bills={} billItems={} billPayments={}",
+				"menuItems={} variants={} bills={} billItems={} billPayments={}",
 				tenantId, deviceId, firstSync, ignoreDeviceId, sharedDataCrossDevice, transactionalCrossDevice,
 				profilesCount, usersCount, categoriesCount,
-				menuItemsCount, itemVariantsCount, stockLogsCount, billsCount, billItemsCount, billPaymentsCount);
+				menuItemsCount, itemVariantsCount, billsCount, billItemsCount, billPaymentsCount);
 
 		return ResponseEntity.ok(response);
 	}

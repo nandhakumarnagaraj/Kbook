@@ -54,14 +54,6 @@ public class SyncMapper {
                 dto.setServerUpdatedAt(entity.getServerUpdatedAt());
                 dto.setBillId(entity.getBillId());
                 dto.setServerBillId(entity.getServerBillId());
-            } else if (source instanceof StockLog entity && target instanceof StockLogDTO dto) {
-                dto.setId(entity.getId());
-                dto.setLocalId(entity.getLocalId());
-                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
-                dto.setMenuItemId(entity.getMenuItemId());
-                dto.setVariantId(entity.getVariantId());
-                dto.setServerMenuItemId(entity.getServerMenuItemId());
-                dto.setServerVariantId(entity.getServerVariantId());
             } else if (source instanceof RestaurantProfile entity && target instanceof RestaurantProfileDTO dto) {
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
@@ -99,7 +91,6 @@ public class SyncMapper {
             else if (targetClass.equals(Bill.class)) target = (T) new Bill();
             else if (targetClass.equals(BillItem.class)) target = (T) new BillItem();
             else if (targetClass.equals(BillPayment.class)) target = (T) new BillPayment();
-            else if (targetClass.equals(StockLog.class)) target = (T) new StockLog();
             else if (targetClass.equals(RestaurantProfile.class)) target = (T) new RestaurantProfile();
             else if (targetClass.equals(User.class)) target = (T) new User();
             else target = targetClass.getDeclaredConstructor().newInstance();
@@ -158,15 +149,6 @@ public class SyncMapper {
                 entity.setServerUpdatedAt(dto.getServerUpdatedAt());
                 entity.setBillId(dto.getBillId());
                 entity.setServerBillId(dto.getServerBillId());
-            } else if (source instanceof StockLogDTO dto) {
-                StockLog entity = (StockLog) target;
-                entity.setId(dto.getId());
-                entity.setLocalId(dto.getLocalId());
-                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
-                entity.setMenuItemId(dto.getMenuItemId());
-                entity.setVariantId(dto.getVariantId());
-                entity.setServerMenuItemId(dto.getServerMenuItemId());
-                entity.setServerVariantId(dto.getServerVariantId());
             } else if (source instanceof RestaurantProfileDTO dto) {
                 RestaurantProfile entity = (RestaurantProfile) target;
                 entity.setId(dto.getId());
