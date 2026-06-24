@@ -187,6 +187,19 @@ constructor(
             // Retain the existing sync timestamp to prevent 409 conflict
             // and avoid re-downloading all history.
             sessionManager.setInitialSyncCompleted(true)
+
+            // Trigger an immediate background sync to push any pending/offline bills.
+            val constraints = androidx.work.Constraints.Builder()
+                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                .build()
+            val syncWorkRequest = androidx.work.OneTimeWorkRequest.Builder(MasterSyncWorker::class.java)
+                .setConstraints(constraints)
+                .build()
+            androidx.work.WorkManager.getInstance(context).enqueueUniqueWork(
+                "MasterSyncWorker_OneTime",
+                androidx.work.ExistingWorkPolicy.REPLACE,
+                syncWorkRequest
+            )
         }
         MasterSyncWorker.schedule(context)
         return Result.success(Unit)

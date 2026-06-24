@@ -632,8 +632,10 @@ class MasterSyncProcessor @Inject constructor(
                         }
                         exists
                     }
+                    val isMyDevice = remoteBill.deviceId == sessionManager.getDeviceId()
+                    val assignedId = if (isMyDevice && remoteBill.id > 0) remoteBill.id else (remoteBill.serverId ?: remoteBill.id)
                     BillEntity(
-                        id = remoteBill.serverId ?: remoteBill.id,
+                        id = assignedId,
                         restaurantId = remoteBill.restaurantId ?: 0L,
                         deviceId = remoteBill.deviceId.orFallback(""),
                         dailyOrderId = remoteBill.dailyOrderId ?: 0,
