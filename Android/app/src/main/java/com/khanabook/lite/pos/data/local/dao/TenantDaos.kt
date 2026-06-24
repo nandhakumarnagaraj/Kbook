@@ -422,6 +422,19 @@ class TenantBillDao @Inject constructor(
         dao.markBillsAsSynced(billIds, restaurantId)
     }
 
+    override suspend fun markBillSyncFailedPermanently(
+        billId: Long,
+        restaurantId: Long,
+        reason: String,
+        failedAt: Long
+    ): Int = dao.markBillSyncFailedPermanently(billId, restaurantId, reason, failedAt)
+
+    override suspend fun retryFailedBillSync(billId: Long, restaurantId: Long): Int =
+        dao.retryFailedBillSync(billId, restaurantId)
+
+    override suspend fun getPermanentlyFailedBills(restaurantId: Long): List<BillEntity> =
+        dao.getPermanentlyFailedBills(restaurantId)
+
     override suspend fun updateServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long) {
         dao.updateServerIdByLocalId(localId, serverId, restaurantId)
     }

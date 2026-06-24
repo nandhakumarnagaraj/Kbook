@@ -1,6 +1,7 @@
 package com.khanabook.saas.sync;
 
 import com.khanabook.saas.BaseIntegrationTest;
+import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.entity.UserRole;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Locks in the multi-tenant guard in GenericSyncService#handlePushSync: a bill whose
@@ -22,6 +24,7 @@ class GenericSyncCrossTenantTest extends BaseIntegrationTest {
     private static final Long RESTAURANT_B = 7302L;
 
     @Autowired private MockMvc mockMvc;
+    @Autowired private BillRepository billRepository;
 
     private String billJson(Long restaurantId) {
         return """
@@ -66,5 +69,30 @@ class GenericSyncCrossTenantTest extends BaseIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(billJson(RESTAURANT_A)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void push_sameDeviceAndLocalIdForDifferentRestaurants_createsSeparateBills() throws Exception {
+        String tokenA = persistUserAndGetToken("owner-a3@test.com", RESTAURANT_A, UserRole.OWNER);
+        String tokenB = persistUserAndGetToken("owner-b3@test.com", RESTAURANT_B, UserRole.OWNER);
+
+        mockMvc.perform(post("/sync/bills/push")
+                        .header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(billJson(RESTAURANT_A)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/sync/bills/push")
+                        .header("Authorization", "Bearer " + tokenB)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(billJson(RESTAURANT_B)))
+                .andExpect(status().isOk());
+
+        var billA = billRepository.findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT_A, "DEV_A", 1L);
+        var billB = billRepository.findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT_B, "DEV_A", 1L);
+
+        assertThat(billA).isPresent();
+        assertThat(billB).isPresent();
+        assertThat(billA.get().getId()).isNotEqualTo(billB.get().getId());
     }
 }

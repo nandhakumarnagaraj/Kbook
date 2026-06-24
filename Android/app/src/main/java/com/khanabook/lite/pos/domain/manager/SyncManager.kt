@@ -94,25 +94,12 @@ class SyncManager @Inject constructor(
                     Result.success(Unit)
                 } catch (e: SyncConflictException) {
                     logWarn("Push conflict detected; pulling latest server data before resolving", e)
-                    // ── Full Bootstrap Recovery Pull ───────────────────────────────────────
-                    // CRITICAL: use timestamp=0 (bootstrap) instead of syncCheckpointTimestamp.
-                    // The conflicting bills may have been synced BEFORE the checkpoint, so a
-                    // delta pull would return an empty bill list → markBillsSyncedByLifetimeIds
-                    // gets nothing to fix → the same bills get pushed again → infinite 409 loop.
-                    // A full pull fetches ALL bills from the server so the orphaned local rows
-                    // (isSynced=false but already on server) are correctly reconciled.
-                    val recoverySucceeded = runCatching { pullAndPersistMasterData(0L, deviceId) }
-                        .onFailure { pullError -> logError("Conflict recovery pull failed", pullError) }
-                        .isSuccess
-                    Result.failure(SyncConflictException(e, recoverySucceeded))
+                    handleRecoveredConflict(deviceId, e)
                 } catch (e: Exception) {
                     if (e is HttpException && e.code() == 409) {
                         val errorBody = try { e.response()?.errorBody()?.string() } catch (ignored: Exception) { null }
                         logError("HTTP 409 Conflict body: $errorBody", e)
-                        val recoverySucceeded = runCatching { pullAndPersistMasterData(0L, deviceId) }
-                            .onFailure { pullError -> logError("Conflict recovery pull failed", pullError) }
-                            .isSuccess
-                        return@withContext Result.failure(SyncConflictException(e, recoverySucceeded))
+                        return@withContext handleRecoveredConflict(deviceId, SyncConflictException(e).withRecoveryStatus(false))
                     }
                     logError("Full sync failed", e)
                     Result.failure(e)
@@ -163,6 +150,43 @@ class SyncManager @Inject constructor(
         }
     }
 
+    private suspend fun recoverFromSyncConflict(deviceId: String): Boolean {
+        // Use timestamp=0 so already-saved server rows are pulled back even if they
+        // were written before the current local checkpoint. This is what breaks
+        // repeated 409 / failedLocalIds push loops.
+        return runCatching { pullAndPersistMasterData(0L, deviceId) }
+            .onFailure { pullError -> logError("Conflict recovery pull failed", pullError) }
+            .isSuccess
+    }
+
+    private suspend fun handleRecoveredConflict(
+        deviceId: String,
+        exception: SyncConflictException
+    ): Result<Unit> {
+        if (!recoverFromSyncConflict(deviceId)) {
+            return Result.failure(exception.withRecoveryStatus(false))
+        }
+
+        return runCatching { masterSyncProcessor.pushAll() }
+            .fold(
+                onSuccess = { pushSucceeded ->
+                    if (pushSucceeded) Result.success(Unit)
+                    else Result.failure(IllegalStateException("Post-recovery push returned false"))
+                },
+                onFailure = { retryError ->
+                    logError("Post-recovery push retry failed", retryError)
+                    if (retryError is SyncConflictException) {
+                        val quarantined = masterSyncProcessor.quarantineFailedBills(retryError)
+                        if (quarantined > 0) {
+                            return Result.success(Unit)
+                        }
+                        return Result.failure(retryError.withRecoveryStatus(true))
+                    }
+                    Result.failure(retryError)
+                }
+            )
+    }
+
     private suspend fun pullMasterSyncPages(
         lastSyncTimestamp: Long,
         deviceId: String
@@ -186,5 +210,15 @@ class SyncManager @Inject constructor(
                 billPayments = acc.billPayments + page.billPayments
             )
         }
+    }
+
+    private fun SyncConflictException.withRecoveryStatus(recovered: Boolean): SyncConflictException {
+        return SyncConflictException(
+            this,
+            recoverySucceeded = recovered,
+            failedLocalIds = failedLocalIds,
+            failedReasons = failedReasons,
+            syncEntityLabel = syncEntityLabel
+        )
     }
 }

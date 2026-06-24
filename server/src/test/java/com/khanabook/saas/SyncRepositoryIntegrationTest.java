@@ -116,6 +116,23 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
         assertThat(wrongDevice).isEmpty();
     }
 
+    @Test
+    void sameDeviceAndLocalId_canExistInDifferentRestaurants() {
+        Bill tenantABill = bill(TENANT_A, "TABLET_1", 42L, 1000L, 1000L);
+        Bill tenantBBill = bill(TENANT_B, "TABLET_1", 42L, 1000L, 1000L);
+
+        billRepo.saveAllAndFlush(List.of(tenantABill, tenantBBill));
+
+        var foundA = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_A, "TABLET_1", 42L);
+        var foundB = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_B, "TABLET_1", 42L);
+
+        assertThat(foundA).isPresent();
+        assertThat(foundB).isPresent();
+        assertThat(foundA.get().getId()).isNotEqualTo(foundB.get().getId());
+        assertThat(foundA.get().getRestaurantId()).isEqualTo(TENANT_A);
+        assertThat(foundB.get().getRestaurantId()).isEqualTo(TENANT_B);
+    }
+
     
 
     @Test

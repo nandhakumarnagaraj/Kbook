@@ -9,5 +9,7 @@ data class PushSyncResponse(
     @SerializedName("failedLocalIds")
     val failedLocalIds: List<Long>,
     @SerializedName("localToServerIdMap")
-    val localToServerIdMap: Map<Long, Long>? = null
+    val localToServerIdMap: Map<Long, Long>? = null,
+    @SerializedName("failedReasons")
+    val failedReasons: Map<Long, String>? = null
 )

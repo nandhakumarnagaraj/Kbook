@@ -78,8 +78,17 @@ class MasterSyncProcessor @Inject constructor(
                 )
 
                 if (response.failedLocalIds.isNotEmpty()) {
+                    val failedReasons = response.failedReasons.orEmpty()
                     logWarn(
-                        "Server rejected $label localIds=${response.failedLocalIds.joinToString(",")}"
+                        "Server rejected $label localIds=${response.failedLocalIds.joinToString(",")} reasons=$failedReasons"
+                    )
+                    throw SyncConflictException(
+                        IllegalStateException(
+                            "Server rejected $label localIds=${response.failedLocalIds.joinToString(",")}"
+                        ),
+                        failedLocalIds = response.failedLocalIds,
+                        failedReasons = failedReasons,
+                        syncEntityLabel = label
                     )
                 }
             } catch (e: Exception) {
@@ -311,6 +320,30 @@ class MasterSyncProcessor @Inject constructor(
         )
 
         return true
+    }
+
+    suspend fun quarantineFailedBills(exception: SyncConflictException): Int {
+        if (exception.syncEntityLabel != "bills" || exception.failedLocalIds.isEmpty()) return 0
+        val restaurantId = sessionManager.getRestaurantId()
+        if (restaurantId <= 0L) return 0
+
+        val failedAt = System.currentTimeMillis()
+        var quarantined = 0
+        exception.failedLocalIds.forEach { billId ->
+            val reason = exception.failedReasons[billId]
+                ?.takeIf { it.isNotBlank() }
+                ?: "Bill sync rejected after automatic recovery"
+            quarantined += billDao.markBillSyncFailedPermanently(
+                billId = billId,
+                restaurantId = restaurantId,
+                reason = reason,
+                failedAt = failedAt
+            )
+        }
+        if (quarantined > 0) {
+            logWarn("Quarantined $quarantined bill(s) after failed automatic sync recovery")
+        }
+        return quarantined
     }
 
     suspend fun insertMasterData(masterData: MasterSyncResponse) = databaseProvider.getDatabase().withTransaction {

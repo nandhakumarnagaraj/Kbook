@@ -119,6 +119,8 @@ public class GenericSyncService {
 
 		List<Long> successfulLocalIds = new ArrayList<>();
 		List<Long> failedLocalIds = new ArrayList<>();
+		Map<Long, String> failedReasons = new HashMap<>();
+		Map<Long, Long> localToServerIdMap = new HashMap<>();
 
 		for (T record : payload) {
 			if (record.getLocalId() == null && record.getId() != null) {
@@ -145,7 +147,7 @@ public class GenericSyncService {
 			RelationalIdMaps idMaps = buildRelationalIdMaps(devicePayload, tenantId, deviceId);
 
 			List<Long> incomingLocalIds = devicePayload.stream().map(BaseSyncEntity::getLocalId)
-					.filter(java.util.Objects::nonNull).distinct().collect(Collectors.toList());
+					.filter(Objects::nonNull).distinct().collect(Collectors.toList());
 
 			BaseSyncEntity firstRecord = devicePayload.get(0);
 			boolean isSingletonType = firstRecord instanceof RestaurantProfile || firstRecord instanceof User;
@@ -258,7 +260,7 @@ public class GenericSyncService {
 								.findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(targetTenantId, incomingBill.getLifetimeOrderId())
 								.orElse(null);
 						if (existingBill != null) {
-							if (java.util.Objects.equals(existingBill.getDeviceId(), incomingBill.getDeviceId())) {
+							if (Objects.equals(existingBill.getDeviceId(), incomingBill.getDeviceId())) {
 								existingRecord = (T) existingBill;
 							} else {
 								// Last-Write-Wins (LWW) conflict resolution:
@@ -363,8 +365,17 @@ public class GenericSyncService {
 								recordsToSaveMap.put(incomingRecord.getLocalId(), incomingRecord);
 							}
 							successfulLocalIds.add(incomingRecord.getLocalId());
+						} else if (isTransactionalIdempotentRetry(incomingRecord, existingRecord)) {
+							Long localId = incomingRecord.getLocalId();
+							successfulLocalIds.add(localId);
+							localToServerIdMap.put(localId, existingRecord.getId());
+							log.info("Acknowledged idempotent retry type={} tenantId={} deviceId={} localId={} serverId={}",
+									incomingRecord.getClass().getSimpleName(), targetTenantId, incomingRecord.getDeviceId(),
+									localId, existingRecord.getId());
 						} else {
-							failedLocalIds.add(incomingRecord.getLocalId());
+							Long failedLocalId = incomingRecord.getLocalId();
+							failedLocalIds.add(failedLocalId);
+							failedReasons.put(failedLocalId, "Incoming record is older than the server record");
 						}
 					} else {
 						// Relational ID Resolution for New Records
@@ -383,7 +394,9 @@ public class GenericSyncService {
 				} catch (Exception e) {
 					log.error("Sync Error for record class {}: {}", incomingRecord.getClass().getSimpleName(), e.getMessage(), e);
 					if (incomingRecord.getLocalId() != null) {
-						failedLocalIds.add(incomingRecord.getLocalId());
+						Long failedLocalId = incomingRecord.getLocalId();
+						failedLocalIds.add(failedLocalId);
+						failedReasons.put(failedLocalId, sanitizeFailureReason(e.getMessage()));
 					}
 					log.warn("Sync error staging record deviceId={} type={} error={}",
 							incomingRecord.getDeviceId(), incomingRecord.getClass().getSimpleName(), e.getMessage());
@@ -400,7 +413,6 @@ public class GenericSyncService {
 			}
 		}
 
-		Map<Long, Long> localToServerIdMap = new HashMap<>();
 		if (!allRecordsToSave.isEmpty()) {
 			try {
 				List<T> saved = repository.saveAll(allRecordsToSave);
@@ -440,7 +452,29 @@ public class GenericSyncService {
 
 		PushSyncResponse response = new PushSyncResponse(successfulLocalIds, failedLocalIds);
 		response.setLocalToServerIdMap(localToServerIdMap);
+		response.setFailedReasons(failedReasons);
 		return response;
+	}
+
+	private String sanitizeFailureReason(String message) {
+		if (message == null || message.isBlank()) {
+			return "Sync rejected by server";
+		}
+		return message.length() > 240 ? message.substring(0, 240) : message;
+	}
+
+	private boolean isTransactionalIdempotentRetry(BaseSyncEntity incoming, BaseSyncEntity existing) {
+		boolean transactional = incoming instanceof Bill
+				|| incoming instanceof BillItem
+				|| incoming instanceof BillPayment;
+		return transactional
+				&& existing != null
+				&& incoming.getLocalId() != null
+				&& existing.getLocalId() != null
+				&& incoming.getLocalId().equals(existing.getLocalId())
+				&& Objects.equals(incoming.getDeviceId(), existing.getDeviceId())
+				&& Objects.equals(incoming.getRestaurantId(), existing.getRestaurantId())
+				&& existing.getId() != null;
 	}
 
 	private boolean hasBackendGatewayPayment(Long tenantId, Long billId) {

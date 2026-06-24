@@ -7,12 +7,14 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.local.entity.*
+import com.khanabook.lite.pos.data.local.dao.BillDao
 import com.khanabook.lite.pos.data.repository.*
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.domain.manager.SyncManager
 import com.khanabook.lite.pos.domain.util.MultipartUtils
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,9 +37,11 @@ class SettingsViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val menuRepository: MenuRepository,
     private val userRepository: UserRepository,
+    private val billDao: BillDao,
     private val btManager: BluetoothPrinterManager,
     private val kitchenPrintQueueManager: KitchenPrintQueueManager,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     val displayScale = sessionManager.getDisplayScale()
@@ -90,6 +94,12 @@ class SettingsViewModel @Inject constructor(
             .toSet()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
+    private val _failedBillSyncs = MutableStateFlow<List<BillEntity>>(emptyList())
+    val failedBillSyncs: StateFlow<List<BillEntity>> = _failedBillSyncs.asStateFlow()
+
+    private val _retryingFailedBillIds = MutableStateFlow<Set<Long>>(emptySet())
+    val retryingFailedBillIds: StateFlow<Set<Long>> = _retryingFailedBillIds.asStateFlow()
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             printerProfileRepository.getProfiles()
@@ -103,6 +113,36 @@ class SettingsViewModel @Inject constructor(
                         }
                     }
                 }
+        }
+        refreshFailedBillSyncs()
+    }
+
+    fun refreshFailedBillSyncs() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val restaurantId = sessionManager.getRestaurantId()
+            _failedBillSyncs.value = if (restaurantId > 0L) {
+                billDao.getPermanentlyFailedBills(restaurantId)
+            } else {
+                emptyList()
+            }
+        }
+    }
+
+    fun retryFailedBillSync(billId: Long) {
+        viewModelScope.launch {
+            _retryingFailedBillIds.value = _retryingFailedBillIds.value + billId
+            try {
+                withContext(Dispatchers.IO) {
+                    val restaurantId = sessionManager.getRestaurantId()
+                    if (restaurantId > 0L) {
+                        billDao.retryFailedBillSync(billId, restaurantId)
+                    }
+                }
+                syncManager.pushUnsyncedDataWithResult()
+            } finally {
+                _retryingFailedBillIds.value = _retryingFailedBillIds.value - billId
+                refreshFailedBillSyncs()
+            }
         }
     }
 

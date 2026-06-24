@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -74,11 +75,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
+import com.khanabook.lite.pos.ui.theme.DangerRed
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
@@ -86,6 +89,10 @@ import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
+import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.time.Year
 
 // TODO: Update these before release
@@ -636,9 +643,15 @@ private fun CpVerifiedBadge(icon: ImageVector, label: String, note: String) {
 }
 
 @Composable
-fun HelpSupportView() {
+fun HelpSupportView(viewModel: SettingsViewModel) {
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
+    val failedBills by viewModel.failedBillSyncs.collectAsStateWithLifecycle()
+    val retryingIds by viewModel.retryingFailedBillIds.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshFailedBillSyncs()
+    }
 
     Column(
         modifier = Modifier
@@ -686,6 +699,13 @@ fun HelpSupportView() {
         )
 
         Spacer(modifier = Modifier.height(spacing.small))
+
+        SyncIssuesCard(
+            failedBills = failedBills,
+            retryingIds = retryingIds,
+            onRefresh = viewModel::refreshFailedBillSyncs,
+            onRetry = viewModel::retryFailedBillSync
+        )
 
         Button(
             onClick = {
@@ -759,6 +779,119 @@ fun HelpSupportView() {
             }
         }
     }
+}
+
+@Composable
+private fun SyncIssuesCard(
+    failedBills: List<BillEntity>,
+    retryingIds: Set<Long>,
+    onRefresh: () -> Unit,
+    onRetry: (Long) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    KhanaBookCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (failedBills.isEmpty()) Icons.Default.CheckCircle else Icons.Default.Info,
+                        contentDescription = null,
+                        tint = if (failedBills.isEmpty()) SuccessGreen else DangerRed,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Column {
+                        Text("Sync Issues", color = TextLight, style = MaterialTheme.typography.labelLarge)
+                        Text(
+                            if (failedBills.isEmpty()) "No blocked bills" else "${failedBills.size} blocked bill(s)",
+                            color = TextGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                IconButton(onClick = onRefresh) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh sync issues", tint = PrimaryGold)
+                }
+            }
+
+            if (failedBills.isNotEmpty()) {
+                failedBills.take(5).forEach { bill ->
+                    FailedBillSyncRow(
+                        bill = bill,
+                        isRetrying = retryingIds.contains(bill.id),
+                        onRetry = { onRetry(bill.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FailedBillSyncRow(
+    bill: BillEntity,
+    isRetrying: Boolean,
+    onRetry: () -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DarkBrown1.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+            .padding(spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Bill #${bill.dailyOrderDisplay.ifBlank { bill.lifetimeOrderId.toString() }}",
+                color = TextLight,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold
+            )
+            TextButton(onClick = onRetry, enabled = !isRetrying) {
+                if (isRetrying) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = PrimaryGold
+                    )
+                } else {
+                    Text("Retry", color = PrimaryGold, style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+        Text(
+            bill.syncFailureReason ?: "Sync rejected after automatic recovery.",
+            color = TextGold.copy(alpha = 0.78f),
+            style = MaterialTheme.typography.bodySmall
+        )
+        bill.syncFailedAt?.let { failedAt ->
+            Text(
+                "Failed ${formatSyncIssueTime(failedAt)}",
+                color = TextGold.copy(alpha = 0.52f),
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
+}
+
+private fun formatSyncIssueTime(timestamp: Long): String {
+    return SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()).format(Date(timestamp))
 }
 
 @Composable

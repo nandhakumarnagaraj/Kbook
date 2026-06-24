@@ -186,7 +186,7 @@ fun SettingsScreen(
                         ChangePasswordView(onBack = { section = "security" })
                     }
                     "help_support" -> {
-                        HelpSupportView()
+                        HelpSupportView(viewModel)
                     }
                     "about_app" -> {
                         AboutAppView()

@@ -90,5 +90,8 @@ data class BillEntity(
     @SerializedName("ownerUserId")
     @ColumnInfo(name = "owner_user_id", defaultValue = "NULL") val ownerUserId: Long? = null,
     @SerializedName("ownerRestaurantId")
-    @ColumnInfo(name = "owner_restaurant_id", defaultValue = "NULL") val ownerRestaurantId: Long? = null
+    @ColumnInfo(name = "owner_restaurant_id", defaultValue = "NULL") val ownerRestaurantId: Long? = null,
+    @ColumnInfo(name = "sync_status", defaultValue = "'pending'") val syncStatus: String = "pending",
+    @ColumnInfo(name = "sync_failure_reason") val syncFailureReason: String? = null,
+    @ColumnInfo(name = "sync_failed_at") val syncFailedAt: Long? = null
 )

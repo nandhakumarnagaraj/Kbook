@@ -141,7 +141,7 @@ interface BillDao {
      * round-trip or from a server pull) as synced. Catches bills where the push
      * network response was lost but the server actually saved the record.
      */
-    @Query("UPDATE bills SET is_synced = 1 WHERE is_synced = 0 AND server_id IS NOT NULL AND restaurant_id = :restaurantId")
+    @Query("UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL WHERE is_synced = 0 AND server_id IS NOT NULL AND restaurant_id = :restaurantId")
     suspend fun reconcileServerAcknowledgedBills(restaurantId: Long): Int
 
     /**
@@ -152,7 +152,7 @@ interface BillDao {
      * (device_id, lifetime_order_id) — which is unique per device — and marks them synced.
      */
     @Query("""
-        UPDATE bills SET is_synced = 1
+        UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL
         WHERE is_synced = 0
           AND device_id = :deviceId
           AND restaurant_id = :restaurantId
@@ -162,7 +162,7 @@ interface BillDao {
 
     // ── Unsynced queries ───────────────────────────────────────────────────────
 
-    @Query("SELECT * FROM bills WHERE is_synced = 0 AND restaurant_id = :restaurantId")
+    @Query("SELECT * FROM bills WHERE is_synced = 0 AND restaurant_id = :restaurantId AND sync_status != 'failed_permanent'")
     suspend fun getUnsyncedBills(restaurantId: Long): List<BillEntity>
 
     @Query("SELECT * FROM bills WHERE is_synced = 0 AND owner_user_id = :userId AND restaurant_id = :restaurantId")
@@ -196,7 +196,7 @@ interface BillDao {
      * localId is always the original device-local primary key.
      */
     @Query("""
-        UPDATE bills SET is_synced = 1
+        UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL
         WHERE is_synced = 0
           AND device_id = :deviceId
           AND restaurant_id = :restaurantId
@@ -204,8 +204,38 @@ interface BillDao {
     """)
     suspend fun markBillsSyncedByDeviceIdAndLocalIds(deviceId: String, restaurantId: Long, localIds: List<Long>): Int
 
-    @Query("UPDATE bills SET is_synced = 1 WHERE id IN (:billIds) AND restaurant_id = :restaurantId")
+    @Query("UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL WHERE id IN (:billIds) AND restaurant_id = :restaurantId")
     suspend fun markBillsAsSynced(billIds: List<Long>, restaurantId: Long)
+
+    @Query("""
+        UPDATE bills
+        SET sync_status = 'failed_permanent',
+            sync_failure_reason = :reason,
+            sync_failed_at = :failedAt
+        WHERE id = :billId
+          AND restaurant_id = :restaurantId
+          AND is_synced = 0
+    """)
+    suspend fun markBillSyncFailedPermanently(
+        billId: Long,
+        restaurantId: Long,
+        reason: String,
+        failedAt: Long
+    ): Int
+
+    @Query("""
+        UPDATE bills
+        SET sync_status = 'pending',
+            sync_failure_reason = NULL,
+            sync_failed_at = NULL
+        WHERE id = :billId
+          AND restaurant_id = :restaurantId
+          AND is_synced = 0
+    """)
+    suspend fun retryFailedBillSync(billId: Long, restaurantId: Long): Int
+
+    @Query("SELECT * FROM bills WHERE sync_status = 'failed_permanent' AND restaurant_id = :restaurantId ORDER BY sync_failed_at DESC")
+    suspend fun getPermanentlyFailedBills(restaurantId: Long): List<BillEntity>
 
     @Query("UPDATE bills SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
     suspend fun updateServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)

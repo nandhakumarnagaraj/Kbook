@@ -2,7 +2,6 @@ package com.khanabook.lite.pos.domain.manager
 
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.api.MasterSyncResponse
-import com.khanabook.lite.pos.domain.util.SYNC_CONFLICT_MESSAGE
 import com.khanabook.lite.pos.domain.util.SyncConflictException
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -12,7 +11,6 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.test.runTest
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -43,16 +41,14 @@ class SyncManagerTest {
     }
 
     @Test
-    fun `performFullSync pulls latest data and returns conflict on push 409`() = runTest {
-        coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException()
-        coEvery { api.pullMasterSync(10L, "device-1") } returns MasterSyncResponse(serverTimestamp = 42L)
+    fun `performFullSync returns success when conflict recovery pull succeeds`() = runTest {
+        coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException() andThen true
+        coEvery { api.pullMasterSync(0L, "device-1", ignoreDeviceId = true) } returns MasterSyncResponse(serverTimestamp = 42L)
 
         val result = syncManager.performFullSync()
 
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is SyncConflictException)
-        assertEquals(SYNC_CONFLICT_MESSAGE, result.exceptionOrNull()?.message)
-        assertTrue((result.exceptionOrNull() as SyncConflictException).recoverySucceeded)
+        assertTrue(result.isSuccess)
+        coVerify(exactly = 2) { masterSyncProcessor.pushAll() }
         coVerify(exactly = 1) { masterSyncProcessor.insertMasterData(match { it.serverTimestamp == 42L }) }
         coVerify(exactly = 1) { sessionManager.saveLastSyncTimestamp(42L) }
     }
@@ -60,7 +56,7 @@ class SyncManagerTest {
     @Test
     fun `performFullSync returns unresolved conflict when recovery pull fails`() = runTest {
         coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException()
-        coEvery { api.pullMasterSync(10L, "device-1") } throws IllegalStateException("pull failed")
+        coEvery { api.pullMasterSync(0L, "device-1", ignoreDeviceId = true) } throws IllegalStateException("pull failed")
 
         val result = syncManager.performFullSync()
 

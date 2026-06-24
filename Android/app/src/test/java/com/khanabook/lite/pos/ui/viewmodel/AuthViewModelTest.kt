@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
 import android.content.Context
+import com.khanabook.lite.pos.data.local.DatabaseProvider
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
@@ -35,6 +36,7 @@ class AuthViewModelTest {
     private val context: Context = mockk(relaxed = true)
     private val userRepository: UserRepository = mockk(relaxed = true)
     private val restaurantRepository: RestaurantRepository = mockk(relaxed = true)
+    private val databaseProvider: DatabaseProvider = mockk(relaxed = true)
     private val syncManager: SyncManager = mockk(relaxed = true)
     private val sessionManager: SessionManager = mockk(relaxed = true)
     private val authManager: AuthManager = mockk(relaxed = true)
@@ -59,6 +61,7 @@ class AuthViewModelTest {
             context,
             userRepository,
             restaurantRepository,
+            databaseProvider,
             syncManager,
             sessionManager,
             authManager

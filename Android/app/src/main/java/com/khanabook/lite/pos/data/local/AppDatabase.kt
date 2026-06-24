@@ -22,7 +22,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 47,
+        version = 48,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -37,6 +37,15 @@ abstract class AppDatabase : RoomDatabase() {
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
+
+            val MIGRATION_47_48 = object : Migration(47, 48) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE `bills` ADD COLUMN `sync_status` TEXT NOT NULL DEFAULT 'pending'")
+                    db.execSQL("ALTER TABLE `bills` ADD COLUMN `sync_failure_reason` TEXT")
+                    db.execSQL("ALTER TABLE `bills` ADD COLUMN `sync_failed_at` INTEGER")
+                    db.execSQL("UPDATE `bills` SET `sync_status` = CASE WHEN `is_synced` = 1 THEN 'synced' ELSE 'pending' END")
+                }
+            }
 
             val MIGRATION_46_47 = object : Migration(46, 47) {
                 override fun migrate(db: SupportSQLiteDatabase) {

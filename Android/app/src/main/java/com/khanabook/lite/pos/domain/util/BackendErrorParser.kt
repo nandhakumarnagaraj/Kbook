@@ -31,7 +31,10 @@ open class BackendException(
 
 class SyncConflictException(
     cause: Throwable? = null,
-    val recoverySucceeded: Boolean = false
+    val recoverySucceeded: Boolean = false,
+    val failedLocalIds: List<Long> = emptyList(),
+    val failedReasons: Map<Long, String> = emptyMap(),
+    val syncEntityLabel: String? = null
 ) : BackendException(
     details = ParsedBackendError(
         message = SYNC_CONFLICT_MESSAGE,
