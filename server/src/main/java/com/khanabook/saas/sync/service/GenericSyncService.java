@@ -11,6 +11,7 @@ import com.khanabook.saas.sync.repository.SyncRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -392,11 +393,34 @@ public class GenericSyncService {
 
 		Map<Long, Long> localToServerIdMap = new HashMap<>();
 		if (!allRecordsToSave.isEmpty()) {
-			List<T> saved = repository.saveAll(allRecordsToSave);
-			for (T entity : saved) {
-				if (entity.getLocalId() != null && entity.getId() != null) {
-					localToServerIdMap.put(entity.getLocalId(), entity.getId());
+			try {
+				List<T> saved = repository.saveAll(allRecordsToSave);
+				for (T entity : saved) {
+					if (entity.getLocalId() != null && entity.getId() != null) {
+						localToServerIdMap.put(entity.getLocalId(), entity.getId());
+					}
 				}
+			} catch (DataIntegrityViolationException e) {
+				// Log the specific constraint violation details so we can identify
+				// which field or constraint is causing the 409 during bill push.
+				String causeMessage = e.getMostSpecificCause() != null
+						? e.getMostSpecificCause().getMessage()
+						: e.getMessage();
+				log.error("DataIntegrityViolationException during saveAll for {} records. Cause: {}",
+						allRecordsToSave.size(), causeMessage);
+				for (T record : allRecordsToSave) {
+					if (record instanceof Bill bill) {
+						log.error("  Bill: localId={} serverId={} deviceId={} restaurantId={} dailyOrderId={} lifetimeOrderId={} orderType={} subtotal={} total={} paymentMode={} paymentStatus={} orderStatus={} lastResetDate={} createdBy={}",
+								bill.getLocalId(), bill.getId(), bill.getDeviceId(),
+								bill.getRestaurantId(), bill.getDailyOrderId(),
+								bill.getLifetimeOrderId(), bill.getOrderType(),
+								bill.getSubtotal(), bill.getTotalAmount(),
+								bill.getPaymentMode(), bill.getPaymentStatus(),
+								bill.getOrderStatus(), bill.getLastResetDate(),
+								bill.getCreatedBy());
+					}
+				}
+				throw e;
 			}
 		}
 

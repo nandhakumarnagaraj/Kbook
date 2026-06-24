@@ -46,6 +46,9 @@ interface CategoryDao {
     @Query("UPDATE categories SET is_synced = 1 WHERE id IN (:ids) AND restaurant_id = :restaurantId")
     suspend fun markCategoriesAsSynced(ids: List<Long>, restaurantId: Long)
 
+    @Query("UPDATE categories SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
+    suspend fun updateServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedCategories(items: List<com.khanabook.lite.pos.data.local.entity.CategoryEntity>)
 }

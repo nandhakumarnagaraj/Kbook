@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.khanabook.lite.pos.data.local.DatabaseProvider
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
@@ -16,9 +17,12 @@ import com.khanabook.lite.pos.worker.MasterSyncWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 
 private const val TAG = "AuthViewModel"
 
@@ -32,6 +36,7 @@ constructor(
         @ApplicationContext private val context: Context,
         private val userRepository: UserRepository,
         private val restaurantRepository: RestaurantRepository,
+        private val databaseProvider: DatabaseProvider,
         private val syncManager: SyncManager,
         private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
         private val authManager: AuthManager
@@ -177,6 +182,9 @@ constructor(
         sessionManager.clearLockout()
         val restaurantId = user.restaurantId
         val dbFile = context.getDatabasePath("khanabook_lite_db_$restaurantId")
+        withContext(Dispatchers.IO) {
+            databaseProvider.warmUpDatabase()
+        }
         if (!dbFile.exists()) {
             // First time login for this restaurant on this device:
             // Must bootstrap the database from scratch.
@@ -194,10 +202,11 @@ constructor(
                 .build()
             val syncWorkRequest = androidx.work.OneTimeWorkRequest.Builder(MasterSyncWorker::class.java)
                 .setConstraints(constraints)
+                .setInitialDelay(10, TimeUnit.SECONDS)
                 .build()
             androidx.work.WorkManager.getInstance(context).enqueueUniqueWork(
                 "MasterSyncWorker_OneTime",
-                androidx.work.ExistingWorkPolicy.REPLACE,
+                androidx.work.ExistingWorkPolicy.KEEP,
                 syncWorkRequest
             )
         }

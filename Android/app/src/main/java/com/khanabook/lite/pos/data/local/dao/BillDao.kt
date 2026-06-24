@@ -66,6 +66,19 @@ interface BillDao {
     """)
     suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long): BillEntity?
 
+    @Query("""
+        SELECT * FROM bills
+        WHERE order_status = 'draft'
+          AND payment_status = 'pending'
+          AND restaurant_id = :restaurantId
+          AND payment_mode IN (
+            'upi', 'part_cash_upi', 'part_upi_pos'
+          )
+        ORDER BY created_at DESC
+        LIMIT 1
+    """)
+    suspend fun getLatestPendingOnlineBill(restaurantId: Long): BillEntity?
+
     @Query("UPDATE bills SET order_status = :status WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun updateOrderStatus(id: Long, status: String, restaurantId: Long)
 
@@ -128,8 +141,8 @@ interface BillDao {
      * round-trip or from a server pull) as synced. Catches bills where the push
      * network response was lost but the server actually saved the record.
      */
-    @Query("UPDATE bills SET is_synced = 1 WHERE is_synced = 0 AND server_id IS NOT NULL")
-    suspend fun reconcileServerAcknowledgedBills(): Int
+    @Query("UPDATE bills SET is_synced = 1 WHERE is_synced = 0 AND server_id IS NOT NULL AND restaurant_id = :restaurantId")
+    suspend fun reconcileServerAcknowledgedBills(restaurantId: Long): Int
 
     /**
      * After a pull, the server returns bills with their server-assigned IDs.
@@ -172,6 +185,25 @@ interface BillDao {
     @Query("SELECT COUNT(*) FROM bills WHERE is_synced = 0 AND owner_user_id = :userId AND restaurant_id = :restaurantId")
     fun getUnsyncedCountForUser(userId: Long, restaurantId: Long): Flow<Int>
 
+    /**
+     * After a pull, the server returns bills with the ORIGINAL device-local IDs
+     * in their `localId` field. For rows where isMyDevice=false (deviceId changed,
+     * reinstall, etc.), the upsert uses the serverId as the Room primary key, so
+     * the ORIGINAL local row (with the old device-local ID) remains isSynced=false.
+     *
+     * This query finds those orphaned rows by matching on (device_id, local_id)
+     * and marks them synced. This is more reliable than lifetimeOrderId because
+     * localId is always the original device-local primary key.
+     */
+    @Query("""
+        UPDATE bills SET is_synced = 1
+        WHERE is_synced = 0
+          AND device_id = :deviceId
+          AND restaurant_id = :restaurantId
+          AND id IN (:localIds)
+    """)
+    suspend fun markBillsSyncedByDeviceIdAndLocalIds(deviceId: String, restaurantId: Long, localIds: List<Long>): Int
+
     @Query("UPDATE bills SET is_synced = 1 WHERE id IN (:billIds) AND restaurant_id = :restaurantId")
     suspend fun markBillsAsSynced(billIds: List<Long>, restaurantId: Long)
 
@@ -190,8 +222,21 @@ interface BillDao {
     @Query("SELECT * FROM bill_items WHERE is_synced = 0 AND restaurant_id = :restaurantId")
     suspend fun getUnsyncedBillItems(restaurantId: Long): List<BillItemEntity>
 
+    @Query("""
+        SELECT bi.* FROM bill_items bi
+        INNER JOIN bills b ON bi.bill_id = b.id
+        WHERE bi.is_synced = 0
+          AND bi.restaurant_id = :restaurantId
+          AND b.restaurant_id = :restaurantId
+          AND (b.is_synced = 1 OR b.server_id IS NOT NULL)
+    """)
+    suspend fun getUnsyncedBillItemsWithSyncedParent(restaurantId: Long): List<BillItemEntity>
+
     @Query("UPDATE bill_items SET is_synced = 1 WHERE id IN (:ids) AND restaurant_id = :restaurantId")
     suspend fun markBillItemsAsSynced(ids: List<Long>, restaurantId: Long)
+
+    @Query("UPDATE bill_items SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
+    suspend fun updateBillItemServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedBillItems(items: List<BillItemEntity>)
@@ -202,8 +247,21 @@ interface BillDao {
     @Query("SELECT * FROM bill_payments WHERE is_synced = 0 AND restaurant_id = :restaurantId")
     suspend fun getUnsyncedBillPayments(restaurantId: Long): List<BillPaymentEntity>
 
+    @Query("""
+        SELECT bp.* FROM bill_payments bp
+        INNER JOIN bills b ON bp.bill_id = b.id
+        WHERE bp.is_synced = 0
+          AND bp.restaurant_id = :restaurantId
+          AND b.restaurant_id = :restaurantId
+          AND (b.is_synced = 1 OR b.server_id IS NOT NULL)
+    """)
+    suspend fun getUnsyncedBillPaymentsWithSyncedParent(restaurantId: Long): List<BillPaymentEntity>
+
     @Query("UPDATE bill_payments SET is_synced = 1 WHERE id IN (:ids) AND restaurant_id = :restaurantId")
     suspend fun markBillPaymentsAsSynced(ids: List<Long>, restaurantId: Long)
+
+    @Query("UPDATE bill_payments SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
+    suspend fun updateBillPaymentServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
 
     @Query("""
         SELECT item_name as itemName, SUM(quantity) as quantitySold, SUM(item_total) as revenue
@@ -222,7 +280,7 @@ interface BillDao {
     @Query("DELETE FROM bill_payments WHERE is_synced = 1 AND restaurant_id = :restaurantId")
     suspend fun deleteAllSyncedBillPayments(restaurantId: Long)
 
-    @Query("SELECT * FROM bills WHERE customer_whatsapp IS NOT NULL AND customer_whatsapp != '' AND restaurant_id = :restaurantId ORDER BY created_at DESC LIMIT 20")
+    @Query("SELECT * FROM bills WHERE customer_whatsapp IS NOT NULL AND customer_whatsapp != '' AND order_status != 'cancelled' AND restaurant_id = :restaurantId ORDER BY created_at DESC LIMIT 20")
     suspend fun getRecentBillsWithCustomers(restaurantId: Long): List<BillEntity>
 
     @Query("SELECT * FROM bills WHERE lifetime_order_id = :lifetimeNo AND restaurant_id = :restaurantId AND is_deleted = 0 LIMIT 1")

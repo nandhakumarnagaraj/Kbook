@@ -90,7 +90,8 @@ fun AppLockScreen(
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
             builder.setSubtitle("Use biometric or device lock")
                 .setAllowedAuthenticators(
-                    androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or 
+                    androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                    androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK or
                     androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
                 )
         } else {

@@ -4,6 +4,8 @@ package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -95,15 +97,11 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .statusBarsPadding()
                 .padding(spacing.medium),
             verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
-            // Top breathing room — only on phone screens, not tablet
-            if (!isWideScreen) {
-                Spacer(modifier = Modifier.weight(1f, fill = true))
-            }
-
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                 Column {
                     Row(
@@ -290,9 +288,9 @@ fun HomeScreen(
             }
             } // end AnimatedVisibility(actionsVisible)
 
-            // Bottom breathing room — only on phone screens, not tablet
+            // Bottom padding to ensure last item isn't flush with navbar
             if (!isWideScreen) {
-                Spacer(modifier = Modifier.weight(1f, fill = true))
+                Spacer(modifier = Modifier.height(spacing.medium))
             }
         }
     }

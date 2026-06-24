@@ -975,6 +975,11 @@ fun PaymentStep(
         }
     }
 
+    // UPI transaction limit: most Indian banks cap single UPI transactions at ₹1,00,000.
+    // Amounts exceeding this should use a split payment mode where UPI covers up to ₹1L
+    // and the remainder is collected via another payment method (cash or POS).
+    val upiMaxAmount = 1_00_000.0
+    val totalAmount = summary.total.toDoubleOrNull() ?: 0.0
     val isUpiMode =
             selectedMode == PaymentMode.UPI ||
                     selectedMode == PaymentMode.PART_CASH_UPI ||
@@ -984,6 +989,18 @@ fun PaymentStep(
             selectedMode == PaymentMode.PART_CASH_UPI ||
                     selectedMode == PaymentMode.PART_CASH_POS ||
                     selectedMode == PaymentMode.PART_UPI_POS
+
+    // Auto-switch to split payment when the UPI single-pay amount exceeds the limit.
+    // This prevents generating a QR code with an amount that UPI apps will reject.
+    val upiExceedsLimit = isUpiMode && !isSplitMode && totalAmount > upiMaxAmount
+    LaunchedEffect(upiExceedsLimit) {
+        if (upiExceedsLimit) {
+            val cashMode = PaymentMode.PART_CASH_UPI
+            if (enabledModes.contains(cashMode)) {
+                selectedMode = cashMode
+            }
+        }
+    }
 
     LaunchedEffect(selectedMode, summary.total) {
         if (isSplitMode) {
@@ -1118,6 +1135,14 @@ fun PaymentStep(
                         color = DangerRed,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(top = spacing.extraSmall)
+                    )
+                }
+                if (upiExceedsLimit) {
+                    Text(
+                        "Amount exceeds UPI limit (₹1,00,000). Auto-switched to split payment. UPI will cover up to ₹1L, remaining to be collected via cash.",
+                        color = WarningYellow,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(top = spacing.extraSmall).fillMaxWidth()
                     )
                 }
                 Spacer(modifier = Modifier.height(spacing.large))

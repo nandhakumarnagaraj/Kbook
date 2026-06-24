@@ -170,7 +170,6 @@ class LogoutViewModel @Inject constructor(
     }
 
     private suspend fun getUnsyncedDataSummary(): UnsyncedDataSummary = coroutineScope {
-        val activeUserId = sessionManager.getActiveUserId() ?: -1L
         val activeRestaurantId = sessionManager.getRestaurantId()
 
         val database = databaseProvider.getDatabase()
@@ -180,9 +179,9 @@ class LogoutViewModel @Inject constructor(
         val menuItemCount = async { database.menuDao().getUnsyncedMenuItems(activeRestaurantId).size }
         val variantCount = async { database.menuDao().getUnsyncedItemVariants(activeRestaurantId).size }
         val stockLogCount = async { database.inventoryDao().getUnsyncedStockLogs(activeRestaurantId).size }
-        val billCount = async { database.billDao().getUnsyncedBillsForUser(activeUserId, activeRestaurantId).size }
-        val billItemCount = async { database.billDao().getUnsyncedBillItemsForUser(activeUserId, activeRestaurantId).size }
-        val billPaymentCount = async { database.billDao().getUnsyncedBillPaymentsForUser(activeUserId, activeRestaurantId).size }
+        val billCount = async { database.billDao().getUnsyncedBills(activeRestaurantId).size }
+        val billItemCount = async { database.billDao().getUnsyncedBillItems(activeRestaurantId).size }
+        val billPaymentCount = async { database.billDao().getUnsyncedBillPayments(activeRestaurantId).size }
 
         val pc = profileCount.await()
         val uc = userCount.await()

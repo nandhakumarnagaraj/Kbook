@@ -91,6 +91,9 @@ interface RestaurantDao {
     @Query("UPDATE restaurant_profile SET is_synced = 1 WHERE id IN (:ids)")
     suspend fun markRestaurantProfilesAsSynced(ids: List<Long>)
 
+    @Query("UPDATE restaurant_profile SET server_id = :serverId WHERE id = :localId")
+    suspend fun updateServerIdByLocalId(localId: Long, serverId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedRestaurantProfiles(items: List<RestaurantProfileEntity>)
 }

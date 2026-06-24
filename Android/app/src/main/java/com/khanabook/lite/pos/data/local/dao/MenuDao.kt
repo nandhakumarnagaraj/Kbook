@@ -112,6 +112,9 @@ interface MenuDao {
     @Query("UPDATE menu_items SET is_synced = 1 WHERE id IN (:ids) AND restaurant_id = :restaurantId")
     suspend fun markMenuItemsAsSynced(ids: List<Long>, restaurantId: Long)
 
+    @Query("UPDATE menu_items SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
+    suspend fun updateMenuItemServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedMenuItems(items: List<MenuItemEntity>)
 
@@ -120,6 +123,9 @@ interface MenuDao {
 
     @Query("UPDATE item_variants SET is_synced = 1 WHERE id IN (:ids) AND restaurant_id = :restaurantId")
     suspend fun markItemVariantsAsSynced(ids: List<Long>, restaurantId: Long)
+
+    @Query("UPDATE item_variants SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
+    suspend fun updateVariantServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedItemVariants(items: List<ItemVariantEntity>)

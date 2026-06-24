@@ -91,8 +91,14 @@ class BillRepository(
     }
 
     suspend fun getLatestPendingOnlineBill(): BillEntity? {
-        val activeUserId = sessionManager.getActiveUserId() ?: -1L
-        return billDao.getLatestPendingOnlineBill(sessionManager.getRestaurantId(), activeUserId)
+        val restaurantId = sessionManager.getRestaurantId()
+        val activeUserId = sessionManager.getActiveUserId()
+        return if (activeUserId != null) {
+            billDao.getLatestPendingOnlineBill(restaurantId, activeUserId)
+                ?: billDao.getLatestPendingOnlineBill(restaurantId)
+        } else {
+            billDao.getLatestPendingOnlineBill(restaurantId)
+        }
     }
 
     suspend fun updateOrderStatus(id: Long, status: String) {
@@ -195,8 +201,7 @@ class BillRepository(
     }
 
     fun getUnsyncedCount(): Flow<Int> {
-        val activeUserId = sessionManager.getActiveUserId() ?: -1L
-        return billDao.getUnsyncedCountForUser(activeUserId, sessionManager.getRestaurantId())
+        return billDao.getUnsyncedCount(sessionManager.getRestaurantId())
     }
 
     suspend fun getTopSellingItemsInRange(startMillis: Long, endMillis: Long, limit: Int): List<com.khanabook.lite.pos.domain.model.TopSellingItem> {

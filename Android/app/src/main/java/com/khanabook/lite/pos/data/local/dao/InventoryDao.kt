@@ -23,6 +23,9 @@ interface InventoryDao {
     @Query("UPDATE stock_logs SET is_synced = 1 WHERE id IN (:ids) AND restaurant_id = :restaurantId")
     suspend fun markStockLogsAsSynced(ids: List<Long>, restaurantId: Long)
 
+    @Query("UPDATE stock_logs SET server_id = :serverId WHERE id = :localId AND restaurant_id = :restaurantId")
+    suspend fun updateServerIdByLocalId(localId: Long, serverId: Long, restaurantId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedStockLogs(items: List<com.khanabook.lite.pos.data.local.entity.StockLogEntity>)
 

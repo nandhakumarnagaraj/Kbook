@@ -47,6 +47,7 @@ import com.khanabook.lite.pos.ui.screens.*
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
+import com.khanabook.lite.pos.worker.MasterSyncWorker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -107,8 +108,18 @@ class MainActivity : FragmentActivity() {
                 if (status == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) {
                     val token = sessionManager.getAuthToken()
                     if (!token.isNullOrBlank()) {
-                        Log.i("MainActivity", "Network reconnected. Triggering automatic background sync.")
-                        syncManager.performFullSync()
+                        Log.i("MainActivity", "Network reconnected. Enqueuing background sync.")
+                        val constraints = androidx.work.Constraints.Builder()
+                            .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                            .build()
+                        val syncWorkRequest = androidx.work.OneTimeWorkRequestBuilder<MasterSyncWorker>()
+                            .setConstraints(constraints)
+                            .build()
+                        androidx.work.WorkManager.getInstance(this@MainActivity).enqueueUniqueWork(
+                            "MasterSyncWorker_OneTime",
+                            androidx.work.ExistingWorkPolicy.KEEP,
+                            syncWorkRequest
+                        )
                     }
                 }
             }

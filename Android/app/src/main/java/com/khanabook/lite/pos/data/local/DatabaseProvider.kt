@@ -55,6 +55,11 @@ class DatabaseProvider @Inject constructor(
         return activeDatabase!!
     }
 
+    fun warmUpDatabase() {
+        val database = getDatabase()
+        database.openHelper.writableDatabase
+    }
+
     @Synchronized
     fun closeDatabase() {
         activeDatabase?.close()

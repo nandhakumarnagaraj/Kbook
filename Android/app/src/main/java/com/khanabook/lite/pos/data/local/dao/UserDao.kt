@@ -63,6 +63,9 @@ interface UserDao {
     @Query("UPDATE users SET is_synced = 1 WHERE id IN (:ids)")
     suspend fun markUsersAsSynced(ids: List<Long>)
 
+    @Query("UPDATE users SET server_id = :serverId WHERE id = :localId")
+    suspend fun updateServerIdByLocalId(localId: Long, serverId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedUsers(items: List<UserEntity>)
 

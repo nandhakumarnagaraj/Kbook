@@ -86,6 +86,11 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().putLong("restaurant_id", restaurantId).apply()
     }
 
+    private fun scopedKey(baseKey: String): String {
+        val restaurantId = getRestaurantId()
+        return if (restaurantId > 0L) "${baseKey}_$restaurantId" else baseKey
+    }
+
     fun setInitialSyncCompleted(isCompleted: Boolean) {
         val restaurantId = getRestaurantId()
         val editor = prefs.edit()
@@ -104,34 +109,64 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     }
 
     fun getActiveUserId(): Long? {
-        val id = prefs.getLong("active_user_id", -1L)
+        val restaurantId = getRestaurantId()
+        if (restaurantId <= 0L) {
+            val legacyId = prefs.getLong("active_user_id", -1L)
+            return if (legacyId != -1L) legacyId else null
+        }
+        val scoped = scopedKey("active_user_id")
+        val id = prefs.getLong(scoped, -1L)
         return if (id != -1L) id else null
     }
 
     fun saveActiveUserId(userId: Long) {
-        prefs.edit().putLong("active_user_id", userId).apply()
+        val editor = prefs.edit()
+        if (getRestaurantId() > 0L) {
+            editor.putLong(scopedKey("active_user_id"), userId)
+        } else {
+            editor.putLong("active_user_id", userId)
+        }
+        editor.apply()
     }
 
-    fun getActiveUserRole(): String? = prefs.getString("active_user_role", null)
+    fun getActiveUserRole(): String? {
+        if (getRestaurantId() <= 0L) return prefs.getString("active_user_role", null)
+        val scoped = scopedKey("active_user_role")
+        return prefs.getString(scoped, null)
+    }
 
     fun isOwner(): Boolean = getActiveUserRole() == "OWNER"
     fun isKbookAdmin(): Boolean = getActiveUserRole() == "KBOOK_ADMIN"
 
     fun saveActiveUserRole(role: String) {
-        prefs.edit().putString("active_user_role", role).apply()
+        val editor = prefs.edit()
+        if (getRestaurantId() > 0L) {
+            editor.putString(scopedKey("active_user_role"), role)
+        } else {
+            editor.putString("active_user_role", role)
+        }
+        editor.apply()
     }
 
     fun clearLocalUserSession() {
-        prefs.edit().remove("active_user_id").remove("active_user_role").apply()
+        prefs.edit()
+            .remove(scopedKey("active_user_id"))
+            .remove(scopedKey("active_user_role"))
+            .remove("active_user_id")
+            .remove("active_user_role")
+            .apply()
     }
 
     // Clears only the auth token and user identity — keeps device_id, last_sync_timestamp,
     // and restaurant_id intact so unsynced local data can be pushed after re-login.
     fun clearAuthOnly() {
         securePrefs.remove("auth_token")
+        securePrefs.remove(scopedKey("persisted_login_id"))
         securePrefs.remove("persisted_login_id")
         clearPin()
         prefs.edit()
+            .remove(scopedKey("active_user_id"))
+            .remove(scopedKey("active_user_role"))
             .remove("active_user_id")
             .remove("active_user_role")
             .apply()
@@ -144,13 +179,21 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().putFloat("display_scale", scale.coerceIn(0.8f, 1.3f)).apply()
     }
 
-    fun getPersistedLoginId(): String? = securePrefs.getString("persisted_login_id", null)
+    fun getPersistedLoginId(): String? {
+        if (getRestaurantId() <= 0L) return securePrefs.getString("persisted_login_id", null)
+        return securePrefs.getString(scopedKey("persisted_login_id"), null)
+    }
 
     fun savePersistedLoginId(loginId: String) {
-        securePrefs.putString("persisted_login_id", loginId)
+        if (getRestaurantId() > 0L) {
+            securePrefs.putString(scopedKey("persisted_login_id"), loginId)
+        } else {
+            securePrefs.putString("persisted_login_id", loginId)
+        }
     }
 
     fun clearPersistedLoginId() {
+        securePrefs.remove(scopedKey("persisted_login_id"))
         securePrefs.remove("persisted_login_id")
     }
 

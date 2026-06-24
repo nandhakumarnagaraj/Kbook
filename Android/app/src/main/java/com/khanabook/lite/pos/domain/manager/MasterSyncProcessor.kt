@@ -59,16 +59,18 @@ class MasterSyncProcessor @Inject constructor(
         push: suspend (List<R>) -> PushSyncResponse,
         markSynced: suspend (List<Long>) -> Unit,
         onServerIds: (suspend (Map<Long, Long>) -> Unit)? = null
-    ) {
-        if (records.isEmpty()) return
+    ): List<Long> {
+        if (records.isEmpty()) return emptyList()
 
         val batches = records.chunked(50)
+        val successfulIds = mutableListOf<Long>()
         logInfo("Pushing ${records.size} $label record(s) in ${batches.size} batch(es)")
 
         batches.forEachIndexed { index, batch ->
             try {
                 val response = push(batch.map(transform))
                 markSynced(response.successfulLocalIds)
+                successfulIds += response.successfulLocalIds
                 response.localToServerIdMap?.takeIf { it.isNotEmpty() }?.let { onServerIds?.invoke(it) }
 
                 logInfo(
@@ -93,6 +95,7 @@ class MasterSyncProcessor @Inject constructor(
                 throw e
             }
         }
+        return successfulIds
     }
 
     private fun String?.orFallback(default: String): String = this?.takeUnless { it.isBlank() } ?: default
@@ -202,7 +205,8 @@ class MasterSyncProcessor @Inject constructor(
             records = validProfiles,
             transform = RestaurantProfileEntity::toSyncDto,
             push = api::pushRestaurantProfiles,
-            markSynced = restaurantDao::markRestaurantProfilesAsSynced
+            markSynced = restaurantDao::markRestaurantProfilesAsSynced,
+            onServerIds = { map -> map.forEach { (localId, serverId) -> restaurantDao.updateServerIdByLocalId(localId, serverId) } }
         )
 
         val unsyncedUsers = userDao.getUnsyncedUsers()
@@ -212,7 +216,8 @@ class MasterSyncProcessor @Inject constructor(
             records = validUsers,
             transform = UserEntity::toSyncDto,
             push = api::pushUsers,
-            markSynced = userDao::markUsersAsSynced
+            markSynced = userDao::markUsersAsSynced,
+            onServerIds = { map -> map.forEach { (localId, serverId) -> userDao.updateServerIdByLocalId(localId, serverId) } }
         )
 
         val unsyncedCategories = categoryDao.getUnsyncedCategories(restaurantId)
@@ -222,7 +227,8 @@ class MasterSyncProcessor @Inject constructor(
             records = validCategories,
             transform = CategoryEntity::toSyncDto,
             push = api::pushCategories,
-            markSynced = { ids -> categoryDao.markCategoriesAsSynced(ids, restaurantId) }
+            markSynced = { ids -> categoryDao.markCategoriesAsSynced(ids, restaurantId) },
+            onServerIds = { map -> map.forEach { (localId, serverId) -> categoryDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
         )
 
         val unsyncedMenuItems = menuDao.getUnsyncedMenuItems(restaurantId)
@@ -232,7 +238,8 @@ class MasterSyncProcessor @Inject constructor(
             records = validMenuItems,
             transform = MenuItemEntity::toSyncDto,
             push = api::pushMenuItems,
-            markSynced = { ids -> menuDao.markMenuItemsAsSynced(ids, restaurantId) }
+            markSynced = { ids -> menuDao.markMenuItemsAsSynced(ids, restaurantId) },
+            onServerIds = { map -> map.forEach { (localId, serverId) -> menuDao.updateMenuItemServerIdByLocalId(localId, serverId, restaurantId) } }
         )
 
         val unsyncedVariants = menuDao.getUnsyncedItemVariants(restaurantId)
@@ -242,7 +249,8 @@ class MasterSyncProcessor @Inject constructor(
             records = validVariants,
             transform = ItemVariantEntity::toSyncDto,
             push = api::pushItemVariants,
-            markSynced = { ids -> menuDao.markItemVariantsAsSynced(ids, restaurantId) }
+            markSynced = { ids -> menuDao.markItemVariantsAsSynced(ids, restaurantId) },
+            onServerIds = { map -> map.forEach { (localId, serverId) -> menuDao.updateVariantServerIdByLocalId(localId, serverId, restaurantId) } }
         )
 
         val unsyncedStockLogs = inventoryDao.getUnsyncedStockLogs(restaurantId)
@@ -252,26 +260,21 @@ class MasterSyncProcessor @Inject constructor(
             records = validStockLogs,
             transform = StockLogEntity::toSyncDto,
             push = api::pushStockLogs,
-            markSynced = { ids -> inventoryDao.markStockLogsAsSynced(ids, restaurantId) }
+            markSynced = { ids -> inventoryDao.markStockLogsAsSynced(ids, restaurantId) },
+            onServerIds = { map -> map.forEach { (localId, serverId) -> inventoryDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
         )
-
-        val activeUserId = sessionManager.getActiveUserId()
-        if (activeUserId == null) {
-            Log.w("MasterSyncProcessor", "Push aborted: activeUserId not set in session")
-            return false
-        }
 
         // ── Reconcile any bills that were pushed successfully in a previous cycle
         // but whose local isSynced flag was never flipped (e.g. response lost mid-air).
         // reconcileServerAcknowledgedBills() also catches the 409-loop case where the
         // server already has the bill (server_id is set via updateServerIdByLocalId)
         // but the local row still shows isSynced=false.
-        val reconciledCount = billDao.reconcileServerAcknowledgedBills()
+        val reconciledCount = billDao.reconcileServerAcknowledgedBills(restaurantId)
         if (reconciledCount > 0) {
             Log.i("MasterSyncProcessor", "Reconciled $reconciledCount bill(s) that had server_id but were still marked unsynced")
         }
 
-        val unsyncedBills = billDao.getUnsyncedBillsForUser(activeUserId, restaurantId)
+        val unsyncedBills = billDao.getUnsyncedBills(restaurantId)
         val validBills = unsyncedBills.filter { it.restaurantId == restaurantId }
         val skippedBills = unsyncedBills.size - validBills.size
         if (skippedBills > 0) {
@@ -287,22 +290,24 @@ class MasterSyncProcessor @Inject constructor(
             onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
         )
 
-        val unsyncedBillItems = billDao.getUnsyncedBillItemsForUser(activeUserId, restaurantId)
+        val unsyncedBillItems = billDao.getUnsyncedBillItemsWithSyncedParent(restaurantId)
         pushBatches(
             label = "bill items",
             records = unsyncedBillItems,
             transform = BillItemEntity::toSyncDto,
             push = api::pushBillItems,
-            markSynced = { ids -> billDao.markBillItemsAsSynced(ids, restaurantId) }
+            markSynced = { ids -> billDao.markBillItemsAsSynced(ids, restaurantId) },
+            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateBillItemServerIdByLocalId(localId, serverId, restaurantId) } }
         )
 
-        val unsyncedBillPayments = billDao.getUnsyncedBillPaymentsForUser(activeUserId, restaurantId)
+        val unsyncedBillPayments = billDao.getUnsyncedBillPaymentsWithSyncedParent(restaurantId)
         pushBatches(
             label = "bill payments",
             records = unsyncedBillPayments,
             transform = BillPaymentEntity::toSyncDto,
             push = api::pushBillPayments,
-            markSynced = { ids -> billDao.markBillPaymentsAsSynced(ids, restaurantId) }
+            markSynced = { ids -> billDao.markBillPaymentsAsSynced(ids, restaurantId) },
+            onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateBillPaymentServerIdByLocalId(localId, serverId, restaurantId) } }
         )
 
         return true
@@ -685,22 +690,53 @@ class MasterSyncProcessor @Inject constructor(
             // The pull upserts bills by the server-assigned ID (which may differ from
             // the device-local primary key). This can leave the ORIGINAL local rows
             // (created offline) still marked isSynced=false, causing an endless 409 loop
-            // on the next push. Fix: mark those orphaned local rows synced by matching
-            // on (deviceId, lifetimeOrderId) which is globally unique per device.
-            val myDeviceId = sessionManager.getDeviceId()
+            // on the next push. Fix in THREE tiers:
+            //
+            // 1. Reconcile by (deviceId, localId) — the ORIGINAL device-local ID that
+            //    was used when the bill was first created. This is the most reliable
+            //    identifier because it never changes and is always present in the pull
+            //    response (localId field). We group by the ORIGINAL deviceId from the
+            //    server response (not the current session deviceId) so this also works
+            //    when the deviceId has changed (reinstall, new device, etc.).
+            //
+            // 2. Reconcile by (deviceId, lifetimeOrderId) — globally unique per device.
+            //    Falls back to this when localId matching doesn't cover all cases.
+            //
+            // 3. Reconcile by server_id IS NOT NULL — catches any bills that were
+            //    previously pushed successfully but whose isSynced flag was never set.
+            val billsByDevice = masterData.bills.groupBy { it.deviceId }
+            for ((deviceId, deviceBills) in billsByDevice) {
+                val deviceLocalIds = deviceBills.map { it.id }.filter { it > 0L }
+                if (deviceLocalIds.isNotEmpty()) {
+                    val reconciled = billDao.markBillsSyncedByDeviceIdAndLocalIds(
+                        deviceId = deviceId,
+                        restaurantId = restaurantId,
+                        localIds = deviceLocalIds
+                    )
+                    if (reconciled > 0) {
+                        Log.i("MasterSyncProcessor", "Post-pull: marked $reconciled orphaned local bill(s) as synced via (deviceId=$deviceId, localId) match")
+                    }
+                }
+            }
+
             val myDeviceBillLifetimeIds = masterData.bills
-                .filter { it.deviceId == myDeviceId }
+                .filter { it.deviceId == sessionManager.getDeviceId() }
                 .mapNotNull { it.lifetimeOrderId }
                 .filter { it > 0 }
             if (myDeviceBillLifetimeIds.isNotEmpty()) {
                 val fixed = billDao.markBillsSyncedByLifetimeIds(
-                    deviceId = myDeviceId,
+                    deviceId = sessionManager.getDeviceId(),
                     restaurantId = restaurantId,
                     lifetimeOrderIds = myDeviceBillLifetimeIds
                 )
                 if (fixed > 0) {
                     Log.i("MasterSyncProcessor", "Post-pull: marked $fixed orphaned local bill(s) as synced via lifetimeOrderId match")
                 }
+            }
+
+            val reconciledByServerId = billDao.reconcileServerAcknowledgedBills(restaurantId)
+            if (reconciledByServerId > 0) {
+                Log.i("MasterSyncProcessor", "Post-pull: reconciled $reconciledByServerId bill(s) that had server_id but were still unsynced")
             }
         }
 
@@ -832,7 +868,7 @@ class MasterSyncProcessor @Inject constructor(
                 restaurantDao.saveProfile(currentProfile.copy(
                     lifetimeOrderCounter = correctedLifetime,
                     dailyOrderCounter = correctedDaily,
-                    isSynced = false,
+                    isSynced = true,
                     updatedAt = System.currentTimeMillis()
                 ))
             }
