@@ -388,6 +388,7 @@ class TenantBillDao @Inject constructor(
     }
 
     override suspend fun reconcileServerAcknowledgedBills(): Int = dao.reconcileServerAcknowledgedBills()
+    override suspend fun markBillsSyncedByLifetimeIds(deviceId: String, restaurantId: Long, lifetimeOrderIds: List<Long>): Int = dao.markBillsSyncedByLifetimeIds(deviceId, restaurantId, lifetimeOrderIds)
     override suspend fun getUnsyncedBills(restaurantId: Long): List<BillEntity> = dao.getUnsyncedBills(restaurantId)
     override suspend fun getUnsyncedBillsForUser(userId: Long, restaurantId: Long): List<BillEntity> = dao.getUnsyncedBillsForUser(userId, restaurantId)
     override suspend fun getUnsyncedBillItemsForUser(userId: Long, restaurantId: Long): List<BillItemEntity> = dao.getUnsyncedBillItemsForUser(userId, restaurantId)

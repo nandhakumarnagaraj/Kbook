@@ -261,6 +261,16 @@ class MasterSyncProcessor @Inject constructor(
             return false
         }
 
+        // ── Reconcile any bills that were pushed successfully in a previous cycle
+        // but whose local isSynced flag was never flipped (e.g. response lost mid-air).
+        // reconcileServerAcknowledgedBills() also catches the 409-loop case where the
+        // server already has the bill (server_id is set via updateServerIdByLocalId)
+        // but the local row still shows isSynced=false.
+        val reconciledCount = billDao.reconcileServerAcknowledgedBills()
+        if (reconciledCount > 0) {
+            Log.i("MasterSyncProcessor", "Reconciled $reconciledCount bill(s) that had server_id but were still marked unsynced")
+        }
+
         val unsyncedBills = billDao.getUnsyncedBillsForUser(activeUserId, restaurantId)
         val validBills = unsyncedBills.filter { it.restaurantId == restaurantId }
         val skippedBills = unsyncedBills.size - validBills.size
@@ -670,6 +680,28 @@ class MasterSyncProcessor @Inject constructor(
                 }
             )
             logRepairedRecords(label = "bill", repaired = repairedBills)
+
+            // ── Post-pull reconciliation ─────────────────────────────────────────
+            // The pull upserts bills by the server-assigned ID (which may differ from
+            // the device-local primary key). This can leave the ORIGINAL local rows
+            // (created offline) still marked isSynced=false, causing an endless 409 loop
+            // on the next push. Fix: mark those orphaned local rows synced by matching
+            // on (deviceId, lifetimeOrderId) which is globally unique per device.
+            val myDeviceId = sessionManager.getDeviceId()
+            val myDeviceBillLifetimeIds = masterData.bills
+                .filter { it.deviceId == myDeviceId }
+                .mapNotNull { it.lifetimeOrderId }
+                .filter { it > 0 }
+            if (myDeviceBillLifetimeIds.isNotEmpty()) {
+                val fixed = billDao.markBillsSyncedByLifetimeIds(
+                    deviceId = myDeviceId,
+                    restaurantId = restaurantId,
+                    lifetimeOrderIds = myDeviceBillLifetimeIds
+                )
+                if (fixed > 0) {
+                    Log.i("MasterSyncProcessor", "Post-pull: marked $fixed orphaned local bill(s) as synced via lifetimeOrderId match")
+                }
+            }
         }
 
         // Get mapping of serverId to localId for bills to ensure items are linked correctly

@@ -109,22 +109,45 @@ interface BillDao {
             payments: List<BillPaymentEntity>
     ) {
         val billId = insertBill(bill)
-        val itemsWithId = items.map { 
+        val itemsWithId = items.map {
             it.copy(
                 billId = billId,
                 restaurantId = bill.restaurantId,
                 deviceId = bill.deviceId
-            ) 
+            )
         }
         val paymentsWithId = payments.map { it.copy(billId = billId, restaurantId = bill.restaurantId, deviceId = bill.deviceId) }
         insertBillItems(itemsWithId)
         insertBillPayments(paymentsWithId)
     }
 
-    
+    // ── Sync reconciliation ────────────────────────────────────────────────────
 
+    /**
+     * Marks any bill that has a server_id assigned (from a successful push
+     * round-trip or from a server pull) as synced. Catches bills where the push
+     * network response was lost but the server actually saved the record.
+     */
     @Query("UPDATE bills SET is_synced = 1 WHERE is_synced = 0 AND server_id IS NOT NULL")
     suspend fun reconcileServerAcknowledgedBills(): Int
+
+    /**
+     * After a pull, the server returns bills with their server-assigned IDs.
+     * For bills created on THIS device, the original local row (with device-local pk)
+     * may still be isSynced=0 because the pull upserted a NEW row keyed by the
+     * server ID. This query finds those orphaned local rows by matching on
+     * (device_id, lifetime_order_id) — which is unique per device — and marks them synced.
+     */
+    @Query("""
+        UPDATE bills SET is_synced = 1
+        WHERE is_synced = 0
+          AND device_id = :deviceId
+          AND restaurant_id = :restaurantId
+          AND lifetime_order_id IN (:lifetimeOrderIds)
+    """)
+    suspend fun markBillsSyncedByLifetimeIds(deviceId: String, restaurantId: Long, lifetimeOrderIds: List<Long>): Int
+
+    // ── Unsynced queries ───────────────────────────────────────────────────────
 
     @Query("SELECT * FROM bills WHERE is_synced = 0 AND restaurant_id = :restaurantId")
     suspend fun getUnsyncedBills(restaurantId: Long): List<BillEntity>
@@ -164,7 +187,6 @@ interface BillDao {
     @Query("SELECT COUNT(*) FROM bills WHERE is_synced = 0 AND restaurant_id = :restaurantId")
     fun getUnsyncedCount(restaurantId: Long): Flow<Int>
 
-    
     @Query("SELECT * FROM bill_items WHERE is_synced = 0 AND restaurant_id = :restaurantId")
     suspend fun getUnsyncedBillItems(restaurantId: Long): List<BillItemEntity>
 
@@ -177,7 +199,6 @@ interface BillDao {
     @Query("DELETE FROM bill_items WHERE is_synced = 1 AND restaurant_id = :restaurantId")
     suspend fun deleteAllSyncedBillItems(restaurantId: Long)
 
-    
     @Query("SELECT * FROM bill_payments WHERE is_synced = 0 AND restaurant_id = :restaurantId")
     suspend fun getUnsyncedBillPayments(restaurantId: Long): List<BillPaymentEntity>
 

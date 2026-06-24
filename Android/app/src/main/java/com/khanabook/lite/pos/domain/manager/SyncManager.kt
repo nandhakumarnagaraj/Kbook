@@ -9,8 +9,10 @@ import com.khanabook.lite.pos.data.remote.api.MasterSyncResponse
 import com.khanabook.lite.pos.domain.util.SyncConflictException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 
 @Singleton
@@ -63,57 +65,74 @@ class SyncManager @Inject constructor(
 
     suspend fun performFullSync(): Result<Unit> {
         return syncMutex.withLock {
-            val deviceId = sessionManager.getDeviceId()
+            // ── NonCancellable Guard ───────────────────────────────────────────────
+            // Wrap the entire push+pull cycle in NonCancellable so that lifecycle
+            // cancellations (screen rotation, app backgrounded, ViewModel cleared)
+            // cannot abort a transaction mid-flight. An interrupted push leaves the
+            // server SyncTransaction uncommitted → next attempt gets HTTP 409.
+            withContext(NonCancellable) {
+                val deviceId = sessionManager.getDeviceId()
 
-            // ── Timestamp Race Fix (#2) ────────────────────────────────────────────
-            // Capture the checkpoint BEFORE the sync cycle begins. This timestamp
-            // is NOT written to persistent storage until the ENTIRE push+pull cycle
-            // succeeds atomically in pullAndPersistMasterData(). If the push succeeds
-            // but the pull fails, the checkpoint stays at the old value and the next
-            // cycle re-pulls the missed window — no records are permanently lost.
-            val syncCheckpointTimestamp = sessionManager.getLastSyncTimestamp()
+                // ── Timestamp Race Fix (#2) ────────────────────────────────────────────
+                // Capture the checkpoint BEFORE the sync cycle begins. This timestamp
+                // is NOT written to persistent storage until the ENTIRE push+pull cycle
+                // succeeds atomically in pullAndPersistMasterData(). If the push succeeds
+                // but the pull fails, the checkpoint stays at the old value and the next
+                // cycle re-pulls the missed window — no records are permanently lost.
+                val syncCheckpointTimestamp = sessionManager.getLastSyncTimestamp()
 
-            try {
-                val pushSucceeded = masterSyncProcessor.pushAll()
-                if (!pushSucceeded) {
-                    val error = IllegalStateException("Push phase aborted before completion")
-                    logWarn(error.message ?: "Push phase aborted")
-                    return@withLock Result.failure(error)
-                }
+                try {
+                    val pushSucceeded = masterSyncProcessor.pushAll()
+                    if (!pushSucceeded) {
+                        val error = IllegalStateException("Push phase aborted before completion")
+                        logWarn(error.message ?: "Push phase aborted")
+                        return@withContext Result.failure(error)
+                    }
 
-                // Only if pull fully succeeds is the checkpoint committed.
-                pullAndPersistMasterData(syncCheckpointTimestamp, deviceId)
-                Result.success(Unit)
-            } catch (e: SyncConflictException) {
-                logWarn("Push conflict detected; pulling latest server data before resolving", e)
-                // Recovery pull uses the pre-sync checkpoint so we don't miss the conflicted window.
-                val recoverySucceeded = runCatching { pullAndPersistMasterData(syncCheckpointTimestamp, deviceId) }
-                    .onFailure { pullError -> logError("Conflict recovery pull failed", pullError) }
-                    .isSuccess
-                Result.failure(SyncConflictException(e, recoverySucceeded))
-            } catch (e: Exception) {
-                if (e is HttpException && e.code() == 409) {
-                    val errorBody = try { e.response()?.errorBody()?.string() } catch (ignored: Exception) { null }
-                    logError("HTTP 409 Conflict body: $errorBody", e)
-                    val recoverySucceeded = runCatching { pullAndPersistMasterData(syncCheckpointTimestamp, deviceId) }
+                    // Only if pull fully succeeds is the checkpoint committed.
+                    pullAndPersistMasterData(syncCheckpointTimestamp, deviceId)
+                    Result.success(Unit)
+                } catch (e: SyncConflictException) {
+                    logWarn("Push conflict detected; pulling latest server data before resolving", e)
+                    // ── Full Bootstrap Recovery Pull ───────────────────────────────────────
+                    // CRITICAL: use timestamp=0 (bootstrap) instead of syncCheckpointTimestamp.
+                    // The conflicting bills may have been synced BEFORE the checkpoint, so a
+                    // delta pull would return an empty bill list → markBillsSyncedByLifetimeIds
+                    // gets nothing to fix → the same bills get pushed again → infinite 409 loop.
+                    // A full pull fetches ALL bills from the server so the orphaned local rows
+                    // (isSynced=false but already on server) are correctly reconciled.
+                    val recoverySucceeded = runCatching { pullAndPersistMasterData(0L, deviceId) }
                         .onFailure { pullError -> logError("Conflict recovery pull failed", pullError) }
                         .isSuccess
-                    return@withLock Result.failure(SyncConflictException(e, recoverySucceeded))
+                    Result.failure(SyncConflictException(e, recoverySucceeded))
+                } catch (e: Exception) {
+                    if (e is HttpException && e.code() == 409) {
+                        val errorBody = try { e.response()?.errorBody()?.string() } catch (ignored: Exception) { null }
+                        logError("HTTP 409 Conflict body: $errorBody", e)
+                        val recoverySucceeded = runCatching { pullAndPersistMasterData(0L, deviceId) }
+                            .onFailure { pullError -> logError("Conflict recovery pull failed", pullError) }
+                            .isSuccess
+                        return@withContext Result.failure(SyncConflictException(e, recoverySucceeded))
+                    }
+                    logError("Full sync failed", e)
+                    Result.failure(e)
                 }
-                logError("Full sync failed", e)
-                Result.failure(e)
             }
         }
     }
 
     suspend fun pushBillOnly(billLocalId: Long): Result<Unit> {
         return syncMutex.withLock {
-            try {
-                masterSyncProcessor.pushSingleBill(billLocalId)
-                Result.success(Unit)
-            } catch (e: Exception) {
-                logError("pushBillOnly failed for billId=$billLocalId", e)
-                Result.failure(e)
+            // NonCancellable: a single-bill push must complete atomically or not at all.
+            // Partial pushes leave the server SyncTransaction open → 409 on next attempt.
+            withContext(NonCancellable) {
+                try {
+                    masterSyncProcessor.pushSingleBill(billLocalId)
+                    Result.success(Unit)
+                } catch (e: Exception) {
+                    logError("pushBillOnly failed for billId=$billLocalId", e)
+                    Result.failure(e)
+                }
             }
         }
     }
