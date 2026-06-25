@@ -114,11 +114,6 @@ abstract class AppDatabase : RoomDatabase() {
 
             val MIGRATION_39_40 = object : Migration(39, 40) {
                 override fun migrate(db: SupportSQLiteDatabase) {
-                    // Easebuzz config on restaurant_profile
-                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `easebuzz_enabled` INTEGER NOT NULL DEFAULT 0")
-                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `easebuzz_merchant_key` TEXT")
-                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `easebuzz_salt` TEXT")
-                    db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `easebuzz_env` TEXT NOT NULL DEFAULT 'test'")
                     // Gateway tracking on bill_payments
                     db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `gateway_txn_id` TEXT")
                     db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `gateway_status` TEXT")

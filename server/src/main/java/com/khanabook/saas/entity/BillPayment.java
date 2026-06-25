@@ -35,7 +35,7 @@ public class BillPayment extends BaseSyncEntity {
 	@Column(name = "amount", columnDefinition = "NUMERIC(12,2)", nullable = false)
 	private java.math.BigDecimal amount;
 
-	// Easebuzz / gateway fields. Null for manually-confirmed payments.
+	// Gateway fields. Null for manually-confirmed payments.
 	@Column(name = "gateway_txn_id")
 	private String gatewayTxnId;
 
