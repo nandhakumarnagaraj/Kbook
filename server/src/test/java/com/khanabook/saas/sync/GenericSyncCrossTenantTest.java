@@ -38,6 +38,7 @@ class GenericSyncCrossTenantTest extends BaseIntegrationTest {
               "dailyOrderId": 1,
               "dailyOrderDisplay": "1",
               "lifetimeOrderId": 1,
+              "orderType": "dine-in",
               "subtotal": 100.00,
               "totalAmount": 100.00,
               "paymentMode": "cash",
