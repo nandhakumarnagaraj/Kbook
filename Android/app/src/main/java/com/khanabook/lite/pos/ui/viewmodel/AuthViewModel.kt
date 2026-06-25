@@ -13,6 +13,7 @@ import com.khanabook.lite.pos.domain.manager.AuthManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
 import com.khanabook.lite.pos.domain.util.BackendException
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
+import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -204,11 +205,7 @@ constructor(
                 .setConstraints(constraints)
                 .setInitialDelay(10, TimeUnit.SECONDS)
                 .build()
-            androidx.work.WorkManager.getInstance(context).enqueueUniqueWork(
-                "MasterSyncWorker_OneTime",
-                androidx.work.ExistingWorkPolicy.KEEP,
-                syncWorkRequest
-            )
+            androidx.work.WorkManager.getInstance(context).enqueueMasterSyncOnce(syncWorkRequest)
         }
         MasterSyncWorker.schedule(context)
         return Result.success(Unit)

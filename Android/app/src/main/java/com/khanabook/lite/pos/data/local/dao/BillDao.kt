@@ -310,7 +310,7 @@ interface BillDao {
     @Query("DELETE FROM bill_payments WHERE is_synced = 1 AND restaurant_id = :restaurantId")
     suspend fun deleteAllSyncedBillPayments(restaurantId: Long)
 
-    @Query("SELECT * FROM bills WHERE customer_whatsapp IS NOT NULL AND customer_whatsapp != '' AND order_status != 'cancelled' AND restaurant_id = :restaurantId ORDER BY created_at DESC LIMIT 20")
+    @Query("SELECT * FROM bills WHERE customer_whatsapp IS NOT NULL AND customer_whatsapp != '' AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY created_at DESC LIMIT 20")
     suspend fun getRecentBillsWithCustomers(restaurantId: Long): List<BillEntity>
 
     @Query("SELECT * FROM bills WHERE lifetime_order_id = :lifetimeNo AND restaurant_id = :restaurantId AND is_deleted = 0 LIMIT 1")

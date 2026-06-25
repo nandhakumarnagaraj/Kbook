@@ -8,10 +8,10 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MenuDao {
-    @Query("SELECT id, server_id as serverId FROM menu_items WHERE server_id IS NOT NULL AND restaurant_id = :restaurantId")
+    @Query("SELECT id, server_id as serverId FROM menu_items WHERE server_id IS NOT NULL AND is_deleted = 0 AND restaurant_id = :restaurantId")
     suspend fun getAllMenuItemServerIds(restaurantId: Long): List<com.khanabook.lite.pos.domain.model.ServerIdMapping>
 
-    @Query("SELECT id, server_id as serverId FROM item_variants WHERE server_id IS NOT NULL AND restaurant_id = :restaurantId")
+    @Query("SELECT id, server_id as serverId FROM item_variants WHERE server_id IS NOT NULL AND is_deleted = 0 AND restaurant_id = :restaurantId")
     suspend fun getAllVariantServerIds(restaurantId: Long): List<com.khanabook.lite.pos.domain.model.ServerIdMapping>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -118,6 +118,15 @@ interface MenuDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedMenuItems(items: List<MenuItemEntity>)
 
+    @Query("""
+        UPDATE menu_items
+        SET is_deleted = 1
+        WHERE restaurant_id = :restaurantId
+          AND server_id IN (:serverIds)
+          AND id NOT IN (:preferredIds)
+    """)
+    suspend fun hideDuplicateMenuItemsByServerIds(serverIds: List<Long>, preferredIds: List<Long>, restaurantId: Long)
+
     @Query("SELECT * FROM item_variants WHERE is_synced = 0 AND restaurant_id = :restaurantId")
     suspend fun getUnsyncedItemVariants(restaurantId: Long): List<ItemVariantEntity>
 
@@ -129,4 +138,13 @@ interface MenuDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedItemVariants(items: List<ItemVariantEntity>)
+
+    @Query("""
+        UPDATE item_variants
+        SET is_deleted = 1
+        WHERE restaurant_id = :restaurantId
+          AND server_id IN (:serverIds)
+          AND id NOT IN (:preferredIds)
+    """)
+    suspend fun hideDuplicateVariantsByServerIds(serverIds: List<Long>, preferredIds: List<Long>, restaurantId: Long)
 }

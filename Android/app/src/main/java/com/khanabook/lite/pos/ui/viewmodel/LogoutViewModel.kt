@@ -12,6 +12,7 @@ import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
+import com.khanabook.lite.pos.domain.util.cancelMasterSyncWork
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.util.Log
@@ -122,8 +123,7 @@ class LogoutViewModel @Inject constructor(
             }
             userRepository.setCurrentUser(null)
             withContext(Dispatchers.IO) {
-                workManager.cancelUniqueWork("MasterSyncWorker_OneTime")
-                workManager.cancelUniqueWork("MasterSyncWorker")
+                workManager.cancelMasterSyncWork()
                 sessionManager.clearAuthOnly()
             }
             if (BuildConfig.DEBUG) Log.d(debugTag, "performSoftLogout: token cleared, local DB preserved for re-login sync")
@@ -151,8 +151,7 @@ class LogoutViewModel @Inject constructor(
             }
             userRepository.setCurrentUser(null)
             withContext(Dispatchers.IO) {
-                workManager.cancelUniqueWork("MasterSyncWorker_OneTime")
-                workManager.cancelUniqueWork("MasterSyncWorker")
+                workManager.cancelMasterSyncWork()
                 databaseProvider.closeDatabase()
                 context.databaseList().forEach { dbName ->
                     if (dbName.startsWith("khanabook_lite_db")) {

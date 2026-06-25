@@ -248,16 +248,17 @@ fun HomeScreen(
                     )
                 }
             } else {
-                // Vertical list for phones
-                Column(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(spacing.smallMedium)
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                    verticalArrangement = Arrangement.spacedBy(spacing.small),
+                    maxItemsInEachRow = 2
                 ) {
                     HomeActionCard(
                         text = "Find Bill",
                         icon = Icons.Default.Search,
                         backgroundColor = CardBG,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.weight(1f),
                         onClick = onSearchBill
                     )
 
@@ -265,7 +266,7 @@ fun HomeScreen(
                         text = "Reprint KDS",
                         icon = Icons.Default.Restaurant,
                         backgroundColor = CardBG,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.weight(1f),
                         onClick = onReprintKds
                     )
 
@@ -273,7 +274,7 @@ fun HomeScreen(
                         text = "Order Status",
                         icon = Icons.Default.Info,
                         backgroundColor = CardBG,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.weight(1f),
                         onClick = onOrderStatus
                     )
 
@@ -281,7 +282,7 @@ fun HomeScreen(
                         text = "Call Customers",
                         icon = Icons.Default.Call,
                         backgroundColor = CardBG,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.weight(1f),
                         onClick = onCallCustomer
                     )
                 }
@@ -465,7 +466,7 @@ fun HomeActionCard(
                     text = text,
                     color = TextLight,
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }

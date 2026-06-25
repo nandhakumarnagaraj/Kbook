@@ -81,10 +81,14 @@ class HomeViewModel @Inject constructor(
                     val completedBills = bills.filter { it.orderStatus == "completed" || it.orderStatus == "paid" }
                     val totalRevenue = completedBills.sumOf { it.totalAmount.toDoubleOrNull() ?: 0.0 }
                     val cancelledCount = bills.count { it.orderStatus == "cancelled" }
+                    val billedCustomers = bills
+                        .filterNot { it.isDeleted }
+                        .mapNotNull { it.customerWhatsapp?.takeIf(String::isNotBlank) }
+                        .distinct()
                     HomeStats(
                         orderCount = bills.size,
                         revenue = totalRevenue,
-                        customerCount = completedBills.mapNotNull { it.customerWhatsapp }.distinct().size,
+                        customerCount = billedCustomers.size,
                         avgOrderValue = if (completedBills.isNotEmpty()) totalRevenue / completedBills.size else 0.0,
                         cancelledCount = cancelledCount,
                         kdsPendingCount = kdsPendingCount

@@ -20,6 +20,8 @@ import java.util.Locale;
 @Service
 @RequiredArgsConstructor
 public class MenuItemServiceImpl implements MenuItemService {
+	private static final BigDecimal MAX_ITEM_PRICE = new BigDecimal("100000.00");
+
 	private final MenuItemRepository repository;
 	private final CategoryRepository categoryRepository;
 	private final GenericSyncService genericSyncService;
@@ -80,6 +82,9 @@ public class MenuItemServiceImpl implements MenuItemService {
 		}
 		if (item.getBasePrice().compareTo(BigDecimal.ZERO) < 0) {
 			throw new IllegalArgumentException("Price cannot be negative");
+		}
+		if (item.getBasePrice().compareTo(MAX_ITEM_PRICE) > 0) {
+			throw new IllegalArgumentException("Price must be between Rs. 0 and Rs. 1,00,000");
 		}
 	}
 

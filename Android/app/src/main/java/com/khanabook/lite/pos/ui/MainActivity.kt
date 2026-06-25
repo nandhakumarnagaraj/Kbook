@@ -43,6 +43,7 @@ import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.manager.PaymentReturnManager
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.TrustedExternalAppReturn
+import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.ui.screens.*
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
@@ -115,11 +116,7 @@ class MainActivity : FragmentActivity() {
                         val syncWorkRequest = androidx.work.OneTimeWorkRequestBuilder<MasterSyncWorker>()
                             .setConstraints(constraints)
                             .build()
-                        androidx.work.WorkManager.getInstance(this@MainActivity).enqueueUniqueWork(
-                            "MasterSyncWorker_OneTime",
-                            androidx.work.ExistingWorkPolicy.KEEP,
-                            syncWorkRequest
-                        )
+                        androidx.work.WorkManager.getInstance(this@MainActivity).enqueueMasterSyncOnce(syncWorkRequest)
                     }
                 }
             }
@@ -275,6 +272,12 @@ class MainActivity : FragmentActivity() {
                                     navController.popBackStack()
                                 } else {
                                     navController.navigate("main/0") { popUpTo("app_lock") { inclusive = true } }
+                                }
+                            },
+                            onRecoverAccount = {
+                                authViewModel.logout()
+                                navController.navigate("login") {
+                                    popUpTo(0) { inclusive = true }
                                 }
                             }
                         )

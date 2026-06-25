@@ -10,6 +10,7 @@ import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
@@ -17,6 +18,8 @@ import java.util.ArrayList;
 @Service
 @RequiredArgsConstructor
 public class ItemVariantServiceImpl implements ItemVariantService {
+	private static final BigDecimal MAX_ITEM_PRICE = new BigDecimal("100000.00");
+
 	private final ItemVariantRepository repository;
 	private final MenuItemRepository menuItemRepository;
 	private final GenericSyncService genericSyncService;
@@ -27,6 +30,7 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 		List<Long> failedLocalIds = new ArrayList<>();
 
 		for (ItemVariant variant : payload) {
+			validateVariant(variant);
 			if (variant.getServerMenuItemId() == null && variant.getMenuItemId() != null) {
 				Optional<MenuItem> item = menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId,
 						variant.getDeviceId(), variant.getMenuItemId());
@@ -59,5 +63,17 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 		}
 		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
 				deviceId);
+	}
+
+	private void validateVariant(ItemVariant variant) {
+		if (variant.getPrice() == null) {
+			throw new IllegalArgumentException("Enter a valid item price");
+		}
+		if (variant.getPrice().compareTo(BigDecimal.ZERO) < 0) {
+			throw new IllegalArgumentException("Price cannot be negative");
+		}
+		if (variant.getPrice().compareTo(MAX_ITEM_PRICE) > 0) {
+			throw new IllegalArgumentException("Price must be between Rs. 0 and Rs. 1,00,000");
+		}
 	}
 }

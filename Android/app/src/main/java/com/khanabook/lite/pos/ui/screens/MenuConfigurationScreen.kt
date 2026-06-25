@@ -53,6 +53,7 @@ import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.CategoryEntity
 import com.khanabook.lite.pos.data.local.entity.MenuItemEntity
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
+import com.khanabook.lite.pos.domain.util.MenuPricingRules
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
@@ -1992,13 +1993,18 @@ fun ItemEditDialog(
 
                 val hasInlineVariants = editableVariants.isNotEmpty()
                 val invalidDraftVariant = editableVariants.firstOrNull { it.name.isBlank() || it.price < 0.0 }
+                val outOfRangeDraftVariant = editableVariants.firstOrNull {
+                    !MenuPricingRules.isValidPrice(it.price)
+                }
 
                 when {
                     normalizedName.isBlank() -> nameError = "Item name is required"
                     !hasInlineVariants && price.isBlank() -> priceError = "Enter a valid item price"
                     !hasInlineVariants && parsedPrice == null -> priceError = "Enter a valid item price"
                     !hasInlineVariants && (parsedPrice ?: 0.0) < 0.0 -> priceError = "Price cannot be negative"
+                    !hasInlineVariants && !MenuPricingRules.isValidPrice(parsedPrice) -> priceError = MenuPricingRules.ERROR_MESSAGE
                     invalidDraftVariant != null -> variantError = "Enter a valid item price"
+                    outOfRangeDraftVariant != null -> variantError = MenuPricingRules.ERROR_MESSAGE
                     else -> onConfirm(
                         normalizedName,
                         parsedPrice ?: 0.0,
@@ -2039,6 +2045,7 @@ fun ItemEditDialog(
                     newVName.isBlank() -> newVariantError = "Item name is required"
                     newVPrice.isBlank() || parsedVariantPrice == null -> newVariantError = "Enter a valid item price"
                     (parsedVariantPrice ?: 0.0) < 0.0 -> newVariantError = "Price cannot be negative"
+                    !MenuPricingRules.isValidPrice(parsedVariantPrice) -> newVariantError = MenuPricingRules.ERROR_MESSAGE
                     else -> {
                         val variantPrice = parsedVariantPrice ?: 0.0
                         editableVariants = editableVariants + EditableVariantDraft(

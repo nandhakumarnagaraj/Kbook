@@ -10,6 +10,8 @@ import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
 import com.khanabook.lite.pos.data.local.entity.MenuItemEntity
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.domain.util.MenuPricingRules
+import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -25,6 +27,7 @@ class MenuRepository(
                 item.copy(
                         restaurantId = sessionManager.getRestaurantId(),
                         deviceId = sessionManager.getDeviceId(),
+                        basePrice = MenuPricingRules.normalizePrice(item.basePrice),
                         isSynced = false,
                         updatedAt = System.currentTimeMillis()
                 )
@@ -34,7 +37,11 @@ class MenuRepository(
     }
 
     suspend fun updateItem(item: MenuItemEntity) {
-        val enriched = item.copy(isSynced = false, updatedAt = System.currentTimeMillis())
+        val enriched = item.copy(
+            basePrice = MenuPricingRules.normalizePrice(item.basePrice),
+            isSynced = false,
+            updatedAt = System.currentTimeMillis()
+        )
         menuDao.updateItem(enriched)
         triggerBackgroundSync()
     }
@@ -135,6 +142,7 @@ class MenuRepository(
                 variant.copy(
                         restaurantId = sessionManager.getRestaurantId(),
                         deviceId = sessionManager.getDeviceId(),
+                        price = MenuPricingRules.normalizePrice(variant.price),
                         isSynced = false,
                         updatedAt = System.currentTimeMillis()
                 )
@@ -144,7 +152,11 @@ class MenuRepository(
     }
 
     suspend fun updateVariant(variant: ItemVariantEntity) {
-        val enriched = variant.copy(isSynced = false, updatedAt = System.currentTimeMillis())
+        val enriched = variant.copy(
+            price = MenuPricingRules.normalizePrice(variant.price),
+            isSynced = false,
+            updatedAt = System.currentTimeMillis()
+        )
         menuDao.updateVariant(enriched)
         triggerBackgroundSync()
     }
@@ -178,10 +190,6 @@ class MenuRepository(
                 Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
         val syncWorkRequest =
                 OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
-        workManager.enqueueUniqueWork(
-            "MasterSyncWorker_OneTime",
-            ExistingWorkPolicy.KEEP,
-            syncWorkRequest
-        )
+        workManager.enqueueMasterSyncOnce(syncWorkRequest)
     }
 }

@@ -89,6 +89,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
     val pinError by appLockViewModel.errorMessage.collectAsStateWithLifecycle()
     var showConfirmDialog by remember { mutableStateOf(false) }
     var showPinDialog by remember { mutableStateOf(false) }
+    var pinPurpose by remember { mutableStateOf<String?>(null) }
     val isPinEnabled = remember(logoutState) { appLockViewModel.isPinEnabled() }
 
     val toastScope = rememberCoroutineScope()
@@ -104,7 +105,11 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                 onSuccess = {
                     appLockViewModel.clearPin()
                     showPinDialog = false
-                    viewModel.forceLogoutDespiteWarning()
+                    when (pinPurpose) {
+                        "start_logout" -> viewModel.initiateLogout()
+                        "force_logout" -> viewModel.forceLogoutDespiteWarning()
+                    }
+                    pinPurpose = null
                 }
             )
         }
@@ -168,6 +173,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                 onClick = {
                     if (isPinEnabled) {
                         appLockViewModel.clearPin()
+                        pinPurpose = "force_logout"
                         showPinDialog = true
                     } else {
                         viewModel.forceLogoutDespiteWarning()
@@ -183,6 +189,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
         KhanaBookDialog(
             onDismissRequest = {
                 showPinDialog = false
+                pinPurpose = null
                 appLockViewModel.clearPin()
             },
             title = "Enter App PIN",
@@ -205,6 +212,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
             TextButton(
                 onClick = {
                     showPinDialog = false
+                    pinPurpose = null
                     appLockViewModel.clearPin()
                 }
             ) {
@@ -222,7 +230,18 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
             TextButton(onClick = { showConfirmDialog = false }) {
                 Text("Cancel", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
             }
-            TextButton(onClick = { showConfirmDialog = false; viewModel.initiateLogout() }) {
+            TextButton(
+                onClick = {
+                    showConfirmDialog = false
+                    if (isPinEnabled) {
+                        appLockViewModel.clearPin()
+                        pinPurpose = "start_logout"
+                        showPinDialog = true
+                    } else {
+                        viewModel.initiateLogout()
+                    }
+                }
+            ) {
                 Text("Sign Out", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
             }
         }

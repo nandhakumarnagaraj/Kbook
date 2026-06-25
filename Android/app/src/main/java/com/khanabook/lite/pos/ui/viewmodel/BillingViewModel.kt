@@ -21,6 +21,7 @@ import com.khanabook.lite.pos.domain.manager.OrderIdManager
 import com.khanabook.lite.pos.domain.manager.PrintDispatchMode
 import com.khanabook.lite.pos.domain.manager.PrintRouter
 import com.khanabook.lite.pos.domain.model.*
+import com.khanabook.lite.pos.domain.util.PaymentLimits
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import androidx.compose.runtime.Immutable
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +32,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.math.BigDecimal
 import java.util.*
 import javax.inject.Inject
 
@@ -365,6 +367,10 @@ class BillingViewModel @Inject constructor(
             }
 
             val finalSummary = _billSummary.value
+            if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.value, _partAmount2.value)) {
+                _isLoading.value = false
+                return null
+            }
             val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters(requireServer = true)
             val zoneId = java.time.ZoneId.of("Asia/Kolkata")
             val today = java.time.LocalDate.now(zoneId).toString()
@@ -475,6 +481,12 @@ class BillingViewModel @Inject constructor(
                 return false
             }
             val profile = _cachedProfile.value ?: restaurantRepository.getProfile()
+            if (status == PaymentStatus.SUCCESS &&
+                !validatePaymentLimits(bill.totalAmount, _paymentMode.value, _partAmount1.value, _partAmount2.value)
+            ) {
+                _isLoading.value = false
+                return false
+            }
             val updatedBill = bill.copy(
                 paymentStatus = status.dbValue,
                 orderStatus = if (status == PaymentStatus.SUCCESS) OrderStatus.COMPLETED.dbValue else OrderStatus.CANCELLED.dbValue,
@@ -589,6 +601,10 @@ class BillingViewModel @Inject constructor(
             // Re-use the already-computed summary (produced by the debounced cart+profile combine)
             // instead of recalculating subtotal/tax/total from scratch.
             val finalSummary = _billSummary.value
+            if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.value, _partAmount2.value)) {
+                _isLoading.value = false
+                return false
+            }
 
             val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
             val zoneId = java.time.ZoneId.of("Asia/Kolkata")
@@ -732,6 +748,29 @@ class BillingViewModel @Inject constructor(
 
     private fun shouldPersistLocally(payment: BillPaymentEntity): Boolean {
         return payment.gatewayTxnId.isNullOrBlank()
+    }
+
+    private fun validatePaymentLimits(
+        total: String,
+        mode: PaymentMode,
+        partAmount1: String,
+        partAmount2: String
+    ): Boolean {
+        val upiAmount = when (mode) {
+            PaymentMode.UPI -> parseAmount(total)
+            PaymentMode.PART_CASH_UPI -> parseAmount(partAmount2)
+            PaymentMode.PART_UPI_POS -> parseAmount(partAmount1)
+            else -> BigDecimal.ZERO
+        }
+        if (upiAmount > PaymentLimits.UPI_SINGLE_TRANSACTION_MAX) {
+            _error.value = PaymentLimits.UPI_LIMIT_MESSAGE
+            return false
+        }
+        return true
+    }
+
+    private fun parseAmount(value: String): BigDecimal {
+        return value.ifBlank { "0" }.toBigDecimalOrNull() ?: BigDecimal.ZERO
     }
 
     fun updateCartItemNote(item: MenuItemEntity, variant: ItemVariantEntity?, note: String) {

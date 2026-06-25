@@ -12,6 +12,7 @@ import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager
+import com.khanabook.lite.pos.domain.util.SyncWorkNames
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import kotlinx.coroutines.flow.Flow
 
@@ -46,7 +47,7 @@ class BillRepository(
         val syncWorkRequest =
                 OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
         workManager.enqueueUniqueWork(
-            "MasterSyncWorker_OneTime",
+            SyncWorkNames.ONE_TIME,
             ExistingWorkPolicy.KEEP,
             syncWorkRequest
         )

@@ -978,7 +978,7 @@ fun PaymentStep(
     // UPI transaction limit: most Indian banks cap single UPI transactions at ₹1,00,000.
     // Amounts exceeding this should use a split payment mode where UPI covers up to ₹1L
     // and the remainder is collected via another payment method (cash or POS).
-    val upiMaxAmount = 1_00_000.0
+    val upiMaxAmount = PaymentLimits.UPI_SINGLE_TRANSACTION_MAX.toDouble()
     val totalAmount = summary.total.toDoubleOrNull() ?: 0.0
     val isUpiMode =
             selectedMode == PaymentMode.UPI ||
@@ -1004,7 +1004,11 @@ fun PaymentStep(
 
     LaunchedEffect(selectedMode, summary.total) {
         if (isSplitMode) {
-            val split = BillCalculator.splitPartPayment(summary.total)
+            val split = when (selectedMode) {
+                PaymentMode.PART_CASH_UPI -> BillCalculator.splitCashUpiWithUpiCap(summary.total)
+                PaymentMode.PART_UPI_POS -> BillCalculator.splitUpiPosWithUpiCap(summary.total)
+                else -> BillCalculator.splitPartPayment(summary.total)
+            }
             p1Text = split.first
             p2Text = split.second
         }
@@ -1026,6 +1030,7 @@ fun PaymentStep(
         isUpiMode &&
             isAmountValid &&
             upiPayableAmount > 0.0 &&
+            upiPayableAmount <= upiMaxAmount &&
             !profile?.upiHandle.isNullOrBlank()
 
     val relocationRequester = remember { BringIntoViewRequester() }
@@ -1130,6 +1135,7 @@ fun PaymentStep(
                         when {
                             profile?.upiHandle.isNullOrBlank() -> "Set UPI ID in Payment Configuration"
                             !isAmountValid -> "Enter a valid UPI split amount"
+                            upiPayableAmount > upiMaxAmount -> PaymentLimits.UPI_LIMIT_MESSAGE
                             else -> "Add items before scanning UPI QR"
                         },
                         color = DangerRed,

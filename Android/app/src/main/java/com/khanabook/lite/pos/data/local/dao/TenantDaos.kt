@@ -269,6 +269,10 @@ class TenantMenuDao @Inject constructor(
         dao.insertSyncedMenuItems(items)
     }
 
+    override suspend fun hideDuplicateMenuItemsByServerIds(serverIds: List<Long>, preferredIds: List<Long>, restaurantId: Long) {
+        dao.hideDuplicateMenuItemsByServerIds(serverIds, preferredIds, restaurantId)
+    }
+
     override suspend fun getUnsyncedItemVariants(restaurantId: Long): List<ItemVariantEntity> = dao.getUnsyncedItemVariants(restaurantId)
 
     override suspend fun markItemVariantsAsSynced(ids: List<Long>, restaurantId: Long) {
@@ -281,6 +285,10 @@ class TenantMenuDao @Inject constructor(
 
     override suspend fun insertSyncedItemVariants(items: List<ItemVariantEntity>) {
         dao.insertSyncedItemVariants(items)
+    }
+
+    override suspend fun hideDuplicateVariantsByServerIds(serverIds: List<Long>, preferredIds: List<Long>, restaurantId: Long) {
+        dao.hideDuplicateVariantsByServerIds(serverIds, preferredIds, restaurantId)
     }
 }
 

@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.domain.manager
 
 
+import com.khanabook.lite.pos.domain.util.PaymentLimits
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -89,6 +90,26 @@ object BillCalculator {
         val first = bdTotal.divide(BigDecimal.valueOf(2), 2, RoundingMode.DOWN)
         val second = bdTotal.subtract(first).setScale(2, RoundingMode.HALF_UP)
         return first.toString() to second.toString()
+    }
+
+    fun splitCashUpiWithUpiCap(total: String): Pair<String, String> {
+        val bdTotal = parseAmount(total)
+        val upi = bdTotal.min(PaymentLimits.UPI_SINGLE_TRANSACTION_MAX)
+        val cash = bdTotal.subtract(upi).setScale(2, RoundingMode.HALF_UP)
+        return cash.toString() to upi.toString()
+    }
+
+    fun splitUpiPosWithUpiCap(total: String): Pair<String, String> {
+        val bdTotal = parseAmount(total)
+        val upi = bdTotal.min(PaymentLimits.UPI_SINGLE_TRANSACTION_MAX)
+        val pos = bdTotal.subtract(upi).setScale(2, RoundingMode.HALF_UP)
+        return upi.toString() to pos.toString()
+    }
+
+    private fun parseAmount(value: String): BigDecimal {
+        return value.ifBlank { "0" }.toBigDecimalOrNull()
+            ?.setScale(2, RoundingMode.HALF_UP)
+            ?: BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
     }
     
     fun toFixedString(value: Double): String {

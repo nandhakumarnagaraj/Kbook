@@ -9,6 +9,7 @@ import com.khanabook.lite.pos.data.local.dao.InventoryDao
 import com.khanabook.lite.pos.data.local.dao.MenuDao
 import com.khanabook.lite.pos.data.local.entity.StockLogEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import java.text.SimpleDateFormat
 import java.util.*
@@ -83,10 +84,6 @@ class InventoryRepository(
                 Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
         val syncWorkRequest =
                 OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
-        workManager.enqueueUniqueWork(
-            "MasterSyncWorker_OneTime",
-            ExistingWorkPolicy.KEEP,
-            syncWorkRequest
-        )
+        workManager.enqueueMasterSyncOnce(syncWorkRequest)
     }
 }

@@ -28,12 +28,14 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.khanabook.lite.pos.ui.designsystem.KhanaBookDialog
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel
 
 @Composable
 fun AppLockScreen(
     onUnlock: () -> Unit,
+    onRecoverAccount: () -> Unit = {},
     viewModel: AppLockViewModel = hiltViewModel()
 ) {
     val enteredPin by viewModel.enteredPin.collectAsState()
@@ -41,6 +43,8 @@ fun AppLockScreen(
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
     val showBiometric = remember { viewModel.hasBiometric(context) }
+    val allowedAuthenticators = remember { viewModel.allowedAuthenticators(context) }
+    var showRecoveryDialog by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
     // Shake animation on error
@@ -88,12 +92,8 @@ fun AppLockScreen(
         val builder = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Unlock KhanaBook Lite")
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            builder.setSubtitle("Use biometric or device lock")
-                .setAllowedAuthenticators(
-                    androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG or
-                    androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK or
-                    androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
-                )
+            builder.setSubtitle("Use fingerprint, face, or screen lock")
+                .setAllowedAuthenticators(allowedAuthenticators)
         } else {
             builder.setSubtitle("Use biometric to unlock")
                 .setNegativeButtonText("Use PIN")
@@ -208,7 +208,36 @@ fun AppLockScreen(
                 showBiometric = effectiveShowBiometric
             )
 
+            TextButton(onClick = { showRecoveryDialog = true }) {
+                Text(
+                    "Forgot PIN?",
+                    color = PrimaryGold,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+
             Spacer(modifier = Modifier.height(spacing.extraLarge))
+        }
+    }
+
+    if (showRecoveryDialog) {
+        KhanaBookDialog(
+            onDismissRequest = { showRecoveryDialog = false },
+            title = "Recover App Lock",
+            message = "You will be signed out and asked to sign in again. Local data stays on this device."
+        ) {
+            TextButton(onClick = { showRecoveryDialog = false }) {
+                Text("Cancel", color = PrimaryGold)
+            }
+            TextButton(
+                onClick = {
+                    showRecoveryDialog = false
+                    viewModel.clearPin()
+                    onRecoverAccount()
+                }
+            ) {
+                Text("Sign In Again", color = PrimaryGold)
+            }
         }
     }
 }
@@ -245,7 +274,7 @@ fun PinNumpad(
                         ) {
                             Icon(
                                 Icons.Default.Fingerprint,
-                                contentDescription = "Biometric",
+                                contentDescription = "Biometric or screen lock",
                                 tint = if (showBiometric) PrimaryGold else Color.Transparent,
                                 modifier = Modifier.size(28.dp)
                             )

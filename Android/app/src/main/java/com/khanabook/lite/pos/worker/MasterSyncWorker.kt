@@ -14,6 +14,7 @@ import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
 import com.khanabook.lite.pos.domain.util.SyncConflictException
+import com.khanabook.lite.pos.domain.util.SyncWorkNames
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
@@ -63,8 +64,6 @@ constructor(
   }
 
   companion object {
-    private const val SYNC_WORK_NAME = "MasterSyncWorker"
-
     fun schedule(context: Context) {
       val constraints = Constraints.Builder()
               .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -85,11 +84,11 @@ constructor(
                       .build()
 
       WorkManager.getInstance(context)
-              .enqueueUniquePeriodicWork(
-                      SYNC_WORK_NAME,
-                      ExistingPeriodicWorkPolicy.KEEP,
-                      syncRequest
-              )
+          .enqueueUniquePeriodicWork(
+              SyncWorkNames.PERIODIC,
+              ExistingPeriodicWorkPolicy.KEEP,
+              syncRequest
+          )
     }
   }
 

@@ -8,6 +8,7 @@ import androidx.work.WorkManager
 import com.khanabook.lite.pos.data.local.dao.RestaurantDao
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import kotlinx.coroutines.flow.Flow
 import okhttp3.MultipartBody
@@ -101,10 +102,6 @@ class RestaurantRepository(
                 Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
         val syncWorkRequest =
                 OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
-        workManager.enqueueUniqueWork(
-                "MasterSyncWorker_OneTime",
-                ExistingWorkPolicy.KEEP,
-                syncWorkRequest
-        )
+        workManager.enqueueMasterSyncOnce(syncWorkRequest)
     }
 }

@@ -17,6 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -40,10 +42,13 @@ class AuthViewModelTest {
     private val syncManager: SyncManager = mockk(relaxed = true)
     private val sessionManager: SessionManager = mockk(relaxed = true)
     private val authManager: AuthManager = mockk(relaxed = true)
-    private val testDispatcher = StandardTestDispatcher()
+    private lateinit var testScheduler: TestCoroutineScheduler
+    private lateinit var testDispatcher: TestDispatcher
 
     @Before
     fun setUp() {
+        testScheduler = TestCoroutineScheduler()
+        testDispatcher = StandardTestDispatcher(testScheduler)
         Dispatchers.setMain(testDispatcher)
         io.mockk.mockkStatic(android.util.Log::class)
         every { android.util.Log.d(any(), any()) } returns 0
@@ -52,6 +57,7 @@ class AuthViewModelTest {
         every { userRepository.currentUser } returns MutableStateFlow(null)
 
         every { context.getDatabasePath(any()) } returns java.io.File("non_existent_path")
+        every { databaseProvider.warmUpDatabase() } returns Unit
 
         io.mockk.mockkStatic(androidx.work.WorkManager::class)
         val mockWorkManager = mockk<androidx.work.WorkManager>(relaxed = true)
@@ -74,8 +80,20 @@ class AuthViewModelTest {
         unmockkAll()
     }
 
+    private fun awaitLoginTerminalState() {
+        val deadlineMs = System.currentTimeMillis() + 5_000
+        while (System.currentTimeMillis() < deadlineMs) {
+            testScheduler.advanceUntilIdle()
+            val status = viewModel.loginStatus.value
+            if (status != null && status !is AuthViewModel.LoginResult.Loading) {
+                return
+            }
+            Thread.sleep(10)
+        }
+    }
+
     @Test
-    fun `login returns Success when remote login succeeds`() = runTest {
+    fun `login returns Success when remote login succeeds`() = runTest(testDispatcher) {
         val email = "9150677849"
         val password = "owner123"
 
@@ -94,7 +112,7 @@ class AuthViewModelTest {
         coEvery { syncManager.performMasterPull() } returns Result.success(Unit)
 
         viewModel.login(email, password)
-        advanceUntilIdle()
+        awaitLoginTerminalState()
 
         val result = viewModel.loginStatus.value
         assertTrue("Expected login to succeed", result is AuthViewModel.LoginResult.Success)
@@ -104,7 +122,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `login returns Error when remote login fails with 401`() = runTest {
+    fun `login returns Error when remote login fails with 401`() = runTest(testDispatcher) {
         val email = "9150677849"
         val password = "wrongPassword"
 
@@ -123,7 +141,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `login returns Error when remote login fails with network error and user not found locally`() = runTest {
+    fun `login returns Error when remote login fails with network error and user not found locally`() = runTest(testDispatcher) {
         val email = "9150677849"
         val password = "owner123"
 

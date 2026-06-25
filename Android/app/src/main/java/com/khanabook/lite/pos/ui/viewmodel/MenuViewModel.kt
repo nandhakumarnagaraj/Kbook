@@ -44,7 +44,10 @@ class MenuViewModel @Inject constructor(
 
     val selectedCategoryId = MutableStateFlow<Long?>(null)
 
-    val menuItems: StateFlow<List<MenuWithVariants>> = selectedCategoryId
+    val menuItems: StateFlow<List<MenuWithVariants>> = combine(selectedCategoryId, categories) { selectedId, categoryList ->
+            selectedId ?: categoryList.firstOrNull()?.id
+        }
+        .distinctUntilChanged()
         .flatMapLatest { id ->
             if (id != null) menuRepository.getMenuWithVariantsByCategoryFlow(id)
             else flowOf(emptyList())

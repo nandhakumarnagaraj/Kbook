@@ -95,7 +95,6 @@ import java.util.Date
 import java.util.Locale
 import java.time.Year
 
-// TODO: Update these before release
 private const val SUPPORT_WHATSAPP = "919471676935"
 private const val SUPPORT_EMAIL = "kbook@pcts.tech"
 
@@ -290,7 +289,7 @@ fun AppLockView(
                     }
                     if (showBiometric) {
                         Text(
-                            "Biometric unlock is available on this device and will be used alongside your PIN.",
+                            "Fingerprint, face, or device screen lock is available on this device and will be used alongside your PIN.",
                             color = TextGold.copy(alpha = 0.6f),
                             style = MaterialTheme.typography.bodySmall
                         )

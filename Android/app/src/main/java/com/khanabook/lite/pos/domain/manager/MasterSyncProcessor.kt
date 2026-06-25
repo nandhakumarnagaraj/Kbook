@@ -511,6 +511,8 @@ class MasterSyncProcessor @Inject constructor(
         val knownCategoryIds = categoryIdMap.values.toMutableSet()
 
         if (masterData.menuItems.isNotEmpty()) {
+            val currentDeviceId = sessionManager.getDeviceId()
+            val preferredMenuItemIdsByServerId = mutableMapOf<Long, Long>()
             val resolvedMenuItems = masterData.menuItems.mapNotNull { remoteMenuItem ->
                     // categoryIdMap keys are server IDs (Long). Only look up via serverCategoryId.
                     // Falling back to categoryId (a foreign device's local ID) would look up the
@@ -522,8 +524,17 @@ class MasterSyncProcessor @Inject constructor(
                     if (localCategoryId !in knownCategoryIds) {
                         null
                     } else {
+                        val isMyDevice = remoteMenuItem.deviceId == currentDeviceId
+                        val assignedId = when {
+                            isMyDevice && (remoteMenuItem.localId ?: 0L) > 0L -> remoteMenuItem.localId ?: 0L
+                            (remoteMenuItem.serverId ?: 0L) > 0L -> remoteMenuItem.serverId ?: 0L
+                            else -> remoteMenuItem.localId ?: 0L
+                        }
+                        if (isMyDevice && (remoteMenuItem.serverId ?: 0L) > 0L && assignedId > 0L) {
+                            preferredMenuItemIdsByServerId[remoteMenuItem.serverId ?: 0L] = assignedId
+                        }
                         MenuItemEntity(
-                        id = remoteMenuItem.serverId ?: remoteMenuItem.localId ?: 0L,
+                        id = assignedId,
                         categoryId = localCategoryId ?: 0L,
                         name = remoteMenuItem.name.orFallback("Unnamed Item"),
                         basePrice = remoteMenuItem.basePrice.toSafeString(),
@@ -556,6 +567,13 @@ class MasterSyncProcessor @Inject constructor(
                 "menuItemId=${remoteMenuItem.localId ?: remoteMenuItem.serverId}, categoryId=${remoteMenuItem.categoryId}, serverCategoryId=${remoteMenuItem.serverCategoryId}"
             }
             menuDao.insertSyncedMenuItems(resolvedMenuItems)
+            if (preferredMenuItemIdsByServerId.isNotEmpty()) {
+                menuDao.hideDuplicateMenuItemsByServerIds(
+                    serverIds = preferredMenuItemIdsByServerId.keys.toList(),
+                    preferredIds = preferredMenuItemIdsByServerId.values.toList(),
+                    restaurantId = restaurantId
+                )
+            }
         }
 
         // Fetch menu item ID mapping
@@ -563,6 +581,8 @@ class MasterSyncProcessor @Inject constructor(
         val knownMenuItemIds = menuItemIdMap.values.toMutableSet()
 
         if (masterData.itemVariants.isNotEmpty()) {
+            val currentDeviceId = sessionManager.getDeviceId()
+            val preferredVariantIdsByServerId = mutableMapOf<Long, Long>()
             val resolvedVariants = masterData.itemVariants.mapNotNull { remoteVariant ->
                     val localMenuItemId = remoteVariant.serverMenuItemId?.let { serverId ->
                         menuItemIdMap[serverId] ?: serverId
@@ -571,8 +591,17 @@ class MasterSyncProcessor @Inject constructor(
                     if (localMenuItemId !in knownMenuItemIds) {
                         null
                     } else {
+                        val isMyDevice = remoteVariant.deviceId == currentDeviceId
+                        val assignedId = when {
+                            isMyDevice && (remoteVariant.localId ?: 0L) > 0L -> remoteVariant.localId ?: 0L
+                            (remoteVariant.serverId ?: 0L) > 0L -> remoteVariant.serverId ?: 0L
+                            else -> remoteVariant.localId ?: 0L
+                        }
+                        if (isMyDevice && (remoteVariant.serverId ?: 0L) > 0L && assignedId > 0L) {
+                            preferredVariantIdsByServerId[remoteVariant.serverId ?: 0L] = assignedId
+                        }
                         ItemVariantEntity(
-                        id = remoteVariant.serverId ?: remoteVariant.localId ?: 0L,
+                        id = assignedId,
                         menuItemId = localMenuItemId ?: 0L,
                         variantName = remoteVariant.variantName.orFallback("Default"),
                         price = remoteVariant.price.toSafeString(),
@@ -602,6 +631,13 @@ class MasterSyncProcessor @Inject constructor(
                 "variantId=${remoteVariant.localId ?: remoteVariant.serverId}, menuItemId=${remoteVariant.menuItemId}, serverMenuItemId=${remoteVariant.serverMenuItemId}"
             }
             menuDao.insertSyncedItemVariants(resolvedVariants)
+            if (preferredVariantIdsByServerId.isNotEmpty()) {
+                menuDao.hideDuplicateVariantsByServerIds(
+                    serverIds = preferredVariantIdsByServerId.keys.toList(),
+                    preferredIds = preferredVariantIdsByServerId.values.toList(),
+                    restaurantId = restaurantId
+                )
+            }
         }
 
         // Fetch variant ID mapping

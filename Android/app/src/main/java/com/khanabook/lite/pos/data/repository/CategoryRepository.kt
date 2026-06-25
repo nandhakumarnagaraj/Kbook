@@ -8,6 +8,7 @@ import androidx.work.WorkManager
 import com.khanabook.lite.pos.data.local.dao.CategoryDao
 import com.khanabook.lite.pos.data.local.entity.CategoryEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
+import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import kotlinx.coroutines.flow.Flow
 
@@ -57,11 +58,7 @@ class CategoryRepository(
                 Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
         val syncWorkRequest =
                 OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
-        workManager.enqueueUniqueWork(
-            "MasterSyncWorker_OneTime",
-            ExistingWorkPolicy.KEEP,
-            syncWorkRequest
-        )
+        workManager.enqueueMasterSyncOnce(syncWorkRequest)
     }
 
     fun getAllCategoriesFlow(): Flow<List<CategoryEntity>> {

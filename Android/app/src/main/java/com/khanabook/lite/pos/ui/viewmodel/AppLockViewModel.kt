@@ -191,15 +191,36 @@ class AppLockViewModel @Inject constructor(
     fun isPinEnabled(): Boolean =
         sessionManager.isPinLockEnabled()
 
+    fun allowedAuthenticators(context: Context): Int {
+        val manager = BiometricManager.from(context)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            val strongOrCredential =
+                BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            if (manager.canAuthenticate(strongOrCredential) == BiometricManager.BIOMETRIC_SUCCESS) {
+                return strongOrCredential
+            }
+
+            val weakOrCredential =
+                BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            if (manager.canAuthenticate(weakOrCredential) == BiometricManager.BIOMETRIC_SUCCESS) {
+                return weakOrCredential
+            }
+
+            val credentialOnly = BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            if (manager.canAuthenticate(credentialOnly) == BiometricManager.BIOMETRIC_SUCCESS) {
+                return credentialOnly
+            }
+        }
+
+        return BiometricManager.Authenticators.BIOMETRIC_STRONG or
+            BiometricManager.Authenticators.BIOMETRIC_WEAK
+    }
+
     fun hasBiometric(context: Context): Boolean {
         val manager = BiometricManager.from(context)
-        val authenticators = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            BiometricManager.Authenticators.BIOMETRIC_STRONG or
-            BiometricManager.Authenticators.BIOMETRIC_WEAK or
-            BiometricManager.Authenticators.DEVICE_CREDENTIAL
-        } else {
-            BiometricManager.Authenticators.BIOMETRIC_STRONG
-        }
+        val authenticators = allowedAuthenticators(context)
         return manager.canAuthenticate(authenticators) == BiometricManager.BIOMETRIC_SUCCESS
     }
 }
