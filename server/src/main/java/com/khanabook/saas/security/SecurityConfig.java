@@ -116,12 +116,10 @@ public class SecurityConfig {
 								"/auth/google", "/auth/check-user",
 								"/auth/reset-password", "/auth/reset-password/request",
 								"/public/**",
-								"/error")
+								"/error",
+								"/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
 						.permitAll()
 
-						// API docs require authenticated admin access
-						.requestMatchers("/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
-						.hasRole("KBOOK_ADMIN")
 						// Actuator: health/readiness open, everything else authenticated
 						.requestMatchers("/actuator/health", "/actuator/health/**")
 						.permitAll()

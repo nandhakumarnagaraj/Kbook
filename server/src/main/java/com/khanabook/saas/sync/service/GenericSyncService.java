@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GenericSyncService {
 	private static final Logger log = LoggerFactory.getLogger(GenericSyncService.class);
+	private static final String DEFAULT_TIMEZONE = "Asia/Kolkata";
 
 	private final BillRepository billRepository;
 	private final MenuItemRepository menuItemRepository;
@@ -226,14 +227,6 @@ public class GenericSyncService {
 						continue;
 					}
 
-					if (incomingRecord instanceof BillPayment incomingBillPayment
-							&& isGatewayOwnedBillPaymentSync(targetTenantId, incomingBillPayment)) {
-						log.info("Ignoring gateway-owned bill payment sync localId={} txnId={} tenantId={}",
-								incomingBillPayment.getLocalId(), incomingBillPayment.getGatewayTxnId(), targetTenantId);
-						successfulLocalIds.add(incomingBillPayment.getLocalId());
-						continue;
-					}
-
 					T existingRecord = null;
 					if (incomingRecord.getLocalId() != null) {
 						if (incomingRecord.getId() != null) {
@@ -344,14 +337,9 @@ public class GenericSyncService {
 							// Relational ID Resolution for Updates
 							resolveRelationalIds(incomingRecord, idMaps);
 
-							if (incomingRecord instanceof Bill incomingBill && existingRecord instanceof Bill existingBill
-									&& hasBackendGatewayPayment(targetTenantId, existingBill.getId())) {
-								preserveGatewayOwnedBillState(incomingBill, existingBill);
-							}
-
 							if (incomingRecord instanceof RestaurantProfile incomingProfile
 									&& existingRecord instanceof RestaurantProfile existingProfile) {
-								incomingProfile.setTimezone("Asia/Kolkata");
+								incomingProfile.setTimezone(DEFAULT_TIMEZONE);
 								mergeCounterState(incomingProfile, existingProfile);
 							}
 
@@ -382,7 +370,7 @@ public class GenericSyncService {
 						resolveRelationalIds(incomingRecord, idMaps);
 
 						if (incomingRecord instanceof RestaurantProfile incomingProfile) {
-							incomingProfile.setTimezone("Asia/Kolkata");
+							incomingProfile.setTimezone(DEFAULT_TIMEZONE);
 						}
 
 						T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
@@ -475,17 +463,6 @@ public class GenericSyncService {
 				&& Objects.equals(incoming.getDeviceId(), existing.getDeviceId())
 				&& Objects.equals(incoming.getRestaurantId(), existing.getRestaurantId())
 				&& existing.getId() != null;
-	}
-
-	private boolean hasBackendGatewayPayment(Long tenantId, Long billId) {
-		return false;
-	}
-
-	private boolean isGatewayOwnedBillPaymentSync(Long tenantId, BillPayment billPayment) {
-		return false;
-	}
-
-	private void preserveGatewayOwnedBillState(Bill incoming, Bill existing) {
 	}
 
 	private void mergeCounterState(RestaurantProfile incoming, RestaurantProfile existing) {
@@ -602,10 +579,10 @@ public class GenericSyncService {
 	}
 
 	private static class RelationalIdMaps {
-		Map<Long, Long> billLocalToServerId      = Collections.emptyMap();
-		Map<Long, Long> menuItemLocalToServerId  = Collections.emptyMap();
-		Map<Long, Long> variantLocalToServerId   = Collections.emptyMap();
-		Map<Long, Long> categoryLocalToServerId  = Collections.emptyMap();
+		Map<Long, Long> billLocalToServerId      = new HashMap<>();
+		Map<Long, Long> menuItemLocalToServerId  = new HashMap<>();
+		Map<Long, Long> variantLocalToServerId   = new HashMap<>();
+		Map<Long, Long> categoryLocalToServerId  = new HashMap<>();
 	}
 
 	private void resolveRelationalIds(BaseSyncEntity record, RelationalIdMaps maps) {

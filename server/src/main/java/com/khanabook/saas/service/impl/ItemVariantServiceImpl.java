@@ -7,6 +7,7 @@ import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.service.ItemVariantService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
+import com.khanabook.saas.utility.PricingConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,8 +19,6 @@ import java.util.ArrayList;
 @Service
 @RequiredArgsConstructor
 public class ItemVariantServiceImpl implements ItemVariantService {
-	private static final BigDecimal MAX_ITEM_PRICE = new BigDecimal("100000.00");
-
 	private final ItemVariantRepository repository;
 	private final MenuItemRepository menuItemRepository;
 	private final GenericSyncService genericSyncService;
@@ -72,7 +71,7 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 		if (variant.getPrice().compareTo(BigDecimal.ZERO) < 0) {
 			throw new IllegalArgumentException("Price cannot be negative");
 		}
-		if (variant.getPrice().compareTo(MAX_ITEM_PRICE) > 0) {
+		if (variant.getPrice().compareTo(PricingConstants.MAX_ITEM_PRICE) > 0) {
 			throw new IllegalArgumentException("Price must be between Rs. 0 and Rs. 1,00,000");
 		}
 	}
