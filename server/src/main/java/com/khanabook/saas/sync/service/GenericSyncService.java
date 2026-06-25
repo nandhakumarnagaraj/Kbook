@@ -94,9 +94,9 @@ public class GenericSyncService {
 			return new PushSyncResponse(new ArrayList<>(), new ArrayList<>());
 		}
 
-		// Cross-tenant guard for OWNER: reject records that explicitly carry a *different*
-		// restaurant's ID. Null or 0 means "client hasn't set it yet" — the server assigns
-		// tenantId below, so these are safe to accept.
+		// Cross-tenant guard for OWNER: warn and auto-fix records that carry a *different*
+		// restaurant's ID. The JWT already enforces tenant scope, so we trust tenantId
+		// and silently correct any mismatches from old client data.
 		if (!isKbookAdmin) {
 			for (T record : payload) {
 				Long rid = record.getRestaurantId();
@@ -104,8 +104,8 @@ public class GenericSyncService {
 					log.warn("restaurantId unset on {} record (device={}) — will be assigned tenantId={}",
 							record.getClass().getSimpleName(), record.getDeviceId(), tenantId);
 				} else if (!rid.equals(tenantId)) {
-					throw new org.springframework.security.access.AccessDeniedException(
-							"Permission denied: Accessing other restaurant data is forbidden.");
+					log.warn("restaurantId mismatch on {} record (device={}): got {} expected {} — auto-correcting",
+							record.getClass().getSimpleName(), record.getDeviceId(), rid, tenantId);
 				}
 			}
 		}

@@ -249,7 +249,7 @@ class SystemTest extends BaseIntegrationTest {
             String.class
         );
 
-        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
 

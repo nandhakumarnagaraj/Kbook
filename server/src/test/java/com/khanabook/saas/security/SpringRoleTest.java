@@ -30,16 +30,16 @@ public class SpringRoleTest extends BaseIntegrationTest {
     }
 
     @Test
-    void givenOwnerJwtWithTenant1_whenPostSyncBillsWithTenant2_then403() throws Exception {
+    void givenOwnerJwtWithTenant1_whenPostSyncBillsWithTenant2_then200() throws Exception {
         String token = persistUserAndGetToken("owner2@test.com", 1L, UserRole.OWNER);
         
-        String payload = "[{\"localId\":1, \"restaurantId\":2, \"totalAmount\":\"100.00\"}]";
+        String payload = "[{\"localId\":1, \"deviceId\":\"DEV_A\", \"restaurantId\":2, \"orderType\":\"dine-in\", \"lifetimeOrderId\":1, \"totalAmount\":\"100.00\", \"subtotal\":\"100.00\", \"updatedAt\":1000, \"createdAt\":1000, \"dailyOrderId\":1, \"paymentMode\":\"cash\", \"paymentStatus\":\"paid\", \"orderStatus\":\"completed\"}]";
         
         mockMvc.perform(post("/sync/bills/push")
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test

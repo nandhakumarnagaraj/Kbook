@@ -119,10 +119,13 @@ class BillServiceTest {
         profile.setTimezone("Asia/Kolkata");
         when(profileRepository.findByRestaurantId(AUTHENTICATED_RESTAURANT_ID)).thenReturn(Optional.of(profile));
 
-        assertThatThrownBy(() -> billService.pushData(AUTHENTICATED_RESTAURANT_ID, List.of(hackedMobileBill)))
-                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
-                .hasMessageContaining("Permission denied");
+        doAnswer(i -> i.getArgument(0)).when(billRepository).saveAll(anyList());
 
-        verify(billRepository, never()).saveAll(any());
+        PushSyncResponse response = billService.pushData(AUTHENTICATED_RESTAURANT_ID, List.of(hackedMobileBill));
+
+        verify(billRepository).saveAll(listCaptor.capture());
+        Bill savedBill = listCaptor.getValue().iterator().next();
+        assertThat(savedBill.getRestaurantId()).isEqualTo(AUTHENTICATED_RESTAURANT_ID);
+        assertThat(response.getSuccessfulLocalIds()).contains(202L);
     }
 }
