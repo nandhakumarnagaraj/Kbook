@@ -130,6 +130,7 @@ class MainActivity : FragmentActivity() {
                             )
                             .build()
                         androidx.work.WorkManager.getInstance(this@MainActivity).enqueueMasterSyncOnce(syncWorkRequest)
+                        syncManager.triggerImmediateSync()
                     }
                 }
             }

@@ -9,7 +9,11 @@ import com.khanabook.lite.pos.data.remote.api.MasterSyncResponse
 import com.khanabook.lite.pos.domain.util.SyncConflictException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -23,6 +27,14 @@ class SyncManager @Inject constructor(
 ) {
     private val syncMutex = Mutex()
     private val tag = "SyncManager"
+    private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    fun triggerImmediateSync() {
+        syncScope.launch {
+            performFullSync()
+        }
+    }
+
 
     private fun logWarn(message: String, throwable: Throwable? = null) {
         if (BuildConfig.DEBUG) {

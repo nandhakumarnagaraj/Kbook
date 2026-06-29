@@ -599,6 +599,7 @@ class BillingViewModel @Inject constructor(
                 _lastBill.value = updated
                 if (status == PaymentStatus.SUCCESS) {
                     _cartItems.value = emptyList()
+                    syncManager.triggerImmediateSync()
                 }
 
                 _isLoading.value = false
@@ -728,6 +729,7 @@ class BillingViewModel @Inject constructor(
                 val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
                 _lastBill.value = inserted
                 _printStatus.value = null
+                syncManager.triggerImmediateSync()
 
                 // Launch auto-print asynchronously — never blocks bill completion
                 // Launch auto-print via PrintService (Foreground Service) to handle background lifecycle safely
