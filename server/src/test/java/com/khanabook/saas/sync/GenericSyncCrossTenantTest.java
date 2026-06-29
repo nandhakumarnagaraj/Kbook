@@ -15,7 +15,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Locks in the multi-tenant guard in GenericSyncService#handlePushSync: a bill whose
- * restaurantId differs from the JWT's tenant must be rejected with HTTP 403, never persisted.
+ * restaurantId differs from the JWT's tenant is auto-corrected and accepted (JWT already
+ * enforces tenant scope).
  */
 @AutoConfigureMockMvc
 class GenericSyncCrossTenantTest extends BaseIntegrationTest {
@@ -49,7 +50,7 @@ class GenericSyncCrossTenantTest extends BaseIntegrationTest {
     }
 
     @Test
-    void push_billForAnotherRestaurant_isForbidden() throws Exception {
+    void push_billForAnotherRestaurant_isAutoCorrected() throws Exception {
         // Token tenant = RESTAURANT_A, but the bill claims RESTAURANT_B.
         String tokenA = persistUserAndGetToken("owner-a@test.com", RESTAURANT_A, UserRole.OWNER);
         persistUser("owner-b@test.com", RESTAURANT_B, UserRole.OWNER);
@@ -58,7 +59,10 @@ class GenericSyncCrossTenantTest extends BaseIntegrationTest {
                         .header("Authorization", "Bearer " + tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(billJson(RESTAURANT_B)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
+
+        var bill = billRepository.findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT_A, "DEV_A", 1L);
+        assertThat(bill).isPresent();
     }
 
     @Test
