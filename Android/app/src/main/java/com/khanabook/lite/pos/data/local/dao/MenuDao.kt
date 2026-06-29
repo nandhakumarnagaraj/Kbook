@@ -14,6 +14,12 @@ interface MenuDao {
     @Query("SELECT id, server_id as serverId FROM item_variants WHERE server_id IS NOT NULL AND is_deleted = 0 AND restaurant_id = :restaurantId")
     suspend fun getAllVariantServerIds(restaurantId: Long): List<com.khanabook.lite.pos.domain.model.ServerIdMapping>
 
+    @Query("SELECT id, server_id as serverId FROM menu_items WHERE id IN (:ids) AND server_id IS NOT NULL AND restaurant_id = :restaurantId")
+    suspend fun getMenuItemServerIdsByLocalIds(ids: List<Long>, restaurantId: Long): List<com.khanabook.lite.pos.domain.model.ServerIdMapping>
+
+    @Query("SELECT id, server_id as serverId FROM item_variants WHERE id IN (:ids) AND server_id IS NOT NULL AND restaurant_id = :restaurantId")
+    suspend fun getVariantServerIdsByLocalIds(ids: List<Long>, restaurantId: Long): List<com.khanabook.lite.pos.domain.model.ServerIdMapping>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertItem(item: MenuItemEntity): Long
 

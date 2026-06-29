@@ -183,14 +183,29 @@ constructor(
         sessionManager.clearLockout()
         val restaurantId = user.restaurantId
         val dbFile = context.getDatabasePath("khanabook_lite_db_$restaurantId")
+        val dbExists = dbFile.exists()
         withContext(Dispatchers.IO) {
             databaseProvider.warmUpDatabase()
         }
-        if (!dbFile.exists()) {
+        if (!dbExists) {
             // First time login for this restaurant on this device:
             // Must bootstrap the database from scratch.
             sessionManager.saveLastSyncTimestamp(0L)
             sessionManager.setInitialSyncCompleted(false)
+
+            // Seed a minimal profile row so offline billing works before the first
+            // master sync completes. Without it, incrementAndGetCounters() throws
+            // "Profile not found" and the first offline bill can't be saved.
+            // This local-only seed is marked synced so it does not create a duplicate
+            // server profile before the first master pull replaces it with server data.
+            withContext(Dispatchers.IO) {
+                if (restaurantRepository.getProfile() == null) {
+                    val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString()
+                    restaurantRepository.seedProfileIfMissing(
+                        RestaurantProfileEntity(lastResetDate = today)
+                    )
+                }
+            }
         } else {
             // Re-login: Database exists and has data.
             // Retain the existing sync timestamp to prevent 409 conflict

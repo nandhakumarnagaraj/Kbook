@@ -29,6 +29,7 @@ class SyncManagerTest {
         every { android.util.Log.i(any<String>(), any<String>()) } returns 0
         every { android.util.Log.w(any<String>(), any<String>()) } returns 0
         every { android.util.Log.w(any<String>(), any<String>(), any<Throwable>()) } returns 0
+        every { android.util.Log.e(any<String>(), any<String>()) } returns 0
         every { android.util.Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
         every { sessionManager.getDeviceId() } returns "device-1"
         every { sessionManager.getLastSyncTimestamp() } returns 10L
@@ -42,20 +43,20 @@ class SyncManagerTest {
 
     @Test
     fun `performFullSync returns success when conflict recovery pull succeeds`() = runTest {
-        coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException() andThen true
+        coEvery { masterSyncProcessor.pushAll(any()) } throws SyncConflictException() andThen true
         coEvery { api.pullMasterSync(0L, "device-1", ignoreDeviceId = true) } returns MasterSyncResponse(serverTimestamp = 42L)
 
         val result = syncManager.performFullSync()
 
         assertTrue(result.isSuccess)
-        coVerify(exactly = 2) { masterSyncProcessor.pushAll() }
+        coVerify(exactly = 2) { masterSyncProcessor.pushAll(any()) }
         coVerify(exactly = 1) { masterSyncProcessor.insertMasterData(match { it.serverTimestamp == 42L }) }
         coVerify(exactly = 1) { sessionManager.saveLastSyncTimestamp(42L) }
     }
 
     @Test
     fun `performFullSync returns unresolved conflict when recovery pull fails`() = runTest {
-        coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException()
+        coEvery { masterSyncProcessor.pushAll(any()) } throws SyncConflictException()
         coEvery { api.pullMasterSync(0L, "device-1", ignoreDeviceId = true) } throws IllegalStateException("pull failed")
 
         val result = syncManager.performFullSync()
@@ -63,7 +64,7 @@ class SyncManagerTest {
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is SyncConflictException)
         assertTrue(!(result.exceptionOrNull() as SyncConflictException).recoverySucceeded)
-        coVerify(exactly = 1) { masterSyncProcessor.pushAll() }
+        coVerify(exactly = 1) { masterSyncProcessor.pushAll(any()) }
         coVerify(exactly = 0) { sessionManager.saveLastSyncTimestamp(any()) }
     }
 }

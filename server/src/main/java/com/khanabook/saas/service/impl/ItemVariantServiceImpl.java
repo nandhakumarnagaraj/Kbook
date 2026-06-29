@@ -11,8 +11,10 @@ import com.khanabook.saas.utility.PricingConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.HashMap;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayList;
 
@@ -27,6 +29,7 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 	public PushSyncResponse pushData(Long tenantId, List<ItemVariant> payload) {
 		List<ItemVariant> toSync = new ArrayList<>();
 		List<Long> failedLocalIds = new ArrayList<>();
+		Map<Long, String> failedReasons = new HashMap<>();
 
 		for (ItemVariant variant : payload) {
 			validateVariant(variant);
@@ -41,16 +44,23 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 					if (serverItem.isPresent() && serverItem.get().getRestaurantId().equals(tenantId)) {
 						variant.setServerMenuItemId(serverItem.get().getId());
 					} else {
-						failedLocalIds.add(variant.getLocalId());
-						continue;
+						menuItemRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(variant.getMenuItemId()))
+								.stream().findFirst()
+								.ifPresent(m -> variant.setServerMenuItemId(m.getId()));
 					}
 				}
+			}
+			if (variant.getServerMenuItemId() == null && variant.getMenuItemId() != null) {
+				addFailure(failedLocalIds, failedReasons, variant.getLocalId(),
+						"Item variant menu item could not be resolved");
+				continue;
 			}
 			toSync.add(variant);
 		}
 
 		PushSyncResponse response = genericSyncService.handlePushSync(tenantId, toSync, repository);
 		response.getFailedLocalIds().addAll(failedLocalIds);
+		response.getFailedReasons().putAll(failedReasons);
 		return response;
 	}
 
@@ -74,5 +84,15 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 		if (variant.getPrice().compareTo(PricingConstants.MAX_ITEM_PRICE) > 0) {
 			throw new IllegalArgumentException("Price must be between Rs. 0 and Rs. 1,00,000");
 		}
+	}
+
+	private void addFailure(List<Long> failedLocalIds, Map<Long, String> failedReasons, Long localId, String reason) {
+		if (localId == null) {
+			return;
+		}
+		if (!failedLocalIds.contains(localId)) {
+			failedLocalIds.add(localId);
+		}
+		failedReasons.put(localId, reason);
 	}
 }

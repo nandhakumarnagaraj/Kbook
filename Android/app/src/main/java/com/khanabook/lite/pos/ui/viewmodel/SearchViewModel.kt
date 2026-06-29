@@ -24,25 +24,21 @@ class SearchViewModel @Inject constructor(
     private val _hasSearched = MutableStateFlow(false)
     val hasSearched: StateFlow<Boolean> = _hasSearched
 
-    fun searchByDailyId(displayId: String, date: String) {
-        viewModelScope.launch {
-            _hasSearched.value = true
-            _searchResult.value = searchManager.searchByDailyId(displayId, date)
-        }
+    suspend fun searchByDailyId(displayId: String, date: String): BillWithItems? {
+        return searchManager.searchByDailyId(displayId, date)
     }
 
-    fun searchByLifetimeId(id: Long) {
-        viewModelScope.launch {
-            _hasSearched.value = true
-            _searchResult.value = searchManager.searchByLifetimeId(id)
-        }
+    suspend fun searchByLifetimeId(id: Long): BillWithItems? {
+        return searchManager.searchByLifetimeId(id)
     }
 
-    fun searchByInvoiceNo(invoiceNo: Long) {
-        viewModelScope.launch {
-            _hasSearched.value = true
-            _searchResult.value = searchManager.searchByInvoiceNo(invoiceNo)
-        }
+    suspend fun searchByInvoiceNo(invoiceNo: Long): BillWithItems? {
+        return searchManager.searchByInvoiceNo(invoiceNo)
+    }
+
+    fun publishSearchResult(result: BillWithItems?) {
+        _hasSearched.value = true
+        _searchResult.value = result
     }
 
     suspend fun getBillsWithPendingKds(): List<BillWithItems> {

@@ -19,8 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -39,6 +43,7 @@ import java.util.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import com.khanabook.lite.pos.R
+import kotlinx.coroutines.launch
 
 @Composable
 fun SearchScreen(
@@ -61,8 +66,41 @@ fun SearchScreen(
     val hasSearched by viewModel.hasSearched.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val scope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+    val notFoundMessage = if (title.contains("Status", ignoreCase = true)) {
+        "No orders found"
+    } else {
+        "Bill not found"
+    }
+    fun submitDailySearch() {
+        if (dailyId.isBlank() || dailyDate.isBlank()) return
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        keyboardController?.hide()
+        scope.launch {
+            val found = viewModel.searchByDailyId(dailyId, dailyDate)
+            viewModel.publishSearchResult(found)
+            if (found == null) {
+                KhanaToast.show(notFoundMessage, ToastKind.Warning)
+            }
+        }
+    }
+    fun submitLifetimeSearch() {
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        keyboardController?.hide()
+        lifetimeQuery.toLongOrNull()?.let {
+            scope.launch {
+                val found = viewModel.searchByLifetimeId(it)
+                viewModel.publishSearchResult(found)
+                if (found == null) {
+                    KhanaToast.show(notFoundMessage, ToastKind.Warning)
+                }
+            }
+        }
+    }
 
     // Standard staggered entry animation
     var headerVisible by remember { mutableStateOf(false) }
@@ -180,7 +218,14 @@ fun SearchScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Search
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onSearch = { submitDailySearch() },
+                            onDone = { submitDailySearch() }
+                        ),
                         isError = showDailyIdError,
                         supportingText = {
                             if (showDailyIdError) {
@@ -192,11 +237,7 @@ fun SearchScreen(
                     Spacer(modifier = Modifier.height(spacing.medium))
 
                     Button(
-                        onClick = {
-                            if (dailyId.isNotBlank() && dailyDate.isNotBlank()) {
-                                viewModel.searchByDailyId(dailyId, dailyDate)
-                            }
-                        },
+                        onClick = { submitDailySearch() },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                         shape = RoundedCornerShape(12.dp),
@@ -228,7 +269,14 @@ fun SearchScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Search
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onSearch = { submitLifetimeSearch() },
+                            onDone = { submitLifetimeSearch() }
+                        ),
                         isError = showLifetimeQueryError,
                         supportingText = {
                             if (showLifetimeQueryError) {
@@ -238,11 +286,7 @@ fun SearchScreen(
                     )
                     Spacer(modifier = Modifier.height(spacing.medium))
                     Button(
-                        onClick = {
-                            lifetimeQuery.toLongOrNull()?.let {
-                                viewModel.searchByLifetimeId(it)
-                            }
-                        },
+                        onClick = { submitLifetimeSearch() },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                         shape = RoundedCornerShape(12.dp),
@@ -429,6 +473,7 @@ fun SearchScreen(
                                 ) {
                                     Button(
                                         onClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             result?.let {
                                                 if (it.bill.serverId == null) {
                                                     sendInvoiceViaSms(context, it, profile)
@@ -449,6 +494,7 @@ fun SearchScreen(
 
                                     Button(
                                         onClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             result?.let { billingViewModel.printReceipt(it) }
                                         },
                                         enabled = currentResult.items.isNotEmpty() && currentResult.bill.orderStatus != "cancelled",
@@ -471,7 +517,10 @@ fun SearchScreen(
                         modifier = Modifier.fillMaxSize().padding(bottom = spacing.bottomListPadding),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(horizontal = spacing.large)
+                        ) {
                             Icon(
                                 imageVector = if (hasSearched) Icons.Default.SearchOff else Icons.Default.Search,
                                 contentDescription = null,
@@ -481,8 +530,20 @@ fun SearchScreen(
                             Spacer(modifier = Modifier.height(spacing.medium))
                             Text(
                                 if (hasSearched) "No Order Found" else "Search for an order to view details",
+                                color = TextGold.copy(alpha = 0.68f),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(spacing.extraSmall))
+                            Text(
+                                if (hasSearched) {
+                                    "Check the number/date and try again. Offline bills saved on this device are searchable here."
+                                } else {
+                                    "Use Order No with date, or Invoice No for older bills."
+                                },
                                 color = TextGold.copy(alpha = 0.5f),
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
                     }

@@ -16,6 +16,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -39,11 +44,13 @@ import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.VegGreen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileEntity) -> Unit, onBack: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
     val fssaiRegex = remember { Regex("^\\d{14}$") }
-    var country by remember { mutableStateOf(profile?.country ?: "India") }
+    var country by remember { mutableStateOf("India") }
+    var countryExpanded by remember { mutableStateOf(false) }
     var gstEnabled by remember { mutableStateOf(profile?.gstEnabled ?: false) }
     var gstNumber by remember { mutableStateOf(profile?.gstin ?: "") }
     var gstPct by remember { mutableStateOf(profile?.gstPercentage?.toInt()?.toString() ?: "0") }
@@ -63,7 +70,31 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
             .padding(spacing.medium)
     ) {
         ConfigCard {
-            ParchmentTextField(value = country, onValueChange = {}, label = "Country", enabled = false)
+            ExposedDropdownMenuBox(
+                expanded = countryExpanded,
+                onExpandedChange = { countryExpanded = it }
+            ) {
+                ParchmentTextField(
+                    value = country,
+                    onValueChange = {},
+                    label = "Country",
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = countryExpanded) },
+                    modifier = Modifier.menuAnchor(type = MenuAnchorType.PrimaryNotEditable)
+                )
+                ExposedDropdownMenu(
+                    expanded = countryExpanded,
+                    onDismissRequest = { countryExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("India") },
+                        onClick = {
+                            country = "India"
+                            countryExpanded = false
+                        }
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(spacing.medium))
             ParchmentTextField(
                 value = fssaiNumber,

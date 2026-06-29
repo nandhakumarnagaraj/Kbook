@@ -277,7 +277,10 @@ fun OrdersScreen(
                         modifier = Modifier.fillMaxWidth().weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(horizontal = spacing.large)
+                        ) {
                             Icon(
                                 Icons.Default.Description,
                                 contentDescription = null,
@@ -287,8 +290,16 @@ fun OrdersScreen(
                             Spacer(Modifier.height(KhanaBookTheme.spacing.small))
                             Text(
                                 "No orders in this period",
-                                color = TextGold.copy(alpha = 0.45f),
-                                style = MaterialTheme.typography.bodyMedium
+                                color = TextGold.copy(alpha = 0.75f),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(Modifier.height(spacing.extraSmall))
+                            Text(
+                                "Try another date or source filter. New offline bills will appear here immediately.",
+                                color = TextGold.copy(alpha = 0.5f),
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
                     }

@@ -4,8 +4,11 @@ import com.khanabook.lite.pos.data.local.dao.KitchenPrintQueueDao
 import com.khanabook.lite.pos.data.local.entity.KitchenPrintDispatchStatus
 import com.khanabook.lite.pos.data.local.entity.KitchenPrintQueueEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class KitchenPrintQueueRepository(
     private val kitchenPrintQueueDao: KitchenPrintQueueDao,
     private val sessionManager: SessionManager
@@ -14,7 +17,10 @@ class KitchenPrintQueueRepository(
         const val UNASSIGNED_PRINTER_MAC = ""
     }
 
-    fun getPendingCountFlow(): Flow<Int> = kitchenPrintQueueDao.getPendingCountFlow(sessionManager.getRestaurantId())
+    fun getPendingCountFlow(): Flow<Int> =
+        sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            kitchenPrintQueueDao.getPendingCountFlow(restaurantId)
+        }
 
     suspend fun hasPendingForBill(billId: Long): Boolean =
         kitchenPrintQueueDao.getPendingCountForBill(billId) > 0

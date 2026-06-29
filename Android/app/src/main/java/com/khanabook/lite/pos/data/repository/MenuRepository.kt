@@ -13,9 +13,12 @@ import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.util.MenuPricingRules
 import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.worker.MasterSyncWorker
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MenuRepository(
         private val menuDao: MenuDao,
         private val sessionManager: SessionManager,
@@ -91,8 +94,9 @@ class MenuRepository(
     }
 
     fun getItemsByCategoryFlow(categoryId: Long): Flow<List<MenuItemEntity>> {
-        val restaurantId = sessionManager.getRestaurantId()
-        return menuDao.getItemsByCategoryFlow(categoryId, restaurantId)
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            menuDao.getItemsByCategoryFlow(categoryId, restaurantId)
+        }
     }
 
     /** One-shot, non-flow fetch – safe to call from any coroutine context. */
@@ -102,25 +106,31 @@ class MenuRepository(
     }
 
     fun getAllItemsFlow(): Flow<List<MenuItemEntity>> {
-        val restaurantId = sessionManager.getRestaurantId()
-        return menuDao.getAllItemsFlow(restaurantId)
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            menuDao.getAllItemsFlow(restaurantId)
+        }
     }
 
     fun getMenuWithVariantsByCategoryFlow(categoryId: Long): Flow<List<MenuWithVariants>> {
-        val restaurantId = sessionManager.getRestaurantId()
-        return menuDao.getMenuWithVariantsByCategoryFlow(categoryId, restaurantId)
-            .map { list -> list.map { it.copy(variants = it.variants.filterNot(ItemVariantEntity::isDeleted)) } }
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            menuDao.getMenuWithVariantsByCategoryFlow(categoryId, restaurantId)
+        }.map { list ->
+            list.map { it.copy(variants = it.variants.filterNot(ItemVariantEntity::isDeleted)) }
+        }
     }
 
     fun searchItems(query: String): Flow<List<MenuItemEntity>> {
-        val restaurantId = sessionManager.getRestaurantId()
-        return menuDao.searchItems("%$query%", restaurantId)
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            menuDao.searchItems("%$query%", restaurantId)
+        }
     }
 
     fun searchMenuWithVariants(query: String): Flow<List<MenuWithVariants>> {
-        val restaurantId = sessionManager.getRestaurantId()
-        return menuDao.searchMenuWithVariants("%$query%", restaurantId)
-            .map { list -> list.map { it.copy(variants = it.variants.filterNot(ItemVariantEntity::isDeleted)) } }
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            menuDao.searchMenuWithVariants("%$query%", restaurantId)
+        }.map { list ->
+            list.map { it.copy(variants = it.variants.filterNot(ItemVariantEntity::isDeleted)) }
+        }
     }
 
     suspend fun toggleItemAvailability(id: Long, isAvailable: Boolean) {
@@ -181,8 +191,9 @@ class MenuRepository(
     }
 
     fun getVariantsForItemFlow(itemId: Long): Flow<List<ItemVariantEntity>> {
-        val restaurantId = sessionManager.getRestaurantId()
-        return menuDao.getVariantsForItemFlow(itemId, restaurantId)
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            menuDao.getVariantsForItemFlow(itemId, restaurantId)
+        }
     }
 
     private fun triggerBackgroundSync() {

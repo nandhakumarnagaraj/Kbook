@@ -14,6 +14,7 @@ import com.khanabook.lite.pos.data.local.entity.MenuItemEntity
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.data.repository.CategoryRepository
 import com.khanabook.lite.pos.data.repository.MenuRepository
+import androidx.room.withTransaction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -27,7 +28,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MenuViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
-    private val menuRepository: MenuRepository
+    private val menuRepository: MenuRepository,
+    private val databaseProvider: com.khanabook.lite.pos.data.local.DatabaseProvider
 ) : ViewModel() {
     private val ocrDebugTag = "OCR_DEBUG"
 
@@ -606,64 +608,65 @@ class MenuViewModel @Inject constructor(
                     return@launch
                 }
 
-                // 1. Group items by their detected category names
-                val groupedByDetected = selectedDrafts.groupBy { it.categoryName }
-                
                 var totalAdded = 0
-                
-                // 2. Process each group
-                groupedByDetected.forEach { (detectedName, items) ->
-                    // Determine target category ID
-                    val targetCategoryId: Long = if (detectedName != null) {
-                        // Find or create category by name
-                        val existingCat = categoryRepository.getAllCategoriesFlow().first()
-                            .find { it.name.equals(detectedName, ignoreCase = true) }
-                        
-                        existingCat?.id ?: categoryRepository.insertCategory(
-                            CategoryEntity(name = detectedName, isVeg = items.all { it.foodType == "veg" })
-                        )
-                    } else if (defaultCategoryId != null) {
-                        defaultCategoryId
-                    } else {
-                        // No category detected and no default selected? Create a "General" category
-                        val existingGeneral = categoryRepository.getAllCategoriesFlow().first()
-                            .find { it.name.equals("General", ignoreCase = true) }
-                        existingGeneral?.id ?: categoryRepository.insertCategory(CategoryEntity(name = "General", isVeg = true))
-                    }
-
-                    if (overwrite) {
-                        val existingItems = menuRepository.getItemsByCategoryOnce(targetCategoryId)
-                        existingItems.forEach { menuRepository.deleteItem(it) }
-                    }
-
-                    val existingAfterClear = if (overwrite) emptyList() else menuRepository.getItemsByCategoryOnce(targetCategoryId)
-                    val existingNames = existingAfterClear.map { it.name.lowercase() }.toHashSet()
-
-                    for (draft in items) {
-                        if (draft.name.lowercase() !in existingNames) {
-                            val itemId = menuRepository.insertItem(
-                                MenuItemEntity(
-                                    categoryId = targetCategoryId,
-                                    name = draft.name,
-                                    basePrice = draft.price.toString(),
-                                    foodType = draft.foodType,
-                                    description = draft.description,
-                                    createdAt = System.currentTimeMillis()
-                                )
-                            )
+                databaseProvider.getDatabase().withTransaction {
+                    // 1. Group items by their detected category names
+                    val groupedByDetected = selectedDrafts.groupBy { it.categoryName }
+                    
+                    // 2. Process each group
+                    groupedByDetected.forEach { (detectedName, items) ->
+                        // Determine target category ID
+                        val targetCategoryId: Long = if (detectedName != null) {
+                            // Find or create category by name
+                            val existingCat = categoryRepository.getAllCategoriesFlow().first()
+                                .find { it.name.equals(detectedName, ignoreCase = true) }
                             
-                            if (draft.variants.isNotEmpty()) {
-                                draft.variants.filter { it.isSelected }.forEach { variant ->
-                                    menuRepository.insertVariant(
-                                        ItemVariantEntity(
-                                            menuItemId = itemId,
-                                            variantName = variant.name,
-                                            price = variant.price.toString()
-                                        )
+                            existingCat?.id ?: categoryRepository.insertCategory(
+                                CategoryEntity(name = detectedName, isVeg = items.all { it.foodType == "veg" })
+                            )
+                        } else if (defaultCategoryId != null) {
+                            defaultCategoryId
+                        } else {
+                            // No category detected and no default selected? Create a "General" category
+                            val existingGeneral = categoryRepository.getAllCategoriesFlow().first()
+                                .find { it.name.equals("General", ignoreCase = true) }
+                            existingGeneral?.id ?: categoryRepository.insertCategory(CategoryEntity(name = "General", isVeg = true))
+                        }
+
+                        if (overwrite) {
+                            val existingItems = menuRepository.getItemsByCategoryOnce(targetCategoryId)
+                            existingItems.forEach { menuRepository.deleteItem(it) }
+                        }
+
+                        val existingAfterClear = if (overwrite) emptyList() else menuRepository.getItemsByCategoryOnce(targetCategoryId)
+                        val existingNames = existingAfterClear.map { it.name.lowercase() }.toHashSet()
+
+                        for (draft in items) {
+                            if (draft.name.lowercase() !in existingNames) {
+                                val itemId = menuRepository.insertItem(
+                                    MenuItemEntity(
+                                        categoryId = targetCategoryId,
+                                        name = draft.name,
+                                        basePrice = draft.price.toString(),
+                                        foodType = draft.foodType,
+                                        description = draft.description,
+                                        createdAt = System.currentTimeMillis()
                                     )
+                                )
+                                
+                                if (draft.variants.isNotEmpty()) {
+                                    draft.variants.filter { it.isSelected }.forEach { variant ->
+                                        menuRepository.insertVariant(
+                                            ItemVariantEntity(
+                                                menuItemId = itemId,
+                                                variantName = variant.name,
+                                                price = variant.price.toString()
+                                            )
+                                        )
+                                    }
                                 }
+                                totalAdded++
                             }
-                            totalAdded++
                         }
                     }
                 }

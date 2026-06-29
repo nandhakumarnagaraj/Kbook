@@ -14,8 +14,11 @@ import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager
 import com.khanabook.lite.pos.domain.util.SyncWorkNames
 import com.khanabook.lite.pos.worker.MasterSyncWorker
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class BillRepository(
         private val billDao: BillDao,
         private val restaurantDao: com.khanabook.lite.pos.data.local.dao.RestaurantDao,
@@ -45,7 +48,14 @@ class BillRepository(
         val constraints =
                 Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
         val syncWorkRequest =
-                OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
+                OneTimeWorkRequestBuilder<MasterSyncWorker>()
+                    .setConstraints(constraints)
+                    .setBackoffCriteria(
+                        androidx.work.BackoffPolicy.EXPONENTIAL,
+                        30,
+                        java.util.concurrent.TimeUnit.SECONDS
+                    )
+                    .build()
         workManager.enqueueUniqueWork(
             SyncWorkNames.ONE_TIME,
             ExistingWorkPolicy.KEEP,
@@ -88,7 +98,9 @@ class BillRepository(
     }
 
     fun getDraftBills(): Flow<List<BillEntity>> {
-        return billDao.getDraftBills(sessionManager.getRestaurantId())
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            billDao.getDraftBills(restaurantId)
+        }
     }
 
     suspend fun getLatestPendingOnlineBill(): BillEntity? {
@@ -193,16 +205,21 @@ class BillRepository(
     }
 
     fun getBillsByDateRange(startMillis: Long, endMillis: Long): Flow<List<BillEntity>> {
-        return billDao.getBillsByDateRange(startMillis, endMillis, sessionManager.getRestaurantId())
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            billDao.getBillsByDateRange(startMillis, endMillis, restaurantId)
+        }
     }
 
     fun getProfileFlow(): Flow<com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?> {
-        val restaurantId = sessionManager.getRestaurantId()
-        return if (restaurantId > 0) restaurantDao.getProfileFlow(restaurantId) else restaurantDao.getProfileFlow()
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            if (restaurantId > 0) restaurantDao.getProfileFlow(restaurantId) else restaurantDao.getProfileFlow()
+        }
     }
 
     fun getUnsyncedCount(): Flow<Int> {
-        return billDao.getUnsyncedCount(sessionManager.getRestaurantId())
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            billDao.getUnsyncedCount(restaurantId)
+        }
     }
 
     suspend fun getTopSellingItemsInRange(startMillis: Long, endMillis: Long, limit: Int): List<com.khanabook.lite.pos.domain.model.TopSellingItem> {

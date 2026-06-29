@@ -134,13 +134,27 @@ class DatabaseProvider @Inject constructor(
                         newDb!!.userDao().insertSyncedUsers(users)
                     }
 
-                    // 2. Migrate RestaurantProfile
-                    val profiles = legacyDb!!.restaurantDao().getUnsyncedRestaurantProfiles().filter { it.restaurantId == restaurantId }
-                    if (profiles.isNotEmpty()) {
-                        newDb!!.restaurantDao().insertSyncedRestaurantProfiles(profiles)
+                    // 2. Migrate RestaurantProfile.
+                    // Old single-DB installs stored the profile with id=1 and restaurant_id=0
+                    // (the entity defaults), so neither a restaurant_id filter nor
+                    // getProfile(restaurantId) finds it. Look it up by restaurant_id first,
+                    // then fall back to the legacy id=1 row, and rewrite both keys to the
+                    // restaurant's server id so the per-restaurant DB queries can find it.
+                    val legacyProfile = legacyDb!!.restaurantDao().getProfile(restaurantId)
+                        ?: legacyDb!!.restaurantDao().getProfile()
+                    if (legacyProfile != null) {
+                        newDb!!.restaurantDao().saveProfile(
+                            legacyProfile.copy(id = restaurantId, restaurantId = restaurantId)
+                        )
                     }
-                    legacyDb!!.restaurantDao().getProfile(restaurantId)?.let {
-                        newDb!!.restaurantDao().saveProfile(it)
+                    // Preserve any unsynced profile rows (including legacy restaurant_id=0)
+                    // so pending counter/setting changes still get pushed after migration.
+                    val unsyncedProfiles = legacyDb!!.restaurantDao().getUnsyncedRestaurantProfiles()
+                        .filter { it.restaurantId == restaurantId || it.restaurantId == 0L }
+                    if (unsyncedProfiles.isNotEmpty()) {
+                        newDb!!.restaurantDao().insertSyncedRestaurantProfiles(
+                            unsyncedProfiles.map { it.copy(id = restaurantId, restaurantId = restaurantId) }
+                        )
                     }
 
                     // 3. Migrate Categories
@@ -159,10 +173,10 @@ class DatabaseProvider @Inject constructor(
                         newDb!!.menuDao().insertSyncedItemVariants(variants)
                     }
 
-                    // 5. Migrate StockLogs as local-only history
-                    val stockLogs = legacyDb!!.inventoryDao().getAllLogs(restaurantId).first()
-                    if (stockLogs.isNotEmpty()) {
-                        stockLogs.forEach { newDb!!.inventoryDao().insertStockLog(it.copy(isSynced = true)) }
+                    // 5. Migrate StockLogs
+                    val unsyncedStock = legacyDb!!.inventoryDao().getUnsyncedStockLogs(restaurantId)
+                    if (unsyncedStock.isNotEmpty()) {
+                        newDb!!.inventoryDao().insertSyncedStockLogs(unsyncedStock)
                     }
 
                     // 6. Migrate Bills, BillItems, BillPayments

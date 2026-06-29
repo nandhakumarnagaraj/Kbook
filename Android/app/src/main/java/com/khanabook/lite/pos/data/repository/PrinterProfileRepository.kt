@@ -3,14 +3,19 @@ package com.khanabook.lite.pos.data.repository
 import com.khanabook.lite.pos.data.local.dao.PrinterProfileDao
 import com.khanabook.lite.pos.data.local.entity.PrinterProfileEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PrinterProfileRepository(
     private val printerProfileDao: PrinterProfileDao,
     private val sessionManager: SessionManager
 ) {
     fun getProfilesFlow(): Flow<List<PrinterProfileEntity>> =
-        printerProfileDao.getAllFlow(sessionManager.getRestaurantId())
+        sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            printerProfileDao.getAllFlow(restaurantId)
+        }
 
     suspend fun getProfiles(): List<PrinterProfileEntity> =
         printerProfileDao.getAll(sessionManager.getRestaurantId())

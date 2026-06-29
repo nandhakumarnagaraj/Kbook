@@ -30,6 +30,9 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     private val _isSessionExpired = MutableStateFlow(false)
     val isSessionExpired: StateFlow<Boolean> = _isSessionExpired
 
+    private val _restaurantId = MutableStateFlow(getRestaurantId())
+    val restaurantId: StateFlow<Long> = _restaurantId
+
     init {
         migrateLegacySecurePrefsIfNeeded()
     }
@@ -84,6 +87,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
 
     fun saveRestaurantId(restaurantId: Long) {
         prefs.edit().putLong("restaurant_id", restaurantId).apply()
+        _restaurantId.value = restaurantId
     }
 
     private fun scopedKey(baseKey: String): String {
@@ -106,6 +110,13 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         val restaurantId = getRestaurantId()
         if (restaurantId <= 0L) return prefs.getBoolean("initial_sync_completed", false)
         return prefs.getBoolean("initial_sync_completed_$restaurantId", false)
+    }
+
+    fun isBillItemBackfillCompleted(): Boolean =
+        prefs.getBoolean(scopedKey("bill_item_backfill_completed_v3"), false)
+
+    fun setBillItemBackfillCompleted(isCompleted: Boolean) {
+        prefs.edit().putBoolean(scopedKey("bill_item_backfill_completed_v3"), isCompleted).apply()
     }
 
     fun getActiveUserId(): Long? {
@@ -270,6 +281,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         }
         securePrefs.remove("auth_token")
         prefs.edit().clear().apply()
+        _restaurantId.value = 0L
         _isSessionExpired.value = true
     }
 

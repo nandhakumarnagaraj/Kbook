@@ -10,9 +10,12 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.worker.MasterSyncWorker
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import okhttp3.MultipartBody
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class RestaurantRepository(
         private val restaurantDao: RestaurantDao,
         private val sessionManager: SessionManager,
@@ -21,16 +24,34 @@ class RestaurantRepository(
 ) {
     suspend fun saveProfile(profile: RestaurantProfileEntity) {
         val restaurantId = sessionManager.getRestaurantId()
+        val current = restaurantDao.getProfile(restaurantId) ?: restaurantDao.getProfile()
         val enriched =
                 profile.copy(
                         id = restaurantId,
                         restaurantId = restaurantId,
                         deviceId = sessionManager.getDeviceId(),
+                        dailyOrderCounter = maxOf(profile.dailyOrderCounter, current?.dailyOrderCounter ?: 0L),
+                        lifetimeOrderCounter = maxOf(profile.lifetimeOrderCounter, current?.lifetimeOrderCounter ?: 0L),
                         isSynced = false,
                         updatedAt = System.currentTimeMillis()
                 )
         restaurantDao.saveProfile(enriched)
         triggerBackgroundSync()
+    }
+
+    suspend fun seedProfileIfMissing(profile: RestaurantProfileEntity) {
+        val restaurantId = sessionManager.getRestaurantId()
+        if (restaurantDao.getProfile(restaurantId) != null || restaurantDao.getProfile() != null) return
+
+        restaurantDao.saveProfile(
+            profile.copy(
+                id = restaurantId,
+                restaurantId = restaurantId,
+                deviceId = sessionManager.getDeviceId(),
+                isSynced = true,
+                updatedAt = 0L
+            )
+        )
     }
 
     suspend fun getProfile(): RestaurantProfileEntity? {
@@ -39,8 +60,9 @@ class RestaurantRepository(
     }
 
     fun getProfileFlow(): Flow<RestaurantProfileEntity?> {
-        val restaurantId = sessionManager.getRestaurantId()
-        return if (restaurantId > 0) restaurantDao.getProfileFlow(restaurantId) else restaurantDao.getProfileFlow()
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            if (restaurantId > 0) restaurantDao.getProfileFlow(restaurantId) else restaurantDao.getProfileFlow()
+        }
     }
 
     suspend fun resetDailyCounter(counter: Long, date: String) {
@@ -57,20 +79,20 @@ class RestaurantRepository(
 
     suspend fun incrementAndGetCounters(requireServer: Boolean = false): Pair<Long, Long> {
         val restaurantId = sessionManager.getRestaurantId()
+        if (!requireServer) {
+            val counters = restaurantDao.incrementAndGetCounters(restaurantId)
+            triggerBackgroundSync()
+            return counters
+        }
         return try {
             val response = api.incrementCounters()
             restaurantDao.updateCounters(restaurantId, response.dailyCounter, response.lifetimeCounter)
             Pair(response.dailyCounter, response.lifetimeCounter)
         } catch (e: Exception) {
-            if (requireServer) {
-                throw IllegalStateException(
-                    "Unable to reserve an online order number from the server. Check your connection and try again.",
-                    e
-                )
-            }
-            val counters = restaurantDao.incrementAndGetCounters(restaurantId)
-            triggerBackgroundSync()
-            counters
+            throw IllegalStateException(
+                "Unable to reserve an online order number from the server. Check your connection and try again.",
+                e
+            )
         }
     }
 
@@ -101,7 +123,14 @@ class RestaurantRepository(
         val constraints =
                 Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
         val syncWorkRequest =
-                OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
+                OneTimeWorkRequestBuilder<MasterSyncWorker>()
+                    .setConstraints(constraints)
+                    .setBackoffCriteria(
+                        androidx.work.BackoffPolicy.EXPONENTIAL,
+                        30,
+                        java.util.concurrent.TimeUnit.SECONDS
+                    )
+                    .build()
         workManager.enqueueMasterSyncOnce(syncWorkRequest)
     }
 }

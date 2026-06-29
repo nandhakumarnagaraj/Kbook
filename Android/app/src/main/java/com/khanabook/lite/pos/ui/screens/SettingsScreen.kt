@@ -74,7 +74,7 @@ fun SettingsScreen(
     val toastScope = rememberCoroutineScope()
     val ctx = LocalContext.current
 
-    val settingsSubSections = setOf("app_lock", "change_password", "help_support", "about_app")
+    val settingsSubSections = setOf("app_lock", "change_password", "help_support", "about_app", "sync_center")
 
     BackHandler {
         when {
@@ -119,6 +119,7 @@ fun SettingsScreen(
                 "app_lock" -> "App Lock"
                 "change_password" -> "Change Password"
                 "help_support" -> "Help & Support"
+                "sync_center" -> "Sync Center"
                 "about_app" -> "About App"
                 "menu" -> "Profile"
                 else -> "Profile"
@@ -153,7 +154,8 @@ fun SettingsScreen(
                         ShopConfigView(profile, viewModel, authViewModel) { section = "menu" }
                     }
                     "payment" -> {
-                        PaymentConfigView(profile, onSave = {
+                        val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
+                        PaymentConfigView(profile, saveProfileLoading = saveProfileLoading, onSave = {
                             viewModel.saveProfile(it)
                             toastScope.launch { KhanaToast.show(ctx.getString(R.string.toast_payment_settings_saved), ToastKind.Success) }
                             section = "menu"
@@ -187,6 +189,9 @@ fun SettingsScreen(
                     }
                     "help_support" -> {
                         HelpSupportView(viewModel)
+                    }
+                    "sync_center" -> {
+                        SyncCenterView(viewModel)
                     }
                     "about_app" -> {
                         AboutAppView()

@@ -12,8 +12,10 @@ import com.khanabook.saas.utility.PricingConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.HashMap;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -29,6 +31,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 	public PushSyncResponse pushData(Long tenantId, List<MenuItem> payload) {
 		List<MenuItem> toSync = new ArrayList<>();
 		List<Long> failedLocalIds = new ArrayList<>();
+		Map<Long, String> failedReasons = new HashMap<>();
 
 		for (MenuItem item : payload) {
 			validateMenuItem(item);
@@ -44,11 +47,16 @@ public class MenuItemServiceImpl implements MenuItemService {
 					if (serverCategory.isPresent() && serverCategory.get().getRestaurantId().equals(tenantId)) {
 						item.setServerCategoryId(serverCategory.get().getId());
 					} else {
-
-						failedLocalIds.add(item.getLocalId());
-						continue;
+						categoryRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(item.getCategoryId()))
+								.stream().findFirst()
+								.ifPresent(c -> item.setServerCategoryId(c.getId()));
 					}
 				}
+			}
+			if (item.getServerCategoryId() == null && item.getCategoryId() != null) {
+				addFailure(failedLocalIds, failedReasons, item.getLocalId(),
+						"Menu item category could not be resolved");
+				continue;
 			}
 			resolveDuplicateMenuItem(tenantId, item);
 			toSync.add(item);
@@ -56,6 +64,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 
 		PushSyncResponse response = genericSyncService.handlePushSync(tenantId, toSync, repository);
 		response.getFailedLocalIds().addAll(failedLocalIds);
+		response.getFailedReasons().putAll(failedReasons);
 		return response;
 	}
 
@@ -139,5 +148,15 @@ public class MenuItemServiceImpl implements MenuItemService {
 
 	private String normalizeMenuItemName(String value) {
 		return collapseWhitespace(value).toLowerCase(Locale.ROOT);
+	}
+
+	private void addFailure(List<Long> failedLocalIds, Map<Long, String> failedReasons, Long localId, String reason) {
+		if (localId == null) {
+			return;
+		}
+		if (!failedLocalIds.contains(localId)) {
+			failedLocalIds.add(localId);
+		}
+		failedReasons.put(localId, reason);
 	}
 }

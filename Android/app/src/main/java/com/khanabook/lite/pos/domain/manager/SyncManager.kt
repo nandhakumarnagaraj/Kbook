@@ -204,6 +204,7 @@ class SyncManager @Inject constructor(
                 categories = acc.categories + page.categories,
                 menuItems = acc.menuItems + page.menuItems,
                 itemVariants = acc.itemVariants + page.itemVariants,
+                stockLogs = acc.stockLogs + page.stockLogs,
                 bills = acc.bills + page.bills,
                 billItems = acc.billItems + page.billItems,
                 billPayments = acc.billPayments + page.billPayments
@@ -220,4 +221,17 @@ class SyncManager @Inject constructor(
             syncEntityLabel = syncEntityLabel
         )
     }
+}
+
+enum class SyncStep(val displayName: String) {
+    PushProfiles("Uploading Profiles..."),
+    PushUsers("Uploading Staff Users..."),
+    PushCategories("Uploading Categories..."),
+    PushMenuItems("Uploading Menu Items..."),
+    PushItemVariants("Uploading Item Variants..."),
+    PushStockLogs("Uploading Stock Logs..."),
+    PushBills("Uploading Bills..."),
+    PushBillItems("Uploading Bill Items..."),
+    PushBillPayments("Uploading Payments..."),
+    PullMasterData("Downloading Restaurant Data...")
 }

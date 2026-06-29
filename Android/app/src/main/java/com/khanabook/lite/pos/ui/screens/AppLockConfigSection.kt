@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.SyncProblem
 import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
@@ -146,6 +147,30 @@ fun SettingsListView(
                 text = "Display",
                 onClick = { onSelectItem("ui_scale") }
             )
+        }
+
+        SettingsGroupLabel("Data")
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column {
+                SettingsItem(
+                    icon = Icons.Filled.SyncProblem,
+                    text = "Sync Repair",
+                    onClick = { onSelectItem("help_support") }
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = spacing.medium),
+                    color = BorderGold.copy(alpha = 0.1f)
+                )
+                SettingsItem(
+                    icon = Icons.Filled.SyncProblem,
+                    text = "Sync Center",
+                    onClick = { onSelectItem("sync_center") }
+                )
+            }
         }
 
         SettingsGroupLabel("About")
@@ -703,7 +728,8 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
             failedBills = failedBills,
             retryingIds = retryingIds,
             onRefresh = viewModel::refreshFailedBillSyncs,
-            onRetry = viewModel::retryFailedBillSync
+            onRetry = viewModel::retryFailedBillSync,
+            onRetryAll = viewModel::retryAllFailedBillSyncs
         )
 
         Button(
@@ -781,11 +807,137 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
 }
 
 @Composable
+fun SyncCenterView(viewModel: SettingsViewModel) {
+    val context = LocalContext.current
+    val spacing = KhanaBookTheme.spacing
+    val failedBills by viewModel.failedBillSyncs.collectAsStateWithLifecycle()
+    val retryingIds by viewModel.retryingFailedBillIds.collectAsStateWithLifecycle()
+    val pendingCount = failedBills.size
+    val retryingCount = retryingIds.size
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshFailedBillSyncs()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = spacing.large, vertical = spacing.large),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+    ) {
+        Text(
+            "Sync Center",
+            color = PrimaryGold,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            "Track bills that are waiting to sync and retry them from one place.",
+            color = TextLight.copy(alpha = 0.8f),
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            SyncCenterStatCard(
+                label = "Blocked bills",
+                value = pendingCount.toString(),
+                tint = if (pendingCount > 0) DangerRed else SuccessGreen,
+                modifier = Modifier.weight(1f)
+            )
+            SyncCenterStatCard(
+                label = "Retrying now",
+                value = retryingCount.toString(),
+                tint = if (retryingCount > 0) PrimaryGold else TextGold,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        SyncIssuesCard(
+            failedBills = failedBills,
+            retryingIds = retryingIds,
+            onRefresh = viewModel::refreshFailedBillSyncs,
+            onRetry = viewModel::retryFailedBillSync,
+            onRetryAll = viewModel::retryAllFailedBillSyncs
+        )
+
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(spacing.medium),
+                verticalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                Text(
+                    "What this screen does",
+                    color = TextLight,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Bills stay on this device when sync is delayed. Use Retry after the connection is back, or refresh to re-check the blocked list.",
+                    color = TextGold.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                OutlinedButton(
+                    onClick = { viewModel.refreshFailedBillSyncs() },
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Default.Refresh, null, tint = PrimaryGold)
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Text("Refresh blocked bills", color = TextGold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SyncCenterStatCard(
+    label: String,
+    value: String,
+    tint: Color,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    KhanaBookCard(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+        ) {
+            Text(
+                text = value,
+                color = tint,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = label,
+                color = TextGold.copy(alpha = 0.72f),
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
+}
+
+@Composable
 private fun SyncIssuesCard(
     failedBills: List<BillEntity>,
     retryingIds: Set<Long>,
     onRefresh: () -> Unit,
-    onRetry: (Long) -> Unit
+    onRetry: (Long) -> Unit,
+    onRetryAll: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
     KhanaBookCard(
@@ -821,6 +973,17 @@ private fun SyncIssuesCard(
                 }
                 IconButton(onClick = onRefresh) {
                     Icon(Icons.Default.Refresh, contentDescription = "Refresh sync issues", tint = PrimaryGold)
+                }
+            }
+
+            if (failedBills.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    OutlinedButton(onClick = onRetryAll, enabled = retryingIds.size < failedBills.size) {
+                        Text("Retry all", color = PrimaryGold)
+                    }
                 }
             }
 

@@ -224,3 +224,21 @@ fun UserEntity.toSyncDto() = UserSyncDto(
     isDeleted       = isDeleted,
     serverUpdatedAt = serverUpdatedAt,
 )
+
+fun StockLogEntity.toSyncDto() = StockLogSyncDto(
+    localDbId        = id,
+    restaurantId     = restaurantId,
+    deviceId         = deviceId,
+    localId          = id,
+    serverId         = serverId,
+    menuItemId       = menuItemId,
+    serverMenuItemId = serverMenuItemId,
+    variantId        = variantId ?: 0L,
+    serverVariantId  = serverVariantId,
+    delta            = delta.toDoubleOrNull() ?: 0.0,
+    reason           = reason,
+    createdAt        = createdAt,
+    updatedAt        = updatedAt,
+    isDeleted        = isDeleted,
+    serverUpdatedAt  = serverUpdatedAt,
+)

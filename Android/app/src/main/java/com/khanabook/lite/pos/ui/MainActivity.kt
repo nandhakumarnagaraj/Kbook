@@ -58,6 +58,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var sessionManager: SessionManager
     @Inject lateinit var syncManager: com.khanabook.lite.pos.domain.manager.SyncManager
     @Inject lateinit var networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor
+    @Inject lateinit var databaseProvider: com.khanabook.lite.pos.data.local.DatabaseProvider
     private var lastBackPressTime: Long = 0
 
     companion object {
@@ -101,20 +102,32 @@ class MainActivity : FragmentActivity() {
         PaymentReturnManager.handleIntent(intent)
         if (BuildConfig.DEBUG) logWindowAndResources("onCreate")
 
+        val token = sessionManager.getAuthToken()
+        if (!token.isNullOrBlank()) {
+            lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                databaseProvider.warmUpDatabase()
+            }
+        }
+
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         lifecycleScope.launch {
             networkMonitor.status.collectLatest { status ->
                 if (status == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) {
-                    val token = sessionManager.getAuthToken()
-                    if (!token.isNullOrBlank()) {
+                    val tokenVal = sessionManager.getAuthToken()
+                    if (!tokenVal.isNullOrBlank()) {
                         Log.i("MainActivity", "Network reconnected. Enqueuing background sync.")
                         val constraints = androidx.work.Constraints.Builder()
                             .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
                             .build()
                         val syncWorkRequest = androidx.work.OneTimeWorkRequestBuilder<MasterSyncWorker>()
                             .setConstraints(constraints)
+                            .setBackoffCriteria(
+                                androidx.work.BackoffPolicy.EXPONENTIAL,
+                                30,
+                                java.util.concurrent.TimeUnit.SECONDS
+                            )
                             .build()
                         androidx.work.WorkManager.getInstance(this@MainActivity).enqueueMasterSyncOnce(syncWorkRequest)
                     }
@@ -203,6 +216,20 @@ class MainActivity : FragmentActivity() {
                             )
                         }
                         lastBackPressTime = currentTime
+                    }
+                }
+
+                val isSessionExpired by sessionManager.isSessionExpired.collectAsState()
+
+                LaunchedEffect(isSessionExpired) {
+                    if (isSessionExpired) {
+                        val dest = navController.currentDestination?.route
+                        if (dest != null && dest != "login" && dest != "splash" && dest != "signup") {
+                            authViewModel.logout()
+                            navController.navigate("login") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
                     }
                 }
 

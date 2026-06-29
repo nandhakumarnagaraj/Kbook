@@ -9,6 +9,7 @@ import com.khanabook.lite.pos.data.local.dao.UserDao
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.worker.MasterSyncWorker
+import com.khanabook.lite.pos.domain.util.SyncWorkNames
 import com.khanabook.lite.pos.data.remote.ResetPasswordRequest
 import com.khanabook.lite.pos.data.remote.PasswordResetOtpRequest
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
@@ -20,11 +21,14 @@ import com.khanabook.lite.pos.data.remote.api.SignupRequest
 import com.khanabook.lite.pos.data.remote.api.SignupOtpRequest
 import com.khanabook.lite.pos.domain.util.BackendErrorParser
 import com.khanabook.lite.pos.domain.util.BackendException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import retrofit2.HttpException
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class UserRepository(
         private val userDao: UserDao,
         private val sessionManager: SessionManager,
@@ -354,8 +358,9 @@ class UserRepository(
     }
 
     fun getAllUsers(): Flow<List<UserEntity>> {
-        val restaurantId = sessionManager.getRestaurantId()
-        return userDao.getAllUsers(restaurantId)
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            userDao.getAllUsers(restaurantId)
+        }
     }
 
     suspend fun setActivationStatus(userId: Long, isActive: Boolean) {
@@ -372,9 +377,16 @@ class UserRepository(
         val constraints =
                 Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
         val syncWorkRequest =
-                OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
+                OneTimeWorkRequestBuilder<MasterSyncWorker>()
+                    .setConstraints(constraints)
+                    .setBackoffCriteria(
+                        androidx.work.BackoffPolicy.EXPONENTIAL,
+                        30,
+                        java.util.concurrent.TimeUnit.SECONDS
+                    )
+                    .build()
         workManager.enqueueUniqueWork(
-            "ImmediateSync",
+            SyncWorkNames.ONE_TIME,
             ExistingWorkPolicy.KEEP,
             syncWorkRequest
         )

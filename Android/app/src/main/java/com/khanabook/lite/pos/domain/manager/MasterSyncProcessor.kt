@@ -195,7 +195,7 @@ class MasterSyncProcessor @Inject constructor(
         )
     }
 
-    suspend fun pushAll(): Boolean {
+    suspend fun pushAll(onStepChange: ((SyncStep) -> Unit)? = null): Boolean {
         // Guard: never push data with an invalid tenant
         val restaurantId = sessionManager.getRestaurantId()
         if (restaurantId <= 0L) {
@@ -260,6 +260,18 @@ class MasterSyncProcessor @Inject constructor(
             push = api::pushItemVariants,
             markSynced = { ids -> menuDao.markItemVariantsAsSynced(ids, restaurantId) },
             onServerIds = { map -> map.forEach { (localId, serverId) -> menuDao.updateVariantServerIdByLocalId(localId, serverId, restaurantId) } }
+        )
+
+        onStepChange?.invoke(SyncStep.PushStockLogs)
+        val unsyncedStockLogs = inventoryDao.getUnsyncedStockLogs(restaurantId)
+        val validStockLogs = unsyncedStockLogs.filter { it.restaurantId == restaurantId }
+        pushBatches(
+            label = "stock logs",
+            records = validStockLogs,
+            transform = StockLogEntity::toSyncDto,
+            push = api::pushStockLogs,
+            markSynced = { ids -> inventoryDao.markStockLogsAsSynced(ids, restaurantId) },
+            onServerIds = { map -> map.forEach { (localId, serverId) -> inventoryDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
         )
 
         // ── Reconcile any bills that were pushed successfully in a previous cycle
@@ -643,6 +655,23 @@ class MasterSyncProcessor @Inject constructor(
         // Fetch variant ID mapping
         val variantIdMap = menuDao.getAllVariantServerIds(restaurantId).associate { it.serverId to it.id }
         val knownVariantIds = variantIdMap.values.toMutableSet()
+
+        if (masterData.stockLogs.isNotEmpty()) {
+            val resolvedStockLogs = masterData.stockLogs.mapNotNull { remoteLog ->
+                val localMenuItemId = remoteLog.serverMenuItemId?.let { menuItemIdMap[it] } ?: remoteLog.menuItemId
+                val localVariantId = remoteLog.serverVariantId?.let { variantIdMap[it] } ?: remoteLog.variantId
+
+                if (localMenuItemId !in knownMenuItemIds) return@mapNotNull null
+                if (remoteLog.serverVariantId != null && remoteLog.serverVariantId > 0 && localVariantId !in knownVariantIds) return@mapNotNull null
+
+                remoteLog.copy(
+                    menuItemId = localMenuItemId,
+                    variantId = localVariantId,
+                    isSynced = true
+                )
+            }
+            inventoryDao.insertSyncedStockLogs(resolvedStockLogs)
+        }
 
         if (masterData.bills.isNotEmpty()) {
             val repairedBills = mutableListOf<String>()

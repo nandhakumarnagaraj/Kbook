@@ -11,6 +11,7 @@ data class MasterSyncResponse(
     @SerializedName("categories") val categories: List<CategoryEntity> = emptyList(),
     @SerializedName("menuItems") val menuItems: List<MenuItemPullDto> = emptyList(),
     @SerializedName("itemVariants") val itemVariants: List<ItemVariantPullDto> = emptyList(),
+    @SerializedName("stockLogs") val stockLogs: List<StockLogEntity> = emptyList(),
     @SerializedName("bills") val bills: List<BillEntity> = emptyList(),
     @SerializedName("billItems") val billItems: List<BillItemEntity> = emptyList(),
     @SerializedName("billPayments") val billPayments: List<BillPaymentEntity> = emptyList()

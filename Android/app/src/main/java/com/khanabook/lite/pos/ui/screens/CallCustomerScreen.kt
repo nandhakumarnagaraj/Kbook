@@ -15,8 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
@@ -28,6 +30,7 @@ import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import com.khanabook.lite.pos.R
+import kotlinx.coroutines.launch
 
 @Composable
 fun CallCustomerScreen(
@@ -48,8 +51,35 @@ fun CallCustomerScreen(
     }
     val result by viewModel.searchResult.collectAsState()
     val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val scope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+
+    fun submitDailySearch() {
+        if (dailyId.isBlank() || dailyDate.isBlank()) return
+        keyboardController?.hide()
+        scope.launch {
+            val found = viewModel.searchByDailyId(dailyId, dailyDate)
+            viewModel.publishSearchResult(found)
+            if (found == null) {
+                KhanaToast.show("Customer not found", ToastKind.Warning)
+            }
+        }
+    }
+
+    fun submitLifetimeSearch() {
+        keyboardController?.hide()
+        lifetimeId.toLongOrNull()?.let {
+            scope.launch {
+                val found = viewModel.searchByLifetimeId(it)
+                viewModel.publishSearchResult(found)
+                if (found == null) {
+                    KhanaToast.show("Customer not found", ToastKind.Warning)
+                }
+            }
+        }
+    }
 
     // Standard staggered entry animation
     var headerVisible by remember { mutableStateOf(false) }
@@ -167,7 +197,14 @@ fun CallCustomerScreen(
                         },
                         label = { Text("Order No") },
                         modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                imeAction = ImeAction.Search
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                                onSearch = { submitDailySearch() },
+                                onDone = { submitDailySearch() }
+                        ),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
                         isError = showDailyIdError,
@@ -181,11 +218,7 @@ fun CallCustomerScreen(
                 Spacer(modifier = Modifier.height(spacing.medium))
 
                 Button(
-                        onClick = {
-                            if (dailyId.isNotBlank() && dailyDate.isNotBlank()) {
-                                viewModel.searchByDailyId(dailyId, dailyDate)
-                            }
-                        },
+                        onClick = { submitDailySearch() },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
@@ -212,23 +245,24 @@ fun CallCustomerScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                imeAction = ImeAction.Search
+                        ),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                                onSearch = { submitLifetimeSearch() },
+                                onDone = { submitLifetimeSearch() }
+                        ),
                         isError = showLifetimeIdError,
                         supportingText = {
                             if (showLifetimeIdError) {
                                 Text(context.getString(R.string.field_numbers_only))
                             }
-                        },
-                        keyboardOptions =
-                                androidx.compose.foundation.text.KeyboardOptions(
-                                        keyboardType =
-                                                androidx.compose.ui.text.input.KeyboardType.Number
-                                )
+                        }
                 )
                 Spacer(modifier = Modifier.height(spacing.medium))
                 Button(
-                        onClick = {
-                            lifetimeId.toLongOrNull()?.let { viewModel.searchByLifetimeId(it) }
-                        },
+                        onClick = { submitLifetimeSearch() },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),

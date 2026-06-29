@@ -239,6 +239,12 @@ public class GenericSyncService {
 						}
 					}
 
+					if (existingRecord == null && incomingRecord.getId() != null) {
+						existingRecord = repository.findById(incomingRecord.getId())
+								.filter(record -> Objects.equals(record.getRestaurantId(), targetTenantId))
+								.orElse(null);
+					}
+
 					if (existingRecord == null
 							&& incomingRecord instanceof User incomingUser
 							&& repository instanceof com.khanabook.saas.repository.UserRepository userRepository) {
@@ -534,6 +540,9 @@ public class GenericSyncService {
 				if (iv.getMenuItemId() != null) menuItemLocalIds.add(iv.getMenuItemId());
 			} else if (record instanceof MenuItem mi) {
 				if (mi.getCategoryId() != null) categoryLocalIds.add(mi.getCategoryId());
+			} else if (record instanceof StockLog sl) {
+				if (sl.getMenuItemId() != null) menuItemLocalIds.add(sl.getMenuItemId());
+				if (sl.getVariantId() != null) variantLocalIds.add(sl.getVariantId());
 			}
 		}
 
@@ -631,6 +640,21 @@ public class GenericSyncService {
 					if (serverId != null) {
 						payment.setServerBillId(serverId);
 						payment.setBillId(serverId); // CRITICAL: Update FK column
+					}
+				}
+			} else if (record instanceof StockLog logRecord) {
+				if (logRecord.getMenuItemId() != null) {
+					Long serverId = maps.menuItemLocalToServerId.get(logRecord.getMenuItemId());
+					if (serverId != null) {
+						logRecord.setServerMenuItemId(serverId);
+						logRecord.setMenuItemId(serverId); // CRITICAL: Update FK column
+					}
+				}
+				if (logRecord.getVariantId() != null) {
+					Long serverId = maps.variantLocalToServerId.get(logRecord.getVariantId());
+					if (serverId != null) {
+						logRecord.setServerVariantId(serverId);
+						logRecord.setVariantId(serverId); // CRITICAL: Update FK column
 					}
 				}
 			}

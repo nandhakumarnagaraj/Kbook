@@ -260,16 +260,29 @@ fun ShopConfigView(
                     val logoModel = logoUrl?.takeIf { it.isNotBlank() }
                         ?: AppAssetStore.resolveAssetPath(logoPath)
                     if (!logoModel.isNullOrBlank()) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(logoModel)
-                                .crossfade(true)
-                                .memoryCacheKey("$logoModel:$logoUpdateTrigger")
-                                .diskCachePolicy(CachePolicy.ENABLED)
-                                .build(),
-                            contentDescription = "Logo",
-                            modifier = Modifier.fillMaxSize().padding(spacing.extraSmall)
-                        )
+                        var isLogoLoading by remember { mutableStateOf(true) }
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(logoModel)
+                                    .crossfade(true)
+                                    .memoryCacheKey("$logoModel:$logoUpdateTrigger")
+                                    .diskCachePolicy(CachePolicy.ENABLED)
+                                    .build(),
+                                contentDescription = "Logo",
+                                modifier = Modifier.fillMaxSize().padding(spacing.extraSmall),
+                                onLoading = { isLogoLoading = true },
+                                onSuccess = { isLogoLoading = false },
+                                onError = { isLogoLoading = false }
+                            )
+                            if (isLogoLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(iconSize.medium).align(Alignment.Center),
+                                    color = PrimaryGold,
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        }
                     } else if (logoUploadLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(iconSize.medium), color = PrimaryGold, strokeWidth = 2.dp)
                     } else {

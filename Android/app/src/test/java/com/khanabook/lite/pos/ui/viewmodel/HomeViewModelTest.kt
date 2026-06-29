@@ -5,11 +5,14 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
+import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
 import com.khanabook.lite.pos.domain.util.ConnectionStatus
 import com.khanabook.lite.pos.domain.util.NetworkMonitor
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import io.mockk.mockkStatic
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,6 +31,7 @@ class HomeViewModelTest {
     private lateinit var kitchenPrintQueueRepository: KitchenPrintQueueRepository
     private lateinit var kitchenPrintQueueManager: KitchenPrintQueueManager
     private lateinit var printerProfileRepository: PrinterProfileRepository
+    private lateinit var printerManager: BluetoothPrinterManager
     private lateinit var networkMonitor: NetworkMonitor
     private val testDispatcher = StandardTestDispatcher()
 
@@ -65,8 +69,20 @@ class HomeViewModelTest {
         
         kitchenPrintQueueManager = mockk(relaxed = true)
         printerProfileRepository = mockk(relaxed = true)
+        printerManager = mockk(relaxed = true)
+
+        every { printerProfileRepository.getProfilesFlow() } returns flowOf(emptyList())
+        every { printerManager.connectedDeviceMacs } returns MutableStateFlow(emptySet())
+        coEvery { printerProfileRepository.getProfiles() } returns emptyList()
         
-        val viewModel = HomeViewModel(billRepository, kitchenPrintQueueRepository, kitchenPrintQueueManager, printerProfileRepository, networkMonitor)
+        val viewModel = HomeViewModel(
+            billRepository,
+            kitchenPrintQueueRepository,
+            kitchenPrintQueueManager,
+            printerProfileRepository,
+            printerManager,
+            networkMonitor
+        )
         testDispatcher.scheduler.advanceUntilIdle()
     }
 }

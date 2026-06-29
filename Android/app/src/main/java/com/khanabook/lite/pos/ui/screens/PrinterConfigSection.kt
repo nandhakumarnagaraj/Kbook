@@ -34,6 +34,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
+import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -74,6 +77,7 @@ import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.Brown500
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
+import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrownSheet
 import com.khanabook.lite.pos.ui.theme.DangerRed
 import com.khanabook.lite.pos.ui.theme.Green800
@@ -167,6 +171,7 @@ fun PrinterConfigView(
                 .navigationBarsPadding()
                 .padding(spacing.medium)
         ) {
+
             ConfigCard {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -364,6 +369,8 @@ fun PrinterConfigView(
         }
     }
 }
+
+
 
 @Composable
 private fun PrinterTargetCard(

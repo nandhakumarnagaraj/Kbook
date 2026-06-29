@@ -83,6 +83,11 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import kotlin.math.roundToLong
 import java.util.Locale
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 
 @Composable
 fun NewBillScreen(
@@ -1648,81 +1653,26 @@ fun SuccessStep(
 
 @Composable
 private fun PaymentSuccessBadge() {
+    val compositionResult = rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.anim_payment_success)
+    )
+    val composition = compositionResult.value
+    val lottieProgressState = animateLottieCompositionAsState(
+        composition = composition,
+        iterations = 1
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(190.dp),
         contentAlignment = Alignment.Center
     ) {
-        SuccessSpark(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = 44.dp, top = 34.dp),
-            color = PrimaryGold
+        LottieAnimation(
+            composition = composition,
+            progress = { lottieProgressState.value },
+            modifier = Modifier.size(160.dp)
         )
-        SuccessSpark(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(end = 48.dp, top = 52.dp),
-            color = SuccessGreen
-        )
-        SuccessSpark(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 66.dp, bottom = 38.dp),
-            color = SuccessGreen.copy(alpha = 0.9f)
-        )
-        SuccessSpark(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 62.dp, bottom = 28.dp),
-            color = PrimaryGold.copy(alpha = 0.9f)
-        )
-        Surface(
-            modifier = Modifier.size(132.dp),
-            shape = CircleShape,
-            color = SuccessGreen.copy(alpha = 0.16f)
-        ) {}
-        Surface(
-            modifier = Modifier.size(104.dp),
-            shape = CircleShape,
-            color = SuccessGreen
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(64.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SuccessSpark(
-    modifier: Modifier = Modifier,
-    color: Color
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Default.Star,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(18.dp)
-        )
-        Surface(
-            modifier = Modifier
-                .width(26.dp)
-                .height(4.dp),
-            color = color.copy(alpha = 0.75f),
-            shape = RoundedCornerShape(2.dp)
-        ) {}
     }
 }
 
@@ -1857,30 +1807,23 @@ fun StepItem(
     val containerColor = if (isActive) PrimaryGold.copy(alpha = 0.1f) else Color.Transparent
 
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(36.dp),
-            contentAlignment = Alignment.Center
+            verticalAlignment = Alignment.CenterVertically
         ) {
             if (showStartConnector) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .fillMaxWidth(0.5f)
+                        .weight(1f)
                         .height(1.dp)
                         .background(if (startConnectorCompleted) PrimaryGold else Color.Gray)
                 )
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
             }
-            if (showEndConnector) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .fillMaxWidth(0.5f)
-                        .height(1.dp)
-                        .background(if (endConnectorCompleted) PrimaryGold else Color.Gray)
-                )
-            }
+
             Box(
                 modifier = Modifier
                     .size(36.dp)
@@ -1892,7 +1835,13 @@ fun StepItem(
                     icon,
                     contentDescription = null,
                     tint = color,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier
+                        .size(18.dp)
+                        .then(
+                            if (icon == Icons.AutoMirrored.Filled.List) {
+                                Modifier.offset(x = (-1).dp)
+                            } else Modifier
+                        )
                 )
                 if (isCompleted) {
                     Box(
@@ -1905,6 +1854,17 @@ fun StepItem(
                         Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(10.dp))
                     }
                 }
+            }
+
+            if (showEndConnector) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(1.dp)
+                        .background(if (endConnectorCompleted) PrimaryGold else Color.Gray)
+                )
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
         Text(label, color = color, style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp))

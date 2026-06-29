@@ -27,6 +27,9 @@ public interface MenuItemRepository extends SyncRepository<MenuItem, Long> {
 			@Param("categoryId") Long categoryId,
 			@Param("normalizedName") String normalizedName);
 
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("UPDATE MenuItem m SET m.currentStock = (SELECT COALESCE(SUM(s.delta), 0) FROM StockLog s WHERE s.serverMenuItemId = :id AND s.isDeleted = false) WHERE m.id = :id")
+	void recalculateStock(@Param("id") Long id);
 
 	long countByRestaurantIdAndIsDeletedFalse(Long restaurantId);
 

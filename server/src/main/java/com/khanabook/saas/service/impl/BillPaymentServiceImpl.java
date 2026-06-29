@@ -7,6 +7,8 @@ import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.service.BillPaymentService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ public class BillPaymentServiceImpl implements BillPaymentService {
 	public PushSyncResponse pushData(Long tenantId, List<BillPayment> payload) {
 		List<BillPayment> toSync = new ArrayList<>();
 		List<Long> failedLocalIds = new ArrayList<>();
+		Map<Long, String> failedReasons = new HashMap<>();
 
 		for (BillPayment payment : payload) {
 			boolean resolved = true;
@@ -38,10 +41,16 @@ public class BillPaymentServiceImpl implements BillPaymentService {
 							.filter(b -> b.getRestaurantId().equals(tenantId))
 							.ifPresent(b -> payment.setServerBillId(b.getId()));
 				}
+				if (payment.getServerBillId() == null) {
+					billRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(payment.getBillId()))
+							.stream().findFirst()
+							.ifPresent(b -> payment.setServerBillId(b.getId()));
+				}
 			}
 
 			if (payment.getServerBillId() == null) {
-				failedLocalIds.add(payment.getLocalId());
+				addFailure(failedLocalIds, failedReasons, payment.getLocalId(),
+						"Bill payment parent bill could not be resolved");
 				resolved = false;
 			}
 
@@ -51,6 +60,7 @@ public class BillPaymentServiceImpl implements BillPaymentService {
 		}
 		PushSyncResponse response = genericSyncService.handlePushSync(tenantId, toSync, repository);
 		response.getFailedLocalIds().addAll(failedLocalIds);
+		response.getFailedReasons().putAll(failedReasons);
 		return response;
 	}
 
@@ -62,5 +72,15 @@ public class BillPaymentServiceImpl implements BillPaymentService {
 		}
 		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
 				deviceId);
+	}
+
+	private void addFailure(List<Long> failedLocalIds, Map<Long, String> failedReasons, Long localId, String reason) {
+		if (localId == null) {
+			return;
+		}
+		if (!failedLocalIds.contains(localId)) {
+			failedLocalIds.add(localId);
+		}
+		failedReasons.put(localId, reason);
 	}
 }

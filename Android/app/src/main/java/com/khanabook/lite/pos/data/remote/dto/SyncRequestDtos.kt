@@ -211,3 +211,21 @@ data class UserSyncDto(
     @SerializedName("isDeleted") val isDeleted: Boolean,
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
 )
+
+data class StockLogSyncDto(
+    val localDbId: Long,
+    @SerializedName("restaurantId") val restaurantId: Long,
+    @SerializedName("deviceId") val deviceId: String,
+    @SerializedName("localId") val localId: Long,
+    @SerializedName("serverId") val serverId: Long?,
+    @SerializedName("menuItemId") val menuItemId: Long,
+    @SerializedName("serverMenuItemId") val serverMenuItemId: Long?,
+    @SerializedName("variantId") val variantId: Long?,
+    @SerializedName("serverVariantId") val serverVariantId: Long?,
+    @SerializedName("delta") val delta: Double,
+    @SerializedName("reason") val reason: String,
+    @SerializedName("createdAt") val createdAt: Long,
+    @SerializedName("updatedAt") val updatedAt: Long,
+    @SerializedName("isDeleted") val isDeleted: Boolean,
+    @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
+)

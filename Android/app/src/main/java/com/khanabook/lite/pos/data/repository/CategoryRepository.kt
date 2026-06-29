@@ -10,8 +10,11 @@ import com.khanabook.lite.pos.data.local.entity.CategoryEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.worker.MasterSyncWorker
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class CategoryRepository(
         private val categoryDao: CategoryDao,
         private val menuDao: com.khanabook.lite.pos.data.local.dao.MenuDao,
@@ -62,13 +65,15 @@ class CategoryRepository(
     }
 
     fun getAllCategoriesFlow(): Flow<List<CategoryEntity>> {
-        val restaurantId = sessionManager.getRestaurantId()
-        return categoryDao.getAllCategoriesFlow(restaurantId)
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            categoryDao.getAllCategoriesFlow(restaurantId)
+        }
     }
 
     fun getActiveCategoriesFlow(): Flow<List<CategoryEntity>> {
-        val restaurantId = sessionManager.getRestaurantId()
-        return categoryDao.getActiveCategoriesFlow(restaurantId)
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            categoryDao.getActiveCategoriesFlow(restaurantId)
+        }
     }
 
     suspend fun toggleActive(id: Long, isActive: Boolean) {

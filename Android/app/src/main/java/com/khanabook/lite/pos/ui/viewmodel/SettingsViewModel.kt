@@ -146,6 +146,30 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun retryAllFailedBillSyncs() {
+        viewModelScope.launch {
+            val billsToRetry = _failedBillSyncs.value
+            if (billsToRetry.isEmpty()) return@launch
+
+            val billIds = billsToRetry.map { it.id }.toSet()
+            _retryingFailedBillIds.value = _retryingFailedBillIds.value + billIds
+            try {
+                withContext(Dispatchers.IO) {
+                    val restaurantId = sessionManager.getRestaurantId()
+                    if (restaurantId > 0L) {
+                        billsToRetry.forEach { bill ->
+                            billDao.retryFailedBillSync(bill.id, restaurantId)
+                        }
+                    }
+                }
+                syncManager.pushUnsyncedDataWithResult()
+            } finally {
+                _retryingFailedBillIds.value = _retryingFailedBillIds.value - billIds
+                refreshFailedBillSyncs()
+            }
+        }
+    }
+
     fun testPrint(role: PrinterRole) {
         viewModelScope.launch(Dispatchers.IO) {
             val printer = printerProfileRepository.getByRole(role.name)

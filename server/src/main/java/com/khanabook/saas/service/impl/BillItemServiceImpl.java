@@ -11,6 +11,8 @@ import com.khanabook.saas.repository.BillItemRepository;
 import com.khanabook.saas.service.BillItemService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ public class BillItemServiceImpl implements BillItemService {
 	public PushSyncResponse pushData(Long tenantId, List<BillItem> payload) {
 		List<BillItem> toSync = new ArrayList<>();
 		List<Long> failedLocalIds = new ArrayList<>();
+		Map<Long, String> failedReasons = new HashMap<>();
 
 		for (BillItem item : payload) {
 			boolean resolved = true;
@@ -42,6 +45,11 @@ public class BillItemServiceImpl implements BillItemService {
 				if (bill.isPresent()) {
 					item.setServerBillId(bill.get().getId());
 				} else {
+					billRepository.findById(billLookupId)
+							.filter(b -> b.getRestaurantId().equals(tenantId))
+							.ifPresent(b -> item.setServerBillId(b.getId()));
+				}
+				if (item.getServerBillId() == null) {
 					billRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(billLookupId))
 							.stream().findFirst()
 							.ifPresent(b -> item.setServerBillId(b.getId()));
@@ -55,6 +63,11 @@ public class BillItemServiceImpl implements BillItemService {
 				if (mi.isPresent()) {
 					item.setServerMenuItemId(mi.get().getId());
 				} else {
+					menuItemRepository.findById(menuItemLookupId)
+							.filter(m -> m.getRestaurantId().equals(tenantId))
+							.ifPresent(m -> item.setServerMenuItemId(m.getId()));
+				}
+				if (item.getServerMenuItemId() == null) {
 					menuItemRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(menuItemLookupId))
 							.stream().findFirst()
 							.ifPresent(m -> item.setServerMenuItemId(m.getId()));
@@ -68,14 +81,25 @@ public class BillItemServiceImpl implements BillItemService {
 				if (iv.isPresent()) {
 					item.setServerVariantId(iv.get().getId());
 				} else {
+					itemVariantRepository.findById(variantLookupId)
+							.filter(v -> v.getRestaurantId().equals(tenantId))
+							.ifPresent(v -> item.setServerVariantId(v.getId()));
+				}
+				if (item.getServerVariantId() == null) {
 					itemVariantRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(variantLookupId))
 							.stream().findFirst()
 							.ifPresent(v -> item.setServerVariantId(v.getId()));
 				}
 			}
 
-			if (item.getServerBillId() == null || item.getServerMenuItemId() == null) {
-				failedLocalIds.add(item.getLocalId());
+			if (item.getServerBillId() == null) {
+				addFailure(failedLocalIds, failedReasons, item.getLocalId(),
+						"Bill item parent bill could not be resolved");
+				resolved = false;
+			}
+			if (item.getMenuItemId() == null && item.getServerMenuItemId() == null) {
+				addFailure(failedLocalIds, failedReasons, item.getLocalId(),
+						"Bill item menu reference is missing");
 				resolved = false;
 			}
 
@@ -85,6 +109,7 @@ public class BillItemServiceImpl implements BillItemService {
 		}
 		PushSyncResponse response = genericSyncService.handlePushSync(tenantId, toSync, repository);
 		response.getFailedLocalIds().addAll(failedLocalIds);
+		response.getFailedReasons().putAll(failedReasons);
 		return response;
 	}
 
@@ -96,5 +121,15 @@ public class BillItemServiceImpl implements BillItemService {
 		}
 		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
 				deviceId);
+	}
+
+	private void addFailure(List<Long> failedLocalIds, Map<Long, String> failedReasons, Long localId, String reason) {
+		if (localId == null) {
+			return;
+		}
+		if (!failedLocalIds.contains(localId)) {
+			failedLocalIds.add(localId);
+		}
+		failedReasons.put(localId, reason);
 	}
 }

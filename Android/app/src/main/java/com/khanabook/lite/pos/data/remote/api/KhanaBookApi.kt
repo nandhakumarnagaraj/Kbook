@@ -70,6 +70,9 @@ interface KhanaBookApi {
         @POST("api/v1/sync/itemvariant/push")
         suspend fun pushItemVariants(@Body variants: List<ItemVariantSyncDto>): PushSyncResponse
 
+        @POST("api/v1/sync/stocklog/push")
+        suspend fun pushStockLogs(@Body logs: List<StockLogSyncDto>): PushSyncResponse
+
         // ── Master pull (primary sync path) ─────────────────────────────────
         @GET("api/v1/sync/master/pull")
         suspend fun pullMasterSync(

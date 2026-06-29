@@ -12,13 +12,16 @@ interface RestaurantDao {
     @Query("SELECT * FROM restaurant_profile WHERE restaurant_id = :restaurantId LIMIT 1")
     suspend fun getProfile(restaurantId: Long): RestaurantProfileEntity?
 
-    @Query("SELECT * FROM restaurant_profile WHERE id = 1 LIMIT 1")
+    // No-arg fallback: each isolated per-restaurant DB holds exactly one profile row,
+    // whose `id` is now the restaurant's server id (not the legacy `1`). Select it
+    // unconditionally instead of `WHERE id = 1`, which no longer matches.
+    @Query("SELECT * FROM restaurant_profile LIMIT 1")
     suspend fun getProfile(): RestaurantProfileEntity?
 
     @Query("SELECT * FROM restaurant_profile WHERE restaurant_id = :restaurantId LIMIT 1")
     fun getProfileFlow(restaurantId: Long): Flow<RestaurantProfileEntity?>
 
-    @Query("SELECT * FROM restaurant_profile WHERE id = 1 LIMIT 1")
+    @Query("SELECT * FROM restaurant_profile LIMIT 1")
     fun getProfileFlow(): Flow<RestaurantProfileEntity?>
 
     @Query(
@@ -39,7 +42,7 @@ interface RestaurantDao {
         val today = java.time.LocalDate.now(zoneId).toString()
         val isNewDay = profile.lastResetDate != today
         val now = System.currentTimeMillis()
-        
+
         if (isNewDay) {
             // Reset to 1 on a new day
             val nextDailyCounter = 1L

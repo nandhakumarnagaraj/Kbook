@@ -16,7 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,18 +56,24 @@ fun ReprintKdsScreen(
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val scope = rememberCoroutineScope()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     fun doSearch() {
-        if (selectedTab == 0) {
-            val q = dailyId.trim()
-            if (q.isEmpty()) { showDailyIdError = true; return }
-            showDailyIdError = false
-            searchViewModel.searchByDailyId(q, dailyDate)
-        } else {
-            val q = invoiceQuery.trim()
-            if (q.isEmpty()) { showInvoiceError = true; return }
-            showInvoiceError = false
-            searchViewModel.searchByInvoiceNo(q.toLongOrNull() ?: 0L)
+        keyboardController?.hide()
+        scope.launch {
+            if (selectedTab == 0) {
+                val q = dailyId.trim()
+                if (q.isEmpty()) { showDailyIdError = true; return@launch }
+                showDailyIdError = false
+                val found = searchViewModel.searchByDailyId(q, dailyDate)
+                searchViewModel.publishSearchResult(found)
+            } else {
+                val q = invoiceQuery.trim()
+                if (q.isEmpty()) { showInvoiceError = true; return@launch }
+                showInvoiceError = false
+                val found = searchViewModel.searchByInvoiceNo(q.toLongOrNull() ?: 0L)
+                searchViewModel.publishSearchResult(found)
+            }
         }
     }
 
@@ -154,7 +162,14 @@ fun ReprintKdsScreen(
                         .fillMaxWidth()
                         .padding(horizontal = spacing.medium),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Search
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onSearch = { doSearch() },
+                        onDone = { doSearch() }
+                    ),
                     colors = outlinedSearchFieldColors()
                 )
                 if (showDailyIdError) {
@@ -164,7 +179,10 @@ fun ReprintKdsScreen(
                 Spacer(modifier = Modifier.height(spacing.medium))
 
                 Button(
-                    onClick = { doSearch() },
+                    onClick = {
+                        keyboardController?.hide()
+                        doSearch()
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
@@ -205,7 +223,14 @@ fun ReprintKdsScreen(
                         .fillMaxWidth()
                         .padding(horizontal = spacing.medium),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Search
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onSearch = { doSearch() },
+                        onDone = { doSearch() }
+                    ),
                     colors = outlinedSearchFieldColors()
                 )
                 if (showInvoiceError) {
@@ -215,7 +240,10 @@ fun ReprintKdsScreen(
                 Spacer(modifier = Modifier.height(spacing.medium))
 
                 Button(
-                    onClick = { doSearch() },
+                    onClick = {
+                        keyboardController?.hide()
+                        doSearch()
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)

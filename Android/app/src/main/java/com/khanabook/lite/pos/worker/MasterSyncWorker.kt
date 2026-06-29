@@ -122,6 +122,10 @@ constructor(
 
           if (e is SyncConflictException) {
             if (e.recoverySucceeded) {
+              if (e.failedLocalIds.isNotEmpty()) {
+                logWarn("Conflict recovery pulled latest data, but ${e.failedLocalIds.size} record(s) still failed — keeping WorkManager retries active")
+                return@withContext Result.retry()
+              }
               // SyncManager already completed the recovery pull (server-wins).
               // Return success so the 15-minute periodic schedule continues normally.
               logWarn("Conflict resolved via recovery pull — treating as success for WorkManager")
@@ -131,9 +135,6 @@ constructor(
             return@withContext Result.retry()
           }
 
-          if (runAttemptCount > 3) {
-            return@withContext Result.failure()
-          }
           Result.retry()
         }
     )

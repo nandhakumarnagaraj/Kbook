@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
@@ -51,16 +52,16 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
 ) {
-    val stats by viewModel.todayStats.collectAsState()
-    val connectionStatus by viewModel.connectionStatus.collectAsState()
-    val unsyncedCount by viewModel.unsyncedCount.collectAsState()
-    val shopName by viewModel.shopName.collectAsState()
+    val stats by viewModel.todayStats.collectAsStateWithLifecycle()
+    val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
+    val unsyncedCount by viewModel.unsyncedCount.collectAsStateWithLifecycle()
+    val shopName by viewModel.shopName.collectAsStateWithLifecycle()
     val greeting = viewModel.greeting
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val isWideScreen = !layout.isCompact
 
-    val statsReady by viewModel.statsReady.collectAsState()
+    val statsReady by viewModel.statsReady.collectAsStateWithLifecycle()
 
     var headerVisible by remember { mutableStateOf(false) }
     var statsVisible by remember { mutableStateOf(false) }
@@ -173,129 +174,88 @@ fun HomeScreen(
             }
 
             AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
-                KhanaBookCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { onNewBill() },
-                    colors = CardDefaults.cardColors(containerColor = PrimaryGold),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 120.dp)
-                            .padding(spacing.large),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                    KhanaBookCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onNewBill() },
+                        colors = CardDefaults.cardColors(containerColor = PrimaryGold),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Column {
-                            Text(
-                                text = "Create New Bill",
-                                color = DarkBrown1,
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                            Text(
-                                text = "Start taking orders",
-                                color = DarkBrown1.copy(alpha = 0.85f),
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(top = spacing.extraSmall)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 120.dp)
+                                .padding(spacing.large),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Create New Bill",
+                                    color = DarkBrown1,
+                                    style = MaterialTheme.typography.titleLarge
+                                )
+                                Text(
+                                    text = "Works offline. Sync runs in background.",
+                                    color = DarkBrown1.copy(alpha = 0.85f),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.padding(top = spacing.extraSmall)
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.AddCircle,
+                                contentDescription = "Create New Bill",
+                                tint = DarkBrown1,
+                                modifier = Modifier.size(spacing.huge)
                             )
                         }
-                        Icon(
-                            imageVector = Icons.Default.AddCircle,
-                            contentDescription = null,
-                            tint = DarkBrown1,
-                            modifier = Modifier.size(spacing.huge)
-                        )
                     }
+                    // Status cards removed
                 }
             }
 
             AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
-            if (isWideScreen) {
-                FlowRow(
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                HomeActionCard(
+                    text = "Find Bill",
+                    icon = Icons.Default.Search,
+                    backgroundColor = CardBG,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.medium),
-                    verticalArrangement = Arrangement.spacedBy(spacing.medium),
-                    maxItemsInEachRow = 2
-                ) {
-                    HomeActionCard(
-                        text = "Find Bill",
-                        icon = Icons.Default.Search,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.weight(1f),
-                        onClick = onSearchBill
-                    )
-                    HomeActionCard(
-                        text = "Reprint KDS",
-                        icon = Icons.Default.Restaurant,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.weight(1f),
-                        onClick = onReprintKds
-                    )
-                    HomeActionCard(
-                        text = "Order Status",
-                        icon = Icons.Default.Info,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.weight(1f),
-                        onClick = onOrderStatus
-                    )
-                    HomeActionCard(
-                        text = "Call Customers",
-                        icon = Icons.Default.Call,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.weight(1f),
-                        onClick = onCallCustomer
-                    )
-                }
-            } else {
-                FlowRow(
+                    onClick = onSearchBill
+                )
+                HomeActionCard(
+                    text = "Reprint KDS",
+                    icon = Icons.Default.Restaurant,
+                    backgroundColor = CardBG,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                    verticalArrangement = Arrangement.spacedBy(spacing.small),
-                    maxItemsInEachRow = 2
-                ) {
-                    HomeActionCard(
-                        text = "Find Bill",
-                        icon = Icons.Default.Search,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.weight(1f),
-                        onClick = onSearchBill
-                    )
-
-                    HomeActionCard(
-                        text = "Reprint KDS",
-                        icon = Icons.Default.Restaurant,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.weight(1f),
-                        onClick = onReprintKds
-                    )
-
-                    HomeActionCard(
-                        text = "Order Status",
-                        icon = Icons.Default.Info,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.weight(1f),
-                        onClick = onOrderStatus
-                    )
-
-                    HomeActionCard(
-                        text = "Call Customers",
-                        icon = Icons.Default.Call,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.weight(1f),
-                        onClick = onCallCustomer
-                    )
-                }
+                    onClick = onReprintKds
+                )
+                HomeActionCard(
+                    text = "Order Status",
+                    icon = Icons.Default.Info,
+                    backgroundColor = CardBG,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onOrderStatus
+                )
+                HomeActionCard(
+                    text = "Call Customers",
+                    icon = Icons.Default.Call,
+                    backgroundColor = CardBG,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onCallCustomer
+                )
             }
             } // end AnimatedVisibility(actionsVisible)
-
-            // Bottom padding to ensure last item isn't flush with navbar
-            if (!isWideScreen) {
-                Spacer(modifier = Modifier.height(spacing.medium))
-            }
         }
     }
 }
+
+
+
+
 
 @Composable
 fun SyncStatusHeader(
@@ -306,7 +266,7 @@ fun SyncStatusHeader(
     val isOnline = connectionStatus == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
-    val currentUser by authViewModel.currentUser.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     val isSessionValid = currentUser != null
     val shouldShowSync = isOnline && isSessionValid && unsyncedCount > 0
 

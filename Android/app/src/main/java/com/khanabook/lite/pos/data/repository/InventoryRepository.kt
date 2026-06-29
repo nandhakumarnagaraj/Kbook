@@ -39,10 +39,11 @@ class InventoryRepository(
         val enriched = log.copy(
             restaurantId = sessionManager.getRestaurantId(),
             deviceId = sessionManager.getDeviceId(),
-            isSynced = true,
+            isSynced = false,
             updatedAt = System.currentTimeMillis()
         )
         inventoryDao.insertStockLog(enriched)
+        triggerBackgroundSync()
     }
 
     suspend fun updateThreshold(menuItemId: Long, threshold: Double) {

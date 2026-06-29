@@ -127,6 +127,7 @@ class LogoutViewModel @Inject constructor(
                 sessionManager.clearAuthOnly()
             }
             if (BuildConfig.DEBUG) Log.d(debugTag, "performSoftLogout: token cleared, local DB preserved for re-login sync")
+            if (BuildConfig.DEBUG) Log.d(debugTag, "performSoftLogout: token cleared, local DB preserved for re-login sync")
             _logoutState.value = LogoutState.LoggedOut
         }
     }
@@ -177,6 +178,7 @@ class LogoutViewModel @Inject constructor(
         val categoryCount = async { database.categoryDao().getUnsyncedCategories(activeRestaurantId).size }
         val menuItemCount = async { database.menuDao().getUnsyncedMenuItems(activeRestaurantId).size }
         val variantCount = async { database.menuDao().getUnsyncedItemVariants(activeRestaurantId).size }
+        val stockLogCount = async { database.inventoryDao().getUnsyncedStockLogs(activeRestaurantId).size }
         val billCount = async { database.billDao().getUnsyncedBills(activeRestaurantId).size }
         val billItemCount = async { database.billDao().getUnsyncedBillItems(activeRestaurantId).size }
         val billPaymentCount = async { database.billDao().getUnsyncedBillPayments(activeRestaurantId).size }
@@ -186,6 +188,7 @@ class LogoutViewModel @Inject constructor(
         val cc = categoryCount.await()
         val mic = menuItemCount.await()
         val vc = variantCount.await()
+        val slc = stockLogCount.await()
         val bc = billCount.await()
         val bic = billItemCount.await()
         val bpc = billPaymentCount.await()
@@ -196,6 +199,7 @@ class LogoutViewModel @Inject constructor(
             if (cc > 0) add("$cc categories")
             if (mic > 0) add("$mic menu items")
             if (vc > 0) add("$vc variants")
+            if (slc > 0) add("$slc stock logs")
             if (bc > 0) add("$bc bills")
             if (bic > 0) add("$bic bill items")
             if (bpc > 0) add("$bpc bill payments")

@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
+import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
@@ -21,6 +23,7 @@ class HomeViewModel @Inject constructor(
     private val kitchenPrintQueueRepository: KitchenPrintQueueRepository,
     private val kitchenPrintQueueManager: KitchenPrintQueueManager,
     private val printerProfileRepository: PrinterProfileRepository,
+    private val printerManager: BluetoothPrinterManager,
     private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor
 ) : ViewModel() {
 
@@ -39,6 +42,40 @@ class HomeViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 0
         )
+
+    val printerReadiness: StateFlow<PrinterReadiness> = combine(
+        profileFlow,
+        printerProfileRepository.getProfilesFlow(),
+        printerManager.connectedDeviceMacs
+    ) { profile, profiles, liveMacs ->
+        val customerPrinter = profiles.firstOrNull {
+            it.role == PrinterRole.CUSTOMER.name && it.enabled && it.macAddress.isNotBlank()
+        }
+        val kitchenPrinter = profiles.firstOrNull {
+            it.role == PrinterRole.KITCHEN.name && it.enabled && it.macAddress.isNotBlank()
+        }
+        val legacyPrinterEnabled = profile?.printerEnabled == true && !profile.printerMac.isNullOrBlank()
+        val legacyPrinterConnected = profile?.printerMac?.let(liveMacs::contains) == true
+
+        PrinterReadiness(
+            customerConfigured = customerPrinter != null,
+            customerConnected = customerPrinter?.macAddress?.let(liveMacs::contains) == true,
+            customerName = customerPrinter?.name,
+            customerAutoPrint = customerPrinter?.autoPrint == true,
+            legacyReceiptConfigured = legacyPrinterEnabled,
+            legacyReceiptConnected = legacyPrinterConnected,
+            legacyReceiptName = profile?.printerName,
+            legacyReceiptAutoPrint = profile?.autoPrintOnSuccess == true,
+            kitchenConfigured = kitchenPrinter != null,
+            kitchenConnected = kitchenPrinter?.macAddress?.let(liveMacs::contains) == true,
+            kitchenName = kitchenPrinter?.name,
+            kitchenAutoPrint = kitchenPrinter?.autoPrint == true
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = PrinterReadiness()
+    )
 
     /** Emits the shop name for a personalised greeting. Falls back to "Your Shop". */
     val shopName: StateFlow<String> = profileFlow
@@ -104,6 +141,10 @@ class HomeViewModel @Inject constructor(
     private val _message = MutableSharedFlow<String>()
     val message: SharedFlow<String> = _message.asSharedFlow()
 
+    init {
+        connectConfiguredPrinters(showMessage = false)
+    }
+
     fun reprintPendingKdsList(): List<com.khanabook.lite.pos.data.local.relation.BillWithItems> {
         return runBlocking {
             billRepository.getBillsWithPendingKds()
@@ -136,6 +177,40 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun refreshPrinterConnections() {
+        connectConfiguredPrinters(showMessage = true)
+    }
+
+    private fun connectConfiguredPrinters(showMessage: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val printers = printerProfileRepository.getProfiles().filter {
+                it.enabled && it.macAddress.isNotBlank()
+            }
+            val legacyPrinter = profileFlow.first()?.takeIf {
+                it.printerEnabled && !it.printerMac.isNullOrBlank()
+            }
+            if (printers.isEmpty()) {
+                if (legacyPrinter == null) {
+                    if (showMessage) _message.emit("No printer configured.")
+                    return@launch
+                }
+                if (showMessage) _message.emit("Checking printer connection.")
+                if (!printerManager.isConnectedTo(legacyPrinter.printerMac!!)) {
+                    printerManager.connect(legacyPrinter.printerMac!!)
+                }
+                return@launch
+            }
+            if (showMessage) _message.emit("Checking printer connection.")
+            printers.forEach { printer ->
+                launch {
+                    if (!printerManager.isConnectedTo(printer.macAddress)) {
+                        printerManager.connect(printer.macAddress)
+                    }
+                }
+            }
+        }
+    }
+
 
     data class HomeStats(
         val orderCount: Int = 0,
@@ -145,6 +220,19 @@ class HomeViewModel @Inject constructor(
         val cancelledCount: Int = 0,
         val kdsPendingCount: Int = 0
     )
+
+    data class PrinterReadiness(
+        val customerConfigured: Boolean = false,
+        val customerConnected: Boolean = false,
+        val customerName: String? = null,
+        val customerAutoPrint: Boolean = false,
+        val legacyReceiptConfigured: Boolean = false,
+        val legacyReceiptConnected: Boolean = false,
+        val legacyReceiptName: String? = null,
+        val legacyReceiptAutoPrint: Boolean = false,
+        val kitchenConfigured: Boolean = false,
+        val kitchenConnected: Boolean = false,
+        val kitchenName: String? = null,
+        val kitchenAutoPrint: Boolean = false
+    )
 }
-
-
