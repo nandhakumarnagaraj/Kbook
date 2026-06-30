@@ -441,6 +441,7 @@ fun MenuSelectionStep(
         menuViewModel: MenuViewModel,
         onBack: () -> Unit,
         onProceedToPayment: () -> Unit,
+        onShowMessage: (String) -> Unit = {},
         total: Double,
         itemCount: Int,
         hideHeader: Boolean = false,
@@ -450,6 +451,8 @@ fun MenuSelectionStep(
     val items by menuViewModel.menuItems.collectAsStateWithLifecycle()
     val searchResults by menuViewModel.searchResults.collectAsStateWithLifecycle()
     val searchQuery by menuViewModel.searchQuery.collectAsStateWithLifecycle()
+    val totalItemsCount by menuViewModel.totalItemsCount.collectAsStateWithLifecycle()
+    val isCatalogLoaded by menuViewModel.isCatalogLoaded.collectAsStateWithLifecycle()
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val connectionStatus by billingViewModel.connectionStatus.collectAsStateWithLifecycle()
@@ -457,6 +460,7 @@ fun MenuSelectionStep(
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val displayItems = if (searchQuery.isNotBlank()) searchResults else items
+    val hasNoMenuItems = isCatalogLoaded && totalItemsCount == 0 && searchQuery.isBlank()
     
     // Adaptive split-view: Categories on left, Cart on right for tablets
     val isWideScreen = layout.isWideListDetail
@@ -470,6 +474,20 @@ fun MenuSelectionStep(
 
     val derivedItemCount by remember {
         derivedStateOf { cartItems.sumOf { it.quantity } }
+    }
+
+    val proceedValidationMessage = if (hasNoMenuItems) {
+        "Add menu items before creating a bill"
+    } else {
+        "Add at least one item to proceed"
+    }
+
+    val proceedOrValidate = {
+        if (derivedItemCount > 0) {
+            onProceedToPayment()
+        } else {
+            onShowMessage(proceedValidationMessage)
+        }
     }
 
     Row(modifier = Modifier.fillMaxSize()) {
@@ -578,9 +596,10 @@ fun MenuSelectionStep(
                 }
             }
 
-            if (categories.isEmpty() && displayItems.isEmpty()) {
-                // Skeleton while menu data loads
+            if (!isCatalogLoaded && categories.isEmpty() && displayItems.isEmpty()) {
                 SkeletonMenuScreen(modifier = Modifier.weight(1f))
+            } else if (hasNoMenuItems) {
+                NoMenuItemsEmptyState(modifier = Modifier.weight(1f))
             } else if (displayItems.isEmpty()) {
                 Box(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -1894,6 +1913,41 @@ private suspend fun loadShopLogoBlocking(
         try {
             BitmapFactory.decodeFile(path)
         } catch (_: Exception) { null }
+    }
+}
+
+@Composable
+fun NoMenuItemsEmptyState(modifier: Modifier = Modifier) {
+    val spacing = KhanaBookTheme.spacing
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.padding(spacing.large),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                Icons.Default.RestaurantMenu,
+                contentDescription = null,
+                tint = TextGold.copy(alpha = 0.35f),
+                modifier = Modifier.size(56.dp)
+            )
+            Spacer(modifier = Modifier.height(spacing.smallMedium))
+            Text(
+                "No menu items added yet",
+                color = PrimaryGold,
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(spacing.extraSmall))
+            Text(
+                "Add menu items before creating a bill.",
+                color = TextGold.copy(alpha = 0.65f),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
     }
 }
 

@@ -360,13 +360,12 @@ fun ShopConfigView(
                 ParchmentTextField(
                     value = otpValue,
                     onValueChange = {
-                        if (it.length <= 6) {
-                            otpValue = it
-                            if (it.length == 6) {
-                                authViewModel.confirmMobileNumberUpdate(whatsapp, it)
-                            } else {
-                                isOtpVerified = false
-                            }
+                        val filtered = it.filter { ch -> ch.isDigit() }.take(6)
+                        otpValue = filtered
+                        if (filtered.length == 6) {
+                            authViewModel.confirmMobileNumberUpdate(whatsapp, filtered)
+                        } else {
+                            isOtpVerified = false
                         }
                     },
                     label = "Enter 6-digit OTP",

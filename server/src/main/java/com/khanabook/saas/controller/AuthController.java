@@ -138,10 +138,6 @@ public class AuthController {
 		@NotBlank(message = "Phone number is required")
 		@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
 		private String phoneNumber;
-
-		@NotBlank(message = "OTP is required")
-		@Size(min = 6, max = 6)
-		private String otp;
 	}
 
 	@Data

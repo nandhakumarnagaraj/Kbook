@@ -311,12 +311,10 @@ fun SignUpScreen(
                         OutlinedTextField(
                                 value = otp,
                                 onValueChange = {
-                                    if (it.length <= 6) {
-                                        val filtered = it.filter { ch -> ch.isDigit() }
-                                        otp = filtered
-                                        if (filtered.length == 6) {
-                                            runCatching { passwordFocusRequester.requestFocus() }
-                                        }
+                                    val filtered = it.filter { ch -> ch.isDigit() }.take(6)
+                                    otp = filtered
+                                    if (filtered.length == 6) {
+                                        runCatching { passwordFocusRequester.requestFocus() }
                                     }
                                 },
                                 label = { Text("Enter OTP") },

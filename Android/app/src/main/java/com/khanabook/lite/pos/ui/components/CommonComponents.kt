@@ -1,4 +1,4 @@
-﻿
+
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.khanabook.lite.pos.ui.components
@@ -82,10 +82,11 @@ fun KhanaDatePickerField(
             DatePicker(
                 state = datePickerState,
                 colors = DatePickerDefaults.colors(
+                    containerColor = DarkBrown2,
                     todayContentColor = PrimaryGold,
                     selectedDayContainerColor = PrimaryGold,
                     selectedDayContentColor = DarkBrown1,
-                    titleContentColor = TextLight,
+                    titleContentColor = PrimaryGold,
                     headlineContentColor = PrimaryGold,
                     weekdayContentColor = TextGold,
                     dayContentColor = TextLight
