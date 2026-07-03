@@ -59,7 +59,7 @@ fun BillItemEntity.toSyncDto() = BillItemSyncDto(
     serverId        = serverId,
     billId          = billId,
     serverBillId    = serverBillId,
-    menuItemId      = menuItemId,
+    menuItemId      = menuItemId ?: if (serverMenuItemId == null) 0L else null,
     serverMenuItemId = serverMenuItemId,
     itemName        = itemName,
     variantId       = variantId,

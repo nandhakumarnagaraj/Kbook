@@ -4,6 +4,7 @@ import androidx.room.*
 import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.local.entity.BillItemEntity
 import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
+import com.khanabook.lite.pos.data.local.entity.SyncQuarantineEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import kotlinx.coroutines.flow.Flow
 
@@ -48,8 +49,24 @@ interface BillDao {
     @Update
     suspend fun updateBill(bill: BillEntity)
 
+    @Query("SELECT * FROM bills WHERE restaurant_id = :restaurantId AND order_status = 'draft' AND payment_status = 'pending' AND is_deleted = 0 ORDER BY updated_at DESC")
+    fun getActiveDraftBillsFlow(restaurantId: Long): Flow<List<BillEntity>>
+
+    @Query("SELECT * FROM bill_items WHERE bill_id = :billId AND restaurant_id = :restaurantId AND sent_to_kot = 0 AND is_deleted = 0")
+    suspend fun getUnsentItemsForBill(billId: Long, restaurantId: Long): List<BillItemEntity>
+
+    @Query("UPDATE bill_items SET sent_to_kot = 1 WHERE id IN (:itemIds) AND restaurant_id = :restaurantId")
+    suspend fun markItemsSentToKot(itemIds: List<Long>, restaurantId: Long)
+
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBillItems(items: List<BillItemEntity>)
+
+    @Update
+    suspend fun updateBillItem(item: BillItemEntity)
+
+    @Query("DELETE FROM bill_items WHERE id = :id")
+    suspend fun deleteBillItemById(id: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBillPayments(payments: List<BillPaymentEntity>)
@@ -59,6 +76,9 @@ interface BillDao {
 
     @Query("SELECT * FROM bills WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun getBillById(id: Long, restaurantId: Long): BillEntity?
+
+    @Query("SELECT * FROM bills WHERE id IN (:billIds) AND restaurant_id = :restaurantId")
+    suspend fun getBillsByIds(billIds: List<Long>, restaurantId: Long): List<BillEntity>
 
     @Query("""
         SELECT * FROM bills
@@ -128,6 +148,19 @@ interface BillDao {
         LIMIT 1
     """)
     suspend fun getLatestPendingOnlineBill(restaurantId: Long): BillEntity?
+
+    @Query("""
+        SELECT * FROM bills
+        WHERE order_status = 'draft'
+          AND payment_status = 'pending'
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND payment_mode IN (
+            'upi', 'part_cash_upi', 'part_upi_pos'
+          )
+        ORDER BY created_at DESC
+    """)
+    fun getPendingOnlineBillsFlow(restaurantId: Long): Flow<List<BillEntity>>
 
     @Query("UPDATE bills SET order_status = :status WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun updateOrderStatus(id: Long, status: String, restaurantId: Long)
@@ -365,6 +398,9 @@ interface BillDao {
     """)
     suspend fun getUnsyncedBillItemsWithSyncedParent(restaurantId: Long): List<BillItemEntity>
 
+    @Query("SELECT * FROM bill_items WHERE id IN (:ids) AND restaurant_id = :restaurantId")
+    suspend fun getBillItemsByIds(ids: List<Long>, restaurantId: Long): List<BillItemEntity>
+
     @Query("UPDATE bill_items SET is_synced = 1 WHERE id IN (:ids) AND restaurant_id = :restaurantId")
     suspend fun markBillItemsAsSynced(ids: List<Long>, restaurantId: Long)
 
@@ -373,6 +409,26 @@ interface BillDao {
 
     @Query("UPDATE bill_items SET server_bill_id = :serverBillId WHERE bill_id = :billLocalId AND restaurant_id = :restaurantId AND server_bill_id IS NULL")
     suspend fun updateBillItemsServerBillIdByBillLocalId(billLocalId: Long, serverBillId: Long, restaurantId: Long): Int
+
+    @Query("""
+        UPDATE bill_items
+        SET server_bill_id = (
+            SELECT b.server_id
+            FROM bills b
+            WHERE b.id = bill_items.bill_id
+              AND b.restaurant_id = :restaurantId
+        )
+        WHERE restaurant_id = :restaurantId
+          AND server_bill_id IS NULL
+          AND EXISTS (
+              SELECT 1
+              FROM bills b
+              WHERE b.id = bill_items.bill_id
+                AND b.restaurant_id = :restaurantId
+                AND b.server_id IS NOT NULL
+          )
+    """)
+    suspend fun backfillBillItemServerBillIds(restaurantId: Long): Int
 
     @Query("UPDATE bill_items SET server_menu_item_id = :serverMenuItemId WHERE menu_item_id = :menuItemLocalId AND restaurant_id = :restaurantId AND server_menu_item_id IS NULL")
     suspend fun updateBillItemsServerMenuItemIdByMenuItemLocalId(menuItemLocalId: Long, serverMenuItemId: Long, restaurantId: Long): Int
@@ -414,6 +470,9 @@ interface BillDao {
     """)
     suspend fun getUnsyncedBillPaymentsWithSyncedParent(restaurantId: Long): List<BillPaymentEntity>
 
+    @Query("SELECT * FROM bill_payments WHERE id IN (:ids) AND restaurant_id = :restaurantId")
+    suspend fun getBillPaymentsByIds(ids: List<Long>, restaurantId: Long): List<BillPaymentEntity>
+
     @Query("UPDATE bill_payments SET is_synced = 1 WHERE id IN (:ids) AND restaurant_id = :restaurantId")
     suspend fun markBillPaymentsAsSynced(ids: List<Long>, restaurantId: Long)
 
@@ -422,6 +481,26 @@ interface BillDao {
 
     @Query("UPDATE bill_payments SET server_bill_id = :serverBillId WHERE bill_id = :billLocalId AND restaurant_id = :restaurantId AND server_bill_id IS NULL")
     suspend fun updateBillPaymentsServerBillIdByBillLocalId(billLocalId: Long, serverBillId: Long, restaurantId: Long): Int
+
+    @Query("""
+        UPDATE bill_payments
+        SET server_bill_id = (
+            SELECT b.server_id
+            FROM bills b
+            WHERE b.id = bill_payments.bill_id
+              AND b.restaurant_id = :restaurantId
+        )
+        WHERE restaurant_id = :restaurantId
+          AND server_bill_id IS NULL
+          AND EXISTS (
+              SELECT 1
+              FROM bills b
+              WHERE b.id = bill_payments.bill_id
+                AND b.restaurant_id = :restaurantId
+                AND b.server_id IS NOT NULL
+          )
+    """)
+    suspend fun backfillBillPaymentServerBillIds(restaurantId: Long): Int
 
     @Query("""
         SELECT item_name as itemName, SUM(quantity) as quantitySold, SUM(item_total) as revenue
@@ -436,6 +515,18 @@ interface BillDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedBillPayments(payments: List<BillPaymentEntity>)
+
+    @Query("SELECT * FROM sync_quarantine_records WHERE restaurant_id = :restaurantId ORDER BY quarantined_at DESC, id DESC")
+    fun getSyncQuarantineRecordsFlow(restaurantId: Long): Flow<List<SyncQuarantineEntity>>
+
+    @Query("SELECT COUNT(*) FROM sync_quarantine_records WHERE restaurant_id = :restaurantId")
+    fun getSyncQuarantineCountFlow(restaurantId: Long): Flow<Int>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSyncQuarantineRecord(record: SyncQuarantineEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSyncQuarantineRecords(records: List<SyncQuarantineEntity>)
 
     @Query("DELETE FROM bill_payments WHERE is_synced = 1 AND restaurant_id = :restaurantId")
     suspend fun deleteAllSyncedBillPayments(restaurantId: Long)

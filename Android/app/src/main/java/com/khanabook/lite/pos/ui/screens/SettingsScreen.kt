@@ -44,6 +44,7 @@ import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 fun SettingsScreen(
     onBack: () -> Unit,
     navController: NavController,
+    initialSection: String = "menu",
     onScanClick: (String?) -> Unit = {},
     menuViewModel: MenuViewModel,
     onBottomBarVisibilityChange: (Boolean) -> Unit = {},
@@ -53,7 +54,7 @@ fun SettingsScreen(
 ) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
-    var section by rememberSaveable { mutableStateOf("menu") }
+    var section by rememberSaveable(initialSection) { mutableStateOf(initialSection) }
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val isWideScreen = !layout.isCompact

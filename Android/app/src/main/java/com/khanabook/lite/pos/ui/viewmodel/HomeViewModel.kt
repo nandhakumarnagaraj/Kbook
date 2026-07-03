@@ -43,6 +43,21 @@ class HomeViewModel @Inject constructor(
             initialValue = 0
         )
 
+    val pendingOnlinePayments: StateFlow<List<com.khanabook.lite.pos.data.local.entity.BillEntity>> =
+        billRepository.getPendingOnlineBillsFlow()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+    val quarantinedSyncCount: StateFlow<Int> = billRepository.getSyncQuarantineCountFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0
+        )
+
     val printerReadiness: StateFlow<PrinterReadiness> = combine(
         profileFlow,
         printerProfileRepository.getProfilesFlow(),
@@ -174,6 +189,13 @@ class HomeViewModel @Inject constructor(
             } else {
                 _message.emit("$remainingCount KDS ticket(s) still pending.")
             }
+        }
+    }
+
+    fun cancelPendingOnlinePayment(billId: Long) {
+        viewModelScope.launch {
+            billRepository.cancelOrder(billId, "Payment attempt cancelled by cashier")
+            _message.emit("Pending payment cancelled.")
         }
     }
 

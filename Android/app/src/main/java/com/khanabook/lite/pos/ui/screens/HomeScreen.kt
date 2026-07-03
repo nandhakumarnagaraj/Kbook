@@ -45,6 +45,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 @Composable
 fun HomeScreen(
     onNewBill: () -> Unit,
+    onResumePendingPayment: () -> Unit,
+    onOpenSyncCenter: () -> Unit,
     onSearchBill: () -> Unit,
     onReprintKds: () -> Unit,
     onOrderStatus: () -> Unit,
@@ -55,6 +57,8 @@ fun HomeScreen(
     val stats by viewModel.todayStats.collectAsStateWithLifecycle()
     val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
     val unsyncedCount by viewModel.unsyncedCount.collectAsStateWithLifecycle()
+    val pendingOnlinePayments by viewModel.pendingOnlinePayments.collectAsStateWithLifecycle()
+    val quarantinedSyncCount by viewModel.quarantinedSyncCount.collectAsStateWithLifecycle()
     val shopName by viewModel.shopName.collectAsStateWithLifecycle()
     val greeting = viewModel.greeting
     val spacing = KhanaBookTheme.spacing
@@ -175,6 +179,117 @@ fun HomeScreen(
 
             AnimatedVisibility(visible = primaryVisible, enter = enterSpec, exit = exitSpec) {
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                    if (pendingOnlinePayments.isNotEmpty()) {
+                        val pendingPayment = pendingOnlinePayments.first()
+                        KhanaBookCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = WarningYellow.copy(alpha = 0.14f)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(spacing.medium),
+                                verticalArrangement = Arrangement.spacedBy(spacing.small)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = WarningYellow,
+                                        modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Unresolved Payment",
+                                            color = WarningYellow,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "Order ${pendingPayment.dailyOrderDisplay} • ${CurrencyUtils.formatPrice(pendingPayment.totalAmount)}",
+                                            color = TextLight,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = if (pendingOnlinePayments.size > 1) {
+                                        "${pendingOnlinePayments.size} pending payment attempts need review before retrying UPI."
+                                    } else {
+                                        "Resume or cancel this payment attempt before starting another UPI payment."
+                                    },
+                                    color = TextGold,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                                ) {
+                                    Button(
+                                        onClick = onResumePendingPayment,
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Resume", color = DarkBrown1)
+                                    }
+                                    OutlinedButton(
+                                        onClick = { viewModel.cancelPendingOnlinePayment(pendingPayment.id) },
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = WarningYellow),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Cancel")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (quarantinedSyncCount > 0) {
+                        KhanaBookCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = PrimaryGold.copy(alpha = 0.12f)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(spacing.medium),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SyncProblem,
+                                    contentDescription = null,
+                                    tint = PrimaryGold,
+                                    modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "$quarantinedSyncCount quarantined child row(s) need review",
+                                        color = TextLight,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Open Sync Center to inspect quarantined bill items and payments.",
+                                        color = TextGold,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                TextButton(onClick = onOpenSyncCenter) {
+                                    Text("Open")
+                                }
+                            }
+                        }
+                    }
                     KhanaBookCard(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { onNewBill() },
@@ -215,39 +330,39 @@ fun HomeScreen(
             }
 
             AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(spacing.small)
-            ) {
-                HomeActionCard(
-                    text = "Find Bill",
-                    icon = Icons.Default.Search,
-                    backgroundColor = CardBG,
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = onSearchBill
-                )
-                HomeActionCard(
-                    text = "Reprint KDS",
-                    icon = Icons.Default.Restaurant,
-                    backgroundColor = CardBG,
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = onReprintKds
-                )
-                HomeActionCard(
-                    text = "Order Status",
-                    icon = Icons.Default.Info,
-                    backgroundColor = CardBG,
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = onOrderStatus
-                )
-                HomeActionCard(
-                    text = "Call Customers",
-                    icon = Icons.Default.Call,
-                    backgroundColor = CardBG,
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = onCallCustomer
-                )
-            }
+                    verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                ) {
+                    HomeActionCard(
+                        text = "Find Bill",
+                        icon = Icons.Default.Search,
+                        backgroundColor = CardBG,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onSearchBill
+                    )
+                    HomeActionCard(
+                        text = "Reprint KDS",
+                        icon = Icons.Default.Restaurant,
+                        backgroundColor = CardBG,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onReprintKds
+                    )
+                    HomeActionCard(
+                        text = "Order Status",
+                        icon = Icons.Default.Info,
+                        backgroundColor = CardBG,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onOrderStatus
+                    )
+                    HomeActionCard(
+                        text = "Call Customers",
+                        icon = Icons.Default.Call,
+                        backgroundColor = CardBG,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onCallCustomer
+                    )
+                }
             } // end AnimatedVisibility(actionsVisible)
         }
     }

@@ -20,9 +20,10 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillEntity::class,
                         BillItemEntity::class,
                         BillPaymentEntity::class,
+                        SyncQuarantineEntity::class,
                         StockLogEntity::class
                 ],
-        version = 48,
+        version = 51,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -37,6 +38,51 @@ abstract class AppDatabase : RoomDatabase() {
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
+
+            val MIGRATION_50_51 = object : Migration(50, 51) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    if (!db.hasColumn("sync_quarantine_records", "child_snapshot_json")) {
+                        db.execSQL("ALTER TABLE `sync_quarantine_records` ADD COLUMN `child_snapshot_json` TEXT")
+                    }
+                }
+            }
+
+            val MIGRATION_49_50 = object : Migration(49, 50) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        """
+                        CREATE TABLE IF NOT EXISTS `sync_quarantine_records` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                            `parent_bill_id` INTEGER NOT NULL,
+                            `parent_bill_display` TEXT,
+                            `child_entity_type` TEXT NOT NULL,
+                            `child_local_id` INTEGER NOT NULL,
+                            `child_display_name` TEXT,
+                            `child_summary` TEXT,
+                            `child_snapshot_json` TEXT,
+                            `sync_failure_reason` TEXT,
+                            `quarantined_at` INTEGER NOT NULL DEFAULT 0
+                        )
+                        """.trimIndent()
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_sync_quarantine_records_restaurant_id` ON `sync_quarantine_records` (`restaurant_id`)"
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_sync_quarantine_records_restaurant_id_parent_bill_id` ON `sync_quarantine_records` (`restaurant_id`, `parent_bill_id`)"
+                    )
+                    db.execSQL(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS `index_sync_quarantine_records_restaurant_id_child_entity_type_child_local_id` ON `sync_quarantine_records` (`restaurant_id`, `child_entity_type`, `child_local_id`)"
+                    )
+                }
+            }
+
+            val MIGRATION_48_49 = object : Migration(48, 49) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE `bill_items` ADD COLUMN `sent_to_kot` INTEGER NOT NULL DEFAULT 0")
+                }
+            }
 
             val MIGRATION_47_48 = object : Migration(47, 48) {
                 override fun migrate(db: SupportSQLiteDatabase) {
@@ -402,6 +448,18 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `review_url` TEXT")
             }
+        }
+
+        private fun SupportSQLiteDatabase.hasColumn(tableName: String, columnName: String): Boolean {
+            query("PRAGMA table_info(`$tableName`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (nameIndex >= 0 && cursor.getString(nameIndex) == columnName) {
+                        return true
+                    }
+                }
+            }
+            return false
         }
     }
 }

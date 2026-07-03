@@ -87,7 +87,7 @@ class BillDependencyResolutionTest {
     }
 
     @Test
-    void billItem_missingMenuItem_addedToFailedIds() {
+    void billItem_unresolvedLocalMenuReference_isPreservedAsSnapshotReference() {
         Bill bill = serverBill(200L);
         BillItem item = billItem(1L, 10L, 20L, null);
         item.setLocalId(88L);
@@ -100,7 +100,26 @@ class BillDependencyResolutionTest {
 
         PushSyncResponse resp = billItemService.pushData(TENANT_ID, List.of(item));
 
-        assertThat(resp.getFailedLocalIds()).contains(88L);
+        assertThat(item.getMenuItemId()).isEqualTo(20L);
+        assertThat(resp.getFailedLocalIds()).doesNotContain(88L);
+    }
+
+    @Test
+    void billItem_missingHistoricalMenuReference_usesSnapshotSentinel() {
+        Bill bill = serverBill(200L);
+        BillItem item = billItem(1L, 10L, 20L, null);
+        item.setLocalId(89L);
+        item.setMenuItemId(null);
+        item.setServerMenuItemId(null);
+
+        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10L))
+            .thenReturn(Optional.of(bill));
+        stubBillItemSync();
+
+        PushSyncResponse resp = billItemService.pushData(TENANT_ID, List.of(item));
+
+        assertThat(item.getMenuItemId()).isEqualTo(0L);
+        assertThat(resp.getFailedLocalIds()).doesNotContain(89L);
     }
 
     @Test

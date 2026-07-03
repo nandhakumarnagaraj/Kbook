@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.PaymentModeManager
@@ -97,11 +98,21 @@ fun NewBillScreen(
         menuViewModel: MenuViewModel = hiltViewModel(),
         settingsViewModel: SettingsViewModel = hiltViewModel(),
     navController: androidx.navigation.NavController? = null,
-    resumePendingPayment: Boolean = false
+    resumePendingPayment: Boolean = false,
+    draftBillId: Long? = null,
+    initialStep: Int = 1
 ) {
-    var step by remember { mutableIntStateOf(1) }
+    var step by remember { mutableIntStateOf(if (resumePendingPayment) 3 else initialStep) }
     var paymentFlowLocked by remember { mutableStateOf(false) }
-    val shouldResumePendingPayment = false
+
+    LaunchedEffect(draftBillId) {
+        if (draftBillId != null) {
+            billingViewModel.loadDraftOrderForEditing(draftBillId) {
+                step = initialStep
+            }
+        }
+    }
+    val shouldResumePendingPayment = resumePendingPayment
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
 
@@ -115,6 +126,7 @@ fun NewBillScreen(
     val summary by billingViewModel.billSummary.collectAsStateWithLifecycle()
     val error by billingViewModel.error.collectAsStateWithLifecycle()
     val isLoading by billingViewModel.isLoading.collectAsStateWithLifecycle()
+    val activeDraftBills by billingViewModel.activeDraftBillsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -135,11 +147,16 @@ fun NewBillScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        billingViewModel.resetForNewBill()
-        billingViewModel.cancelPendingOnlineDrafts()
-        PaymentReturnManager.clearLatestEvent()
-        step = 1
+    LaunchedEffect(draftBillId, resumePendingPayment) {
+        if (draftBillId == null && !resumePendingPayment) {
+            billingViewModel.resetForNewBill()
+            billingViewModel.cancelPendingOnlineDrafts()
+            PaymentReturnManager.clearLatestEvent()
+            step = 1
+        }
+        if (resumePendingPayment) {
+            step = 3
+        }
     }
 
     LaunchedEffect(error) {
@@ -155,6 +172,36 @@ fun NewBillScreen(
         }
         if (step == 5) {
             coroutineScope.launch { snackbarHostState.showSnackbar(context.getString(R.string.toast_payment_failed)) }
+        }
+    }
+
+    val returnToCompletedOrders: () -> Unit = {
+        if (navController != null) {
+            val highlightedBillId = billingViewModel.lastBill.value?.bill?.id
+            val route = if (highlightedBillId != null) {
+                "main/3?source=POS&highlightBillId=$highlightedBillId"
+            } else {
+                "main/3?source=POS"
+            }
+            navController.navigate(route) {
+                popUpTo("main/{tab}?source={source}&highlightBillId={highlightBillId}") { inclusive = true }
+                launchSingleTop = true
+            }
+        } else {
+            onBack()
+        }
+    }
+
+    val returnToNewBillTables: () -> Unit = {
+        if (navController != null) {
+            navController.navigate("new_bill") {
+                popUpTo("new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}") {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
+        } else {
+            onBack()
         }
     }
 
@@ -220,7 +267,11 @@ fun NewBillScreen(
                                     },
                                     onBack = onBack,
                                     hideHeader = true,
-                                    billingViewModel = billingViewModel
+                                    billingViewModel = billingViewModel,
+                                    activeDraftBills = activeDraftBills,
+                                    onOpenDraftOrder = { billId, targetStep ->
+                                        navController?.navigate("new_bill?draftBillId=$billId&targetStep=$targetStep")
+                                    }
                             )
                     2 ->
                             MenuSelectionStep(
@@ -231,7 +282,8 @@ fun NewBillScreen(
                                     total = summary.total.toDoubleOrNull() ?: 0.0,
                                     itemCount = cartItems.sumOf { it.quantity },
                                     hideHeader = true,
-                                    navController = navController
+                                    navController = navController,
+                                    onReturnToTableList = returnToNewBillTables
                             )
                     3 ->
                             PaymentStep(
@@ -247,14 +299,14 @@ fun NewBillScreen(
                             SuccessStep(
                                     billingViewModel,
                                     settingsViewModel,
-                                    onDone = onBack,
+                                    onDone = returnToCompletedOrders,
                                     onShowMessage = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
                             )
                     else ->
                             FailedStep(
                                     viewModel = billingViewModel,
                                     onRetryPayment = { step = 3 },
-                                    onNewBill = onBack
+                                    onNewBill = returnToCompletedOrders
                             )
                 }
             }
@@ -274,19 +326,31 @@ fun CustomerInfoStep(
     onNext: (String, String) -> Unit,
     onBack: () -> Unit,
     hideHeader: Boolean = false,
-    billingViewModel: com.khanabook.lite.pos.ui.viewmodel.BillingViewModel? = null
+    billingViewModel: com.khanabook.lite.pos.ui.viewmodel.BillingViewModel? = null,
+    activeDraftBills: List<BillEntity> = emptyList(),
+    onOpenDraftOrder: (billId: Long, targetStep: Int) -> Unit = { _, _ -> }
 ) {
-    // Restore from ViewModel so state survives AnimatedContent recreation when going back
     var name by remember { mutableStateOf(billingViewModel?.customerName?.value ?: "") }
     var whatsapp by remember { mutableStateOf(billingViewModel?.customerWhatsapp?.value ?: "") }
     val spacing = KhanaBookTheme.spacing
 
-    val recentCustomers by (billingViewModel?.recentCustomers ?: kotlinx.coroutines.flow.flowOf(emptyList<Pair<String,String>>())).collectAsState(initial = emptyList())
+    val recentCustomers by (billingViewModel?.recentCustomers ?: kotlinx.coroutines.flow.flowOf(emptyList<Pair<String,String>>())).collectAsState(emptyList())
+    val currentOrderType by (billingViewModel?.orderType ?: kotlinx.coroutines.flow.flowOf("dine_in")).collectAsState("dine_in")
+    var selectedOrderType by remember { mutableStateOf(if (activeDraftBills.isNotEmpty()) "active_order" else currentOrderType) }
 
     LaunchedEffect(Unit) { billingViewModel?.loadRecentCustomers() }
+    LaunchedEffect(currentOrderType) {
+        if (selectedOrderType != "active_order") {
+            selectedOrderType = currentOrderType
+        }
+    }
 
-    val isWhatsappValid = whatsapp.isNotEmpty() && ValidationUtils.isValidPhone(whatsapp)
-    val isNextEnabled = isWhatsappValid
+    val showPhoneError = whatsapp.isNotEmpty() && !ValidationUtils.isValidPhone(whatsapp)
+    val isNextEnabled = when (selectedOrderType) {
+        "dine_in" -> name.isNotBlank() && ValidationUtils.isValidPhone(whatsapp)
+        "takeaway" -> ValidationUtils.isValidPhone(whatsapp)
+        else -> false
+    }
 
     Column(
             modifier =
@@ -310,13 +374,123 @@ fun CustomerInfoStep(
                             color = PrimaryGold,
                             style = MaterialTheme.typography.headlineMedium
                     )
-                    Text("Customer Details", color = TextGold, style = MaterialTheme.typography.bodySmall)
+                    Text("Customer Details & Order Type", color = TextGold, style = MaterialTheme.typography.bodySmall)
                 }
             }
             Spacer(modifier = Modifier.height(spacing.extraLarge))
         }
 
-        if (recentCustomers.isNotEmpty()) {
+        Text(
+            "Order Type",
+            color = TextGold,
+            style = MaterialTheme.typography.labelMedium
+        )
+        Spacer(modifier = Modifier.height(spacing.small))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            OrderTypeButton(
+                text = "Active Order",
+                isSelected = selectedOrderType == "active_order",
+                modifier = Modifier.weight(1f)
+            ) {
+                selectedOrderType = "active_order"
+            }
+            OrderTypeButton(
+                text = "Dine-In",
+                isSelected = selectedOrderType == "dine_in",
+                modifier = Modifier.weight(1f)
+            ) {
+                selectedOrderType = "dine_in"
+                billingViewModel?.setOrderType("dine_in")
+            }
+            OrderTypeButton(
+                text = "Takeaway",
+                isSelected = selectedOrderType == "takeaway",
+                modifier = Modifier.weight(1f)
+            ) {
+                selectedOrderType = "takeaway"
+                billingViewModel?.setOrderType("takeaway")
+            }
+        }
+        Spacer(modifier = Modifier.height(spacing.large))
+
+        if (selectedOrderType == "active_order") {
+            Text(
+                "Active Orders",
+                color = TextGold,
+                style = MaterialTheme.typography.labelMedium
+            )
+            Spacer(modifier = Modifier.height(spacing.extraSmall))
+            if (activeDraftBills.isEmpty()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = DarkBrown2,
+                    border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
+                ) {
+                    Text(
+                        text = "No active orders right now.",
+                        modifier = Modifier.padding(spacing.medium),
+                        color = TextGold.copy(alpha = 0.75f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            } else {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                ) {
+                    activeDraftBills.forEach { bill ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = DarkBrown2,
+                            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .widthIn(min = 160.dp, max = 220.dp)
+                                    .padding(spacing.medium),
+                                verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                            ) {
+                                Text(
+                                    text = bill.customerName ?: "Table",
+                                    color = PrimaryGold,
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = CurrencyUtils.formatPrice(bill.totalAmount.toDoubleOrNull() ?: 0.0),
+                                    color = TextLight,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
+                                    TextButton(
+                                        onClick = { onOpenDraftOrder(bill.id, 2) },
+                                        contentPadding = PaddingValues(horizontal = spacing.small, vertical = 0.dp)
+                                    ) {
+                                        Text("Add", color = VegGreen, style = MaterialTheme.typography.labelSmall)
+                                    }
+                                    TextButton(
+                                        onClick = { onOpenDraftOrder(bill.id, 3) },
+                                        contentPadding = PaddingValues(horizontal = spacing.small, vertical = 0.dp)
+                                    ) {
+                                        Text("Settle", color = PrimaryGold, style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(spacing.large))
+        }
+
+        if (recentCustomers.isNotEmpty() && selectedOrderType == "takeaway") {
             Text(
                 "Recent Customers",
                 color = TextGold,
@@ -359,15 +533,27 @@ fun CustomerInfoStep(
             Spacer(modifier = Modifier.height(spacing.medium))
         }
 
-        val showPhoneError = whatsapp.isNotEmpty() && !ValidationUtils.isValidPhone(whatsapp)
-        OutlinedTextField(
+        if (selectedOrderType == "dine_in") {
+            OutlinedTextField(
+                value = name,
+                onValueChange = {
+                    name = it
+                    billingViewModel?.setCustomerInfo(it, whatsapp)
+                },
+                label = { Text("Table Name / Number *") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = menuTextFieldColors(),
+                leadingIcon = { Icon(Icons.Default.Person, null, tint = PrimaryGold) }
+            )
+            Spacer(modifier = Modifier.height(spacing.medium))
+            OutlinedTextField(
                 value = whatsapp,
                 onValueChange = {
                     val filtered = it.filter { ch -> ch.isDigit() }.take(10)
                     whatsapp = filtered
                     billingViewModel?.setCustomerInfo(name, filtered)
                 },
-                label = { Text("Customer WhatsApp Number *") },
+                label = { Text("WhatsApp Number *") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = menuTextFieldColors(),
                 leadingIcon = { Icon(Icons.Default.Phone, null, tint = VegGreen) },
@@ -375,13 +561,28 @@ fun CustomerInfoStep(
                 supportingText = {
                     if (showPhoneError) Text("Enter 10-digit number", color = DangerRed)
                 },
-                keyboardOptions =
-                        androidx.compose.foundation.text.KeyboardOptions(
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
-                        )
-        )
-        Spacer(modifier = Modifier.height(spacing.medium))
-        OutlinedTextField(
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
+            )
+        } else if (selectedOrderType == "takeaway") {
+            OutlinedTextField(
+                value = whatsapp,
+                onValueChange = {
+                    val filtered = it.filter { ch -> ch.isDigit() }.take(10)
+                    whatsapp = filtered
+                    billingViewModel?.setCustomerInfo(name, filtered)
+                },
+                label = { Text("WhatsApp Number *") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = menuTextFieldColors(),
+                leadingIcon = { Icon(Icons.Default.Phone, null, tint = VegGreen) },
+                isError = showPhoneError,
+                supportingText = {
+                    if (showPhoneError) Text("Enter 10-digit number", color = DangerRed)
+                },
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
+            )
+            Spacer(modifier = Modifier.height(spacing.medium))
+            OutlinedTextField(
                 value = name,
                 onValueChange = {
                     name = it
@@ -391,26 +592,29 @@ fun CustomerInfoStep(
                 modifier = Modifier.fillMaxWidth(),
                 colors = menuTextFieldColors(),
                 leadingIcon = { Icon(Icons.Default.Person, null, tint = PrimaryGold) }
-        )
-
-        Spacer(modifier = Modifier.height(spacing.huge))
-        Button(
-            onClick = { if (isNextEnabled) onNext(name, whatsapp) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors =
-                    ButtonDefaults.buttonColors(
-                            containerColor = if (isNextEnabled) PrimaryGold else Color.Gray
-                    ),
-            shape = RoundedCornerShape(12.dp),
-            enabled = isNextEnabled
-        ) {
-            Text(
-                    "Continue",
-                    color = if (isNextEnabled) DarkBrown1 else Color.LightGray,
-                    style = MaterialTheme.typography.titleMedium
             )
+        }
+
+        if (selectedOrderType != "active_order") {
+            Spacer(modifier = Modifier.height(spacing.huge))
+            Button(
+                onClick = { if (isNextEnabled) onNext(name, whatsapp) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors =
+                        ButtonDefaults.buttonColors(
+                                containerColor = if (isNextEnabled) PrimaryGold else Color.Gray
+                        ),
+                shape = RoundedCornerShape(12.dp),
+                enabled = isNextEnabled
+            ) {
+                Text(
+                        "Continue",
+                        color = if (isNextEnabled) DarkBrown1 else Color.LightGray,
+                        style = MaterialTheme.typography.titleMedium
+                )
+            }
         }
     }
 }
@@ -430,7 +634,13 @@ fun OrderTypeButton(text: String, isSelected: Boolean, modifier: Modifier, onCli
         Text(
                 text,
                 color = if (isSelected) DarkBrown1 else TextGold,
-                style = if (isSelected) MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge
+                style = if (isSelected) {
+                    MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                } else {
+                    MaterialTheme.typography.labelMedium
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -445,7 +655,8 @@ fun MenuSelectionStep(
         total: Double,
         itemCount: Int,
         hideHeader: Boolean = false,
-        navController: NavController? = null
+        navController: NavController? = null,
+        onReturnToTableList: () -> Unit = {}
 ) {
     val categories by menuViewModel.categories.collectAsStateWithLifecycle()
     val items by menuViewModel.menuItems.collectAsStateWithLifecycle()
@@ -465,6 +676,8 @@ fun MenuSelectionStep(
     // Adaptive split-view: Categories on left, Cart on right for tablets
     val isWideScreen = layout.isWideListDetail
     val gridColumns = layout.menuGridColumns
+    val scope = rememberCoroutineScope()
+    val currentOrderType by billingViewModel.orderType.collectAsStateWithLifecycle()
 
     LaunchedEffect(categories) {
         if (selectedCategoryId == null && categories.isNotEmpty()) {
@@ -782,18 +995,75 @@ fun MenuSelectionStep(
                                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
                             )
                         }
-                        Button(
-                                onClick = onProceedToPayment,
-                                colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1),
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.smallMedium),
-                                enabled = derivedItemCount > 0
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                    "Proceed",
-                                    color = PrimaryGold,
-                                    style = MaterialTheme.typography.titleMedium
-                            )
+                            if (currentOrderType == "dine_in") {
+                                if (billingViewModel.editingBillId != null) {
+                                    Button(
+                                        onClick = {
+                                            scope.launch {
+                                                if (billingViewModel.appendItemsToDraft(billingViewModel.editingBillId!!)) {
+                                                    if (navController != null) {
+                                                        onReturnToTableList()
+                                                    } else {
+                                                        onBack()
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = spacing.medium, vertical = spacing.smallMedium),
+                                        enabled = derivedItemCount > 0
+                                    ) {
+                                        Text(
+                                            "Update Table",
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp)
+                                        )
+                                    }
+                                } else {
+                                    Button(
+                                        onClick = {
+                                            scope.launch {
+                                                if (billingViewModel.saveDraftOrder(billingViewModel.customerName.value)) {
+                                                    if (navController != null) {
+                                                        onReturnToTableList()
+                                                    } else {
+                                                        onBack()
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = spacing.medium, vertical = spacing.smallMedium),
+                                        enabled = derivedItemCount > 0
+                                    ) {
+                                        Text(
+                                            "Save Table",
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Button(
+                                    onClick = onProceedToPayment,
+                                    colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.smallMedium),
+                                    enabled = derivedItemCount > 0
+                            ) {
+                                Text(
+                                        if (billingViewModel.editingBillId != null) "Settle" else "Proceed",
+                                        color = PrimaryGold,
+                                        style = MaterialTheme.typography.titleMedium
+                                )
+                            }
                         }
                     }
                 }
@@ -885,6 +1155,52 @@ fun MenuSelectionStep(
                                 Text(CurrencyUtils.formatPrice(total), color = PrimaryGold, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                             }
                             Spacer(modifier = Modifier.height(spacing.medium))
+                            if (currentOrderType == "dine_in") {
+                                if (billingViewModel.editingBillId != null) {
+                                    Button(
+                                        onClick = {
+                                            scope.launch {
+                                                if (billingViewModel.appendItemsToDraft(billingViewModel.editingBillId!!)) {
+                                                    if (navController != null) {
+                                                        onReturnToTableList()
+                                                    } else {
+                                                        onBack()
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
+                                        shape = RoundedCornerShape(12.dp),
+                                        enabled = derivedItemCount > 0
+                                    ) {
+                                        Text("Update Table (Send KOT)", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                                    }
+                                    Spacer(modifier = Modifier.height(spacing.small))
+                                } else {
+                                    Button(
+                                        onClick = {
+                                            scope.launch {
+                                                if (billingViewModel.saveDraftOrder(billingViewModel.customerName.value)) {
+                                                    if (navController != null) {
+                                                        onReturnToTableList()
+                                                    } else {
+                                                        onBack()
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = VegGreen),
+                                        shape = RoundedCornerShape(12.dp),
+                                        enabled = derivedItemCount > 0
+                                    ) {
+                                        Text("Save Table (Send KOT)", color = Color.White, style = MaterialTheme.typography.titleMedium)
+                                    }
+                                    Spacer(modifier = Modifier.height(spacing.small))
+                                }
+                            }
+
                             Button(
                                 onClick = onProceedToPayment,
                                 modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -892,7 +1208,11 @@ fun MenuSelectionStep(
                                 shape = RoundedCornerShape(12.dp),
                                 enabled = derivedItemCount > 0
                             ) {
-                                Text("Proceed to Payment", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    if (billingViewModel.editingBillId != null) "Proceed to Settle" else "Proceed to Payment",
+                                    color = DarkBrown1,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
                             }
                             if (derivedItemCount == 0) {
                                 Text(
@@ -985,9 +1305,15 @@ fun PaymentStep(
     var selectedMode by remember { mutableStateOf(PaymentMode.UPI) }
     var expanded by remember { mutableStateOf(false) }
     var showQrModal by remember { mutableStateOf(false) }
+    val restoredPaymentMode by viewModel.paymentMode.collectAsStateWithLifecycle()
+    val restoredPartAmount1 by viewModel.partAmount1.collectAsStateWithLifecycle()
+    val restoredPartAmount2 by viewModel.partAmount2.collectAsStateWithLifecycle()
 
     var p1Text by remember { mutableStateOf("") }
     var p2Text by remember { mutableStateOf("") }
+    var resumedPendingBillId by remember { mutableStateOf<Long?>(null) }
+    var isCreatingPaymentAttempt by remember { mutableStateOf(false) }
+    val latestPaymentEvent by PaymentReturnManager.latestEvent.collectAsStateWithLifecycle()
 
     
     LaunchedEffect(enabledModes) {
@@ -997,6 +1323,21 @@ fun PaymentStep(
                 else -> enabledModes.first()
             }
         }
+    }
+
+    LaunchedEffect(latestPaymentEvent) {
+        latestPaymentEvent?.let { event ->
+            viewModel.setGatewayResult(event.txnId, event.status.name)
+        }
+    }
+
+    LaunchedEffect(resumePendingPayment, restoredPaymentMode, restoredPartAmount1, restoredPartAmount2, enabledModes) {
+        if (!resumePendingPayment) return@LaunchedEffect
+        if (enabledModes.contains(restoredPaymentMode)) {
+            selectedMode = restoredPaymentMode
+        }
+        p1Text = restoredPartAmount1
+        p2Text = restoredPartAmount2
     }
 
     // UPI transaction limit: most Indian banks cap single UPI transactions at ₹1,00,000.
@@ -1026,8 +1367,8 @@ fun PaymentStep(
         }
     }
 
-    LaunchedEffect(selectedMode, summary.total) {
-        if (isSplitMode) {
+    LaunchedEffect(selectedMode, summary.total, resumePendingPayment) {
+        if (isSplitMode && !resumePendingPayment) {
             val split = when (selectedMode) {
                 PaymentMode.PART_CASH_UPI -> BillCalculator.splitCashUpiWithUpiCap(summary.total)
                 PaymentMode.PART_UPI_POS -> BillCalculator.splitUpiPosWithUpiCap(summary.total)
@@ -1056,6 +1397,27 @@ fun PaymentStep(
             upiPayableAmount > 0.0 &&
             upiPayableAmount <= upiMaxAmount &&
             !profile?.upiHandle.isNullOrBlank()
+    val requiresOnlineAttempt = isUpiMode && viewModel.editingBillId == null
+    val paymentAttemptReady = !requiresOnlineAttempt || resumedPendingBillId != null
+    val controlsLocked = requiresOnlineAttempt && paymentAttemptReady
+
+    LaunchedEffect(canGenerateAmountQr, selectedMode, p1Text, p2Text, resumePendingPayment) {
+        if (
+            canGenerateAmountQr &&
+            requiresOnlineAttempt &&
+            !resumePendingPayment &&
+            resumedPendingBillId == null &&
+            !isCreatingPaymentAttempt
+        ) {
+            isCreatingPaymentAttempt = true
+            try {
+                viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
+                resumedPendingBillId = viewModel.createDraftOnlineBill()
+            } finally {
+                isCreatingPaymentAttempt = false
+            }
+        }
+    }
 
     val relocationRequester = remember { BringIntoViewRequester() }
     val scope = rememberCoroutineScope()
@@ -1068,11 +1430,12 @@ fun PaymentStep(
         profile?.shopName,
         upiPayableAmount,
         canGenerateAmountQr,
+        paymentAttemptReady,
         profile?.logoUrl,
         profile?.logoPath
     ) {
         val handle = profile?.upiHandle
-        value = if (canGenerateAmountQr && !handle.isNullOrBlank()) {
+        value = if (canGenerateAmountQr && paymentAttemptReady && !handle.isNullOrBlank()) {
             val logo = loadShopLogoBlocking(context, profile?.logoUrl, profile?.logoPath)
             withContext(Dispatchers.Default) {
                 QrCodeManager.generateUpiQrWithLogo(
@@ -1140,6 +1503,7 @@ fun PaymentStep(
                             contentDescription = "Scan to pay ${profile?.upiHandle}",
                             modifier = Modifier.fillMaxSize()
                         )
+                        isCreatingPaymentAttempt -> CircularProgressIndicator(color = PrimaryGold)
                         else -> Icon(
                             Icons.Default.QrCode,
                             null,
@@ -1163,6 +1527,22 @@ fun PaymentStep(
                             else -> "Add items before scanning UPI QR"
                         },
                         color = DangerRed,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(top = spacing.extraSmall)
+                    )
+                }
+                if (canGenerateAmountQr && requiresOnlineAttempt && !paymentAttemptReady) {
+                    Text(
+                        "Preparing payment record before showing QR...",
+                        color = WarningYellow,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(top = spacing.extraSmall)
+                    )
+                }
+                if (paymentAttemptReady && requiresOnlineAttempt) {
+                    Text(
+                        "Payment attempt saved. If the app closes, resume it from Home.",
+                        color = TextGold,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(top = spacing.extraSmall)
                     )
@@ -1274,7 +1654,7 @@ fun PaymentStep(
                                         .height(56.dp)
                                         .background(BrownSelected, RoundedCornerShape(8.dp))
                                         .border(1.dp, BorderGold)
-                                        .clickable { expanded = true }
+                                        .clickable(enabled = !controlsLocked) { expanded = true }
                                         .padding(horizontal = spacing.medium),
                         contentAlignment = Alignment.CenterStart
                 ) {
@@ -1287,7 +1667,7 @@ fun PaymentStep(
                         Icon(Icons.Default.ArrowDropDown, null, tint = PrimaryGold)
                     }
                     DropdownMenu(
-                            expanded = expanded,
+                            expanded = expanded && !controlsLocked,
                             onDismissRequest = { expanded = false },
                             modifier = Modifier.background(DarkBrown2)
                     ) {
@@ -1331,6 +1711,7 @@ fun PaymentStep(
                                         }
                                     },
                                     isError = !isAmountValid,
+                                    enabled = !controlsLocked,
                                     keyboardOptions =
                                             androidx.compose.foundation.text.KeyboardOptions(
                                                     keyboardType =
@@ -1350,6 +1731,7 @@ fun PaymentStep(
                                         }
                                     },
                                     isError = !isAmountValid,
+                                    enabled = !controlsLocked,
                                     keyboardOptions =
                                             androidx.compose.foundation.text.KeyboardOptions(
                                                     keyboardType =
@@ -1373,8 +1755,27 @@ fun PaymentStep(
 
             LaunchedEffect(resumePendingPayment) {
                 if (!resumePendingPayment) return@LaunchedEffect
-                val pendingBillId = viewModel.getLatestPendingOnlineBillId() ?: return@LaunchedEffect
-                if (!viewModel.restorePendingOnlineBill(pendingBillId)) return@LaunchedEffect
+                val pendingBillId = viewModel.getLatestPendingOnlineBillId()
+                if (pendingBillId == null) {
+                    val txnNote = latestPaymentEvent?.txnId
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { " Txn: $it." }
+                        ?: ""
+                    val statusNote = latestPaymentEvent?.status?.name
+                        ?.let { " Return status: $it." }
+                        ?: ""
+                    viewModel.reportError(
+                        "Payment return received, but no matching pending bill was found.$txnNote$statusNote Check the payment app or contact support before retrying."
+                    )
+                    onBackToMenu()
+                    return@LaunchedEffect
+                }
+                if (!viewModel.restorePendingOnlineBill(pendingBillId)) {
+                    viewModel.reportError("Unable to restore pending online payment.")
+                    onBackToMenu()
+                    return@LaunchedEffect
+                }
+                resumedPendingBillId = pendingBillId
             }
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
@@ -1383,8 +1784,17 @@ fun PaymentStep(
                         if (!isAmountValid) return@Button
                         scope.launch {
                             viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                            if (viewModel.completeOrder(PaymentStatus.SUCCESS)) {
+                            val success = when {
+                                resumedPendingBillId != null ->
+                                    viewModel.finalizeOnlineBill(resumedPendingBillId!!, PaymentStatus.SUCCESS)
+                                viewModel.editingBillId != null ->
+                                    viewModel.settleDraftOrder(viewModel.editingBillId!!, selectedMode, PaymentStatus.SUCCESS)
+                                else ->
+                                    viewModel.completeOrder(PaymentStatus.SUCCESS)
+                            }
+                            if (success) {
                                 viewModel.clearGatewayResult()
+                                viewModel.clearActiveSession()
                                 onComplete()
                             }
                         }
@@ -1397,7 +1807,7 @@ fun PaymentStep(
                                     containerColor = if (isAmountValid) SuccessGreen else Color.Gray
                             ),
                     shape = RoundedCornerShape(12.dp),
-                    enabled = isAmountValid
+                    enabled = isAmountValid && paymentAttemptReady
             ) {
                 Text(
                         "Payment Successful",
@@ -1410,13 +1820,22 @@ fun PaymentStep(
                     onClick = {
                         scope.launch {
                             viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
-                            viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
+                            when {
+                                resumedPendingBillId != null ->
+                                    viewModel.finalizeOnlineBill(resumedPendingBillId!!, PaymentStatus.FAILED, "Customer left")
+                                viewModel.editingBillId != null ->
+                                    viewModel.settleDraftOrder(viewModel.editingBillId!!, selectedMode, PaymentStatus.FAILED)
+                                else ->
+                                    viewModel.completeOrder(PaymentStatus.FAILED, "Customer left")
+                            }
                             viewModel.clearGatewayResult()
+                            viewModel.clearActiveSession()
                             PaymentReturnManager.clearLatestEvent()
                             onFailed()
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    enabled = paymentAttemptReady
             ) {
                 Text(
                     "Payment Failed / Cancelled",

@@ -122,6 +122,8 @@ class BillingViewModel @Inject constructor(
 
     private val _partAmount1 = MutableStateFlow("0.0")
     private val _partAmount2 = MutableStateFlow("0.0")
+    val partAmount1: StateFlow<String> = _partAmount1
+    val partAmount2: StateFlow<String> = _partAmount2
 
     private val _billSummary = MutableStateFlow(BillSummary())
     val billSummary: StateFlow<BillSummary> = _billSummary
@@ -140,6 +142,17 @@ class BillingViewModel @Inject constructor(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    var editingBillId: Long? = null
+
+    private val _orderType = MutableStateFlow("dine_in")
+    val orderType: StateFlow<String> = _orderType
+
+    fun setOrderType(type: String) {
+        _orderType.value = type
+    }
+
+    val activeDraftBillsFlow: Flow<List<BillEntity>> = billRepository.getActiveDraftBillsFlow()
 
     init {
         // Process death protection save state flows
@@ -353,6 +366,7 @@ class BillingViewModel @Inject constructor(
         _cartItems.value = emptyList()
         _customerName.value = ""
         _customerWhatsapp.value = ""
+        _orderType.value = "dine_in"
         _paymentMode.value = PaymentMode.UPI
         _partAmount1.value = "0.0"
         _partAmount2.value = "0.0"
@@ -377,10 +391,26 @@ class BillingViewModel @Inject constructor(
     }
 
     suspend fun restorePendingOnlineBill(localBillId: Long): Boolean {
-        val bill = billRepository.getBillById(localBillId) ?: return false
+        val billWithItems = billRepository.getBillWithItemsById(localBillId) ?: return false
+        val bill = billWithItems.bill
+        _lastBill.value = billWithItems
+        _customerName.value = bill.customerName ?: ""
+        _customerWhatsapp.value = bill.customerWhatsapp ?: ""
+        _orderType.value = bill.orderType
         _paymentMode.value = PaymentMode.fromDbValue(bill.paymentMode)
         _partAmount1.value = bill.partAmount1
         _partAmount2.value = bill.partAmount2
+
+        _cartItems.value = billWithItems.items.mapNotNull { billItem ->
+            val menuItem = menuRepository.getItemById(billItem.menuItemId ?: 0L) ?: return@mapNotNull null
+            val variant = billItem.variantId?.let { menuRepository.getVariantById(it) }
+            CartItem(
+                item = menuItem,
+                variant = variant,
+                quantity = billItem.quantity,
+                note = billItem.specialInstruction ?: ""
+            )
+        }
         return true
     }
 
@@ -419,7 +449,7 @@ class BillingViewModel @Inject constructor(
                     dailyOrderId = dailyCounter,
                     dailyOrderDisplay = displayId,
                     lifetimeOrderId = lifetimeId,
-                    orderType = "order",
+                    orderType = _orderType.value,
                     customerName = _customerName.value.ifBlank { null },
                     customerWhatsapp = _customerWhatsapp.value.ifBlank { null },
                     subtotal = finalSummary.subtotal,
@@ -514,10 +544,21 @@ class BillingViewModel @Inject constructor(
         orderMutex.withLock {
             _isLoading.value = true
             try {
-                val bill = billRepository.getBillById(localBillId) ?: run {
+                val billWithItems = billRepository.getBillWithItemsById(localBillId)
+                val bill = billWithItems?.bill ?: run {
                     _error.value = "Bill not found."
                     _isLoading.value = false
                     return@withLock false
+                }
+                if (bill.paymentStatus != PaymentStatus.PENDING.dbValue || bill.orderStatus != OrderStatus.DRAFT.dbValue) {
+                    _lastBill.value = billWithItems
+                    _isLoading.value = false
+                    return@withLock true
+                }
+                if (billWithItems.payments.any { !it.isDeleted }) {
+                    _lastBill.value = billWithItems
+                    _isLoading.value = false
+                    return@withLock true
                 }
                 val profile = _cachedProfile.value ?: restaurantRepository.getProfile()
                 if (status == PaymentStatus.SUCCESS &&
@@ -538,7 +579,7 @@ class BillingViewModel @Inject constructor(
 
                 val gTxn = _gatewayTxnId.value
                 val gStatus = _gatewayStatus.value
-                val verifiedBy = "manual"
+                val verifiedBy = if (!gTxn.isNullOrBlank() || !gStatus.isNullOrBlank()) "gateway_return" else "manual"
                 val payments = when (_paymentMode.value) {
                     PaymentMode.PART_CASH_UPI -> listOf(
                         BillPaymentEntity(
@@ -550,8 +591,8 @@ class BillingViewModel @Inject constructor(
                             billId = localBillId,
                             paymentMode = PaymentMode.UPI.dbValue,
                             amount = _partAmount2.value,
-                            gatewayTxnId = null,
-                            gatewayStatus = null,
+                            gatewayTxnId = gTxn,
+                            gatewayStatus = gStatus,
                             verifiedBy = verifiedBy
                         )
                     )
@@ -560,8 +601,8 @@ class BillingViewModel @Inject constructor(
                             billId = localBillId,
                             paymentMode = PaymentMode.UPI.dbValue,
                             amount = _partAmount1.value,
-                            gatewayTxnId = null,
-                            gatewayStatus = null,
+                            gatewayTxnId = gTxn,
+                            gatewayStatus = gStatus,
                             verifiedBy = verifiedBy
                         ),
                         BillPaymentEntity(
@@ -575,8 +616,8 @@ class BillingViewModel @Inject constructor(
                             billId = localBillId,
                             paymentMode = PaymentMode.UPI.dbValue,
                             amount = bill.totalAmount,
-                            gatewayTxnId = null,
-                            gatewayStatus = null,
+                            gatewayTxnId = gTxn,
+                            gatewayStatus = gStatus,
                             verifiedBy = verifiedBy
                         )
                     )
@@ -585,8 +626,8 @@ class BillingViewModel @Inject constructor(
                             billId = localBillId,
                             paymentMode = _paymentMode.value.dbValue,
                             amount = bill.totalAmount,
-                            gatewayTxnId = null,
-                            gatewayStatus = null,
+                            gatewayTxnId = if (_paymentMode.value == PaymentMode.UPI) gTxn else null,
+                            gatewayStatus = if (_paymentMode.value == PaymentMode.UPI) gStatus else null,
                             verifiedBy = verifiedBy
                         )
                     )
@@ -654,7 +695,7 @@ class BillingViewModel @Inject constructor(
                     dailyOrderId = dailyCounter,
                     dailyOrderDisplay = displayId,
                     lifetimeOrderId = lifetimeId,
-                    orderType = "order",
+                    orderType = _orderType.value,
                     customerName = _customerName.value.ifBlank { null },
                     customerWhatsapp = _customerWhatsapp.value.ifBlank { null },
                     subtotal = finalSummary.subtotal,
@@ -697,13 +738,15 @@ class BillingViewModel @Inject constructor(
                 }
 
                 // Gateway data is attached only to UPI rows; cash/POS rows stay manual.
-                val verifiedBy = "manual"
+                val gTxn = _gatewayTxnId.value
+                val gStatus = _gatewayStatus.value
+                val verifiedBy = if (!gTxn.isNullOrBlank() || !gStatus.isNullOrBlank()) "gateway_return" else "manual"
                 fun upi(amount: String) = BillPaymentEntity(
                     billId = 0,
                     paymentMode = PaymentMode.UPI.dbValue,
                     amount = amount,
-                    gatewayTxnId = null,
-                    gatewayStatus = null,
+                    gatewayTxnId = gTxn,
+                    gatewayStatus = gStatus,
                     verifiedBy = verifiedBy
                 )
                 val payments = when (_paymentMode.value) {
@@ -763,8 +806,385 @@ class BillingViewModel @Inject constructor(
         }
     }
 
+    fun loadDraftOrderForEditing(billId: Long, onComplete: () -> Unit) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val billWithItems = billRepository.getBillWithItemsById(billId)
+                if (billWithItems != null) {
+                    editingBillId = billId
+                    _customerName.value = billWithItems.bill.customerName ?: ""
+                    _customerWhatsapp.value = billWithItems.bill.customerWhatsapp ?: ""
+                    _orderType.value = billWithItems.bill.orderType ?: "dine_in"
+
+                    val cartList = billWithItems.items.mapNotNull { billItem ->
+                        val menuItem = menuRepository.getItemById(billItem.menuItemId ?: 0L) ?: return@mapNotNull null
+                        val variant = billItem.variantId?.let { menuRepository.getVariantById(it) }
+                        CartItem(
+                            item = menuItem,
+                            variant = variant,
+                            quantity = billItem.quantity,
+                            note = billItem.specialInstruction ?: ""
+                        )
+                    }.groupBy { (it.item.id) to it.variant?.id }
+                        .map { (_, groupItems) ->
+                            val first = groupItems.first()
+                            val totalQty = groupItems.sumOf { it.quantity }
+                            first.copy(quantity = totalQty)
+                        }
+                    _cartItems.value = cartList
+                    onComplete()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load draft order", e)
+                _error.value = "Failed to load order: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun clearActiveSession() {
+        editingBillId = null
+        _cartItems.value = emptyList()
+        _customerName.value = ""
+        _customerWhatsapp.value = ""
+        _orderType.value = "dine_in"
+    }
+
+    suspend fun saveDraftOrder(tableName: String): Boolean = withContext(Dispatchers.IO) {
+        orderMutex.withLock {
+            if (_cartItems.value.isEmpty()) {
+                _error.value = "Add at least one item before saving the draft."
+                return@withLock false
+            }
+            _isLoading.value = true
+            try {
+                val profile = _cachedProfile.value ?: restaurantRepository.getProfile() ?: return@withLock false
+                val restaurantId = sessionManager.getRestaurantId()
+                if (restaurantId == 0L) {
+                    _error.value = "Account not set up. Please log out and log in again."
+                    return@withLock false
+                }
+
+                val finalSummary = _billSummary.value
+
+                val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
+                val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+                val today = java.time.LocalDate.now(zoneId).toString()
+                val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter)
+
+                val bill = BillEntity(
+                    restaurantId = restaurantId,
+                    deviceId = sessionManager.getDeviceId(),
+                    dailyOrderId = dailyCounter,
+                    dailyOrderDisplay = displayId,
+                    lifetimeOrderId = lifetimeId,
+                    orderType = "dine_in",
+                    customerName = tableName.ifBlank { "Table" },
+                    customerWhatsapp = _customerWhatsapp.value.ifBlank { null },
+                    subtotal = finalSummary.subtotal,
+                    gstPercentage = profile.gstPercentage.toString(),
+                    cgstAmount = finalSummary.cgst,
+                    sgstAmount = finalSummary.sgst,
+                    customTaxAmount = finalSummary.customTax,
+                    totalAmount = finalSummary.total,
+                    paymentMode = PaymentMode.CASH.dbValue,
+                    paymentStatus = PaymentStatus.PENDING.dbValue,
+                    orderStatus = OrderStatus.DRAFT.dbValue,
+                    createdBy = sessionManager.getActiveUserId(),
+                    createdAt = System.currentTimeMillis(),
+                    paidAt = null,
+                    lastResetDate = profile.lastResetDate ?: "",
+                    publicToken = UUID.randomUUID().toString(),
+                    ownerUserId = sessionManager.getActiveUserId(),
+                    ownerRestaurantId = sessionManager.getRestaurantId()
+                )
+
+                val items = _cartItems.value.map { cartItem ->
+                    val price = cartItem.variant?.price ?: cartItem.item.basePrice
+                    val itemTotal = (java.math.BigDecimal(price)
+                        .multiply(java.math.BigDecimal.valueOf(cartItem.quantity.toLong())))
+                        .setScale(2, java.math.RoundingMode.HALF_UP).toString()
+                    BillItemEntity(
+                        billId = 0,
+                        menuItemId = cartItem.item.id,
+                        itemName = cartItem.item.name,
+                        variantId = cartItem.variant?.id,
+                        variantName = cartItem.variant?.variantName,
+                        price = price,
+                        quantity = cartItem.quantity,
+                        itemTotal = itemTotal,
+                        specialInstruction = cartItem.note,
+                        sentToKot = false
+                    )
+                }
+
+                billRepository.insertFullBill(bill, items, emptyList())
+                val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
+                _lastBill.value = inserted
+                _printStatus.value = null
+
+                if (inserted != null) {
+                    try {
+                        com.khanabook.lite.pos.domain.manager.PrintService.startPrintJob(
+                            context = appContext,
+                            billId = inserted.bill.id,
+                            mode = PrintDispatchMode.AUTO
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to start PrintService for draft KOT print", e)
+                    }
+                }
+
+                _cartItems.value = emptyList()
+                _customerName.value = ""
+                _customerWhatsapp.value = ""
+                _isLoading.value = false
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to save draft order", e)
+                _error.value = e.message ?: "Failed to save draft order"
+                _isLoading.value = false
+                false
+            }
+        }
+    }
+
+    suspend fun appendItemsToDraft(billId: Long): Boolean = withContext(Dispatchers.IO) {
+        orderMutex.withLock {
+            if (_cartItems.value.isEmpty()) {
+                _error.value = "Cart is empty."
+                return@withLock false
+            }
+            _isLoading.value = true
+            try {
+                val profile = _cachedProfile.value ?: restaurantRepository.getProfile() ?: return@withLock false
+                val existingWithItems = billRepository.getBillWithItemsById(billId) ?: return@withLock false
+                val existingBill = existingWithItems.bill
+
+                val restaurantId = sessionManager.getRestaurantId()
+                if (restaurantId == 0L) {
+                    _error.value = "Account not set up."
+                    return@withLock false
+                }
+
+                val existingItems = existingWithItems.items
+                val cartItems = _cartItems.value
+
+                val dbTotals = existingItems.groupBy { (it.menuItemId ?: 0L) to it.variantId }
+                val processedDbKeys = mutableSetOf<Pair<Long, Long?>>()
+
+                for (cartItem in cartItems) {
+                    val key = cartItem.item.id to cartItem.variant?.id
+                    processedDbKeys.add(key)
+
+                    val dbRows = dbTotals[key] ?: emptyList()
+                    val totalDbQty = dbRows.sumOf { it.quantity }
+
+                    if (totalDbQty == 0) {
+                        val price = cartItem.variant?.price ?: cartItem.item.basePrice
+                        val itemTotal = (java.math.BigDecimal(price)
+                            .multiply(java.math.BigDecimal.valueOf(cartItem.quantity.toLong())))
+                            .setScale(2, java.math.RoundingMode.HALF_UP).toString()
+
+                        val newItem = BillItemEntity(
+                            billId = billId,
+                            menuItemId = cartItem.item.id,
+                            itemName = cartItem.item.name,
+                            variantId = cartItem.variant?.id,
+                            variantName = cartItem.variant?.variantName,
+                            price = price,
+                            quantity = cartItem.quantity,
+                            itemTotal = itemTotal,
+                            specialInstruction = cartItem.note,
+                            sentToKot = false,
+                            restaurantId = restaurantId,
+                            deviceId = sessionManager.getDeviceId(),
+                            isSynced = false,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        billRepository.insertBillItems(listOf(newItem))
+                    } else if (cartItem.quantity > totalDbQty) {
+                        val diffQty = cartItem.quantity - totalDbQty
+                        val price = cartItem.variant?.price ?: cartItem.item.basePrice
+                        val itemTotal = (java.math.BigDecimal(price)
+                            .multiply(java.math.BigDecimal.valueOf(diffQty.toLong())))
+                            .setScale(2, java.math.RoundingMode.HALF_UP).toString()
+
+                        val newItem = BillItemEntity(
+                            billId = billId,
+                            menuItemId = cartItem.item.id,
+                            itemName = cartItem.item.name,
+                            variantId = cartItem.variant?.id,
+                            variantName = cartItem.variant?.variantName,
+                            price = price,
+                            quantity = diffQty,
+                            itemTotal = itemTotal,
+                            specialInstruction = cartItem.note,
+                            sentToKot = false,
+                            restaurantId = restaurantId,
+                            deviceId = sessionManager.getDeviceId(),
+                            isSynced = false,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        billRepository.insertBillItems(listOf(newItem))
+                    } else if (cartItem.quantity < totalDbQty) {
+                        var reductionNeeded = totalDbQty - cartItem.quantity
+                        val sortedDbRows = dbRows.sortedWith(compareBy<BillItemEntity> { it.sentToKot }.thenByDescending { it.id })
+
+                        for (row in sortedDbRows) {
+                            if (reductionNeeded <= 0) break
+                            if (row.quantity <= reductionNeeded) {
+                                reductionNeeded -= row.quantity
+                                billRepository.deleteBillItemById(row.id)
+                            } else {
+                                val newQty = row.quantity - reductionNeeded
+                                reductionNeeded = 0
+                                val price = row.price
+                                val newItemTotal = (java.math.BigDecimal(price)
+                                    .multiply(java.math.BigDecimal.valueOf(newQty.toLong())))
+                                    .setScale(2, java.math.RoundingMode.HALF_UP).toString()
+
+                                billRepository.updateBillItem(row.copy(
+                                    quantity = newQty,
+                                    itemTotal = newItemTotal,
+                                    isSynced = false,
+                                    updatedAt = System.currentTimeMillis()
+                                ))
+                            }
+                        }
+                    }
+                }
+
+                for (dbKey in dbTotals.keys) {
+                    if (dbKey !in processedDbKeys) {
+                        val dbRows = dbTotals[dbKey] ?: emptyList()
+                        for (row in dbRows) {
+                            billRepository.deleteBillItemById(row.id)
+                        }
+                    }
+                }
+
+                val allItems = billRepository.getBillWithItemsById(billId)?.items ?: emptyList()
+                val subtotal = BillCalculator.calculateSubtotal(allItems.map {
+                    it.price to it.quantity
+                })
+
+                var cgst = "0.0"
+                var sgst = "0.0"
+                var customTax = "0.0"
+
+                if (profile.gstEnabled) {
+                    val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage)
+                    cgst = gst.cgst
+                    sgst = gst.sgst
+                } else if (profile.customTaxPercentage > 0) {
+                    customTax = BillCalculator.calculateCustomTax(subtotal, profile.customTaxPercentage)
+                }
+
+                val total = BillCalculator.calculateTotal(subtotal, cgst, sgst, customTax)
+
+                val updatedBill = existingBill.copy(
+                    subtotal = subtotal,
+                    cgstAmount = cgst,
+                    sgstAmount = sgst,
+                    customTaxAmount = customTax,
+                    totalAmount = total,
+                    isSynced = false,
+                    updatedAt = System.currentTimeMillis()
+                )
+
+                billRepository.updateBill(updatedBill)
+
+                val inserted = billRepository.getBillWithItemsById(billId)
+                _lastBill.value = inserted
+                _printStatus.value = null
+
+                if (inserted != null) {
+                    try {
+                        com.khanabook.lite.pos.domain.manager.PrintService.startPrintJob(
+                            context = appContext,
+                            billId = billId,
+                            mode = PrintDispatchMode.AUTO
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to start PrintService for incremental KOT", e)
+                    }
+                }
+
+                _cartItems.value = emptyList()
+                _isLoading.value = false
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to append items to draft", e)
+                _error.value = e.message ?: "Failed to append items"
+                _isLoading.value = false
+                false
+            }
+        }
+    }
+
+    suspend fun settleDraftOrder(billId: Long, paymentMode: PaymentMode, status: PaymentStatus): Boolean = withContext(Dispatchers.IO) {
+        orderMutex.withLock {
+            _isLoading.value = true
+            try {
+                val profile = _cachedProfile.value ?: restaurantRepository.getProfile() ?: return@withLock false
+                val existingWithItems = billRepository.getBillWithItemsById(billId) ?: return@withLock false
+                val existingBill = existingWithItems.bill
+
+                val payments = listOf(
+                    BillPaymentEntity(
+                        billId = billId,
+                        paymentMode = paymentMode.dbValue,
+                        amount = existingBill.totalAmount,
+                        deviceId = sessionManager.getDeviceId(),
+                        restaurantId = sessionManager.getRestaurantId()
+                    )
+                )
+
+                billRepository.addBillPayments(payments)
+
+                val updatedBill = existingBill.copy(
+                    paymentMode = paymentMode.dbValue,
+                    paymentStatus = status.dbValue,
+                    orderStatus = if (status == PaymentStatus.SUCCESS) OrderStatus.COMPLETED.dbValue else OrderStatus.CANCELLED.dbValue,
+                    paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null,
+                    isSynced = false,
+                    updatedAt = System.currentTimeMillis()
+                )
+
+                billRepository.updateBill(updatedBill)
+
+                val inserted = billRepository.getBillWithItemsById(billId)
+                _lastBill.value = inserted
+                _printStatus.value = null
+
+                if (inserted != null && status == PaymentStatus.SUCCESS) {
+                    try {
+                        com.khanabook.lite.pos.domain.manager.PrintService.startPrintJob(
+                            context = appContext,
+                            billId = billId,
+                            mode = PrintDispatchMode.AUTO
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to start PrintService for settle draft receipt", e)
+                    }
+                }
+
+                _isLoading.value = false
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to settle draft order", e)
+                _error.value = e.message ?: "Failed to settle draft order"
+                _isLoading.value = false
+                false
+            }
+        }
+    }
+
     private fun shouldPersistLocally(payment: BillPaymentEntity): Boolean {
-        return payment.gatewayTxnId.isNullOrBlank()
+        return true
     }
 
     private fun validatePaymentLimits(
@@ -801,6 +1221,10 @@ class BillingViewModel @Inject constructor(
 
     fun clearError() {
         _error.value = null
+    }
+
+    fun reportError(message: String) {
+        _error.value = message
     }
 
     suspend fun prepareLastBillForInvoiceShare(): BillWithItems? {

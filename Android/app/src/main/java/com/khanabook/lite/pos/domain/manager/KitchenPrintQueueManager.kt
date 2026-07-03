@@ -113,7 +113,8 @@ class KitchenPrintQueueManager @Inject constructor(
             }
 
             val isPrintable = bill.bill.orderStatus.equals("completed", ignoreCase = true) ||
-                bill.bill.orderStatus.equals("paid", ignoreCase = true)
+                bill.bill.orderStatus.equals("paid", ignoreCase = true) ||
+                bill.bill.orderStatus.equals("draft", ignoreCase = true)
             if (!isPrintable) {
                 queueRepository.deleteById(job.id)
                 continue

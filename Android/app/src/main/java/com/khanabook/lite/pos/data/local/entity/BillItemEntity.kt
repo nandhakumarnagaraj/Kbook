@@ -60,6 +60,8 @@ data class BillItemEntity(
     @SerializedName("specialInstruction")
     @ColumnInfo(name = "special_instruction")
     val specialInstruction: String? = null,
+    @SerializedName("sentToKot")
+    @ColumnInfo(name = "sent_to_kot", defaultValue = "0") val sentToKot: Boolean = false,
 
     @SerializedName("restaurantId")
     @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,

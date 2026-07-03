@@ -35,8 +35,13 @@ import androidx.navigation.NavController
 @Composable
 fun MainScreen(
     initialTab: Int = 0,
+    initialSource: String? = null,
+    initialHighlightBillId: Long? = null,
+    initialSettingsSection: String? = null,
     navController: NavController,
     onNewBill: () -> Unit,
+    onResumePendingPayment: () -> Unit,
+    onOpenSyncCenter: () -> Unit,
     onSearchBill: () -> Unit,
     onReprintKds: () -> Unit,
     onOrderStatus: () -> Unit,
@@ -84,12 +89,26 @@ fun MainScreen(
                 return@AnimatedContent
             }
             when (currentTab.label) {
-                "Home" -> HomeScreen(onNewBill, onSearchBill, onReprintKds, onOrderStatus, onCallCustomer)
+                "Home" -> HomeScreen(
+                    onNewBill = onNewBill,
+                    onResumePendingPayment = onResumePendingPayment,
+                    onOpenSyncCenter = onOpenSyncCenter,
+                    onSearchBill = onSearchBill,
+                    onReprintKds = onReprintKds,
+                    onOrderStatus = onOrderStatus,
+                    onCallCustomer = onCallCustomer
+                )
                 "Reports" -> ReportsScreen(onBack = backToHome)
-                "Orders" -> OrdersScreen(onBack = backToHome)
+                "Orders" -> OrdersScreen(
+                    onBack = backToHome,
+                    navController = navController,
+                    initialSource = initialSource ?: "POS",
+                    highlightedBillId = initialHighlightBillId
+                )
                 "Profile" -> SettingsScreen(
                     onBack = backToHome,
                     navController = navController,
+                    initialSection = initialSettingsSection ?: "menu",
                     onScanClick = onScanClick,
                     menuViewModel = menuViewModel,
                     onBottomBarVisibilityChange = { visible -> showBottomBar = visible }

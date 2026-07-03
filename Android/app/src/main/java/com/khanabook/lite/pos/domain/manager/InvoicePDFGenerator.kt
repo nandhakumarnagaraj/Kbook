@@ -123,7 +123,7 @@ class InvoicePDFGenerator(private val context: Context) {
             // ── Pre-calculate accurate item section height ──────────────────────
             val measurePaint = Paint().apply { textSize = bodySize }
             var itemSectionHeight = 14  // 12f gap before first item + 2f trailing spacer
-            bill.items.forEach { item ->
+            bill.getConsolidatedItems().forEach { item ->
                 val measureName = if (!item.variantName.isNullOrBlank())
                     "${item.itemName} (${item.variantName})".uppercase()
                 else item.itemName.uppercase()
@@ -349,7 +349,8 @@ class InvoicePDFGenerator(private val context: Context) {
             paint.textSize = bodySize
             y += 12f
 
-            bill.items.forEachIndexed { index, item ->
+            val consolidated = bill.getConsolidatedItems()
+            consolidated.forEachIndexed { index, item ->
                 paint.color     = colorText
                 paint.textAlign = Paint.Align.LEFT
                 val displayName = if (!item.variantName.isNullOrBlank())
@@ -382,7 +383,7 @@ class InvoicePDFGenerator(private val context: Context) {
                 canvas.drawText(formatAmount(item.itemTotal), amtRightX,  priceY, paint)
 
                 y += 2f
-                if (index < bill.items.size - 1) {
+                if (index < consolidated.size - 1) {
                     paint.color       = Color.parseColor("#EEEEEE")
                     paint.strokeWidth = 0.3f
                     canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)

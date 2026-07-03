@@ -188,7 +188,7 @@ class SyncManager @Inject constructor(
                 onFailure = { retryError ->
                     logError("Post-recovery push retry failed", retryError)
                     if (retryError is SyncConflictException) {
-                        val quarantined = masterSyncProcessor.quarantineFailedBills(retryError)
+                        val quarantined = masterSyncProcessor.quarantineFailedSyncRecords(retryError)
                         if (quarantined > 0) {
                             return Result.success(Unit)
                         }

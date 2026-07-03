@@ -12,6 +12,7 @@ import com.khanabook.lite.pos.data.remote.dto.*
 import com.khanabook.lite.pos.domain.util.SyncConflictException
 import javax.inject.Inject
 import javax.inject.Singleton
+import org.json.JSONObject
 import retrofit2.HttpException
 
 @Singleton
@@ -186,6 +187,7 @@ class MasterSyncProcessor @Inject constructor(
             onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
         )
 
+        backfillChildServerBillIds(restaurantId)
         pushBatches(
             label = "bill items",
             records = billDao.getUnsyncedBillItems(restaurantId).filter { it.billId == billLocalId },
@@ -300,6 +302,7 @@ class MasterSyncProcessor @Inject constructor(
             onServerIds = { map -> map.forEach { (localId, serverId) -> billDao.updateServerIdByLocalId(localId, serverId, restaurantId) } }
         )
 
+        backfillChildServerBillIds(restaurantId)
         val unsyncedBillItems = billDao.getUnsyncedBillItemsWithSyncedParent(restaurantId)
         pushBatches(
             label = "bill items",
@@ -323,11 +326,28 @@ class MasterSyncProcessor @Inject constructor(
         return true
     }
 
-    suspend fun quarantineFailedBills(exception: SyncConflictException): Int {
-        if (exception.syncEntityLabel != "bills" || exception.failedLocalIds.isEmpty()) return 0
+    private suspend fun backfillChildServerBillIds(restaurantId: Long) {
+        val itemCount = billDao.backfillBillItemServerBillIds(restaurantId)
+        val paymentCount = billDao.backfillBillPaymentServerBillIds(restaurantId)
+        if (itemCount > 0 || paymentCount > 0) {
+            logInfo("Backfilled serverBillId for $itemCount bill item(s) and $paymentCount bill payment(s)")
+        }
+    }
+
+    suspend fun quarantineFailedSyncRecords(exception: SyncConflictException): Int {
+        if (exception.failedLocalIds.isEmpty()) return 0
         val restaurantId = sessionManager.getRestaurantId()
         if (restaurantId <= 0L) return 0
 
+        return when (exception.syncEntityLabel) {
+            "bills" -> quarantineFailedBills(exception, restaurantId)
+            "bill items" -> quarantineFailedBillItems(exception, restaurantId)
+            "bill payments" -> quarantineFailedBillPayments(exception, restaurantId)
+            else -> 0
+        }
+    }
+
+    private suspend fun quarantineFailedBills(exception: SyncConflictException, restaurantId: Long): Int {
         val failedAt = System.currentTimeMillis()
         var quarantined = 0
         exception.failedLocalIds.forEach { billId ->
@@ -345,6 +365,141 @@ class MasterSyncProcessor @Inject constructor(
             logWarn("Quarantined $quarantined bill(s) after failed automatic sync recovery")
         }
         return quarantined
+    }
+
+    private suspend fun quarantineFailedBillItems(exception: SyncConflictException, restaurantId: Long): Int {
+        val failedIds = exception.failedLocalIds.distinct()
+        if (failedIds.isEmpty()) return 0
+
+        val failedItems = billDao.getBillItemsByIds(failedIds, restaurantId)
+        val itemBillIds = failedItems.map { it.billId }.distinct()
+        val billsById = if (itemBillIds.isNotEmpty()) {
+            billDao.getBillsByIds(itemBillIds, restaurantId).associateBy { it.id }
+        } else {
+            emptyMap()
+        }
+        val failedAt = System.currentTimeMillis()
+        val quarantineRecords = failedItems.map { item ->
+            val parentBill = billsById[item.billId]
+            SyncQuarantineEntity(
+                restaurantId = restaurantId,
+                parentBillId = item.billId,
+                parentBillDisplay = parentBill?.dailyOrderDisplay,
+                childEntityType = "bill_item",
+                childLocalId = item.id,
+                childDisplayName = item.itemName,
+                childSummary = "${item.itemName} x${item.quantity}",
+                childSnapshotJson = buildBillItemSnapshot(item),
+                syncFailureReason = exception.failedReasons[item.id]?.takeIf { it.isNotBlank() }
+                    ?: "Bill item sync rejected after automatic recovery",
+                quarantinedAt = failedAt
+            )
+        }
+        if (quarantineRecords.isNotEmpty()) {
+            billDao.upsertSyncQuarantineRecords(quarantineRecords)
+        }
+        billDao.markBillItemsAsSynced(failedIds, restaurantId)
+        logWarn(
+            "Quarantined ${failedIds.size} legacy bill item(s) after failed automatic sync recovery: " +
+                failedIds.joinToString(",")
+        )
+        failedIds.forEach { id ->
+            exception.failedReasons[id]?.takeIf { it.isNotBlank() }?.let { reason ->
+                logWarn("Quarantined bill item localId=$id reason=$reason")
+            }
+        }
+        return failedIds.size
+    }
+
+    private suspend fun quarantineFailedBillPayments(exception: SyncConflictException, restaurantId: Long): Int {
+        val failedIds = exception.failedLocalIds.distinct()
+        if (failedIds.isEmpty()) return 0
+
+        val failedPayments = billDao.getBillPaymentsByIds(failedIds, restaurantId)
+        val paymentBillIds = failedPayments.map { it.billId }.distinct()
+        val billsById = if (paymentBillIds.isNotEmpty()) {
+            billDao.getBillsByIds(paymentBillIds, restaurantId).associateBy { it.id }
+        } else {
+            emptyMap()
+        }
+        val failedAt = System.currentTimeMillis()
+        val quarantineRecords = failedPayments.map { payment ->
+            val parentBill = billsById[payment.billId]
+            SyncQuarantineEntity(
+                restaurantId = restaurantId,
+                parentBillId = payment.billId,
+                parentBillDisplay = parentBill?.dailyOrderDisplay,
+                childEntityType = "bill_payment",
+                childLocalId = payment.id,
+                childDisplayName = payment.paymentMode,
+                childSummary = "${payment.paymentMode} ${payment.amount}",
+                childSnapshotJson = buildBillPaymentSnapshot(payment),
+                syncFailureReason = exception.failedReasons[payment.id]?.takeIf { it.isNotBlank() }
+                    ?: "Bill payment sync rejected after automatic recovery",
+                quarantinedAt = failedAt
+            )
+        }
+        if (quarantineRecords.isNotEmpty()) {
+            billDao.upsertSyncQuarantineRecords(quarantineRecords)
+        }
+        billDao.markBillPaymentsAsSynced(failedIds, restaurantId)
+        logWarn(
+            "Quarantined ${failedIds.size} legacy bill payment(s) after failed automatic sync recovery: " +
+                failedIds.joinToString(",")
+        )
+        failedIds.forEach { id ->
+            exception.failedReasons[id]?.takeIf { it.isNotBlank() }?.let { reason ->
+                logWarn("Quarantined bill payment localId=$id reason=$reason")
+            }
+        }
+        return failedIds.size
+    }
+
+    private fun buildBillItemSnapshot(item: BillItemEntity): String {
+        return JSONObject()
+            .put("id", item.id)
+            .put("billId", item.billId)
+            .put("menuItemId", item.menuItemId)
+            .put("itemName", item.itemName)
+            .put("variantId", item.variantId)
+            .put("variantName", item.variantName)
+            .put("price", item.price)
+            .put("quantity", item.quantity)
+            .put("itemTotal", item.itemTotal)
+            .put("specialInstruction", item.specialInstruction)
+            .put("sentToKot", item.sentToKot)
+            .put("restaurantId", item.restaurantId)
+            .put("deviceId", item.deviceId)
+            .put("isSynced", item.isSynced)
+            .put("updatedAt", item.updatedAt)
+            .put("isDeleted", item.isDeleted)
+            .put("serverId", item.serverId)
+            .put("serverBillId", item.serverBillId)
+            .put("serverMenuItemId", item.serverMenuItemId)
+            .put("serverVariantId", item.serverVariantId)
+            .put("serverUpdatedAt", item.serverUpdatedAt)
+            .toString()
+    }
+
+    private fun buildBillPaymentSnapshot(payment: BillPaymentEntity): String {
+        return JSONObject()
+            .put("id", payment.id)
+            .put("billId", payment.billId)
+            .put("paymentMode", payment.paymentMode)
+            .put("amount", payment.amount)
+            .put("createdAt", payment.createdAt)
+            .put("restaurantId", payment.restaurantId)
+            .put("deviceId", payment.deviceId)
+            .put("isSynced", payment.isSynced)
+            .put("updatedAt", payment.updatedAt)
+            .put("isDeleted", payment.isDeleted)
+            .put("serverId", payment.serverId)
+            .put("serverBillId", payment.serverBillId)
+            .put("serverUpdatedAt", payment.serverUpdatedAt)
+            .put("gatewayTxnId", payment.gatewayTxnId)
+            .put("gatewayStatus", payment.gatewayStatus)
+            .put("verifiedBy", payment.verifiedBy)
+            .toString()
     }
 
     suspend fun insertMasterData(masterData: MasterSyncResponse) = databaseProvider.getDatabase().withTransaction {

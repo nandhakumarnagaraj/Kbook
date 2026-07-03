@@ -59,6 +59,11 @@ class MenuRepository(
         return menuDao.getItemById(id, restaurantId)
     }
 
+    suspend fun getVariantById(id: Long): ItemVariantEntity? {
+        val restaurantId = sessionManager.getRestaurantId()
+        return menuDao.getVariantById(id, restaurantId)
+    }
+
     suspend fun getItemByName(name: String): MenuItemEntity? {
         val restaurantId = sessionManager.getRestaurantId()
         return menuDao.getItemByName(name, restaurantId)

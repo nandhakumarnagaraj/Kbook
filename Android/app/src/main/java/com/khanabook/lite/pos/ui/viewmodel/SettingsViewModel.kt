@@ -20,17 +20,20 @@ import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
+@kotlinx.coroutines.ExperimentalCoroutinesApi
 class SettingsViewModel @Inject constructor(
     private val restaurantRepository: RestaurantRepository,
     private val printerProfileRepository: PrinterProfileRepository,
@@ -99,6 +102,16 @@ class SettingsViewModel @Inject constructor(
 
     private val _retryingFailedBillIds = MutableStateFlow<Set<Long>>(emptySet())
     val retryingFailedBillIds: StateFlow<Set<Long>> = _retryingFailedBillIds.asStateFlow()
+
+    val quarantinedSyncRecords: StateFlow<List<SyncQuarantineEntity>> = sessionManager.restaurantId
+        .flatMapLatest { restaurantId ->
+            if (restaurantId > 0L) {
+                billDao.getSyncQuarantineRecordsFlow(restaurantId)
+            } else {
+                flowOf(emptyList())
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         viewModelScope.launch(Dispatchers.IO) {

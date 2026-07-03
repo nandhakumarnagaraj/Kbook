@@ -21,7 +21,8 @@ object KitchenTicketFormatter {
     fun format(
         bill: BillWithItems,
         restaurantProfile: RestaurantProfileEntity?,
-        printerProfile: PrinterProfileEntity
+        printerProfile: PrinterProfileEntity,
+        itemsToPrint: List<com.khanabook.lite.pos.data.local.entity.BillItemEntity> = bill.items
     ): ByteArray {
         val is80mm = printerProfile.paperSize == "80mm"
         val charsPerLine = if (is80mm) 40 else 32
@@ -43,7 +44,7 @@ object KitchenTicketFormatter {
         bill.bill.customerName?.takeIf { it.isNotBlank() }?.let { add(leftPad + "Customer: $it\n") }
         add("$line\n")
 
-        bill.items.forEach { item ->
+        itemsToPrint.forEach { item ->
             add(BOLD_ON)
             add(leftPad + "${item.quantity} x ${item.itemName}\n")
             add(BOLD_OFF)

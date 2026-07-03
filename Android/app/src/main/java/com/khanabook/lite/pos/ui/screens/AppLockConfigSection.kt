@@ -77,6 +77,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.BillEntity
+import com.khanabook.lite.pos.data.local.entity.SyncQuarantineEntity
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.theme.BorderGold
@@ -118,22 +119,23 @@ fun SettingsListView(
             colors = CardDefaults.cardColors(containerColor = CardBG),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Column {
-                SettingsItem(
-                    icon = Icons.Filled.Lock,
-                    text = "App Lock",
-                    onClick = { onSelectItem("app_lock") }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = spacing.medium),
-                    color = BorderGold.copy(alpha = 0.1f)
-                )
-                SettingsItem(
-                    icon = Icons.Filled.Password,
-                    text = "Change Password",
-                    onClick = { onSelectItem("change_password") }
-                )
-            }
+            SettingsItem(
+                icon = Icons.Filled.Lock,
+                text = "App Lock",
+                onClick = { onSelectItem("app_lock") }
+            )
+        }
+
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            SettingsItem(
+                icon = Icons.Filled.Password,
+                text = "Change Password",
+                onClick = { onSelectItem("change_password") }
+            )
         }
 
         SettingsGroupLabel("Appearance")
@@ -155,22 +157,11 @@ fun SettingsListView(
             colors = CardDefaults.cardColors(containerColor = CardBG),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Column {
-                SettingsItem(
-                    icon = Icons.Filled.SyncProblem,
-                    text = "Sync Repair",
-                    onClick = { onSelectItem("help_support") }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = spacing.medium),
-                    color = BorderGold.copy(alpha = 0.1f)
-                )
-                SettingsItem(
-                    icon = Icons.Filled.SyncProblem,
-                    text = "Sync Center",
-                    onClick = { onSelectItem("sync_center") }
-                )
-            }
+            SettingsItem(
+                icon = Icons.Filled.SyncProblem,
+                text = "Sync Center",
+                onClick = { onSelectItem("sync_center") }
+            )
         }
 
         SettingsGroupLabel("About")
@@ -179,22 +170,23 @@ fun SettingsListView(
             colors = CardDefaults.cardColors(containerColor = CardBG),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Column {
-                SettingsItem(
-                    icon = Icons.AutoMirrored.Filled.HelpOutline,
-                    text = "Help & Support",
-                    onClick = { onSelectItem("help_support") }
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = spacing.medium),
-                    color = BorderGold.copy(alpha = 0.1f)
-                )
-                SettingsItem(
-                    icon = Icons.Filled.Info,
-                    text = "About App",
-                    onClick = { onSelectItem("about_app") }
-                )
-            }
+            SettingsItem(
+                icon = Icons.AutoMirrored.Filled.HelpOutline,
+                text = "Help & Support",
+                onClick = { onSelectItem("help_support") }
+            )
+        }
+
+        KhanaBookCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardBG),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            SettingsItem(
+                icon = Icons.Filled.Info,
+                text = "About App",
+                onClick = { onSelectItem("about_app") }
+            )
         }
     }
 }
@@ -812,8 +804,10 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
     val spacing = KhanaBookTheme.spacing
     val failedBills by viewModel.failedBillSyncs.collectAsStateWithLifecycle()
     val retryingIds by viewModel.retryingFailedBillIds.collectAsStateWithLifecycle()
+    val quarantinedRecords by viewModel.quarantinedSyncRecords.collectAsStateWithLifecycle()
     val pendingCount = failedBills.size
     val retryingCount = retryingIds.size
+    val quarantineCount = quarantinedRecords.size
 
     LaunchedEffect(Unit) {
         viewModel.refreshFailedBillSyncs()
@@ -856,12 +850,23 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
             )
         }
 
+        SyncCenterStatCard(
+            label = "Quarantined children",
+            value = quarantineCount.toString(),
+            tint = if (quarantineCount > 0) PrimaryGold else SuccessGreen,
+            modifier = Modifier.fillMaxWidth()
+        )
+
         SyncIssuesCard(
             failedBills = failedBills,
             retryingIds = retryingIds,
             onRefresh = viewModel::refreshFailedBillSyncs,
             onRetry = viewModel::retryFailedBillSync,
             onRetryAll = viewModel::retryAllFailedBillSyncs
+        )
+
+        QuarantineIssuesCard(
+            quarantinedRecords = quarantinedRecords
         )
 
         KhanaBookCard(
@@ -884,6 +889,11 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
                     color = TextGold.copy(alpha = 0.72f),
                     style = MaterialTheme.typography.bodySmall
                 )
+                Text(
+                    "Quarantined child rows are logged separately so a bill item or payment can still be investigated even when the parent bill sync succeeds.",
+                    color = TextGold.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.bodySmall
+                )
                 OutlinedButton(
                     onClick = { viewModel.refreshFailedBillSyncs() },
                     modifier = Modifier.fillMaxWidth(),
@@ -895,6 +905,90 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
                     Text("Refresh blocked bills", color = TextGold)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun QuarantineIssuesCard(
+    quarantinedRecords: List<SyncQuarantineEntity>
+) {
+    val spacing = KhanaBookTheme.spacing
+    KhanaBookCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (quarantinedRecords.isEmpty()) Icons.Default.CheckCircle else Icons.Default.SyncProblem,
+                        contentDescription = null,
+                        tint = if (quarantinedRecords.isEmpty()) SuccessGreen else PrimaryGold,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Column {
+                        Text("Quarantine Log", color = TextLight, style = MaterialTheme.typography.labelLarge)
+                        Text(
+                            if (quarantinedRecords.isEmpty()) "No quarantined child rows" else "${quarantinedRecords.size} quarantined child row(s)",
+                            color = TextGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+
+            if (quarantinedRecords.isNotEmpty()) {
+                quarantinedRecords.take(5).forEach { record ->
+                    QuarantineRecordRow(record)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuarantineRecordRow(record: SyncQuarantineEntity) {
+    val spacing = KhanaBookTheme.spacing
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DarkBrown1.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+            .padding(spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+    ) {
+        Text(
+            text = record.childDisplayName?.takeIf { it.isNotBlank() }
+                ?: record.childEntityType.replace('_', ' '),
+            color = TextLight,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = buildString {
+                append("Bill #")
+                append(record.parentBillDisplay?.takeIf { it.isNotBlank() } ?: record.parentBillId.toString())
+                append(" • ")
+                append(record.childSummary?.takeIf { it.isNotBlank() } ?: "Local ID ${record.childLocalId}")
+            },
+            color = TextGold.copy(alpha = 0.78f),
+            style = MaterialTheme.typography.bodySmall
+        )
+        record.syncFailureReason?.takeIf { it.isNotBlank() }?.let { reason ->
+            Text(
+                text = reason,
+                color = TextGold.copy(alpha = 0.62f),
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }

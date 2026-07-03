@@ -85,6 +85,11 @@ class BillRepository(
         triggerBackgroundSync()
     }
 
+    suspend fun addBillPayments(payments: List<BillPaymentEntity>) {
+        billDao.insertBillPayments(payments)
+        triggerBackgroundSync()
+    }
+
     suspend fun getBillByDailyIdAndDate(displayId: String, date: String): BillEntity? {
         val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(date)
         val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(date)
@@ -111,6 +116,18 @@ class BillRepository(
                 ?: billDao.getLatestPendingOnlineBill(restaurantId)
         } else {
             billDao.getLatestPendingOnlineBill(restaurantId)
+        }
+    }
+
+    fun getPendingOnlineBillsFlow(): Flow<List<BillEntity>> {
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            billDao.getPendingOnlineBillsFlow(restaurantId)
+        }
+    }
+
+    fun getSyncQuarantineCountFlow(): Flow<Int> {
+        return sessionManager.restaurantId.flatMapLatest { restaurantId ->
+            billDao.getSyncQuarantineCountFlow(restaurantId)
         }
     }
 
@@ -246,5 +263,32 @@ class BillRepository(
         return billDao.getBillsWithPendingKds(sessionManager.getRestaurantId()).mapNotNull { bill ->
             billDao.getBillWithItemsById(bill.id, sessionManager.getRestaurantId())
         }
+    }
+
+    suspend fun getUnsentItemsForBill(billId: Long): List<BillItemEntity> {
+        return billDao.getUnsentItemsForBill(billId, sessionManager.getRestaurantId())
+    }
+
+    suspend fun markItemsSentToKot(itemIds: List<Long>) {
+        billDao.markItemsSentToKot(itemIds, sessionManager.getRestaurantId())
+    }
+
+    suspend fun insertBillItems(items: List<BillItemEntity>) {
+        billDao.insertBillItems(items)
+        triggerBackgroundSync()
+    }
+
+    suspend fun updateBillItem(item: BillItemEntity) {
+        billDao.updateBillItem(item)
+        triggerBackgroundSync()
+    }
+
+    suspend fun deleteBillItemById(id: Long) {
+        billDao.deleteBillItemById(id)
+        triggerBackgroundSync()
+    }
+
+    fun getActiveDraftBillsFlow(): kotlinx.coroutines.flow.Flow<List<BillEntity>> {
+        return billDao.getActiveDraftBillsFlow(sessionManager.getRestaurantId())
     }
 }

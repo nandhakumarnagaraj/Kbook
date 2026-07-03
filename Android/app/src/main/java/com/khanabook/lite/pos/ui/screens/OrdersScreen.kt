@@ -11,6 +11,8 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -61,6 +63,9 @@ import java.text.SimpleDateFormat
 @Composable
 fun OrdersScreen(
     onBack: () -> Unit,
+    navController: androidx.navigation.NavController? = null,
+    initialSource: String = "POS",
+    highlightedBillId: Long? = null,
     viewModel: ReportsViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -72,12 +77,25 @@ fun OrdersScreen(
     val haptic = LocalHapticFeedback.current
     val spacing = KhanaBookTheme.spacing
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
-    var selectedSource by rememberSaveable { mutableStateOf("POS") }
+    val normalizedInitialSource = remember(initialSource) {
+        if (initialSource.equals("ONLINE", ignoreCase = true)) "ONLINE" else "POS"
+    }
+    var selectedSource by rememberSaveable(normalizedInitialSource) { mutableStateOf(normalizedInitialSource) }
+    val visibleRows = remember(allRows, selectedSource) {
+        allRows.filter { row ->
+            val onlineOrder = row.isOnlineOrder()
+            when (selectedSource) {
+                "ONLINE" -> onlineOrder
+                else -> !onlineOrder && row.orderStatus != OrderStatus.DRAFT
+            }
+        }
+    }
     val enabledModes = remember(profile) { 
         profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH) 
     }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val orderListState = rememberLazyListState()
     
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
@@ -213,20 +231,18 @@ fun OrdersScreen(
 
             AnimatedVisibility(visible = headerVisible, enter = enterSpec, exit = exitSpec) {
                 Column {
-                    if (selectedSource == "POS") {
-                        PeriodTabs(
-                            selectedFilter = timeFilter,
-                            onTabSelected = {
-                                if (it == "Custom") {
-                                    showDateRangePicker = true
-                                } else {
-                                    viewModel.setTimeFilter(it)
-                                }
+                    PeriodTabs(
+                        selectedFilter = timeFilter,
+                        onTabSelected = {
+                            if (it == "Custom") {
+                                showDateRangePicker = true
+                            } else {
+                                viewModel.setTimeFilter(it)
                             }
-                        )
+                        }
+                    )
 
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                    }
+                    Spacer(modifier = Modifier.height(spacing.medium))
 
                     Row(
                         modifier = Modifier
@@ -243,11 +259,8 @@ fun OrdersScreen(
                         OrderFilterChip(
                             label = "Online Orders",
                             isSelected = selectedSource == "ONLINE",
-                            onClick = {
-                                android.widget.Toast.makeText(context, "Online orders not available in v1. Coming in v2!", android.widget.Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier.weight(1f),
-                            enabled = false
+                            onClick = { selectedSource = "ONLINE" },
+                            modifier = Modifier.weight(1f)
                         )
                     }
 
@@ -271,7 +284,7 @@ fun OrdersScreen(
                         }
                     }
                 }
-            } else if (allRows.isEmpty()) {
+            } else if (visibleRows.isEmpty()) {
                 AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec) {
                     Box(
                         modifier = Modifier.fillMaxWidth().weight(1f),
@@ -289,14 +302,14 @@ fun OrdersScreen(
                             )
                             Spacer(Modifier.height(KhanaBookTheme.spacing.small))
                             Text(
-                                "No orders in this period",
+                                if (selectedSource == "ONLINE") "No online orders in this period" else "No POS orders in this period",
                                 color = TextGold.copy(alpha = 0.75f),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(Modifier.height(spacing.extraSmall))
                             Text(
-                                "Try another date or source filter. New offline bills will appear here immediately.",
+                                "Try another date or source filter.",
                                 color = TextGold.copy(alpha = 0.5f),
                                 style = MaterialTheme.typography.bodySmall,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -306,7 +319,16 @@ fun OrdersScreen(
                 }
             } else {
                 AnimatedVisibility(visible = bodyVisible, enter = enterSpec, exit = exitSpec, modifier = Modifier.weight(1f)) {
+                    LaunchedEffect(highlightedBillId, visibleRows) {
+                        val highlightedIndex = highlightedBillId?.let { billId ->
+                            visibleRows.indexOfFirst { it.billId == billId }
+                        } ?: -1
+                        if (highlightedIndex >= 0) {
+                            orderListState.animateScrollToItem(highlightedIndex + 1)
+                        }
+                    }
                     LazyColumn(
+                        state = orderListState,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = spacing.medium),
@@ -315,13 +337,14 @@ fun OrdersScreen(
                         stickyHeader {
                             TableHeader(isGstEnabled = isGstEnabled)
                         }
-                        items(allRows) { row ->
+                        items(visibleRows) { row ->
                             var showCancelDialog by remember { mutableStateOf(false) }
                             var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
 
                             OrderTableRow(
                                 row = row,
                                 enabledModes = enabledModes,
+                                isHighlighted = row.billId == highlightedBillId,
                                 onClick = {
                                     selectedBillId = row.billId
                                     viewModel.loadBillDetails(row.billId)
@@ -393,6 +416,12 @@ fun OrdersScreen(
 
 
     }
+}
+
+private fun OrderDetailRow.isOnlineOrder(): Boolean {
+    return payMode == PaymentMode.UPI ||
+        payMode == PaymentMode.PART_CASH_UPI ||
+        payMode == PaymentMode.PART_UPI_POS
 }
 
 @Composable
@@ -486,6 +515,7 @@ fun RowScope.HeaderCell(text: String, weight: Float) {
 fun OrderTableRow(
     row: OrderDetailRow,
     enabledModes: List<PaymentMode>,
+    isHighlighted: Boolean = false,
     onClick: () -> Unit,
     onShare: () -> Unit,
     onShareText: () -> Unit,
@@ -497,6 +527,12 @@ fun OrderTableRow(
     var payModeExpanded by remember { mutableStateOf(false) }
     val spacing = KhanaBookTheme.spacing
     val isCancelled = row.orderStatus == OrderStatus.CANCELLED
+    val rowShape = RoundedCornerShape(4.dp)
+    val rowBackground = when {
+        isHighlighted -> PrimaryGold.copy(alpha = 0.18f)
+        isCancelled -> DarkBrown1.copy(alpha = 0.15f)
+        else -> DarkBrown1.copy(alpha = 0.35f)
+    }
     val isTodayBill = remember(row.salesDate) {
         val billDate = java.time.Instant.ofEpochMilli(row.salesDate)
             .atZone(java.time.ZoneId.of("Asia/Kolkata"))
@@ -514,8 +550,15 @@ fun OrderTableRow(
             )
             .padding(vertical = spacing.hairline)
             .background(
-                DarkBrown1.copy(alpha = if (isCancelled) 0.15f else 0.35f),
-                RoundedCornerShape(4.dp)
+                rowBackground,
+                rowShape
+            )
+            .then(
+                if (isHighlighted) {
+                    Modifier.border(1.dp, PrimaryGold.copy(alpha = 0.9f), rowShape)
+                } else {
+                    Modifier
+                }
             )
     ) {
         Row(

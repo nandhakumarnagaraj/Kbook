@@ -44,6 +44,12 @@ class MenuViewModel @Inject constructor(
         .map { it.filter { item -> !item.isDeleted }.size }
         .stateIn(viewModelScope, SharingStarted.Lazily, 0)
 
+    val isCatalogLoaded: StateFlow<Boolean> = combine(
+        categoryRepository.getAllCategoriesFlow(),
+        menuRepository.getAllItemsFlow()
+    ) { _, _ -> true }
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+
     val selectedCategoryId = MutableStateFlow<Long?>(null)
 
     val menuItems: StateFlow<List<MenuWithVariants>> = combine(selectedCategoryId, categories) { selectedId, categoryList ->

@@ -344,12 +344,43 @@ class MainActivity : FragmentActivity() {
                             onLoginClick = { navController.popBackStack() }
                         )
                     }
-                    composable("main/{tab}") { backStackEntry ->
+                    composable(
+                        route = "main/{tab}?source={source}&highlightBillId={highlightBillId}&section={section}",
+                        arguments = listOf(
+                            navArgument("tab") {
+                                type = NavType.StringType
+                                defaultValue = "0"
+                            },
+                            navArgument("source") {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            },
+                            navArgument("highlightBillId") {
+                                type = NavType.LongType
+                                defaultValue = -1L
+                            },
+                            navArgument("section") {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            }
+                        )
+                    ) { backStackEntry ->
                         val selectedTab = backStackEntry.arguments?.getString("tab")?.toIntOrNull() ?: 0
+                        val source = backStackEntry.arguments?.getString("source")
+                        val highlightBillId = backStackEntry.arguments?.getLong("highlightBillId")
+                            ?.takeIf { it > 0L }
+                        val section = backStackEntry.arguments?.getString("section")
                         MainScreen(
                             initialTab = selectedTab,
+                            initialSource = source,
+                            initialHighlightBillId = highlightBillId,
+                            initialSettingsSection = section,
                             navController = navController,
                             onNewBill = { navController.navigate("new_bill") },
+                            onResumePendingPayment = { navController.navigate("new_bill?resumePayment=true") },
+                            onOpenSyncCenter = { navController.navigate("main/3?section=sync_center") },
                             onSearchBill = { navController.navigate("search_bill") },
                             onReprintKds = { navController.navigate("reprint_kds") },
                             onOrderStatus = { navController.navigate("order_status") },
@@ -362,20 +393,32 @@ class MainActivity : FragmentActivity() {
                         )
                     }
                     composable(
-                        route = "new_bill?resumePayment={resumePayment}",
+                        route = "new_bill?resumePayment={resumePayment}&draftBillId={draftBillId}&targetStep={targetStep}",
                         arguments = listOf(
                             navArgument("resumePayment") {
                                 type = NavType.BoolType
                                 defaultValue = false
+                            },
+                            navArgument("draftBillId") {
+                                type = NavType.LongType
+                                defaultValue = -1L
+                            },
+                            navArgument("targetStep") {
+                                type = NavType.IntType
+                                defaultValue = 1
                             }
                         )
                     ) { backStackEntry ->
                         val resumePayment = backStackEntry.arguments?.getBoolean("resumePayment") == true
+                        val draftBillId = backStackEntry.arguments?.getLong("draftBillId") ?: -1L
+                        val targetStep = backStackEntry.arguments?.getInt("targetStep") ?: 1
                         NewBillScreen(
                             onBack = { navController.popBackStack() },
                             modifier = Modifier.fillMaxSize(),
                             navController = navController,
-                            resumePendingPayment = resumePayment
+                            resumePendingPayment = resumePayment,
+                            draftBillId = if (draftBillId == -1L) null else draftBillId,
+                            initialStep = targetStep
                         )
                     }
                     composable("ocr_scanner/{source}") { backStackEntry ->

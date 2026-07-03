@@ -98,9 +98,7 @@ public class BillItemServiceImpl implements BillItemService {
 				resolved = false;
 			}
 			if (item.getMenuItemId() == null && item.getServerMenuItemId() == null) {
-				addFailure(failedLocalIds, failedReasons, item.getLocalId(),
-						"Bill item menu reference is missing");
-				resolved = false;
+				item.setMenuItemId(0L);
 			}
 
 			if (resolved) {

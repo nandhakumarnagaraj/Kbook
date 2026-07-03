@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.data.remote.dto
 
+import com.khanabook.lite.pos.data.local.entity.BillItemEntity
 import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -51,5 +52,27 @@ class SyncEntityMappersTest {
         assertNull(dto.gatewayTxnId)
         assertNull(dto.gatewayStatus)
         assertEquals("manual", dto.verifiedBy)
+    }
+
+    @Test
+    fun `bill item mapper sends sentinel menu id when historical item has no menu reference`() {
+        val entity = BillItemEntity(
+            id = 14L,
+            billId = 1078L,
+            menuItemId = null,
+            itemName = "Deleted Menu Item",
+            price = "50.00",
+            quantity = 1,
+            itemTotal = "50.00",
+            restaurantId = 55L,
+            deviceId = "device-1",
+            serverMenuItemId = null
+        )
+
+        val dto = entity.toSyncDto()
+
+        assertEquals(0L, dto.menuItemId)
+        assertNull(dto.serverMenuItemId)
+        assertEquals("Deleted Menu Item", dto.itemName)
     }
 }

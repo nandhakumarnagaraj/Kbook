@@ -174,7 +174,7 @@ object InvoiceFormatter {
         add(BOLD_OFF)
         add("$line\n")
 
-        for (item in bill.items) {
+        for (item in bill.getConsolidatedItems()) {
             val name = if (!item.variantName.isNullOrBlank())
                 "${item.itemName} (${item.variantName})".uppercase()
             else

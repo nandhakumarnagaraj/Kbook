@@ -6,6 +6,7 @@ import com.khanabook.lite.pos.data.local.entity.PrinterProfileEntity
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
+import com.khanabook.lite.pos.data.local.dao.BillDao
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.domain.util.InvoiceFormatter
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -37,7 +38,8 @@ class PrintRouter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val printerProfileRepository: PrinterProfileRepository,
     private val printerManager: BluetoothPrinterManager,
-    private val kitchenPrintQueueManager: KitchenPrintQueueManager
+    private val kitchenPrintQueueManager: KitchenPrintQueueManager,
+    private val billDao: BillDao
 ) {
     companion object {
         private const val TAG = "PrintRouter"
@@ -85,6 +87,25 @@ class PrintRouter @Inject constructor(
         val printJobs = immediateTargets.map { target ->
             async(Dispatchers.IO) {
                 val isKitchenTarget = target.role == PrinterRole.KITCHEN.name
+                val itemsToPrint = if (isKitchenTarget) {
+                    if (mode == PrintDispatchMode.AUTO) {
+                        bill.items.filter { !it.sentToKot }
+                    } else {
+                        bill.items
+                    }
+                } else {
+                    emptyList()
+                }
+
+                if (isKitchenTarget && itemsToPrint.isEmpty()) {
+                    return@async Triple(target.role, true, "")
+                }
+
+                if (!isKitchenTarget && mode == PrintDispatchMode.AUTO && bill.bill.orderStatus.equals("draft", ignoreCase = true)) {
+                    // Do not auto-print customer receipts for draft orders
+                    return@async Triple(target.role, true, "")
+                }
+
                 var claimedQueuedJob = false
                 var success = false
                 var errorMsg = ""
@@ -107,7 +128,7 @@ class PrintRouter @Inject constructor(
                         ) ?: return@repeat
                         val bytes = when (PrinterRole.fromValue(target.role)) {
                             PrinterRole.CUSTOMER -> InvoiceFormatter.formatForThermalPrinter(bill, printProfile, context)
-                            PrinterRole.KITCHEN -> KitchenTicketFormatter.format(bill, restaurantProfile, target)
+                            PrinterRole.KITCHEN -> KitchenTicketFormatter.format(bill, restaurantProfile, target, itemsToPrint)
                         }
                         if (printerManager.printBytesTo(target.macAddress, bytes)) {
                             success = true
@@ -122,6 +143,9 @@ class PrintRouter @Inject constructor(
 
                 if (success) {
                     maybeClearKitchenQueue(bill.bill.id, target)
+                    if (isKitchenTarget && mode == PrintDispatchMode.AUTO && itemsToPrint.isNotEmpty()) {
+                        billDao.markItemsSentToKot(itemsToPrint.map { it.id }, bill.bill.restaurantId)
+                    }
                 } else {
                     maybeQueueKitchenRetry(
                         bill.bill.id,

@@ -122,7 +122,7 @@ fun generateBillText(bill: BillWithItems, profile: RestaurantProfileEntity?): St
     sb.append("*Date:* ${DateUtils.formatDisplay(bill.bill.createdAt)}\n")
     sb.append("--------------------------\n")
     
-    for (item in bill.items) {
+    for (item in bill.getConsolidatedItems()) {
         val name = if (!item.variantName.isNullOrBlank()) 
             "${item.itemName} (${item.variantName})" 
         else item.itemName

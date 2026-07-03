@@ -45,7 +45,6 @@ import com.khanabook.lite.pos.domain.util.DateUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
-import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -154,78 +153,11 @@ fun ReportsScreen(
 
             
             if (showDateRangePicker) {
-                DatePickerDialog(
-                    onDismissRequest = { showDateRangePicker = false },
-                    properties = DialogProperties(usePlatformDefaultWidth = false),
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                val start = dateRangePickerState.selectedStartDateMillis
-                                val end = dateRangePickerState.selectedEndDateMillis
-                                if (start != null && end != null) {
-                                    viewModel.setCustomDateRange(start, end)
-                                }
-                                showDateRangePicker = false
-                            },
-                            enabled = dateRangePickerState.selectedStartDateMillis != null && dateRangePickerState.selectedEndDateMillis != null
-                        ) {
-                            Text("OK", color = PrimaryGold)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDateRangePicker = false }) {
-                            Text("Cancel", color = PrimaryGold)
-                        }
-                    },
-                    colors = DatePickerDefaults.colors(containerColor = DarkBrown2)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.98f)
-                            .widthIn(max = 900.dp)
-                    ) {
-                        DateRangePicker(
-                            state = dateRangePickerState,
-                            modifier = Modifier.fillMaxWidth(),
-                            showModeToggle = false,
-                            title = {
-                                Text(
-                                    text = "Select Custom Range",
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = spacing.medium, bottom = spacing.small),
-                                    textAlign = TextAlign.Center,
-                                    color = PrimaryGold,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                            },
-                            headline = {
-                                Text(
-                                    text = formatDateRangeHeadline(
-                                        dateRangePickerState.selectedStartDateMillis,
-                                        dateRangePickerState.selectedEndDateMillis
-                                    ),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = spacing.medium),
-                                    textAlign = TextAlign.Center,
-                                    color = PrimaryGold,
-                                    style = MaterialTheme.typography.headlineSmall
-                                )
-                            },
-                            colors = DatePickerDefaults.colors(
-                                containerColor = DarkBrown2,
-                                titleContentColor = PrimaryGold,
-                                headlineContentColor = PrimaryGold,
-                                weekdayContentColor = TextGold,
-                                dayContentColor = TextLight,
-                                selectedDayContainerColor = PrimaryGold,
-                                selectedDayContentColor = DarkBrown1,
-                                todayContentColor = PrimaryGold
-                            )
-                        )
-                    }
-                }
+                CustomDateRangePickerDialog(
+                    state = dateRangePickerState,
+                    onDismiss = { showDateRangePicker = false },
+                    onConfirm = viewModel::setCustomDateRange
+                )
             }
 
             
@@ -879,13 +811,6 @@ fun DetailRow(label: String, value: String, valueColor: Color = TextLight, fontW
             modifier = Modifier.weight(1f)
         )
     }
-}
-
-private fun formatDateRangeHeadline(startMillis: Long?, endMillis: Long?): String {
-    val formatter = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
-    val startText = startMillis?.let { formatter.format(Date(it)) } ?: "Start date"
-    val endText = endMillis?.let { formatter.format(Date(it)) } ?: "End date"
-    return "$startText - $endText"
 }
 
 fun formatDate(date: String): String {
