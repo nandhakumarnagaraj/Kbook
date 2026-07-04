@@ -67,7 +67,22 @@ interface BillDao {
     @Update
     suspend fun updateBill(bill: BillEntity)
 
-    @Query("SELECT * FROM bills WHERE restaurant_id = :restaurantId AND order_status = 'draft' AND payment_status = 'pending' AND order_type = 'dine_in' AND is_deleted = 0 ORDER BY updated_at DESC")
+    @Query("""
+        SELECT * FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND order_status = 'draft'
+          AND payment_status = 'pending'
+          AND order_type = 'dine_in'
+          AND is_deleted = 0
+          AND NOT EXISTS (
+              SELECT 1
+              FROM bill_payments
+              WHERE bill_payments.bill_id = bills.id
+                AND bill_payments.restaurant_id = :restaurantId
+                AND bill_payments.is_deleted = 0
+          )
+        ORDER BY updated_at DESC
+    """)
     fun getActiveDraftBillsFlow(restaurantId: Long): Flow<List<BillEntity>>
 
     @Query("SELECT * FROM bill_items WHERE bill_id = :billId AND restaurant_id = :restaurantId AND sent_to_kot = 0 AND is_deleted = 0")
@@ -159,7 +174,19 @@ interface BillDao {
     )
     suspend fun getBillByDailyIntIdAndDate(dailyId: Long, startTime: Long, endTime: Long, restaurantId: Long): BillEntity?
 
-    @Query("SELECT * FROM bills WHERE order_status = 'draft' AND restaurant_id = :restaurantId")
+    @Query("""
+        SELECT * FROM bills
+        WHERE order_status = 'draft'
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND NOT EXISTS (
+              SELECT 1
+              FROM bill_payments
+              WHERE bill_payments.bill_id = bills.id
+                AND bill_payments.restaurant_id = :restaurantId
+                AND bill_payments.is_deleted = 0
+          )
+    """)
     fun getDraftBills(restaurantId: Long): Flow<List<BillEntity>>
 
     @Query("""
@@ -277,6 +304,22 @@ interface BillDao {
         val paymentsWithId = payments.map { it.copy(billId = billId, restaurantId = bill.restaurantId, deviceId = bill.deviceId) }
         insertBillItems(itemsWithId)
         insertBillPayments(paymentsWithId)
+    }
+
+    @Transaction
+    suspend fun settleDraftBill(
+        bill: BillEntity,
+        payments: List<BillPaymentEntity>
+    ) {
+        val paymentsWithId = payments.map {
+            it.copy(
+                billId = bill.id,
+                restaurantId = bill.restaurantId,
+                deviceId = bill.deviceId
+            )
+        }
+        insertBillPayments(paymentsWithId)
+        updateBill(bill)
     }
 
     @Query("""

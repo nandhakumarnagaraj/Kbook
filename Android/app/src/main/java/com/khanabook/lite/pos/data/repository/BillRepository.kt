@@ -90,6 +90,14 @@ class BillRepository(
         triggerBackgroundSync()
     }
 
+    suspend fun settleDraftBill(
+        bill: BillEntity,
+        payments: List<BillPaymentEntity>
+    ) {
+        billDao.settleDraftBill(bill, payments)
+        triggerBackgroundSync()
+    }
+
     suspend fun getBillByDailyIdAndDate(displayId: String, date: String): BillEntity? {
         val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(date)
         val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(date)

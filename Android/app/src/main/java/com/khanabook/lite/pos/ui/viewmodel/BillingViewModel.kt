@@ -1155,8 +1155,6 @@ class BillingViewModel @Inject constructor(
                     )
                 )
 
-                billRepository.addBillPayments(payments)
-
                 val updatedBill = existingBill.copy(
                     paymentMode = paymentMode.dbValue,
                     paymentStatus = status.dbValue,
@@ -1166,7 +1164,7 @@ class BillingViewModel @Inject constructor(
                     updatedAt = System.currentTimeMillis()
                 )
 
-                billRepository.updateBill(updatedBill)
+                billRepository.settleDraftBill(updatedBill, payments)
 
                 val inserted = billRepository.getBillWithItemsById(billId)
                 _lastBill.value = inserted
