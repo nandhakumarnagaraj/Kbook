@@ -51,6 +51,14 @@ class HomeViewModel @Inject constructor(
                 initialValue = emptyList()
             )
 
+    val activeDraftBills: StateFlow<List<com.khanabook.lite.pos.data.local.entity.BillEntity>> =
+        billRepository.getActiveDraftBillsFlow()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
     val quarantinedSyncCount: StateFlow<Int> = billRepository.getSyncQuarantineCountFlow()
         .stateIn(
             scope = viewModelScope,

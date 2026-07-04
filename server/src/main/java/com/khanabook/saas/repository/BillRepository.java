@@ -59,4 +59,32 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
 
     Optional<Bill> findByRestaurantIdAndDeviceIdAndLocalIdAndIsDeletedFalse(
             Long restaurantId, String deviceId, Long localId);
+
+    @Query("""
+            SELECT b FROM Bill b
+            WHERE b.restaurantId = :restaurantId
+              AND b.isDeleted = false
+              AND b.lifetimeOrderId = :lifetimeOrderId
+              AND NOT (b.deviceId = :deviceId AND b.localId = :localId)
+            """)
+    Optional<Bill> findConflictingLifetimeOrder(
+            @Param("restaurantId") Long restaurantId,
+            @Param("lifetimeOrderId") Long lifetimeOrderId,
+            @Param("deviceId") String deviceId,
+            @Param("localId") Long localId);
+
+    @Query("""
+            SELECT b FROM Bill b
+            WHERE b.restaurantId = :restaurantId
+              AND b.isDeleted = false
+              AND b.lastResetDate = :lastResetDate
+              AND b.dailyOrderId = :dailyOrderId
+              AND NOT (b.deviceId = :deviceId AND b.localId = :localId)
+            """)
+    Optional<Bill> findConflictingDailyOrder(
+            @Param("restaurantId") Long restaurantId,
+            @Param("lastResetDate") String lastResetDate,
+            @Param("dailyOrderId") Long dailyOrderId,
+            @Param("deviceId") String deviceId,
+            @Param("localId") Long localId);
 }

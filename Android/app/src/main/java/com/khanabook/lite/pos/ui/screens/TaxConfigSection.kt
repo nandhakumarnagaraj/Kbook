@@ -11,18 +11,15 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,16 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
-import com.khanabook.lite.pos.ui.theme.PrimaryGold
+import com.khanabook.lite.pos.ui.theme.DarkBrownSheet
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
-import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.VegGreen
 
@@ -84,14 +78,16 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                 )
                 ExposedDropdownMenu(
                     expanded = countryExpanded,
-                    onDismissRequest = { countryExpanded = false }
+                    onDismissRequest = { countryExpanded = false },
+                    containerColor = DarkBrownSheet
                 ) {
                     DropdownMenuItem(
-                        text = { Text("India") },
+                        text = { Text("India", color = TextGold) },
                         onClick = {
                             country = "India"
                             countryExpanded = false
-                        }
+                        },
+                        colors = MenuDefaults.itemColors(textColor = TextGold)
                     )
                 }
             }
@@ -138,12 +134,8 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                 )
             }
             Spacer(modifier = Modifier.height(spacing.extraLarge))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-            ) {
-                Button(
-                    onClick = {
+            ConfigActionButtons(
+                onSave = {
                         profile?.copy(
                             country = country,
                             gstEnabled = gstEnabled,
@@ -153,22 +145,10 @@ fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileE
                             isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }
-                    },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                    shape = RoundedCornerShape(28.dp),
-                    enabled = isSaveEnabled
-                ) { Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium) }
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                    shape = RoundedCornerShape(28.dp)
-                ) {
-                    Text("Back", style = MaterialTheme.typography.titleMedium)
-                }
-            }
+                },
+                onBack = onBack,
+                saveEnabled = isSaveEnabled
+            )
         }
     }
 }

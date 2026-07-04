@@ -851,6 +851,7 @@ class MasterSyncProcessor @Inject constructor(
                         dailyOrderDisplay = remoteBill.dailyOrderDisplay.orFallback(""),
                         lifetimeOrderId = remoteBill.lifetimeOrderId ?: 0,
                         orderType = remoteBill.orderType.orFallback("order"),
+                        sourceChannel = remoteBill.sourceChannel.orFallback(""),
                         customerName = remoteBill.customerName,
                         customerWhatsapp = remoteBill.customerWhatsapp,
                         subtotal = remoteBill.subtotal.toSafeAmount(),

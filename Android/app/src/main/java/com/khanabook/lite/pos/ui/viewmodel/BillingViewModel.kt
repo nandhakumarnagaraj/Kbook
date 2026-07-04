@@ -426,10 +426,15 @@ class BillingViewModel @Inject constructor(
                 // creating a new one — prevents duplicate drafts from accumulating.
                 billRepository.cancelStalePendingOnlineDrafts()
 
-                val profile = _cachedProfile.value ?: restaurantRepository.getProfile() ?: return@withLock null
+                val profile = _cachedProfile.value ?: restaurantRepository.getProfile()
+                if (profile == null) {
+                    _isLoading.value = false
+                    return@withLock null
+                }
                 val restaurantId = sessionManager.getRestaurantId()
                 if (restaurantId == 0L) {
                     _error.value = "Account not set up. Please log out and log in again."
+                    _isLoading.value = false
                     return@withLock null
                 }
 
@@ -438,7 +443,9 @@ class BillingViewModel @Inject constructor(
                     _isLoading.value = false
                     return@withLock null
                 }
-                val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters(requireServer = true)
+                // UPI QR generation and payment capture must work offline. Reserve the bill
+                // number locally, then let background sync reconcile with the server later.
+                val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
                 val zoneId = java.time.ZoneId.of("Asia/Kolkata")
                 val today = java.time.LocalDate.now(zoneId).toString()
                 val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter)
@@ -495,39 +502,15 @@ class BillingViewModel @Inject constructor(
                 val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
                 _lastBill.value = inserted
 
-                // Pre-flight: ensure profile.restaurantId is set; sync's pushAll() returns false silently otherwise.
-                val profileForSync = restaurantRepository.getProfile()
-                if (profileForSync == null || (profileForSync.restaurantId ?: 0L) <= 0L) {
-                    _error.value = "Account setup incomplete. Please log out and log in again to refresh your profile."
-                    _isLoading.value = false
-                    return@withLock null
-                }
-
                 val draftBillId = inserted?.bill?.id ?: run {
                     _error.value = "Failed to retrieve draft bill. Please try again."
                     _isLoading.value = false
                     return@withLock null
                 }
 
-                // Push only this draft bill to server — avoids 409 conflicts from other
-                // pending bills that the background worker will flush independently.
-                var lastError: Throwable? = null
-                var synced = false
-                for (attempt in 1..3) {
-                    val result = syncManager.pushBillOnly(draftBillId)
-                    if (result.isSuccess) { synced = true; break }
-                    lastError = result.exceptionOrNull()
-                    Log.w(TAG, "Draft sync attempt $attempt failed", lastError)
-                    if (attempt < 3) kotlinx.coroutines.delay(attempt * 1000L)
-                }
-                if (!synced) {
-                    _error.value = describeSyncFailure(lastError)
-                    _isLoading.value = false
-                    return@withLock null
-                }
-
                 _isLoading.value = false
-                inserted?.bill?.id
+                syncManager.triggerImmediateSync()
+                draftBillId
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to create draft bill", e)
                 _error.value = UserMessageSanitizer.sanitize(
@@ -668,11 +651,16 @@ class BillingViewModel @Inject constructor(
             _isLoading.value = true
             try {
                 // Use cached profile — no extra DB read needed
-                val profile = _cachedProfile.value ?: restaurantRepository.getProfile() ?: return@withLock false
+                val profile = _cachedProfile.value ?: restaurantRepository.getProfile()
+                if (profile == null) {
+                    _isLoading.value = false
+                    return@withLock false
+                }
 
                 val restaurantId = sessionManager.getRestaurantId()
                 if (restaurantId == 0L) {
                     _error.value = "Account not set up. Please log out and log in again."
+                    _isLoading.value = false
                     return@withLock false
                 }
 
@@ -860,10 +848,15 @@ class BillingViewModel @Inject constructor(
             }
             _isLoading.value = true
             try {
-                val profile = _cachedProfile.value ?: restaurantRepository.getProfile() ?: return@withLock false
+                val profile = _cachedProfile.value ?: restaurantRepository.getProfile()
+                if (profile == null) {
+                    _isLoading.value = false
+                    return@withLock false
+                }
                 val restaurantId = sessionManager.getRestaurantId()
                 if (restaurantId == 0L) {
                     _error.value = "Account not set up. Please log out and log in again."
+                    _isLoading.value = false
                     return@withLock false
                 }
 
@@ -940,6 +933,7 @@ class BillingViewModel @Inject constructor(
                 _cartItems.value = emptyList()
                 _customerName.value = ""
                 _customerWhatsapp.value = ""
+                syncManager.triggerImmediateSync()
                 _isLoading.value = false
                 true
             } catch (e: Exception) {
@@ -959,13 +953,22 @@ class BillingViewModel @Inject constructor(
             }
             _isLoading.value = true
             try {
-                val profile = _cachedProfile.value ?: restaurantRepository.getProfile() ?: return@withLock false
-                val existingWithItems = billRepository.getBillWithItemsById(billId) ?: return@withLock false
+                val profile = _cachedProfile.value ?: restaurantRepository.getProfile()
+                if (profile == null) {
+                    _isLoading.value = false
+                    return@withLock false
+                }
+                val existingWithItems = billRepository.getBillWithItemsById(billId)
+                if (existingWithItems == null) {
+                    _isLoading.value = false
+                    return@withLock false
+                }
                 val existingBill = existingWithItems.bill
 
                 val restaurantId = sessionManager.getRestaurantId()
                 if (restaurantId == 0L) {
                     _error.value = "Account not set up."
+                    _isLoading.value = false
                     return@withLock false
                 }
 
@@ -1114,6 +1117,7 @@ class BillingViewModel @Inject constructor(
                 }
 
                 _cartItems.value = emptyList()
+                syncManager.triggerImmediateSync()
                 _isLoading.value = false
                 true
             } catch (e: Exception) {
@@ -1129,8 +1133,16 @@ class BillingViewModel @Inject constructor(
         orderMutex.withLock {
             _isLoading.value = true
             try {
-                val profile = _cachedProfile.value ?: restaurantRepository.getProfile() ?: return@withLock false
-                val existingWithItems = billRepository.getBillWithItemsById(billId) ?: return@withLock false
+                val profile = _cachedProfile.value ?: restaurantRepository.getProfile()
+                if (profile == null) {
+                    _isLoading.value = false
+                    return@withLock false
+                }
+                val existingWithItems = billRepository.getBillWithItemsById(billId)
+                if (existingWithItems == null) {
+                    _isLoading.value = false
+                    return@withLock false
+                }
                 val existingBill = existingWithItems.bill
 
                 val payments = listOf(
@@ -1172,6 +1184,7 @@ class BillingViewModel @Inject constructor(
                     }
                 }
 
+                syncManager.triggerImmediateSync()
                 _isLoading.value = false
                 true
             } catch (e: Exception) {

@@ -8,6 +8,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.local.dao.BillDao
+import com.khanabook.lite.pos.data.local.dao.BillIdConflictBill
+import com.khanabook.lite.pos.data.local.dao.BillIdDuplicateGroup
 import com.khanabook.lite.pos.data.repository.*
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
@@ -31,6 +33,17 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+
+data class DuplicateIdHealth(
+    val duplicateLifetimeGroups: List<BillIdDuplicateGroup> = emptyList(),
+    val duplicateDailyGroups: List<BillIdDuplicateGroup> = emptyList(),
+    val conflictBills: List<BillIdConflictBill> = emptyList(),
+    val isRepairing: Boolean = false,
+    val lastRepairMessage: String? = null
+) {
+    val conflictGroupCount: Int
+        get() = duplicateLifetimeGroups.size + duplicateDailyGroups.size
+}
 
 @HiltViewModel
 @kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -103,6 +116,18 @@ class SettingsViewModel @Inject constructor(
     private val _retryingFailedBillIds = MutableStateFlow<Set<Long>>(emptySet())
     val retryingFailedBillIds: StateFlow<Set<Long>> = _retryingFailedBillIds.asStateFlow()
 
+    private val _duplicateIdHealth = MutableStateFlow(DuplicateIdHealth())
+    val duplicateIdHealth: StateFlow<DuplicateIdHealth> = _duplicateIdHealth.asStateFlow()
+
+    private val _cancellingConflictBillIds = MutableStateFlow<Set<Long>>(emptySet())
+    val cancellingConflictBillIds: StateFlow<Set<Long>> = _cancellingConflictBillIds.asStateFlow()
+
+    private val _syncCenterMessage = MutableStateFlow<String?>(null)
+    val syncCenterMessage: StateFlow<String?> = _syncCenterMessage.asStateFlow()
+
+    private val _lastSyncTimestamp = MutableStateFlow(sessionManager.getLastSyncTimestamp())
+    val lastSyncTimestamp: StateFlow<Long> = _lastSyncTimestamp.asStateFlow()
+
     val quarantinedSyncRecords: StateFlow<List<SyncQuarantineEntity>> = sessionManager.restaurantId
         .flatMapLatest { restaurantId ->
             if (restaurantId > 0L) {
@@ -128,6 +153,8 @@ class SettingsViewModel @Inject constructor(
                 }
         }
         refreshFailedBillSyncs()
+        refreshDuplicateIdHealth()
+        refreshLastSyncTimestamp()
     }
 
     fun refreshFailedBillSyncs() {
@@ -138,6 +165,109 @@ class SettingsViewModel @Inject constructor(
             } else {
                 emptyList()
             }
+        }
+    }
+
+    fun refreshDuplicateIdHealth() {
+        viewModelScope.launch(Dispatchers.IO) {
+            loadDuplicateIdHealth()
+        }
+    }
+
+    fun refreshLastSyncTimestamp() {
+        _lastSyncTimestamp.value = sessionManager.getLastSyncTimestamp()
+    }
+
+    fun repairOrderIdCounters() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val previous = _duplicateIdHealth.value
+            _duplicateIdHealth.value = previous.copy(isRepairing = true, lastRepairMessage = null)
+            try {
+                val restaurantId = sessionManager.getRestaurantId()
+                if (restaurantId <= 0L) {
+                    _duplicateIdHealth.value = previous.copy(
+                        isRepairing = false,
+                        lastRepairMessage = "Restaurant is not ready yet. Try again after login."
+                    )
+                    return@launch
+                }
+
+                val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+                val today = java.time.LocalDate.now(zoneId)
+                val startTime = today.atStartOfDay(zoneId).toInstant().toEpochMilli()
+                val endTime = today.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
+                val maxLifetime = billDao.getMaxLifetimeOrderId(restaurantId)
+                val maxDailyToday = billDao.getMaxDailyOrderIdBetween(restaurantId, startTime, endTime)
+
+                restaurantRepository.raiseCountersAtLeast(
+                    dailyCounter = maxDailyToday,
+                    lifetimeCounter = maxLifetime,
+                    date = today.toString()
+                )
+                loadDuplicateIdHealth(
+                    lastRepairMessage = "Future duplicates prevented. Next bill will use #${maxDailyToday + 1} / INV${maxLifetime + 1}."
+                )
+            } catch (e: Exception) {
+                _duplicateIdHealth.value = previous.copy(
+                    isRepairing = false,
+                    lastRepairMessage = UserMessageSanitizer.sanitize(
+                        e,
+                        "Unable to repair counters. Please try again."
+                    )
+                )
+            }
+        }
+    }
+
+    fun cancelDuplicateConflictBill(billId: Long) {
+        viewModelScope.launch {
+            _cancellingConflictBillIds.value = _cancellingConflictBillIds.value + billId
+            _syncCenterMessage.value = null
+            try {
+                withContext(Dispatchers.IO) {
+                    val restaurantId = sessionManager.getRestaurantId()
+                    val bill = billDao.getBillById(billId, restaurantId)
+                        ?: throw IllegalStateException("Bill not found.")
+                    if (bill.orderStatus.equals("completed", ignoreCase = true) ||
+                        bill.orderStatus.equals("paid", ignoreCase = true)
+                    ) {
+                        throw IllegalStateException("Completed bills need manual review. They were not changed.")
+                    }
+                    billDao.cancelBill(
+                        id = billId,
+                        reason = "Marked duplicate from Sync Center",
+                        updatedAt = System.currentTimeMillis(),
+                        restaurantId = restaurantId
+                    )
+                }
+                syncManager.pushUnsyncedDataWithResult()
+                _syncCenterMessage.value = "Duplicate bill marked cancelled."
+            } catch (e: Exception) {
+                _syncCenterMessage.value = UserMessageSanitizer.sanitize(
+                    e,
+                    "Unable to cancel this duplicate bill."
+                )
+            } finally {
+                _cancellingConflictBillIds.value = _cancellingConflictBillIds.value - billId
+                refreshDuplicateIdHealth()
+                refreshFailedBillSyncs()
+                refreshLastSyncTimestamp()
+            }
+        }
+    }
+
+    private suspend fun loadDuplicateIdHealth(lastRepairMessage: String? = _duplicateIdHealth.value.lastRepairMessage) {
+        val restaurantId = sessionManager.getRestaurantId()
+        _duplicateIdHealth.value = if (restaurantId > 0L) {
+            DuplicateIdHealth(
+                duplicateLifetimeGroups = billDao.getDuplicateLifetimeOrderGroups(restaurantId),
+                duplicateDailyGroups = billDao.getDuplicateDailyOrderGroups(restaurantId),
+                conflictBills = billDao.getDuplicateIdConflictBills(restaurantId),
+                isRepairing = false,
+                lastRepairMessage = lastRepairMessage
+            )
+        } else {
+            DuplicateIdHealth(lastRepairMessage = lastRepairMessage)
         }
     }
 

@@ -217,17 +217,13 @@ fun CallCustomerScreen(
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
-                Button(
+                KhanaPrimaryButton(
+                        text = "Search Customer",
                         onClick = { submitDailySearch() },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                        enabled = dailyId.isNotEmpty()
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1, modifier = Modifier.size(iconSize.small))
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Text("Search Customer", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                }
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = dailyId.isNotEmpty(),
+                        leadingIcon = Icons.Default.Search
+                )
             } else {
                 OutlinedTextField(
                         value = lifetimeId,
@@ -261,17 +257,13 @@ fun CallCustomerScreen(
                         }
                 )
                 Spacer(modifier = Modifier.height(spacing.medium))
-                Button(
+                KhanaPrimaryButton(
+                        text = "Search Customer",
                         onClick = { submitLifetimeSearch() },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                        enabled = lifetimeId.isNotEmpty()
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = DarkBrown1, modifier = Modifier.size(iconSize.small))
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Text("Search Customer", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                } // closes Button
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = lifetimeId.isNotEmpty(),
+                        leadingIcon = Icons.Default.Search
+                )
               } // closes else
              } // closes Column
             } // closes AnimatedVisibility header
@@ -331,7 +323,8 @@ fun CallCustomerScreen(
 
                         Spacer(modifier = Modifier.height(spacing.large))
 
-                        Button(
+                        KhanaPrimaryButton(
+                                text = "Call Customer",
                                 onClick = {
                                     currentResult.bill.customerWhatsapp?.let { phone ->
                                         val intent =
@@ -341,14 +334,9 @@ fun CallCustomerScreen(
                                     }
                                 },
                                 enabled = currentResult.bill.customerWhatsapp != null,
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Call, contentDescription = null, tint = Color.White)
-                            Spacer(modifier = Modifier.width(spacing.small))
-                            Text("Call Customer", color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                        }
+                                modifier = Modifier.fillMaxWidth(),
+                                leadingIcon = Icons.Default.Call
+                        )
                     }
                 }
                 } else {

@@ -48,21 +48,18 @@ class ReportGenerator(private val billRepository: BillRepository) {
 
     suspend fun getOrderLevelRows(from: Long, to: Long): List<OrderLevelRow> {
         val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
-        return bills.filter { 
-            val status = OrderStatus.fromDbValue(it.orderStatus)
-            status == OrderStatus.COMPLETED || status == OrderStatus.CANCELLED 
+        return bills.map { bill ->
+            OrderLevelRow(
+                dailyId = bill.dailyOrderDisplay.split("-").last(),
+                lifetimeId = bill.lifetimeOrderId,
+                billId = bill.id,
+                paymentMode = PaymentMode.fromDbValue(bill.paymentMode),
+                sourceChannel = bill.sourceChannel,
+                orderStatus = OrderStatus.fromDbValue(bill.orderStatus),
+                date = DateUtils.formatDisplay(bill.createdAt),
+                cancelReason = bill.cancelReason
+            )
         }
-            .map { bill ->
-                OrderLevelRow(
-                    dailyId = bill.dailyOrderDisplay.split("-").last(),
-                    lifetimeId = bill.lifetimeOrderId,
-                    billId = bill.id,
-                    paymentMode = PaymentMode.fromDbValue(bill.paymentMode),
-                    orderStatus = OrderStatus.fromDbValue(bill.orderStatus),
-                    date = DateUtils.formatDisplay(bill.createdAt),
-                    cancelReason = bill.cancelReason
-                )
-            }
     }
 
     suspend fun getOrderDetail(billId: Long): BillWithItems? {
@@ -72,18 +69,19 @@ class ReportGenerator(private val billRepository: BillRepository) {
     suspend fun getOrderDetailsTable(from: Long, to: Long): List<OrderDetailRow> {
         val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
         return bills.map { bill ->
-            OrderDetailRow(
-                dailyNo = bill.dailyOrderDisplay.split("-").last(),
-                lifetimeNo = bill.lifetimeOrderId,
-                billId = bill.id,
-                currentStatus = formatCurrentStatus(bill),
-                salesAmount = bill.totalAmount,
-                payMode = PaymentMode.fromDbValue(bill.paymentMode),
-                orderStatus = OrderStatus.fromDbValue(bill.orderStatus),
-                salesDate = bill.createdAt,
-                cancelReason = bill.cancelReason
-            )
-        }
+                OrderDetailRow(
+                    dailyNo = bill.dailyOrderDisplay.split("-").last(),
+                    lifetimeNo = bill.lifetimeOrderId,
+                    billId = bill.id,
+                    currentStatus = formatCurrentStatus(bill),
+                    salesAmount = bill.totalAmount,
+                    payMode = PaymentMode.fromDbValue(bill.paymentMode),
+                    sourceChannel = bill.sourceChannel,
+                    orderStatus = OrderStatus.fromDbValue(bill.orderStatus),
+                    salesDate = bill.createdAt,
+                    cancelReason = bill.cancelReason
+                )
+            }
     }
 
     fun formatCurrentStatus(bill: BillEntity): String {

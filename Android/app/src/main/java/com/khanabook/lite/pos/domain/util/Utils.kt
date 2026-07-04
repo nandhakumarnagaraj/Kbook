@@ -3,7 +3,6 @@ package com.khanabook.lite.pos.domain.util
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.content.FileProvider
 import com.khanabook.lite.pos.R
@@ -11,6 +10,8 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.manager.InvoicePDFGenerator
 import com.khanabook.lite.pos.domain.manager.TrustedExternalAppReturn
+import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +70,12 @@ object DateUtils {
 }
 
 private const val UTILS_TAG = "KhanaBookUtils"
+
+private fun showAppToast(message: String, kind: ToastKind = ToastKind.Info) {
+    CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate).launch {
+        KhanaToast.show(message, kind)
+    }
+}
 
 /**
  * Utility functions for Currency formatting.
@@ -163,7 +170,7 @@ fun sendInvoiceViaSms(context: Context, billWithItems: BillWithItems, profile: R
     try {
         context.startActivity(intent)
     } catch (e: Exception) {
-        Toast.makeText(context, "Unable to open SMS app.", Toast.LENGTH_SHORT).show()
+        showAppToast("Unable to open SMS app.", ToastKind.Error)
     }
 }
 
@@ -202,7 +209,7 @@ fun buildPendingInvoiceShareUrl(billWithItems: BillWithItems): String? {
 fun shareInvoiceViaWhatsAppLink(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
     val link = buildInvoiceShareUrl(billWithItems) ?: buildPendingInvoiceShareUrl(billWithItems)
     if (link == null) {
-        Toast.makeText(context, "Sync pending. Try again after the invoice syncs.", Toast.LENGTH_SHORT).show()
+        showAppToast("Sync pending. Try again after the invoice syncs.", ToastKind.Warning)
         return
     }
     shareInvoiceLink(context, billWithItems, profile, link)
@@ -211,7 +218,7 @@ fun shareInvoiceViaWhatsAppLink(context: Context, billWithItems: BillWithItems, 
 fun shareInstantInvoiceLink(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
     val link = buildInvoiceShareUrl(billWithItems) ?: buildPendingInvoiceShareUrl(billWithItems)
     if (link == null) {
-        Toast.makeText(context, "Invoice link not ready. Sharing invoice text.", Toast.LENGTH_SHORT).show()
+        showAppToast("Invoice link not ready. Sharing invoice text.", ToastKind.Warning)
         shareInvoiceTextViaWhatsApp(context, billWithItems, profile)
         return
     }
@@ -264,7 +271,7 @@ private fun shareInvoiceLink(
     try {
         context.startActivity(Intent.createChooser(fallback, "Share Invoice via"))
     } catch (e: Exception) {
-        Toast.makeText(context, "Unable to open WhatsApp.", Toast.LENGTH_SHORT).show()
+        showAppToast("Unable to open WhatsApp.", ToastKind.Error)
     }
 }
 
@@ -305,7 +312,7 @@ fun shareInvoiceTextViaWhatsApp(context: Context, billWithItems: BillWithItems, 
     try {
         context.startActivity(Intent.createChooser(fallback, "Share Invoice via"))
     } catch (e: Exception) {
-        Toast.makeText(context, "Unable to open share options.", Toast.LENGTH_SHORT).show()
+        showAppToast("Unable to open share options.", ToastKind.Error)
     }
 }
 
@@ -327,11 +334,7 @@ fun openBillToPrint(context: Context, billWithItems: BillWithItems, profile: Res
         }
         context.startActivity(Intent.createChooser(intent, "Open PDF to Print"))
     } catch (e: Exception) {
-        Toast.makeText(
-            context,
-            UserMessageSanitizer.sanitize(e, "Unable to open invoice."),
-            Toast.LENGTH_SHORT
-        ).show()
+        showAppToast(UserMessageSanitizer.sanitize(e, "Unable to open invoice."), ToastKind.Error)
     }
 }
 
@@ -363,7 +366,7 @@ fun directPrint(
             printerManager.printBytes(bytes)
         } else {
             kotlinx.coroutines.withContext(Dispatchers.Main) {
-                Toast.makeText(context, context.getString(R.string.toast_printer_opening_pdf), Toast.LENGTH_SHORT).show()
+                KhanaToast.show(context.getString(R.string.toast_printer_opening_pdf), ToastKind.Warning)
                 openBillToPrint(context, billWithItems, profile)
             }
         }

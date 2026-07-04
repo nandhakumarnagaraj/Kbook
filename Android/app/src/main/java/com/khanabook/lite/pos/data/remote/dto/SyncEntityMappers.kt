@@ -26,6 +26,7 @@ fun BillEntity.toSyncDto(serverCreatedBy: Long? = null) = BillSyncDto(
     dailyOrderDisplay = dailyOrderDisplay,
     lifetimeOrderId = lifetimeOrderId,
     orderType       = orderType,
+    sourceChannel   = sourceChannel,
     customerName    = customerName,
     customerWhatsapp = customerWhatsapp,
     subtotal        = subtotal,

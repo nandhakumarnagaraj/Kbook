@@ -381,6 +381,7 @@ class MainActivity : FragmentActivity() {
                             onNewBill = { navController.navigate("new_bill") },
                             onResumePendingPayment = { navController.navigate("new_bill?resumePayment=true") },
                             onOpenSyncCenter = { navController.navigate("main/3?section=sync_center") },
+                            onOpenPrinterSettings = { navController.navigate("main/3?section=printer") },
                             onSearchBill = { navController.navigate("search_bill") },
                             onReprintKds = { navController.navigate("reprint_kds") },
                             onOrderStatus = { navController.navigate("order_status") },

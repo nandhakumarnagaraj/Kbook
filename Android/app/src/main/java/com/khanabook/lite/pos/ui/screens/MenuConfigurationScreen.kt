@@ -104,8 +104,6 @@ fun MenuConfigurationScreen(
     val ocrUiState by viewModel.ocrImportUiState.collectAsState()
     val context = LocalContext.current
 
-    val snackbarHostState = remember { SnackbarHostState() }
-
     val pdfLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
@@ -153,14 +151,14 @@ fun MenuConfigurationScreen(
 
     LaunchedEffect(ocrUiState.successMessage) {
         ocrUiState.successMessage?.let {
-            snackbarHostState.showSnackbar(it)
+            KhanaToast.show(it, ToastKind.Success)
             viewModel.clearSuccessMessage()
         }
     }
 
     LaunchedEffect(ocrUiState.error) {
         ocrUiState.error?.let {
-            snackbarHostState.showSnackbar(it)
+            KhanaToast.show(it, ToastKind.Error)
             viewModel.setError(null)
         }
     }
@@ -214,7 +212,6 @@ fun MenuConfigurationScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBrown1)
             )
         },
-        snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
         containerColor = DarkBrown1,
         contentWindowInsets = WindowInsets.systemBars
     ) { padding ->

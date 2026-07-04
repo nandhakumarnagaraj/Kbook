@@ -71,6 +71,18 @@ class RestaurantRepository(
         triggerBackgroundSync()
     }
 
+    suspend fun raiseCountersAtLeast(dailyCounter: Long, lifetimeCounter: Long, date: String) {
+        val restaurantId = sessionManager.getRestaurantId()
+        restaurantDao.raiseCountersAtLeast(
+            restaurantId = restaurantId,
+            dailyCounter = dailyCounter,
+            lifetimeCounter = lifetimeCounter,
+            date = date,
+            updatedAt = System.currentTimeMillis()
+        )
+        triggerBackgroundSync()
+    }
+
     suspend fun incrementOrderCounters() {
         val restaurantId = sessionManager.getRestaurantId()
         restaurantDao.incrementOrderCounters(restaurantId, System.currentTimeMillis())

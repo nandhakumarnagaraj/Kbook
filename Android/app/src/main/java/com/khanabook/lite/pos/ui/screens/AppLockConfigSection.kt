@@ -76,6 +76,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.data.local.dao.BillIdConflictBill
+import com.khanabook.lite.pos.data.local.dao.BillIdDuplicateGroup
 import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.local.entity.SyncQuarantineEntity
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
@@ -805,12 +807,19 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
     val failedBills by viewModel.failedBillSyncs.collectAsStateWithLifecycle()
     val retryingIds by viewModel.retryingFailedBillIds.collectAsStateWithLifecycle()
     val quarantinedRecords by viewModel.quarantinedSyncRecords.collectAsStateWithLifecycle()
+    val duplicateIdHealth by viewModel.duplicateIdHealth.collectAsStateWithLifecycle()
+    val cancellingConflictIds by viewModel.cancellingConflictBillIds.collectAsStateWithLifecycle()
+    val syncCenterMessage by viewModel.syncCenterMessage.collectAsStateWithLifecycle()
+    val lastSyncTimestamp by viewModel.lastSyncTimestamp.collectAsStateWithLifecycle()
     val pendingCount = failedBills.size
     val retryingCount = retryingIds.size
     val quarantineCount = quarantinedRecords.size
+    val idConflictCount = duplicateIdHealth.conflictGroupCount
 
     LaunchedEffect(Unit) {
         viewModel.refreshFailedBillSyncs()
+        viewModel.refreshDuplicateIdHealth()
+        viewModel.refreshLastSyncTimestamp()
     }
 
     Column(
@@ -831,6 +840,23 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
             color = TextLight.copy(alpha = 0.8f),
             style = MaterialTheme.typography.bodyMedium
         )
+        Text(
+            if (lastSyncTimestamp > 0L) {
+                "Last sync: ${formatSyncIssueTime(lastSyncTimestamp)}"
+            } else {
+                "Last sync: not completed yet"
+            },
+            color = TextGold.copy(alpha = 0.72f),
+            style = MaterialTheme.typography.bodySmall
+        )
+        syncCenterMessage?.takeIf { it.isNotBlank() }?.let { message ->
+            Text(
+                message,
+                color = if (message.startsWith("Unable", ignoreCase = true)) DangerRed else SuccessGreen,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -851,9 +877,16 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
         }
 
         SyncCenterStatCard(
-            label = "Quarantined children",
+            label = "Rows needing review",
             value = quarantineCount.toString(),
             tint = if (quarantineCount > 0) PrimaryGold else SuccessGreen,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        SyncCenterStatCard(
+            label = "ID conflicts",
+            value = idConflictCount.toString(),
+            tint = if (idConflictCount > 0) DangerRed else SuccessGreen,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -867,6 +900,18 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
 
         QuarantineIssuesCard(
             quarantinedRecords = quarantinedRecords
+        )
+
+        OrderIdHealthCard(
+            duplicateLifetimeGroups = duplicateIdHealth.duplicateLifetimeGroups,
+            duplicateDailyGroups = duplicateIdHealth.duplicateDailyGroups,
+            conflictBills = duplicateIdHealth.conflictBills,
+            cancellingConflictIds = cancellingConflictIds,
+            isRepairing = duplicateIdHealth.isRepairing,
+            message = duplicateIdHealth.lastRepairMessage,
+            onRefresh = viewModel::refreshDuplicateIdHealth,
+            onRepair = viewModel::repairOrderIdCounters,
+            onCancelDuplicate = viewModel::cancelDuplicateConflictBill
         )
 
         KhanaBookCard(
@@ -890,21 +935,250 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(
-                    "Quarantined child rows are logged separately so a bill item or payment can still be investigated even when the parent bill sync succeeds.",
+                    "Rows needing review are bill items or payments that need investigation even when the parent bill sync succeeds.",
+                    color = TextGold.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    "Order and invoice IDs are checked across dine-in and takeaway bills. Prevent future duplicates moves the next bill number forward without renumbering old invoices.",
                     color = TextGold.copy(alpha = 0.72f),
                     style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedButton(
-                    onClick = { viewModel.refreshFailedBillSyncs() },
+                    onClick = {
+                        viewModel.refreshFailedBillSyncs()
+                        viewModel.refreshDuplicateIdHealth()
+                        viewModel.refreshLastSyncTimestamp()
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Icon(Icons.Default.Refresh, null, tint = PrimaryGold)
                     Spacer(modifier = Modifier.width(spacing.small))
-                    Text("Refresh blocked bills", color = TextGold)
+                    Text("Refresh sync health", color = TextGold)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun OrderIdHealthCard(
+    duplicateLifetimeGroups: List<BillIdDuplicateGroup>,
+    duplicateDailyGroups: List<BillIdDuplicateGroup>,
+    conflictBills: List<BillIdConflictBill>,
+    cancellingConflictIds: Set<Long>,
+    isRepairing: Boolean,
+    message: String?,
+    onRefresh: () -> Unit,
+    onRepair: () -> Unit,
+    onCancelDuplicate: (Long) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    val hasConflicts = duplicateLifetimeGroups.isNotEmpty() || duplicateDailyGroups.isNotEmpty()
+    KhanaBookCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (hasConflicts) Icons.Default.SyncProblem else Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = if (hasConflicts) DangerRed else SuccessGreen,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Column {
+                        Text("Order / Invoice IDs", color = TextLight, style = MaterialTheme.typography.labelLarge)
+                        Text(
+                            if (hasConflicts) "Conflict groups found" else "No duplicate IDs found",
+                            color = TextGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                IconButton(onClick = onRefresh) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh ID health", tint = PrimaryGold)
+                }
+            }
+
+            Text(
+                "This check covers dine-in and takeaway bills together, so both flows share the same invoice/order counter safety.",
+                color = TextGold.copy(alpha = 0.72f),
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            message?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    it,
+                    color = if (it.startsWith("Unable", ignoreCase = true)) DangerRed else SuccessGreen,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            if (hasConflicts) {
+                conflictBills.take(8).forEach { bill ->
+                    DuplicateConflictBillRow(
+                        bill = bill,
+                        isCancelling = cancellingConflictIds.contains(bill.id),
+                        onCancel = { onCancelDuplicate(bill.id) }
+                    )
+                }
+                duplicateLifetimeGroups.take(3).forEach { group ->
+                    DuplicateIdRow(
+                        title = "Invoice INV${group.idValue}",
+                        group = group
+                    )
+                }
+                duplicateDailyGroups.take(3).forEach { group ->
+                    DuplicateIdRow(
+                        title = "Order ${group.idValue}",
+                        group = group
+                    )
+                }
+                Text(
+                    "Prevent future duplicates stops the next bill from colliding. Completed duplicate invoices stay listed for manual review.",
+                    color = TextGold.copy(alpha = 0.62f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Button(
+                onClick = onRepair,
+                enabled = !isRepairing,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                if (isRepairing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = TextLight
+                    )
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Text("Repairing...", color = TextLight)
+                } else {
+                    Text("Prevent future duplicates", color = TextLight)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DuplicateConflictBillRow(
+    bill: BillIdConflictBill,
+    isCancelling: Boolean,
+    onCancel: () -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    val canCancel = !bill.orderStatus.equals("completed", ignoreCase = true) &&
+        !bill.orderStatus.equals("paid", ignoreCase = true) &&
+        !bill.orderStatus.equals("cancelled", ignoreCase = true)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DarkBrown1.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+            .padding(spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Local ${bill.id} - ${bill.dailyOrderDisplay}/INV${bill.lifetimeOrderId}",
+                    color = TextLight,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "${bill.orderType.replace('_', ' ')} - ${bill.orderStatus} - ${bill.paymentStatus}",
+                    color = TextGold.copy(alpha = 0.78f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Text(
+                bill.totalAmount,
+                color = PrimaryGold,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Text(
+            "${bill.paymentMode} - ${formatSyncIssueTime(bill.createdAt)}",
+            color = TextGold.copy(alpha = 0.62f),
+            style = MaterialTheme.typography.bodySmall
+        )
+        if (canCancel) {
+            TextButton(onClick = onCancel, enabled = !isCancelling) {
+                if (isCancelling) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = PrimaryGold
+                    )
+                    Spacer(modifier = Modifier.width(spacing.small))
+                    Text("Cancelling...", color = PrimaryGold)
+                } else {
+                    Text("Mark duplicate cancelled", color = PrimaryGold)
+                }
+            }
+        } else {
+            Text(
+                if (bill.orderStatus.equals("cancelled", ignoreCase = true)) {
+                    "Already cancelled"
+                } else {
+                    "Completed bill: review only"
+                },
+                color = TextGold.copy(alpha = 0.62f),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun DuplicateIdRow(
+    title: String,
+    group: BillIdDuplicateGroup
+) {
+    val spacing = KhanaBookTheme.spacing
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DarkBrown1.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+            .padding(spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+    ) {
+        Text(
+            "$title - ${group.duplicateCount} bills",
+            color = TextLight,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold
+        )
+        group.sampleBills?.takeIf { it.isNotBlank() }?.let { sample ->
+            Text(
+                sample,
+                color = TextGold.copy(alpha = 0.78f),
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
@@ -937,9 +1211,9 @@ private fun QuarantineIssuesCard(
                     )
                     Spacer(modifier = Modifier.width(spacing.small))
                     Column {
-                        Text("Quarantine Log", color = TextLight, style = MaterialTheme.typography.labelLarge)
+                        Text("Rows Needing Review", color = TextLight, style = MaterialTheme.typography.labelLarge)
                         Text(
-                            if (quarantinedRecords.isEmpty()) "No quarantined child rows" else "${quarantinedRecords.size} quarantined child row(s)",
+                            if (quarantinedRecords.isEmpty()) "No child rows need review" else "${quarantinedRecords.size} child row(s) need review",
                             color = TextGold.copy(alpha = 0.7f),
                             style = MaterialTheme.typography.bodySmall
                         )

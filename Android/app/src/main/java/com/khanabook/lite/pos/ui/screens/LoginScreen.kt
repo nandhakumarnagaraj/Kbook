@@ -109,7 +109,6 @@ fun LoginScreen(
     val passwordFocusRequester = remember { FocusRequester() }
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
-    val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(loginStatus) {
@@ -119,7 +118,7 @@ fun LoginScreen(
                 isGoogleLogin = false
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 coroutineScope.launch {
-                    snackbarHostState.showSnackbar(context.getString(R.string.toast_welcome_back))
+                    KhanaToast.show(context.getString(R.string.toast_welcome_back), ToastKind.Success)
                 }
                 onLoginSuccess()
             }
@@ -400,11 +399,6 @@ fun LoginScreen(
             type = if (isGoogleLogin) LoadingType.GOOGLE_LOGIN else LoadingType.LOGIN
         )
 
-        KhanaBookSnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
-        )
-
         if (showForgotDialog) {
             ForgotPasswordDialog(
                     viewModel = viewModel,
@@ -413,7 +407,7 @@ fun LoginScreen(
                         viewModel.clearResetStatus()
                     },
                     onSuccess = { message ->
-                        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+                        coroutineScope.launch { KhanaToast.show(message, ToastKind.Success) }
                     }
             )
         }
