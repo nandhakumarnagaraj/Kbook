@@ -49,6 +49,7 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.focus.onFocusChanged
 import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.CategoryEntity
 import com.khanabook.lite.pos.data.local.entity.MenuItemEntity
@@ -96,12 +97,12 @@ fun MenuConfigurationScreen(
     onBackClick: () -> Unit,
     viewModel: MenuViewModel = hiltViewModel()
 ) {
-    val categories by viewModel.categories.collectAsState()
-    val totalCategoriesCount by viewModel.totalCategoriesCount.collectAsState()
-    val totalItemsCount by viewModel.totalItemsCount.collectAsState()
-    val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
-    val menuItems by viewModel.menuItems.collectAsState()
-    val ocrUiState by viewModel.ocrImportUiState.collectAsState()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
+    val totalCategoriesCount by viewModel.totalCategoriesCount.collectAsStateWithLifecycle()
+    val totalItemsCount by viewModel.totalItemsCount.collectAsStateWithLifecycle()
+    val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
+    val menuItems by viewModel.menuItems.collectAsStateWithLifecycle()
+    val ocrUiState by viewModel.ocrImportUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val pdfLauncher = rememberLauncherForActivityResult(

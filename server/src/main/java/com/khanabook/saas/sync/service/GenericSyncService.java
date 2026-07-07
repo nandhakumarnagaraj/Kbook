@@ -29,6 +29,7 @@ public class GenericSyncService {
 	private final MenuItemRepository menuItemRepository;
 	private final ItemVariantRepository itemVariantRepository;
 	private final CategoryRepository categoryRepository;
+	private final BillPaymentRepository billPaymentRepository;
 
 	private User findExistingUserByIdentity(Long tenantId, User incomingUser,
 			com.khanabook.saas.repository.UserRepository userRepository) {
@@ -370,7 +371,23 @@ public class GenericSyncService {
 							failedReasons.put(failedLocalId, "Incoming record is older than the server record");
 						}
 					} else {
-						// Relational ID Resolution for New Records
+							// Idempotency guard: a gateway bill payment carries a globally-unique
+							// gateway_txn_id. If WorkManager retries a push after a dropped response,
+							// the retry arrives as a "new" record (fresh localId) but the row already
+							// exists. Skip the insert instead of letting saveAll trip the partial
+							// unique index (uq_bill_payments_gateway_txn) and fail the whole batch.
+							if (incomingRecord instanceof BillPayment newBillPayment) {
+								String txnId = newBillPayment.getGatewayTxnId();
+								if (txnId != null && !txnId.isBlank()
+										&& billPaymentRepository.existsByRestaurantIdAndGatewayTxnId(targetTenantId, txnId)) {
+									log.info("Skipping duplicate gateway bill payment insert localId={} txnId={} tenantId={}",
+											newBillPayment.getLocalId(), txnId, targetTenantId);
+									successfulLocalIds.add(newBillPayment.getLocalId());
+									continue;
+								}
+							}
+
+							// Relational ID Resolution for New Records
 						resolveRelationalIds(incomingRecord, idMaps);
 
 						if (incomingRecord instanceof RestaurantProfile incomingProfile) {

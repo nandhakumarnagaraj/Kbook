@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
@@ -55,12 +56,12 @@ fun ReportsScreen(
     viewModel: ReportsViewModel = hiltViewModel(),
     settingsViewModel: com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel = hiltViewModel()
 ) {
-    val reportType by viewModel.reportType.collectAsState()
-    val timeFilter by viewModel.timeFilter.collectAsState()
-    val paymentBreakdown by viewModel.paymentBreakdown.collectAsState()
-    val orderLevelRows by viewModel.orderLevelRows.collectAsState()
-    val profile by settingsViewModel.profile.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val reportType by viewModel.reportType.collectAsStateWithLifecycle()
+    val timeFilter by viewModel.timeFilter.collectAsStateWithLifecycle()
+    val paymentBreakdown by viewModel.paymentBreakdown.collectAsStateWithLifecycle()
+    val orderLevelRows by viewModel.orderLevelRows.collectAsStateWithLifecycle()
+    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -80,7 +81,7 @@ fun ReportsScreen(
     }
     
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
-    val selectedBillDetails by viewModel.selectedBillDetails.collectAsState()
+    val selectedBillDetails by viewModel.selectedBillDetails.collectAsStateWithLifecycle()
     
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
@@ -319,7 +320,7 @@ fun PaymentLevelView(
     settingsViewModel: com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel,
     modifier: Modifier = Modifier
 ) {
-    val profile by settingsViewModel.profile.collectAsState()
+    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     
     val enabledModes = profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)

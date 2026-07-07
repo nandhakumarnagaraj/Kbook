@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
-import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -347,8 +346,8 @@ fun CustomerInfoStep(
     var whatsapp by remember { mutableStateOf(billingViewModel?.customerWhatsapp?.value ?: "") }
     val spacing = KhanaBookTheme.spacing
 
-    val recentCustomers by (billingViewModel?.recentCustomers ?: kotlinx.coroutines.flow.flowOf(emptyList<Pair<String,String>>())).collectAsState(emptyList())
-    val currentOrderType by (billingViewModel?.orderType ?: kotlinx.coroutines.flow.flowOf("dine_in")).collectAsState("dine_in")
+    val recentCustomers by (billingViewModel?.recentCustomers ?: kotlinx.coroutines.flow.flowOf(emptyList<Pair<String,String>>())).collectAsStateWithLifecycle(emptyList())
+    val currentOrderType by (billingViewModel?.orderType ?: kotlinx.coroutines.flow.flowOf("dine_in")).collectAsStateWithLifecycle("dine_in")
     var selectedOrderType by remember { mutableStateOf(if (activeDraftBills.isNotEmpty()) "active_order" else currentOrderType) }
 
     LaunchedEffect(Unit) { billingViewModel?.loadRecentCustomers() }
@@ -1308,8 +1307,8 @@ fun PaymentStep(
     onFlowLockChange: (Boolean) -> Unit = {},
     resumePendingPayment: Boolean = false
 ) {
-    val summary by viewModel.billSummary.collectAsState()
-    val profile by settingsViewModel.profile.collectAsState()
+    val summary by viewModel.billSummary.collectAsStateWithLifecycle()
+    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val enabledModes =
             remember(profile) {
@@ -1889,7 +1888,7 @@ fun FailedStep(
         onRetryPayment: () -> Unit,
         onNewBill: () -> Unit
 ) {
-    val lastBill by viewModel.lastBill.collectAsState()
+    val lastBill by viewModel.lastBill.collectAsStateWithLifecycle()
     val totalAmount = lastBill?.bill?.totalAmount?.toDoubleOrNull() ?: 0.0
     val orderDisplay = lastBill?.bill?.dailyOrderDisplay ?: "-"
     val spacing = KhanaBookTheme.spacing
@@ -1968,11 +1967,11 @@ fun SuccessStep(
         onShowMessage: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
-    val lastBill by viewModel.lastBill.collectAsState()
-    val printStatus by viewModel.printStatus.collectAsState()
-    val receiptPrinting by viewModel.receiptPrinting.collectAsState()
-    val connectionStatus by viewModel.connectionStatus.collectAsState()
-    val profile by settingsViewModel.profile.collectAsState()
+    val lastBill by viewModel.lastBill.collectAsStateWithLifecycle()
+    val printStatus by viewModel.printStatus.collectAsStateWithLifecycle()
+    val receiptPrinting by viewModel.receiptPrinting.collectAsStateWithLifecycle()
+    val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
+    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val totalAmount = lastBill?.bill?.totalAmount?.toDoubleOrNull() ?: 0.0

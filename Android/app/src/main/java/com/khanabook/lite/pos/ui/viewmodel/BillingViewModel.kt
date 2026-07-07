@@ -35,6 +35,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.math.BigDecimal
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @HiltViewModel
@@ -139,6 +140,10 @@ class BillingViewModel @Inject constructor(
 
     private val _receiptPrinting = MutableStateFlow(false)
     val receiptPrinting: StateFlow<Boolean> = _receiptPrinting
+
+    private val _kitchenPrinting = MutableStateFlow(false)
+    val kitchenPrinting: StateFlow<Boolean> = _kitchenPrinting
+    private val kitchenPrintInFlight = AtomicBoolean(false)
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -1328,6 +1333,8 @@ class BillingViewModel @Inject constructor(
             return
         }
 
+        if (!kitchenPrintInFlight.compareAndSet(false, true)) return
+        _kitchenPrinting.value = true
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val result = printRouter.printBill(bill, profile, PrintDispatchMode.MANUAL_KITCHEN_ONLY)
@@ -1356,6 +1363,9 @@ class BillingViewModel @Inject constructor(
                     _error.value = UserMessageSanitizer.sanitize(e, "Unable to print kitchen ticket.")
                     _printStatus.value = "KDS reprint failed."
                 }
+            } finally {
+                kitchenPrintInFlight.set(false)
+                _kitchenPrinting.value = false
             }
         }
     }

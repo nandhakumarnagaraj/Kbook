@@ -74,9 +74,16 @@ class InvoicePDFGenerator(private val context: Context) {
     }
 
     private fun loadLogoBitmap(profile: RestaurantProfileEntity?, maxWidth: Int): Bitmap? {
+        // Local-first: the logo is downloaded to a local file during profile sync.
+        AppAssetStore.resolveAssetPath(profile?.logoPath)?.let { path ->
+            val local = try { decodeSampledBitmap(path, maxWidth) } catch (_: Exception) { null }
+            if (local != null) return local
+        }
+
+        // Fallback only when no local logo exists yet (e.g. first run).
         val logoUrl = profile?.logoUrl?.takeIf { it.isNotBlank() }
         if (logoUrl != null) {
-            val bitmap = runBlocking(Dispatchers.IO) {
+            return runBlocking(Dispatchers.IO) {
                 try {
                     val request = ImageRequest.Builder(context)
                         .data(logoUrl)
@@ -92,12 +99,8 @@ class InvoicePDFGenerator(private val context: Context) {
                     null
                 }
             }
-            if (bitmap != null) return bitmap
         }
-
-        return AppAssetStore.resolveAssetPath(profile?.logoPath)?.let { path ->
-            try { decodeSampledBitmap(path, maxWidth) } catch (e: Exception) { null }
-        }
+        return null
     }
 
     fun generatePDF(

@@ -1,9 +1,5 @@
 package com.khanabook.lite.pos.data.repository
 
-import androidx.work.Constraints
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.khanabook.lite.pos.data.local.dao.BillDao
 import com.khanabook.lite.pos.data.local.entity.BillEntity
@@ -12,8 +8,7 @@ import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager
-import com.khanabook.lite.pos.domain.util.SyncWorkNames
-import com.khanabook.lite.pos.worker.MasterSyncWorker
+import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -45,22 +40,7 @@ class BillRepository(
     }
 
     private fun triggerBackgroundSync() {
-        val constraints =
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-        val syncWorkRequest =
-                OneTimeWorkRequestBuilder<MasterSyncWorker>()
-                    .setConstraints(constraints)
-                    .setBackoffCriteria(
-                        androidx.work.BackoffPolicy.EXPONENTIAL,
-                        30,
-                        java.util.concurrent.TimeUnit.SECONDS
-                    )
-                    .build()
-        workManager.enqueueUniqueWork(
-            SyncWorkNames.ONE_TIME,
-            ExistingWorkPolicy.KEEP,
-            syncWorkRequest
-        )
+        workManager.enqueueMasterSyncOnce()
     }
 
     suspend fun getBillById(id: Long): BillEntity? {

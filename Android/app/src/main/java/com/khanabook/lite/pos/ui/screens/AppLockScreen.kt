@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookDialog
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel
@@ -38,8 +39,8 @@ fun AppLockScreen(
     onRecoverAccount: () -> Unit = {},
     viewModel: AppLockViewModel = hiltViewModel()
 ) {
-    val enteredPin by viewModel.enteredPin.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
+    val enteredPin by viewModel.enteredPin.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val spacing = KhanaBookTheme.spacing
     val showBiometric = remember { viewModel.hasBiometric(context) }

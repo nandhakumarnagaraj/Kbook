@@ -1,9 +1,5 @@
 package com.khanabook.lite.pos.data.repository
 
-import androidx.work.Constraints
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.khanabook.lite.pos.data.local.dao.MenuDao
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
@@ -12,7 +8,6 @@ import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.util.MenuPricingRules
 import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
-import com.khanabook.lite.pos.worker.MasterSyncWorker
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -202,10 +197,6 @@ class MenuRepository(
     }
 
     private fun triggerBackgroundSync() {
-        val constraints =
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-        val syncWorkRequest =
-                OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
-        workManager.enqueueMasterSyncOnce(syncWorkRequest)
+        workManager.enqueueMasterSyncOnce()
     }
 }

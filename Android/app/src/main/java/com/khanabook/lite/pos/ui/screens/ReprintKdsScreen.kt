@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
@@ -51,8 +52,9 @@ fun ReprintKdsScreen(
         mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
     }
 
-    val vmResult by searchViewModel.searchResult.collectAsState()
-    val vmHasSearched by searchViewModel.hasSearched.collectAsState()
+    val vmResult by searchViewModel.searchResult.collectAsStateWithLifecycle()
+    val vmHasSearched by searchViewModel.hasSearched.collectAsStateWithLifecycle()
+    val isKitchenPrinting by billingViewModel.kitchenPrinting.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val scope = rememberCoroutineScope()
@@ -245,6 +247,7 @@ fun ReprintKdsScreen(
             vmResult?.let { billWithItems ->
                 KdsBillCard(
                     billWithItems = billWithItems,
+                    isPrinting = isKitchenPrinting,
                     onPrint = {
                         billingViewModel.printKitchenTicket(it)
                         scope.launch {
@@ -274,6 +277,7 @@ fun ReprintKdsScreen(
 @Composable
 private fun KdsBillCard(
     billWithItems: BillWithItems,
+    isPrinting: Boolean,
     onPrint: (BillWithItems) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -357,10 +361,10 @@ private fun KdsBillCard(
                 }
                 Spacer(modifier = Modifier.height(spacing.medium))
                 KhanaPrimaryButton(
-                    text = "Reprint KDS",
-                    onClick = { if (!isCancelled) onPrint(billWithItems) },
+                    text = if (isPrinting) "Printing KDS..." else "Reprint KDS",
+                    onClick = { if (!isCancelled && !isPrinting) onPrint(billWithItems) },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !isCancelled,
+                    enabled = !isCancelled && !isPrinting,
                     leadingIcon = Icons.Default.Print
                 )
             }
