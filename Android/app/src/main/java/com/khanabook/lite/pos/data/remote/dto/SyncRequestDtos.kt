@@ -15,6 +15,7 @@ data class BillSyncDto(
     @SerializedName("dailyOrderDisplay") val dailyOrderDisplay: String,
     @SerializedName("lifetimeOrderId") val lifetimeOrderId: Long,
     @SerializedName("orderType") val orderType: String,
+    @SerializedName("sourceChannel") val sourceChannel: String = "",
     @SerializedName("customerName") val customerName: String?,
     @SerializedName("customerWhatsapp") val customerWhatsapp: String?,
     @SerializedName("subtotal") val subtotal: String,

@@ -56,6 +56,9 @@ data class BillEntity(
         @ColumnInfo(name = "payment_mode")
         val paymentMode:
                 String, 
+        @SerializedName("sourceChannel")
+        @ColumnInfo(name = "source_channel", defaultValue = "''")
+        val sourceChannel: String = "",
         @SerializedName("partAmount1")
         @ColumnInfo(name = "part_amount_1", defaultValue = "'0.0'") val partAmount1: String = "0.0",
         @SerializedName("partAmount2")

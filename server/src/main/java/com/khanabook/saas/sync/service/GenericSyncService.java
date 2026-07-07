@@ -29,6 +29,7 @@ public class GenericSyncService {
 	private final MenuItemRepository menuItemRepository;
 	private final ItemVariantRepository itemVariantRepository;
 	private final CategoryRepository categoryRepository;
+	private final BillPaymentRepository billPaymentRepository;
 
 	private User findExistingUserByIdentity(Long tenantId, User incomingUser,
 			com.khanabook.saas.repository.UserRepository userRepository) {
@@ -259,22 +260,20 @@ public class GenericSyncService {
 								.findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(targetTenantId, incomingBill.getLifetimeOrderId())
 								.orElse(null);
 						if (existingBill != null) {
-							if (Objects.equals(existingBill.getDeviceId(), incomingBill.getDeviceId())) {
+							if (Objects.equals(existingBill.getDeviceId(), incomingBill.getDeviceId())
+									&& Objects.equals(existingBill.getLocalId(), incomingBill.getLocalId())) {
 								existingRecord = (T) existingBill;
 							} else {
-								// Last-Write-Wins (LWW) conflict resolution:
-								// If the incoming bill is newer or equal, we take ownership and overwrite the existing record.
-								if (incomingBill.getUpdatedAt() >= existingBill.getUpdatedAt()) {
-									log.info("LWW: Re-associating bill lifetimeOrderId={} from old device {} to new device {}",
-											incomingBill.getLifetimeOrderId(), existingBill.getDeviceId(), incomingBill.getDeviceId());
-									existingRecord = (T) existingBill;
-								} else {
-									// If incoming is older, we reject the sync item
-									throw new IllegalStateException(
-											"Sync rejected: lifetime order ID already belongs to another device and server version is newer");
-								}
+								throw new IllegalStateException(
+										"Duplicate invoice INV" + incomingBill.getLifetimeOrderId()
+												+ " already exists on another bill. Resolve it in Sync Center.");
 							}
 						}
+					}
+
+					if (incomingRecord instanceof Bill incomingBill
+							&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo) {
+						validateBillNumberConflicts(targetTenantId, incomingBill, billRepo);
 					}
 
 					incomingRecord.setRestaurantId(targetTenantId);
@@ -372,7 +371,23 @@ public class GenericSyncService {
 							failedReasons.put(failedLocalId, "Incoming record is older than the server record");
 						}
 					} else {
-						// Relational ID Resolution for New Records
+							// Idempotency guard: a gateway bill payment carries a globally-unique
+							// gateway_txn_id. If WorkManager retries a push after a dropped response,
+							// the retry arrives as a "new" record (fresh localId) but the row already
+							// exists. Skip the insert instead of letting saveAll trip the partial
+							// unique index (uq_bill_payments_gateway_txn) and fail the whole batch.
+							if (incomingRecord instanceof BillPayment newBillPayment) {
+								String txnId = newBillPayment.getGatewayTxnId();
+								if (txnId != null && !txnId.isBlank()
+										&& billPaymentRepository.existsByRestaurantIdAndGatewayTxnId(targetTenantId, txnId)) {
+									log.info("Skipping duplicate gateway bill payment insert localId={} txnId={} tenantId={}",
+											newBillPayment.getLocalId(), txnId, targetTenantId);
+									successfulLocalIds.add(newBillPayment.getLocalId());
+									continue;
+								}
+							}
+
+							// Relational ID Resolution for New Records
 						resolveRelationalIds(incomingRecord, idMaps);
 
 						if (incomingRecord instanceof RestaurantProfile incomingProfile) {
@@ -455,6 +470,46 @@ public class GenericSyncService {
 			return "Sync rejected by server";
 		}
 		return message.length() > 240 ? message.substring(0, 240) : message;
+	}
+
+	private void validateBillNumberConflicts(
+			Long tenantId,
+			Bill incomingBill,
+			com.khanabook.saas.repository.BillRepository billRepo) {
+		if (Boolean.TRUE.equals(incomingBill.getIsDeleted())) {
+			return;
+		}
+		if (incomingBill.getDeviceId() == null || incomingBill.getLocalId() == null) {
+			throw new IllegalStateException("Bill identity missing. Sync again after opening Sync Center.");
+		}
+		if (incomingBill.getLifetimeOrderId() != null) {
+			billRepo.findConflictingLifetimeOrder(
+					tenantId,
+					incomingBill.getLifetimeOrderId(),
+					incomingBill.getDeviceId(),
+					incomingBill.getLocalId())
+					.ifPresent(conflict -> {
+						throw new IllegalStateException(
+								"Duplicate invoice INV" + incomingBill.getLifetimeOrderId()
+										+ " already exists on another bill. Resolve it in Sync Center.");
+					});
+		}
+		if (incomingBill.getDailyOrderId() != null
+				&& incomingBill.getLastResetDate() != null
+				&& !incomingBill.getLastResetDate().isBlank()) {
+			billRepo.findConflictingDailyOrder(
+					tenantId,
+					incomingBill.getLastResetDate(),
+					incomingBill.getDailyOrderId(),
+					incomingBill.getDeviceId(),
+					incomingBill.getLocalId())
+					.ifPresent(conflict -> {
+						throw new IllegalStateException(
+								"Duplicate order #" + incomingBill.getDailyOrderDisplay()
+										+ " already exists for " + incomingBill.getLastResetDate()
+										+ ". Resolve it in Sync Center.");
+					});
+		}
 	}
 
 	private boolean isTransactionalIdempotentRetry(BaseSyncEntity incoming, BaseSyncEntity existing) {

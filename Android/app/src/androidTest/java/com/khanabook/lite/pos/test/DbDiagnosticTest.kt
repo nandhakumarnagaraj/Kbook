@@ -20,29 +20,51 @@ class DbDiagnosticTest {
         val passphrase = DatabaseModule.getOrCreateDbPassphrase(context)
         val factory = SupportOpenHelperFactory(passphrase)
         
-        val dbName = "khanabook_lite_db_1164134026374723071"
-        val db = Room.databaseBuilder(
-            context,
-            AppDatabase::class.java,
-            dbName
-        )
-        .openHelperFactory(factory)
-        .build()
-
-        val billDao = db.billDao()
-        val unsyncedBills = kotlinx.coroutines.runBlocking { billDao.getUnsyncedBills(1164134026374723071L) }
         Log.e("DB_DIAGNOSTIC", "=== START DIAGNOSTIC ===")
-        Log.e("DB_DIAGNOSTIC", "Number of unsynced bills: ${unsyncedBills.size}")
-        unsyncedBills.forEach { bill ->
-            Log.e("DB_DIAGNOSTIC", "Bill: id=${bill.id}, serverId=${bill.serverId}, isSynced=${bill.isSynced}, dailyId=${bill.dailyOrderId}, lifetimeId=${bill.lifetimeOrderId}, deviceId=${bill.deviceId}, total=${bill.totalAmount}, createdBy=${bill.createdBy}")
-        }
-
-        // Count duplicates of lifetimeOrderId
-        val lifetimeOrderIds = unsyncedBills.map { it.lifetimeOrderId }
-        val duplicates = lifetimeOrderIds.groupBy { it }.filter { it.value.size > 1 }
-        Log.e("DB_DIAGNOSTIC", "Duplicate lifetimeOrderIds in unsynced: $duplicates")
-        Log.e("DB_DIAGNOSTIC", "=== END DIAGNOSTIC ===")
+        val dbNames = context.databaseList().filter { it.startsWith("khanabook_lite_db") && !it.endsWith("-wal") && !it.endsWith("-shm") && !it.endsWith("-journal") }
+        Log.e("DB_DIAGNOSTIC", "Found databases: $dbNames")
         
-        db.close()
+        for (dbName in dbNames) {
+            Log.e("DB_DIAGNOSTIC", "--------------------------------------------------")
+            Log.e("DB_DIAGNOSTIC", "Dumping Database: $dbName")
+            try {
+                val db = Room.databaseBuilder(
+                    context,
+                    AppDatabase::class.java,
+                    dbName
+                )
+                .openHelperFactory(factory)
+                .build()
+
+                val billDao = db.billDao()
+                val allBills = kotlinx.coroutines.runBlocking { 
+                    // Let's use a raw query or just fetch all bills by checking the DAO methods,
+                    // or let's use a simple SupportSQLiteDatabase query to get all rows.
+                    val list = mutableListOf<String>()
+                    db.openHelper.readableDatabase.query("SELECT id, server_id, is_synced, order_status, payment_status, updated_at, server_updated_at, daily_order_display FROM bills").use { cursor ->
+                        while (cursor.moveToNext()) {
+                            val id = cursor.getLong(0)
+                            val serverId = if (cursor.isNull(1)) "null" else cursor.getLong(1).toString()
+                            val isSynced = cursor.getInt(2)
+                            val orderStatus = cursor.getString(3)
+                            val paymentStatus = cursor.getString(4)
+                            val updatedAt = cursor.getLong(5)
+                            val serverUpdatedAt = cursor.getLong(6)
+                            val dailyId = cursor.getString(7)
+                            list.add("Bill: id=$id, serverId=$serverId, isSynced=$isSynced, orderStatus=$orderStatus, paymentStatus=$paymentStatus, updatedAt=$updatedAt, serverUpdatedAt=$serverUpdatedAt, dailyId=$dailyId")
+                        }
+                    }
+                    list
+                }
+                Log.e("DB_DIAGNOSTIC", "Total bills: ${allBills.size}")
+                allBills.forEach { billStr ->
+                    Log.e("DB_DIAGNOSTIC", billStr)
+                }
+                db.close()
+            } catch (e: Exception) {
+                Log.e("DB_DIAGNOSTIC", "Error reading database $dbName", e)
+            }
+        }
+        Log.e("DB_DIAGNOSTIC", "=== END DIAGNOSTIC ===")
     }
 }

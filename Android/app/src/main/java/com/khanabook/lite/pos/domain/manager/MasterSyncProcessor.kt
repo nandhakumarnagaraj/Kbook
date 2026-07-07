@@ -9,6 +9,7 @@ import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.api.MasterSyncResponse
 import com.khanabook.lite.pos.data.remote.dto.*
+import com.khanabook.lite.pos.domain.util.AppAssetStore
 import com.khanabook.lite.pos.domain.util.SyncConflictException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -502,22 +503,50 @@ class MasterSyncProcessor @Inject constructor(
             .toString()
     }
 
-    suspend fun insertMasterData(masterData: MasterSyncResponse) = databaseProvider.getDatabase().withTransaction {
+    suspend fun insertMasterData(masterData: MasterSyncResponse) {
         val restaurantId = sessionManager.getRestaurantId()
+
+        // Pre-download logo to local file OUTSIDE the DB transaction so printing
+        // is fully offline and we never hold a Room transaction open across a network call.
+        val resolvedLogoPaths = mutableMapOf<Int, String?>()
         if (masterData.profiles.isNotEmpty()) {
             val currentLocalProfile = if (restaurantId > 0) restaurantDao.getProfile(restaurantId) else restaurantDao.getProfile()
-            restaurantDao.insertSyncedRestaurantProfiles(
-                masterData.profiles.map { remoteProfile ->
-                    val localProfile = currentLocalProfile
-                    val useRemoteLogo = remoteProfile.logoVersion > (localProfile?.logoVersion ?: 0)
-                    val useRemoteUpiQr = remoteProfile.upiQrVersion > (localProfile?.upiQrVersion ?: 0)
-                    RestaurantProfileEntity(
-                        id = remoteProfile.restaurantId ?: (currentLocalProfile?.id ?: 1L),
-                        shopName = remoteProfile.shopName.orFallback("My Shop"),
-                        shopAddress = remoteProfile.shopAddress.orFallback(""),
-                        whatsappNumber = remoteProfile.whatsappNumber.orFallback(""),
-                        email = remoteProfile.email.orFallback(""),
-                        logoPath = if (useRemoteLogo) remoteProfile.logoPath else localProfile?.logoPath,
+            masterData.profiles.forEachIndexed { index, remoteProfile ->
+                val useRemoteLogo = remoteProfile.logoVersion > (currentLocalProfile?.logoVersion ?: 0)
+                resolvedLogoPaths[index] = if (useRemoteLogo) {
+                    val url = remoteProfile.logoUrl?.takeIf { it.isNotBlank() }
+                    if (url != null) {
+                        // Download succeeds → store the local assetRef;
+                        // fails (offline) → fall back to whatever the server sent.
+                        AppAssetStore.saveUrlToAppAsset(
+                            url = url,
+                            folder = "logo",
+                            fileName = "logo_${remoteProfile.logoVersion}.png"
+                        ) ?: remoteProfile.logoPath
+                    } else {
+                        remoteProfile.logoPath
+                    }
+                } else {
+                    currentLocalProfile?.logoPath
+                }
+            }
+        }
+
+        databaseProvider.getDatabase().withTransaction {
+            if (masterData.profiles.isNotEmpty()) {
+                val currentLocalProfile = if (restaurantId > 0) restaurantDao.getProfile(restaurantId) else restaurantDao.getProfile()
+                restaurantDao.insertSyncedRestaurantProfiles(
+                    masterData.profiles.mapIndexed { index, remoteProfile ->
+                        val localProfile = currentLocalProfile
+                        val useRemoteLogo = remoteProfile.logoVersion > (localProfile?.logoVersion ?: 0)
+                        val useRemoteUpiQr = remoteProfile.upiQrVersion > (localProfile?.upiQrVersion ?: 0)
+                        RestaurantProfileEntity(
+                            id = remoteProfile.restaurantId ?: (currentLocalProfile?.id ?: 1L),
+                            shopName = remoteProfile.shopName.orFallback("My Shop"),
+                            shopAddress = remoteProfile.shopAddress.orFallback(""),
+                            whatsappNumber = remoteProfile.whatsappNumber.orFallback(""),
+                            email = remoteProfile.email.orFallback(""),
+                            logoPath = resolvedLogoPaths[index],
                         logoUrl = if (useRemoteLogo) remoteProfile.logoUrl else localProfile?.logoUrl,
                         logoVersion = maxOf(remoteProfile.logoVersion, localProfile?.logoVersion ?: 0),
                         fssaiNumber = remoteProfile.fssaiNumber.orFallback(""),
@@ -851,6 +880,7 @@ class MasterSyncProcessor @Inject constructor(
                         dailyOrderDisplay = remoteBill.dailyOrderDisplay.orFallback(""),
                         lifetimeOrderId = remoteBill.lifetimeOrderId ?: 0,
                         orderType = remoteBill.orderType.orFallback("order"),
+                        sourceChannel = remoteBill.sourceChannel.orFallback(""),
                         customerName = remoteBill.customerName,
                         customerWhatsapp = remoteBill.customerWhatsapp,
                         subtotal = remoteBill.subtotal.toSafeAmount(),
@@ -1067,6 +1097,7 @@ class MasterSyncProcessor @Inject constructor(
             }
         }
     } // end withTransaction
+    }
 
     /**
      * Before a push: reads the kitchen PrinterProfileEntity and writes its fields into the

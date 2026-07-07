@@ -1,16 +1,11 @@
 package com.khanabook.lite.pos.data.repository
 
-import androidx.work.Constraints
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.khanabook.lite.pos.data.local.dao.InventoryDao
 import com.khanabook.lite.pos.data.local.dao.MenuDao
 import com.khanabook.lite.pos.data.local.entity.StockLogEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
-import com.khanabook.lite.pos.worker.MasterSyncWorker
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.flow.Flow
@@ -81,10 +76,6 @@ class InventoryRepository(
     }
 
     private fun triggerBackgroundSync() {
-        val constraints =
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-        val syncWorkRequest =
-                OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
-        workManager.enqueueMasterSyncOnce(syncWorkRequest)
+        workManager.enqueueMasterSyncOnce()
     }
 }

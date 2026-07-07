@@ -142,7 +142,7 @@ fun SkeletonTableRow(modifier: Modifier = Modifier, columns: Int = 4) {
  * Full skeleton screen for Reports / Orders — a summary card + table rows.
  */
 @Composable
-fun SkeletonReportScreen(modifier: Modifier = Modifier, rowCount: Int = 8) {
+fun SkeletonReportScreen(modifier: Modifier = Modifier, rowCount: Int = 8, columns: Int = 5) {
     Column(modifier = modifier.padding(16.dp)) {
         // Summary cards
         Row(
@@ -168,12 +168,12 @@ fun SkeletonReportScreen(modifier: Modifier = Modifier, rowCount: Int = 8) {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Table header
-        SkeletonTableRow()
+        SkeletonTableRow(columns = columns)
         Spacer(modifier = Modifier.height(4.dp))
 
         // Table rows
         repeat(rowCount) {
-            SkeletonTableRow()
+            SkeletonTableRow(columns = columns)
             Spacer(modifier = Modifier.height(2.dp))
         }
     }

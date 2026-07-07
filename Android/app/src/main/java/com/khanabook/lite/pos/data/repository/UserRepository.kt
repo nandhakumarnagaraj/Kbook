@@ -1,15 +1,10 @@
 package com.khanabook.lite.pos.data.repository
 
-import androidx.work.Constraints
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.khanabook.lite.pos.data.local.dao.UserDao
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
-import com.khanabook.lite.pos.worker.MasterSyncWorker
-import com.khanabook.lite.pos.domain.util.SyncWorkNames
+import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import com.khanabook.lite.pos.data.remote.ResetPasswordRequest
 import com.khanabook.lite.pos.data.remote.PasswordResetOtpRequest
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
@@ -374,22 +369,7 @@ class UserRepository(
     }
 
     private fun triggerBackgroundSync() {
-        val constraints =
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-        val syncWorkRequest =
-                OneTimeWorkRequestBuilder<MasterSyncWorker>()
-                    .setConstraints(constraints)
-                    .setBackoffCriteria(
-                        androidx.work.BackoffPolicy.EXPONENTIAL,
-                        30,
-                        java.util.concurrent.TimeUnit.SECONDS
-                    )
-                    .build()
-        workManager.enqueueUniqueWork(
-            SyncWorkNames.ONE_TIME,
-            ExistingWorkPolicy.KEEP,
-            syncWorkRequest
-        )
+        workManager.enqueueMasterSyncOnce()
     }
 
     private fun mapBackendException(error: Throwable): Throwable {

@@ -6,6 +6,7 @@ data class OrderLevelRow(
     val lifetimeId: Long,
     val billId: Long,
     val paymentMode: PaymentMode,
+    val sourceChannel: String = "",
     val orderStatus: OrderStatus,
     val date: String,
     val cancelReason: String = ""
@@ -18,6 +19,7 @@ data class OrderDetailRow(
     val currentStatus: String,
     val salesAmount: String,
     val payMode: PaymentMode,
+    val sourceChannel: String = "",
     val orderStatus: OrderStatus,
     val salesDate: Long,
     val cancelReason: String = ""

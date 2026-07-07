@@ -171,21 +171,25 @@ public class AuthController {
 		private String loginId;
 
 		@NotBlank(message = "Password is required")
-		@Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")
-		private String password;
+			@Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")
+			private String password;
 
-		@Size(max = 128)
-		private String deviceId;
-	}
+			@NotBlank(message = "Device ID is required")
+			@Size(max = 128)
+			private String deviceId;
+		}
 
 	@Data
 	@AllArgsConstructor
 	@NoArgsConstructor
 	public static class GoogleLoginRequest {
-		@NotBlank(message = "idToken is required")
-		private String idToken;
-		private String deviceId;
-	}
+			@NotBlank(message = "idToken is required")
+			private String idToken;
+
+			@NotBlank(message = "Device ID is required")
+			@Size(max = 128)
+			private String deviceId;
+		}
 
 	@Data
 	@AllArgsConstructor
@@ -214,13 +218,14 @@ public class AuthController {
 		@Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")
 		private String password;
 
-		@NotBlank(message = "OTP is required")
-		@Pattern(regexp = "^\\d{6}$", message = "OTP must be 6 digits")
-		private String otp;
+			@NotBlank(message = "OTP is required")
+			@Pattern(regexp = "^\\d{6}$", message = "OTP must be 6 digits")
+			private String otp;
 
-		@Size(max = 128)
-		private String deviceId;
-	}
+			@NotBlank(message = "Device ID is required")
+			@Size(max = 128)
+			private String deviceId;
+		}
 
 	@Data
 	@AllArgsConstructor

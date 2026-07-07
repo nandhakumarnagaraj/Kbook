@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
 
 private const val TAG = "AuthViewModel"
 
@@ -213,14 +212,7 @@ constructor(
             sessionManager.setInitialSyncCompleted(true)
 
             // Trigger an immediate background sync to push any pending/offline bills.
-            val constraints = androidx.work.Constraints.Builder()
-                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
-                .build()
-            val syncWorkRequest = androidx.work.OneTimeWorkRequest.Builder(MasterSyncWorker::class.java)
-                .setConstraints(constraints)
-                .setInitialDelay(10, TimeUnit.SECONDS)
-                .build()
-            androidx.work.WorkManager.getInstance(context).enqueueMasterSyncOnce(syncWorkRequest)
+            androidx.work.WorkManager.getInstance(context).enqueueMasterSyncOnce(initialDelaySeconds = 10)
         }
         MasterSyncWorker.schedule(context)
         return Result.success(Unit)

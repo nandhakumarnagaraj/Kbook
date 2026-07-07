@@ -8,22 +8,29 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
@@ -33,6 +40,7 @@ import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
+import com.khanabook.lite.pos.ui.theme.SuccessGreen
 import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
 import java.text.SimpleDateFormat
@@ -120,5 +128,60 @@ fun ConfigCard(content: @Composable ColumnScope.() -> Unit) {
         border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(spacing.large)) { content() }
+    }
+}
+
+@Composable
+fun ConfigActionButtons(
+    onSave: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    saveEnabled: Boolean = true,
+    isSaving: Boolean = false
+) {
+    val spacing = KhanaBookTheme.spacing
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(spacing.small),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Button(
+            onClick = onSave,
+            enabled = saveEnabled && !isSaving,
+            modifier = Modifier.weight(1f).height(56.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = SuccessGreen,
+                contentColor = Color.White,
+                disabledContainerColor = Color(0xFF5F5F5F),
+                disabledContentColor = Color.White.copy(alpha = 0.65f)
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            if (isSaving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(KhanaBookTheme.iconSize.medium),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.size(spacing.small))
+            }
+            Text(
+                text = if (isSaving) "Saving..." else "Save",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+        }
+        OutlinedButton(
+            onClick = onBack,
+            modifier = Modifier.weight(1f).height(56.dp),
+            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = PrimaryGold,
+                disabledContentColor = TextGold.copy(alpha = 0.45f)
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Back", style = MaterialTheme.typography.titleMedium)
+        }
     }
 }

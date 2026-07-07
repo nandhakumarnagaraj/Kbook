@@ -117,6 +117,16 @@ class TenantRestaurantDao @Inject constructor(
         dao.updateLifetimeCounter(restaurantId, counter, updatedAt)
     }
 
+    override suspend fun raiseCountersAtLeast(
+        restaurantId: Long,
+        dailyCounter: Long,
+        lifetimeCounter: Long,
+        date: String,
+        updatedAt: Long
+    ) {
+        dao.raiseCountersAtLeast(restaurantId, dailyCounter, lifetimeCounter, date, updatedAt)
+    }
+
     override suspend fun updateLogoPath(restaurantId: Long, path: String?, updatedAt: Long) {
         dao.updateLogoPath(restaurantId, path, updatedAt)
     }
@@ -393,6 +403,14 @@ class TenantBillDao @Inject constructor(
     override suspend fun insertBillPayments(payments: List<BillPaymentEntity>) = dao.insertBillPayments(payments)
     override suspend fun insertBillPayment(payment: BillPaymentEntity) = dao.insertBillPayment(payment)
     override suspend fun getBillById(id: Long, restaurantId: Long): BillEntity? = dao.getBillById(id, restaurantId)
+    override suspend fun countActiveBillsByLifetimeId(restaurantId: Long, lifetimeOrderId: Long): Int =
+        dao.countActiveBillsByLifetimeId(restaurantId, lifetimeOrderId)
+    override suspend fun countActiveBillsByDailyIdAndDate(
+        restaurantId: Long,
+        dailyOrderId: Long,
+        startTime: Long,
+        endTime: Long
+    ): Int = dao.countActiveBillsByDailyIdAndDate(restaurantId, dailyOrderId, startTime, endTime)
     override suspend fun getBillsByIds(billIds: List<Long>, restaurantId: Long): List<BillEntity> =
         dao.getBillsByIds(billIds, restaurantId)
     override suspend fun getBillItemsByIds(ids: List<Long>, restaurantId: Long): List<BillItemEntity> =
@@ -444,6 +462,17 @@ class TenantBillDao @Inject constructor(
     override suspend fun insertFullBill(bill: BillEntity, items: List<BillItemEntity>, payments: List<BillPaymentEntity>) {
         dao.insertFullBill(bill, items, payments)
     }
+
+    override suspend fun getDuplicateLifetimeOrderGroups(restaurantId: Long): List<BillIdDuplicateGroup> =
+        dao.getDuplicateLifetimeOrderGroups(restaurantId)
+    override suspend fun getDuplicateDailyOrderGroups(restaurantId: Long): List<BillIdDuplicateGroup> =
+        dao.getDuplicateDailyOrderGroups(restaurantId)
+    override suspend fun getDuplicateIdConflictBills(restaurantId: Long): List<BillIdConflictBill> =
+        dao.getDuplicateIdConflictBills(restaurantId)
+    override suspend fun getMaxLifetimeOrderId(restaurantId: Long): Long =
+        dao.getMaxLifetimeOrderId(restaurantId)
+    override suspend fun getMaxDailyOrderIdBetween(restaurantId: Long, startTime: Long, endTime: Long): Long =
+        dao.getMaxDailyOrderIdBetween(restaurantId, startTime, endTime)
 
     override suspend fun reconcileServerAcknowledgedBills(restaurantId: Long): Int = dao.reconcileServerAcknowledgedBills(restaurantId)
     override suspend fun markBillsSyncedByLifetimeIds(deviceId: String, restaurantId: Long, lifetimeOrderIds: List<Long>): Int = dao.markBillsSyncedByLifetimeIds(deviceId, restaurantId, lifetimeOrderIds)

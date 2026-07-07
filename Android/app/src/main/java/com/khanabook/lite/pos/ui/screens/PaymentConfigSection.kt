@@ -1,6 +1,5 @@
 package com.khanabook.lite.pos.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,35 +10,33 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
+import com.khanabook.lite.pos.ui.designsystem.KhanaButtonRow
+import com.khanabook.lite.pos.ui.designsystem.KhanaPrimaryButton
+import com.khanabook.lite.pos.ui.designsystem.KhanaSecondaryButton
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
+import com.khanabook.lite.pos.ui.theme.DarkBrownSheet
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
@@ -92,14 +89,16 @@ fun PaymentConfigView(
                 )
                 ExposedDropdownMenu(
                     expanded = currencyExpanded,
-                    onDismissRequest = { currencyExpanded = false }
+                    onDismissRequest = { currencyExpanded = false },
+                    containerColor = DarkBrownSheet
                 ) {
                     DropdownMenuItem(
-                        text = { Text("INR") },
+                        text = { Text("INR", color = TextGold) },
                         onClick = {
                             currency = "INR"
                             currencyExpanded = false
-                        }
+                        },
+                        colors = MenuDefaults.itemColors(textColor = TextGold)
                     )
                 }
             }
@@ -122,14 +121,13 @@ fun PaymentConfigView(
             }
 
             Spacer(modifier = Modifier.height(spacing.extraLarge))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                Button(
-                    onClick = {
+            ConfigActionButtons(
+                onSave = {
                         if (upiSupported && upiHandle.isBlank()) {
                             toastScope.launch {
                                 KhanaToast.show("Enter UPI ID to generate amount QR", ToastKind.Error)
                             }
-                            return@Button
+                            return@ConfigActionButtons
                         }
                         profile?.copy(
                             currency = currency,
@@ -146,25 +144,10 @@ fun PaymentConfigView(
                             isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }
-                    },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                    shape = RoundedCornerShape(28.dp),
-                    enabled = !saveProfileLoading
-                ) {
-                    if (saveProfileLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
-                    } else {
-                        Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                    }
-                }
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    border = BorderStroke(1.dp, TextGold),
-                    shape = RoundedCornerShape(28.dp)
-                ) { Text("Back") }
-            }
+                },
+                onBack = onBack,
+                isSaving = saveProfileLoading
+            )
         }
     }
 }

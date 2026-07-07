@@ -94,6 +94,15 @@ class ReportExporter(private val context: Context) {
     }
 
     private suspend fun loadLogoBitmap(profile: RestaurantProfileEntity?): Bitmap? {
+        // Local-first: the logo is downloaded to a local file during profile sync.
+        AppAssetStore.resolveAssetPath(profile?.logoPath)?.let { path ->
+            val cachedKey = "local:$path"
+            logoCache[cachedKey]?.let { return it }
+            val local = try { BitmapFactory.decodeFile(path) } catch (_: Exception) { null }
+            if (local != null) { logoCache[cachedKey] = local; return local }
+        }
+
+        // Fallback only when no local logo exists yet.
         val logoUrl = profile?.logoUrl?.takeIf { it.isNotBlank() }
         if (logoUrl != null) {
             logoCache[logoUrl]?.let { return it }
@@ -116,9 +125,7 @@ class ReportExporter(private val context: Context) {
             if (bitmap != null) return bitmap
         }
 
-        return profile?.logoPath?.takeIf { it.isNotBlank() }?.let { path ->
-            try { BitmapFactory.decodeFile(AppAssetStore.resolveAssetPath(path)) } catch (_: Exception) { null }
-        }
+        return null
     }
 
     suspend fun exportToPdf(

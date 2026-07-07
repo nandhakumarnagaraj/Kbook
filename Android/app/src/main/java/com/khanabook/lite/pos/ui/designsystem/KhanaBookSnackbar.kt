@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.ui.designsystem
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,14 +49,15 @@ object KhanaToast {
 private data class KindStyle(
     val container: Color,
     val content: Color,
+    val accent: Color,
     val icon: ImageVector,
 )
 
 private fun styleFor(kind: ToastKind): KindStyle = when (kind) {
-    ToastKind.Success -> KindStyle(SuccessGreen, TextLight, Icons.Default.CheckCircle)
-    ToastKind.Error -> KindStyle(DangerRed, TextLight, Icons.Default.Error)
-    ToastKind.Warning -> KindStyle(WarningYellow, DarkBrown1, Icons.Default.Warning)
-    ToastKind.Info -> KindStyle(PrimaryGold, DarkBrown1, Icons.Default.Info)
+    ToastKind.Success -> KindStyle(DarkBrown2, TextLight, SuccessGreen, Icons.Default.CheckCircle)
+    ToastKind.Error -> KindStyle(DarkBrown2, TextLight, DangerRed, Icons.Default.Error)
+    ToastKind.Warning -> KindStyle(DarkBrown2, TextLight, WarningYellow, Icons.Default.Warning)
+    ToastKind.Info -> KindStyle(DarkBrown2, TextLight, PrimaryGold, Icons.Default.Info)
 }
 
 @Composable
@@ -76,6 +78,7 @@ fun KhanaBookSnackbar(data: SnackbarData) {
             .shadow(6.dp, RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(12.dp)),
         color = style.container,
+        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
     ) {
         Row(
             modifier = Modifier
@@ -86,7 +89,7 @@ fun KhanaBookSnackbar(data: SnackbarData) {
             Icon(
                 imageVector = style.icon,
                 contentDescription = null,
-                tint = style.content,
+                tint = style.accent,
                 modifier = Modifier.size(20.dp),
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -99,7 +102,7 @@ fun KhanaBookSnackbar(data: SnackbarData) {
             data.visuals.actionLabel?.let { label ->
                 Spacer(modifier = Modifier.width(8.dp))
                 TextButton(onClick = { data.performAction() }) {
-                    Text(label, color = style.content, fontWeight = FontWeight.Bold)
+                    Text(label, color = style.accent, fontWeight = FontWeight.Bold)
                 }
             }
         }

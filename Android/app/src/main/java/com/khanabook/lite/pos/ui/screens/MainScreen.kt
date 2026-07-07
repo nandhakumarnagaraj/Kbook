@@ -42,6 +42,7 @@ fun MainScreen(
     onNewBill: () -> Unit,
     onResumePendingPayment: () -> Unit,
     onOpenSyncCenter: () -> Unit,
+    onOpenPrinterSettings: () -> Unit,
     onSearchBill: () -> Unit,
     onReprintKds: () -> Unit,
     onOrderStatus: () -> Unit,
@@ -93,6 +94,7 @@ fun MainScreen(
                     onNewBill = onNewBill,
                     onResumePendingPayment = onResumePendingPayment,
                     onOpenSyncCenter = onOpenSyncCenter,
+                    onOpenPrinterSettings = onOpenPrinterSettings,
                     onSearchBill = onSearchBill,
                     onReprintKds = onReprintKds,
                     onOrderStatus = onOrderStatus,
@@ -102,7 +104,7 @@ fun MainScreen(
                 "Orders" -> OrdersScreen(
                     onBack = backToHome,
                     navController = navController,
-                    initialSource = initialSource ?: "POS",
+                    initialSource = initialSource ?: "ALL",
                     highlightedBillId = initialHighlightBillId
                 )
                 "Profile" -> SettingsScreen(

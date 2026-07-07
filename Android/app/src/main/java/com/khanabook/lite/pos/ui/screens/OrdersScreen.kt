@@ -45,6 +45,7 @@ import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
 import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
+import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import kotlinx.coroutines.launch
 import java.util.*
 import androidx.compose.animation.animateColorAsState
@@ -64,9 +65,10 @@ import java.text.SimpleDateFormat
 fun OrdersScreen(
     onBack: () -> Unit,
     navController: androidx.navigation.NavController? = null,
-    initialSource: String = "POS",
+    initialSource: String = "ALL",
     highlightedBillId: Long? = null,
     viewModel: ReportsViewModel = hiltViewModel(),
+    billingViewModel: BillingViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val allRows by viewModel.orderDetailsTable.collectAsState()
@@ -77,8 +79,13 @@ fun OrdersScreen(
     val haptic = LocalHapticFeedback.current
     val spacing = KhanaBookTheme.spacing
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
+    var detailCancelBillId by remember { mutableStateOf<Long?>(null) }
     val normalizedInitialSource = remember(initialSource) {
-        if (initialSource.equals("ONLINE", ignoreCase = true)) "ONLINE" else "POS"
+        when {
+            initialSource.equals("ONLINE", ignoreCase = true) -> "ONLINE"
+            initialSource.equals("ALL", ignoreCase = true) -> "ALL"
+            else -> "POS"
+        }
     }
     var selectedSource by rememberSaveable(normalizedInitialSource) { mutableStateOf(normalizedInitialSource) }
     val visibleRows = remember(allRows, selectedSource) {
@@ -86,6 +93,7 @@ fun OrdersScreen(
             val onlineOrder = row.isOnlineOrder()
             when (selectedSource) {
                 "ONLINE" -> onlineOrder
+                "ALL" -> true
                 else -> !onlineOrder && row.orderStatus != OrderStatus.DRAFT
             }
         }
@@ -251,7 +259,13 @@ fun OrdersScreen(
                         horizontalArrangement = Arrangement.spacedBy(spacing.small)
                     ) {
                         OrderFilterChip(
-                            label = "POS Orders",
+                            label = "All Orders",
+                            isSelected = selectedSource == "ALL",
+                            onClick = { selectedSource = "ALL" },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OrderFilterChip(
+                            label = "Store Orders",
                             isSelected = selectedSource == "POS",
                             onClick = { selectedSource = "POS" },
                             modifier = Modifier.weight(1f)
@@ -302,7 +316,11 @@ fun OrdersScreen(
                             )
                             Spacer(Modifier.height(KhanaBookTheme.spacing.small))
                             Text(
-                                if (selectedSource == "ONLINE") "No online orders in this period" else "No POS orders in this period",
+                                when (selectedSource) {
+                                    "ONLINE" -> "No online orders in this period"
+                                    "POS" -> "No store orders in this period"
+                                    else -> "No orders in this period"
+                                },
                                 color = TextGold.copy(alpha = 0.75f),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
@@ -352,7 +370,11 @@ fun OrdersScreen(
                                 onShare = {
                                     scope.launch {
                                         viewModel.getOrderDetail(row.billId)?.let { detail ->
-                                            sendInvoiceViaSms(context, detail, profile)
+                                            if (detail.bill.serverId == null) {
+                                                sendInvoiceViaSms(context, detail, profile)
+                                            } else {
+                                                shareInvoiceViaWhatsAppLink(context, detail, profile)
+                                            }
                                         }
                                     }
                                 },
@@ -410,6 +432,30 @@ fun OrdersScreen(
                 onDismiss = {
                     selectedBillId = null
                     viewModel.clearBillDetails()
+                },
+                onShareInvoice = { detail ->
+                    if (detail.bill.serverId == null) {
+                        sendInvoiceViaSms(context, detail, profile)
+                    } else {
+                        shareInvoiceViaWhatsAppLink(context, detail, profile)
+                    }
+                },
+                onPrintReceipt = { detail -> billingViewModel.printReceipt(detail) },
+                onResumeDraft = { detail ->
+                    navController?.navigate("new_bill?draftBillId=${detail.bill.id}&targetStep=2")
+                },
+                onCancelOrder = { detail -> detailCancelBillId = detail.bill.id }
+            )
+        }
+
+        detailCancelBillId?.let { billId ->
+            CancelOrderDialog(
+                onDismiss = { detailCancelBillId = null },
+                onConfirm = { reason ->
+                    viewModel.cancelOrder(billId, reason)
+                    detailCancelBillId = null
+                    selectedBillId = null
+                    viewModel.clearBillDetails()
                 }
             )
         }
@@ -419,9 +465,26 @@ fun OrdersScreen(
 }
 
 private fun OrderDetailRow.isOnlineOrder(): Boolean {
-    return payMode == PaymentMode.UPI ||
-        payMode == PaymentMode.PART_CASH_UPI ||
-        payMode == PaymentMode.PART_UPI_POS
+    return sourceChannel.isOnlineSource() ||
+        payMode == PaymentMode.ZOMATO ||
+        payMode == PaymentMode.SWIGGY ||
+        payMode == PaymentMode.OWN_WEBSITE
+}
+
+private fun String.isOnlineSource(): Boolean {
+    return when (trim().lowercase()) {
+        "zomato", "swiggy", "own_website", "own website" -> true
+        else -> false
+    }
+}
+
+private fun OrderDetailRow.displaySourceOrModeLabel(): String {
+    return when (sourceChannel.trim().lowercase()) {
+        "zomato" -> PaymentMode.ZOMATO.displayLabel
+        "swiggy" -> PaymentMode.SWIGGY.displayLabel
+        "own_website", "own website" -> PaymentMode.OWN_WEBSITE.displayLabel
+        else -> payMode.displayLabel
+    }
 }
 
 @Composable
@@ -599,25 +662,13 @@ fun OrderTableRow(
                     onDismissRequest = { payModeExpanded = false },
                     modifier = Modifier.background(DarkBrown2)
                 ) {
-                    PaymentMode.values().forEach { mode ->
+                    enabledModes.forEach { mode ->
                         DropdownMenuItem(
                             text = { Text(mode.displayLabel, color = TextLight, style = MaterialTheme.typography.bodySmall) },
                             onClick = { onPayModeChange(mode); payModeExpanded = false }
                         )
                     }
-                    HorizontalDivider(color = BorderGold.copy(alpha = 0.3f))
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = "Note: Enable configurations in Settings for all payment methods to use them on new orders.",
-                                color = TextGold,
-                                style = MaterialTheme.typography.labelSmall,
-                                maxLines = 2
-                            )
-                        },
-                        onClick = {},
-                        enabled = false
-                    )
+
                 }
             }
 

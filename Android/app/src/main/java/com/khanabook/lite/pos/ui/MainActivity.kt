@@ -27,6 +27,7 @@ import com.khanabook.lite.pos.ui.designsystem.KhanaToast
 import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
@@ -48,7 +49,6 @@ import com.khanabook.lite.pos.ui.screens.*
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
-import com.khanabook.lite.pos.worker.MasterSyncWorker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -118,18 +118,7 @@ class MainActivity : FragmentActivity() {
                     val tokenVal = sessionManager.getAuthToken()
                     if (!tokenVal.isNullOrBlank()) {
                         Log.i("MainActivity", "Network reconnected. Enqueuing background sync.")
-                        val constraints = androidx.work.Constraints.Builder()
-                            .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
-                            .build()
-                        val syncWorkRequest = androidx.work.OneTimeWorkRequestBuilder<MasterSyncWorker>()
-                            .setConstraints(constraints)
-                            .setBackoffCriteria(
-                                androidx.work.BackoffPolicy.EXPONENTIAL,
-                                30,
-                                java.util.concurrent.TimeUnit.SECONDS
-                            )
-                            .build()
-                        androidx.work.WorkManager.getInstance(this@MainActivity).enqueueMasterSyncOnce(syncWorkRequest)
+                        androidx.work.WorkManager.getInstance(this@MainActivity).enqueueMasterSyncOnce()
                         syncManager.triggerImmediateSync()
                     }
                 }
@@ -156,7 +145,7 @@ class MainActivity : FragmentActivity() {
                 val navController = rememberNavController()
                 val authViewModel: AuthViewModel = hiltViewModel()
                 val menuViewModel: MenuViewModel = hiltViewModel()
-                val currentUser by authViewModel.currentUser.collectAsState()
+                val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
                 val context = this
                 val toastScope = rememberCoroutineScope()
 
@@ -220,7 +209,7 @@ class MainActivity : FragmentActivity() {
                     }
                 }
 
-                val isSessionExpired by sessionManager.isSessionExpired.collectAsState()
+                val isSessionExpired by sessionManager.isSessionExpired.collectAsStateWithLifecycle()
 
                 LaunchedEffect(isSessionExpired) {
                     if (isSessionExpired) {
@@ -381,6 +370,7 @@ class MainActivity : FragmentActivity() {
                             onNewBill = { navController.navigate("new_bill") },
                             onResumePendingPayment = { navController.navigate("new_bill?resumePayment=true") },
                             onOpenSyncCenter = { navController.navigate("main/3?section=sync_center") },
+                            onOpenPrinterSettings = { navController.navigate("main/3?section=printer") },
                             onSearchBill = { navController.navigate("search_bill") },
                             onReprintKds = { navController.navigate("reprint_kds") },
                             onOrderStatus = { navController.navigate("order_status") },

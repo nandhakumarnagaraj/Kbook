@@ -14,10 +14,16 @@ import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.ToastKind
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.OutputStream
@@ -208,7 +214,9 @@ class BluetoothPrinterManager(private val context: Context) {
         ensureConnectionReceiverRegistered()
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && !isLocationEnabled()) {
-             android.widget.Toast.makeText(context, context.getString(R.string.toast_turn_on_location), android.widget.Toast.LENGTH_LONG).show()
+            CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate).launch {
+                KhanaToast.show(context.getString(R.string.toast_turn_on_location), ToastKind.Warning)
+            }
         }
 
         val paired = getPairedDevices()

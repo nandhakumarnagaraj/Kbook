@@ -85,7 +85,6 @@ fun SignUpScreen(
     val userExistsError by viewModel.userExistsError.collectAsState()
     val signUpFieldErrors by viewModel.signUpFieldErrors.collectAsState()
 
-    val snackbarHostState = remember { SnackbarHostState() }
     val isLoading = signUpStatus is AuthViewModel.SignUpResult.Loading || loginStatus is AuthViewModel.LoginResult.Loading
 
     LaunchedEffect(signUpStatus) {
@@ -98,14 +97,11 @@ fun SignUpScreen(
                 otpSent = true
                 otpTimer = 120
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                snackbarHostState.showSnackbar(
-                        "OTP Sent to your WhatsApp!",
-                        duration = SnackbarDuration.Long
-                )
+                KhanaToast.show("OTP Sent to your WhatsApp!", ToastKind.Info)
             }
             is AuthViewModel.SignUpResult.Error -> {
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                snackbarHostState.showSnackbar(status.message)
+                KhanaToast.show(status.message, ToastKind.Error)
             }
             else -> {}
         }
@@ -147,7 +143,6 @@ fun SignUpScreen(
     }
 
     Scaffold(
-            snackbarHost = { KhanaBookSnackbarHost(snackbarHostState) },
             contentWindowInsets = WindowInsets(0),
             containerColor = DarkBrown1
     ) { _ ->

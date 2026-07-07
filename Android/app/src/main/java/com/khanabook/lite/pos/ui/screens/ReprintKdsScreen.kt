@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
@@ -51,8 +52,9 @@ fun ReprintKdsScreen(
         mutableStateOf(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
     }
 
-    val vmResult by searchViewModel.searchResult.collectAsState()
-    val vmHasSearched by searchViewModel.hasSearched.collectAsState()
+    val vmResult by searchViewModel.searchResult.collectAsStateWithLifecycle()
+    val vmHasSearched by searchViewModel.hasSearched.collectAsStateWithLifecycle()
+    val isKitchenPrinting by billingViewModel.kitchenPrinting.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val scope = rememberCoroutineScope()
@@ -178,32 +180,18 @@ fun ReprintKdsScreen(
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
-                Button(
+                KhanaPrimaryButton(
+                    text = "Search Order",
                     onClick = {
                         keyboardController?.hide()
                         doSearch()
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
                         .padding(horizontal = spacing.medium),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = Icons.Default.Search,
                     enabled = dailyId.isNotEmpty()
-                ) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        tint = DarkBrown1,
-                        modifier = Modifier.size(iconSize.small)
-                    )
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Text(
-                        "Search Order",
-                        color = DarkBrown1,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
+                )
             } else {
                 OutlinedTextField(
                     value = invoiceQuery,
@@ -239,32 +227,18 @@ fun ReprintKdsScreen(
 
                 Spacer(modifier = Modifier.height(spacing.medium))
 
-                Button(
+                KhanaPrimaryButton(
+                    text = "Search Order",
                     onClick = {
                         keyboardController?.hide()
                         doSearch()
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
                         .padding(horizontal = spacing.medium),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = Icons.Default.Search,
                     enabled = invoiceQuery.isNotEmpty()
-                ) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        tint = DarkBrown1,
-                        modifier = Modifier.size(iconSize.small)
-                    )
-                    Spacer(modifier = Modifier.width(spacing.small))
-                    Text(
-                        "Search Order",
-                        color = DarkBrown1,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
+                )
             }
 
             Spacer(modifier = Modifier.height(spacing.medium))
@@ -273,6 +247,7 @@ fun ReprintKdsScreen(
             vmResult?.let { billWithItems ->
                 KdsBillCard(
                     billWithItems = billWithItems,
+                    isPrinting = isKitchenPrinting,
                     onPrint = {
                         billingViewModel.printKitchenTicket(it)
                         scope.launch {
@@ -285,18 +260,14 @@ fun ReprintKdsScreen(
                 )
             } ?: run {
                 if (vmHasSearched) {
-                    Box(
+                    KhanaEmptyState(
+                        title = "No pending KDS found",
+                        message = "Try another order or invoice number.",
+                        icon = Icons.Default.SearchOff,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = spacing.huge),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.SearchOff, null, tint = TextGold.copy(alpha = 0.3f), modifier = Modifier.size(64.dp))
-                            Spacer(modifier = Modifier.height(spacing.medium))
-                            Text("No pending KDS found", color = TextGold.copy(alpha = 0.5f), style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
+                            .padding(top = spacing.huge)
+                    )
                 }
             }
         }
@@ -306,6 +277,7 @@ fun ReprintKdsScreen(
 @Composable
 private fun KdsBillCard(
     billWithItems: BillWithItems,
+    isPrinting: Boolean,
     onPrint: (BillWithItems) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -340,18 +312,11 @@ private fun KdsBillCard(
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
-                    Surface(
-                        color = DangerRed.copy(alpha = 0.15f),
-                        shape = CircleShape
-                    ) {
-                        Text(
-                            text = if (isCancelled) "CANCELLED" else "KDS PENDING",
-                            color = DangerRed,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
+                    KhanaStatusBadge(
+                        text = if (isCancelled) "CANCELLED" else "KDS PENDING",
+                        kind = if (isCancelled) KhanaStatusKind.Danger else KhanaStatusKind.Warning,
+                        filled = false
+                    )
                 }
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = spacing.small),
@@ -395,17 +360,13 @@ private fun KdsBillCard(
                     )
                 }
                 Spacer(modifier = Modifier.height(spacing.medium))
-                Button(
-                    onClick = { if (!isCancelled) onPrint(billWithItems) },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = if (isCancelled) Color.Gray else PrimaryGold),
-                    shape = RoundedCornerShape(10.dp),
-                    enabled = !isCancelled
-                ) {
-                    Icon(Icons.Default.Print, null, tint = if (isCancelled) Color.DarkGray else DarkBrown1, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Reprint KDS", color = if (isCancelled) Color.DarkGray else DarkBrown1, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                }
+                KhanaPrimaryButton(
+                    text = if (isPrinting) "Printing KDS..." else "Reprint KDS",
+                    onClick = { if (!isCancelled && !isPrinting) onPrint(billWithItems) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isCancelled && !isPrinting,
+                    leadingIcon = Icons.Default.Print
+                )
             }
         }
     }

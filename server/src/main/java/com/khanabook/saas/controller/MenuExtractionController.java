@@ -22,12 +22,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import com.khanabook.saas.security.TenantContext;
 import org.springframework.beans.factory.annotation.Value;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/menus")
@@ -138,13 +139,34 @@ public class MenuExtractionController {
         if (restaurantId == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
         }
-        return jobRepository.findById(jobId)
-                .map(job -> {
-                    if (!restaurantId.equals(job.getRestaurantId())) {
-                        return ResponseEntity.status(403).body(Map.of("error", "Forbidden: Access to this job is denied"));
-                    }
-                    return ResponseEntity.ok((Object) job);
-                })
+        // Scope the lookup to the caller's tenant at the DB level.
+        // Returning 404 (not 403) for a job owned by another tenant avoids
+        // confirming that the job id exists.
+        return jobRepository.findByIdAndRestaurantId(jobId, restaurantId)
+                .map(job -> ResponseEntity.ok((Object) MenuExtractionJobStatusResponse.from(job)))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /** Safe response record — never exposes server-side filePath. */
+    public record MenuExtractionJobStatusResponse(
+            Long id,
+            Long restaurantId,
+            MenuExtractionJob.JobStatus status,
+            String extractedDataJson,
+            LocalDateTime createdAt,
+            LocalDateTime completedAt,
+            String errorMessage
+    ) {
+        static MenuExtractionJobStatusResponse from(MenuExtractionJob job) {
+            return new MenuExtractionJobStatusResponse(
+                    job.getId(),
+                    job.getRestaurantId(),
+                    job.getStatus(),
+                    job.getExtractedDataJson(),
+                    job.getCreatedAt(),
+                    job.getCompletedAt(),
+                    job.getErrorMessage()
+            );
+        }
     }
 }

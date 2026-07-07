@@ -399,23 +399,8 @@ fun ShopConfigView(
             ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer")
             Spacer(modifier = Modifier.height(spacing.large))
 
-            val saveButtonScale by animateFloatAsState(
-                targetValue = if (!saveProfileLoading) 1f else 0.97f,
-                animationSpec = tween(durationMillis = 250),
-                label = "save_scale"
-            )
-            val saveButtonAlpha by animateFloatAsState(
-                targetValue = if (!saveProfileLoading) 1f else 0.45f,
-                animationSpec = tween(durationMillis = 250),
-                label = "save_alpha"
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-            ) {
-                Button(
-                    onClick = {
+            ConfigActionButtons(
+                onSave = {
                         if (numberChanged && !isOtpVerified) {
                             toastScope.launch {
                                 KhanaToast.show(context.getString(R.string.toast_verify_new_whatsapp), ToastKind.Warning)
@@ -436,37 +421,10 @@ fun ShopConfigView(
                             )
                             updatedProfile?.let { viewModel.saveProfile(it) }
                         }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp)
-                        .graphicsLayer {
-                            scaleX = saveButtonScale
-                            scaleY = saveButtonScale
-                            alpha = saveButtonAlpha
-                        },
-                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                    shape = RoundedCornerShape(28.dp),
-                    enabled = !saveProfileLoading
-                ) {
-                    if (saveProfileLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(iconSize.medium), color = Color.White, strokeWidth = 2.dp)
-                    } else {
-                        Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium)
-                    }
-                }
-                OutlinedButton(
-                    onClick = { onBack() },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                    shape = RoundedCornerShape(28.dp)
-                ) {
-                    Text("Back", style = MaterialTheme.typography.titleMedium)
-                }
-            }
+                },
+                onBack = onBack,
+                isSaving = saveProfileLoading
+            )
         }
     }
 }

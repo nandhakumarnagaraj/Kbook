@@ -40,19 +40,14 @@ import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -71,16 +66,21 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.model.PrinterRole
+import com.khanabook.lite.pos.ui.designsystem.KhanaButtonRow
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
-import com.khanabook.lite.pos.ui.designsystem.KhanaBookSnackbarHost
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
+import com.khanabook.lite.pos.ui.designsystem.KhanaPrimaryButton
+import com.khanabook.lite.pos.ui.designsystem.KhanaSecondaryButton
+import com.khanabook.lite.pos.ui.designsystem.KhanaStatusBadge
+import com.khanabook.lite.pos.ui.designsystem.KhanaStatusKind
+import com.khanabook.lite.pos.ui.designsystem.KhanaToast
+import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import com.khanabook.lite.pos.ui.theme.BorderGold
 import com.khanabook.lite.pos.ui.theme.Brown500
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.CardBG
 import com.khanabook.lite.pos.ui.theme.DarkBrownSheet
 import com.khanabook.lite.pos.ui.theme.DangerRed
-import com.khanabook.lite.pos.ui.theme.Green800
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
@@ -88,7 +88,7 @@ import com.khanabook.lite.pos.ui.theme.TextGold
 import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @Composable
 fun PrinterConfigView(
     profile: RestaurantProfileEntity?,
@@ -118,7 +118,6 @@ fun PrinterConfigView(
     val btConnectResult by viewModel.btConnectResult.collectAsStateWithLifecycle()
     var showBtSheet by remember { mutableStateOf(false) }
     var snackbarMessageRes by remember { mutableStateOf<Int?>(null) }
-    val snackbarHostState = remember { SnackbarHostState() }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val bluetoothLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -157,7 +156,14 @@ fun PrinterConfigView(
 
     LaunchedEffect(snackbarMessageRes) {
         snackbarMessageRes?.let {
-            snackbarHostState.showSnackbar(context.getString(it))
+            KhanaToast.show(
+                message = context.getString(it),
+                kind = when (it) {
+                    R.string.toast_printer_connected -> ToastKind.Success
+                    R.string.toast_printer_connect_failed -> ToastKind.Error
+                    else -> ToastKind.Warning
+                }
+            )
             snackbarMessageRes = null
         }
     }
@@ -254,15 +260,9 @@ fun PrinterConfigView(
             ConfigCard {
                 Text("Print Options", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
                 PrinterOptionRow("Mask Customer Phone", maskPhone) { maskPhone = it }
-            }
-            Spacer(modifier = Modifier.height(spacing.large))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.small),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = {
+                Spacer(modifier = Modifier.height(spacing.extraLarge))
+                ConfigActionButtons(
+                    onSave = {
                         profile?.copy(
                             printerEnabled = enabled,
                             paperSize = if (paper58) "58mm" else "80mm",
@@ -291,28 +291,10 @@ fun PrinterConfigView(
                             )
                         }
                     },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Green800),
-                    shape = RoundedCornerShape(28.dp)
-                ) { Text("Save", color = Color.White, style = MaterialTheme.typography.titleMedium) }
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.7f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                    shape = RoundedCornerShape(28.dp)
-                ) {
-                    Text("Back", style = MaterialTheme.typography.titleMedium)
-                }
+                    onBack = onBack
+                )
             }
         }
-
-        KhanaBookSnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = spacing.medium, vertical = spacing.small)
-        )
     }
 
     if (showBtSheet) {
@@ -418,10 +400,18 @@ private fun PrinterTargetCard(
                     Box(modifier = Modifier.size(8.dp).background(if (isConnected) SuccessGreen else DangerRed, CircleShape))
                 }
                 Text("MAC: ${macAddress ?: "---"}", color = TextGold, style = MaterialTheme.typography.labelSmall)
-                Text(
-                    text = if (macAddress.isNullOrBlank()) "Status: No printer selected" else if (isConnected) "Status: Connected" else "Status: Ready to test",
-                    color = if (macAddress.isNullOrBlank()) TextGold.copy(alpha = 0.7f) else if (isConnected) SuccessGreen else TextGold,
-                    style = MaterialTheme.typography.labelSmall
+                KhanaStatusBadge(
+                    text = when {
+                        macAddress.isNullOrBlank() -> "No printer"
+                        isConnected -> "Connected"
+                        else -> "Ready"
+                    },
+                    kind = when {
+                        macAddress.isNullOrBlank() -> KhanaStatusKind.Neutral
+                        isConnected -> KhanaStatusKind.Success
+                        else -> KhanaStatusKind.Warning
+                    },
+                    filled = false
                 )
                 helperText?.let {
                     Text(it, color = TextGold.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
@@ -439,18 +429,18 @@ private fun PrinterTargetCard(
                     RadioButton(selected = !paper58, onClick = { onPaperSizeChange(false) }, colors = RadioButtonDefaults.colors(selectedColor = PrimaryGold))
                     Text("80mm", color = TextGold)
                 }
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                    Button(onClick = onSelectPrinter, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Brown500)) {
-                        Text("Select Printer")
-                    }
-                    Button(
+                KhanaButtonRow {
+                    KhanaSecondaryButton(
+                        text = "Select Printer",
+                        onClick = onSelectPrinter,
+                        modifier = Modifier.weight(1f)
+                    )
+                    KhanaPrimaryButton(
+                        text = "Test Printer",
                         onClick = onTestPrint,
                         enabled = !macAddress.isNullOrBlank(),
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, disabledContainerColor = PrimaryGold.copy(alpha = 0.35f))
-                    ) {
-                        Text("Test Printer", color = DarkBrown1)
-                    }
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -504,8 +494,15 @@ fun DeviceRow(
 
 @Composable
 private fun PrinterOptionRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange, colors = CheckboxDefaults.colors(checkedColor = PrimaryGold))
+    Row(
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(label, color = TextGold, style = MaterialTheme.typography.bodyMedium)
+        KhanaBookSwitch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
     }
 }

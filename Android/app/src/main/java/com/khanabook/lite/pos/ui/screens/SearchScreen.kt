@@ -236,22 +236,13 @@ fun SearchScreen(
 
                     Spacer(modifier = Modifier.height(spacing.medium))
 
-                    Button(
+                    KhanaPrimaryButton(
+                        text = "Search Order",
                         onClick = { submitDailySearch() },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = Icons.Default.Search,
                         enabled = dailyId.isNotEmpty()
-                    ) {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = null,
-                            tint = DarkBrown1,
-                            modifier = Modifier.size(iconSize.small)
-                        )
-                        Spacer(modifier = Modifier.width(spacing.small))
-                        Text("Search Order", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                    }
+                    )
                 } else {
                     OutlinedTextField(
                         value = lifetimeQuery,
@@ -285,22 +276,13 @@ fun SearchScreen(
                         }
                     )
                     Spacer(modifier = Modifier.height(spacing.medium))
-                    Button(
+                    KhanaPrimaryButton(
+                        text = "Search Order",
                         onClick = { submitLifetimeSearch() },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = Icons.Default.Search,
                         enabled = lifetimeQuery.isNotEmpty()
-                    ) {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = null,
-                            tint = DarkBrown1,
-                            modifier = Modifier.size(iconSize.small)
-                        )
-                        Spacer(modifier = Modifier.width(spacing.small))
-                        Text("Search Order", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                    } // closes Button
+                    ) // closes Button
               } // closes else
               } // closes header Column
              } // closes AnimatedVisibility header
@@ -350,19 +332,15 @@ fun SearchScreen(
                             
                             Spacer(modifier = Modifier.weight(1f))
 
-                            Surface(
-                                color = if (currentResult.bill.paymentStatus == "success")
-                                    SuccessGreen.copy(alpha = 0.1f)
-                                else DangerRed.copy(alpha = 0.1f),
-                                shape = CircleShape
-                            ) {
-                                Text(
-                                    currentResult.bill.paymentStatus.uppercase(),
-                                    color = if (currentResult.bill.paymentStatus == "success") SuccessGreen else DangerRed,
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
+                            KhanaStatusBadge(
+                                text = currentResult.bill.paymentStatus.uppercase(),
+                                kind = if (currentResult.bill.paymentStatus == "success") {
+                                    KhanaStatusKind.Success
+                                } else {
+                                    KhanaStatusKind.Danger
+                                },
+                                filled = false
+                            )
                         }
 
                         HorizontalDivider(
@@ -471,7 +449,8 @@ fun SearchScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(spacing.small)
                                 ) {
-                                    Button(
+                                    KhanaSecondaryButton(
+                                        text = "Share Invoice",
                                         onClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             result?.let {
@@ -483,29 +462,20 @@ fun SearchScreen(
                                             }
                                         },
                                         enabled = currentResult.items.isNotEmpty(),
-                                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(iconSize.small))
-                                        Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                        Text("Share Invoice", color = Color.White, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-                                    }
+                                        modifier = Modifier.fillMaxWidth(),
+                                        leadingIcon = Icons.Default.Share
+                                    )
 
-                                    Button(
+                                    KhanaPrimaryButton(
+                                        text = "Print Receipt",
                                         onClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             result?.let { billingViewModel.printReceipt(it) }
                                         },
                                         enabled = currentResult.items.isNotEmpty() && currentResult.bill.orderStatus != "cancelled",
-                                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Icon(Icons.Default.Receipt, null, tint = DarkBrown1, modifier = Modifier.size(iconSize.small))
-                                        Spacer(modifier = Modifier.width(spacing.extraSmall))
-                                        Text("Print Receipt", color = DarkBrown1, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-                                    }
+                                        modifier = Modifier.fillMaxWidth(),
+                                        leadingIcon = Icons.Default.Receipt
+                                    )
                                 }
 
                             }
@@ -517,35 +487,15 @@ fun SearchScreen(
                         modifier = Modifier.fillMaxSize().padding(bottom = spacing.bottomListPadding),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(horizontal = spacing.large)
-                        ) {
-                            Icon(
-                                imageVector = if (hasSearched) Icons.Default.SearchOff else Icons.Default.Search,
-                                contentDescription = null,
-                                tint = TextGold.copy(alpha = 0.3f),
-                                modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
-                            )
-                            Spacer(modifier = Modifier.height(spacing.medium))
-                            Text(
-                                if (hasSearched) "No Order Found" else "Search for an order to view details",
-                                color = TextGold.copy(alpha = 0.68f),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(spacing.extraSmall))
-                            Text(
-                                if (hasSearched) {
-                                    "Check the number/date and try again. Offline bills saved on this device are searchable here."
-                                } else {
-                                    "Use Order No with date, or Invoice No for older bills."
-                                },
-                                color = TextGold.copy(alpha = 0.5f),
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
+                        KhanaEmptyState(
+                            title = if (hasSearched) "No Order Found" else "Search for an order to view details",
+                            message = if (hasSearched) {
+                                "Check the number/date and try again. Offline bills saved on this device are searchable here."
+                            } else {
+                                "Use Order No with date, or Invoice No for older bills."
+                            },
+                            icon = if (hasSearched) Icons.Default.SearchOff else Icons.Default.Search
+                        )
                     }
                 }
               } // end inner Column

@@ -12,7 +12,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import java.time.LocalTime
 
@@ -45,6 +44,14 @@ class HomeViewModel @Inject constructor(
 
     val pendingOnlinePayments: StateFlow<List<com.khanabook.lite.pos.data.local.entity.BillEntity>> =
         billRepository.getPendingOnlineBillsFlow()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
+    val activeDraftBills: StateFlow<List<com.khanabook.lite.pos.data.local.entity.BillEntity>> =
+        billRepository.getActiveDraftBillsFlow()
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
@@ -160,11 +167,8 @@ class HomeViewModel @Inject constructor(
         connectConfiguredPrinters(showMessage = false)
     }
 
-    fun reprintPendingKdsList(): List<com.khanabook.lite.pos.data.local.relation.BillWithItems> {
-        return runBlocking {
-            billRepository.getBillsWithPendingKds()
-        }
-    }
+    suspend fun reprintPendingKdsList(): List<com.khanabook.lite.pos.data.local.relation.BillWithItems> =
+        billRepository.getBillsWithPendingKds()
 
     fun reprintPendingKds() {
         viewModelScope.launch {

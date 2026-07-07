@@ -377,7 +377,9 @@ class MenuViewModel @Inject constructor(
                 val allDrafts = mutableListOf<DraftMenuItem>()
                 val seenNames = mutableSetOf<String>()
 
-                Log.d(ocrDebugTag, "extractTextFromPdf start fileName='${fileName}' pageCount=$pageCount")
+                if (BuildConfig.DEBUG) {
+                    Log.d(ocrDebugTag, "extractTextFromPdf start fileName='${fileName}' pageCount=$pageCount")
+                }
                 
                 val recognizer = com.google.mlkit.vision.text.TextRecognition.getClient(
                     com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS
@@ -406,10 +408,12 @@ class MenuViewModel @Inject constructor(
 
                     val rawLen = visionText.text?.length ?: 0
                     val pageDrafts = com.khanabook.lite.pos.domain.util.OcrSpatialParser.parse(visionText)
-                    Log.d(
-                        ocrDebugTag,
-                        "PDF page ${i + 1}/$pageCount recognizedRawLen=$rawLen parsedDrafts=${pageDrafts.size} bitmap=${width}x${height}"
-                    )
+                    if (BuildConfig.DEBUG) {
+                        Log.d(
+                            ocrDebugTag,
+                            "PDF page ${i + 1}/$pageCount recognizedRawLen=$rawLen parsedDrafts=${pageDrafts.size} bitmap=${width}x${height}"
+                        )
+                    }
                     
                     pageDrafts.forEach { draft ->
                         if (seenNames.add(draft.name.lowercase())) {
@@ -433,7 +437,9 @@ class MenuViewModel @Inject constructor(
                     }
                 }
 
-                Log.d(ocrDebugTag, "extractTextFromPdf done totalUniqueDrafts=${allDrafts.size}")
+                if (BuildConfig.DEBUG) {
+                    Log.d(ocrDebugTag, "extractTextFromPdf done totalUniqueDrafts=${allDrafts.size}")
+                }
             } catch (e: Exception) {
                 Log.e("PDF_EXTRACT", "Error processing PDF", e)
                 withContext(kotlinx.coroutines.Dispatchers.Main) {
@@ -455,7 +461,9 @@ class MenuViewModel @Inject constructor(
                 calculateSharpness(scaledBitmap)
             }
             
-            Log.d("MenuViewModel", "Calculated image sharpness: $sharpness")
+            if (BuildConfig.DEBUG) {
+                Log.d("MenuViewModel", "Calculated image sharpness: $sharpness")
+            }
             
             if (sharpness < 35.0) {
                 _ocrImportUiState.update { it.copy(

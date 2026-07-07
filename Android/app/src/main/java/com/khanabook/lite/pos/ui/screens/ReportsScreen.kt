@@ -2,6 +2,7 @@
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
@@ -54,12 +56,12 @@ fun ReportsScreen(
     viewModel: ReportsViewModel = hiltViewModel(),
     settingsViewModel: com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel = hiltViewModel()
 ) {
-    val reportType by viewModel.reportType.collectAsState()
-    val timeFilter by viewModel.timeFilter.collectAsState()
-    val paymentBreakdown by viewModel.paymentBreakdown.collectAsState()
-    val orderLevelRows by viewModel.orderLevelRows.collectAsState()
-    val profile by settingsViewModel.profile.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val reportType by viewModel.reportType.collectAsStateWithLifecycle()
+    val timeFilter by viewModel.timeFilter.collectAsStateWithLifecycle()
+    val paymentBreakdown by viewModel.paymentBreakdown.collectAsStateWithLifecycle()
+    val orderLevelRows by viewModel.orderLevelRows.collectAsStateWithLifecycle()
+    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -79,7 +81,7 @@ fun ReportsScreen(
     }
     
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
-    val selectedBillDetails by viewModel.selectedBillDetails.collectAsState()
+    val selectedBillDetails by viewModel.selectedBillDetails.collectAsStateWithLifecycle()
     
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
@@ -202,7 +204,10 @@ fun ReportsScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    OrderLevelView(orderLevelRows, profile) { billId ->
+                    OrderLevelView(
+                        rows = orderLevelRows,
+                        profile = profile
+                    ) { billId ->
                         selectedBillId = billId
                         viewModel.loadBillDetails(billId)
                     }
@@ -216,7 +221,7 @@ fun ReportsScreen(
                             isExporting = true
                             val file = viewModel.exportReport(context, "PDF", profile)
                             if (!file.exists() || file.length() == 0L) {
-                                android.widget.Toast.makeText(context, "Report export failed — empty file", android.widget.Toast.LENGTH_LONG).show()
+                                KhanaToast.show("Report export failed - empty file", ToastKind.Error)
                                 return@launch
                             }
                             val pdfUri = androidx.core.content.FileProvider.getUriForFile(
@@ -231,7 +236,7 @@ fun ReportsScreen(
                             }
                             context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Report"))
                         } catch (e: Exception) {
-                            android.widget.Toast.makeText(context, "Report export failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                            KhanaToast.show("Report export failed: ${e.message}", ToastKind.Error)
                         } finally {
                             isExporting = false
                         }
@@ -315,7 +320,7 @@ fun PaymentLevelView(
     settingsViewModel: com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel,
     modifier: Modifier = Modifier
 ) {
-    val profile by settingsViewModel.profile.collectAsState()
+    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     
     val enabledModes = profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)
@@ -387,43 +392,17 @@ fun ReportDownloadBottomBar(
             .fillMaxWidth()
             .padding(top = spacing.small, bottom = spacing.small)
     ) {
-        Button(
+        KhanaPrimaryButton(
+            text = if (isExporting) "Exporting..." else "Download Reports",
             onClick = onDownloadClick,
-            enabled = !isExporting,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(45.dp)
                 .padding(horizontal = spacing.medium),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            if (isExporting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = DarkBrown1
-                )
-                Spacer(modifier = Modifier.width(spacing.small))
-                Text(
-                    "Exporting...",
-                    color = DarkBrown1,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            } else {
-                Icon(
-                    Icons.Default.Download,
-                    contentDescription = null,
-                    tint = DarkBrown1,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(spacing.small))
-                Text(
-                    "Download Reports",
-                    color = DarkBrown1,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-        }
+            enabled = !isExporting,
+            isLoading = isExporting,
+            leadingIcon = Icons.Default.Download,
+            height = 44.dp
+        )
     }
 }
 
@@ -483,14 +462,42 @@ fun PartPaymentCard(
                 "${CurrencyUtils.formatPrice(part1Amount)} ($part1Label) + ${CurrencyUtils.formatPrice(part2Amount)} ($part2Label)",
                 color = TextLight.copy(alpha = 0.8f),
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp)
+
+
             )
         }
+    }
+}
+
+private val COL_ORDER   = 1.2f
+private val COL_STATUS  = 1.8f
+private val COL_ACTION  = 1.2f
+private val COL_DATE    = 1.8f
+
+private fun com.khanabook.lite.pos.domain.model.OrderLevelRow.displaySourceOrModeLabel(): String {
+    return when (sourceChannel.trim().lowercase()) {
+        "zomato" -> PaymentMode.ZOMATO.displayLabel
+        "swiggy" -> PaymentMode.SWIGGY.displayLabel
+        "own_website", "own website" -> PaymentMode.OWN_WEBSITE.displayLabel
+        else -> paymentMode.displayLabel
+    }
+}
+
+private fun getPayModeColor(mode: PaymentMode): Color {
+    return when (mode) {
+        PaymentMode.CASH -> SuccessGreen
+        PaymentMode.UPI -> Brown500 
+        PaymentMode.POS -> PrimaryGold
+        PaymentMode.ZOMATO -> VegGreen
+        PaymentMode.SWIGGY -> SwiggyOrange
+        else -> Brown500
     }
 }
 
 @Composable
 fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>, profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?, onViewDetails: (Long) -> Unit) {
     val spacing = KhanaBookTheme.spacing
+    val invoiceHeader = if (profile?.gstEnabled == true) "Tax Inv No" else "Invoice No"
     Column(modifier = Modifier.fillMaxSize()) {
 
         Row(
@@ -501,10 +508,10 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            HeaderCell("Order No", Modifier.weight(1.2f))
-            HeaderCell("Status", Modifier.weight(1.8f))
-            HeaderCell("Action", Modifier.weight(1.2f))
-            HeaderCell("Date", Modifier.weight(1.8f))
+            HeaderCell("Order No", COL_ORDER)
+            HeaderCell("Status", COL_STATUS)
+            HeaderCell("Action", COL_ACTION)
+            HeaderCell("Date", COL_DATE)
         }
 
         if (rows.isEmpty()) {
@@ -514,20 +521,11 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
                     .padding(vertical = spacing.extraLarge),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.Description,
-                        contentDescription = null,
-                        tint = TextGold.copy(alpha = 0.25f),
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Spacer(modifier = Modifier.height(spacing.small))
-                    Text(
-                        "No orders in this period",
-                        color = TextGold.copy(alpha = 0.45f),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                KhanaEmptyState(
+                    title = "No orders in this period",
+                    message = "Try another date or report filter.",
+                    icon = Icons.Default.Description
+                )
             }
         } else {
             LazyColumn(
@@ -547,17 +545,6 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
 }
 
 @Composable
-fun HeaderCell(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        color = TextGold,
-        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-        modifier = modifier,
-        textAlign = TextAlign.Center
-    )
-}
-
-@Composable
 fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?, onViewDetails: (Long) -> Unit) {
     val spacing = KhanaBookTheme.spacing
     KhanaBookCard(
@@ -572,39 +559,37 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.medium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(row.dailyId, color = TextLight, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.2f), textAlign = TextAlign.Center)
+            TableCell(row.dailyId, COL_ORDER)
             
-            Column(modifier = Modifier.weight(1.8f), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(modifier = Modifier.weight(COL_STATUS), contentAlignment = Alignment.Center) {
                 val statusValue = row.orderStatus
-                val statusText = when(statusValue) {
+                val statusText = when (statusValue) {
                     OrderStatus.DRAFT -> "Pending"
                     else -> statusValue.name.lowercase().replaceFirstChar { it.uppercase() }
                 }
-                val statusColor = when(statusValue) {
-                    OrderStatus.COMPLETED -> VegGreen
-                    OrderStatus.CANCELLED -> ZomatoRed
-                    else -> TextGold
-                }
-                Text(
-                    statusText,
-                    color = statusColor,
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium, fontSize = 9.sp),
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
-                if (statusValue == OrderStatus.CANCELLED && row.cancelReason.isNotEmpty()) {
-                    Text(
-                        row.cancelReason,
-                        color = ZomatoRed.copy(alpha = 0.8f),
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    KhanaStatusBadge(
+                        text = statusText,
+                        kind = when (statusValue) {
+                            OrderStatus.COMPLETED -> KhanaStatusKind.Success
+                            OrderStatus.CANCELLED -> KhanaStatusKind.Danger
+                            else -> KhanaStatusKind.Warning
+                        }
                     )
+                    if (statusValue == OrderStatus.CANCELLED && row.cancelReason.isNotEmpty()) {
+                        Text(
+                            row.cancelReason,
+                            color = DangerRed.copy(alpha = 0.8f),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
-            
-            Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
+
+            Box(modifier = Modifier.weight(COL_ACTION), contentAlignment = Alignment.Center) {
                 Surface(
                     color = Color.Transparent,
                     border = BorderStroke(1.dp, PrimaryGold),
@@ -619,22 +604,19 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
                 }
             }
             
-            Text(
-                formatDate(row.date),
-                color = TextLight,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.weight(1.8f),
-                textAlign = TextAlign.Center
-            )
+            TableCell(formatDate(row.date), COL_DATE, fontSize = 9.sp)
         }
     }
 }
-
 @Composable
 fun OrderDetailsDialog(
     billWithItems: BillWithItems?,
     profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onShareInvoice: ((BillWithItems) -> Unit)? = null,
+    onPrintReceipt: ((BillWithItems) -> Unit)? = null,
+    onResumeDraft: ((BillWithItems) -> Unit)? = null,
+    onCancelOrder: ((BillWithItems) -> Unit)? = null
 ) {
     val spacing = KhanaBookTheme.spacing
     Dialog(
@@ -661,7 +643,7 @@ fun OrderDetailsDialog(
                     Text(
                         text = "Order Details",
                         color = PrimaryGold,
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                     IconButton(
                         onClick = onDismiss,
@@ -693,7 +675,7 @@ fun OrderDetailsDialog(
                     val bill = billWithItems.bill
                     val items = billWithItems.items
 
-                    DetailRow("Order No:", "#${bill.dailyOrderDisplay.split("-").last()}")
+                    DetailRow("Order No:", "#${bill.dailyOrderDisplay.split("-").last()}", valueColor = PrimaryGold, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(spacing.small))
                     val invoiceLabel = if (profile?.gstEnabled == true) "Tax Invoice No:" else "Invoice No:"
                     DetailRow(invoiceLabel, "INV${bill.lifetimeOrderId}")
@@ -701,7 +683,7 @@ fun OrderDetailsDialog(
                     DetailRow("Date:", DateUtils.formatDisplay(bill.createdAt))
 
                     Spacer(modifier = Modifier.height(spacing.medium))
-                    Text("Items:", color = TextGold, style = MaterialTheme.typography.titleSmall)
+                    Text("Items:", color = TextGold, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                     Spacer(modifier = Modifier.height(spacing.small))
 
                     if (items.isEmpty()) {
@@ -750,10 +732,11 @@ fun OrderDetailsDialog(
                     Spacer(modifier = Modifier.height(spacing.medium))
                     HorizontalDivider(color = BorderGold.copy(alpha = 0.3f), thickness = 0.5.dp)
                     Spacer(modifier = Modifier.height(spacing.medium))
+                    
                     DetailRow("Payment Mode:", PaymentMode.fromDbValue(bill.paymentMode).displayLabel)
                     Spacer(modifier = Modifier.height(spacing.small))
-                    DetailRow("Total Amount:", CurrencyUtils.formatPrice(bill.totalAmount), PrimaryGold, FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(spacing.medium))
+                    DetailRow("Total Amount:", CurrencyUtils.formatPrice(bill.totalAmount), valueColor = PrimaryGold, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(spacing.small))
 
                     val statusValue = OrderStatus.fromDbValue(bill.orderStatus)
                     val statusText = when (statusValue) {
@@ -766,10 +749,10 @@ fun OrderDetailsDialog(
                         else -> TextGold
                     }
 
-                    DetailRow("Status:", statusText, statusColor)
+                    DetailRow("Status:", statusText, valueColor = statusColor, fontWeight = FontWeight.Bold)
                     if (statusValue == OrderStatus.CANCELLED && bill.cancelReason.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(spacing.small))
-                        DetailRow("Cancel Reason:", bill.cancelReason, ZomatoRed, FontWeight.Bold)
+                        DetailRow("Cancel Reason:", bill.cancelReason, valueColor = ZomatoRed, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.height(spacing.medium))
                 }
@@ -782,10 +765,28 @@ fun OrderDetailsDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Close", color = DarkBrown1, style = MaterialTheme.typography.titleMedium)
+                    Text("Close", color = DarkBrown1, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 }
             }
         }
+    }
+}
+
+@Composable
+fun DetailStatusRow(label: String, statusText: String, kind: KhanaStatusKind) {
+    val spacing = KhanaBookTheme.spacing
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            color = TextGold,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+            modifier = Modifier.padding(end = spacing.small)
+        )
+        KhanaStatusBadge(text = statusText, kind = kind)
     }
 }
 

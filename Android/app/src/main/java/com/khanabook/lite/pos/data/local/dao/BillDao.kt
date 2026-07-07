@@ -8,6 +8,24 @@ import com.khanabook.lite.pos.data.local.entity.SyncQuarantineEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import kotlinx.coroutines.flow.Flow
 
+data class BillIdDuplicateGroup(
+    val idValue: String,
+    val duplicateCount: Int,
+    val sampleBills: String?
+)
+
+data class BillIdConflictBill(
+    val id: Long,
+    val dailyOrderDisplay: String,
+    val lifetimeOrderId: Long,
+    val orderType: String,
+    val orderStatus: String,
+    val paymentStatus: String,
+    val paymentMode: String,
+    val totalAmount: String,
+    val createdAt: Long
+)
+
 @Dao
 interface BillDao {
     @Query("SELECT id, server_id as serverId FROM bills WHERE server_id IS NOT NULL AND is_deleted = 0 AND restaurant_id = :restaurantId")
@@ -49,7 +67,22 @@ interface BillDao {
     @Update
     suspend fun updateBill(bill: BillEntity)
 
-    @Query("SELECT * FROM bills WHERE restaurant_id = :restaurantId AND order_status = 'draft' AND payment_status = 'pending' AND is_deleted = 0 ORDER BY updated_at DESC")
+    @Query("""
+        SELECT * FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND order_status = 'draft'
+          AND payment_status = 'pending'
+          AND order_type = 'dine_in'
+          AND is_deleted = 0
+          AND NOT EXISTS (
+              SELECT 1
+              FROM bill_payments
+              WHERE bill_payments.bill_id = bills.id
+                AND bill_payments.restaurant_id = :restaurantId
+                AND bill_payments.is_deleted = 0
+          )
+        ORDER BY updated_at DESC
+    """)
     fun getActiveDraftBillsFlow(restaurantId: Long): Flow<List<BillEntity>>
 
     @Query("SELECT * FROM bill_items WHERE bill_id = :billId AND restaurant_id = :restaurantId AND sent_to_kot = 0 AND is_deleted = 0")
@@ -76,6 +109,28 @@ interface BillDao {
 
     @Query("SELECT * FROM bills WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun getBillById(id: Long, restaurantId: Long): BillEntity?
+
+    @Query("""
+        SELECT COUNT(*) FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND lifetime_order_id = :lifetimeOrderId
+    """)
+    suspend fun countActiveBillsByLifetimeId(restaurantId: Long, lifetimeOrderId: Long): Int
+
+    @Query("""
+        SELECT COUNT(*) FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND daily_order_id = :dailyOrderId
+          AND created_at BETWEEN :startTime AND :endTime
+    """)
+    suspend fun countActiveBillsByDailyIdAndDate(
+        restaurantId: Long,
+        dailyOrderId: Long,
+        startTime: Long,
+        endTime: Long
+    ): Int
 
     @Query("SELECT * FROM bills WHERE id IN (:billIds) AND restaurant_id = :restaurantId")
     suspend fun getBillsByIds(billIds: List<Long>, restaurantId: Long): List<BillEntity>
@@ -119,7 +174,19 @@ interface BillDao {
     )
     suspend fun getBillByDailyIntIdAndDate(dailyId: Long, startTime: Long, endTime: Long, restaurantId: Long): BillEntity?
 
-    @Query("SELECT * FROM bills WHERE order_status = 'draft' AND restaurant_id = :restaurantId")
+    @Query("""
+        SELECT * FROM bills
+        WHERE order_status = 'draft'
+          AND restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND NOT EXISTS (
+              SELECT 1
+              FROM bill_payments
+              WHERE bill_payments.bill_id = bills.id
+                AND bill_payments.restaurant_id = :restaurantId
+                AND bill_payments.is_deleted = 0
+          )
+    """)
     fun getDraftBills(restaurantId: Long): Flow<List<BillEntity>>
 
     @Query("""
@@ -212,6 +279,20 @@ interface BillDao {
             items: List<BillItemEntity>,
             payments: List<BillPaymentEntity>
     ) {
+        val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+        val orderDate = java.time.Instant.ofEpochMilli(bill.createdAt).atZone(zoneId).toLocalDate()
+        val startTime = orderDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
+        val endTime = orderDate.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
+        if (countActiveBillsByLifetimeId(bill.restaurantId, bill.lifetimeOrderId) > 0) {
+            throw android.database.sqlite.SQLiteConstraintException(
+                "Duplicate invoice id INV${bill.lifetimeOrderId}. Please repair counters from Sync Center and try again."
+            )
+        }
+        if (countActiveBillsByDailyIdAndDate(bill.restaurantId, bill.dailyOrderId, startTime, endTime) > 0) {
+            throw android.database.sqlite.SQLiteConstraintException(
+                "Duplicate order id #${bill.dailyOrderDisplay}. Please repair counters from Sync Center and try again."
+            )
+        }
         val billId = insertBill(bill)
         val itemsWithId = items.map {
             it.copy(
@@ -225,6 +306,96 @@ interface BillDao {
         insertBillPayments(paymentsWithId)
     }
 
+    @Transaction
+    suspend fun settleDraftBill(
+        bill: BillEntity,
+        payments: List<BillPaymentEntity>
+    ) {
+        val paymentsWithId = payments.map {
+            it.copy(
+                billId = bill.id,
+                restaurantId = bill.restaurantId,
+                deviceId = bill.deviceId
+            )
+        }
+        insertBillPayments(paymentsWithId)
+        updateBill(bill)
+    }
+
+    @Query("""
+        SELECT CAST(lifetime_order_id AS TEXT) AS idValue,
+               COUNT(*) AS duplicateCount,
+               GROUP_CONCAT('Local ' || id || ' - ' || daily_order_display || '/INV' || lifetime_order_id || ' - ' || order_type || ' - ' || order_status, ', ') AS sampleBills
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+        GROUP BY lifetime_order_id
+        HAVING COUNT(*) > 1
+        ORDER BY duplicateCount DESC, lifetime_order_id DESC
+    """)
+    suspend fun getDuplicateLifetimeOrderGroups(restaurantId: Long): List<BillIdDuplicateGroup>
+
+    @Query("""
+        SELECT DATE(created_at / 1000, 'unixepoch', 'localtime') || ' #' || daily_order_id AS idValue,
+               COUNT(*) AS duplicateCount,
+               GROUP_CONCAT('Local ' || id || ' - ' || daily_order_display || '/INV' || lifetime_order_id || ' - ' || order_type || ' - ' || order_status, ', ') AS sampleBills
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+        GROUP BY DATE(created_at / 1000, 'unixepoch', 'localtime'), daily_order_id
+        HAVING COUNT(*) > 1
+        ORDER BY duplicateCount DESC, created_at DESC
+    """)
+    suspend fun getDuplicateDailyOrderGroups(restaurantId: Long): List<BillIdDuplicateGroup>
+
+    @Query("""
+        SELECT id,
+               daily_order_display AS dailyOrderDisplay,
+               lifetime_order_id AS lifetimeOrderId,
+               order_type AS orderType,
+               order_status AS orderStatus,
+               payment_status AS paymentStatus,
+               payment_mode AS paymentMode,
+               total_amount AS totalAmount,
+               created_at AS createdAt
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND (
+            lifetime_order_id IN (
+                SELECT lifetime_order_id
+                FROM bills
+                WHERE restaurant_id = :restaurantId AND is_deleted = 0
+                GROUP BY lifetime_order_id
+                HAVING COUNT(*) > 1
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM bills other
+                WHERE other.restaurant_id = bills.restaurant_id
+                  AND other.is_deleted = 0
+                  AND other.daily_order_id = bills.daily_order_id
+                  AND DATE(other.created_at / 1000, 'unixepoch', 'localtime') = DATE(bills.created_at / 1000, 'unixepoch', 'localtime')
+                GROUP BY DATE(other.created_at / 1000, 'unixepoch', 'localtime'), other.daily_order_id
+                HAVING COUNT(*) > 1
+            )
+          )
+        ORDER BY created_at DESC, lifetime_order_id DESC, id DESC
+    """)
+    suspend fun getDuplicateIdConflictBills(restaurantId: Long): List<BillIdConflictBill>
+
+    @Query("SELECT COALESCE(MAX(lifetime_order_id), 0) FROM bills WHERE restaurant_id = :restaurantId AND is_deleted = 0")
+    suspend fun getMaxLifetimeOrderId(restaurantId: Long): Long
+
+    @Query("""
+        SELECT COALESCE(MAX(daily_order_id), 0)
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND created_at BETWEEN :startTime AND :endTime
+    """)
+    suspend fun getMaxDailyOrderIdBetween(restaurantId: Long, startTime: Long, endTime: Long): Long
+
     // ── Sync reconciliation ────────────────────────────────────────────────────
 
     /**
@@ -232,7 +403,7 @@ interface BillDao {
      * round-trip or from a server pull) as synced. Catches bills where the push
      * network response was lost but the server actually saved the record.
      */
-    @Query("UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL WHERE is_synced = 0 AND server_id IS NOT NULL AND restaurant_id = :restaurantId")
+    @Query("UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL WHERE is_synced = 0 AND server_id IS NOT NULL AND updated_at <= server_updated_at AND restaurant_id = :restaurantId")
     suspend fun reconcileServerAcknowledgedBills(restaurantId: Long): Int
 
     /**
@@ -241,6 +412,11 @@ interface BillDao {
      * may still be isSynced=0 because the pull upserted a NEW row keyed by the
      * server ID. This query finds those orphaned local rows by matching on
      * (device_id, lifetime_order_id) — which is unique per device — and marks them synced.
+     *
+     * IMPORTANT: Only mark synced when updated_at <= server_updated_at, meaning the
+     * server already has the latest version of this bill. If the local bill was modified
+     * after the server last updated it (e.g., order_status changed to 'completed' offline),
+     * we must NOT mark it synced — otherwise the pending local change is silently dropped.
      */
     @Query("""
         UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL
@@ -248,6 +424,7 @@ interface BillDao {
           AND device_id = :deviceId
           AND restaurant_id = :restaurantId
           AND lifetime_order_id IN (:lifetimeOrderIds)
+          AND updated_at <= server_updated_at
     """)
     suspend fun markBillsSyncedByLifetimeIds(deviceId: String, restaurantId: Long, lifetimeOrderIds: List<Long>): Int
 
@@ -285,6 +462,12 @@ interface BillDao {
      * This query finds those orphaned rows by matching on (device_id, local_id)
      * and marks them synced. This is more reliable than lifetimeOrderId because
      * localId is always the original device-local primary key.
+     *
+     * IMPORTANT: Only mark synced when updated_at <= server_updated_at, meaning the
+     * server already has the latest version of this bill. If the local bill was modified
+     * after the server last updated it (e.g., order_status changed to 'completed' offline),
+     * we must NOT mark it synced — otherwise the pending local change is silently dropped
+     * and the draft status on the server is never corrected.
      */
     @Query("""
         UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL
@@ -292,6 +475,7 @@ interface BillDao {
           AND device_id = :deviceId
           AND restaurant_id = :restaurantId
           AND id IN (:localIds)
+          AND updated_at <= server_updated_at
     """)
     suspend fun markBillsSyncedByDeviceIdAndLocalIds(deviceId: String, restaurantId: Long, localIds: List<Long>): Int
 
@@ -537,7 +721,7 @@ interface BillDao {
     @Query("DELETE FROM bill_payments WHERE server_id IN (:serverIds) AND is_synced = 1 AND restaurant_id = :restaurantId")
     suspend fun deleteSyncedBillPaymentsByServerIds(serverIds: List<Long>, restaurantId: Long)
 
-    @Query("SELECT * FROM bills WHERE customer_whatsapp IS NOT NULL AND customer_whatsapp != '' AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY created_at DESC LIMIT 20")
+    @Query("SELECT * FROM bills WHERE customer_whatsapp IS NOT NULL AND customer_whatsapp != '' AND order_type = 'takeaway' AND order_status = 'completed' AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY created_at DESC LIMIT 20")
     suspend fun getRecentBillsWithCustomers(restaurantId: Long): List<BillEntity>
 
     @Query("SELECT * FROM bills WHERE lifetime_order_id = :lifetimeNo AND restaurant_id = :restaurantId AND is_deleted = 0 LIMIT 1")

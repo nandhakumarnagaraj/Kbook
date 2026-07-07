@@ -46,9 +46,18 @@ object InvoiceFormatter {
     }
 
     private fun loadLogoBitmap(context: Context?, profile: RestaurantProfileEntity?, maxWidth: Int): Bitmap? {
+        // Local-first: the logo is downloaded to a local file during profile sync
+        // (see MasterSyncProcessor), so printing must never depend on the network.
+        AppAssetStore.resolveAssetPath(profile?.logoPath)?.let { path ->
+            val local = try { decodeSampledBitmap(path, maxWidth) } catch (_: Exception) { null }
+            if (local != null) return local
+        }
+
+        // Fallback only when no local logo exists yet (e.g. first run before the
+        // sync-time download completed). This is a best-effort online path.
         val logoUrl = profile?.logoUrl?.takeIf { it.isNotBlank() }
         if (context != null && logoUrl != null) {
-            val bitmap = runBlocking(Dispatchers.IO) {
+            return runBlocking(Dispatchers.IO) {
                 try {
                     val request = ImageRequest.Builder(context)
                         .data(logoUrl)
@@ -64,12 +73,8 @@ object InvoiceFormatter {
                     null
                 }
             }
-            if (bitmap != null) return bitmap
         }
-
-        return AppAssetStore.resolveAssetPath(profile?.logoPath)?.let { path ->
-            try { decodeSampledBitmap(path, maxWidth) } catch (_: Exception) { null }
-        }
+        return null
     }
 
     private fun resolveCurrency(profile: RestaurantProfileEntity?): String {

@@ -47,6 +47,7 @@ fun HomeScreen(
     onNewBill: () -> Unit,
     onResumePendingPayment: () -> Unit,
     onOpenSyncCenter: () -> Unit,
+    onOpenPrinterSettings: () -> Unit,
     onSearchBill: () -> Unit,
     onReprintKds: () -> Unit,
     onOrderStatus: () -> Unit,
@@ -228,26 +229,17 @@ fun HomeScreen(
                                     color = TextGold,
                                     style = MaterialTheme.typography.bodySmall
                                 )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                                ) {
-                                    Button(
+                                KhanaButtonRow {
+                                    KhanaPrimaryButton(
+                                        text = "Resume",
                                         onClick = onResumePendingPayment,
-                                        modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        Text("Resume", color = DarkBrown1)
-                                    }
-                                    OutlinedButton(
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    KhanaDestructiveButton(
+                                        text = "Cancel",
                                         onClick = { viewModel.cancelPendingOnlinePayment(pendingPayment.id) },
-                                        modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = WarningYellow),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        Text("Cancel")
-                                    }
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
                             }
                         }
@@ -299,7 +291,7 @@ fun HomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 120.dp)
+                                .heightIn(min = 148.dp)
                                 .padding(spacing.large),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -325,35 +317,32 @@ fun HomeScreen(
                             )
                         }
                     }
-                    // Status cards removed
                 }
             }
 
             AnimatedVisibility(visible = actionsVisible, enter = enterSpec, exit = exitSpec) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                    verticalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {
-                    HomeActionCard(
-                        text = "Find Bill",
-                        icon = Icons.Default.Search,
-                        backgroundColor = CardBG,
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = onSearchBill
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        HomeActionCard(
+                            text = "Find Bill",
+                            icon = Icons.Default.Search,
+                            backgroundColor = CardBG,
+                            modifier = Modifier.weight(1f),
+                            onClick = onSearchBill
+                        )
+                    }
                     HomeActionCard(
-                        text = "Reprint KDS",
+                        text = "Reprint KOT/KDS",
                         icon = Icons.Default.Restaurant,
                         backgroundColor = CardBG,
                         modifier = Modifier.fillMaxWidth(),
                         onClick = onReprintKds
-                    )
-                    HomeActionCard(
-                        text = "Order Status",
-                        icon = Icons.Default.Info,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = onOrderStatus
                     )
                     HomeActionCard(
                         text = "Call Customers",
@@ -362,15 +351,18 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = onCallCustomer
                     )
+                    HomeActionCard(
+                        text = "Track Order",
+                        icon = Icons.Default.Info,
+                        backgroundColor = CardBG,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onOrderStatus
+                    )
                 }
             } // end AnimatedVisibility(actionsVisible)
         }
     }
 }
-
-
-
-
 
 @Composable
 fun SyncStatusHeader(
