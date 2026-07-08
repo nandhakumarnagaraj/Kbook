@@ -90,10 +90,14 @@ fun OrdersScreen(
     var selectedSource by rememberSaveable(normalizedInitialSource) { mutableStateOf(normalizedInitialSource) }
     val visibleRows = remember(allRows, selectedSource) {
         allRows.filter { row ->
-            when (selectedSource) {
-                "ONLINE" -> row.isOnlineOrder()
-                "TAKEAWAY" -> row.isTakeawayOrder() && row.orderStatus == OrderStatus.COMPLETED
-                else -> row.isDineInOrder() && (row.orderStatus == OrderStatus.COMPLETED || row.orderStatus == OrderStatus.DRAFT)
+            if (row.orderStatus == OrderStatus.DRAFT) {
+                false
+            } else {
+                when (selectedSource) {
+                    "ONLINE" -> row.isOnlineOrder()
+                    "TAKEAWAY" -> row.isTakeawayOrder()
+                    else -> row.isDineInOrder()
+                }
             }
         }
     }
