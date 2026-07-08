@@ -9,6 +9,8 @@ import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.domain.manager.PrintDispatchMode
 import com.khanabook.lite.pos.domain.manager.PrintRouter
+import com.khanabook.lite.pos.domain.model.OrderStatus
+import com.khanabook.lite.pos.domain.model.PaymentStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -52,6 +54,15 @@ class ActiveOrderDetailViewModel @Inject constructor(
     fun updateKot() {
         viewModelScope.launch(Dispatchers.IO) {
             val current = billRepository.getBillWithItemsById(billId) ?: return@launch
+            if (current.bill.orderStatus == OrderStatus.COMPLETED.dbValue || 
+                current.bill.paymentStatus == PaymentStatus.SUCCESS.dbValue) {
+                _message.emit("Cannot update KOT for a completed or paid order")
+                return@launch
+            }
+            if (current.bill.orderStatus == OrderStatus.CANCELLED.dbValue) {
+                _message.emit("Cannot update KOT for a cancelled order")
+                return@launch
+            }
             if (current.items.none { !it.sentToKot }) {
                 _message.emit("No new items to send")
                 return@launch
@@ -111,6 +122,20 @@ class ActiveOrderDetailViewModel @Inject constructor(
 
     fun cancelOrder(onDone: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
+            val current = billRepository.getBillWithItemsById(billId)
+            if (current == null) {
+                _message.emit("Order not found")
+                return@launch
+            }
+            if (current.bill.orderStatus == OrderStatus.COMPLETED.dbValue || 
+                current.bill.paymentStatus == PaymentStatus.SUCCESS.dbValue) {
+                _message.emit("Cannot cancel a completed or paid order")
+                return@launch
+            }
+            if (current.bill.orderStatus == OrderStatus.CANCELLED.dbValue) {
+                _message.emit("Order is already cancelled")
+                return@launch
+            }
             _isLoading.value = true
             try {
                 billRepository.cancelOrder(billId, "Cancelled by cashier")
