@@ -599,6 +599,7 @@ class TenantBillDao @Inject constructor(
     }
 
     override suspend fun getRecentBillsWithCustomers(restaurantId: Long): List<BillEntity> = dao.getRecentBillsWithCustomers(restaurantId)
+    override suspend fun getRecentDineInBillsWithCustomers(restaurantId: Long): List<BillEntity> = dao.getRecentDineInBillsWithCustomers(restaurantId)
     override suspend fun getBillByLifetimeNo(lifetimeNo: Long, restaurantId: Long): BillEntity? = dao.getBillByLifetimeNo(lifetimeNo, restaurantId)
     override suspend fun getBillsWithPendingKds(restaurantId: Long): List<BillEntity> = dao.getBillsWithPendingKds(restaurantId)
 }

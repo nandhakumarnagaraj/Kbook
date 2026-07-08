@@ -31,6 +31,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.navigation.NavController
+import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
 
 @Composable
 fun MainScreen(
@@ -40,12 +41,13 @@ fun MainScreen(
     initialSettingsSection: String? = null,
     navController: NavController,
     onNewBill: () -> Unit,
+    onActiveOrder: () -> Unit,
+    onOpenActiveOrder: (Long) -> Unit = {},
     onResumePendingPayment: () -> Unit,
     onOpenSyncCenter: () -> Unit,
     onOpenPrinterSettings: () -> Unit,
     onSearchBill: () -> Unit,
     onReprintKds: () -> Unit,
-    onOrderStatus: () -> Unit,
     onCallCustomer: () -> Unit,
     menuViewModel: MenuViewModel,
     onScanClick: (String?) -> Unit = {},
@@ -60,6 +62,13 @@ fun MainScreen(
     }
     var showBottomBar by rememberSaveable { mutableStateOf(true) }
     val safeSelectedTabIndex = selectedTabIndex.coerceIn(0, (visibleTabs.lastIndex).coerceAtLeast(0))
+    val moveToTab: (Int) -> Unit = { index ->
+        val target = index.coerceIn(0, (visibleTabs.lastIndex).coerceAtLeast(0))
+        if (target != safeSelectedTabIndex) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            selectedTabIndex = target
+        }
+    }
 
     // Intercept back gesture to return to Home tab if not already there
     BackHandler(enabled = safeSelectedTabIndex != 0) {
@@ -92,12 +101,13 @@ fun MainScreen(
             when (currentTab.label) {
                 "Home" -> HomeScreen(
                     onNewBill = onNewBill,
+                    onActiveOrder = onActiveOrder,
+                    onOpenActiveOrder = onOpenActiveOrder,
                     onResumePendingPayment = onResumePendingPayment,
                     onOpenSyncCenter = onOpenSyncCenter,
                     onOpenPrinterSettings = onOpenPrinterSettings,
                     onSearchBill = onSearchBill,
                     onReprintKds = onReprintKds,
-                    onOrderStatus = onOrderStatus,
                     onCallCustomer = onCallCustomer
                 )
                 "Reports" -> ReportsScreen(onBack = backToHome)
@@ -131,10 +141,7 @@ fun MainScreen(
                 AppBottomBar(
                     visibleTabs = visibleTabs,
                     currentSelectedIndex = safeSelectedTabIndex,
-                    onTabSelected = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        selectedTabIndex = it
-                    }
+                    onTabSelected = moveToTab
                 )
             }
         }
@@ -144,6 +151,11 @@ fun MainScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .padding(bottom = if (showBottomBar) padding.calculateBottomPadding() else 0.dp)
+                .horizontalNavigationSwipe(
+                    enabled = showBottomBar && visibleTabs.size > 1,
+                    onSwipeLeft = { moveToTab(safeSelectedTabIndex + 1) },
+                    onSwipeRight = { moveToTab(safeSelectedTabIndex - 1) }
+                )
         ) {
             content(Modifier.fillMaxSize())
         }

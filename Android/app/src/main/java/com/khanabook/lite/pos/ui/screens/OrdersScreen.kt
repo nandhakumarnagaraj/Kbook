@@ -83,18 +83,17 @@ fun OrdersScreen(
     val normalizedInitialSource = remember(initialSource) {
         when {
             initialSource.equals("ONLINE", ignoreCase = true) -> "ONLINE"
-            initialSource.equals("ALL", ignoreCase = true) -> "ALL"
-            else -> "POS"
+            initialSource.equals("TAKEAWAY", ignoreCase = true) -> "TAKEAWAY"
+            else -> "DINE_IN"
         }
     }
     var selectedSource by rememberSaveable(normalizedInitialSource) { mutableStateOf(normalizedInitialSource) }
     val visibleRows = remember(allRows, selectedSource) {
         allRows.filter { row ->
-            val onlineOrder = row.isOnlineOrder()
             when (selectedSource) {
-                "ONLINE" -> onlineOrder
-                "ALL" -> true
-                else -> !onlineOrder && row.orderStatus != OrderStatus.DRAFT
+                "ONLINE" -> row.isOnlineOrder()
+                "TAKEAWAY" -> row.isTakeawayOrder() && row.orderStatus == OrderStatus.COMPLETED
+                else -> row.isDineInOrder() && (row.orderStatus == OrderStatus.COMPLETED || row.orderStatus == OrderStatus.DRAFT)
             }
         }
     }
@@ -259,15 +258,15 @@ fun OrdersScreen(
                         horizontalArrangement = Arrangement.spacedBy(spacing.small)
                     ) {
                         OrderFilterChip(
-                            label = "All Orders",
-                            isSelected = selectedSource == "ALL",
-                            onClick = { selectedSource = "ALL" },
+                            label = "Dinein",
+                            isSelected = selectedSource == "DINE_IN",
+                            onClick = { selectedSource = "DINE_IN" },
                             modifier = Modifier.weight(1f)
                         )
                         OrderFilterChip(
-                            label = "Store Orders",
-                            isSelected = selectedSource == "POS",
-                            onClick = { selectedSource = "POS" },
+                            label = "Takeaway",
+                            isSelected = selectedSource == "TAKEAWAY",
+                            onClick = { selectedSource = "TAKEAWAY" },
                             modifier = Modifier.weight(1f)
                         )
                         OrderFilterChip(
@@ -318,8 +317,8 @@ fun OrdersScreen(
                             Text(
                                 when (selectedSource) {
                                     "ONLINE" -> "No online orders in this period"
-                                    "POS" -> "No store orders in this period"
-                                    else -> "No orders in this period"
+                                    "TAKEAWAY" -> "No takeaway orders in this period"
+                                    else -> "No dinein orders in this period"
                                 },
                                 color = TextGold.copy(alpha = 0.75f),
                                 style = MaterialTheme.typography.titleMedium,
@@ -364,8 +363,12 @@ fun OrdersScreen(
                                 enabledModes = enabledModes,
                                 isHighlighted = row.billId == highlightedBillId,
                                 onClick = {
-                                    selectedBillId = row.billId
-                                    viewModel.loadBillDetails(row.billId)
+                                    if (row.orderStatus == OrderStatus.DRAFT) {
+                                        navController?.navigate("new_bill?draftBillId=${row.billId}&targetStep=2")
+                                    } else {
+                                        selectedBillId = row.billId
+                                        viewModel.loadBillDetails(row.billId)
+                                    }
                                 },
                                 onShare = {
                                     scope.launch {
@@ -469,6 +472,20 @@ private fun OrderDetailRow.isOnlineOrder(): Boolean {
         payMode == PaymentMode.ZOMATO ||
         payMode == PaymentMode.SWIGGY ||
         payMode == PaymentMode.OWN_WEBSITE
+}
+
+private fun OrderDetailRow.isDineInOrder(): Boolean {
+    return when (orderType.trim().lowercase()) {
+        "dine_in", "dine-in" -> true
+        else -> false
+    }
+}
+
+private fun OrderDetailRow.isTakeawayOrder(): Boolean {
+    return when (orderType.trim().lowercase()) {
+        "takeaway", "take_away" -> true
+        else -> false
+    }
 }
 
 private fun String.isOnlineSource(): Boolean {

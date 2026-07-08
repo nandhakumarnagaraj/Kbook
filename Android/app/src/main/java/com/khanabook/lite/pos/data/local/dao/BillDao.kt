@@ -724,6 +724,9 @@ interface BillDao {
     @Query("SELECT * FROM bills WHERE customer_whatsapp IS NOT NULL AND customer_whatsapp != '' AND order_type = 'takeaway' AND order_status = 'completed' AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY created_at DESC LIMIT 20")
     suspend fun getRecentBillsWithCustomers(restaurantId: Long): List<BillEntity>
 
+    @Query("SELECT * FROM bills WHERE customer_name IS NOT NULL AND customer_name != '' AND order_type = 'dine_in' AND order_status = 'completed' AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY created_at DESC LIMIT 20")
+    suspend fun getRecentDineInBillsWithCustomers(restaurantId: Long): List<BillEntity>
+
     @Query("SELECT * FROM bills WHERE lifetime_order_id = :lifetimeNo AND restaurant_id = :restaurantId AND is_deleted = 0 LIMIT 1")
     suspend fun getBillByLifetimeNo(lifetimeNo: Long, restaurantId: Long): BillEntity?
 

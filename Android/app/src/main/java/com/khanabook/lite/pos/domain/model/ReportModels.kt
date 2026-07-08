@@ -18,6 +18,7 @@ data class OrderDetailRow(
     val billId: Long,
     val currentStatus: String,
     val salesAmount: String,
+    val orderType: String = "",
     val payMode: PaymentMode,
     val sourceChannel: String = "",
     val orderStatus: OrderStatus,

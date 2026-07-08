@@ -112,9 +112,18 @@ class BillingViewModel @Inject constructor(
     private val _recentCustomers = MutableStateFlow<List<Pair<String, String>>>(emptyList())
     val recentCustomers: StateFlow<List<Pair<String, String>>> = _recentCustomers
 
+    private val _recentDineInCustomers = MutableStateFlow<List<Pair<String, String>>>(emptyList())
+    val recentDineInCustomers: StateFlow<List<Pair<String, String>>> = _recentDineInCustomers
+
     fun loadRecentCustomers() {
         viewModelScope.launch {
             _recentCustomers.value = billRepository.getRecentCustomers()
+        }
+    }
+
+    fun loadRecentDineInCustomers() {
+        viewModelScope.launch {
+            _recentDineInCustomers.value = billRepository.getRecentDineInCustomers()
         }
     }
 

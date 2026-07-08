@@ -19,9 +19,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -45,12 +47,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 @Composable
 fun HomeScreen(
     onNewBill: () -> Unit,
+    onActiveOrder: () -> Unit,
+    onOpenActiveOrder: (Long) -> Unit = {},
     onResumePendingPayment: () -> Unit,
     onOpenSyncCenter: () -> Unit,
     onOpenPrinterSettings: () -> Unit,
     onSearchBill: () -> Unit,
     onReprintKds: () -> Unit,
-    onOrderStatus: () -> Unit,
     onCallCustomer: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
     authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
@@ -59,6 +62,7 @@ fun HomeScreen(
     val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
     val unsyncedCount by viewModel.unsyncedCount.collectAsStateWithLifecycle()
     val pendingOnlinePayments by viewModel.pendingOnlinePayments.collectAsStateWithLifecycle()
+    val activeDraftBills by viewModel.activeDraftBills.collectAsStateWithLifecycle()
     val quarantinedSyncCount by viewModel.quarantinedSyncCount.collectAsStateWithLifecycle()
     val shopName by viewModel.shopName.collectAsStateWithLifecycle()
     val greeting = viewModel.greeting
@@ -66,6 +70,7 @@ fun HomeScreen(
     val layout = KhanaBookTheme.layout
     val isWideScreen = !layout.isCompact
 
+    val coroutineScope = rememberCoroutineScope()
     val statsReady by viewModel.statsReady.collectAsStateWithLifecycle()
 
     var headerVisible by remember { mutableStateOf(false) }
@@ -325,6 +330,22 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {
+                    HomeActionCard(
+                        text = "Active Order",
+                        subtitle = if (activeDraftBills.isNotEmpty()) "${activeDraftBills.size} active" else null,
+                        icon = Icons.Default.ShoppingCart,
+                        backgroundColor = CardBG,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            if (activeDraftBills.isEmpty()) {
+                                coroutineScope.launch {
+                                    KhanaToast.show("No active order", ToastKind.Info)
+                                }
+                            } else {
+                                onActiveOrder()
+                            }
+                        }
+                    )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(spacing.small)
@@ -351,17 +372,11 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = onCallCustomer
                     )
-                    HomeActionCard(
-                        text = "Track Order",
-                        icon = Icons.Default.Info,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = onOrderStatus
-                    )
                 }
             } // end AnimatedVisibility(actionsVisible)
         }
     }
+
 }
 
 @Composable
@@ -500,6 +515,7 @@ fun HomeActionCard(
     icon: ImageVector,
     backgroundColor: Color,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
     onClick: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -529,13 +545,24 @@ fun HomeActionCard(
                     modifier = Modifier.size(iconSize.medium)
                 )
                 Spacer(modifier = Modifier.width(spacing.small))
-                Text(
-                    text = text,
-                    color = TextLight,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Column {
+                    Text(
+                        text = text,
+                        color = TextLight,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            color = TextGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,

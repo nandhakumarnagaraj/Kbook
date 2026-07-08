@@ -241,6 +241,16 @@ class BillRepository(
             }
     }
 
+    suspend fun getRecentDineInCustomers(limit: Int = 5): List<Pair<String, String>> {
+        return billDao.getRecentDineInBillsWithCustomers(sessionManager.getRestaurantId())
+            .distinctBy { it.customerName }
+            .take(limit)
+            .mapNotNull { bill ->
+                val name = bill.customerName ?: return@mapNotNull null
+                (bill.customerWhatsapp ?: "") to name
+            }
+    }
+
     suspend fun getBillWithItemsByInvoiceNo(invoiceNo: Long): BillWithItems? {
         return billDao.getBillByLifetimeNo(invoiceNo, sessionManager.getRestaurantId())?.let { bill ->
             billDao.getBillWithItemsById(bill.id, sessionManager.getRestaurantId())

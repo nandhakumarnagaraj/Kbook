@@ -75,6 +75,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
                     billId = bill.id,
                     currentStatus = formatCurrentStatus(bill),
                     salesAmount = bill.totalAmount,
+                    orderType = bill.orderType,
                     payMode = PaymentMode.fromDbValue(bill.paymentMode),
                     sourceChannel = bill.sourceChannel,
                     orderStatus = OrderStatus.fromDbValue(bill.orderStatus),

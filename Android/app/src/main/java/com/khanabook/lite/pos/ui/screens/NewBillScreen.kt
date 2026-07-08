@@ -347,14 +347,16 @@ fun CustomerInfoStep(
     val spacing = KhanaBookTheme.spacing
 
     val recentCustomers by (billingViewModel?.recentCustomers ?: kotlinx.coroutines.flow.flowOf(emptyList<Pair<String,String>>())).collectAsStateWithLifecycle(emptyList())
+    val recentDineInCustomers by (billingViewModel?.recentDineInCustomers ?: kotlinx.coroutines.flow.flowOf(emptyList<Pair<String,String>>())).collectAsStateWithLifecycle(emptyList())
     val currentOrderType by (billingViewModel?.orderType ?: kotlinx.coroutines.flow.flowOf("dine_in")).collectAsStateWithLifecycle("dine_in")
-    var selectedOrderType by remember { mutableStateOf(if (activeDraftBills.isNotEmpty()) "active_order" else currentOrderType) }
+    var selectedOrderType by remember { mutableStateOf(if (currentOrderType == "takeaway") "takeaway" else "dine_in") }
 
-    LaunchedEffect(Unit) { billingViewModel?.loadRecentCustomers() }
+    LaunchedEffect(Unit) {
+        billingViewModel?.loadRecentCustomers()
+        billingViewModel?.loadRecentDineInCustomers()
+    }
     LaunchedEffect(currentOrderType) {
-        if (selectedOrderType != "active_order") {
-            selectedOrderType = currentOrderType
-        }
+        selectedOrderType = if (currentOrderType == "takeaway") "takeaway" else "dine_in"
     }
 
     val showPhoneError = whatsapp.isNotEmpty() && !ValidationUtils.isValidPhone(whatsapp)
@@ -402,13 +404,6 @@ fun CustomerInfoStep(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
-            OrderTypeButton(
-                text = "Active Order",
-                isSelected = selectedOrderType == "active_order",
-                modifier = Modifier.weight(1f)
-            ) {
-                selectedOrderType = "active_order"
-            }
             OrderTypeButton(
                 text = "Dine-In",
                 isSelected = selectedOrderType == "dine_in",
@@ -546,6 +541,50 @@ fun CustomerInfoStep(
         }
 
         if (selectedOrderType == "dine_in") {
+            if (recentDineInCustomers.isNotEmpty()) {
+                Text(
+                    "Recent Tables",
+                    color = TextGold,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                Spacer(modifier = Modifier.height(spacing.extraSmall))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                ) {
+                    recentDineInCustomers.forEach { customer ->
+                        val phone = customer.first
+                        val customerName = customer.second
+                        Surface(
+                            onClick = {
+                                whatsapp = phone
+                                name = customerName
+                                billingViewModel?.setCustomerInfo(customerName, phone)
+                            },
+                            shape = RoundedCornerShape(20.dp),
+                            color = DarkBrown2,
+                            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
+                        ) {
+                            Column(modifier = Modifier.widthIn(max = 120.dp).padding(horizontal = spacing.medium, vertical = spacing.small)) {
+                                Text(
+                                    text = if (customerName.isNotBlank()) customerName else phone,
+                                    color = TextLight,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (customerName.isNotBlank() && phone.isNotBlank()) {
+                                    Text(phone, color = TextGold.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(spacing.medium))
+            }
+
             OutlinedTextField(
                 value = name,
                 onValueChange = {
@@ -1063,18 +1102,20 @@ fun MenuSelectionStep(
                                 }
                             }
 
-                            Button(
-                                    onClick = onProceedToPayment,
-                                    colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1),
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.smallMedium),
-                                    enabled = derivedItemCount > 0
-                            ) {
-                                Text(
-                                        if (billingViewModel.editingBillId != null) "Settle" else "Proceed",
-                                        color = PrimaryGold,
-                                        style = MaterialTheme.typography.titleMedium
-                                )
+                            if (currentOrderType != "dine_in") {
+                                Button(
+                                        onClick = onProceedToPayment,
+                                        colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1),
+                                        shape = RoundedCornerShape(10.dp),
+                                        contentPadding = PaddingValues(horizontal = spacing.large, vertical = spacing.smallMedium),
+                                        enabled = derivedItemCount > 0
+                                    ) {
+                                    Text(
+                                            if (billingViewModel.editingBillId != null) "Settle" else "Proceed",
+                                            color = PrimaryGold,
+                                            style = MaterialTheme.typography.titleMedium
+                                    )
+                                }
                             }
                         }
                     }
@@ -1213,18 +1254,20 @@ fun MenuSelectionStep(
                                 }
                             }
 
-                            Button(
-                                onClick = onProceedToPayment,
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                                shape = RoundedCornerShape(12.dp),
-                                enabled = derivedItemCount > 0
-                            ) {
-                                Text(
-                                    if (billingViewModel.editingBillId != null) "Proceed to Settle" else "Proceed to Payment",
-                                    color = DarkBrown1,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
+                            if (currentOrderType != "dine_in") {
+                                Button(
+                                    onClick = onProceedToPayment,
+                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                                    shape = RoundedCornerShape(12.dp),
+                                    enabled = derivedItemCount > 0
+                                ) {
+                                    Text(
+                                        if (billingViewModel.editingBillId != null) "Proceed to Settle" else "Proceed to Payment",
+                                        color = DarkBrown1,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                }
                             }
                             if (derivedItemCount == 0) {
                                 Text(
@@ -1244,7 +1287,7 @@ fun MenuSelectionStep(
 }
 
 @Composable
-private fun CartItemNoteDialog(initialNote: String, itemName: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+fun CartItemNoteDialog(initialNote: String, itemName: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
     var noteText by remember { mutableStateOf(initialNote) }
     KhanaBookDialog(
         onDismissRequest = onDismiss,
