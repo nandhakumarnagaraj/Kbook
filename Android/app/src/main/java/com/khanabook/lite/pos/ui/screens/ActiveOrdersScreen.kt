@@ -244,101 +244,112 @@ private fun ActiveOrderCard(
                 modifier = Modifier
                     .weight(1f)
                     .padding(spacing.medium),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
                     contentDescription = null,
                     tint = PrimaryGold,
-                    modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
+                    modifier = Modifier
+                        .size(KhanaBookTheme.iconSize.medium)
+                        .padding(top = 2.dp)
                 )
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
                             text = title,
                             color = TextLight,
                             style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
                         )
-                        KhanaStatusBadge(
-                            text = "ACTIVE",
-                            kind = KhanaStatusKind.Info,
-                            filled = false
+                        Spacer(modifier = Modifier.width(spacing.small))
+                        Text(
+                            text = CurrencyUtils.formatPrice(bill.totalAmount),
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                     }
-                    Spacer(modifier = Modifier.height(spacing.extraSmall))
                     val itemsLabel = if (row.itemCount == 1 && !row.singleItemName.isNullOrBlank()) {
                         row.singleItemName
                     } else {
                         "${row.itemCount} item${if (row.itemCount == 1) "" else "s"}"
                     }
                     Text(
-                        text = "${orderTypeLabel(bill.orderType)} - $itemsLabel",
+                        text = "${bill.dailyOrderDisplay} • ${orderTypeLabel(bill.orderType)} • $itemsLabel",
                         color = TextGold,
                         style = MaterialTheme.typography.bodySmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = "${bill.dailyOrderDisplay} - ${CurrencyUtils.formatPrice(bill.totalAmount)}",
-                        color = PrimaryGold,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "Updated ${DateUtils.getRelativeTimeString(bill.updatedAt)}",
-                        color = TextGold.copy(alpha = 0.65f),
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.small)) {
-                        KhanaStatusBadge(
-                            text = if (row.hasNewKitchenItems) "KOT Pending" else "KOT Sent",
-                            kind = if (row.hasNewKitchenItems) KhanaStatusKind.Warning else KhanaStatusKind.Success
-                        )
-                        KhanaStatusBadge(text = "Unpaid", kind = KhanaStatusKind.Warning)
-                    }
-                    Spacer(modifier = Modifier.height(spacing.small))
-                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.small), modifier = Modifier.fillMaxWidth()) {
-                        Button(
-                            onClick = onOpen,
-                            modifier = Modifier.weight(1f).height(40.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)
-                        ) {
-                            Text("Open", color = DarkBrown1)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
+                            KhanaStatusBadge(
+                                text = if (row.hasNewKitchenItems) "KOT Pending" else "KOT Sent",
+                                kind = if (row.hasNewKitchenItems) KhanaStatusKind.Warning else KhanaStatusKind.Success,
+                                filled = true
+                            )
+                            KhanaStatusBadge(
+                                text = "Unpaid",
+                                kind = KhanaStatusKind.Warning,
+                                filled = true
+                            )
                         }
+                        Text(
+                            text = DateUtils.getRelativeTimeString(bill.updatedAt),
+                            color = TextGold.copy(alpha = 0.55f),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(spacing.extraSmall))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Button(
                             onClick = onPayment,
-                            modifier = Modifier.weight(1f).height(40.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen)
+                            modifier = Modifier
+                                .weight(1.3f)
+                                .height(40.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Icon(Icons.Default.Payments, null, tint = TextLight, modifier = Modifier.size(16.dp))
-                            Text("Payment", color = TextLight)
+                            Spacer(modifier = Modifier.width(spacing.extraSmall))
+                            Text("Payment", color = TextLight, style = MaterialTheme.typography.labelMedium)
                         }
                         OutlinedButton(
                             onClick = onPrint,
-                            modifier = Modifier.weight(1f).height(40.dp),
-                            border = BorderStroke(1.dp, BorderGold)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                            border = BorderStroke(1.dp, BorderGold),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Icon(Icons.Default.LocalPrintshop, contentDescription = "Print", tint = PrimaryGold, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(spacing.extraSmall))
+                            Text("Print Bill", style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = PrimaryGold,
-                    modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
-                )
             }
         }
     }

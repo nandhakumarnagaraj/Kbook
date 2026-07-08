@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -152,6 +153,7 @@ fun ActiveOrderDetailScreen(
                     item {
                         ActiveOrderActionGrid(
                             hasNewItems = newItems.isNotEmpty(),
+                            hasSentItems = sentItems.isNotEmpty(),
                             onAddItems = { onAddItems(detail.bill.id) },
                             onUpdateKot = {
                                 if (newItems.isEmpty()) {
@@ -168,7 +170,7 @@ fun ActiveOrderDetailScreen(
                     }
                     item {
                         ItemSection(
-                            title = "Already sent to kitchen",
+                            title = "Sent to Kitchen",
                             items = sentItems,
                             emptyText = "No items sent to kitchen yet",
                             highlighted = false
@@ -176,7 +178,7 @@ fun ActiveOrderDetailScreen(
                     }
                     item {
                         ItemSection(
-                            title = "New items to send",
+                            title = "Pending KOT",
                             items = newItems,
                             emptyText = "No new items to send",
                             highlighted = true
@@ -290,6 +292,7 @@ private fun ActiveOrderSummaryCard(detail: BillWithItems) {
 @Composable
 private fun ActiveOrderActionGrid(
     hasNewItems: Boolean,
+    hasSentItems: Boolean,
     onAddItems: () -> Unit,
     onUpdateKot: () -> Unit,
     onPayment: () -> Unit,
@@ -298,60 +301,134 @@ private fun ActiveOrderActionGrid(
     onCancel: () -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
-    Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(spacing.small), modifier = Modifier.fillMaxWidth()) {
-            Button(
-                onClick = onAddItems,
-                modifier = Modifier.weight(1f).height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(spacing.medium),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Section 1: Order Actions (Add/Send KOT)
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
+            Text(
+                text = "Order Actions",
+                color = TextGold.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.Add, null, tint = DarkBrown1, modifier = Modifier.size(18.dp))
-                Text("Add Items", color = DarkBrown1)
-            }
-            Button(
-                onClick = onUpdateKot,
-                enabled = hasNewItems,
-                modifier = Modifier.weight(1f).height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VegGreen)
-            ) {
-                Icon(Icons.Default.Restaurant, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                Text("Update KOT", color = Color.White)
+                Button(
+                    onClick = onAddItems,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryGold,
+                        contentColor = DarkBrown1
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(spacing.extraSmall))
+                    Text("Add Items", fontWeight = FontWeight.Bold)
+                }
+                Button(
+                    onClick = onUpdateKot,
+                    enabled = hasNewItems,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryGold,
+                        contentColor = DarkBrown1,
+                        disabledContainerColor = PrimaryGold.copy(alpha = 0.25f),
+                        disabledContentColor = DarkBrown1.copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(Icons.Default.Restaurant, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(spacing.extraSmall))
+                    Text("Update KOT", fontWeight = FontWeight.Bold)
+                }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(spacing.small), modifier = Modifier.fillMaxWidth()) {
-            Button(
-                onClick = onPayment,
-                modifier = Modifier.weight(1f).height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen)
+
+        // Section 2: Billing Actions (Payment/Print)
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
+            Text(
+                text = "Billing Actions",
+                color = TextGold.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.Payments, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                Text("Payment", color = Color.White)
-            }
-            Button(
-                onClick = onPrintBill,
-                modifier = Modifier.weight(1f).height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)
-            ) {
-                Icon(Icons.Default.Print, null, tint = DarkBrown1, modifier = Modifier.size(18.dp))
-                Text("Print Bill", color = DarkBrown1)
+                Button(
+                    onClick = onPayment,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SuccessGreen,
+                        contentColor = TextLight
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(Icons.Default.Payments, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(spacing.extraSmall))
+                    Text("Payment", fontWeight = FontWeight.Bold)
+                }
+                OutlinedButton(
+                    onClick = onPrintBill,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    border = BorderStroke(1.dp, BorderGold),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(Icons.Default.Print, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(spacing.extraSmall))
+                    Text("Print Bill", fontWeight = FontWeight.Bold)
+                }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(spacing.small), modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(
-                onClick = onReprintKot,
-                modifier = Modifier.weight(1f).height(46.dp),
-                border = BorderStroke(1.dp, BorderGold)
+
+        // Section 3: Secondary & Destructive Actions
+        Column(verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)) {
+            Text(
+                text = "More Actions",
+                color = TextGold.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(spacing.small),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.LocalPrintshop, null, tint = PrimaryGold, modifier = Modifier.size(18.dp))
-                Text("Reprint KOT", color = PrimaryGold)
-            }
-            OutlinedButton(
-                onClick = onCancel,
-                modifier = Modifier.weight(1f).height(46.dp),
-                border = BorderStroke(1.dp, DangerRed)
-            ) {
-                Icon(Icons.Default.Cancel, null, tint = DangerRed, modifier = Modifier.size(18.dp))
-                Text("Cancel Order", color = DangerRed)
+                OutlinedButton(
+                    onClick = onReprintKot,
+                    enabled = hasSentItems,
+                    modifier = Modifier.weight(1f).height(46.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = PrimaryGold,
+                        disabledContentColor = PrimaryGold.copy(alpha = 0.25f)
+                    ),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (hasSentItems) BorderGold else BorderGold.copy(alpha = 0.25f)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(Icons.Default.LocalPrintshop, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(spacing.extraSmall))
+                    Text("Reprint KOT")
+                }
+                OutlinedButton(
+                    onClick = onCancel,
+                    modifier = Modifier.weight(1f).height(46.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
+                    border = BorderStroke(1.dp, DangerRed.copy(alpha = 0.6f)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(Icons.Default.Cancel, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(spacing.extraSmall))
+                    Text("Cancel Order")
+                }
             }
         }
     }
