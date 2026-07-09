@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
+import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
+import com.khanabook.lite.pos.domain.model.OrderPaymentFlowMode
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +24,7 @@ class HomeViewModel @Inject constructor(
     private val kitchenPrintQueueRepository: KitchenPrintQueueRepository,
     private val kitchenPrintQueueManager: KitchenPrintQueueManager,
     private val printerProfileRepository: PrinterProfileRepository,
+    private val restaurantRepository: RestaurantRepository,
     private val printerManager: BluetoothPrinterManager,
     private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor
 ) : ViewModel() {
@@ -106,6 +109,14 @@ class HomeViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = "Your Shop"
+        )
+
+    val orderPaymentFlowMode: StateFlow<OrderPaymentFlowMode> = profileFlow
+        .map { OrderPaymentFlowMode.fromDbValue(it?.orderPaymentFlowMode) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = OrderPaymentFlowMode.PAY_BEFORE_FOOD
         )
 
     /** Time-aware greeting: Good Morning / Afternoon / Evening. */
@@ -200,6 +211,19 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             billRepository.cancelOrder(billId, "Payment attempt cancelled by cashier")
             _message.emit("Pending payment cancelled.")
+        }
+    }
+
+    fun updateOrderPaymentFlowMode(mode: OrderPaymentFlowMode) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val current = restaurantRepository.getProfile()
+            if (current == null) {
+                _message.emit("Restaurant profile is not ready.")
+                return@launch
+            }
+            if (current.orderPaymentFlowMode == mode.dbValue) return@launch
+            restaurantRepository.saveProfile(current.copy(orderPaymentFlowMode = mode.dbValue))
+            _message.emit("${mode.displayLabel} enabled.")
         }
     }
 

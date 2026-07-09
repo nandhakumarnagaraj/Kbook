@@ -107,6 +107,8 @@ data class RestaurantProfileEntity(
     val lastResetDate: String? = null, 
     @ColumnInfo(name = "session_timeout_minutes", defaultValue = "30")
     val sessionTimeoutMinutes: Int = 30,
+    @ColumnInfo(name = "order_payment_flow_mode", defaultValue = "pay_before_food")
+    val orderPaymentFlowMode: String = "pay_before_food",
 
     @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
     @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",

@@ -151,6 +151,9 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "session_timeout_minutes")
 	private Integer sessionTimeoutMinutes;
 
+	@Column(name = "order_payment_flow_mode")
+	private String orderPaymentFlowMode = "pay_before_food";
+
 	@Column(name = "timezone")
 	private String timezone = "Asia/Kolkata";
 

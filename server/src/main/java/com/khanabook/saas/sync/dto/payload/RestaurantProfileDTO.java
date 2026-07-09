@@ -65,6 +65,7 @@ public class RestaurantProfileDTO {
     private Long lifetimeOrderCounter;
     private String lastResetDate;
     private Integer sessionTimeoutMinutes;
+    private String orderPaymentFlowMode = "pay_before_food";
     private String timezone;
     private String reviewUrl;
     private String invoiceFooter;

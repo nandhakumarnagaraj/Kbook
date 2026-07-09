@@ -26,6 +26,7 @@ import com.khanabook.lite.pos.domain.manager.TrustedExternalAppReturn
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.designsystem.*
+import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -135,6 +136,7 @@ fun CallCustomerScreen(
                                 .consumeWindowInsets(padding)
                                 .fillMaxSize()
                                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
+                                .horizontalNavigationSwipe(onSwipeRight = onBack)
                                 .imePadding()
                                 .padding(spacing.large)
         ) {

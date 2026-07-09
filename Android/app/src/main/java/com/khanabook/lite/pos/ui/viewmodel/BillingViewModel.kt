@@ -112,9 +112,18 @@ class BillingViewModel @Inject constructor(
     private val _recentCustomers = MutableStateFlow<List<Pair<String, String>>>(emptyList())
     val recentCustomers: StateFlow<List<Pair<String, String>>> = _recentCustomers
 
+    private val _recentDineInCustomers = MutableStateFlow<List<Pair<String, String>>>(emptyList())
+    val recentDineInCustomers: StateFlow<List<Pair<String, String>>> = _recentDineInCustomers
+
     fun loadRecentCustomers() {
         viewModelScope.launch {
             _recentCustomers.value = billRepository.getRecentCustomers()
+        }
+    }
+
+    fun loadRecentDineInCustomers() {
+        viewModelScope.launch {
+            _recentDineInCustomers.value = billRepository.getRecentDineInCustomers()
         }
     }
 
@@ -805,6 +814,15 @@ class BillingViewModel @Inject constructor(
             try {
                 val billWithItems = billRepository.getBillWithItemsById(billId)
                 if (billWithItems != null) {
+                    if (billWithItems.bill.orderStatus == OrderStatus.COMPLETED.dbValue || 
+                        billWithItems.bill.paymentStatus == PaymentStatus.SUCCESS.dbValue) {
+                        _error.value = "Cannot edit a settled order."
+                        return@launch
+                    }
+                    if (billWithItems.bill.orderStatus == OrderStatus.CANCELLED.dbValue) {
+                        _error.value = "Cannot edit a cancelled order."
+                        return@launch
+                    }
                     editingBillId = billId
                     _customerName.value = billWithItems.bill.customerName ?: ""
                     _customerWhatsapp.value = billWithItems.bill.customerWhatsapp ?: ""
@@ -969,6 +987,17 @@ class BillingViewModel @Inject constructor(
                     return@withLock false
                 }
                 val existingBill = existingWithItems.bill
+                if (existingBill.orderStatus == OrderStatus.COMPLETED.dbValue || 
+                    existingBill.paymentStatus == PaymentStatus.SUCCESS.dbValue) {
+                    _error.value = "Cannot update a settled order."
+                    _isLoading.value = false
+                    return@withLock false
+                }
+                if (existingBill.orderStatus == OrderStatus.CANCELLED.dbValue) {
+                    _error.value = "Cannot update a cancelled order."
+                    _isLoading.value = false
+                    return@withLock false
+                }
 
                 val restaurantId = sessionManager.getRestaurantId()
                 if (restaurantId == 0L) {
@@ -1149,6 +1178,17 @@ class BillingViewModel @Inject constructor(
                     return@withLock false
                 }
                 val existingBill = existingWithItems.bill
+                if (existingBill.orderStatus == OrderStatus.COMPLETED.dbValue || 
+                    existingBill.paymentStatus == PaymentStatus.SUCCESS.dbValue) {
+                    _error.value = "Order is already settled."
+                    _isLoading.value = false
+                    return@withLock false
+                }
+                if (existingBill.orderStatus == OrderStatus.CANCELLED.dbValue) {
+                    _error.value = "Cannot settle a cancelled order."
+                    _isLoading.value = false
+                    return@withLock false
+                }
 
                 val payments = listOf(
                     BillPaymentEntity(
