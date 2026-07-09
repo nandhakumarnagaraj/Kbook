@@ -729,6 +729,10 @@ fun MenuSelectionStep(
     val gridColumns = layout.menuGridColumns
     val scope = rememberCoroutineScope()
     val currentOrderType by billingViewModel.orderType.collectAsStateWithLifecycle()
+    val profile by billingViewModel.cachedProfile.collectAsStateWithLifecycle()
+    val paymentFlowMode = OrderPaymentFlowMode.fromDbValue(profile?.orderPaymentFlowMode)
+    val canSaveTableOrder = currentOrderType == "dine_in" &&
+        (paymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD || billingViewModel.editingBillId != null)
 
     LaunchedEffect(categories) {
         if (selectedCategoryId == null && categories.isNotEmpty()) {
@@ -1050,7 +1054,7 @@ fun MenuSelectionStep(
                             horizontalArrangement = Arrangement.spacedBy(spacing.small),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (currentOrderType == "dine_in") {
+                            if (canSaveTableOrder) {
                                 if (billingViewModel.editingBillId != null) {
                                     Button(
                                         onClick = {
@@ -1102,7 +1106,7 @@ fun MenuSelectionStep(
                                 }
                             }
 
-                            if (currentOrderType != "dine_in") {
+                            if (!canSaveTableOrder) {
                                 Button(
                                         onClick = onProceedToPayment,
                                         colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1),
@@ -1208,7 +1212,7 @@ fun MenuSelectionStep(
                                 Text(CurrencyUtils.formatPrice(total), color = PrimaryGold, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                             }
                             Spacer(modifier = Modifier.height(spacing.medium))
-                            if (currentOrderType == "dine_in") {
+                            if (canSaveTableOrder) {
                                 if (billingViewModel.editingBillId != null) {
                                     Button(
                                         onClick = {
@@ -1254,7 +1258,7 @@ fun MenuSelectionStep(
                                 }
                             }
 
-                            if (currentOrderType != "dine_in") {
+                            if (!canSaveTableOrder) {
                                 Button(
                                     onClick = onProceedToPayment,
                                     modifier = Modifier.fillMaxWidth().height(56.dp),

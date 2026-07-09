@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -32,6 +33,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -49,11 +51,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.R
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
+import com.khanabook.lite.pos.domain.model.OrderPaymentFlowMode
 import com.khanabook.lite.pos.domain.util.AppAssetStore
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import com.khanabook.lite.pos.domain.util.ValidationUtils
@@ -64,10 +68,13 @@ import com.khanabook.lite.pos.ui.designsystem.ToastKind
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.khanabook.lite.pos.ui.theme.DangerRed
+import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.KhanaBookTheme
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.SuccessGreen
+import com.khanabook.lite.pos.ui.theme.TextGold
+import com.khanabook.lite.pos.ui.theme.TextLight
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -77,6 +84,7 @@ fun ShopConfigView(
     profile: RestaurantProfileEntity?,
     viewModel: SettingsViewModel,
     authViewModel: AuthViewModel,
+    appLockViewModel: com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel = hiltViewModel(),
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -106,7 +114,13 @@ fun ShopConfigView(
     val isUserChecking by viewModel.isUserChecking.collectAsStateWithLifecycle()
     val userExistsError by viewModel.userExistsError.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsState()
+    val enteredPin by appLockViewModel.enteredPin.collectAsStateWithLifecycle()
+    val pinError by appLockViewModel.errorMessage.collectAsStateWithLifecycle()
     val isGoogleAuth = currentUser?.authProvider.equals("GOOGLE", ignoreCase = true)
+    val currentPaymentFlowMode = OrderPaymentFlowMode.fromDbValue(profile?.orderPaymentFlowMode)
+    var pendingPaymentFlowMode by remember { mutableStateOf<OrderPaymentFlowMode?>(null) }
+    var showModePinDialog by remember { mutableStateOf(false) }
+    val isPinEnabled = remember { appLockViewModel.isPinEnabled() }
 
     val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, invoiceFooter, profile) {
         name != (profile?.shopName ?: "") ||
@@ -165,6 +179,17 @@ fun ShopConfigView(
             viewModel.clearSaveProfileState()
             authViewModel.clearOtpStatus()
             onBack()
+        }
+    }
+
+    LaunchedEffect(enteredPin, showModePinDialog) {
+        if (showModePinDialog && enteredPin.length == 4) {
+            appLockViewModel.verifyPin {
+                pendingPaymentFlowMode?.let(viewModel::updateOrderPaymentFlowMode)
+                pendingPaymentFlowMode = null
+                showModePinDialog = false
+                appLockViewModel.clearPin()
+            }
         }
     }
 
@@ -397,6 +422,21 @@ fun ShopConfigView(
             ParchmentTextField(value = reviewUrl, onValueChange = { reviewUrl = it }, label = "Review Link")
             Spacer(modifier = Modifier.height(spacing.medium))
             ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer")
+            Spacer(modifier = Modifier.height(spacing.medium))
+            RestaurantPaymentFlowSelector(
+                selectedMode = currentPaymentFlowMode,
+                onModeSelected = { mode ->
+                    if (mode == currentPaymentFlowMode) return@RestaurantPaymentFlowSelector
+                    pendingPaymentFlowMode = mode
+                    if (isPinEnabled) {
+                        appLockViewModel.clearPin()
+                        showModePinDialog = true
+                    } else {
+                        viewModel.updateOrderPaymentFlowMode(mode)
+                        pendingPaymentFlowMode = null
+                    }
+                }
+            )
             Spacer(modifier = Modifier.height(spacing.large))
 
             ConfigActionButtons(
@@ -425,6 +465,129 @@ fun ShopConfigView(
                 onBack = onBack,
                 isSaving = saveProfileLoading
             )
+        }
+    }
+
+    if (showModePinDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showModePinDialog = false
+                pendingPaymentFlowMode = null
+                appLockViewModel.clearPin()
+            },
+            title = { Text("Confirm Billing Mode", color = PrimaryGold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
+                    Text(
+                        "Enter your app PIN to switch to ${pendingPaymentFlowMode?.displayLabel.orEmpty()}.",
+                        color = TextLight,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    InlinePinEntry(
+                        pin = enteredPin,
+                        onDigit = appLockViewModel::appendDigit,
+                        onDelete = appLockViewModel::deleteDigit,
+                        errorMessage = pinError
+                    )
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showModePinDialog = false
+                        pendingPaymentFlowMode = null
+                        appLockViewModel.clearPin()
+                    }
+                ) {
+                    Text("Cancel", color = TextGold)
+                }
+            },
+            containerColor = DarkBrown2
+        )
+    }
+}
+
+@Composable
+private fun RestaurantPaymentFlowSelector(
+    selectedMode: OrderPaymentFlowMode,
+    onModeSelected: (OrderPaymentFlowMode) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.25f)), RoundedCornerShape(12.dp))
+            .background(DarkBrown2.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+            .padding(spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.small)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Billing Mode", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    if (selectedMode == OrderPaymentFlowMode.PAY_AFTER_FOOD) {
+                        "Dine-in orders can stay open until payment."
+                    } else {
+                        "Orders collect payment before food is served."
+                    },
+                    color = TextGold,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            RestaurantPaymentFlowButton(
+                text = "Pay Before Food",
+                selected = selectedMode == OrderPaymentFlowMode.PAY_BEFORE_FOOD,
+                modifier = Modifier.weight(1f),
+                onClick = { onModeSelected(OrderPaymentFlowMode.PAY_BEFORE_FOOD) }
+            )
+            RestaurantPaymentFlowButton(
+                text = "Pay After Food",
+                selected = selectedMode == OrderPaymentFlowMode.PAY_AFTER_FOOD,
+                modifier = Modifier.weight(1f),
+                onClick = { onModeSelected(OrderPaymentFlowMode.PAY_AFTER_FOOD) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun RestaurantPaymentFlowButton(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
+    if (selected) {
+        Button(
+            onClick = onClick,
+            modifier = modifier.height(44.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)
+        ) {
+            Text(text, maxLines = 1)
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier.height(44.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
+            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.35f)),
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)
+        ) {
+            Text(text, maxLines = 1)
         }
     }
 }

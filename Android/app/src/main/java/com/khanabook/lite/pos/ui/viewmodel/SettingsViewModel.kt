@@ -17,6 +17,7 @@ import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
+import com.khanabook.lite.pos.domain.model.OrderPaymentFlowMode
 import com.khanabook.lite.pos.domain.util.MultipartUtils
 import com.khanabook.lite.pos.domain.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -610,6 +611,15 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val current = restaurantRepository.getProfile()
             current?.copy(showBranding = enabled)?.let {
+                restaurantRepository.saveProfile(it)
+            }
+        }
+    }
+
+    fun updateOrderPaymentFlowMode(mode: OrderPaymentFlowMode) {
+        viewModelScope.launch {
+            val current = restaurantRepository.getProfile()
+            current?.copy(orderPaymentFlowMode = mode.dbValue)?.let {
                 restaurantRepository.saveProfile(it)
             }
         }

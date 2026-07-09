@@ -3,6 +3,7 @@
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
+import com.khanabook.lite.pos.domain.model.OrderPaymentFlowMode
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
 import com.khanabook.lite.pos.ui.designsystem.*
@@ -56,7 +58,8 @@ fun HomeScreen(
     onReprintKds: () -> Unit,
     onCallCustomer: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
-    authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
+    authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel(),
+    appLockViewModel: com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel = hiltViewModel()
 ) {
     val stats by viewModel.todayStats.collectAsStateWithLifecycle()
     val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
@@ -65,6 +68,9 @@ fun HomeScreen(
     val activeDraftBills by viewModel.activeDraftBills.collectAsStateWithLifecycle()
     val quarantinedSyncCount by viewModel.quarantinedSyncCount.collectAsStateWithLifecycle()
     val shopName by viewModel.shopName.collectAsStateWithLifecycle()
+    val orderPaymentFlowMode by viewModel.orderPaymentFlowMode.collectAsStateWithLifecycle()
+    val enteredPin by appLockViewModel.enteredPin.collectAsStateWithLifecycle()
+    val pinError by appLockViewModel.errorMessage.collectAsStateWithLifecycle()
     val greeting = viewModel.greeting
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -77,6 +83,9 @@ fun HomeScreen(
     var statsVisible by remember { mutableStateOf(false) }
     var primaryVisible by remember { mutableStateOf(false) }
     var actionsVisible by remember { mutableStateOf(false) }
+    var pendingModeChange by remember { mutableStateOf<OrderPaymentFlowMode?>(null) }
+    var showModePinDialog by remember { mutableStateOf(false) }
+    val isPinEnabled = remember { appLockViewModel.isPinEnabled() }
 
     LaunchedEffect(Unit) {
         headerVisible = true
@@ -91,6 +100,17 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         viewModel.message.collect { message ->
             KhanaToast.show(message, ToastKind.Info)
+        }
+    }
+
+    LaunchedEffect(enteredPin, showModePinDialog) {
+        if (showModePinDialog && enteredPin.length == 4) {
+            appLockViewModel.verifyPin {
+                pendingModeChange?.let(viewModel::updateOrderPaymentFlowMode)
+                pendingModeChange = null
+                showModePinDialog = false
+                appLockViewModel.clearPin()
+            }
         }
     }
 
@@ -287,6 +307,20 @@ fun HomeScreen(
                             }
                         }
                     }
+                    OrderPaymentModeCard(
+                        selectedMode = orderPaymentFlowMode,
+                        onModeSelected = { mode ->
+                            if (mode == orderPaymentFlowMode) return@OrderPaymentModeCard
+                            pendingModeChange = mode
+                            if (isPinEnabled) {
+                                appLockViewModel.clearPin()
+                                showModePinDialog = true
+                            } else {
+                                viewModel.updateOrderPaymentFlowMode(mode)
+                                pendingModeChange = null
+                            }
+                        }
+                    )
                     KhanaBookCard(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { onNewBill() },
@@ -377,6 +411,145 @@ fun HomeScreen(
         }
     }
 
+    if (showModePinDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showModePinDialog = false
+                pendingModeChange = null
+                appLockViewModel.clearPin()
+            },
+            title = { Text("Confirm Mode Change", color = PrimaryGold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
+                    Text(
+                        text = "Enter your app PIN to switch to ${pendingModeChange?.displayLabel.orEmpty()}.",
+                        color = TextLight,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    InlinePinEntry(
+                        pin = enteredPin,
+                        onDigit = appLockViewModel::appendDigit,
+                        onDelete = appLockViewModel::deleteDigit,
+                        errorMessage = pinError
+                    )
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showModePinDialog = false
+                        pendingModeChange = null
+                        appLockViewModel.clearPin()
+                    }
+                ) {
+                    Text("Cancel", color = TextGold)
+                }
+            },
+            containerColor = DarkBrown2
+        )
+    }
+}
+
+@Composable
+private fun OrderPaymentModeCard(
+    selectedMode: OrderPaymentFlowMode,
+    onModeSelected: (OrderPaymentFlowMode) -> Unit
+) {
+    val spacing = KhanaBookTheme.spacing
+    KhanaBookCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = PrimaryGold,
+                    modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Billing Mode",
+                        color = PrimaryGold,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (selectedMode == OrderPaymentFlowMode.PAY_AFTER_FOOD) {
+                            "Dine-in tables stay active until settlement."
+                        } else {
+                            "Orders go to payment before food is served."
+                        },
+                        color = TextGold,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                PaymentModeToggleButton(
+                    text = "Pay Before Food",
+                    selected = selectedMode == OrderPaymentFlowMode.PAY_BEFORE_FOOD,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onModeSelected(OrderPaymentFlowMode.PAY_BEFORE_FOOD) }
+                )
+                PaymentModeToggleButton(
+                    text = "Pay After Food",
+                    selected = selectedMode == OrderPaymentFlowMode.PAY_AFTER_FOOD,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onModeSelected(OrderPaymentFlowMode.PAY_AFTER_FOOD) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentModeToggleButton(
+    text: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val colors = if (selected) {
+        ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1)
+    } else {
+        ButtonDefaults.outlinedButtonColors(contentColor = TextGold)
+    }
+    if (selected) {
+        Button(
+            onClick = onClick,
+            modifier = modifier.height(44.dp),
+            colors = colors,
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp)
+        ) {
+            Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    } else {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier.height(44.dp),
+            colors = colors,
+            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp)
+        ) {
+            Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
 }
 
 @Composable

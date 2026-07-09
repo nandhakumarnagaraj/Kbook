@@ -582,6 +582,10 @@ class MasterSyncProcessor @Inject constructor(
                         lifetimeOrderCounter = remoteProfile.lifetimeOrderCounter ?: 0L,
                         lastResetDate = remoteProfile.lastResetDate.orFallback(""),
                         sessionTimeoutMinutes = remoteProfile.sessionTimeoutMinutes ?: 30,
+                        orderPaymentFlowMode = remoteProfile.orderPaymentFlowMode
+                            ?.takeIf { it.isNotBlank() }
+                            ?: currentLocalProfile?.orderPaymentFlowMode
+                            ?: "pay_before_food",
                         restaurantId = remoteProfile.restaurantId ?: 0L,
                         deviceId = remoteProfile.deviceId.orFallback("unknown_device"),
                         isSynced = true,
