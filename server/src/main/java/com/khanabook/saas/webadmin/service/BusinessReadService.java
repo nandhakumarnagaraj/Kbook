@@ -224,7 +224,8 @@ public class BusinessReadService {
 
     private BusinessOrderListItemResponse toBillOrderResponse(Bill bill) {
         return BusinessOrderListItemResponse.builder()
-                .sourceType("POS")
+                .sourceType(bill.getSourceChannel() != null && !bill.getSourceChannel().isBlank()
+                        ? bill.getSourceChannel() : "POS")
                 .orderId(bill.getId())
                 .orderCode(bill.getDailyOrderDisplay() != null && !bill.getDailyOrderDisplay().isBlank()
                         ? bill.getDailyOrderDisplay()

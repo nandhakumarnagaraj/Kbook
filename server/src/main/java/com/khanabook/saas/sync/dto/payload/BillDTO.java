@@ -25,6 +25,7 @@ public class BillDTO {
     private String dailyOrderDisplay;
     private Long lifetimeOrderId;
     private String orderType;
+    private String sourceChannel;
     private String customerName;
     private String customerWhatsapp;
     private java.math.BigDecimal subtotal;
