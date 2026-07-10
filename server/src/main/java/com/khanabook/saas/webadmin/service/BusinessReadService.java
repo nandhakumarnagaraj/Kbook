@@ -177,10 +177,13 @@ public class BusinessReadService {
         Bill bill = billRepository.findById(billId)
                 .filter(existing -> existing.getRestaurantId().equals(restaurantId))
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+        long now = System.currentTimeMillis();
         bill.setRefundAmount(refundAmount);
         bill.setCancelReason(reason);
         bill.setOrderStatus("cancelled");
         bill.setPaymentStatus("refunded");
+        bill.setUpdatedAt(now);
+        bill.setServerUpdatedAt(now);
         billRepository.save(bill);
     }
 

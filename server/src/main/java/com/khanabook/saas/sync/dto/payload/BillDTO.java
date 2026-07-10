@@ -43,5 +43,6 @@ public class BillDTO {
     private Long paidAt;
     private String lastResetDate;
     private String cancelReason;
+    private java.math.BigDecimal refundAmount;
     private java.util.UUID publicToken;
 }

@@ -29,12 +29,12 @@ data class BillEntity(
         @SerializedName("dailyOrderId")
         @ColumnInfo(name = "daily_order_id") val dailyOrderId: Long,
         @SerializedName("dailyOrderDisplay")
-        @ColumnInfo(name = "daily_order_display") val dailyOrderDisplay: String, 
+        @ColumnInfo(name = "daily_order_display") val dailyOrderDisplay: String,
         @SerializedName("lifetimeOrderId")
-        @ColumnInfo(name = "lifetime_order_id") val lifetimeOrderId: Long, 
+        @ColumnInfo(name = "lifetime_order_id") val lifetimeOrderId: Long,
         @SerializedName("orderType")
         @ColumnInfo(name = "order_type", defaultValue = "order")
-        val orderType: String = "order", 
+        val orderType: String = "order",
         @SerializedName("customerName")
         @ColumnInfo(name = "customer_name") val customerName: String? = null,
         @SerializedName("customerWhatsapp")
@@ -54,8 +54,7 @@ data class BillEntity(
         @ColumnInfo(name = "total_amount") val totalAmount: String,
         @SerializedName("paymentMode")
         @ColumnInfo(name = "payment_mode")
-        val paymentMode:
-                String, 
+        val paymentMode: String,
         @SerializedName("sourceChannel")
         @ColumnInfo(name = "source_channel", defaultValue = "''")
         val sourceChannel: String = "",
@@ -64,10 +63,10 @@ data class BillEntity(
         @SerializedName("partAmount2")
         @ColumnInfo(name = "part_amount_2", defaultValue = "'0.0'") val partAmount2: String = "0.0",
         @SerializedName("paymentStatus")
-        @ColumnInfo(name = "payment_status") val paymentStatus: String, 
+        @ColumnInfo(name = "payment_status") val paymentStatus: String,
         @SerializedName("orderStatus")
         @ColumnInfo(name = "order_status")
-        val orderStatus: String, 
+        val orderStatus: String,
         @SerializedName("createdBy")
         @ColumnInfo(name = "created_by") val createdBy: Long? = null,
         @SerializedName("createdAt")
@@ -80,8 +79,7 @@ data class BillEntity(
         @SerializedName("isSynced")
         @ColumnInfo(name = "is_synced", defaultValue = "0") val isSynced: Boolean = false,
         @SerializedName("updatedAt")
-        @ColumnInfo(name = "updated_at") val updatedAt: Long = System.currentTimeMillis()
-,
+        @ColumnInfo(name = "updated_at") val updatedAt: Long = System.currentTimeMillis(),
     @SerializedName("isDeleted")
     @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
     @SerializedName("serverId") @ColumnInfo(name = "server_id") val serverId: Long? = null,
@@ -96,5 +94,8 @@ data class BillEntity(
     @ColumnInfo(name = "owner_restaurant_id", defaultValue = "NULL") val ownerRestaurantId: Long? = null,
     @ColumnInfo(name = "sync_status", defaultValue = "'pending'") val syncStatus: String = "pending",
     @ColumnInfo(name = "sync_failure_reason") val syncFailureReason: String? = null,
-    @ColumnInfo(name = "sync_failed_at") val syncFailedAt: Long? = null
+    @ColumnInfo(name = "sync_failed_at") val syncFailedAt: Long? = null,
+    // Server-owned. Null means no refund has been recorded. Never written by Android push.
+    @SerializedName("refundAmount")
+    @ColumnInfo(name = "refund_amount", defaultValue = "NULL") val refundAmount: String? = null
 )

@@ -48,7 +48,8 @@ fun BillEntity.toSyncDto(serverCreatedBy: Long? = null) = BillSyncDto(
     isDeleted       = isDeleted,
     lastResetDate   = lastResetDate,
     serverUpdatedAt = serverUpdatedAt,
-    refundAmount    = "0.00",
+    // refundAmount intentionally omitted — server-owned field.
+    // GenericSyncService ignores the pushed value; server state is authoritative.
     publicToken     = publicToken,
 )
 
