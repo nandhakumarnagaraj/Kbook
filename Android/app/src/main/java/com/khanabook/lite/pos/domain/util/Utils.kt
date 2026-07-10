@@ -43,6 +43,23 @@ object DateUtils {
             .format(java.time.format.DateTimeFormatter.ofPattern("MMMM\ndd, yyyy,\nHH:mm a"))
     }
 
+    fun getRelativeTimeString(timestamp: Long): String {
+        val diff = maxOf(0L, System.currentTimeMillis() - timestamp)
+        val minutes = diff / 60_000L
+        if (minutes < 1) {
+            return "just now"
+        }
+        if (minutes < 60) {
+            return "${minutes}m ago"
+        }
+        val hours = diff / 3600_000L
+        if (hours < 24) {
+            return "${hours}h ago"
+        }
+        val days = diff / 86400_000L
+        return "${days}d ago"
+    }
+
     fun formatDisplayWithZone(timestamp: Long, zoneId: String): String {
         return java.time.Instant.ofEpochMilli(timestamp)
             .atZone(java.time.ZoneId.of(zoneId))

@@ -368,12 +368,15 @@ class MainActivity : FragmentActivity() {
                             initialSettingsSection = section,
                             navController = navController,
                             onNewBill = { navController.navigate("new_bill") },
+                            onActiveOrder = { navController.navigate("active_orders") },
+                            onOpenActiveOrder = { draftBillId ->
+                                navController.navigate("active_order_detail/$draftBillId")
+                            },
                             onResumePendingPayment = { navController.navigate("new_bill?resumePayment=true") },
                             onOpenSyncCenter = { navController.navigate("main/3?section=sync_center") },
                             onOpenPrinterSettings = { navController.navigate("main/3?section=printer") },
                             onSearchBill = { navController.navigate("search_bill") },
                             onReprintKds = { navController.navigate("reprint_kds") },
-                            onOrderStatus = { navController.navigate("order_status") },
                             onCallCustomer = { navController.navigate("call_customer") },
                             menuViewModel = menuViewModel,
                             onScanClick = { categoryName ->
@@ -436,6 +439,31 @@ class MainActivity : FragmentActivity() {
                             title = context.getString(R.string.search_bill),
                             onBack = { navController.popBackStack() },
                             modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    composable("active_orders") {
+                        ActiveOrdersScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenActiveOrder = { draftBillId ->
+                                navController.navigate("active_order_detail/$draftBillId")
+                            },
+                            onCollectPayment = { draftBillId ->
+                                navController.navigate("new_bill?draftBillId=$draftBillId&targetStep=3")
+                            }
+                        )
+                    }
+                    composable(
+                        route = "active_order_detail/{billId}",
+                        arguments = listOf(navArgument("billId") { type = NavType.LongType })
+                    ) {
+                        ActiveOrderDetailScreen(
+                            onBack = { navController.popBackStack() },
+                            onAddItems = { draftBillId ->
+                                navController.navigate("new_bill?draftBillId=$draftBillId&targetStep=2")
+                            },
+                            onCollectPayment = { draftBillId ->
+                                navController.navigate("new_bill?draftBillId=$draftBillId&targetStep=3")
+                            }
                         )
                     }
                     composable("order_status") {

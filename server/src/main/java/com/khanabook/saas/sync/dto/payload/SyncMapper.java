@@ -58,6 +58,9 @@ public class SyncMapper {
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
                 dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+                if (dto.getOrderPaymentFlowMode() == null || dto.getOrderPaymentFlowMode().isBlank()) {
+                    dto.setOrderPaymentFlowMode("pay_before_food");
+                }
             } else if (source instanceof StockLog entity && target instanceof StockLogDTO dto) {
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
@@ -166,6 +169,9 @@ public class SyncMapper {
                 entity.setDailyOrderCounter(dto.getDailyOrderCounter());
                 entity.setLifetimeOrderCounter(dto.getLifetimeOrderCounter());
                 entity.setLastResetDate(dto.getLastResetDate());
+                if (dto.getOrderPaymentFlowMode() == null || dto.getOrderPaymentFlowMode().isBlank()) {
+                    entity.setOrderPaymentFlowMode("pay_before_food");
+                }
                 // Copy all other fields via BeanUtils is already handled above
             } else if (source instanceof StockLogDTO dto) {
                 StockLog entity = (StockLog) target;

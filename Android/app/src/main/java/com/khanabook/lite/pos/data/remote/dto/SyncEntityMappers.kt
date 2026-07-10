@@ -194,6 +194,7 @@ fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
     lifetimeOrderCounter = lifetimeOrderCounter,
     lastResetDate       = lastResetDate.orEmpty(),
     sessionTimeoutMinutes = sessionTimeoutMinutes,
+    orderPaymentFlowMode = orderPaymentFlowMode,
     updatedAt        = updatedAt,
     isDeleted        = isDeleted,
     serverUpdatedAt  = serverUpdatedAt,

@@ -28,6 +28,7 @@ import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
 import com.khanabook.lite.pos.ui.designsystem.*
+import com.khanabook.lite.pos.ui.gesture.horizontalNavigationSwipe
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
@@ -89,6 +90,7 @@ fun ReprintKdsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
+            .horizontalNavigationSwipe(onSwipeRight = onBack)
     ) {
         Column(
             modifier = Modifier

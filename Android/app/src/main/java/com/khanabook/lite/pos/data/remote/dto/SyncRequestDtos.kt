@@ -181,6 +181,7 @@ data class RestaurantProfileSyncDto(
     @SerializedName("lifetimeOrderCounter") val lifetimeOrderCounter: Long,
     @SerializedName("lastResetDate") val lastResetDate: String,
     @SerializedName("sessionTimeoutMinutes") val sessionTimeoutMinutes: Int,
+    @SerializedName("orderPaymentFlowMode") val orderPaymentFlowMode: String,
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("isDeleted") val isDeleted: Boolean,
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,

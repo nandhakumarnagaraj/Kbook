@@ -23,7 +23,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         SyncQuarantineEntity::class,
                         StockLogEntity::class
                 ],
-        version = 52,
+        version = 53,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -38,6 +38,16 @@ abstract class AppDatabase : RoomDatabase() {
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
+
+            val MIGRATION_52_53 = object : Migration(52, 53) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    if (!db.hasColumn("restaurant_profile", "order_payment_flow_mode")) {
+                        db.execSQL(
+                            "ALTER TABLE `restaurant_profile` ADD COLUMN `order_payment_flow_mode` TEXT NOT NULL DEFAULT 'pay_before_food'"
+                        )
+                    }
+                }
+            }
 
             val MIGRATION_51_52 = object : Migration(51, 52) {
                 override fun migrate(db: SupportSQLiteDatabase) {
