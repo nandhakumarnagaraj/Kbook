@@ -32,6 +32,9 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "order_type", nullable = false)
 	private String orderType;
 
+	@Column(name = "source_channel", columnDefinition = "VARCHAR(100) DEFAULT ''")
+	private String sourceChannel = "";
+
 	@Column(name = "customer_name")
 	private String customerName;
 

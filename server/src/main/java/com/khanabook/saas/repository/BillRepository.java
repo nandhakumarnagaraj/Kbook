@@ -12,14 +12,35 @@ import java.util.Optional;
 @Repository
 public interface BillRepository extends SyncRepository<Bill, Long> {
 
-    // Returns bills updated since lastSync, excluding own-device bills UNLESS they are deleted.
+    @Query("""
+            SELECT COALESCE(MAX(b.invoiceSequence), 0)
+            FROM Bill b
+            WHERE b.restaurantId = :restaurantId
+              AND b.terminalSeries = :terminalSeries
+              AND b.financialYear = :financialYear
+              AND b.isDeleted = false
+            """)
+    Long findMaxInvoiceSequence(
+            @Param("restaurantId") Long restaurantId,
+            @Param("terminalSeries") String terminalSeries,
+            @Param("financialYear") String financialYear);
+
+    // Every terminal must receive canonical server deltas, including bills it
+    // originally created (for example admin refunds and immutable invoice state).
     @Query("SELECT b FROM Bill b WHERE b.restaurantId = :restaurantId " +
-           "AND b.serverUpdatedAt > :lastSyncTimestamp " +
-           "AND (b.deviceId != :deviceId OR b.isDeleted = true)")
+           "AND b.serverUpdatedAt > :lastSyncTimestamp")
     List<Bill> findUpdatedExcludingOwnActiveOnly(
             @Param("restaurantId") Long restaurantId,
             @Param("lastSyncTimestamp") Long lastSyncTimestamp,
             @Param("deviceId") String deviceId);
+
+    @Query("SELECT b FROM Bill b WHERE b.restaurantId = :restaurantId " +
+           "AND b.serverUpdatedAt > :lastSyncTimestamp")
+    org.springframework.data.domain.Page<Bill> findUpdatedExcludingOwnActiveOnly(
+            @Param("restaurantId") Long restaurantId,
+            @Param("lastSyncTimestamp") Long lastSyncTimestamp,
+            @Param("deviceId") String deviceId,
+            org.springframework.data.domain.Pageable pageable);
 
     long countByIsDeletedFalse();
 
@@ -55,7 +76,7 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     @Query("SELECT b.restaurantId, COUNT(b) FROM Bill b WHERE b.isDeleted = false GROUP BY b.restaurantId")
     List<Object[]> countGroupedByRestaurant();
 
-    Optional<Bill> findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(Long restaurantId, Long lifetimeOrderId);
+    Optional<Bill> findByRestaurantIdAndPublicTokenAndIsDeletedFalse(Long restaurantId, java.util.UUID publicToken);
 
     Optional<Bill> findByRestaurantIdAndDeviceIdAndLocalIdAndIsDeletedFalse(
             Long restaurantId, String deviceId, Long localId);
@@ -64,21 +85,9 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             SELECT b FROM Bill b
             WHERE b.restaurantId = :restaurantId
               AND b.isDeleted = false
-              AND b.lifetimeOrderId = :lifetimeOrderId
-              AND NOT (b.deviceId = :deviceId AND b.localId = :localId)
-            """)
-    Optional<Bill> findConflictingLifetimeOrder(
-            @Param("restaurantId") Long restaurantId,
-            @Param("lifetimeOrderId") Long lifetimeOrderId,
-            @Param("deviceId") String deviceId,
-            @Param("localId") Long localId);
-
-    @Query("""
-            SELECT b FROM Bill b
-            WHERE b.restaurantId = :restaurantId
-              AND b.isDeleted = false
               AND b.lastResetDate = :lastResetDate
               AND b.dailyOrderId = :dailyOrderId
+              AND COALESCE(b.terminalSeries, '') = COALESCE(:terminalSeries, '')
               AND NOT (b.deviceId = :deviceId AND b.localId = :localId)
             """)
     Optional<Bill> findConflictingDailyOrder(
@@ -86,5 +95,6 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             @Param("lastResetDate") String lastResetDate,
             @Param("dailyOrderId") Long dailyOrderId,
             @Param("deviceId") String deviceId,
-            @Param("localId") Long localId);
+            @Param("localId") Long localId,
+            @Param("terminalSeries") String terminalSeries);
 }

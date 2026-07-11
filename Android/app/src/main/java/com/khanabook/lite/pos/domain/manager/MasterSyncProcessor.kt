@@ -1,4 +1,4 @@
-package com.khanabook.lite.pos.domain.manager
+﻿package com.khanabook.lite.pos.domain.manager
 
 import android.util.Log
 import androidx.room.withTransaction
@@ -907,7 +907,9 @@ class MasterSyncProcessor @Inject constructor(
                         serverId = remoteBill.serverId,
                         serverUpdatedAt = remoteBill.serverUpdatedAt ?: 0L,
                         cancelReason = remoteBill.cancelReason.orFallback(""),
-                        publicToken = remoteBill.publicToken
+                        publicToken = remoteBill.publicToken,
+                        // Server-owned: null if no refund has been recorded on this bill.
+                        refundAmount = remoteBill.refundAmount?.toString()
                     )
                 }
             )
