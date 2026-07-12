@@ -1,0 +1,32 @@
+name: CI
+
+# Runs the full server test suite on every push/PR. GitHub-hosted Ubuntu runners
+# ship a Docker daemon, so the Testcontainers tests (PostgresMigrationSmokeTest,
+# MultiDeviceInvoiceSyncIntegrationTest) actually run here — unlike a VPS without
+# Docker, where they skip silently. This lets the VPS trust a green commit instead
+# of gating on `mvn test` at deploy time.
+
+on:
+  push:
+    branches: [ main, v1 ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  server-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run full test suite (includes Testcontainers)
+        run: mvn -B --no-transfer-progress test
