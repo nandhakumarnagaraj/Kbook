@@ -28,12 +28,8 @@ class SearchViewModel @Inject constructor(
         return searchManager.searchByDailyId(displayId, date)
     }
 
-    suspend fun searchByLifetimeId(id: Long): BillWithItems? {
-        return searchManager.searchByLifetimeId(id)
-    }
-
-    suspend fun searchByInvoiceNo(invoiceNo: Long): BillWithItems? {
-        return searchManager.searchByInvoiceNo(invoiceNo)
+    suspend fun searchByInvoiceNumber(rawInput: String): BillWithItems? {
+        return searchManager.searchByInvoiceNumber(rawInput)
     }
 
     fun publishSearchResult(result: BillWithItems?) {

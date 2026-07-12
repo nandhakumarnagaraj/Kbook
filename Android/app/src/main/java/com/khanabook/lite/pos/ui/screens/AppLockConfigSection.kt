@@ -79,6 +79,7 @@ import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.dao.BillIdConflictBill
 import com.khanabook.lite.pos.data.local.dao.BillIdDuplicateGroup
 import com.khanabook.lite.pos.data.local.entity.BillEntity
+import com.khanabook.lite.pos.data.local.entity.getInvoiceNumberDisplay
 import com.khanabook.lite.pos.data.local.entity.SyncQuarantineEntity
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.ui.designsystem.KhanaBookSwitch
@@ -903,7 +904,7 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
         )
 
         OrderIdHealthCard(
-            duplicateLifetimeGroups = duplicateIdHealth.duplicateLifetimeGroups,
+            duplicateInvoiceGroups = duplicateIdHealth.duplicateInvoiceGroups,
             duplicateDailyGroups = duplicateIdHealth.duplicateDailyGroups,
             conflictBills = duplicateIdHealth.conflictBills,
             cancellingConflictIds = cancellingConflictIds,
@@ -965,7 +966,7 @@ fun SyncCenterView(viewModel: SettingsViewModel) {
 
 @Composable
 private fun OrderIdHealthCard(
-    duplicateLifetimeGroups: List<BillIdDuplicateGroup>,
+    duplicateInvoiceGroups: List<BillIdDuplicateGroup>,
     duplicateDailyGroups: List<BillIdDuplicateGroup>,
     conflictBills: List<BillIdConflictBill>,
     cancellingConflictIds: Set<Long>,
@@ -976,7 +977,7 @@ private fun OrderIdHealthCard(
     onCancelDuplicate: (Long) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
-    val hasConflicts = duplicateLifetimeGroups.isNotEmpty() || duplicateDailyGroups.isNotEmpty()
+    val hasConflicts = duplicateInvoiceGroups.isNotEmpty() || duplicateDailyGroups.isNotEmpty()
     KhanaBookCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = CardBG),
@@ -1036,9 +1037,9 @@ private fun OrderIdHealthCard(
                         onCancel = { onCancelDuplicate(bill.id) }
                     )
                 }
-                duplicateLifetimeGroups.take(3).forEach { group ->
+                duplicateInvoiceGroups.take(3).forEach { group ->
                     DuplicateIdRow(
-                        title = "Invoice INV${group.idValue}",
+                        title = "Invoice ${group.idValue}",
                         group = group
                     )
                 }
@@ -1102,7 +1103,9 @@ private fun DuplicateConflictBillRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Local ${bill.id} - ${bill.dailyOrderDisplay}/INV${bill.lifetimeOrderId}",
+                    "Local ${bill.id} - ${bill.dailyOrderDisplay}/${bill.invoiceNumber
+                        ?: bill.lifetimeOrderId?.takeIf { it > 0 }?.let { "INV$it" }
+                        ?: "legacy"}",
                     color = TextLight,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold
@@ -1388,7 +1391,7 @@ private fun FailedBillSyncRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Bill #${bill.dailyOrderDisplay.ifBlank { bill.lifetimeOrderId.toString() }}",
+                "Bill #${bill.dailyOrderDisplay.ifBlank { bill.getInvoiceNumberDisplay() }}",
                 color = TextLight,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold

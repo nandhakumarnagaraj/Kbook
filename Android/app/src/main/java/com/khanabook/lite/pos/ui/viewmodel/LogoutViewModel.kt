@@ -55,7 +55,8 @@ class LogoutViewModel @Inject constructor(
 
     private data class UnsyncedDataSummary(
         val totalCount: Int,
-        val summary: String
+        val summary: String,
+        val terminalBillCount: Int
     )
 
     private val _logoutState = MutableStateFlow<LogoutState>(LogoutState.Idle)
@@ -74,6 +75,13 @@ class LogoutViewModel @Inject constructor(
                         Log.w(debugTag, "Immediate sync before logout failed; preserving local DB: ${e.message}")
                     }
                     val finalSummary = getUnsyncedDataSummary()
+                    if (finalSummary.terminalBillCount > 0) {
+                        _logoutState.value = LogoutState.WarningOfflineData(
+                            totalCount = finalSummary.totalCount,
+                            summary = finalSummary.summary
+                        )
+                        throw PendingSyncException(finalSummary.terminalBillCount)
+                    }
                     if (finalSummary.totalCount > 0) {
                         _logoutState.value = LogoutState.WarningOfflineData(
                             totalCount = finalSummary.totalCount,
@@ -96,7 +104,18 @@ class LogoutViewModel @Inject constructor(
     }
 
     fun forceLogoutDespiteWarning() {
-        performSoftLogout()
+        viewModelScope.launch {
+            val summary = getUnsyncedDataSummary()
+            if (summary.terminalBillCount > 0) {
+                _logoutState.value = LogoutState.WarningOfflineData(
+                    totalCount = summary.totalCount,
+                    summary = summary.summary
+                )
+                Log.w(debugTag, "Force logout blocked: ${summary.terminalBillCount} settled bill(s) are still unsynced")
+                return@launch
+            }
+            performSoftLogout()
+        }
     }
 
     fun clearDeviceDataAndLogout() {
@@ -126,7 +145,6 @@ class LogoutViewModel @Inject constructor(
                 workManager.cancelMasterSyncWork()
                 sessionManager.clearAuthOnly()
             }
-            if (BuildConfig.DEBUG) Log.d(debugTag, "performSoftLogout: token cleared, local DB preserved for re-login sync")
             if (BuildConfig.DEBUG) Log.d(debugTag, "performSoftLogout: token cleared, local DB preserved for re-login sync")
             _logoutState.value = LogoutState.LoggedOut
         }
@@ -179,7 +197,7 @@ class LogoutViewModel @Inject constructor(
         val menuItemCount = async { database.menuDao().getUnsyncedMenuItems(activeRestaurantId).size }
         val variantCount = async { database.menuDao().getUnsyncedItemVariants(activeRestaurantId).size }
         val stockLogCount = async { database.inventoryDao().getUnsyncedStockLogs(activeRestaurantId).size }
-        val billCount = async { database.billDao().getUnsyncedBills(activeRestaurantId).size }
+        val bills = async { database.billDao().getUnsyncedBills(activeRestaurantId) }
         val billItemCount = async { database.billDao().getUnsyncedBillItems(activeRestaurantId).size }
         val billPaymentCount = async { database.billDao().getUnsyncedBillPayments(activeRestaurantId).size }
 
@@ -189,9 +207,16 @@ class LogoutViewModel @Inject constructor(
         val mic = menuItemCount.await()
         val vc = variantCount.await()
         val slc = stockLogCount.await()
-        val bc = billCount.await()
+        val unsyncedBills = bills.await()
+        val bc = unsyncedBills.size
         val bic = billItemCount.await()
         val bpc = billPaymentCount.await()
+        val terminalBillCount = unsyncedBills.count {
+            when (it.orderStatus.lowercase()) {
+                "completed", "paid", "cancelled" -> true
+                else -> false
+            }
+        }
 
         val parts = buildList {
             if (pc > 0) add("$pc settings")
@@ -209,7 +234,8 @@ class LogoutViewModel @Inject constructor(
             totalCount = parts.sumOf {
                 it.substringBefore(' ').toIntOrNull() ?: 0
             },
-            summary = parts.joinToString(", ")
+            summary = parts.joinToString(", "),
+            terminalBillCount = terminalBillCount
         )
     }
 }

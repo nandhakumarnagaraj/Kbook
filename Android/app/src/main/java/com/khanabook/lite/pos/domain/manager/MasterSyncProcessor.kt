@@ -882,7 +882,12 @@ class MasterSyncProcessor @Inject constructor(
                         deviceId = remoteBill.deviceId.orFallback(""),
                         dailyOrderId = remoteBill.dailyOrderId ?: 0,
                         dailyOrderDisplay = remoteBill.dailyOrderDisplay.orFallback(""),
-                        lifetimeOrderId = remoteBill.lifetimeOrderId ?: 0,
+                        lifetimeOrderId = remoteBill.lifetimeOrderId,
+                        terminalSeries = remoteBill.terminalSeries,
+                        financialYear = remoteBill.financialYear,
+                        invoiceSeries = remoteBill.invoiceSeries,
+                        invoiceSequence = remoteBill.invoiceSequence,
+                        invoiceNumber = remoteBill.invoiceNumber,
                         orderType = remoteBill.orderType.orFallback("order"),
                         sourceChannel = remoteBill.sourceChannel.orFallback(""),
                         customerName = remoteBill.customerName,
@@ -907,7 +912,9 @@ class MasterSyncProcessor @Inject constructor(
                         serverId = remoteBill.serverId,
                         serverUpdatedAt = remoteBill.serverUpdatedAt ?: 0L,
                         cancelReason = remoteBill.cancelReason.orFallback(""),
-                        publicToken = remoteBill.publicToken
+                        publicToken = remoteBill.publicToken,
+                        // Server-owned: null if no refund has been recorded on this bill.
+                        refundAmount = remoteBill.refundAmount?.toString()
                     )
                 }
             )
@@ -917,7 +924,7 @@ class MasterSyncProcessor @Inject constructor(
             // The pull upserts bills by the server-assigned ID (which may differ from
             // the device-local primary key). This can leave the ORIGINAL local rows
             // (created offline) still marked isSynced=false, causing an endless 409 loop
-            // on the next push. Fix in THREE tiers:
+            // on the next push. Fix in TWO tiers:
             //
             // 1. Reconcile by (deviceId, localId) — the ORIGINAL device-local ID that
             //    was used when the bill was first created. This is the most reliable
@@ -926,10 +933,7 @@ class MasterSyncProcessor @Inject constructor(
             //    server response (not the current session deviceId) so this also works
             //    when the deviceId has changed (reinstall, new device, etc.).
             //
-            // 2. Reconcile by (deviceId, lifetimeOrderId) — globally unique per device.
-            //    Falls back to this when localId matching doesn't cover all cases.
-            //
-            // 3. Reconcile by server_id IS NOT NULL — catches any bills that were
+            // 2. Reconcile by server_id IS NOT NULL — catches any bills that were
             //    previously pushed successfully but whose isSynced flag was never set.
             val billsByDevice = masterData.bills.groupBy { it.deviceId }
             for ((deviceId, deviceBills) in billsByDevice) {
@@ -946,19 +950,22 @@ class MasterSyncProcessor @Inject constructor(
                 }
             }
 
-            val myDeviceBillLifetimeIds = masterData.bills
-                .filter { it.deviceId == sessionManager.getDeviceId() }
-                .mapNotNull { it.lifetimeOrderId }
-                .filter { it > 0 }
-            if (myDeviceBillLifetimeIds.isNotEmpty()) {
-                val fixed = billDao.markBillsSyncedByLifetimeIds(
-                    deviceId = sessionManager.getDeviceId(),
-                    restaurantId = restaurantId,
-                    lifetimeOrderIds = myDeviceBillLifetimeIds
-                )
-                if (fixed > 0) {
-                    Log.i("MasterSyncProcessor", "Post-pull: marked $fixed orphaned local bill(s) as synced via lifetimeOrderId match")
+            val publicTokenReconciled = masterData.bills
+                .mapNotNull { remoteBill ->
+                    val token = remoteBill.publicToken?.takeIf { it.isNotBlank() }
+                    val serverUpdatedAt = remoteBill.serverUpdatedAt ?: 0L
+                    if (token == null || serverUpdatedAt <= 0L) null else token to serverUpdatedAt
                 }
+                .distinct()
+                .sumOf { (token, serverUpdatedAt) ->
+                    billDao.markBillSyncedByPublicToken(
+                        restaurantId = restaurantId,
+                        publicToken = token,
+                        serverUpdatedAt = serverUpdatedAt
+                    )
+                }
+            if (publicTokenReconciled > 0) {
+                Log.i("MasterSyncProcessor", "Post-pull: marked $publicTokenReconciled orphaned local bill(s) as synced via public_token match")
             }
 
             val reconciledByServerId = billDao.reconcileServerAcknowledgedBills(restaurantId)

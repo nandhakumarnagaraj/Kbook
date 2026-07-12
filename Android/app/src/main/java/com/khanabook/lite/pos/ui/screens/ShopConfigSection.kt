@@ -541,53 +541,35 @@ private fun RestaurantPaymentFlowSelector(
                 )
             }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(spacing.small)
-        ) {
-            RestaurantPaymentFlowButton(
-                text = "Pay Before Food",
-                selected = selectedMode == OrderPaymentFlowMode.PAY_BEFORE_FOOD,
-                modifier = Modifier.weight(1f),
-                onClick = { onModeSelected(OrderPaymentFlowMode.PAY_BEFORE_FOOD) }
-            )
-            RestaurantPaymentFlowButton(
-                text = "Pay After Food",
-                selected = selectedMode == OrderPaymentFlowMode.PAY_AFTER_FOOD,
-                modifier = Modifier.weight(1f),
-                onClick = { onModeSelected(OrderPaymentFlowMode.PAY_AFTER_FOOD) }
-            )
-        }
+        PaymentFlowToggleSwitch(
+            selectedMode = selectedMode,
+            onModeSelected = onModeSelected
+        )
     }
 }
 
 @Composable
-private fun RestaurantPaymentFlowButton(
-    text: String,
-    selected: Boolean,
-    modifier: Modifier,
-    onClick: () -> Unit
+private fun PaymentFlowToggleSwitch(
+    selectedMode: OrderPaymentFlowMode,
+    onModeSelected: (OrderPaymentFlowMode) -> Unit
 ) {
-    if (selected) {
-        Button(
-            onClick = onClick,
-            modifier = modifier.height(44.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
-            shape = RoundedCornerShape(8.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)
-        ) {
-            Text(text, maxLines = 1)
-        }
-    } else {
-        OutlinedButton(
-            onClick = onClick,
-            modifier = modifier.height(44.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextGold),
-            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.35f)),
-            shape = RoundedCornerShape(8.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp)
-        ) {
-            Text(text, maxLines = 1)
+    val spacing = KhanaBookTheme.spacing
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+    ) {
+        OrderPaymentFlowMode.values().forEach { mode ->
+            val isSelected = mode == selectedMode
+            Button(
+                onClick = { onModeSelected(mode) },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSelected) PrimaryGold else DarkBrown1,
+                    contentColor = if (isSelected) DarkBrown1 else TextLight
+                )
+            ) {
+                Text(mode.displayLabel, style = MaterialTheme.typography.labelLarge)
+            }
         }
     }
 }

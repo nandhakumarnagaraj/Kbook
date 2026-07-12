@@ -57,6 +57,27 @@ GOOGLE_WEB_CLIENT_ID=836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleus
 - Test kitchen printer pairing and queue flush.
 - Test reports, orders, and search screens.
 
+## POS Smoke Tests
+- Reprint KDS rapid double-tap:
+  - Search an order with pending KDS.
+  - Tap `Reprint KDS` twice quickly.
+  - Confirm only one physical kitchen ticket prints.
+  - Confirm the button shows `Printing KDS...` and re-enables after completion.
+- Reprint KDS while app backgrounds:
+  - Start a KDS reprint.
+  - Background the app before the print finishes, then reopen without force-killing the process.
+  - Confirm the button is not stuck on `Printing KDS...`.
+  - Confirm a later KDS reprint can run.
+- Reprint KDS while sync is active:
+  - Start a sync or reconnect with unsynced bills.
+  - Trigger KDS reprint during the active sync window.
+  - Confirm the UI stays responsive and the ticket prints once.
+- Sync mutation during active sync:
+  - Start a sync with existing unsynced data.
+  - Edit or create a bill while the sync is running.
+  - Trigger the next one-time sync or wait for the periodic sync.
+  - Confirm the mid-sync mutation reaches the backend and is not left unsynced.
+
 ## Build And Upload
 - Run:
 

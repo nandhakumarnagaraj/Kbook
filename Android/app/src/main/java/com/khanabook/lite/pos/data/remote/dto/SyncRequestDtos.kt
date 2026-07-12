@@ -13,7 +13,12 @@ data class BillSyncDto(
     @SerializedName("serverId") val serverId: Long?,
     @SerializedName("dailyOrderId") val dailyOrderId: Long,
     @SerializedName("dailyOrderDisplay") val dailyOrderDisplay: String,
-    @SerializedName("lifetimeOrderId") val lifetimeOrderId: Long,
+    @SerializedName("lifetimeOrderId") val lifetimeOrderId: Long?,
+    @SerializedName("terminalSeries") val terminalSeries: String? = null,
+    @SerializedName("financialYear") val financialYear: String? = null,
+    @SerializedName("invoiceSeries") val invoiceSeries: String? = null,
+    @SerializedName("invoiceSequence") val invoiceSequence: Long? = null,
+    @SerializedName("invoiceNumber") val invoiceNumber: String? = null,
     @SerializedName("orderType") val orderType: String,
     @SerializedName("sourceChannel") val sourceChannel: String = "",
     @SerializedName("customerName") val customerName: String?,
@@ -37,7 +42,9 @@ data class BillSyncDto(
     @SerializedName("isDeleted") val isDeleted: Boolean,
     @SerializedName("lastResetDate") val lastResetDate: String,
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
-    @SerializedName("refundAmount") val refundAmount: String = "0.00",
+    // refundAmount is intentionally absent from the push DTO.
+    // It is a server-owned field written only by admin (markManualRefund).
+    // Android receives it on pull but must never push it back.
     @SerializedName("publicToken") val publicToken: String? = null,
 )
 

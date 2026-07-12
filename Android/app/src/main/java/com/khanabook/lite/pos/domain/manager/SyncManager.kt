@@ -29,6 +29,10 @@ class SyncManager @Inject constructor(
     private val tag = "SyncManager"
     private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    private val stateMutex = Mutex()
+    private var isSyncing = false
+    private var hasPendingSync = false
+
     fun triggerImmediateSync() {
         syncScope.launch {
             performFullSync()
@@ -60,9 +64,25 @@ class SyncManager @Inject constructor(
         }
     }
 
+    private suspend fun ensureTerminalActivated() {
+        if (sessionManager.getRestaurantId() <= 0L) return
+        if (sessionManager.getTerminalSeries() == null) {
+            try {
+                Log.i(tag, "Activating terminal series for device...")
+                val response = api.activateTerminal(com.khanabook.lite.pos.data.remote.api.TerminalActivationRequest(sessionManager.getDeviceId()))
+                sessionManager.saveTerminalSeries(response.terminalSeries)
+                Log.i(tag, "Terminal activated with series: ${response.terminalSeries}")
+            } catch (e: Exception) {
+                Log.e(tag, "Failed to activate terminal series", e)
+                throw e
+            }
+        }
+    }
+
     suspend fun performMasterPull(): Result<Unit> {
         return syncMutex.withLock {
             try {
+                ensureTerminalActivated()
                 pullAndPersistMasterData(
                     lastSyncTimestamp = sessionManager.getLastSyncTimestamp(),
                     deviceId = sessionManager.getDeviceId()
@@ -76,46 +96,73 @@ class SyncManager @Inject constructor(
     }
 
     suspend fun performFullSync(): Result<Unit> {
-        return syncMutex.withLock {
-            // ── NonCancellable Guard ───────────────────────────────────────────────
-            // Wrap the entire push+pull cycle in NonCancellable so that lifecycle
-            // cancellations (screen rotation, app backgrounded, ViewModel cleared)
-            // cannot abort a transaction mid-flight. An interrupted push leaves the
-            // server SyncTransaction uncommitted → next attempt gets HTTP 409.
-            withContext(NonCancellable) {
-                val deviceId = sessionManager.getDeviceId()
+        stateMutex.withLock {
+            if (isSyncing) {
+                hasPendingSync = true
+                Log.d(tag, "Sync already in progress. Queued a follow-up run.")
+                return Result.success(Unit)
+            }
+            isSyncing = true
+        }
 
-                // ── Timestamp Race Fix (#2) ────────────────────────────────────────────
-                // Capture the checkpoint BEFORE the sync cycle begins. This timestamp
-                // is NOT written to persistent storage until the ENTIRE push+pull cycle
-                // succeeds atomically in pullAndPersistMasterData(). If the push succeeds
-                // but the pull fails, the checkpoint stays at the old value and the next
-                // cycle re-pulls the missed window — no records are permanently lost.
-                val syncCheckpointTimestamp = sessionManager.getLastSyncTimestamp()
-
-                try {
-                    val pushSucceeded = masterSyncProcessor.pushAll()
-                    if (!pushSucceeded) {
-                        val error = IllegalStateException("Push phase aborted before completion")
-                        logWarn(error.message ?: "Push phase aborted")
-                        return@withContext Result.failure(error)
-                    }
-
-                    // Only if pull fully succeeds is the checkpoint committed.
-                    pullAndPersistMasterData(syncCheckpointTimestamp, deviceId)
-                    Result.success(Unit)
-                } catch (e: SyncConflictException) {
-                    logWarn("Push conflict detected; pulling latest server data before resolving", e)
-                    handleRecoveredConflict(deviceId, e)
-                } catch (e: Exception) {
-                    if (e is HttpException && e.code() == 409) {
-                        val errorBody = try { e.response()?.errorBody()?.string() } catch (ignored: Exception) { null }
-                        logError("HTTP 409 Conflict body: $errorBody", e)
-                        return@withContext handleRecoveredConflict(deviceId, SyncConflictException(e).withRecoveryStatus(false))
-                    }
-                    logError("Full sync failed", e)
-                    Result.failure(e)
+        try {
+            var result: Result<Unit> = Result.success(Unit)
+            do {
+                stateMutex.withLock {
+                    hasPendingSync = false
                 }
+                result = syncMutex.withLock {
+                    runSyncCycle()
+                }
+            } while (stateMutex.withLock { hasPendingSync })
+            return result
+        } finally {
+            stateMutex.withLock {
+                isSyncing = false
+            }
+        }
+    }
+
+    private suspend fun runSyncCycle(): Result<Unit> {
+        // ── NonCancellable Guard ───────────────────────────────────────────────
+        // Wrap the entire push+pull cycle in NonCancellable so that lifecycle
+        // cancellations (screen rotation, app backgrounded, ViewModel cleared)
+        // cannot abort a transaction mid-flight. An interrupted push leaves the
+        // server SyncTransaction uncommitted → next attempt gets HTTP 409.
+        return withContext(NonCancellable) {
+            val deviceId = sessionManager.getDeviceId()
+
+            // ── Timestamp Race Fix (#2) ────────────────────────────────────────────
+            // Capture the checkpoint BEFORE the sync cycle begins. This timestamp
+            // is NOT written to persistent storage until the ENTIRE push+pull cycle
+            // succeeds atomically in pullAndPersistMasterData(). If the push succeeds
+            // but the pull fails, the checkpoint stays at the old value and the next
+            // cycle re-pulls the missed window — no records are permanently lost.
+            val syncCheckpointTimestamp = sessionManager.getLastSyncTimestamp()
+
+            try {
+                ensureTerminalActivated()
+                val pushSucceeded = masterSyncProcessor.pushAll()
+                if (!pushSucceeded) {
+                    val error = IllegalStateException("Push phase aborted before completion")
+                    logWarn(error.message ?: "Push phase aborted")
+                    return@withContext Result.failure(error)
+                }
+
+                // Only if pull fully succeeds is the checkpoint committed.
+                pullAndPersistMasterData(syncCheckpointTimestamp, deviceId)
+                Result.success(Unit)
+            } catch (e: SyncConflictException) {
+                logWarn("Push conflict detected; pulling latest server data before resolving", e)
+                handleRecoveredConflict(deviceId, e)
+            } catch (e: Exception) {
+                if (e is HttpException && e.code() == 409) {
+                    val errorBody = try { e.response()?.errorBody()?.string() } catch (ignored: Exception) { null }
+                    logError("HTTP 409 Conflict body: $errorBody", e)
+                    return@withContext handleRecoveredConflict(deviceId, SyncConflictException(e).withRecoveryStatus(false))
+                }
+                logError("Full sync failed", e)
+                Result.failure(e)
             }
         }
     }
@@ -204,7 +251,22 @@ class SyncManager @Inject constructor(
         deviceId: String
     ): List<MasterSyncResponse> {
         val isBootstrapPull = lastSyncTimestamp == 0L
-        return listOf(api.pullMasterSync(lastSyncTimestamp, deviceId, ignoreDeviceId = isBootstrapPull))
+        val pages = mutableListOf<MasterSyncResponse>()
+        var page = 0
+        var hasMore = true
+        while (hasMore) {
+            val response = api.pullMasterSync(
+                lastSyncTimestamp = lastSyncTimestamp,
+                deviceId = deviceId,
+                ignoreDeviceId = isBootstrapPull,
+                page = page,
+                size = 500
+            )
+            pages.add(response)
+            hasMore = response.hasMore ?: false
+            page++
+        }
+        return pages
     }
 
     private fun mergeMasterSyncPages(pages: List<MasterSyncResponse>): MasterSyncResponse {

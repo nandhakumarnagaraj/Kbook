@@ -25,6 +25,11 @@ fun BillEntity.toSyncDto(serverCreatedBy: Long? = null) = BillSyncDto(
     dailyOrderId    = dailyOrderId,
     dailyOrderDisplay = dailyOrderDisplay,
     lifetimeOrderId = lifetimeOrderId,
+    terminalSeries  = terminalSeries,
+    financialYear   = financialYear,
+    invoiceSeries   = invoiceSeries,
+    invoiceSequence = invoiceSequence,
+    invoiceNumber   = invoiceNumber,
     orderType       = orderType,
     sourceChannel   = sourceChannel,
     customerName    = customerName,
@@ -48,7 +53,8 @@ fun BillEntity.toSyncDto(serverCreatedBy: Long? = null) = BillSyncDto(
     isDeleted       = isDeleted,
     lastResetDate   = lastResetDate,
     serverUpdatedAt = serverUpdatedAt,
-    refundAmount    = "0.00",
+    // refundAmount intentionally omitted — server-owned field.
+    // GenericSyncService ignores the pushed value; server state is authoritative.
     publicToken     = publicToken,
 )
 

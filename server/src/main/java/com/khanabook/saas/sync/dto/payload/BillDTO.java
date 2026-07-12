@@ -24,7 +24,13 @@ public class BillDTO {
     private Long dailyOrderId;
     private String dailyOrderDisplay;
     private Long lifetimeOrderId;
+    private String terminalSeries;
+    private String financialYear;
+    private String invoiceSeries;
+    private Long invoiceSequence;
+    private String invoiceNumber;
     private String orderType;
+    private String sourceChannel;
     private String customerName;
     private String customerWhatsapp;
     private java.math.BigDecimal subtotal;
@@ -42,5 +48,6 @@ public class BillDTO {
     private Long paidAt;
     private String lastResetDate;
     private String cancelReason;
+    private java.math.BigDecimal refundAmount;
     private java.util.UUID publicToken;
 }

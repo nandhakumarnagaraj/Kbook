@@ -103,6 +103,13 @@ class RestaurantRepository(
         }
     }
 
+    suspend fun incrementAndGetDailyCounter(): Long {
+        val restaurantId = sessionManager.getRestaurantId()
+        val dailyCounter = restaurantDao.incrementAndGetDailyCounter(restaurantId)
+        triggerBackgroundSync()
+        return dailyCounter
+    }
+
     suspend fun updateLogoPath(path: String?) {
         val restaurantId = sessionManager.getRestaurantId()
         restaurantDao.updateLogoPath(restaurantId, path, System.currentTimeMillis())

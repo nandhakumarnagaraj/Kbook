@@ -36,14 +36,14 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class DuplicateIdHealth(
-    val duplicateLifetimeGroups: List<BillIdDuplicateGroup> = emptyList(),
+    val duplicateInvoiceGroups: List<BillIdDuplicateGroup> = emptyList(),
     val duplicateDailyGroups: List<BillIdDuplicateGroup> = emptyList(),
     val conflictBills: List<BillIdConflictBill> = emptyList(),
     val isRepairing: Boolean = false,
     val lastRepairMessage: String? = null
 ) {
     val conflictGroupCount: Int
-        get() = duplicateLifetimeGroups.size + duplicateDailyGroups.size
+        get() = duplicateInvoiceGroups.size + duplicateDailyGroups.size
 }
 
 @HiltViewModel
@@ -197,16 +197,18 @@ class SettingsViewModel @Inject constructor(
                 val today = java.time.LocalDate.now(zoneId)
                 val startTime = today.atStartOfDay(zoneId).toInstant().toEpochMilli()
                 val endTime = today.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
-                val maxLifetime = billDao.getMaxLifetimeOrderId(restaurantId)
-                val maxDailyToday = billDao.getMaxDailyOrderIdBetween(restaurantId, startTime, endTime)
+                val maxDailyToday = billDao.getMaxDailyOrderIdBetween(restaurantId, sessionManager.getDeviceId(), startTime, endTime)
 
+                // Only the daily order counter is repaired now. Invoice numbers use the
+                // per-terminal invoice sequence, not the legacy lifetime counter, so we
+                // pass 0 (raiseCountersAtLeast never lowers an existing value).
                 restaurantRepository.raiseCountersAtLeast(
                     dailyCounter = maxDailyToday,
-                    lifetimeCounter = maxLifetime,
+                    lifetimeCounter = 0L,
                     date = today.toString()
                 )
                 loadDuplicateIdHealth(
-                    lastRepairMessage = "Future duplicates prevented. Next bill will use #${maxDailyToday + 1} / INV${maxLifetime + 1}."
+                    lastRepairMessage = "Future duplicates prevented. Next order will use #${maxDailyToday + 1}."
                 )
             } catch (e: Exception) {
                 _duplicateIdHealth.value = previous.copy(
@@ -261,7 +263,7 @@ class SettingsViewModel @Inject constructor(
         val restaurantId = sessionManager.getRestaurantId()
         _duplicateIdHealth.value = if (restaurantId > 0L) {
             DuplicateIdHealth(
-                duplicateLifetimeGroups = billDao.getDuplicateLifetimeOrderGroups(restaurantId),
+                duplicateInvoiceGroups = billDao.getDuplicateInvoiceNumberGroups(restaurantId),
                 duplicateDailyGroups = billDao.getDuplicateDailyOrderGroups(restaurantId),
                 conflictBills = billDao.getDuplicateIdConflictBills(restaurantId),
                 isRepairing = false,

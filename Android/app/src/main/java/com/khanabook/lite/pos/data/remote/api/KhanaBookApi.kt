@@ -3,6 +3,7 @@ package com.khanabook.lite.pos.data.remote.api
 import com.khanabook.lite.pos.data.remote.ResetPasswordRequest
 import com.khanabook.lite.pos.data.remote.PasswordResetOtpRequest
 import com.khanabook.lite.pos.data.remote.dto.*
+import com.google.gson.annotations.SerializedName
 import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -78,7 +79,9 @@ interface KhanaBookApi {
         suspend fun pullMasterSync(
             @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
             @Query("deviceId") deviceId: String,
-            @Query("ignoreDeviceId") ignoreDeviceId: Boolean = false
+            @Query("ignoreDeviceId") ignoreDeviceId: Boolean = false,
+            @Query("page") page: Int = 0,
+            @Query("size") size: Int = 500
         ): MasterSyncResponse
 
         // ── Counters ─────────────────────────────────────────────────────────
@@ -96,4 +99,15 @@ interface KhanaBookApi {
         @Multipart
         @POST("api/v1/restaurants/logo")
         suspend fun uploadLogo(@Part file: MultipartBody.Part): LogoUploadResponse
+
+        @POST("api/v1/sync/terminal/activate")
+        suspend fun activateTerminal(@Body request: TerminalActivationRequest): TerminalActivationResponse
 }
+
+data class TerminalActivationRequest(
+    @SerializedName("deviceId") val deviceId: String
+)
+
+data class TerminalActivationResponse(
+    @SerializedName("terminalSeries") val terminalSeries: String
+)

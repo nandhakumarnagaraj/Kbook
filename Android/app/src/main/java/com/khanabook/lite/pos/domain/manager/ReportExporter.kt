@@ -479,7 +479,7 @@ class ReportExporter(private val context: Context) {
                 val textY = y + lineH
 
                 drawCentered("${idx + 1}",          cx0, textY, pCell)
-                drawCentered("INV${row.lifetimeNo}", cx1, textY, pBoldCell)
+                drawCentered(row.invoiceDisplay,       cx1, textY, pBoldCell)
                 drawCentered(fmtDate(row.salesDate), cx2, textY, pCell)
 
                 val modeLabel = row.payMode.displayLabel
@@ -559,7 +559,7 @@ class ReportExporter(private val context: Context) {
                 val bd = billDataById[row.billId]
                 val customer = bd?.bill?.customerWhatsapp?.takeIf { it.isNotBlank() } ?: "—"
                 val items = bd?.items?.joinToString(" | ") { "${it.quantity}x ${it.itemName}" } ?: "-"
-                sb.appendLine("${idx + 1},INV${row.lifetimeNo},${fmtDate(row.salesDate)},${row.payMode.displayLabel},$status,${row.salesAmount},$customer,\"$items\"")
+                sb.appendLine("${idx + 1},${row.invoiceDisplay},${fmtDate(row.salesDate)},${row.payMode.displayLabel},$status,${row.salesAmount},$customer,\"$items\"")
             }
         }
 

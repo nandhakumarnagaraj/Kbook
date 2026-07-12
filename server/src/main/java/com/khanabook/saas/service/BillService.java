@@ -9,4 +9,6 @@ public interface BillService {
 	PushSyncResponse pushData(Long tenantId, List<Bill> payload);
 
 	List<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId);
+
+	org.springframework.data.domain.Page<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId, org.springframework.data.domain.Pageable pageable);
 }

@@ -29,7 +29,9 @@ class KitchenPrintQueueRepository(
         billId: Long,
         printerMac: String,
         error: String?,
-        incrementAttempts: Boolean = false
+        incrementAttempts: Boolean = false,
+        publicToken: String? = null,
+        kotRevision: String? = null
     ) {
         val now = System.currentTimeMillis()
         val existing = kitchenPrintQueueDao.getByBillAndPrinter(billId, printerMac)
@@ -50,6 +52,8 @@ class KitchenPrintQueueRepository(
                     incrementAttempts -> now
                     else -> existing?.lastAttemptAt
                 },
+                publicToken = publicToken ?: existing?.publicToken,
+                kotRevision = kotRevision ?: existing?.kotRevision,
                 createdAt = existing?.createdAt ?: now,
                 updatedAt = now
             )

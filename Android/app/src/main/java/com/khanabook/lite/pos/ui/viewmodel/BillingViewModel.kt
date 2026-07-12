@@ -54,6 +54,30 @@ class BillingViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    private data class InvoiceIdentity(
+        val financialYear: String,
+        val invoiceSeries: String,
+        val invoiceSequence: Long,
+        val invoiceNumber: String
+    )
+
+    private suspend fun allocateInvoiceIdentity(createdAt: Long): InvoiceIdentity? {
+        val terminalSeries = sessionManager.getTerminalSeries()?.trim()?.takeIf { it.isNotEmpty() }
+            ?: return null
+        val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+        val date = java.time.Instant.ofEpochMilli(createdAt).atZone(zoneId).toLocalDate()
+        val financialYearStart = if (date.monthValue >= 4) date.year else date.year - 1
+        val financialYear = (financialYearStart % 100).toString().padStart(2, '0')
+        val invoiceSeries = "$financialYear$terminalSeries"
+        val sequence = billRepository.getMaxInvoiceSequence(terminalSeries, financialYear) + 1L
+        return InvoiceIdentity(
+            financialYear = financialYear,
+            invoiceSeries = invoiceSeries,
+            invoiceSequence = sequence,
+            invoiceNumber = "$invoiceSeries-${sequence.toString().padStart(6, '0')}"
+        )
+    }
+
     val cachedProfile: StateFlow<RestaurantProfileEntity?> get() = _cachedProfile
 
     val connectionStatus: StateFlow<com.khanabook.lite.pos.domain.util.ConnectionStatus> =
@@ -459,17 +483,25 @@ class BillingViewModel @Inject constructor(
                 }
                 // UPI QR generation and payment capture must work offline. Reserve the bill
                 // number locally, then let background sync reconcile with the server later.
-                val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
+                val dailyCounter = restaurantRepository.incrementAndGetDailyCounter()
                 val zoneId = java.time.ZoneId.of("Asia/Kolkata")
                 val today = java.time.LocalDate.now(zoneId).toString()
-                val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter)
+                val terminalSeries = sessionManager.getTerminalSeries()
+                val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter, terminalSeries)
+                val createdAt = System.currentTimeMillis()
+                val invoice = allocateInvoiceIdentity(createdAt)
 
                 val bill = BillEntity(
                     restaurantId = restaurantId,
                     deviceId = sessionManager.getDeviceId(),
                     dailyOrderId = dailyCounter,
                     dailyOrderDisplay = displayId,
-                    lifetimeOrderId = lifetimeId,
+                    lifetimeOrderId = null,
+                    terminalSeries = terminalSeries,
+                    financialYear = invoice?.financialYear,
+                    invoiceSeries = invoice?.invoiceSeries,
+                    invoiceSequence = invoice?.invoiceSequence,
+                    invoiceNumber = invoice?.invoiceNumber,
                     orderType = _orderType.value,
                     customerName = _customerName.value.ifBlank { null },
                     customerWhatsapp = _customerWhatsapp.value.ifBlank { null },
@@ -486,7 +518,7 @@ class BillingViewModel @Inject constructor(
                     orderStatus = OrderStatus.DRAFT.dbValue,
                     cancelReason = "",
                     createdBy = sessionManager.getActiveUserId(),
-                    createdAt = System.currentTimeMillis(),
+                    createdAt = createdAt,
                     paidAt = null,
                     lastResetDate = profile.lastResetDate ?: "",
                     publicToken = UUID.randomUUID().toString(),
@@ -512,8 +544,8 @@ class BillingViewModel @Inject constructor(
                     )
                 }
 
-                billRepository.insertFullBill(bill, items, emptyList())
-                val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
+                val insertedBillId = billRepository.insertFullBill(bill, items, emptyList())
+                val inserted = billRepository.getBillWithItemsById(insertedBillId)
                 _lastBill.value = inserted
 
                 val draftBillId = inserted?.bill?.id ?: run {
@@ -686,17 +718,25 @@ class BillingViewModel @Inject constructor(
                     return@withLock false
                 }
 
-                val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
+                val dailyCounter = restaurantRepository.incrementAndGetDailyCounter()
                 val zoneId = java.time.ZoneId.of("Asia/Kolkata")
                 val today = java.time.LocalDate.now(zoneId).toString()
-                val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter)
+                val terminalSeries = sessionManager.getTerminalSeries()
+                val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter, terminalSeries)
+                val createdAt = System.currentTimeMillis()
+                val invoice = allocateInvoiceIdentity(createdAt)
 
                 val bill = BillEntity(
                     restaurantId = sessionManager.getRestaurantId(),
                     deviceId = sessionManager.getDeviceId(),
                     dailyOrderId = dailyCounter,
                     dailyOrderDisplay = displayId,
-                    lifetimeOrderId = lifetimeId,
+                    lifetimeOrderId = null,
+                    terminalSeries = terminalSeries,
+                    financialYear = invoice?.financialYear,
+                    invoiceSeries = invoice?.invoiceSeries,
+                    invoiceSequence = invoice?.invoiceSequence,
+                    invoiceNumber = invoice?.invoiceNumber,
                     orderType = _orderType.value,
                     customerName = _customerName.value.ifBlank { null },
                     customerWhatsapp = _customerWhatsapp.value.ifBlank { null },
@@ -713,7 +753,7 @@ class BillingViewModel @Inject constructor(
                     orderStatus = if (status == PaymentStatus.SUCCESS) OrderStatus.COMPLETED.dbValue else OrderStatus.CANCELLED.dbValue,
                     cancelReason = if (status == PaymentStatus.FAILED) cancelReason else "",
                     createdBy = sessionManager.getActiveUserId(),
-                    createdAt = System.currentTimeMillis(),
+                    createdAt = createdAt,
                     paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null,
                     lastResetDate = profile.lastResetDate ?: "",
                     publicToken = UUID.randomUUID().toString(),
@@ -770,8 +810,8 @@ class BillingViewModel @Inject constructor(
                     )
                 }
 
-                billRepository.insertFullBill(bill, items, payments.filter(::shouldPersistLocally))
-                val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
+                val insertedBillId = billRepository.insertFullBill(bill, items, payments.filter(::shouldPersistLocally))
+                val inserted = billRepository.getBillWithItemsById(insertedBillId)
                 _lastBill.value = inserted
                 _printStatus.value = null
                 syncManager.triggerImmediateSync()
@@ -885,17 +925,25 @@ class BillingViewModel @Inject constructor(
 
                 val finalSummary = _billSummary.value
 
-                val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
+                val dailyCounter = restaurantRepository.incrementAndGetDailyCounter()
                 val zoneId = java.time.ZoneId.of("Asia/Kolkata")
                 val today = java.time.LocalDate.now(zoneId).toString()
-                val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter)
+                val terminalSeries = sessionManager.getTerminalSeries()
+                val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter, terminalSeries)
+                val createdAt = System.currentTimeMillis()
+                val invoice = allocateInvoiceIdentity(createdAt)
 
                 val bill = BillEntity(
                     restaurantId = restaurantId,
                     deviceId = sessionManager.getDeviceId(),
                     dailyOrderId = dailyCounter,
                     dailyOrderDisplay = displayId,
-                    lifetimeOrderId = lifetimeId,
+                    lifetimeOrderId = null,
+                    terminalSeries = terminalSeries,
+                    financialYear = invoice?.financialYear,
+                    invoiceSeries = invoice?.invoiceSeries,
+                    invoiceSequence = invoice?.invoiceSequence,
+                    invoiceNumber = invoice?.invoiceNumber,
                     orderType = "dine_in",
                     customerName = tableName.ifBlank { "Table" },
                     customerWhatsapp = _customerWhatsapp.value.ifBlank { null },
@@ -909,7 +957,7 @@ class BillingViewModel @Inject constructor(
                     paymentStatus = PaymentStatus.PENDING.dbValue,
                     orderStatus = OrderStatus.DRAFT.dbValue,
                     createdBy = sessionManager.getActiveUserId(),
-                    createdAt = System.currentTimeMillis(),
+                    createdAt = createdAt,
                     paidAt = null,
                     lastResetDate = profile.lastResetDate ?: "",
                     publicToken = UUID.randomUUID().toString(),
@@ -936,8 +984,8 @@ class BillingViewModel @Inject constructor(
                     )
                 }
 
-                billRepository.insertFullBill(bill, items, emptyList())
-                val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
+                val insertedBillId = billRepository.insertFullBill(bill, items, emptyList())
+                val inserted = billRepository.getBillWithItemsById(insertedBillId)
                 _lastBill.value = inserted
                 _printStatus.value = null
 
@@ -1289,7 +1337,6 @@ class BillingViewModel @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             val refreshed = billRepository.getBillWithItemsById(current.bill.id)
-                ?: billRepository.getBillWithItemsByLifetimeId(current.bill.lifetimeOrderId)
 
             if (refreshed != null) {
                 withContext(Dispatchers.Main) {

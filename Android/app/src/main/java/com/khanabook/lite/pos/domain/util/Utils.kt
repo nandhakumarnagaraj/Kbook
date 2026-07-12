@@ -8,6 +8,7 @@ import androidx.core.content.FileProvider
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.data.local.entity.getInvoiceNumberDisplay
 import com.khanabook.lite.pos.domain.manager.InvoicePDFGenerator
 import com.khanabook.lite.pos.domain.manager.TrustedExternalAppReturn
 import com.khanabook.lite.pos.ui.designsystem.KhanaToast
@@ -142,7 +143,7 @@ fun generateBillText(bill: BillWithItems, profile: RestaurantProfileEntity?): St
     sb.append("--------------------------\n")
     sb.append("*Order ID:* #${bill.bill.dailyOrderDisplay.split("-").last()}\n")
     val invLabel = if (profile?.gstEnabled == true) "Tax Invoice No" else "Invoice No"
-    sb.append("*$invLabel:* INV${bill.bill.lifetimeOrderId}\n")
+    sb.append("*$invLabel:* ${bill.bill.getInvoiceNumberDisplay()}\n")
     sb.append("*Date:* ${DateUtils.formatDisplay(bill.bill.createdAt)}\n")
     sb.append("--------------------------\n")
     
@@ -255,7 +256,7 @@ private fun shareInvoiceLink(
         ?.takeIf { it.isNotBlank() }
         ?.let { "\n\nReview us on Google: $it" }
         ?: ""
-    val message = "*$shop*\nInvoice INV${billWithItems.bill.lifetimeOrderId}\nTotal: $currency$total\n\nView: $link$reviewLine"
+    val message = "*$shop*\nInvoice ${billWithItems.bill.getInvoiceNumberDisplay()}\nTotal: $currency$total\n\nView: $link$reviewLine"
 
     val raw = billWithItems.bill.customerWhatsapp
     val digits = raw?.replace(Regex("[^0-9]"), "") ?: ""

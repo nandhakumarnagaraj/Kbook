@@ -177,10 +177,13 @@ public class BusinessReadService {
         Bill bill = billRepository.findById(billId)
                 .filter(existing -> existing.getRestaurantId().equals(restaurantId))
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+        long now = System.currentTimeMillis();
         bill.setRefundAmount(refundAmount);
         bill.setCancelReason(reason);
         bill.setOrderStatus("cancelled");
         bill.setPaymentStatus("refunded");
+        bill.setUpdatedAt(now);
+        bill.setServerUpdatedAt(now);
         billRepository.save(bill);
     }
 
@@ -224,7 +227,8 @@ public class BusinessReadService {
 
     private BusinessOrderListItemResponse toBillOrderResponse(Bill bill) {
         return BusinessOrderListItemResponse.builder()
-                .sourceType("POS")
+                .sourceType(bill.getSourceChannel() != null && !bill.getSourceChannel().isBlank()
+                        ? bill.getSourceChannel() : "POS")
                 .orderId(bill.getId())
                 .orderCode(bill.getDailyOrderDisplay() != null && !bill.getDailyOrderDisplay().isBlank()
                         ? bill.getDailyOrderDisplay()

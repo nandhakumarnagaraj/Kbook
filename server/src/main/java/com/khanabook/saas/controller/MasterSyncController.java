@@ -37,6 +37,8 @@ public class MasterSyncController {
 	public ResponseEntity<MasterSyncResponseDTO> pullMasterSync(@RequestParam Long lastSyncTimestamp,
 			@RequestParam String deviceId, @RequestParam(required = false) Long restaurantId,
 			@RequestParam(defaultValue = "false") boolean ignoreDeviceId,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "500") int size,
 			HttpServletRequest request) {
 
 		Long tenantId = TenantContext.getCurrentTenant();
@@ -58,17 +60,45 @@ public class MasterSyncController {
 		boolean sharedDataCrossDevice = ignoreDeviceId || firstSync;
 		boolean transactionalCrossDevice = ignoreDeviceId;
 
+		org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+				page, size, org.springframework.data.domain.Sort.by("id").ascending());
+
 		MasterSyncResponseDTO response = new MasterSyncResponseDTO();
 		response.setServerTimestamp(currentServerTime);
-		response.setProfiles(SyncMapper.mapList(restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), RestaurantProfileDTO.class));
-		response.setUsers(SyncMapper.mapList(userService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), UserDTO.class));
-		response.setCategories(SyncMapper.mapList(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), CategoryDTO.class));
-		response.setMenuItems(SyncMapper.mapList(menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), MenuItemDTO.class));
-		response.setItemVariants(SyncMapper.mapList(itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), ItemVariantDTO.class));
-		response.setStockLogs(SyncMapper.mapList(stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), StockLogDTO.class));
-		response.setBills(SyncMapper.mapList(billService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), BillDTO.class));
-		response.setBillItems(SyncMapper.mapList(billItemService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), BillItemDTO.class));
-		response.setBillPayments(SyncMapper.mapList(billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice), BillPaymentDTO.class));
+
+		if (page == 0) {
+			response.setProfiles(SyncMapper.mapList(restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), RestaurantProfileDTO.class));
+			response.setUsers(SyncMapper.mapList(userService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), UserDTO.class));
+			response.setCategories(SyncMapper.mapList(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), CategoryDTO.class));
+			response.setMenuItems(SyncMapper.mapList(menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), MenuItemDTO.class));
+			response.setItemVariants(SyncMapper.mapList(itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), ItemVariantDTO.class));
+		} else {
+			response.setProfiles(java.util.Collections.emptyList());
+			response.setUsers(java.util.Collections.emptyList());
+			response.setCategories(java.util.Collections.emptyList());
+			response.setMenuItems(java.util.Collections.emptyList());
+			response.setItemVariants(java.util.Collections.emptyList());
+		}
+
+		org.springframework.data.domain.Page<com.khanabook.saas.entity.StockLog> stockLogsPage =
+				stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice, pageable);
+		org.springframework.data.domain.Page<com.khanabook.saas.entity.Bill> billsPage =
+				billService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice, pageable);
+		org.springframework.data.domain.Page<com.khanabook.saas.entity.BillItem> billItemsPage =
+				billItemService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice, pageable);
+		org.springframework.data.domain.Page<com.khanabook.saas.entity.BillPayment> billPaymentsPage =
+				billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice, pageable);
+
+		response.setStockLogs(SyncMapper.mapList(stockLogsPage.getContent(), StockLogDTO.class));
+		response.setBills(SyncMapper.mapList(billsPage.getContent(), BillDTO.class));
+		response.setBillItems(SyncMapper.mapList(billItemsPage.getContent(), BillItemDTO.class));
+		response.setBillPayments(SyncMapper.mapList(billPaymentsPage.getContent(), BillPaymentDTO.class));
+
+		boolean hasMore = stockLogsPage.hasNext() || billsPage.hasNext() || billItemsPage.hasNext() || billPaymentsPage.hasNext();
+		response.setHasMore(hasMore);
+		if (hasMore) {
+			response.setNextPage(page + 1);
+		}
 
 		int profilesCount = response.getProfiles() == null ? 0 : response.getProfiles().size();
 		int usersCount = response.getUsers() == null ? 0 : response.getUsers().size();
@@ -80,9 +110,9 @@ public class MasterSyncController {
 		int billItemsCount = response.getBillItems() == null ? 0 : response.getBillItems().size();
 		int billPaymentsCount = response.getBillPayments() == null ? 0 : response.getBillPayments().size();
 
-		log.info("Master sync pull tenantId={} deviceId={} firstSync={} explicitIgnoreDeviceId={} sharedDataCrossDevice={} transactionalCrossDevice={} profiles={} users={} categories={} " +
+		log.info("Master sync pull tenantId={} deviceId={} page={} size={} hasMore={} firstSync={} explicitIgnoreDeviceId={} sharedDataCrossDevice={} transactionalCrossDevice={} profiles={} users={} categories={} " +
 				"menuItems={} variants={} stockLogs={} bills={} billItems={} billPayments={}",
-				tenantId, deviceId, firstSync, ignoreDeviceId, sharedDataCrossDevice, transactionalCrossDevice,
+				tenantId, deviceId, page, size, hasMore, firstSync, ignoreDeviceId, sharedDataCrossDevice, transactionalCrossDevice,
 				profilesCount, usersCount, categoriesCount,
 				menuItemsCount, itemVariantsCount, stockLogsCount, billsCount, billItemsCount, billPaymentsCount);
 

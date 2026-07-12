@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.domain.manager
 
 import com.khanabook.lite.pos.data.local.entity.BillEntity
+import com.khanabook.lite.pos.data.local.dao.KotEventDao
 import com.khanabook.lite.pos.data.local.entity.KitchenPrintQueueEntity
 import com.khanabook.lite.pos.data.local.entity.PrinterProfileEntity
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
@@ -31,6 +32,7 @@ class KitchenPrintQueueManagerTest {
     private val restaurantRepository: RestaurantRepository = mockk(relaxed = true)
     private val printerProfileRepository: PrinterProfileRepository = mockk(relaxed = true)
     private val printerManager: BluetoothPrinterManager = mockk(relaxed = true)
+    private val kotEventDao: KotEventDao = mockk(relaxed = true)
     private val connectedEvents = MutableSharedFlow<String>(extraBufferCapacity = 1)
 
     private lateinit var manager: KitchenPrintQueueManager
@@ -48,7 +50,8 @@ class KitchenPrintQueueManagerTest {
             billRepository = billRepository,
             restaurantRepository = restaurantRepository,
             printerProfileRepository = printerProfileRepository,
-            printerManager = printerManager
+            printerManager = printerManager,
+            kotEventDao = kotEventDao
         )
     }
 

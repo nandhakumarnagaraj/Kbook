@@ -4,6 +4,7 @@ package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -58,8 +59,7 @@ fun HomeScreen(
     onReprintKds: () -> Unit,
     onCallCustomer: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
-    authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel(),
-    appLockViewModel: com.khanabook.lite.pos.ui.viewmodel.AppLockViewModel = hiltViewModel()
+    authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
 ) {
     val stats by viewModel.todayStats.collectAsStateWithLifecycle()
     val connectionStatus by viewModel.connectionStatus.collectAsStateWithLifecycle()
@@ -69,8 +69,6 @@ fun HomeScreen(
     val quarantinedSyncCount by viewModel.quarantinedSyncCount.collectAsStateWithLifecycle()
     val shopName by viewModel.shopName.collectAsStateWithLifecycle()
     val orderPaymentFlowMode by viewModel.orderPaymentFlowMode.collectAsStateWithLifecycle()
-    val enteredPin by appLockViewModel.enteredPin.collectAsStateWithLifecycle()
-    val pinError by appLockViewModel.errorMessage.collectAsStateWithLifecycle()
     val greeting = viewModel.greeting
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -83,9 +81,6 @@ fun HomeScreen(
     var statsVisible by remember { mutableStateOf(false) }
     var primaryVisible by remember { mutableStateOf(false) }
     var actionsVisible by remember { mutableStateOf(false) }
-    var pendingModeChange by remember { mutableStateOf<OrderPaymentFlowMode?>(null) }
-    var showModePinDialog by remember { mutableStateOf(false) }
-    val isPinEnabled = remember { appLockViewModel.isPinEnabled() }
 
     LaunchedEffect(Unit) {
         headerVisible = true
@@ -100,17 +95,6 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         viewModel.message.collect { message ->
             KhanaToast.show(message, ToastKind.Info)
-        }
-    }
-
-    LaunchedEffect(enteredPin, showModePinDialog) {
-        if (showModePinDialog && enteredPin.length == 4) {
-            appLockViewModel.verifyPin {
-                pendingModeChange?.let(viewModel::updateOrderPaymentFlowMode)
-                pendingModeChange = null
-                showModePinDialog = false
-                appLockViewModel.clearPin()
-            }
         }
     }
 
@@ -162,6 +146,10 @@ fun HomeScreen(
                             SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
                         }
                     }
+                    OrderPaymentModeCard(
+                        selectedMode = orderPaymentFlowMode,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 
@@ -307,20 +295,11 @@ fun HomeScreen(
                             }
                         }
                     }
-                    OrderPaymentModeCard(
-                        selectedMode = orderPaymentFlowMode,
-                        onModeSelected = { mode ->
-                            if (mode == orderPaymentFlowMode) return@OrderPaymentModeCard
-                            pendingModeChange = mode
-                            if (isPinEnabled) {
-                                appLockViewModel.clearPin()
-                                showModePinDialog = true
-                            } else {
-                                viewModel.updateOrderPaymentFlowMode(mode)
-                                pendingModeChange = null
-                            }
-                        }
-                    )
+                    val primaryActionLabel = if (orderPaymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD) {
+                        "Create New Order"
+                    } else {
+                        "Create New Bill"
+                    }
                     KhanaBookCard(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { onNewBill() },
@@ -337,7 +316,7 @@ fun HomeScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Create New Bill",
+                                    text = primaryActionLabel,
                                     color = DarkBrown1,
                                     style = MaterialTheme.typography.titleLarge
                                 )
@@ -350,7 +329,7 @@ fun HomeScreen(
                             }
                             Icon(
                                 imageVector = Icons.Default.AddCircle,
-                                contentDescription = "Create New Bill",
+                                contentDescription = primaryActionLabel,
                                 tint = DarkBrown1,
                                 modifier = Modifier.size(spacing.huge)
                             )
@@ -364,22 +343,24 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {
-                    HomeActionCard(
-                        text = "Active Order",
-                        subtitle = if (activeDraftBills.isNotEmpty()) "${activeDraftBills.size} active" else null,
-                        icon = Icons.Default.ShoppingCart,
-                        backgroundColor = CardBG,
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            if (activeDraftBills.isEmpty()) {
-                                coroutineScope.launch {
-                                    KhanaToast.show("No active order", ToastKind.Info)
+                    if (orderPaymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD) {
+                        HomeActionCard(
+                            text = "Update Active Order",
+                            subtitle = if (activeDraftBills.isNotEmpty()) "${activeDraftBills.size} active" else null,
+                            icon = Icons.Default.ShoppingCart,
+                            backgroundColor = CardBG,
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                if (activeDraftBills.isEmpty()) {
+                                    coroutineScope.launch {
+                                        KhanaToast.show("No active order", ToastKind.Info)
+                                    }
+                                } else {
+                                    onActiveOrder()
                                 }
-                            } else {
-                                onActiveOrder()
                             }
-                        }
-                    )
+                        )
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(spacing.small)
@@ -411,144 +392,79 @@ fun HomeScreen(
         }
     }
 
-    if (showModePinDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showModePinDialog = false
-                pendingModeChange = null
-                appLockViewModel.clearPin()
-            },
-            title = { Text("Confirm Mode Change", color = PrimaryGold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) {
-                    Text(
-                        text = "Enter your app PIN to switch to ${pendingModeChange?.displayLabel.orEmpty()}.",
-                        color = TextLight,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    InlinePinEntry(
-                        pin = enteredPin,
-                        onDigit = appLockViewModel::appendDigit,
-                        onDelete = appLockViewModel::deleteDigit,
-                        errorMessage = pinError
-                    )
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showModePinDialog = false
-                        pendingModeChange = null
-                        appLockViewModel.clearPin()
-                    }
-                ) {
-                    Text("Cancel", color = TextGold)
-                }
-            },
-            containerColor = DarkBrown2
-        )
-    }
 }
 
 @Composable
 private fun OrderPaymentModeCard(
     selectedMode: OrderPaymentFlowMode,
-    onModeSelected: (OrderPaymentFlowMode) -> Unit
+    modifier: Modifier = Modifier
 ) {
     val spacing = KhanaBookTheme.spacing
     KhanaBookCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = CardBG),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
-            modifier = Modifier.padding(spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(spacing.small)
+            modifier = Modifier.padding(horizontal = spacing.small, vertical = spacing.small),
+            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = PrimaryGold,
-                    modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Billing Mode",
-                        color = PrimaryGold,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = if (selectedMode == OrderPaymentFlowMode.PAY_AFTER_FOOD) {
-                            "Dine-in tables stay active until settlement."
-                        } else {
-                            "Orders go to payment before food is served."
-                        },
-                        color = TextGold,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-            ) {
-                PaymentModeToggleButton(
-                    text = "Pay Before Food",
-                    selected = selectedMode == OrderPaymentFlowMode.PAY_BEFORE_FOOD,
-                    modifier = Modifier.weight(1f),
-                    onClick = { onModeSelected(OrderPaymentFlowMode.PAY_BEFORE_FOOD) }
-                )
-                PaymentModeToggleButton(
-                    text = "Pay After Food",
-                    selected = selectedMode == OrderPaymentFlowMode.PAY_AFTER_FOOD,
-                    modifier = Modifier.weight(1f),
-                    onClick = { onModeSelected(OrderPaymentFlowMode.PAY_AFTER_FOOD) }
-                )
-            }
+            ReadOnlyPaymentFlowIndicator(
+                selectedMode = selectedMode,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
 
 @Composable
-private fun PaymentModeToggleButton(
+private fun ReadOnlyPaymentFlowIndicator(
+    selectedMode: OrderPaymentFlowMode,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(DarkBrown1.copy(alpha = 0.86f))
+            .border(BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)), RoundedCornerShape(8.dp))
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        ReadOnlyPaymentFlowOption(
+            text = "Pay After Food",
+            selected = selectedMode == OrderPaymentFlowMode.PAY_AFTER_FOOD,
+            modifier = Modifier.weight(1f)
+        )
+        ReadOnlyPaymentFlowOption(
+            text = "Pay Before Food",
+            selected = selectedMode == OrderPaymentFlowMode.PAY_BEFORE_FOOD,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun ReadOnlyPaymentFlowOption(
     text: String,
     selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    modifier: Modifier = Modifier
 ) {
-    val colors = if (selected) {
-        ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1)
-    } else {
-        ButtonDefaults.outlinedButtonColors(contentColor = TextGold)
-    }
-    if (selected) {
-        Button(
-            onClick = onClick,
-            modifier = modifier.height(44.dp),
-            colors = colors,
-            shape = RoundedCornerShape(8.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp)
-        ) {
-            Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    } else {
-        OutlinedButton(
-            onClick = onClick,
-            modifier = modifier.height(44.dp),
-            colors = colors,
-            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)),
-            shape = RoundedCornerShape(8.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp)
-        ) {
-            Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
+    Box(
+        modifier = modifier
+            .height(38.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(if (selected) PrimaryGold else Color.Transparent)
+            .padding(horizontal = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = if (selected) DarkBrown2 else TextGold,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

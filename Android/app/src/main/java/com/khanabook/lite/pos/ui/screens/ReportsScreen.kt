@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.khanabook.lite.pos.data.local.entity.getInvoiceNumberDisplay
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.model.OrderStatus
@@ -678,7 +679,7 @@ fun OrderDetailsDialog(
                     DetailRow("Order No:", "#${bill.dailyOrderDisplay.split("-").last()}", valueColor = PrimaryGold, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(spacing.small))
                     val invoiceLabel = if (profile?.gstEnabled == true) "Tax Invoice No:" else "Invoice No:"
-                    DetailRow(invoiceLabel, "INV${bill.lifetimeOrderId}")
+                    DetailRow(invoiceLabel, bill.getInvoiceNumberDisplay())
                     Spacer(modifier = Modifier.height(spacing.small))
                     DetailRow("Date:", DateUtils.formatDisplay(bill.createdAt))
 

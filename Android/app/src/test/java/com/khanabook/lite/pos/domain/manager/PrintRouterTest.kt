@@ -1,7 +1,9 @@
 package com.khanabook.lite.pos.domain.manager
 
 import android.content.Context
+import com.khanabook.lite.pos.data.local.dao.BillDao
 import com.khanabook.lite.pos.data.local.entity.BillEntity
+import com.khanabook.lite.pos.data.local.entity.BillItemEntity
 import com.khanabook.lite.pos.data.local.entity.PrinterProfileEntity
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
@@ -21,6 +23,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 
 /**
  * Tests the single-printer flow:
@@ -34,6 +38,8 @@ class PrintRouterTest {
     private val printerProfileRepository: PrinterProfileRepository = mockk(relaxed = true)
     private val printerManager: BluetoothPrinterManager = mockk(relaxed = true)
     private val kitchenQueueManager: KitchenPrintQueueManager = mockk(relaxed = true)
+    private val billDao: BillDao = mockk(relaxed = true)
+    private val sessionManager: SessionManager = mock()
 
     private lateinit var router: PrintRouter
 
@@ -54,7 +60,17 @@ class PrintRouterTest {
             paymentStatus = "paid",
             orderStatus = "completed"
         ),
-        items = emptyList(),
+        items = listOf(
+            BillItemEntity(
+                id = 10L,
+                billId = 1L,
+                menuItemId = 20L,
+                itemName = "Tea",
+                price = "100.0",
+                quantity = 1,
+                itemTotal = "100.0"
+            )
+        ),
         payments = emptyList()
     )
 
@@ -84,15 +100,16 @@ class PrintRouterTest {
         every { android.util.Log.e(any(), any<String>(), any()) } returns 0
 
         mockkObject(InvoiceFormatter)
-        every { InvoiceFormatter.formatForThermalPrinter(any(), any()) } returns byteArrayOf(0x01)
+        every { InvoiceFormatter.formatForThermalPrinter(any(), any(), any()) } returns byteArrayOf(0x01)
 
         mockkObject(KitchenTicketFormatter)
-        every { KitchenTicketFormatter.format(any(), any(), any()) } returns byteArrayOf(0x02)
+        every { KitchenTicketFormatter.format(any(), any(), any(), any()) } returns byteArrayOf(0x02)
 
         every { printerManager.connectedDeviceEvents } returns kotlinx.coroutines.flow.MutableSharedFlow()
         every { printerManager.connectedDeviceMac } returns kotlinx.coroutines.flow.MutableStateFlow(null)
+        whenever(sessionManager.getDeviceId()).thenReturn("")
 
-        router = PrintRouter(context, printerProfileRepository, printerManager, kitchenQueueManager)
+        router = PrintRouter(context, printerProfileRepository, printerManager, kitchenQueueManager, billDao, sessionManager)
     }
 
     @After
@@ -255,5 +272,43 @@ class PrintRouterTest {
         coVerify(exactly = 0) { printerManager.connect(any<String>()) }
         coVerify(exactly = 0) { printerManager.printBytesTo(any(), any()) }
         coVerify(exactly = 1) { kitchenQueueManager.enqueueUnassigned(bill.bill.id, any()) }
+    }
+
+    // -------------------------------------------------------------------------
+    // Scenario 7: KOT ownership guards for auto-printing
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `AUTO - bill originating from this device prints kitchen ticket`() = runTest {
+        whenever(sessionManager.getDeviceId()).thenReturn("DEVICE_1")
+        // Mock bill originating from DEVICE_1 (matching our sessionManager mock)
+        val ownBill = bill.copy(
+            bill = bill.bill.copy(deviceId = "DEVICE_1")
+        )
+
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
+        coEvery { printerManager.connect(kitchenMac) } returns true
+        coEvery { printerManager.printBytesTo(any(), any()) } returns true
+
+        val result = router.printBill(ownBill, restaurantProfile, PrintDispatchMode.AUTO)
+
+        // Prints because originatingDeviceId matches this deviceId
+        coVerify(exactly = 1) { printerManager.connect(kitchenMac) }
+    }
+
+    @Test
+    fun `AUTO - bill originating from a different device does NOT print kitchen ticket`() = runTest {
+        whenever(sessionManager.getDeviceId()).thenReturn("DEVICE_1")
+        // Mock bill originating from DEVICE_OTHER (different from DEVICE_1)
+        val otherBill = bill.copy(
+            bill = bill.bill.copy(deviceId = "DEVICE_OTHER")
+        )
+
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
+
+        val result = router.printBill(otherBill, restaurantProfile, PrintDispatchMode.AUTO)
+
+        // Skipped because originatingDeviceId does not match this deviceId
+        coVerify(exactly = 0) { printerManager.connect(kitchenMac) }
     }
 }

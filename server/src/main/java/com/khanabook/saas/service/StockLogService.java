@@ -9,4 +9,6 @@ public interface StockLogService {
 	PushSyncResponse pushData(Long tenantId, List<StockLog> payload);
 
 	List<StockLog> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId);
+
+	org.springframework.data.domain.Page<StockLog> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId, org.springframework.data.domain.Pageable pageable);
 }

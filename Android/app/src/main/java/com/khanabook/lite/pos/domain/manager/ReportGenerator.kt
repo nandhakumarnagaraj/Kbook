@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.domain.manager
 
 import com.khanabook.lite.pos.data.local.entity.BillEntity
+import com.khanabook.lite.pos.data.local.entity.getInvoiceNumberDisplay
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.domain.model.*
@@ -14,6 +15,20 @@ import java.math.RoundingMode
  */
 class ReportGenerator(private val billRepository: BillRepository) {
 
+    /**
+     * Net revenue for a bill = gross total minus any admin-recorded refund.
+     * refundAmount is server-owned (nullable String) and synced down via pull.
+     * Guarded to never go negative.
+     */
+    private fun netAmount(bill: BillEntity): BigDecimal {
+        val gross = BigDecimal(bill.totalAmount)
+        val refund = bill.refundAmount
+            ?.takeIf { it.isNotBlank() }
+            ?.let { runCatching { BigDecimal(it) }.getOrNull() }
+            ?: BigDecimal.ZERO
+        return gross.subtract(refund).max(BigDecimal.ZERO)
+    }
+
     suspend fun getPaymentBreakdown(from: Long, to: Long): Map<String, String> {
         val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
         val breakdown = mutableMapOf<String, BigDecimal>()
@@ -22,7 +37,8 @@ class ReportGenerator(private val billRepository: BillRepository) {
             if (OrderStatus.fromDbValue(bill.orderStatus) != OrderStatus.COMPLETED) continue
             
             val mode = PaymentMode.fromDbValue(bill.paymentMode)
-            val amount = BigDecimal(bill.totalAmount)
+            // Net of refunds so report totals match the admin dashboard.
+            val amount = netAmount(bill)
             val label = mode.displayLabel
             
             if (PaymentModeManager.isPartPayment(mode)) {
@@ -51,7 +67,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
         return bills.map { bill ->
             OrderLevelRow(
                 dailyId = bill.dailyOrderDisplay.split("-").last(),
-                lifetimeId = bill.lifetimeOrderId,
+                invoiceDisplay = bill.getInvoiceNumberDisplay(),
                 billId = bill.id,
                 paymentMode = PaymentMode.fromDbValue(bill.paymentMode),
                 sourceChannel = bill.sourceChannel,
@@ -71,7 +87,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
         return bills.map { bill ->
                 OrderDetailRow(
                     dailyNo = bill.dailyOrderDisplay.split("-").last(),
-                    lifetimeNo = bill.lifetimeOrderId,
+                    invoiceDisplay = bill.getInvoiceNumberDisplay(),
                     billId = bill.id,
                     currentStatus = formatCurrentStatus(bill),
                     salesAmount = bill.totalAmount,
@@ -103,9 +119,10 @@ class ReportGenerator(private val billRepository: BillRepository) {
         
         for (bill in bills) {
             if (OrderStatus.fromDbValue(bill.orderStatus) == OrderStatus.COMPLETED) {
-                val amount = BigDecimal(bill.totalAmount)
+                // Net of refunds so daily totals match the admin dashboard.
+                val amount = netAmount(bill)
                 totalSales = totalSales.add(amount)
-                
+
                 val mode = PaymentMode.fromDbValue(bill.paymentMode)
                 when (mode) {
                     PaymentMode.CASH -> cash = cash.add(amount)
@@ -140,7 +157,8 @@ class ReportGenerator(private val billRepository: BillRepository) {
         
         for (bill in bills) {
             if (OrderStatus.fromDbValue(bill.orderStatus) == OrderStatus.COMPLETED) {
-                totalSales = totalSales.add(BigDecimal(bill.totalAmount))
+                // Net of refunds so monthly totals match the admin dashboard.
+                totalSales = totalSales.add(netAmount(bill))
                 completedOrders++
             }
         }

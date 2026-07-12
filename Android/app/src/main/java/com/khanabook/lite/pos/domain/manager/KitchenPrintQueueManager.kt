@@ -7,6 +7,7 @@ import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.domain.model.PrinterRole
+import com.khanabook.lite.pos.data.local.dao.KotEventDao
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -24,7 +25,8 @@ class KitchenPrintQueueManager @Inject constructor(
     private val billRepository: BillRepository,
     private val restaurantRepository: RestaurantRepository,
     private val printerProfileRepository: PrinterProfileRepository,
-    private val printerManager: BluetoothPrinterManager
+    private val printerManager: BluetoothPrinterManager,
+    private val kotEventDao: KotEventDao
 ) {
     companion object {
         private const val TAG = "KitchenPrintQueue"
@@ -59,17 +61,26 @@ class KitchenPrintQueueManager @Inject constructor(
         billId: Long,
         printerMac: String,
         error: String?,
-        incrementAttempts: Boolean = false
+        incrementAttempts: Boolean = false,
+        publicToken: String? = null,
+        kotRevision: String? = null
     ) {
-        queueRepository.enqueuePending(billId, printerMac, error, incrementAttempts)
+        queueRepository.enqueuePending(billId, printerMac, error, incrementAttempts, publicToken, kotRevision)
     }
 
-    suspend fun enqueueUnassigned(billId: Long, error: String?) {
+    suspend fun enqueueUnassigned(
+        billId: Long,
+        error: String?,
+        publicToken: String? = null,
+        kotRevision: String? = null
+    ) {
         queueRepository.enqueuePending(
             billId,
             KitchenPrintQueueRepository.UNASSIGNED_PRINTER_MAC,
             error,
-            incrementAttempts = false
+            incrementAttempts = false,
+            publicToken = publicToken,
+            kotRevision = kotRevision
         )
     }
 
@@ -129,6 +140,9 @@ class KitchenPrintQueueManager @Inject constructor(
                 val bytes = KitchenTicketFormatter.format(bill, restaurantProfile, printerProfile)
                 if (printerManager.printBytesTo(printerMac, bytes)) {
                     queueRepository.markSent(job.id)
+                    if (job.publicToken != null && job.kotRevision != null) {
+                        kotEventDao.markPrinted(job.publicToken, job.kotRevision)
+                    }
                 } else {
                     queueRepository.markPending(job.id, "print failed")
                     break

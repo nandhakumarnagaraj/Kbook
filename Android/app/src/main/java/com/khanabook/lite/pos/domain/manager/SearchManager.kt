@@ -16,12 +16,22 @@ class SearchManager(private val billRepository: BillRepository) {
         return billEntity?.let { billRepository.getBillWithItemsById(it.id) }
     }
 
-    suspend fun searchByLifetimeId(id: Long): BillWithItems? {
-        return billRepository.getBillWithItemsByLifetimeId(id)
-    }
+    /**
+     * Looks up a bill by its printed invoice number.
+     *
+     * New bills carry a GST invoice string such as "26A1-000042" (matched exactly).
+     * Legacy bills issued before the new numbering only have a numeric
+     * lifetime_order_id (e.g. printed as "INV42"), so we fall back to that when the
+     * input is purely numeric.
+     */
+    suspend fun searchByInvoiceNumber(rawInput: String): BillWithItems? {
+        val normalized = rawInput.trim().uppercase()
+        if (normalized.isEmpty()) return null
 
-    suspend fun searchByInvoiceNo(invoiceNo: Long): BillWithItems? {
-        return billRepository.getBillWithItemsByInvoiceNo(invoiceNo)
+        billRepository.getBillWithItemsByInvoiceNumber(normalized)?.let { return it }
+
+        val legacyId = normalized.removePrefix("INV").filter { it.isDigit() }.toLongOrNull()
+        return legacyId?.let { billRepository.getBillWithItemsByLegacyInvoiceNo(it) }
     }
 
     suspend fun getBillsWithPendingKds(): List<BillWithItems> {

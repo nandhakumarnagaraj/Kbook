@@ -30,6 +30,7 @@ public class GenericSyncService {
 	private final ItemVariantRepository itemVariantRepository;
 	private final CategoryRepository categoryRepository;
 	private final BillPaymentRepository billPaymentRepository;
+	private final RestaurantTerminalRepository terminalRepository;
 
 	private User findExistingUserByIdentity(Long tenantId, User incomingUser,
 			com.khanabook.saas.repository.UserRepository userRepository) {
@@ -235,6 +236,18 @@ public class GenericSyncService {
 									.findFirst().orElse(null);
 						}
 
+						// ── Priority 2: publicToken (canonical identity) — checked BEFORE
+						// (deviceId, localId) to prevent wrong-row match on localId reuse ──
+						if (existingRecord == null
+								&& incomingRecord instanceof Bill incomingBill
+								&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo
+								&& incomingBill.getPublicToken() != null) {
+							existingRecord = (T) billRepo
+									.findByRestaurantIdAndPublicTokenAndIsDeletedFalse(targetTenantId, incomingBill.getPublicToken())
+									.orElse(null);
+						}
+
+						// ── Priority 3: (deviceId, localId) — legacy fallback ──
 						if (existingRecord == null) {
 							existingRecord = existingRecordMap.get(incomingRecord.getLocalId());
 						}
@@ -252,31 +265,7 @@ public class GenericSyncService {
 						existingRecord = (T) findExistingUserByIdentity(targetTenantId, incomingUser, userRepository);
 					}
 
-					if (existingRecord == null
-							&& incomingRecord instanceof Bill incomingBill
-							&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo
-							&& incomingBill.getLifetimeOrderId() != null) {
-						Bill existingBill = billRepo
-								.findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(targetTenantId, incomingBill.getLifetimeOrderId())
-								.orElse(null);
-						if (existingBill != null) {
-							if (Objects.equals(existingBill.getDeviceId(), incomingBill.getDeviceId())
-									&& Objects.equals(existingBill.getLocalId(), incomingBill.getLocalId())) {
-								existingRecord = (T) existingBill;
-							} else {
-								throw new IllegalStateException(
-										"Duplicate invoice INV" + incomingBill.getLifetimeOrderId()
-												+ " already exists on another bill. Resolve it in Sync Center.");
-							}
-						}
-					}
 
-					if (incomingRecord instanceof Bill incomingBill
-							&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo) {
-						validateBillNumberConflicts(targetTenantId, incomingBill, billRepo);
-					}
-
-					incomingRecord.setRestaurantId(targetTenantId);
 					incomingRecord.setServerUpdatedAt(serverTime);
 					if (incomingRecord.getIsDeleted() == null) {
 						incomingRecord.setIsDeleted(false);
@@ -348,6 +337,14 @@ public class GenericSyncService {
 								mergeCounterState(incomingProfile, existingProfile);
 							}
 
+							// Refund preservation: refundAmount is server-owned (set by admin via
+							// markManualRefund). Android never sends it, so ALWAYS restore the
+							// server value on updates to prevent a push from zeroing a refund.
+							if (incomingRecord instanceof Bill incomingBill
+									&& existingRecord instanceof Bill existingBill) {
+								incomingBill.setRefundAmount(existingBill.getRefundAmount());
+							}
+
 							incomingRecord.setId(existingRecord.getId());
 							// Preserve the current row version so sync updates don't trip optimistic locking
 							// when the client payload carries a stale/default version value.
@@ -392,6 +389,12 @@ public class GenericSyncService {
 
 						if (incomingRecord instanceof RestaurantProfile incomingProfile) {
 							incomingProfile.setTimezone(DEFAULT_TIMEZONE);
+						}
+
+						// Refund default: new bills have no admin refund yet; default to ZERO
+						// so the column is never NULL (easier for reports/aggregations).
+						if (incomingRecord instanceof Bill newBill && newBill.getRefundAmount() == null) {
+							newBill.setRefundAmount(java.math.BigDecimal.ZERO);
 						}
 
 						T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
@@ -482,18 +485,6 @@ public class GenericSyncService {
 		if (incomingBill.getDeviceId() == null || incomingBill.getLocalId() == null) {
 			throw new IllegalStateException("Bill identity missing. Sync again after opening Sync Center.");
 		}
-		if (incomingBill.getLifetimeOrderId() != null) {
-			billRepo.findConflictingLifetimeOrder(
-					tenantId,
-					incomingBill.getLifetimeOrderId(),
-					incomingBill.getDeviceId(),
-					incomingBill.getLocalId())
-					.ifPresent(conflict -> {
-						throw new IllegalStateException(
-								"Duplicate invoice INV" + incomingBill.getLifetimeOrderId()
-										+ " already exists on another bill. Resolve it in Sync Center.");
-					});
-		}
 		if (incomingBill.getDailyOrderId() != null
 				&& incomingBill.getLastResetDate() != null
 				&& !incomingBill.getLastResetDate().isBlank()) {
@@ -502,7 +493,8 @@ public class GenericSyncService {
 					incomingBill.getLastResetDate(),
 					incomingBill.getDailyOrderId(),
 					incomingBill.getDeviceId(),
-					incomingBill.getLocalId())
+					incomingBill.getLocalId(),
+					incomingBill.getTerminalSeries())
 					.ifPresent(conflict -> {
 						throw new IllegalStateException(
 								"Duplicate order #" + incomingBill.getDailyOrderDisplay()

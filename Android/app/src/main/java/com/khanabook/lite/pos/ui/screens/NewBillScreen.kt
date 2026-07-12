@@ -49,6 +49,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.BillEntity
+import com.khanabook.lite.pos.data.local.entity.getInvoiceNumberDisplay
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.PaymentModeManager
@@ -361,7 +362,7 @@ fun CustomerInfoStep(
 
     val showPhoneError = whatsapp.isNotEmpty() && !ValidationUtils.isValidPhone(whatsapp)
     val isNextEnabled = when (selectedOrderType) {
-        "dine_in" -> name.isNotBlank() && ValidationUtils.isValidPhone(whatsapp)
+        "dine_in" -> ValidationUtils.isValidPhone(whatsapp)
         "takeaway" -> ValidationUtils.isValidPhone(whatsapp)
         else -> false
     }
@@ -591,7 +592,7 @@ fun CustomerInfoStep(
                     name = it
                     billingViewModel?.setCustomerInfo(it, whatsapp)
                 },
-                label = { Text("Table Name / Number *") },
+                label = { Text("Table name / Customer name") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = menuTextFieldColors(),
                 leadingIcon = { Icon(Icons.Default.Person, null, tint = PrimaryGold) }
@@ -639,7 +640,7 @@ fun CustomerInfoStep(
                     name = it
                     billingViewModel?.setCustomerInfo(it, whatsapp)
                 },
-                label = { Text("Customer Name (optional)") },
+                label = { Text("Customer Name") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = menuTextFieldColors(),
                 leadingIcon = { Icon(Icons.Default.Person, null, tint = PrimaryGold) }
@@ -2107,7 +2108,7 @@ fun SuccessStep(
                 ) {
                     Text("Invoice No:", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                     Text(
-                        text = lastBill?.let { "INV${it.bill.lifetimeOrderId}" } ?: "N/A",
+                        text = lastBill?.let { it.bill.getInvoiceNumberDisplay() } ?: "N/A",
                         color = TextLight,
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
                     )

@@ -26,11 +26,29 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "daily_order_display")
 	private String dailyOrderDisplay;
 
-	@Column(name = "lifetime_order_id", nullable = false)
+	@Column(name = "lifetime_order_id", nullable = true)
 	private Long lifetimeOrderId;
+
+	@Column(name = "terminal_series")
+	private String terminalSeries;
+
+	@Column(name = "financial_year")
+	private String financialYear;
+
+	@Column(name = "invoice_series")
+	private String invoiceSeries;
+
+	@Column(name = "invoice_sequence")
+	private Long invoiceSequence;
+
+	@Column(name = "invoice_number")
+	private String invoiceNumber;
 
 	@Column(name = "order_type", nullable = false)
 	private String orderType;
+
+	@Column(name = "source_channel", columnDefinition = "VARCHAR(100) DEFAULT ''")
+	private String sourceChannel = "";
 
 	@Column(name = "customer_name")
 	private String customerName;

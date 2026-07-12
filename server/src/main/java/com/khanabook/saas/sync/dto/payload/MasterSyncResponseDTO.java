@@ -15,4 +15,6 @@ public class MasterSyncResponseDTO {
     private List<BillDTO> bills;
     private List<BillItemDTO> billItems;
     private List<BillPaymentDTO> billPayments;
+    private Boolean hasMore;
+    private Integer nextPage;
 }
