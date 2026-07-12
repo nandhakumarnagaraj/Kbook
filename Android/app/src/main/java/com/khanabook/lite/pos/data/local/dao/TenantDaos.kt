@@ -105,6 +105,16 @@ class TenantRestaurantDao @Inject constructor(
         dao.incrementOrderCounters(restaurantId, updatedAt)
     }
 
+    override suspend fun incrementAndGetCounters(restaurantId: Long): Pair<Long, Long> =
+        dao.incrementAndGetCounters(restaurantId)
+
+    override suspend fun incrementAndGetDailyCounter(restaurantId: Long): Long =
+        dao.incrementAndGetDailyCounter(restaurantId)
+
+    override suspend fun incrementDailyCounterOnly(restaurantId: Long, updatedAt: Long) {
+        dao.incrementDailyCounterOnly(restaurantId, updatedAt)
+    }
+
     override suspend fun incrementLifetimeCounterOnly(restaurantId: Long, updatedAt: Long) {
         dao.incrementLifetimeCounterOnly(restaurantId, updatedAt)
     }
@@ -387,6 +397,8 @@ class TenantBillDao @Inject constructor(
     override suspend fun getBillByServerId(serverId: Long, restaurantId: Long): BillEntity? =
         dao.getBillByServerId(serverId, restaurantId)
     override suspend fun getBillByLocalId(localId: Long, deviceId: String, restaurantId: Long): BillEntity? = dao.getBillByLocalId(localId, deviceId, restaurantId)
+    override suspend fun getBillByPublicToken(publicToken: String, restaurantId: Long): BillEntity? =
+        dao.getBillByPublicToken(publicToken, restaurantId)
     override suspend fun moveBillItemsToBill(sourceBillId: Long, targetBillId: Long, restaurantId: Long): Int =
         dao.moveBillItemsToBill(sourceBillId, targetBillId, restaurantId)
     override suspend fun moveBillPaymentsToBill(sourceBillId: Long, targetBillId: Long, restaurantId: Long): Int =
@@ -403,14 +415,18 @@ class TenantBillDao @Inject constructor(
     override suspend fun insertBillPayments(payments: List<BillPaymentEntity>) = dao.insertBillPayments(payments)
     override suspend fun insertBillPayment(payment: BillPaymentEntity) = dao.insertBillPayment(payment)
     override suspend fun getBillById(id: Long, restaurantId: Long): BillEntity? = dao.getBillById(id, restaurantId)
-    override suspend fun countActiveBillsByLifetimeId(restaurantId: Long, lifetimeOrderId: Long): Int =
-        dao.countActiveBillsByLifetimeId(restaurantId, lifetimeOrderId)
     override suspend fun countActiveBillsByDailyIdAndDate(
         restaurantId: Long,
         dailyOrderId: Long,
         startTime: Long,
-        endTime: Long
-    ): Int = dao.countActiveBillsByDailyIdAndDate(restaurantId, dailyOrderId, startTime, endTime)
+        endTime: Long,
+        terminalSeries: String?
+    ): Int = dao.countActiveBillsByDailyIdAndDate(restaurantId, dailyOrderId, startTime, endTime, terminalSeries)
+    override suspend fun getMaxInvoiceSequence(
+        restaurantId: Long,
+        terminalSeries: String,
+        financialYear: String
+    ): Long = dao.getMaxInvoiceSequence(restaurantId, terminalSeries, financialYear)
     override suspend fun getBillsByIds(billIds: List<Long>, restaurantId: Long): List<BillEntity> =
         dao.getBillsByIds(billIds, restaurantId)
     override suspend fun getBillItemsByIds(ids: List<Long>, restaurantId: Long): List<BillItemEntity> =
@@ -457,25 +473,26 @@ class TenantBillDao @Inject constructor(
     override suspend fun cancelStalePendingOnlineDrafts(reason: String, updatedAt: Long, restaurantId: Long): Int = dao.cancelStalePendingOnlineDrafts(reason, updatedAt, restaurantId)
     override fun getBillsByDateRange(startMillis: Long, endMillis: Long, restaurantId: Long): Flow<List<BillEntity>> = runFlow { it.billDao().getBillsByDateRange(startMillis, endMillis, restaurantId) }
     override suspend fun getBillWithItemsById(id: Long, restaurantId: Long): BillWithItems? = dao.getBillWithItemsById(id, restaurantId)
-    override suspend fun getBillWithItemsByLifetimeId(id: Long, restaurantId: Long): BillWithItems? = dao.getBillWithItemsByLifetimeId(id, restaurantId)
+    override suspend fun getBillWithItemsByInvoiceNumber(invoiceNumber: String, restaurantId: Long): BillWithItems? = dao.getBillWithItemsByInvoiceNumber(invoiceNumber, restaurantId)
 
-    override suspend fun insertFullBill(bill: BillEntity, items: List<BillItemEntity>, payments: List<BillPaymentEntity>) {
+    override suspend fun insertFullBill(bill: BillEntity, items: List<BillItemEntity>, payments: List<BillPaymentEntity>): Long =
         dao.insertFullBill(bill, items, payments)
-    }
 
-    override suspend fun getDuplicateLifetimeOrderGroups(restaurantId: Long): List<BillIdDuplicateGroup> =
-        dao.getDuplicateLifetimeOrderGroups(restaurantId)
+    override suspend fun getDuplicateInvoiceNumberGroups(restaurantId: Long): List<BillIdDuplicateGroup> =
+        dao.getDuplicateInvoiceNumberGroups(restaurantId)
     override suspend fun getDuplicateDailyOrderGroups(restaurantId: Long): List<BillIdDuplicateGroup> =
         dao.getDuplicateDailyOrderGroups(restaurantId)
     override suspend fun getDuplicateIdConflictBills(restaurantId: Long): List<BillIdConflictBill> =
         dao.getDuplicateIdConflictBills(restaurantId)
     override suspend fun getMaxLifetimeOrderId(restaurantId: Long): Long =
         dao.getMaxLifetimeOrderId(restaurantId)
-    override suspend fun getMaxDailyOrderIdBetween(restaurantId: Long, startTime: Long, endTime: Long): Long =
-        dao.getMaxDailyOrderIdBetween(restaurantId, startTime, endTime)
+    override suspend fun getMaxDailyOrderIdBetween(restaurantId: Long, deviceId: String, startTime: Long, endTime: Long): Long =
+        dao.getMaxDailyOrderIdBetween(restaurantId, deviceId, startTime, endTime)
 
     override suspend fun reconcileServerAcknowledgedBills(restaurantId: Long): Int = dao.reconcileServerAcknowledgedBills(restaurantId)
-    override suspend fun markBillsSyncedByLifetimeIds(deviceId: String, restaurantId: Long, lifetimeOrderIds: List<Long>): Int = dao.markBillsSyncedByLifetimeIds(deviceId, restaurantId, lifetimeOrderIds)
+    override suspend fun markBillsSyncedByPublicTokens(restaurantId: Long, publicTokens: List<String>): Int = dao.markBillsSyncedByPublicTokens(restaurantId, publicTokens)
+    override suspend fun markBillSyncedByPublicToken(restaurantId: Long, publicToken: String, serverUpdatedAt: Long): Int =
+        dao.markBillSyncedByPublicToken(restaurantId, publicToken, serverUpdatedAt)
 
     override suspend fun markBillsSyncedByDeviceIdAndLocalIds(deviceId: String, restaurantId: Long, localIds: List<Long>): Int = dao.markBillsSyncedByDeviceIdAndLocalIds(deviceId, restaurantId, localIds)
     override suspend fun getUnsyncedBills(restaurantId: Long): List<BillEntity> = dao.getUnsyncedBills(restaurantId)
@@ -638,4 +655,18 @@ class TenantInventoryDao @Inject constructor(
     override suspend fun deleteAllSyncedStockLogs(restaurantId: Long) {
         dao.deleteAllSyncedStockLogs(restaurantId)
     }
+}
+
+@Singleton
+class TenantKotEventDao @Inject constructor(
+    private val databaseProvider: DatabaseProvider
+) : KotEventDao {
+    private val dao get() = databaseProvider.getDatabase().kotEventDao()
+
+    override suspend fun insert(event: KotEventEntity) = dao.insert(event)
+    override suspend fun insertAll(events: List<KotEventEntity>) = dao.insertAll(events)
+    override suspend fun getEventsForBill(publicToken: String): List<KotEventEntity> = dao.getEventsForBill(publicToken)
+    override suspend fun markPrinted(publicToken: String, kotRevision: String): Int = dao.markPrinted(publicToken, kotRevision)
+    override suspend fun getEventCountForBill(publicToken: String): Int = dao.getEventCountForBill(publicToken)
+    override suspend fun getEvent(publicToken: String, kotRevision: String): KotEventEntity? = dao.getEvent(publicToken, kotRevision)
 }

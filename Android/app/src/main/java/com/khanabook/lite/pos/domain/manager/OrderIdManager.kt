@@ -8,10 +8,14 @@ object OrderIdManager {
     private const val INDIA_TIMEZONE = "Asia/Kolkata"
     
     /**
-     * Returns the formatted daily order ID (e.g., "001").
+     * Returns the formatted daily order ID (e.g., "001" or "A1-0001").
      */
-    fun getDailyOrderDisplay(date: String, counter: Long): String {
-        return String.format("%03d", counter)
+    fun getDailyOrderDisplay(date: String, counter: Long, terminalSeries: String? = null): String {
+        return if (terminalSeries != null && terminalSeries.isNotBlank()) {
+            "$terminalSeries-${String.format("%04d", counter)}"
+        } else {
+            String.format("%03d", counter)
+        }
     }
 
     /**
@@ -26,13 +30,6 @@ object OrderIdManager {
      */
     fun getNextDailyCounter(profile: RestaurantProfileEntity, today: String): Long {
         return if (profile.lastResetDate != today) 1L else profile.dailyOrderCounter + 1L
-    }
-
-    /**
-     * Calculates the next lifetime order ID.
-     */
-    fun getNextLifetimeId(profile: RestaurantProfileEntity): Long {
-        return profile.lifetimeOrderCounter + 1L
     }
 
     /**

@@ -17,7 +17,8 @@ data class BillIdDuplicateGroup(
 data class BillIdConflictBill(
     val id: Long,
     val dailyOrderDisplay: String,
-    val lifetimeOrderId: Long,
+    val lifetimeOrderId: Long?,
+    val invoiceNumber: String?,
     val orderType: String,
     val orderStatus: String,
     val paymentStatus: String,
@@ -110,13 +111,9 @@ interface BillDao {
     @Query("SELECT * FROM bills WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun getBillById(id: Long, restaurantId: Long): BillEntity?
 
-    @Query("""
-        SELECT COUNT(*) FROM bills
-        WHERE restaurant_id = :restaurantId
-          AND is_deleted = 0
-          AND lifetime_order_id = :lifetimeOrderId
-    """)
-    suspend fun countActiveBillsByLifetimeId(restaurantId: Long, lifetimeOrderId: Long): Int
+    // Canonical bill lookup by immutable public_token (see PLAN §4.1).
+    @Query("SELECT * FROM bills WHERE public_token = :publicToken AND restaurant_id = :restaurantId LIMIT 1")
+    suspend fun getBillByPublicToken(publicToken: String, restaurantId: Long): BillEntity?
 
     @Query("""
         SELECT COUNT(*) FROM bills
@@ -124,12 +121,14 @@ interface BillDao {
           AND is_deleted = 0
           AND daily_order_id = :dailyOrderId
           AND created_at BETWEEN :startTime AND :endTime
+          AND ((:terminalSeries IS NULL AND terminal_series IS NULL) OR terminal_series = :terminalSeries)
     """)
     suspend fun countActiveBillsByDailyIdAndDate(
         restaurantId: Long,
         dailyOrderId: Long,
         startTime: Long,
-        endTime: Long
+        endTime: Long,
+        terminalSeries: String?
     ): Int
 
     @Query("SELECT * FROM bills WHERE id IN (:billIds) AND restaurant_id = :restaurantId")
@@ -261,34 +260,31 @@ interface BillDao {
     @Query("SELECT * FROM bills WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun getBillWithItemsById(id: Long, restaurantId: Long): BillWithItems?
 
+    // Canonical lookup by the GST invoice number (e.g. "26A1-000042"). Used by the
+    // Invoice-No search field. Legacy bills (numeric INV lookup) go through getBillByLifetimeNo.
     @Transaction
     @Query("""
         SELECT * FROM bills
-        WHERE lifetime_order_id = :id
+        WHERE invoice_number = :invoiceNumber
           AND restaurant_id = :restaurantId
           AND is_deleted = 0
         ORDER BY (SELECT COUNT(*) FROM bill_items WHERE bill_items.bill_id = bills.id AND bill_items.restaurant_id = :restaurantId) DESC,
                  updated_at DESC
         LIMIT 1
     """)
-    suspend fun getBillWithItemsByLifetimeId(id: Long, restaurantId: Long): BillWithItems?
+    suspend fun getBillWithItemsByInvoiceNumber(invoiceNumber: String, restaurantId: Long): BillWithItems?
 
     @Transaction
     suspend fun insertFullBill(
             bill: BillEntity,
             items: List<BillItemEntity>,
             payments: List<BillPaymentEntity>
-    ) {
+    ): Long {
         val zoneId = java.time.ZoneId.of("Asia/Kolkata")
         val orderDate = java.time.Instant.ofEpochMilli(bill.createdAt).atZone(zoneId).toLocalDate()
         val startTime = orderDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
         val endTime = orderDate.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
-        if (countActiveBillsByLifetimeId(bill.restaurantId, bill.lifetimeOrderId) > 0) {
-            throw android.database.sqlite.SQLiteConstraintException(
-                "Duplicate invoice id INV${bill.lifetimeOrderId}. Please repair counters from Sync Center and try again."
-            )
-        }
-        if (countActiveBillsByDailyIdAndDate(bill.restaurantId, bill.dailyOrderId, startTime, endTime) > 0) {
+        if (countActiveBillsByDailyIdAndDate(bill.restaurantId, bill.dailyOrderId, startTime, endTime, bill.terminalSeries) > 0) {
             throw android.database.sqlite.SQLiteConstraintException(
                 "Duplicate order id #${bill.dailyOrderDisplay}. Please repair counters from Sync Center and try again."
             )
@@ -304,6 +300,7 @@ interface BillDao {
         val paymentsWithId = payments.map { it.copy(billId = billId, restaurantId = bill.restaurantId, deviceId = bill.deviceId) }
         insertBillItems(itemsWithId)
         insertBillPayments(paymentsWithId)
+        return billId
     }
 
     @Transaction
@@ -322,29 +319,37 @@ interface BillDao {
         updateBill(bill)
     }
 
+    // Duplicate detection keys on the GST invoice_number, not the legacy lifetime_order_id.
+    // New bills leave lifetime_order_id NULL (SQLite groups all NULLs together, which would
+    // falsely flag every new bill as a duplicate), so we ignore NULL/blank invoice numbers.
     @Query("""
-        SELECT CAST(lifetime_order_id AS TEXT) AS idValue,
+        SELECT invoice_number AS idValue,
                COUNT(*) AS duplicateCount,
-               GROUP_CONCAT('Local ' || id || ' - ' || daily_order_display || '/INV' || lifetime_order_id || ' - ' || order_type || ' - ' || order_status, ', ') AS sampleBills
+               GROUP_CONCAT('Local ' || id || ' - ' || daily_order_display || '/' || invoice_number || ' - ' || order_type || ' - ' || order_status, ', ') AS sampleBills
         FROM bills
         WHERE restaurant_id = :restaurantId
           AND is_deleted = 0
-        GROUP BY lifetime_order_id
+          AND invoice_number IS NOT NULL
+          AND invoice_number != ''
+        GROUP BY invoice_number
         HAVING COUNT(*) > 1
-        ORDER BY duplicateCount DESC, lifetime_order_id DESC
+        ORDER BY duplicateCount DESC, invoice_number DESC
     """)
-    suspend fun getDuplicateLifetimeOrderGroups(restaurantId: Long): List<BillIdDuplicateGroup>
+    suspend fun getDuplicateInvoiceNumberGroups(restaurantId: Long): List<BillIdDuplicateGroup>
 
     @Query("""
-        SELECT DATE(created_at / 1000, 'unixepoch', 'localtime') || ' #' || daily_order_id AS idValue,
+        SELECT DATE(created_at / 1000, 'unixepoch', 'localtime') || ' #' || daily_order_id
+               || CASE WHEN terminal_series IS NULL OR terminal_series = '' THEN '' ELSE '/' || terminal_series END AS idValue,
                COUNT(*) AS duplicateCount,
-               GROUP_CONCAT('Local ' || id || ' - ' || daily_order_display || '/INV' || lifetime_order_id || ' - ' || order_type || ' - ' || order_status, ', ') AS sampleBills
+               GROUP_CONCAT('Local ' || id || ' - ' || daily_order_display || '/' ||
+                   COALESCE(invoice_number, CASE WHEN lifetime_order_id IS NULL THEN 'legacy' ELSE 'INV' || lifetime_order_id END) ||
+                   ' - ' || order_type || ' - ' || order_status, ', ') AS sampleBills
         FROM bills
         WHERE restaurant_id = :restaurantId
           AND is_deleted = 0
-        GROUP BY DATE(created_at / 1000, 'unixepoch', 'localtime'), daily_order_id
+        GROUP BY DATE(created_at / 1000, 'unixepoch', 'localtime'), daily_order_id, COALESCE(terminal_series, '')
         HAVING COUNT(*) > 1
-        ORDER BY duplicateCount DESC, created_at DESC
+        ORDER BY duplicateCount DESC, idValue DESC
     """)
     suspend fun getDuplicateDailyOrderGroups(restaurantId: Long): List<BillIdDuplicateGroup>
 
@@ -352,6 +357,7 @@ interface BillDao {
         SELECT id,
                daily_order_display AS dailyOrderDisplay,
                lifetime_order_id AS lifetimeOrderId,
+               invoice_number AS invoiceNumber,
                order_type AS orderType,
                order_status AS orderStatus,
                payment_status AS paymentStatus,
@@ -362,13 +368,14 @@ interface BillDao {
         WHERE restaurant_id = :restaurantId
           AND is_deleted = 0
           AND (
-            lifetime_order_id IN (
-                SELECT lifetime_order_id
+            (invoice_number IS NOT NULL AND invoice_number != '' AND invoice_number IN (
+                SELECT invoice_number
                 FROM bills
                 WHERE restaurant_id = :restaurantId AND is_deleted = 0
-                GROUP BY lifetime_order_id
+                  AND invoice_number IS NOT NULL AND invoice_number != ''
+                GROUP BY invoice_number
                 HAVING COUNT(*) > 1
-            )
+            ))
             OR EXISTS (
                 SELECT 1
                 FROM bills other
@@ -376,11 +383,12 @@ interface BillDao {
                   AND other.is_deleted = 0
                   AND other.daily_order_id = bills.daily_order_id
                   AND DATE(other.created_at / 1000, 'unixepoch', 'localtime') = DATE(bills.created_at / 1000, 'unixepoch', 'localtime')
-                GROUP BY DATE(other.created_at / 1000, 'unixepoch', 'localtime'), other.daily_order_id
+                  AND COALESCE(other.terminal_series, '') = COALESCE(bills.terminal_series, '')
+                GROUP BY DATE(other.created_at / 1000, 'unixepoch', 'localtime'), other.daily_order_id, COALESCE(other.terminal_series, '')
                 HAVING COUNT(*) > 1
             )
           )
-        ORDER BY created_at DESC, lifetime_order_id DESC, id DESC
+        ORDER BY created_at DESC, invoice_number DESC, id DESC
     """)
     suspend fun getDuplicateIdConflictBills(restaurantId: Long): List<BillIdConflictBill>
 
@@ -391,10 +399,22 @@ interface BillDao {
         SELECT COALESCE(MAX(daily_order_id), 0)
         FROM bills
         WHERE restaurant_id = :restaurantId
+          AND device_id = :deviceId
           AND is_deleted = 0
           AND created_at BETWEEN :startTime AND :endTime
     """)
-    suspend fun getMaxDailyOrderIdBetween(restaurantId: Long, startTime: Long, endTime: Long): Long
+    suspend fun getMaxDailyOrderIdBetween(restaurantId: Long, deviceId: String, startTime: Long, endTime: Long): Long
+
+    // Highest invoice sequence allocated within a terminal's financial-year series (see PLAN §4.2/§5).
+    @Query("""
+        SELECT COALESCE(MAX(invoice_sequence), 0)
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND terminal_series = :terminalSeries
+          AND financial_year = :financialYear
+          AND is_deleted = 0
+    """)
+    suspend fun getMaxInvoiceSequence(restaurantId: Long, terminalSeries: String, financialYear: String): Long
 
     // ── Sync reconciliation ────────────────────────────────────────────────────
 
@@ -410,8 +430,8 @@ interface BillDao {
      * After a pull, the server returns bills with their server-assigned IDs.
      * For bills created on THIS device, the original local row (with device-local pk)
      * may still be isSynced=0 because the pull upserted a NEW row keyed by the
-     * server ID. This query finds those orphaned local rows by matching on
-     * (device_id, lifetime_order_id) — which is unique per device — and marks them synced.
+     * server ID. This query finds those orphaned local rows by matching on the
+     * immutable public_token (canonical bill identity) and marks them synced.
      *
      * IMPORTANT: Only mark synced when updated_at <= server_updated_at, meaning the
      * server already has the latest version of this bill. If the local bill was modified
@@ -421,12 +441,24 @@ interface BillDao {
     @Query("""
         UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL
         WHERE is_synced = 0
-          AND device_id = :deviceId
           AND restaurant_id = :restaurantId
-          AND lifetime_order_id IN (:lifetimeOrderIds)
+          AND public_token IN (:publicTokens)
           AND updated_at <= server_updated_at
     """)
-    suspend fun markBillsSyncedByLifetimeIds(deviceId: String, restaurantId: Long, lifetimeOrderIds: List<Long>): Int
+    suspend fun markBillsSyncedByPublicTokens(restaurantId: Long, publicTokens: List<String>): Int
+
+    @Query("""
+        UPDATE bills SET is_synced = 1, sync_status = 'synced', sync_failure_reason = NULL, sync_failed_at = NULL
+        WHERE is_synced = 0
+          AND restaurant_id = :restaurantId
+          AND public_token = :publicToken
+          AND updated_at <= :serverUpdatedAt
+    """)
+    suspend fun markBillSyncedByPublicToken(
+        restaurantId: Long,
+        publicToken: String,
+        serverUpdatedAt: Long
+    ): Int
 
     // ── Unsynced queries ───────────────────────────────────────────────────────
 

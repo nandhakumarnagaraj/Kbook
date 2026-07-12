@@ -58,6 +58,29 @@ interface RestaurantDao {
         }
     }
 
+    @Transaction
+    suspend fun incrementAndGetDailyCounter(restaurantId: Long): Long {
+        val profile = getProfile(restaurantId) ?: throw Exception("Profile not found")
+
+        val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+        val today = java.time.LocalDate.now(zoneId).toString()
+        val isNewDay = profile.lastResetDate != today
+        val now = System.currentTimeMillis()
+
+        return if (isNewDay) {
+            val nextDailyCounter = 1L
+            resetDailyCounter(restaurantId, nextDailyCounter, today, now)
+            nextDailyCounter
+        } else {
+            incrementDailyCounterOnly(restaurantId, now)
+            val updated = getProfile(restaurantId) ?: throw Exception("Profile lost during update")
+            updated.dailyOrderCounter
+        }
+    }
+
+    @Query("UPDATE restaurant_profile SET daily_order_counter = daily_order_counter + 1, is_synced = 0, updated_at = :updatedAt WHERE restaurant_id = :restaurantId")
+    suspend fun incrementDailyCounterOnly(restaurantId: Long, updatedAt: Long)
+
     @Query("UPDATE restaurant_profile SET lifetime_order_counter = lifetime_order_counter + 1, is_synced = 0, updated_at = :updatedAt WHERE restaurant_id = :restaurantId")
     suspend fun incrementLifetimeCounterOnly(restaurantId: Long, updatedAt: Long)
 

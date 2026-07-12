@@ -3,6 +3,7 @@ package com.khanabook.lite.pos.domain.manager
 import com.khanabook.lite.pos.data.local.entity.PrinterProfileEntity
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.data.local.entity.getInvoiceNumberDisplay
 import com.khanabook.lite.pos.domain.util.DateUtils
 import java.nio.charset.Charset
 
@@ -39,7 +40,7 @@ object KitchenTicketFormatter {
         add("$line\n")
         add(ALIGN_LEFT)
         add(leftPad + "Order: ${bill.bill.dailyOrderDisplay}\n")
-        add(leftPad + "Invoice: INV${bill.bill.lifetimeOrderId}\n")
+        add(leftPad + "Invoice: ${bill.bill.getInvoiceNumberDisplay()}\n")
         add(leftPad + "Time: ${DateUtils.formatDisplay(bill.bill.createdAt)}\n")
         bill.bill.customerName?.takeIf { it.isNotBlank() }?.let { add(leftPad + "Customer: $it\n") }
         add("$line\n")

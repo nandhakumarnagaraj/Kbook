@@ -11,6 +11,7 @@ import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.data.local.entity.getInvoiceNumberDisplay
 import com.khanabook.lite.pos.domain.util.AppAssetStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -227,10 +228,10 @@ class InvoicePDFGenerator(private val context: Context) {
             if (profile?.gstEnabled == true && !profile.gstin.isNullOrBlank()) {
                 drawCenteredLabelValue("GST NO: ", profile.gstin)
                 y += 9f
-                drawCenteredLabelValue("TAX INVOICE NO: ", "INV${bill.bill.lifetimeOrderId}")
+                drawCenteredLabelValue("TAX INVOICE NO: ", bill.bill.getInvoiceNumberDisplay())
                 y += 9f
             } else if (profile?.gstEnabled == false) {
-                drawCenteredLabelValue("INVOICE NO: ", "INV${bill.bill.lifetimeOrderId}")
+                drawCenteredLabelValue("INVOICE NO: ", bill.bill.getInvoiceNumberDisplay())
                 y += 9f
             }
             if (!profile?.whatsappNumber.isNullOrBlank()) {
@@ -530,7 +531,7 @@ class InvoicePDFGenerator(private val context: Context) {
 
             val invoiceDir = File(context.cacheDir, "invoices")
             invoiceDir.mkdirs()
-            val file = File(invoiceDir, "invoice_${bill.bill.lifetimeOrderId}.pdf")
+            val file = File(invoiceDir, "invoice_${bill.bill.publicToken ?: bill.bill.id}.pdf")
             FileOutputStream(file).use { pdfDocument.writeTo(it) }
             return file
 

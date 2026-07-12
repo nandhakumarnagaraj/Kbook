@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
+import com.khanabook.lite.pos.data.local.entity.getInvoiceNumberDisplay
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -145,7 +146,7 @@ object InvoiceFormatter {
         profile?.fssaiNumber?.takeIf { it.isNotBlank() }?.let { add("FSSAI: $it\n") }
         profile?.gstin?.takeIf { it.isNotBlank() }?.let { add("GSTIN: $it\n") }
         val invLabel = if (isGst) "TAX INVOICE NO" else "INVOICE NO"
-        add("$invLabel: INV${bill.bill.lifetimeOrderId}\n")
+        add("$invLabel: ${bill.bill.getInvoiceNumberDisplay()}\n")
         add("$line\n")
         // 3. Transaction Details (Left/Right split)
         add(ALIGN_LEFT)

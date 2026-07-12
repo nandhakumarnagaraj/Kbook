@@ -656,7 +656,7 @@ fun OrderTableRow(
                 color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )
             TableCell(
-                "INV${row.lifetimeNo}", COL_INVOICE,
+                row.invoiceDisplay, COL_INVOICE,
                 fontWeight = FontWeight.Bold,
                 color = if (isCancelled) TextLight.copy(alpha = 0.35f) else TextLight
             )

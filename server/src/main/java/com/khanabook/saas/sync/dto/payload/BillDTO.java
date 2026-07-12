@@ -24,6 +24,11 @@ public class BillDTO {
     private Long dailyOrderId;
     private String dailyOrderDisplay;
     private Long lifetimeOrderId;
+    private String terminalSeries;
+    private String financialYear;
+    private String invoiceSeries;
+    private Long invoiceSequence;
+    private String invoiceNumber;
     private String orderType;
     private String sourceChannel;
     private String customerName;

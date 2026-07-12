@@ -7,6 +7,7 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.data.local.dao.BillDao
+import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.domain.util.InvoiceFormatter
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -39,7 +40,8 @@ class PrintRouter @Inject constructor(
     private val printerProfileRepository: PrinterProfileRepository,
     private val printerManager: BluetoothPrinterManager,
     private val kitchenPrintQueueManager: KitchenPrintQueueManager,
-    private val billDao: BillDao
+    private val billDao: BillDao,
+    private val sessionManager: SessionManager
 ) {
     companion object {
         private const val TAG = "PrintRouter"
@@ -100,6 +102,19 @@ class PrintRouter @Inject constructor(
                 if (isKitchenTarget && itemsToPrint.isEmpty()) {
                     return@async Triple(target.role, true, "")
                 }
+
+                // ── KOT Device Ownership Guard ──────────────────────────────────────────
+                // Bills pulled from another terminal must NOT auto-print KOT on this device.
+                // Each terminal only fires KOT events for bills it originated.
+                if (isKitchenTarget && mode == PrintDispatchMode.AUTO) {
+                    val localDeviceId = sessionManager.getDeviceId()
+                    val billOwner = bill.bill.deviceId
+                    if (billOwner != null && billOwner != localDeviceId) {
+                        Log.d(TAG, "Skipping AUTO KOT: bill owned by device=$billOwner, local=$localDeviceId")
+                        return@async Triple(target.role, true, "")
+                    }
+                }
+                // ────────────────────────────────────────────────────────────────────────
 
                 if (!isKitchenTarget && mode == PrintDispatchMode.AUTO && bill.bill.orderStatus.equals("draft", ignoreCase = true)) {
                     // Do not auto-print customer receipts for draft orders

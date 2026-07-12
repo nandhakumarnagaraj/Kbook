@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.data.local.entity.getInvoiceNumberDisplay
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
 import com.khanabook.lite.pos.ui.designsystem.*
@@ -74,7 +75,7 @@ fun ReprintKdsScreen(
                 val q = invoiceQuery.trim()
                 if (q.isEmpty()) { showInvoiceError = true; return@launch }
                 showInvoiceError = false
-                val found = searchViewModel.searchByInvoiceNo(q.toLongOrNull() ?: 0L)
+                val found = searchViewModel.searchByInvoiceNumber(q)
                 searchViewModel.publishSearchResult(found)
             }
         }
@@ -309,7 +310,7 @@ private fun KdsBillCard(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "INV${bill.lifetimeOrderId}",
+                            text = bill.getInvoiceNumberDisplay(),
                             color = TextLight,
                             style = MaterialTheme.typography.bodySmall
                         )

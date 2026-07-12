@@ -31,7 +31,7 @@ data class BillEntity(
         @SerializedName("dailyOrderDisplay")
         @ColumnInfo(name = "daily_order_display") val dailyOrderDisplay: String,
         @SerializedName("lifetimeOrderId")
-        @ColumnInfo(name = "lifetime_order_id") val lifetimeOrderId: Long,
+        @ColumnInfo(name = "lifetime_order_id") val lifetimeOrderId: Long?,
         @SerializedName("orderType")
         @ColumnInfo(name = "order_type", defaultValue = "order")
         val orderType: String = "order",
@@ -95,7 +95,31 @@ data class BillEntity(
     @ColumnInfo(name = "sync_status", defaultValue = "'pending'") val syncStatus: String = "pending",
     @ColumnInfo(name = "sync_failure_reason") val syncFailureReason: String? = null,
     @ColumnInfo(name = "sync_failed_at") val syncFailedAt: Long? = null,
+    @SerializedName("terminalSeries")
+    @ColumnInfo(name = "terminal_series", defaultValue = "NULL") val terminalSeries: String? = null,
+    @SerializedName("financialYear")
+    @ColumnInfo(name = "financial_year", defaultValue = "NULL") val financialYear: String? = null,
+    @SerializedName("invoiceSeries")
+    @ColumnInfo(name = "invoice_series", defaultValue = "NULL") val invoiceSeries: String? = null,
+    @SerializedName("invoiceSequence")
+    @ColumnInfo(name = "invoice_sequence", defaultValue = "NULL") val invoiceSequence: Long? = null,
+    @SerializedName("invoiceNumber")
+    @ColumnInfo(name = "invoice_number", defaultValue = "NULL") val invoiceNumber: String? = null,
     // Server-owned. Null means no refund has been recorded. Never written by Android push.
     @SerializedName("refundAmount")
     @ColumnInfo(name = "refund_amount", defaultValue = "NULL") val refundAmount: String? = null
 )
+
+fun BillEntity.getInvoiceNumberDisplay(): String {
+    if (!invoiceNumber.isNullOrBlank()) return invoiceNumber
+    if (!terminalSeries.isNullOrBlank() && invoiceSequence != null) {
+        val fy = financialYear ?: "FY26-27"
+        val series = invoiceSeries ?: terminalSeries
+        return "$series/$fy/${String.format("%04d", invoiceSequence)}"
+    }
+    if (lifetimeOrderId != null && lifetimeOrderId > 0) {
+        return "INV$lifetimeOrderId"
+    }
+    val prefix = terminalSeries ?: "DRAFT"
+    return "$prefix-LOC-$id"
+}

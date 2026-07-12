@@ -5,6 +5,7 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
+import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 import com.khanabook.lite.pos.domain.manager.KitchenPrintQueueManager
 import com.khanabook.lite.pos.domain.util.ConnectionStatus
@@ -31,6 +32,7 @@ class HomeViewModelTest {
     private lateinit var kitchenPrintQueueRepository: KitchenPrintQueueRepository
     private lateinit var kitchenPrintQueueManager: KitchenPrintQueueManager
     private lateinit var printerProfileRepository: PrinterProfileRepository
+    private lateinit var restaurantRepository: RestaurantRepository
     private lateinit var printerManager: BluetoothPrinterManager
     private lateinit var networkMonitor: NetworkMonitor
     private val testDispatcher = StandardTestDispatcher()
@@ -69,6 +71,7 @@ class HomeViewModelTest {
         
         kitchenPrintQueueManager = mockk(relaxed = true)
         printerProfileRepository = mockk(relaxed = true)
+        restaurantRepository = mockk(relaxed = true)
         printerManager = mockk(relaxed = true)
 
         every { printerProfileRepository.getProfilesFlow() } returns flowOf(emptyList())
@@ -80,6 +83,7 @@ class HomeViewModelTest {
             kitchenPrintQueueRepository,
             kitchenPrintQueueManager,
             printerProfileRepository,
+            restaurantRepository,
             printerManager,
             networkMonitor
         )

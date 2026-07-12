@@ -1,6 +1,6 @@
 # KhanaBook Engineering Plan
 
-Status: Final and verified
+Status: In progress — multi-device release remains blocked pending production migration and two-terminal verification.
 
 ## 1. Product Scope
 

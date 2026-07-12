@@ -39,6 +39,7 @@ class SystemTest extends BaseIntegrationTest {
         LoginRequest login = new LoginRequest();
         login.setLoginId(phone);
         login.setPassword("pass123");
+        login.setDeviceId("DEVICE_1");
         ResponseEntity<AuthResponse> loginResp =
             rest.postForEntity("/auth/login", login, AuthResponse.class);
 
@@ -93,6 +94,7 @@ class SystemTest extends BaseIntegrationTest {
         LoginRequest bad = new LoginRequest();
         bad.setLoginId(phone);
         bad.setPassword("wrong");
+        bad.setDeviceId("D");
         ResponseEntity<String> resp = rest.postForEntity("/auth/login", bad, String.class);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -235,6 +237,11 @@ class SystemTest extends BaseIntegrationTest {
             "    \"customTaxAmount\": 0.00," +
             "    \"totalAmount\": 105.00," +
             "    \"paymentMode\": \"cash\"," +
+            "    \"terminalSeries\": \"A1\"," +
+            "    \"financialYear\": \"23\"," +
+            "    \"invoiceSeries\": \"23A1\"," +
+            "    \"invoiceSequence\": 1," +
+            "    \"invoiceNumber\": \"23A1-000001\"," +
             "    \"paymentStatus\": \"success\"," +
             "    \"orderStatus\": \"completed\"" +
             "  }" +

@@ -3,10 +3,12 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
+import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.service.impl.BillServiceImpl;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
@@ -37,6 +39,8 @@ class BillServiceImplTest {
     @Mock private MenuItemRepository menuItemRepository;
     @Mock private ItemVariantRepository itemVariantRepository;
     @Mock private CategoryRepository categoryRepository;
+    @Mock private BillPaymentRepository billPaymentRepository;
+    @Mock private RestaurantTerminalRepository terminalRepository;
 
     private GenericSyncService genericSyncService;
     private BillServiceImpl billService;
@@ -52,9 +56,11 @@ class BillServiceImplTest {
             billRepository,
             menuItemRepository,
             itemVariantRepository,
-            categoryRepository
+            categoryRepository,
+            billPaymentRepository,
+            terminalRepository
         );
-        billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository);
+        billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository, terminalRepository);
     }
 
     @Test

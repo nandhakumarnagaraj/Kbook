@@ -27,8 +27,8 @@ class BillRepository(
             bill: BillEntity,
             items: List<BillItemEntity>,
             payments: List<BillPaymentEntity>
-    ) {
-        billDao.insertFullBill(bill, items, payments)
+    ): Long {
+        val billId = billDao.insertFullBill(bill, items, payments)
         
         if (bill.orderStatus.equals("completed", ignoreCase = true) ||
             bill.orderStatus.equals("paid", ignoreCase = true)
@@ -37,6 +37,7 @@ class BillRepository(
         }
         
         triggerBackgroundSync()
+        return billId
     }
 
     private fun triggerBackgroundSync() {
@@ -49,10 +50,6 @@ class BillRepository(
 
     suspend fun getBillWithItemsById(id: Long): BillWithItems? {
         return billDao.getBillWithItemsById(id, sessionManager.getRestaurantId())
-    }
-
-    suspend fun getBillWithItemsByLifetimeId(id: Long): BillWithItems? {
-        return billDao.getBillWithItemsByLifetimeId(id, sessionManager.getRestaurantId())
     }
 
     suspend fun updateBill(bill: BillEntity) {
@@ -251,7 +248,21 @@ class BillRepository(
             }
     }
 
-    suspend fun getBillWithItemsByInvoiceNo(invoiceNo: Long): BillWithItems? {
+    // New GST invoice-number lookup (e.g. "26A1-000042").
+    suspend fun getBillWithItemsByInvoiceNumber(invoiceNumber: String): BillWithItems? {
+        return billDao.getBillWithItemsByInvoiceNumber(invoiceNumber, sessionManager.getRestaurantId())
+    }
+
+    suspend fun getMaxInvoiceSequence(terminalSeries: String, financialYear: String): Long {
+        return billDao.getMaxInvoiceSequence(
+            restaurantId = sessionManager.getRestaurantId(),
+            terminalSeries = terminalSeries,
+            financialYear = financialYear
+        )
+    }
+
+    // Legacy fallback: bills issued before the new numbering used lifetime_order_id (e.g. "INV42").
+    suspend fun getBillWithItemsByLegacyInvoiceNo(invoiceNo: Long): BillWithItems? {
         return billDao.getBillByLifetimeNo(invoiceNo, sessionManager.getRestaurantId())?.let { bill ->
             billDao.getBillWithItemsById(bill.id, sessionManager.getRestaurantId())
         }

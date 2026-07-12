@@ -95,6 +95,19 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         return if (restaurantId > 0L) "${baseKey}_$restaurantId" else baseKey
     }
 
+    fun getTerminalSeries(): String? {
+        val restaurantId = getRestaurantId()
+        if (restaurantId <= 0L) return null
+        return prefs.getString(scopedKey("terminal_series"), null)
+    }
+
+    fun saveTerminalSeries(series: String) {
+        val restaurantId = getRestaurantId()
+        if (restaurantId > 0L) {
+            prefs.edit().putString(scopedKey("terminal_series"), series).apply()
+        }
+    }
+
     fun setInitialSyncCompleted(isCompleted: Boolean) {
         val restaurantId = getRestaurantId()
         val editor = prefs.edit()

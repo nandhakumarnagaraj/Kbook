@@ -71,13 +71,12 @@ fun CallCustomerScreen(
 
     fun submitLifetimeSearch() {
         keyboardController?.hide()
-        lifetimeId.toLongOrNull()?.let {
-            scope.launch {
-                val found = viewModel.searchByLifetimeId(it)
-                viewModel.publishSearchResult(found)
-                if (found == null) {
-                    KhanaToast.show("Customer not found", ToastKind.Warning)
-                }
+        if (lifetimeId.isBlank()) return
+        scope.launch {
+            val found = viewModel.searchByInvoiceNumber(lifetimeId)
+            viewModel.publishSearchResult(found)
+            if (found == null) {
+                KhanaToast.show("Customer not found", ToastKind.Warning)
             }
         }
     }

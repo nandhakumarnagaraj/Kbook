@@ -5,7 +5,6 @@ import com.khanabook.lite.pos.data.remote.api.MasterSyncResponse
 import com.khanabook.lite.pos.domain.util.SyncConflictException
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
@@ -14,10 +13,15 @@ import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.times
+import org.mockito.kotlin.never
 
 class SyncManagerTest {
 
-    private val sessionManager: SessionManager = mockk(relaxed = true)
+    private val sessionManager: SessionManager = mock()
     private val api: KhanaBookApi = mockk(relaxed = true)
     private val masterSyncProcessor: MasterSyncProcessor = mockk(relaxed = true)
 
@@ -26,13 +30,17 @@ class SyncManagerTest {
     @Before
     fun setUp() {
         mockkStatic(android.util.Log::class)
-        every { android.util.Log.i(any<String>(), any<String>()) } returns 0
-        every { android.util.Log.w(any<String>(), any<String>()) } returns 0
-        every { android.util.Log.w(any<String>(), any<String>(), any<Throwable>()) } returns 0
-        every { android.util.Log.e(any<String>(), any<String>()) } returns 0
-        every { android.util.Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
-        every { sessionManager.getDeviceId() } returns "device-1"
-        every { sessionManager.getLastSyncTimestamp() } returns 10L
+        io.mockk.every { android.util.Log.i(any<String>(), any<String>()) } returns 0
+        io.mockk.every { android.util.Log.w(any<String>(), any<String>()) } returns 0
+        io.mockk.every { android.util.Log.w(any<String>(), any<String>(), any<Throwable>()) } returns 0
+        io.mockk.every { android.util.Log.e(any<String>(), any<String>()) } returns 0
+        io.mockk.every { android.util.Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
+
+        whenever(sessionManager.getDeviceId()).thenReturn("device-1")
+        whenever(sessionManager.getLastSyncTimestamp()).thenReturn(10L)
+        whenever(sessionManager.getRestaurantId()).thenReturn(0L)
+        whenever(sessionManager.getTerminalSeries()).thenReturn("A1")
+
         syncManager = SyncManager(sessionManager, api, masterSyncProcessor)
     }
 
@@ -43,28 +51,28 @@ class SyncManagerTest {
 
     @Test
     fun `performFullSync returns success when conflict recovery pull succeeds`() = runTest {
-        coEvery { masterSyncProcessor.pushAll(any()) } throws SyncConflictException() andThen true
-        coEvery { api.pullMasterSync(0L, "device-1", ignoreDeviceId = true) } returns MasterSyncResponse(serverTimestamp = 42L)
+        coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException() andThen true
+        coEvery { api.pullMasterSync(0L, "device-1", ignoreDeviceId = true, any(), any()) } returns MasterSyncResponse(serverTimestamp = 42L, hasMore = false)
 
         val result = syncManager.performFullSync()
 
         assertTrue(result.isSuccess)
-        coVerify(exactly = 2) { masterSyncProcessor.pushAll(any()) }
+        coVerify(exactly = 2) { masterSyncProcessor.pushAll() }
         coVerify(exactly = 1) { masterSyncProcessor.insertMasterData(match { it.serverTimestamp == 42L }) }
-        coVerify(exactly = 1) { sessionManager.saveLastSyncTimestamp(42L) }
+        verify(sessionManager, times(1)).saveLastSyncTimestamp(42L)
     }
 
     @Test
     fun `performFullSync returns unresolved conflict when recovery pull fails`() = runTest {
-        coEvery { masterSyncProcessor.pushAll(any()) } throws SyncConflictException()
-        coEvery { api.pullMasterSync(0L, "device-1", ignoreDeviceId = true) } throws IllegalStateException("pull failed")
+        coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException()
+        coEvery { api.pullMasterSync(0L, "device-1", ignoreDeviceId = true, any(), any()) } throws IllegalStateException("pull failed")
 
         val result = syncManager.performFullSync()
 
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is SyncConflictException)
         assertTrue(!(result.exceptionOrNull() as SyncConflictException).recoverySucceeded)
-        coVerify(exactly = 1) { masterSyncProcessor.pushAll(any()) }
-        coVerify(exactly = 0) { sessionManager.saveLastSyncTimestamp(any()) }
+        coVerify(exactly = 1) { masterSyncProcessor.pushAll() }
+        verify(sessionManager, never()).saveLastSyncTimestamp(org.mockito.kotlin.any())
     }
 }

@@ -3,7 +3,9 @@ package com.khanabook.lite.pos.domain.model
 
 data class OrderLevelRow(
     val dailyId: String,
-    val lifetimeId: Long,
+    /** Canonical invoice display string: GST invoice number (e.g. "26A1-000042") for new bills,
+     *  "INV{n}" for legacy bills. Never "INV0". */
+    val invoiceDisplay: String,
     val billId: Long,
     val paymentMode: PaymentMode,
     val sourceChannel: String = "",
@@ -14,7 +16,9 @@ data class OrderLevelRow(
 
 data class OrderDetailRow(
     val dailyNo: String,
-    val lifetimeNo: Long,
+    /** Canonical invoice display string: GST invoice number (e.g. "26A1-000042") for new bills,
+     *  "INV{n}" for legacy bills. Never "INV0". */
+    val invoiceDisplay: String,
     val billId: Long,
     val currentStatus: String,
     val salesAmount: String,

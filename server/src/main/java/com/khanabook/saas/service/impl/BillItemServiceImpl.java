@@ -121,6 +121,16 @@ public class BillItemServiceImpl implements BillItemService {
 				deviceId);
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public org.springframework.data.domain.Page<BillItem> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId, org.springframework.data.domain.Pageable pageable) {
+		if (ignoreDeviceId) {
+			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp, pageable);
+		}
+		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
+				deviceId, pageable);
+	}
+
 	private void addFailure(List<Long> failedLocalIds, Map<Long, String> failedReasons, Long localId, String reason) {
 		if (localId == null) {
 			return;

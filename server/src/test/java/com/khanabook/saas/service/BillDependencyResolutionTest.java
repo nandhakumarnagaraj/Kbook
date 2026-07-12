@@ -31,6 +31,7 @@ class BillDependencyResolutionTest {
     @Mock private MenuItemRepository menuItemRepo;
     @Mock private ItemVariantRepository itemVariantRepo;
     @Mock private CategoryRepository categoryRepo;
+    @Mock private RestaurantTerminalRepository terminalRepo;
 
     private BillItemServiceImpl billItemService;
     private BillPaymentServiceImpl billPaymentService;
@@ -44,7 +45,9 @@ class BillDependencyResolutionTest {
                 billRepo,
                 menuItemRepo,
                 itemVariantRepo,
-                categoryRepo
+                categoryRepo,
+                billPaymentRepo,
+                terminalRepo
         );
         billItemService = new BillItemServiceImpl(billItemRepo, billRepo, menuItemRepo, itemVariantRepo, gs);
         billPaymentService = new BillPaymentServiceImpl(billPaymentRepo, billRepo, gs);

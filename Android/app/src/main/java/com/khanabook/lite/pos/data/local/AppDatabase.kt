@@ -21,9 +21,10 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillItemEntity::class,
                         BillPaymentEntity::class,
                         SyncQuarantineEntity::class,
-                        StockLogEntity::class
+                        StockLogEntity::class,
+                        KotEventEntity::class
                 ],
-        version = 54,
+        version = 57,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -35,6 +36,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun kitchenPrintQueueDao(): KitchenPrintQueueDao
     abstract fun billDao(): BillDao
     abstract fun inventoryDao(): InventoryDao
+    abstract fun kotEventDao(): KotEventDao
 
 	    companion object {
 	        const val DATABASE_NAME = "khanabook_lite_db"
@@ -473,6 +475,145 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_26_27 = object : Migration(26, 27) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `review_url` TEXT")
+            }
+        }
+
+        val MIGRATION_54_55 = object : Migration(54, 55) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Create the temporary bills_new table with nullable lifetime_order_id and the
+                // new identity columns. This migration must preserve unsynced bills because the
+                // app is offline-first and an upgrade can happen while the device is offline.
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `bills_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `restaurant_id` INTEGER NOT NULL DEFAULT 0,
+                        `device_id` TEXT NOT NULL DEFAULT '',
+                        `daily_order_id` INTEGER NOT NULL,
+                        `daily_order_display` TEXT NOT NULL,
+                        `lifetime_order_id` INTEGER,
+                        `order_type` TEXT NOT NULL DEFAULT 'order',
+                        `customer_name` TEXT,
+                        `customer_whatsapp` TEXT,
+                        `subtotal` TEXT NOT NULL,
+                        `gst_percentage` TEXT NOT NULL DEFAULT '0.0',
+                        `cgst_amount` TEXT NOT NULL DEFAULT '0.0',
+                        `sgst_amount` TEXT NOT NULL DEFAULT '0.0',
+                        `custom_tax_amount` TEXT NOT NULL DEFAULT '0.0',
+                        `total_amount` TEXT NOT NULL,
+                        `payment_mode` TEXT NOT NULL,
+                        `source_channel` TEXT NOT NULL DEFAULT '',
+                        `part_amount_1` TEXT NOT NULL DEFAULT '0.0',
+                        `part_amount_2` TEXT NOT NULL DEFAULT '0.0',
+                        `payment_status` TEXT NOT NULL,
+                        `order_status` TEXT NOT NULL,
+                        `created_by` INTEGER,
+                        `created_at` INTEGER NOT NULL,
+                        `paid_at` INTEGER,
+                        `last_reset_date` TEXT NOT NULL DEFAULT '',
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL,
+                        `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                        `server_id` INTEGER,
+                        `server_updated_at` INTEGER NOT NULL DEFAULT 0,
+                        `cancel_reason` TEXT NOT NULL DEFAULT '',
+                        `public_token` TEXT,
+                        `owner_user_id` INTEGER DEFAULT NULL,
+                        `owner_restaurant_id` INTEGER DEFAULT NULL,
+                        `sync_status` TEXT NOT NULL DEFAULT 'pending',
+                        `sync_failure_reason` TEXT,
+                        `sync_failed_at` INTEGER,
+                        `terminal_series` TEXT DEFAULT NULL,
+                        `financial_year` TEXT DEFAULT NULL,
+                        `invoice_series` TEXT DEFAULT NULL,
+                        `invoice_sequence` INTEGER DEFAULT NULL,
+                        `invoice_number` TEXT DEFAULT NULL,
+                        `refund_amount` TEXT DEFAULT NULL,
+                        FOREIGN KEY(`created_by`) REFERENCES `users`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                """.trimIndent())
+
+                // 3. Copy existing data from bills to bills_new
+                db.execSQL("""
+                    INSERT INTO `bills_new` (
+                        `id`, `restaurant_id`, `device_id`, `daily_order_id`, `daily_order_display`,
+                        `lifetime_order_id`, `order_type`, `customer_name`, `customer_whatsapp`, `subtotal`,
+                        `gst_percentage`, `cgst_amount`, `sgst_amount`, `custom_tax_amount`, `total_amount`,
+                        `payment_mode`, `source_channel`, `part_amount_1`, `part_amount_2`, `payment_status`,
+                        `order_status`, `created_by`, `created_at`, `paid_at`, `last_reset_date`,
+                        `is_synced`, `updated_at`, `is_deleted`, `server_id`, `server_updated_at`,
+                        `cancel_reason`, `public_token`, `owner_user_id`, `owner_restaurant_id`,
+                        `sync_status`, `sync_failure_reason`, `sync_failed_at`, `refund_amount`
+                    )
+                    SELECT
+                        `id`, `restaurant_id`, `device_id`, `daily_order_id`, `daily_order_display`,
+                        `lifetime_order_id`, `order_type`, `customer_name`, `customer_whatsapp`, `subtotal`,
+                        `gst_percentage`, `cgst_amount`, `sgst_amount`, `custom_tax_amount`, `total_amount`,
+                        `payment_mode`, `source_channel`, `part_amount_1`, `part_amount_2`, `payment_status`,
+                        `order_status`, `created_by`, `created_at`, `paid_at`, `last_reset_date`,
+                        `is_synced`, `updated_at`, `is_deleted`, `server_id`, `server_updated_at`,
+                        `cancel_reason`, `public_token`, `owner_user_id`, `owner_restaurant_id`,
+                        `sync_status`, `sync_failure_reason`, `sync_failed_at`, `refund_amount`
+                    FROM `bills`
+                """.trimIndent())
+
+                // 4. Drop the old bills table
+                db.execSQL("DROP TABLE IF EXISTS `bills`")
+
+                // 5. Rename bills_new to bills
+                db.execSQL("ALTER TABLE `bills_new` RENAME TO `bills`")
+
+                // Older local rows may not have a public token yet. Give them a canonical
+                // identity so future pull reconciliation does not depend on lifetime_order_id.
+                db.query("SELECT id FROM bills WHERE public_token IS NULL OR public_token = ''").use { cursor ->
+                    val ids = mutableListOf<Long>()
+                    while (cursor.moveToNext()) {
+                        ids += cursor.getLong(0)
+                    }
+                    ids.forEach { id ->
+                        db.execSQL(
+                            "UPDATE `bills` SET `public_token` = ? WHERE `id` = ?",
+                            arrayOf(java.util.UUID.randomUUID().toString(), id)
+                        )
+                    }
+                }
+
+                // 6. Recreate indexes
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_created_by` ON `bills` (`created_by`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_order_status` ON `bills` (`order_status`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_created_at` ON `bills` (`created_at`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_daily_order_id` ON `bills` (`daily_order_id`)")
+            }
+        }
+
+        val MIGRATION_56_57 = object : Migration(56, 57) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                if (!db.hasColumn("kitchen_print_queue", "public_token")) {
+                    db.execSQL("ALTER TABLE `kitchen_print_queue` ADD COLUMN `public_token` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("kitchen_print_queue", "kot_revision")) {
+                    db.execSQL("ALTER TABLE `kitchen_print_queue` ADD COLUMN `kot_revision` TEXT DEFAULT NULL")
+                }
+            }
+        }
+
+        val MIGRATION_55_56 = object : Migration(55, 56) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `kot_events` (
+                        `public_token` TEXT NOT NULL,
+                        `kot_revision` TEXT NOT NULL,
+                        `event_type` TEXT NOT NULL,
+                        `item_snapshot_json` TEXT NOT NULL,
+                        `originating_device_id` TEXT NOT NULL,
+                        `is_printed` INTEGER NOT NULL DEFAULT 0,
+                        `created_at` INTEGER NOT NULL,
+                        PRIMARY KEY(`public_token`, `kot_revision`)
+                    )
+                    """
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_kot_events_public_token` ON `kot_events` (`public_token`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_kot_events_originating_device_id` ON `kot_events` (`originating_device_id`)")
             }
         }
 

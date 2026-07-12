@@ -89,16 +89,15 @@ fun SearchScreen(
             }
         }
     }
-    fun submitLifetimeSearch() {
+    fun submitInvoiceSearch() {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         keyboardController?.hide()
-        lifetimeQuery.toLongOrNull()?.let {
-            scope.launch {
-                val found = viewModel.searchByLifetimeId(it)
-                viewModel.publishSearchResult(found)
-                if (found == null) {
-                    KhanaToast.show(notFoundMessage, ToastKind.Warning)
-                }
+        if (lifetimeQuery.isBlank()) return
+        scope.launch {
+            val found = viewModel.searchByInvoiceNumber(lifetimeQuery)
+            viewModel.publishSearchResult(found)
+            if (found == null) {
+                KhanaToast.show(notFoundMessage, ToastKind.Warning)
             }
         }
     }
@@ -248,39 +247,31 @@ fun SearchScreen(
                 } else {
                     OutlinedTextField(
                         value = lifetimeQuery,
-                        onValueChange = { 
-                            val invoiceNo = it.removePrefix("INV").removePrefix("inv")
-                            if (invoiceNo.isEmpty() || invoiceNo.all { char -> char.isDigit() }) {
-                                lifetimeQuery = invoiceNo
-                                showLifetimeQueryError = false
-                            } else {
-                                showLifetimeQueryError = true
-                            }
+                        onValueChange = { input ->
+                            // Accept full GST invoice numbers (e.g. 26A1-000042) and
+                            // legacy numeric ids. Uppercase to match stored numbers.
+                            lifetimeQuery = input.uppercase()
+                                .filter { char -> char.isLetterOrDigit() || char == '-' }
+                            showLifetimeQueryError = false
                         },
                         label = { Text("Invoice No") },
-                        prefix = { Text("INV") },
+                        placeholder = { Text("e.g. 26A1-000042") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
+                            keyboardType = KeyboardType.Ascii,
                             imeAction = ImeAction.Search
                         ),
                         keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                            onSearch = { submitLifetimeSearch() },
-                            onDone = { submitLifetimeSearch() }
-                        ),
-                        isError = showLifetimeQueryError,
-                        supportingText = {
-                            if (showLifetimeQueryError) {
-                                Text(context.getString(R.string.field_numbers_only))
-                            }
-                        }
+                            onSearch = { submitInvoiceSearch() },
+                            onDone = { submitInvoiceSearch() }
+                        )
                     )
                     Spacer(modifier = Modifier.height(spacing.medium))
                     KhanaPrimaryButton(
                         text = "Search Order",
-                        onClick = { submitLifetimeSearch() },
+                        onClick = { submitInvoiceSearch() },
                         modifier = Modifier.fillMaxWidth(),
                         leadingIcon = Icons.Default.Search,
                         enabled = lifetimeQuery.isNotEmpty()
