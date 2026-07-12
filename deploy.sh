@@ -12,6 +12,27 @@ HEALTH_URL=http://localhost:8080/actuator/health
 OPENAPI_URL=http://localhost:8080/v3/api-docs
 MAX_WAIT=60   # seconds to wait for startup before declaring failure
 
+REQUIRE_DOCKER="${REQUIRE_DOCKER:-0}"    # set to 1 to hard-fail when Docker is missing
+ALLOW_NO_BACKUP="${ALLOW_NO_BACKUP:-0}"  # set to 1 to deploy without a DB backup
+
+# ── 0. Preflight: Testcontainers tests SKIP silently without Docker ───────────
+# PostgresMigrationSmokeTest and MultiDeviceInvoiceSyncIntegrationTest use
+# Testcontainers (@Testcontainers(disabledWithoutDocker = true)). With no Docker
+# daemon they are skipped, not run — so the migration/multi-device gate below is
+# INACTIVE and a broken migration could deploy. Make that impossible to miss.
+echo "==> Checking Docker (Testcontainers migration + multi-device tests need it)..."
+if docker info >/dev/null 2>&1; then
+    echo "==> Docker available — Testcontainers tests will run."
+else
+    MSG="Docker unavailable: migration + multi-device Testcontainers tests will be SKIPPED, so the migration gate is INACTIVE for this deploy."
+    if [ "$REQUIRE_DOCKER" = "1" ]; then
+        echo "ERROR: $MSG"
+        echo "       Install Docker, or re-run with REQUIRE_DOCKER=0 to proceed anyway."
+        exit 1
+    fi
+    echo "WARNING: $MSG"
+fi
+
 # ── 1. Run tests before touching anything in production ───────────────────────
 echo "==> Running tests (this gates the build)..."
 cd "$SERVER_DIR"
@@ -24,7 +45,14 @@ if [ -f /var/www/kbook.iadv.cloud/ops/backup_postgres.sh ]; then
     bash /var/www/kbook.iadv.cloud/ops/backup_postgres.sh
     echo "==> Database backup complete."
 else
-    echo "WARNING: backup_postgres.sh not found — skipping DB backup."
+    if [ "$ALLOW_NO_BACKUP" = "1" ]; then
+        echo "WARNING: backup_postgres.sh not found — proceeding without a DB backup (ALLOW_NO_BACKUP=1)."
+    else
+        echo "ERROR: backup_postgres.sh not found and ALLOW_NO_BACKUP != 1."
+        echo "       A Flyway schema migration with no backup has no safe rollback (JAR rollback"
+        echo "       does NOT revert the schema). Refusing to deploy. Override with ALLOW_NO_BACKUP=1."
+        exit 1
+    fi
 fi
 
 # ── 3. Record deployed commit ─────────────────────────────────────────────────
@@ -74,6 +102,10 @@ if [ "$HEALTHY" != "true" ]; then
         mv "$JAR_PREV" "$JAR"
         systemctl start "$SERVICE"
         echo "==> Rollback complete. Previous JAR restored."
+        echo "    NOTE: this restores the JAR only. If a Flyway migration ran this deploy,"
+        echo "          the schema is already migrated and the old JAR may fail Hibernate"
+        echo "          validate on boot. To revert the schema, restore the DB backup:"
+        echo "              bash /var/www/kbook.iadv.cloud/ops/restore_postgres.sh"
         echo "    To investigate: journalctl -u $SERVICE -n 100"
     else
         echo "WARNING: No previous JAR to restore. Service is stopped."
@@ -95,5 +127,6 @@ echo "  commit : $GIT_COMMIT ($GIT_BRANCH)"
 echo "  health : $HEALTH_URL → $HTTP_STATUS"
 echo "  openapi: $OPENAPI_URL → $OPENAPI_STATUS"
 echo "  rollback: mv $JAR_PREV $JAR && systemctl restart $SERVICE"
+echo "  db restore (if a migration ran): bash $SERVER_DIR/../ops/restore_postgres.sh"
 echo "======================================================"
 echo ""
