@@ -81,7 +81,7 @@ public class BillServiceImpl implements BillService {
 			bill.setFinancialYear(financialYear);
 			bill.setInvoiceSeries(invoiceSeries);
 			bill.setInvoiceSequence(sequence);
-			bill.setInvoiceNumber(invoiceSeries + "-" + String.format("%06d", sequence));
+			bill.setInvoiceNumber(invoiceSeries + "-" + String.format("%02d", sequence));
 			nextBySeries.put(key, sequence + 1L);
 		}
 	}

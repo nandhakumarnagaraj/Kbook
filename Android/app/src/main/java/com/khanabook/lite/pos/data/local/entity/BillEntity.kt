@@ -136,7 +136,7 @@ fun BillEntity.getInvoiceNumberDisplay(): String {
     if (!terminalSeries.isNullOrBlank() && invoiceSequence != null) {
         val fy = financialYear ?: "FY26-27"
         val series = invoiceSeries ?: terminalSeries
-        return "$series/$fy/${String.format("%04d", invoiceSequence)}"
+        return "$series/$fy/${invoiceSequence.toString().padStart(2, '0')}"
     }
     if (lifetimeOrderId != null && lifetimeOrderId > 0) {
         return "INV$lifetimeOrderId"

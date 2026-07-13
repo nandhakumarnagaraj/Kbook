@@ -8,13 +8,14 @@ object OrderIdManager {
     private const val INDIA_TIMEZONE = "Asia/Kolkata"
     
     /**
-     * Returns the formatted daily order ID (e.g., "001" or "A1-0001").
+     * Returns the formatted daily order ID (e.g., "01", "10", or "A1-01").
      */
     fun getDailyOrderDisplay(date: String, counter: Long, terminalSeries: String? = null): String {
+        val displayCounter = counter.toString().padStart(2, '0')
         return if (terminalSeries != null && terminalSeries.isNotBlank()) {
-            "$terminalSeries-${String.format("%04d", counter)}"
+            "$terminalSeries-$displayCounter"
         } else {
-            String.format("%03d", counter)
+            displayCounter
         }
     }
 

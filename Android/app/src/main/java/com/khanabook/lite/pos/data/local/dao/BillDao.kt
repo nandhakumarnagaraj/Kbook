@@ -75,7 +75,10 @@ interface BillDao {
           AND payment_status = 'pending'
           AND order_type = 'dine_in'
           AND is_deleted = 0
-          AND current_owner_terminal_id = :terminalId
+          AND (
+              current_owner_terminal_id = :terminalId
+              OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId)
+          )
           AND NOT EXISTS (
               SELECT 1
               FROM bill_payments
