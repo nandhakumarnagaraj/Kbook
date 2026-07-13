@@ -81,7 +81,7 @@ class SyncManager @Inject constructor(
                         deviceId = deviceId,
                         terminalName = response.terminalName,
                         terminalSeries = response.terminalSeries,
-                        isActive = response.isActive,
+                        isActive = response.isActive ?: true,
                         registeredAt = response.registeredAt,
                         lastVerifiedAt = response.lastVerifiedAt ?: System.currentTimeMillis()
                     )
