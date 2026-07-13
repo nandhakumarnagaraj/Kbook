@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.ui.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -44,10 +45,13 @@ data class ResponsiveLayout(
     }
 }
 
-internal fun responsiveLayoutForWidth(screenWidthDp: Int): ResponsiveLayout {
-    val tier = when {
-        screenWidthDp >= 840 -> WindowWidthTier.Expanded
-        screenWidthDp >= 600 -> WindowWidthTier.Medium
+internal fun responsiveLayoutForWindowSizeClass(
+    screenWidthDp: Int,
+    widthSizeClass: WindowWidthSizeClass
+): ResponsiveLayout {
+    val tier = when (widthSizeClass) {
+        WindowWidthSizeClass.Expanded -> WindowWidthTier.Expanded
+        WindowWidthSizeClass.Medium -> WindowWidthTier.Medium
         else -> WindowWidthTier.Compact
     }
     return ResponsiveLayout(
@@ -57,5 +61,5 @@ internal fun responsiveLayoutForWidth(screenWidthDp: Int): ResponsiveLayout {
 }
 
 val LocalResponsiveLayout = staticCompositionLocalOf {
-    responsiveLayoutForWidth(screenWidthDp = 360)
+    ResponsiveLayout(screenWidthDp = 360, widthTier = WindowWidthTier.Compact)
 }

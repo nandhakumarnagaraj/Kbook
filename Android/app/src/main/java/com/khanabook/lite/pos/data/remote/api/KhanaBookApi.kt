@@ -79,6 +79,7 @@ interface KhanaBookApi {
         suspend fun pullMasterSync(
             @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
             @Query("deviceId") deviceId: String,
+            @Query("terminalId") terminalId: String? = null,
             @Query("ignoreDeviceId") ignoreDeviceId: Boolean = false,
             @Query("page") page: Int = 0,
             @Query("size") size: Int = 500

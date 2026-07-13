@@ -42,6 +42,21 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             @Param("deviceId") String deviceId,
             org.springframework.data.domain.Pageable pageable);
 
+    @Query("""
+            SELECT b FROM Bill b
+            WHERE b.restaurantId = :restaurantId
+              AND b.serverUpdatedAt > :lastSyncTimestamp
+              AND (
+                    b.createdTerminalId = :terminalId
+                    OR b.currentOwnerTerminalId = :terminalId
+                  )
+            """)
+    org.springframework.data.domain.Page<Bill> findUpdatedForTerminal(
+            @Param("restaurantId") Long restaurantId,
+            @Param("lastSyncTimestamp") Long lastSyncTimestamp,
+            @Param("terminalId") String terminalId,
+            org.springframework.data.domain.Pageable pageable);
+
     long countByIsDeletedFalse();
 
     List<Bill> findByRestaurantIdAndIsDeletedFalse(Long restaurantId);

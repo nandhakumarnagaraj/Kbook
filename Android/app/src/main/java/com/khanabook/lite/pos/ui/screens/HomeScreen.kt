@@ -3,8 +3,6 @@
 package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -146,10 +144,6 @@ fun HomeScreen(
                             SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
                         }
                     }
-                    OrderPaymentModeCard(
-                        selectedMode = orderPaymentFlowMode,
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
             }
 
@@ -392,80 +386,6 @@ fun HomeScreen(
         }
     }
 
-}
-
-@Composable
-private fun OrderPaymentModeCard(
-    selectedMode: OrderPaymentFlowMode,
-    modifier: Modifier = Modifier
-) {
-    val spacing = KhanaBookTheme.spacing
-    KhanaBookCard(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = CardBG),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = spacing.small, vertical = spacing.small),
-            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
-        ) {
-            ReadOnlyPaymentFlowIndicator(
-                selectedMode = selectedMode,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-@Composable
-private fun ReadOnlyPaymentFlowIndicator(
-    selectedMode: OrderPaymentFlowMode,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(DarkBrown1.copy(alpha = 0.86f))
-            .border(BorderStroke(1.dp, BorderGold.copy(alpha = 0.45f)), RoundedCornerShape(8.dp))
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
-    ) {
-        ReadOnlyPaymentFlowOption(
-            text = "Pay After Food",
-            selected = selectedMode == OrderPaymentFlowMode.PAY_AFTER_FOOD,
-            modifier = Modifier.weight(1f)
-        )
-        ReadOnlyPaymentFlowOption(
-            text = "Pay Before Food",
-            selected = selectedMode == OrderPaymentFlowMode.PAY_BEFORE_FOOD,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-private fun ReadOnlyPaymentFlowOption(
-    text: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .height(38.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (selected) PrimaryGold else Color.Transparent)
-            .padding(horizontal = 8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            color = if (selected) DarkBrown2 else TextGold,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
 }
 
 @Composable

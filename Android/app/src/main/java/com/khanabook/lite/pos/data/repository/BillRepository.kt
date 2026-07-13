@@ -122,13 +122,13 @@ class BillRepository(
     suspend fun getBillByDailyIdAndDate(displayId: String, date: String): BillEntity? {
         val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(date)
         val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(date)
-        return billDao.getBillByDailyIdAndDate(displayId, start, end, sessionManager.getRestaurantId())
+        return billDao.getBillByDailyIdAndDate(displayId, start, end, sessionManager.getRestaurantId(), currentTerminalScope())
     }
 
     suspend fun getBillByDailyIntIdAndDate(dailyId: Long, date: String): BillEntity? {
         val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(date)
         val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(date)
-        return billDao.getBillByDailyIntIdAndDate(dailyId, start, end, sessionManager.getRestaurantId())
+        return billDao.getBillByDailyIntIdAndDate(dailyId, start, end, sessionManager.getRestaurantId(), currentTerminalScope())
     }
 
     fun getDraftBills(): Flow<List<BillEntity>> {
@@ -140,11 +140,12 @@ class BillRepository(
     suspend fun getLatestPendingOnlineBill(): BillEntity? {
         val restaurantId = sessionManager.getRestaurantId()
         val activeUserId = sessionManager.getActiveUserId()
+        val terminalId = currentTerminalScope()
         return if (activeUserId != null) {
-            billDao.getLatestPendingOnlineBill(restaurantId, activeUserId)
-                ?: billDao.getLatestPendingOnlineBill(restaurantId)
+            billDao.getLatestPendingOnlineBill(restaurantId, activeUserId, terminalId)
+                ?: billDao.getLatestPendingOnlineBill(restaurantId, terminalId)
         } else {
-            billDao.getLatestPendingOnlineBill(restaurantId)
+            billDao.getLatestPendingOnlineBill(restaurantId, terminalId)
         }
     }
 
@@ -252,7 +253,7 @@ class BillRepository(
 
     fun getBillsByDateRange(startMillis: Long, endMillis: Long): Flow<List<BillEntity>> {
         return sessionManager.restaurantId.flatMapLatest { restaurantId ->
-            billDao.getBillsByDateRange(startMillis, endMillis, restaurantId)
+            billDao.getBillsByDateRange(startMillis, endMillis, restaurantId, currentTerminalScope())
         }
     }
 
@@ -269,11 +270,11 @@ class BillRepository(
     }
 
     suspend fun getTopSellingItemsInRange(startMillis: Long, endMillis: Long, limit: Int): List<com.khanabook.lite.pos.domain.model.TopSellingItem> {
-        return billDao.getTopSellingItemsInRange(startMillis, endMillis, limit, sessionManager.getRestaurantId())
+        return billDao.getTopSellingItemsInRange(startMillis, endMillis, limit, sessionManager.getRestaurantId(), currentTerminalScope())
     }
 
     suspend fun getRecentCustomers(limit: Int = 5): List<Pair<String, String>> {
-        return billDao.getRecentBillsWithCustomers(sessionManager.getRestaurantId())
+        return billDao.getRecentBillsWithCustomers(sessionManager.getRestaurantId(), currentTerminalScope())
             .distinctBy { it.customerWhatsapp }
             .take(limit)
             .mapNotNull { bill ->
@@ -283,7 +284,7 @@ class BillRepository(
     }
 
     suspend fun getRecentDineInCustomers(limit: Int = 5): List<Pair<String, String>> {
-        return billDao.getRecentDineInBillsWithCustomers(sessionManager.getRestaurantId())
+        return billDao.getRecentDineInBillsWithCustomers(sessionManager.getRestaurantId(), currentTerminalScope())
             .distinctBy { it.customerName }
             .take(limit)
             .mapNotNull { bill ->
@@ -294,7 +295,7 @@ class BillRepository(
 
     // New GST invoice-number lookup (e.g. "26A1-000042").
     suspend fun getBillWithItemsByInvoiceNumber(invoiceNumber: String): BillWithItems? {
-        return billDao.getBillWithItemsByInvoiceNumber(invoiceNumber, sessionManager.getRestaurantId())
+        return billDao.getBillWithItemsByInvoiceNumber(invoiceNumber, sessionManager.getRestaurantId(), currentTerminalScope())
     }
 
     suspend fun getMaxInvoiceSequence(terminalSeries: String, financialYear: String): Long {
@@ -307,13 +308,13 @@ class BillRepository(
 
     // Legacy fallback: bills issued before the new numbering used lifetime_order_id (e.g. "INV42").
     suspend fun getBillWithItemsByLegacyInvoiceNo(invoiceNo: Long): BillWithItems? {
-        return billDao.getBillByLifetimeNo(invoiceNo, sessionManager.getRestaurantId())?.let { bill ->
+        return billDao.getBillByLifetimeNo(invoiceNo, sessionManager.getRestaurantId(), currentTerminalScope())?.let { bill ->
             billDao.getBillWithItemsById(bill.id, sessionManager.getRestaurantId())
         }
     }
 
     suspend fun getBillsWithPendingKds(): List<BillWithItems> {
-        return billDao.getBillsWithPendingKds(sessionManager.getRestaurantId()).mapNotNull { bill ->
+        return billDao.getBillsWithPendingKds(sessionManager.getRestaurantId(), currentTerminalScope()).mapNotNull { bill ->
             billDao.getBillWithItemsById(bill.id, sessionManager.getRestaurantId())
         }
     }

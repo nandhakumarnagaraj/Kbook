@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.servlet.http.HttpServletRequest;
 
 import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.repository.BillItemRepository;
+import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.service.*;
 
 import lombok.RequiredArgsConstructor;
@@ -31,11 +33,14 @@ public class MasterSyncController {
 	private final BillService billService;
 	private final BillItemService billItemService;
 	private final BillPaymentService billPaymentService;
+	private final BillItemRepository billItemRepository;
+	private final BillPaymentRepository billPaymentRepository;
 
 	@org.springframework.transaction.annotation.Transactional(readOnly = true)
 	@GetMapping("/pull")
 	public ResponseEntity<MasterSyncResponseDTO> pullMasterSync(@RequestParam Long lastSyncTimestamp,
 			@RequestParam String deviceId, @RequestParam(required = false) Long restaurantId,
+			@RequestParam(required = false) String terminalId,
 			@RequestParam(defaultValue = "false") boolean ignoreDeviceId,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "500") int size,
@@ -83,18 +88,22 @@ public class MasterSyncController {
 		org.springframework.data.domain.Page<com.khanabook.saas.entity.StockLog> stockLogsPage =
 				stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice, pageable);
 		org.springframework.data.domain.Page<com.khanabook.saas.entity.Bill> billsPage =
-				billService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice, pageable);
-		org.springframework.data.domain.Page<com.khanabook.saas.entity.BillItem> billItemsPage =
-				billItemService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice, pageable);
-		org.springframework.data.domain.Page<com.khanabook.saas.entity.BillPayment> billPaymentsPage =
-				billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice, pageable);
+				billService.pullData(tenantId, lastSyncTimestamp, deviceId, terminalId, transactionalCrossDevice, pageable);
+		java.util.List<com.khanabook.saas.entity.BillItem> billItems =
+				terminalId == null || terminalId.isBlank()
+						? java.util.Collections.emptyList()
+						: billItemRepository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, terminalId);
+		java.util.List<com.khanabook.saas.entity.BillPayment> billPayments =
+				terminalId == null || terminalId.isBlank()
+						? java.util.Collections.emptyList()
+						: billPaymentRepository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, terminalId);
 
 		response.setStockLogs(SyncMapper.mapList(stockLogsPage.getContent(), StockLogDTO.class));
 		response.setBills(SyncMapper.mapList(billsPage.getContent(), BillDTO.class));
-		response.setBillItems(SyncMapper.mapList(billItemsPage.getContent(), BillItemDTO.class));
-		response.setBillPayments(SyncMapper.mapList(billPaymentsPage.getContent(), BillPaymentDTO.class));
+		response.setBillItems(SyncMapper.mapList(billItems, BillItemDTO.class));
+		response.setBillPayments(SyncMapper.mapList(billPayments, BillPaymentDTO.class));
 
-		boolean hasMore = stockLogsPage.hasNext() || billsPage.hasNext() || billItemsPage.hasNext() || billPaymentsPage.hasNext();
+		boolean hasMore = stockLogsPage.hasNext() || billsPage.hasNext();
 		response.setHasMore(hasMore);
 		if (hasMore) {
 			response.setNextPage(page + 1);

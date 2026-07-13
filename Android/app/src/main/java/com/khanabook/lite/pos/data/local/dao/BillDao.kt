@@ -75,7 +75,7 @@ interface BillDao {
           AND payment_status = 'pending'
           AND order_type = 'dine_in'
           AND is_deleted = 0
-          AND COALESCE(terminal_id, created_terminal_id, terminal_series, 'LEGACY_UNRESOLVED') = :terminalId
+          AND current_owner_terminal_id = :terminalId
           AND NOT EXISTS (
               SELECT 1
               FROM bill_payments
@@ -152,13 +152,14 @@ interface BillDao {
             WHERE daily_order_display = :displayId
               AND restaurant_id = :restaurantId
               AND is_deleted = 0
+              AND created_terminal_id = :terminalId
               AND created_at BETWEEN :startTime AND :endTime
             ORDER BY (SELECT COUNT(*) FROM bill_items WHERE bill_items.bill_id = bills.id AND bill_items.restaurant_id = :restaurantId) DESC,
                      updated_at DESC
             LIMIT 1
             """
     )
-    suspend fun getBillByDailyIdAndDate(displayId: String, startTime: Long, endTime: Long, restaurantId: Long): BillEntity?
+    suspend fun getBillByDailyIdAndDate(displayId: String, startTime: Long, endTime: Long, restaurantId: Long, terminalId: String): BillEntity?
 
     @Query(
             """
@@ -166,20 +167,21 @@ interface BillDao {
             WHERE daily_order_id = :dailyId
               AND restaurant_id = :restaurantId
               AND is_deleted = 0
+              AND created_terminal_id = :terminalId
               AND created_at BETWEEN :startTime AND :endTime
             ORDER BY (SELECT COUNT(*) FROM bill_items WHERE bill_items.bill_id = bills.id AND bill_items.restaurant_id = :restaurantId) DESC,
                      updated_at DESC
             LIMIT 1
             """
     )
-    suspend fun getBillByDailyIntIdAndDate(dailyId: Long, startTime: Long, endTime: Long, restaurantId: Long): BillEntity?
+    suspend fun getBillByDailyIntIdAndDate(dailyId: Long, startTime: Long, endTime: Long, restaurantId: Long, terminalId: String): BillEntity?
 
     @Query("""
         SELECT * FROM bills
         WHERE order_status = 'draft'
           AND restaurant_id = :restaurantId
           AND is_deleted = 0
-          AND COALESCE(terminal_id, created_terminal_id, terminal_series, 'LEGACY_UNRESOLVED') = :terminalId
+          AND created_terminal_id = :terminalId
           AND NOT EXISTS (
               SELECT 1
               FROM bill_payments
@@ -196,26 +198,28 @@ interface BillDao {
           AND payment_status = 'pending'
           AND restaurant_id = :restaurantId
           AND owner_user_id = :ownerUserId
+          AND created_terminal_id = :terminalId
           AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos'
           )
         ORDER BY created_at DESC
         LIMIT 1
     """)
-    suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long): BillEntity?
+    suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long, terminalId: String): BillEntity?
 
     @Query("""
         SELECT * FROM bills
         WHERE order_status = 'draft'
           AND payment_status = 'pending'
           AND restaurant_id = :restaurantId
+          AND created_terminal_id = :terminalId
           AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos'
           )
         ORDER BY created_at DESC
         LIMIT 1
     """)
-    suspend fun getLatestPendingOnlineBill(restaurantId: Long): BillEntity?
+    suspend fun getLatestPendingOnlineBill(restaurantId: Long, terminalId: String): BillEntity?
 
     @Query("""
         SELECT * FROM bills
@@ -223,7 +227,7 @@ interface BillDao {
           AND payment_status = 'pending'
           AND restaurant_id = :restaurantId
           AND is_deleted = 0
-          AND COALESCE(terminal_id, created_terminal_id, terminal_series, 'LEGACY_UNRESOLVED') = :terminalId
+          AND created_terminal_id = :terminalId
           AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos'
           )
@@ -255,9 +259,9 @@ interface BillDao {
     suspend fun cancelStalePendingOnlineDrafts(reason: String, updatedAt: Long, restaurantId: Long): Int
 
     @Query(
-            "SELECT * FROM bills WHERE created_at BETWEEN :startMillis AND :endMillis AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY created_at DESC"
+            "SELECT * FROM bills WHERE created_at BETWEEN :startMillis AND :endMillis AND is_deleted = 0 AND restaurant_id = :restaurantId AND created_terminal_id = :terminalId ORDER BY created_at DESC"
     )
-    fun getBillsByDateRange(startMillis: Long, endMillis: Long, restaurantId: Long): Flow<List<BillEntity>>
+    fun getBillsByDateRange(startMillis: Long, endMillis: Long, restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
 
     @Transaction
     @Query("SELECT * FROM bills WHERE id = :id AND restaurant_id = :restaurantId")
@@ -271,11 +275,12 @@ interface BillDao {
         WHERE invoice_number = :invoiceNumber
           AND restaurant_id = :restaurantId
           AND is_deleted = 0
+          AND created_terminal_id = :terminalId
         ORDER BY (SELECT COUNT(*) FROM bill_items WHERE bill_items.bill_id = bills.id AND bill_items.restaurant_id = :restaurantId) DESC,
                  updated_at DESC
         LIMIT 1
     """)
-    suspend fun getBillWithItemsByInvoiceNumber(invoiceNumber: String, restaurantId: Long): BillWithItems?
+    suspend fun getBillWithItemsByInvoiceNumber(invoiceNumber: String, restaurantId: Long, terminalId: String): BillWithItems?
 
     @Transaction
     suspend fun insertFullBill(
@@ -739,12 +744,16 @@ interface BillDao {
         SELECT item_name as itemName, SUM(quantity) as quantitySold, SUM(item_total) as revenue
         FROM bill_items
         INNER JOIN bills ON bill_items.bill_id = bills.id
-        WHERE bills.order_status = 'completed' AND bills.is_deleted = 0 AND bills.restaurant_id = :restaurantId AND bills.created_at BETWEEN :startMillis AND :endMillis
+        WHERE bills.order_status = 'completed'
+          AND bills.is_deleted = 0
+          AND bills.restaurant_id = :restaurantId
+          AND bills.created_terminal_id = :terminalId
+          AND bills.created_at BETWEEN :startMillis AND :endMillis
         GROUP BY item_name
         ORDER BY quantitySold DESC
         LIMIT :limit
     """)
-    suspend fun getTopSellingItemsInRange(startMillis: Long, endMillis: Long, limit: Int, restaurantId: Long): List<com.khanabook.lite.pos.domain.model.TopSellingItem>
+    suspend fun getTopSellingItemsInRange(startMillis: Long, endMillis: Long, limit: Int, restaurantId: Long, terminalId: String): List<com.khanabook.lite.pos.domain.model.TopSellingItem>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedBillPayments(payments: List<BillPaymentEntity>)
@@ -770,14 +779,14 @@ interface BillDao {
     @Query("DELETE FROM bill_payments WHERE server_id IN (:serverIds) AND is_synced = 1 AND restaurant_id = :restaurantId")
     suspend fun deleteSyncedBillPaymentsByServerIds(serverIds: List<Long>, restaurantId: Long)
 
-    @Query("SELECT * FROM bills WHERE customer_whatsapp IS NOT NULL AND customer_whatsapp != '' AND order_type = 'takeaway' AND order_status = 'completed' AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY created_at DESC LIMIT 20")
-    suspend fun getRecentBillsWithCustomers(restaurantId: Long): List<BillEntity>
+    @Query("SELECT * FROM bills WHERE customer_whatsapp IS NOT NULL AND customer_whatsapp != '' AND order_type = 'takeaway' AND order_status = 'completed' AND is_deleted = 0 AND restaurant_id = :restaurantId AND created_terminal_id = :terminalId ORDER BY created_at DESC LIMIT 20")
+    suspend fun getRecentBillsWithCustomers(restaurantId: Long, terminalId: String): List<BillEntity>
 
-    @Query("SELECT * FROM bills WHERE customer_name IS NOT NULL AND customer_name != '' AND order_type = 'dine_in' AND order_status = 'completed' AND is_deleted = 0 AND restaurant_id = :restaurantId ORDER BY created_at DESC LIMIT 20")
-    suspend fun getRecentDineInBillsWithCustomers(restaurantId: Long): List<BillEntity>
+    @Query("SELECT * FROM bills WHERE customer_name IS NOT NULL AND customer_name != '' AND order_type = 'dine_in' AND order_status = 'completed' AND is_deleted = 0 AND restaurant_id = :restaurantId AND created_terminal_id = :terminalId ORDER BY created_at DESC LIMIT 20")
+    suspend fun getRecentDineInBillsWithCustomers(restaurantId: Long, terminalId: String): List<BillEntity>
 
-    @Query("SELECT * FROM bills WHERE lifetime_order_id = :lifetimeNo AND restaurant_id = :restaurantId AND is_deleted = 0 LIMIT 1")
-    suspend fun getBillByLifetimeNo(lifetimeNo: Long, restaurantId: Long): BillEntity?
+    @Query("SELECT * FROM bills WHERE lifetime_order_id = :lifetimeNo AND restaurant_id = :restaurantId AND created_terminal_id = :terminalId AND is_deleted = 0 LIMIT 1")
+    suspend fun getBillByLifetimeNo(lifetimeNo: Long, restaurantId: Long, terminalId: String): BillEntity?
 
     @Query(
         """
@@ -785,8 +794,9 @@ interface BillDao {
         INNER JOIN kitchen_print_queue kpq ON b.id = kpq.bill_id
         WHERE kpq.dispatch_status != 'SENT'
           AND b.restaurant_id = :restaurantId
+          AND b.created_terminal_id = :terminalId
         ORDER BY b.created_at DESC
         """
     )
-    suspend fun getBillsWithPendingKds(restaurantId: Long): List<BillEntity>
+    suspend fun getBillsWithPendingKds(restaurantId: Long, terminalId: String): List<BillEntity>
 }
