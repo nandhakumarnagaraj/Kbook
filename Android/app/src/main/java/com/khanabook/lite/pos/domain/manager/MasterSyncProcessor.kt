@@ -918,9 +918,9 @@ class MasterSyncProcessor @Inject constructor(
                         publicToken = remoteBill.publicToken,
                         // Server-owned: null if no refund has been recorded on this bill.
                         refundAmount = remoteBill.refundAmount?.toString(),
-                        currentOwnerTerminalId = remoteBill.currentOwnerTerminalId,
-                        version = remoteBill.version,
-                        lockStatus = remoteBill.lockStatus,
+                        currentOwnerTerminalId = remoteBill.currentOwnerTerminalId?.takeUnless { it.isBlank() },
+                        version = remoteBill.version ?: 0L,
+                        lockStatus = remoteBill.lockStatus?.takeUnless { it.isBlank() } ?: "unlocked",
                         operationId = remoteBill.operationId
                     )
                 }
@@ -1072,7 +1072,7 @@ class MasterSyncProcessor @Inject constructor(
                         serverId = remoteBillPayment.serverId,
                         serverBillId = remoteBillPayment.serverBillId,
                         serverUpdatedAt = remoteBillPayment.serverUpdatedAt ?: 0L,
-                        version = remoteBillPayment.version
+                        version = remoteBillPayment.version ?: 0L
                     )
                     }
                 }
