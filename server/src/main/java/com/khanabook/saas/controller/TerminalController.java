@@ -45,20 +45,21 @@ public class TerminalController {
         Set<String> assignedSeries = new HashSet<>();
         for (RestaurantTerminal terminal : terminalRepository.findByRestaurantIdOrderByIdAsc(restaurantId)) {
             if (terminal.getTerminalSeries() != null) {
-                assignedSeries.add(terminal.getTerminalSeries());
+                assignedSeries.add(normalizeSeries(terminal.getTerminalSeries()));
             }
         }
 
         int seriesNumber = 1;
-        while (assignedSeries.contains("A" + seriesNumber)) {
+        while (assignedSeries.contains(seriesForNumber(seriesNumber))) {
             seriesNumber++;
         }
+        String terminalSeries = seriesForNumber(seriesNumber);
 
         long now = System.currentTimeMillis();
         RestaurantTerminal terminal = new RestaurantTerminal();
         terminal.setRestaurantId(restaurantId);
-        terminal.setTerminalSeries("A" + seriesNumber);
-        terminal.setTerminalName("Terminal " + seriesNumber);
+        terminal.setTerminalSeries(terminalSeries);
+        terminal.setTerminalName("Terminal " + terminalSeries);
         terminal.setDeviceId(deviceId);
         terminal.setIsActive(true);
         terminal.setCreatedAt(now);
@@ -87,5 +88,24 @@ public class TerminalController {
                 terminal.getIsActive() == null ? Boolean.TRUE : terminal.getIsActive(),
                 terminal.getCreatedAt(),
                 terminal.getUpdatedAt());
+    }
+
+    private String seriesForNumber(int number) {
+        if (number >= 1 && number <= 26) {
+            return String.valueOf((char) ('A' + number - 1));
+        }
+        return "T" + number;
+    }
+
+    private String normalizeSeries(String series) {
+        String trimmed = series == null ? "" : series.trim();
+        if (trimmed.isEmpty()) {
+            return trimmed;
+        }
+        char first = Character.toUpperCase(trimmed.charAt(0));
+        if (first >= 'A' && first <= 'Z') {
+            return String.valueOf(first);
+        }
+        return trimmed.toUpperCase();
     }
 }

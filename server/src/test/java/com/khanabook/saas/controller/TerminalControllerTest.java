@@ -61,7 +61,7 @@ class TerminalControllerTest {
         var response = controller.activate(new TerminalController.TerminalActivationRequest(" device-4 "));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody().terminalSeries()).isEqualTo("A2");
+        assertThat(response.getBody().terminalSeries()).isEqualTo("B");
     }
 
     @Test
