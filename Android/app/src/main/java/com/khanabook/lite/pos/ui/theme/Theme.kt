@@ -5,6 +5,9 @@ import android.os.Build
 import android.util.Log
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +45,7 @@ object KhanaBookTheme {
         get() = LocalResponsiveLayout.current
 }
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun KhanaBookLiteTheme(
     displayScale: Float = 1.0f,
@@ -50,7 +54,15 @@ fun KhanaBookLiteTheme(
     val view = LocalView.current
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
-    val responsiveLayout = responsiveLayoutForWidth(configuration.screenWidthDp)
+    val widthSizeClass = if (view.isInEditMode) {
+        WindowWidthSizeClass.Compact
+    } else {
+        calculateWindowSizeClass(view.context as Activity).widthSizeClass
+    }
+    val responsiveLayout = responsiveLayoutForWindowSizeClass(
+        screenWidthDp = configuration.screenWidthDp,
+        widthSizeClass = widthSizeClass
+    )
     val appTypography = typographyForSdk(Build.VERSION.SDK_INT)
 
     if (BuildConfig.DEBUG) {

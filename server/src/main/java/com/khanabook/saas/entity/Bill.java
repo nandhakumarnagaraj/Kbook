@@ -32,6 +32,15 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "terminal_series")
 	private String terminalSeries;
 
+	@Column(name = "created_terminal_id")
+	private String createdTerminalId;
+
+	@Column(name = "created_device_id")
+	private String createdDeviceId;
+
+	@Column(name = "current_owner_terminal_id")
+	private String currentOwnerTerminalId;
+
 	@Column(name = "financial_year")
 	private String financialYear;
 

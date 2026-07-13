@@ -35,6 +35,15 @@ public class BillServiceImpl implements BillService {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zoneId);
 
 		for (Bill bill : payload) {
+			if (bill.getCreatedTerminalId() == null || bill.getCreatedTerminalId().isBlank()) {
+				bill.setCreatedTerminalId(bill.getTerminalId());
+			}
+			if (bill.getCurrentOwnerTerminalId() == null || bill.getCurrentOwnerTerminalId().isBlank()) {
+				bill.setCurrentOwnerTerminalId(bill.getCreatedTerminalId());
+			}
+			if (bill.getCreatedDeviceId() == null || bill.getCreatedDeviceId().isBlank()) {
+				bill.setCreatedDeviceId(bill.getDeviceId());
+			}
 			if (bill.getLastResetDate() == null) {
 
 				Long created = bill.getCreatedAt() != null
@@ -106,5 +115,14 @@ public class BillServiceImpl implements BillService {
 			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp, pageable);
 		}
 		return repository.findUpdatedExcludingOwnActiveOnly(tenantId, lastSyncTimestamp, deviceId, pageable);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public org.springframework.data.domain.Page<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, String terminalId, boolean ignoreDeviceId, org.springframework.data.domain.Pageable pageable) {
+		if (terminalId != null && !terminalId.isBlank()) {
+			return repository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, terminalId, pageable);
+		}
+		return pullData(tenantId, lastSyncTimestamp, deviceId, ignoreDeviceId, pageable);
 	}
 }

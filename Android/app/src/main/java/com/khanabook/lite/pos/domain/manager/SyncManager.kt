@@ -273,7 +273,7 @@ class SyncManager @Inject constructor(
         lastSyncTimestamp: Long,
         deviceId: String
     ): List<MasterSyncResponse> {
-        val isBootstrapPull = lastSyncTimestamp == 0L
+        val terminalId = sessionManager.getTerminalId() ?: sessionManager.getTerminalSeries()
         val pages = mutableListOf<MasterSyncResponse>()
         var page = 0
         var hasMore = true
@@ -281,7 +281,8 @@ class SyncManager @Inject constructor(
             val response = api.pullMasterSync(
                 lastSyncTimestamp = lastSyncTimestamp,
                 deviceId = deviceId,
-                ignoreDeviceId = isBootstrapPull,
+                terminalId = terminalId,
+                ignoreDeviceId = false,
                 page = page,
                 size = 500
             )
