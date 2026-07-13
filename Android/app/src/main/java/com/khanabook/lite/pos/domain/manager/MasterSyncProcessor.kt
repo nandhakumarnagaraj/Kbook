@@ -876,12 +876,15 @@ class MasterSyncProcessor @Inject constructor(
                     }
                     val isMyDevice = remoteBill.deviceId == sessionManager.getDeviceId()
                     val assignedId = if (isMyDevice && remoteBill.id > 0) remoteBill.id else (remoteBill.serverId ?: remoteBill.id)
+                    val createdTerminalId = remoteBill.createdTerminalId
+                        ?.takeUnless { it.isBlank() }
+                        ?: remoteBill.terminalId?.takeUnless { it.isBlank() }
                     BillEntity(
                         id = assignedId,
                         restaurantId = remoteBill.restaurantId ?: 0L,
                         deviceId = remoteBill.deviceId.orFallback(""),
                         terminalId = remoteBill.terminalId,
-                        createdTerminalId = remoteBill.createdTerminalId ?: remoteBill.terminalId,
+                        createdTerminalId = createdTerminalId,
                         createdDeviceId = remoteBill.createdDeviceId ?: remoteBill.deviceId,
                         dailyOrderId = remoteBill.dailyOrderId ?: 0,
                         dailyOrderDisplay = remoteBill.dailyOrderDisplay.orFallback(""),
@@ -918,7 +921,9 @@ class MasterSyncProcessor @Inject constructor(
                         publicToken = remoteBill.publicToken,
                         // Server-owned: null if no refund has been recorded on this bill.
                         refundAmount = remoteBill.refundAmount?.toString(),
-                        currentOwnerTerminalId = remoteBill.currentOwnerTerminalId?.takeUnless { it.isBlank() },
+                        currentOwnerTerminalId = remoteBill.currentOwnerTerminalId
+                            ?.takeUnless { it.isBlank() }
+                            ?: createdTerminalId,
                         version = remoteBill.version ?: 0L,
                         lockStatus = remoteBill.lockStatus?.takeUnless { it.isBlank() } ?: "unlocked",
                         operationId = remoteBill.operationId

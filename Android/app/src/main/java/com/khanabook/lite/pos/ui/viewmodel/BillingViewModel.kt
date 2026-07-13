@@ -74,7 +74,7 @@ class BillingViewModel @Inject constructor(
             financialYear = financialYear,
             invoiceSeries = invoiceSeries,
             invoiceSequence = sequence,
-            invoiceNumber = "$invoiceSeries-${sequence.toString().padStart(6, '0')}"
+            invoiceNumber = "$invoiceSeries-${sequence.toString().padStart(2, '0')}"
         )
     }
 
@@ -917,6 +917,13 @@ class BillingViewModel @Inject constructor(
                             first.copy(quantity = totalQty)
                         }
                     _cartItems.value = cartList
+                    _billSummary.value = BillSummary(
+                        subtotal = billWithItems.bill.subtotal,
+                        cgst = billWithItems.bill.cgstAmount,
+                        sgst = billWithItems.bill.sgstAmount,
+                        customTax = billWithItems.bill.customTaxAmount,
+                        total = billWithItems.bill.totalAmount
+                    )
                     onComplete()
                 }
             } catch (e: Exception) {
