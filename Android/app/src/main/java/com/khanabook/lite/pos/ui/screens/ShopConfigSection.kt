@@ -118,6 +118,9 @@ fun ShopConfigView(
     val pinError by appLockViewModel.errorMessage.collectAsStateWithLifecycle()
     val isGoogleAuth = currentUser?.authProvider.equals("GOOGLE", ignoreCase = true)
     val currentPaymentFlowMode = OrderPaymentFlowMode.fromDbValue(profile?.orderPaymentFlowMode)
+    var selectedPaymentFlowMode by remember(profile?.orderPaymentFlowMode) {
+        mutableStateOf(currentPaymentFlowMode)
+    }
     var pendingPaymentFlowMode by remember { mutableStateOf<OrderPaymentFlowMode?>(null) }
     var showModePinDialog by remember { mutableStateOf(false) }
     val isPinEnabled = remember { appLockViewModel.isPinEnabled() }
@@ -185,7 +188,10 @@ fun ShopConfigView(
     LaunchedEffect(enteredPin, showModePinDialog) {
         if (showModePinDialog && enteredPin.length == 4) {
             appLockViewModel.verifyPin {
-                pendingPaymentFlowMode?.let(viewModel::updateOrderPaymentFlowMode)
+                pendingPaymentFlowMode?.let { mode ->
+                    selectedPaymentFlowMode = mode
+                    viewModel.updateOrderPaymentFlowMode(mode)
+                }
                 pendingPaymentFlowMode = null
                 showModePinDialog = false
                 appLockViewModel.clearPin()
@@ -424,14 +430,15 @@ fun ShopConfigView(
             ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer")
             Spacer(modifier = Modifier.height(spacing.medium))
             RestaurantPaymentFlowSelector(
-                selectedMode = currentPaymentFlowMode,
+                selectedMode = selectedPaymentFlowMode,
                 onModeSelected = { mode ->
-                    if (mode == currentPaymentFlowMode) return@RestaurantPaymentFlowSelector
+                    if (mode == selectedPaymentFlowMode) return@RestaurantPaymentFlowSelector
                     pendingPaymentFlowMode = mode
                     if (isPinEnabled) {
                         appLockViewModel.clearPin()
                         showModePinDialog = true
                     } else {
+                        selectedPaymentFlowMode = mode
                         viewModel.updateOrderPaymentFlowMode(mode)
                         pendingPaymentFlowMode = null
                     }
@@ -456,6 +463,7 @@ fun ShopConfigView(
                                 emailInvoiceConsent = consent,
                                 reviewUrl = reviewUrl,
                                 invoiceFooter = invoiceFooter,
+                                orderPaymentFlowMode = selectedPaymentFlowMode.dbValue,
                                 isSynced = false,
                                 updatedAt = System.currentTimeMillis()
                             )

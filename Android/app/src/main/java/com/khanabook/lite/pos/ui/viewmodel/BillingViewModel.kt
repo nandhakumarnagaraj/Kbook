@@ -64,6 +64,7 @@ class BillingViewModel @Inject constructor(
     private suspend fun allocateInvoiceIdentity(createdAt: Long): InvoiceIdentity? {
         val terminalSeries = sessionManager.getTerminalSeries()?.trim()?.takeIf { it.isNotEmpty() }
             ?: return null
+        val displaySeries = terminalSeries.first().uppercaseChar().toString()
         val zoneId = java.time.ZoneId.of("Asia/Kolkata")
         val date = java.time.Instant.ofEpochMilli(createdAt).atZone(zoneId).toLocalDate()
         val financialYearStart = if (date.monthValue >= 4) date.year else date.year - 1
@@ -74,7 +75,7 @@ class BillingViewModel @Inject constructor(
             financialYear = financialYear,
             invoiceSeries = invoiceSeries,
             invoiceSequence = sequence,
-            invoiceNumber = "$invoiceSeries-${sequence.toString().padStart(2, '0')}"
+            invoiceNumber = "$displaySeries${sequence.toString().padStart(2, '0')}"
         )
     }
 

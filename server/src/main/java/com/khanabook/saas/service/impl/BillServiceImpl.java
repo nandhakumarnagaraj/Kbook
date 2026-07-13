@@ -81,9 +81,16 @@ public class BillServiceImpl implements BillService {
 			bill.setFinancialYear(financialYear);
 			bill.setInvoiceSeries(invoiceSeries);
 			bill.setInvoiceSequence(sequence);
-			bill.setInvoiceNumber(invoiceSeries + "-" + String.format("%02d", sequence));
+			bill.setInvoiceNumber(displayInvoiceSeries(terminalSeries) + String.format("%02d", sequence));
 			nextBySeries.put(key, sequence + 1L);
 		}
+	}
+
+	private String displayInvoiceSeries(String terminalSeries) {
+		if (terminalSeries == null || terminalSeries.isBlank()) {
+			return "";
+		}
+		return terminalSeries.trim().substring(0, 1).toUpperCase();
 	}
 
 	private ZoneId resolveZoneId(String timezone) {
