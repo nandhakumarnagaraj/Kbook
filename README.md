@@ -14,6 +14,8 @@ ops/          Production backup, restore, and deployment notes
 ## Core Features
 
 - Offline-first billing with background bidirectional sync.
+- Multi-device restaurant ordering with per-terminal invoice series.
+- Kitchen Order Ticket (KOT) event tracking for new, added, and voided items.
 - Menu, category, variant, inventory, and staff management.
 - GST-aware billing, part payments, refunds, and order reports.
 - Bluetooth thermal printer support with ESC/POS output.
@@ -21,6 +23,35 @@ ops/          Production backup, restore, and deployment notes
 - Multi-tenant backend with JWT authentication and tenant isolation.
 - Public storefront and customer order APIs.
 - Web admin dashboard for platform and business administration.
+
+## Multi-Device POS Model
+
+KhanaBook supports one restaurant account running on multiple Android devices.
+Each device is activated as a terminal and receives its own terminal series, such
+as `A1`, `A2`, or `A3`. New invoice numbers are allocated with the financial
+year plus terminal series, for example:
+
+```text
+26A1-000001
+26A2-000001
+```
+
+Bills are reconciled by immutable `publicToken` identity during sync. The legacy
+`lifetimeOrderId` field is retained only for old bill display/search fallback and
+is not used for new invoice allocation or sync reconciliation.
+
+KOT printing is event-based:
+
+- `NEW` event for a new kitchen-facing order.
+- `ADD` event when new items are added to an active order.
+- `VOID` event when items are reduced or removed.
+- Event identity is `publicToken + kotRevision`.
+- Auto KOT printing is guarded so a synced bill from another terminal does not
+  duplicate-print on the current device.
+
+Before production rollout, validate this flow on two real Android devices and a
+real kitchen printer. Printer behavior, offline queueing, and sync timing are
+hardware-sensitive.
 
 ## Tech Stack
 
@@ -182,6 +213,13 @@ cd Android
 ./gradlew test
 ```
 
+Focused KOT repository tests:
+
+```bash
+cd Android
+./gradlew testDebugUnitTest --tests com.khanabook.lite.pos.BillRepositoryTest
+```
+
 Android instrumented tests:
 
 ```bash
@@ -195,6 +233,21 @@ Web admin tests:
 cd web-admin
 npm test
 ```
+
+## Multi-Device Acceptance Test
+
+Use this checklist before releasing multi-device/KOT changes:
+
+1. Install the same APK on two Android devices.
+2. Log in to the same restaurant on both devices.
+3. Confirm each device has a different terminal series, for example `A1` and `A2`.
+4. Create an order on Device A and confirm invoice numbering uses Device A's series.
+5. Create an order on Device B and confirm invoice numbering uses Device B's series.
+6. Print KOT from Device A and confirm it prints once.
+7. Sync Device B and confirm Device B does not duplicate-print Device A's KOT.
+8. Add an item on Device A and confirm only the new item prints.
+9. Reduce or remove an item and confirm the `VOID` event is recorded.
+10. Settle orders from both devices and confirm the backend/admin shows both bills.
 
 ## Git Workflow
 

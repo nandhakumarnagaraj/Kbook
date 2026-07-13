@@ -29,6 +29,10 @@ public abstract class BaseSyncEntity {
 	@JsonProperty("deviceId")
 	private String deviceId;
 
+	@Column(name = "terminal_id")
+	@JsonProperty("terminalId")
+	private String terminalId;
+
 	@Column(name = "restaurant_id", nullable = false)
 	@JsonProperty("restaurantId")
 	private Long restaurantId;

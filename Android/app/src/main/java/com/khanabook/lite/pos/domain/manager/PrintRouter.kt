@@ -7,6 +7,7 @@ import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.repository.PrinterProfileRepository
 import com.khanabook.lite.pos.data.local.dao.BillDao
+import com.khanabook.lite.pos.data.local.dao.KotEventDao
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.model.PrinterRole
 import com.khanabook.lite.pos.domain.util.InvoiceFormatter
@@ -41,6 +42,7 @@ class PrintRouter @Inject constructor(
     private val printerManager: BluetoothPrinterManager,
     private val kitchenPrintQueueManager: KitchenPrintQueueManager,
     private val billDao: BillDao,
+    private val kotEventDao: KotEventDao,
     private val sessionManager: SessionManager
 ) {
     companion object {
@@ -66,7 +68,9 @@ class PrintRouter @Inject constructor(
                 if (kitchenProfile.macAddress.isBlank()) {
                     kitchenPrintQueueManager.enqueueUnassigned(
                         bill.bill.id,
-                        "kitchen printer not configured during billing"
+                        "kitchen printer not configured during billing",
+                        publicToken = latestKotEventPublicToken(bill),
+                        kotRevision = latestKotEventRevision(bill)
                     )
                     kitchenQueued = true
                     kitchenQueueReason = "not_configured"
@@ -157,13 +161,16 @@ class PrintRouter @Inject constructor(
                 }
 
                 if (success) {
-                    maybeClearKitchenQueue(bill.bill.id, target)
                     if (isKitchenTarget && mode == PrintDispatchMode.AUTO && itemsToPrint.isNotEmpty()) {
+                        maybeClearKitchenQueue(bill.bill.id, target)
+                        bill.bill.publicToken?.let { kotEventDao.markUnprintedEventsPrinted(it) }
                         billDao.markItemsSentToKot(itemsToPrint.map { it.id }, bill.bill.restaurantId)
+                    } else {
+                        maybeClearKitchenQueue(bill.bill.id, target)
                     }
                 } else {
                     maybeQueueKitchenRetry(
-                        bill.bill.id,
+                        bill,
                         target,
                         mode,
                         errorMsg,
@@ -235,7 +242,7 @@ class PrintRouter @Inject constructor(
     }
 
     private suspend fun maybeQueueKitchenRetry(
-        billId: Long,
+        bill: BillWithItems,
         target: PrinterProfileEntity,
         mode: PrintDispatchMode,
         error: String,
@@ -243,14 +250,24 @@ class PrintRouter @Inject constructor(
     ): Boolean {
         if (mode == PrintDispatchMode.AUTO && target.role == PrinterRole.KITCHEN.name) {
             kitchenPrintQueueManager.enqueue(
-                billId = billId,
+                billId = bill.bill.id,
                 printerMac = target.macAddress,
                 error = error,
-                incrementAttempts = incrementAttempts
+                incrementAttempts = incrementAttempts,
+                publicToken = latestKotEventPublicToken(bill),
+                kotRevision = latestKotEventRevision(bill)
             )
             return true
         }
         return false
+    }
+
+    private suspend fun latestKotEventPublicToken(bill: BillWithItems): String? =
+        bill.bill.publicToken?.takeIf { it.isNotBlank() }
+
+    private suspend fun latestKotEventRevision(bill: BillWithItems): String? {
+        val publicToken = latestKotEventPublicToken(bill) ?: return null
+        return kotEventDao.getLatestUnprintedEvent(publicToken)?.kotRevision
     }
 
     private suspend fun maybeClearKitchenQueue(

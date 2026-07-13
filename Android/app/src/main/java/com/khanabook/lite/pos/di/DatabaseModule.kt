@@ -225,6 +225,7 @@ object DatabaseModule {
         inventoryConsumptionManager: InventoryConsumptionManager,
         workManager: androidx.work.WorkManager,
         kitchenPrintQueueRepository: KitchenPrintQueueRepository,
+        kotEventDao: KotEventDao,
         sessionManager: SessionManager
     ) = BillRepository(
         billDao,
@@ -232,6 +233,7 @@ object DatabaseModule {
         inventoryConsumptionManager,
         workManager,
         kitchenPrintQueueRepository,
+        kotEventDao,
         sessionManager
     )
 

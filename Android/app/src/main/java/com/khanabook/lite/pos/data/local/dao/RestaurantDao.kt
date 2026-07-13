@@ -104,12 +104,11 @@ interface RestaurantDao {
     suspend fun updateLifetimeCounter(restaurantId: Long, counter: Long, updatedAt: Long)
 
     @Query(
-        "UPDATE restaurant_profile SET daily_order_counter = MAX(daily_order_counter, :dailyCounter), lifetime_order_counter = MAX(lifetime_order_counter, :lifetimeCounter), last_reset_date = :date, is_synced = 0, updated_at = :updatedAt WHERE restaurant_id = :restaurantId"
+        "UPDATE restaurant_profile SET daily_order_counter = MAX(daily_order_counter, :dailyCounter), last_reset_date = :date, is_synced = 0, updated_at = :updatedAt WHERE restaurant_id = :restaurantId"
     )
-    suspend fun raiseCountersAtLeast(
+    suspend fun raiseDailyCounterAtLeast(
         restaurantId: Long,
         dailyCounter: Long,
-        lifetimeCounter: Long,
         date: String,
         updatedAt: Long
     )

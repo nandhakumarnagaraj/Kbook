@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.khanabook.lite.pos.BuildConfig
+import com.khanabook.lite.pos.domain.model.TerminalIdentity
 import com.khanabook.lite.pos.domain.util.KeystoreBackedPreferences
 import com.khanabook.lite.pos.domain.util.LegacyEncryptedPrefsMigration
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -106,6 +107,56 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         if (restaurantId > 0L) {
             prefs.edit().putString(scopedKey("terminal_series"), series).apply()
         }
+    }
+
+    fun getTerminalId(): String? {
+        val restaurantId = getRestaurantId()
+        if (restaurantId <= 0L) return null
+        return prefs.getString(scopedKey("terminal_id"), null)
+    }
+
+    fun getTerminalName(): String? {
+        val restaurantId = getRestaurantId()
+        if (restaurantId <= 0L) return null
+        return prefs.getString(scopedKey("terminal_name"), null)
+    }
+
+    fun getTerminalIdentity(): TerminalIdentity? {
+        val restaurantId = getRestaurantId()
+        if (restaurantId <= 0L) return null
+        val terminalId = getTerminalId()?.takeIf { it.isNotBlank() } ?: return null
+        val terminalSeries = getTerminalSeries()?.takeIf { it.isNotBlank() } ?: return null
+        return TerminalIdentity(
+            restaurantId = restaurantId,
+            terminalId = terminalId,
+            deviceId = getDeviceId(),
+            terminalName = getTerminalName(),
+            terminalSeries = terminalSeries,
+            isActive = prefs.getBoolean(scopedKey("terminal_active"), false),
+            registeredAt = prefs.getLong(scopedKey("terminal_registered_at"), 0L).takeIf { it > 0L },
+            lastVerifiedAt = prefs.getLong(scopedKey("terminal_last_verified_at"), 0L).takeIf { it > 0L }
+        )
+    }
+
+    fun saveTerminalIdentity(identity: TerminalIdentity) {
+        if (identity.restaurantId <= 0L) return
+        val previousRestaurantId = getRestaurantId()
+        if (previousRestaurantId != identity.restaurantId) {
+            saveRestaurantId(identity.restaurantId)
+        }
+        prefs.edit()
+            .putString(scopedKey("terminal_id"), identity.terminalId)
+            .putString(scopedKey("terminal_series"), identity.terminalSeries)
+            .putString(scopedKey("terminal_name"), identity.terminalName)
+            .putBoolean(scopedKey("terminal_active"), identity.isActive)
+            .putLong(scopedKey("terminal_registered_at"), identity.registeredAt ?: 0L)
+            .putLong(scopedKey("terminal_last_verified_at"), identity.lastVerifiedAt ?: System.currentTimeMillis())
+            .apply()
+    }
+
+    fun isTerminalReady(): Boolean {
+        val identity = getTerminalIdentity() ?: return false
+        return identity.isActive && identity.deviceId == getDeviceId()
     }
 
     fun setInitialSyncCompleted(isCompleted: Boolean) {

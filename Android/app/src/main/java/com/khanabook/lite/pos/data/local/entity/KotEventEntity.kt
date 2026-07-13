@@ -43,6 +43,16 @@ data class KotEventEntity(
     val itemSnapshotJson: String,
     @ColumnInfo(name = "originating_device_id")
     val originatingDeviceId: String,
+    @ColumnInfo(name = "origin_terminal_id", defaultValue = "NULL")
+    val originTerminalId: String? = null,
+    @ColumnInfo(name = "origin_device_id", defaultValue = "NULL")
+    val originDeviceId: String? = null,
+    @ColumnInfo(name = "event_token", defaultValue = "NULL")
+    val eventToken: String? = null,
+    @ColumnInfo(name = "bill_public_token", defaultValue = "NULL")
+    val billPublicToken: String? = null,
+    @ColumnInfo(name = "event_version", defaultValue = "0")
+    val eventVersion: Long = 0L,
     @ColumnInfo(name = "is_printed")
     val isPrinted: Boolean = false,
     @ColumnInfo(name = "created_at")

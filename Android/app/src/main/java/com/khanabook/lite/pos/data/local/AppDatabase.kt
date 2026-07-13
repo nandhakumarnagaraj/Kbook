@@ -24,7 +24,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         StockLogEntity::class,
                         KotEventEntity::class
                 ],
-        version = 57,
+        version = 58,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -593,6 +593,145 @@ abstract class AppDatabase : RoomDatabase() {
                 if (!db.hasColumn("kitchen_print_queue", "kot_revision")) {
                     db.execSQL("ALTER TABLE `kitchen_print_queue` ADD COLUMN `kot_revision` TEXT DEFAULT NULL")
                 }
+            }
+        }
+
+        val MIGRATION_57_58 = object : Migration(57, 58) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                android.util.Log.i("AppDatabase", "MIGRATION_57_58 start: terminal ownership backfill")
+                if (!db.hasColumn("bills", "terminal_id")) {
+                    db.execSQL("ALTER TABLE `bills` ADD COLUMN `terminal_id` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("bills", "created_terminal_id")) {
+                    db.execSQL("ALTER TABLE `bills` ADD COLUMN `created_terminal_id` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("bills", "created_device_id")) {
+                    db.execSQL("ALTER TABLE `bills` ADD COLUMN `created_device_id` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("bills", "current_owner_terminal_id")) {
+                    db.execSQL("ALTER TABLE `bills` ADD COLUMN `current_owner_terminal_id` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("bills", "version")) {
+                    db.execSQL("ALTER TABLE `bills` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+                }
+                if (!db.hasColumn("bills", "lock_status")) {
+                    db.execSQL("ALTER TABLE `bills` ADD COLUMN `lock_status` TEXT NOT NULL DEFAULT 'unlocked'")
+                }
+                if (!db.hasColumn("bills", "operation_id")) {
+                    db.execSQL("ALTER TABLE `bills` ADD COLUMN `operation_id` TEXT DEFAULT NULL")
+                }
+
+                db.execSQL(
+                    """
+                    UPDATE `bills`
+                    SET `terminal_id` = COALESCE(NULLIF(`terminal_id`, ''), NULLIF(`terminal_series`, ''), 'LEGACY_UNRESOLVED'),
+                        `created_terminal_id` = COALESCE(NULLIF(`created_terminal_id`, ''), NULLIF(`terminal_series`, ''), 'LEGACY_UNRESOLVED'),
+                        `created_device_id` = COALESCE(NULLIF(`created_device_id`, ''), NULLIF(`device_id`, '')),
+                        `current_owner_terminal_id` = CASE
+                            WHEN `order_status` = 'draft'
+                            THEN COALESCE(NULLIF(`current_owner_terminal_id`, ''), NULLIF(`terminal_series`, ''), 'LEGACY_UNRESOLVED')
+                            ELSE `current_owner_terminal_id`
+                        END,
+                        `lock_status` = COALESCE(NULLIF(`lock_status`, ''), 'unlocked')
+                    """.trimIndent()
+                )
+
+                if (!db.hasColumn("bill_payments", "terminal_id")) {
+                    db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `terminal_id` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("bill_payments", "bill_public_token")) {
+                    db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `bill_public_token` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("bill_payments", "operation_id")) {
+                    db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `operation_id` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("bill_payments", "sync_status")) {
+                    db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `sync_status` TEXT NOT NULL DEFAULT 'pending'")
+                }
+                if (!db.hasColumn("bill_payments", "version")) {
+                    db.execSQL("ALTER TABLE `bill_payments` ADD COLUMN `version` INTEGER NOT NULL DEFAULT 0")
+                }
+                db.execSQL(
+                    """
+                    UPDATE `bill_payments`
+                    SET `terminal_id` = (
+                            SELECT COALESCE(NULLIF(`bills`.`terminal_id`, ''), NULLIF(`bills`.`terminal_series`, ''), 'LEGACY_UNRESOLVED')
+                            FROM `bills`
+                            WHERE `bills`.`id` = `bill_payments`.`bill_id`
+                        ),
+                        `bill_public_token` = (
+                            SELECT `bills`.`public_token`
+                            FROM `bills`
+                            WHERE `bills`.`id` = `bill_payments`.`bill_id`
+                        ),
+                        `sync_status` = CASE WHEN `is_synced` = 1 THEN 'synced' ELSE 'pending' END
+                    WHERE `bill_id` IN (SELECT `id` FROM `bills`)
+                    """.trimIndent()
+                )
+
+                if (!db.hasColumn("kot_events", "origin_terminal_id")) {
+                    db.execSQL("ALTER TABLE `kot_events` ADD COLUMN `origin_terminal_id` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("kot_events", "origin_device_id")) {
+                    db.execSQL("ALTER TABLE `kot_events` ADD COLUMN `origin_device_id` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("kot_events", "event_token")) {
+                    db.execSQL("ALTER TABLE `kot_events` ADD COLUMN `event_token` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("kot_events", "bill_public_token")) {
+                    db.execSQL("ALTER TABLE `kot_events` ADD COLUMN `bill_public_token` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("kot_events", "event_version")) {
+                    db.execSQL("ALTER TABLE `kot_events` ADD COLUMN `event_version` INTEGER NOT NULL DEFAULT 0")
+                }
+                db.execSQL(
+                    """
+                    UPDATE `kot_events`
+                    SET `origin_device_id` = COALESCE(NULLIF(`origin_device_id`, ''), NULLIF(`originating_device_id`, '')),
+                        `bill_public_token` = COALESCE(NULLIF(`bill_public_token`, ''), `public_token`),
+                        `event_token` = COALESCE(NULLIF(`event_token`, ''), `public_token` || ':' || `kot_revision`)
+                    """.trimIndent()
+                )
+
+                if (!db.hasColumn("kitchen_print_queue", "terminal_id")) {
+                    db.execSQL("ALTER TABLE `kitchen_print_queue` ADD COLUMN `terminal_id` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("kitchen_print_queue", "device_id")) {
+                    db.execSQL("ALTER TABLE `kitchen_print_queue` ADD COLUMN `device_id` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("kitchen_print_queue", "bill_public_token")) {
+                    db.execSQL("ALTER TABLE `kitchen_print_queue` ADD COLUMN `bill_public_token` TEXT DEFAULT NULL")
+                }
+                if (!db.hasColumn("kitchen_print_queue", "print_event_token")) {
+                    db.execSQL("ALTER TABLE `kitchen_print_queue` ADD COLUMN `print_event_token` TEXT DEFAULT NULL")
+                }
+                db.execSQL(
+                    """
+                    UPDATE `kitchen_print_queue`
+                    SET `terminal_id` = (
+                            SELECT COALESCE(NULLIF(`bills`.`terminal_id`, ''), NULLIF(`bills`.`terminal_series`, ''), 'LEGACY_UNRESOLVED')
+                            FROM `bills`
+                            WHERE `bills`.`id` = `kitchen_print_queue`.`bill_id`
+                        ),
+                        `device_id` = (
+                            SELECT NULLIF(`bills`.`device_id`, '')
+                            FROM `bills`
+                            WHERE `bills`.`id` = `kitchen_print_queue`.`bill_id`
+                        ),
+                        `bill_public_token` = COALESCE(`bill_public_token`, `public_token`, (
+                            SELECT `bills`.`public_token`
+                            FROM `bills`
+                            WHERE `bills`.`id` = `kitchen_print_queue`.`bill_id`
+                        )),
+                        `print_event_token` = COALESCE(NULLIF(`print_event_token`, ''), COALESCE(`public_token`, '') || ':' || COALESCE(`kot_revision`, '') || ':' || `id`)
+                    WHERE `bill_id` IN (SELECT `id` FROM `bills`)
+                    """.trimIndent()
+                )
+
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_bills_restaurant_public_token` ON `bills` (`restaurant_id`, `public_token`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_restaurant_id_terminal_id_created_at` ON `bills` (`restaurant_id`, `terminal_id`, `created_at`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_restaurant_id_financial_year_invoice_series_invoice_sequence` ON `bills` (`restaurant_id`, `financial_year`, `invoice_series`, `invoice_sequence`)")
+                android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
             }
         }
 

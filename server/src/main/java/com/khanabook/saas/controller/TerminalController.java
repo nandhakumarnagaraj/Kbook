@@ -37,7 +37,9 @@ public class TerminalController {
                 .findByRestaurantIdAndDeviceId(restaurantId, deviceId)
                 .orElse(null);
         if (existing != null) {
-            return ResponseEntity.ok(new TerminalActivationResponse(existing.getTerminalSeries()));
+            existing.setUpdatedAt(System.currentTimeMillis());
+            terminalRepository.save(existing);
+            return ResponseEntity.ok(toResponse(existing));
         }
 
         Set<String> assignedSeries = new HashSet<>();
@@ -56,16 +58,34 @@ public class TerminalController {
         RestaurantTerminal terminal = new RestaurantTerminal();
         terminal.setRestaurantId(restaurantId);
         terminal.setTerminalSeries("A" + seriesNumber);
+        terminal.setTerminalName("Terminal " + seriesNumber);
         terminal.setDeviceId(deviceId);
+        terminal.setIsActive(true);
         terminal.setCreatedAt(now);
         terminal.setUpdatedAt(now);
-        terminalRepository.save(terminal);
+        RestaurantTerminal saved = terminalRepository.save(terminal);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new TerminalActivationResponse(terminal.getTerminalSeries()));
+                .body(toResponse(saved));
     }
 
     public record TerminalActivationRequest(String deviceId) {}
 
-    public record TerminalActivationResponse(String terminalSeries) {}
+    public record TerminalActivationResponse(
+            String terminalId,
+            String terminalName,
+            String terminalSeries,
+            Boolean isActive,
+            Long registeredAt,
+            Long lastVerifiedAt) {}
+
+    private TerminalActivationResponse toResponse(RestaurantTerminal terminal) {
+        return new TerminalActivationResponse(
+                terminal.getId() != null ? terminal.getId().toString() : terminal.getTerminalSeries(),
+                terminal.getTerminalName(),
+                terminal.getTerminalSeries(),
+                terminal.getIsActive() == null ? Boolean.TRUE : terminal.getIsActive(),
+                terminal.getCreatedAt(),
+                terminal.getUpdatedAt());
+    }
 }

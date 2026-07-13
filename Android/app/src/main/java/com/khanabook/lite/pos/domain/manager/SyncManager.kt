@@ -7,6 +7,7 @@ import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.api.MasterSyncResponse
 import com.khanabook.lite.pos.domain.util.SyncConflictException
+import com.khanabook.lite.pos.domain.model.TerminalIdentity
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -66,11 +67,25 @@ class SyncManager @Inject constructor(
 
     private suspend fun ensureTerminalActivated() {
         if (sessionManager.getRestaurantId() <= 0L) return
-        if (sessionManager.getTerminalSeries() == null) {
+        if (!sessionManager.isTerminalReady()) {
             try {
                 Log.i(tag, "Activating terminal series for device...")
-                val response = api.activateTerminal(com.khanabook.lite.pos.data.remote.api.TerminalActivationRequest(sessionManager.getDeviceId()))
-                sessionManager.saveTerminalSeries(response.terminalSeries)
+                val deviceId = sessionManager.getDeviceId()
+                val response = api.activateTerminal(com.khanabook.lite.pos.data.remote.api.TerminalActivationRequest(deviceId))
+                val terminalId = response.terminalId?.takeIf { it.isNotBlank() }
+                    ?: response.terminalSeries
+                sessionManager.saveTerminalIdentity(
+                    TerminalIdentity(
+                        restaurantId = sessionManager.getRestaurantId(),
+                        terminalId = terminalId,
+                        deviceId = deviceId,
+                        terminalName = response.terminalName,
+                        terminalSeries = response.terminalSeries,
+                        isActive = response.isActive ?: true,
+                        registeredAt = response.registeredAt,
+                        lastVerifiedAt = response.lastVerifiedAt ?: System.currentTimeMillis()
+                    )
+                )
                 Log.i(tag, "Terminal activated with series: ${response.terminalSeries}")
             } catch (e: Exception) {
                 Log.e(tag, "Failed to activate terminal series", e)
@@ -131,6 +146,7 @@ class SyncManager @Inject constructor(
         // server SyncTransaction uncommitted → next attempt gets HTTP 409.
         return withContext(NonCancellable) {
             val deviceId = sessionManager.getDeviceId()
+            val startedAt = System.currentTimeMillis()
 
             // ── Timestamp Race Fix (#2) ────────────────────────────────────────────
             // Capture the checkpoint BEFORE the sync cycle begins. This timestamp
@@ -151,6 +167,7 @@ class SyncManager @Inject constructor(
 
                 // Only if pull fully succeeds is the checkpoint committed.
                 pullAndPersistMasterData(syncCheckpointTimestamp, deviceId)
+                Log.i(tag, "Full sync completed in ${System.currentTimeMillis() - startedAt}ms")
                 Result.success(Unit)
             } catch (e: SyncConflictException) {
                 logWarn("Push conflict detected; pulling latest server data before resolving", e)
@@ -161,7 +178,7 @@ class SyncManager @Inject constructor(
                     logError("HTTP 409 Conflict body: $errorBody", e)
                     return@withContext handleRecoveredConflict(deviceId, SyncConflictException(e).withRecoveryStatus(false))
                 }
-                logError("Full sync failed", e)
+                logError("Full sync failed after ${System.currentTimeMillis() - startedAt}ms", e)
                 Result.failure(e)
             }
         }
@@ -198,7 +215,12 @@ class SyncManager @Inject constructor(
      * when we have a complete, consistent local state.
      */
     private suspend fun pullAndPersistMasterData(lastSyncTimestamp: Long, deviceId: String) {
-        val mergedResponse = mergeMasterSyncPages(pullMasterSyncPages(lastSyncTimestamp, deviceId))
+        val pages = pullMasterSyncPages(lastSyncTimestamp, deviceId)
+        val mergedResponse = mergeMasterSyncPages(pages)
+        Log.i(
+            tag,
+            "Master pull received pages=${pages.size}, payloadRecords=${countPayloadRecords(mergedResponse)}, serverTimestamp=${mergedResponse.serverTimestamp}"
+        )
         // Persist all pulled records into Room (wrapped in a DB transaction in MasterSyncProcessor).
         masterSyncProcessor.insertMasterData(mergedResponse)
         // Commit the new checkpoint ONLY after Room write fully succeeds.
@@ -236,6 +258,7 @@ class SyncManager @Inject constructor(
                     logError("Post-recovery push retry failed", retryError)
                     if (retryError is SyncConflictException) {
                         val quarantined = masterSyncProcessor.quarantineFailedSyncRecords(retryError)
+                        Log.w(tag, "Post-recovery quarantine count=$quarantined")
                         if (quarantined > 0) {
                             return Result.success(Unit)
                         }
@@ -285,6 +308,17 @@ class SyncManager @Inject constructor(
             )
         }
     }
+
+    private fun countPayloadRecords(response: MasterSyncResponse): Int =
+        response.profiles.size +
+            response.users.size +
+            response.categories.size +
+            response.menuItems.size +
+            response.itemVariants.size +
+            response.stockLogs.size +
+            response.bills.size +
+            response.billItems.size +
+            response.billPayments.size
 
     private fun SyncConflictException.withRecoveryStatus(recovered: Boolean): SyncConflictException {
         return SyncConflictException(

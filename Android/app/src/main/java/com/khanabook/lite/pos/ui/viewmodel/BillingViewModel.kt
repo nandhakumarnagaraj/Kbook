@@ -78,6 +78,15 @@ class BillingViewModel @Inject constructor(
         )
     }
 
+    private fun requireActiveTerminalIdentity(): TerminalIdentity? {
+        val identity = sessionManager.getTerminalIdentity()
+        if (identity == null || !identity.isActive || identity.terminalSeries.isBlank()) {
+            _error.value = "Terminal is not ready. Sync terminal setup and try again."
+            return null
+        }
+        return identity
+    }
+
     val cachedProfile: StateFlow<RestaurantProfileEntity?> get() = _cachedProfile
 
     val connectionStatus: StateFlow<com.khanabook.lite.pos.domain.util.ConnectionStatus> =
@@ -476,6 +485,11 @@ class BillingViewModel @Inject constructor(
                     return@withLock null
                 }
 
+                val terminalIdentity = requireActiveTerminalIdentity() ?: run {
+                    _isLoading.value = false
+                    return@withLock null
+                }
+
                 val finalSummary = _billSummary.value
                 if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.value, _partAmount2.value)) {
                     _isLoading.value = false
@@ -486,14 +500,20 @@ class BillingViewModel @Inject constructor(
                 val dailyCounter = restaurantRepository.incrementAndGetDailyCounter()
                 val zoneId = java.time.ZoneId.of("Asia/Kolkata")
                 val today = java.time.LocalDate.now(zoneId).toString()
-                val terminalSeries = sessionManager.getTerminalSeries()
+                val terminalSeries = terminalIdentity.terminalSeries
                 val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter, terminalSeries)
                 val createdAt = System.currentTimeMillis()
                 val invoice = allocateInvoiceIdentity(createdAt)
+                val publicToken = UUID.randomUUID().toString()
+                val operationId = "${restaurantId}:${terminalIdentity.terminalId}:$publicToken:create_bill"
 
                 val bill = BillEntity(
                     restaurantId = restaurantId,
-                    deviceId = sessionManager.getDeviceId(),
+                    deviceId = terminalIdentity.deviceId,
+                    terminalId = terminalIdentity.terminalId,
+                    createdTerminalId = terminalIdentity.terminalId,
+                    createdDeviceId = terminalIdentity.deviceId,
+                    currentOwnerTerminalId = terminalIdentity.terminalId,
                     dailyOrderId = dailyCounter,
                     dailyOrderDisplay = displayId,
                     lifetimeOrderId = null,
@@ -521,9 +541,10 @@ class BillingViewModel @Inject constructor(
                     createdAt = createdAt,
                     paidAt = null,
                     lastResetDate = profile.lastResetDate ?: "",
-                    publicToken = UUID.randomUUID().toString(),
+                    publicToken = publicToken,
                     ownerUserId = sessionManager.getActiveUserId(),
-                    ownerRestaurantId = sessionManager.getRestaurantId()
+                    ownerRestaurantId = sessionManager.getRestaurantId(),
+                    operationId = operationId
                 )
 
                 val items = _cartItems.value.map { cartItem ->
@@ -712,6 +733,11 @@ class BillingViewModel @Inject constructor(
 
                 // Re-use the already-computed summary (produced by the debounced cart+profile combine)
                 // instead of recalculating subtotal/tax/total from scratch.
+                val terminalIdentity = requireActiveTerminalIdentity() ?: run {
+                    _isLoading.value = false
+                    return@withLock false
+                }
+
                 val finalSummary = _billSummary.value
                 if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.value, _partAmount2.value)) {
                     _isLoading.value = false
@@ -721,14 +747,20 @@ class BillingViewModel @Inject constructor(
                 val dailyCounter = restaurantRepository.incrementAndGetDailyCounter()
                 val zoneId = java.time.ZoneId.of("Asia/Kolkata")
                 val today = java.time.LocalDate.now(zoneId).toString()
-                val terminalSeries = sessionManager.getTerminalSeries()
+                val terminalSeries = terminalIdentity.terminalSeries
                 val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter, terminalSeries)
                 val createdAt = System.currentTimeMillis()
                 val invoice = allocateInvoiceIdentity(createdAt)
+                val publicToken = UUID.randomUUID().toString()
+                val operationId = "$restaurantId:${terminalIdentity.terminalId}:$publicToken:create_bill"
 
                 val bill = BillEntity(
                     restaurantId = sessionManager.getRestaurantId(),
-                    deviceId = sessionManager.getDeviceId(),
+                    deviceId = terminalIdentity.deviceId,
+                    terminalId = terminalIdentity.terminalId,
+                    createdTerminalId = terminalIdentity.terminalId,
+                    createdDeviceId = terminalIdentity.deviceId,
+                    currentOwnerTerminalId = terminalIdentity.terminalId,
                     dailyOrderId = dailyCounter,
                     dailyOrderDisplay = displayId,
                     lifetimeOrderId = null,
@@ -756,9 +788,10 @@ class BillingViewModel @Inject constructor(
                     createdAt = createdAt,
                     paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null,
                     lastResetDate = profile.lastResetDate ?: "",
-                    publicToken = UUID.randomUUID().toString(),
+                    publicToken = publicToken,
                     ownerUserId = sessionManager.getActiveUserId(),
-                    ownerRestaurantId = sessionManager.getRestaurantId()
+                    ownerRestaurantId = sessionManager.getRestaurantId(),
+                    operationId = operationId
                 )
 
                 val items = _cartItems.value.map { cartItem ->
@@ -923,19 +956,30 @@ class BillingViewModel @Inject constructor(
                     return@withLock false
                 }
 
+                val terminalIdentity = requireActiveTerminalIdentity() ?: run {
+                    _isLoading.value = false
+                    return@withLock false
+                }
+
                 val finalSummary = _billSummary.value
 
                 val dailyCounter = restaurantRepository.incrementAndGetDailyCounter()
                 val zoneId = java.time.ZoneId.of("Asia/Kolkata")
                 val today = java.time.LocalDate.now(zoneId).toString()
-                val terminalSeries = sessionManager.getTerminalSeries()
+                val terminalSeries = terminalIdentity.terminalSeries
                 val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter, terminalSeries)
                 val createdAt = System.currentTimeMillis()
                 val invoice = allocateInvoiceIdentity(createdAt)
+                val publicToken = UUID.randomUUID().toString()
+                val operationId = "$restaurantId:${terminalIdentity.terminalId}:$publicToken:create_draft"
 
                 val bill = BillEntity(
                     restaurantId = restaurantId,
-                    deviceId = sessionManager.getDeviceId(),
+                    deviceId = terminalIdentity.deviceId,
+                    terminalId = terminalIdentity.terminalId,
+                    createdTerminalId = terminalIdentity.terminalId,
+                    createdDeviceId = terminalIdentity.deviceId,
+                    currentOwnerTerminalId = terminalIdentity.terminalId,
                     dailyOrderId = dailyCounter,
                     dailyOrderDisplay = displayId,
                     lifetimeOrderId = null,
@@ -960,9 +1004,10 @@ class BillingViewModel @Inject constructor(
                     createdAt = createdAt,
                     paidAt = null,
                     lastResetDate = profile.lastResetDate ?: "",
-                    publicToken = UUID.randomUUID().toString(),
+                    publicToken = publicToken,
                     ownerUserId = sessionManager.getActiveUserId(),
-                    ownerRestaurantId = sessionManager.getRestaurantId()
+                    ownerRestaurantId = sessionManager.getRestaurantId(),
+                    operationId = operationId
                 )
 
                 val items = _cartItems.value.map { cartItem ->

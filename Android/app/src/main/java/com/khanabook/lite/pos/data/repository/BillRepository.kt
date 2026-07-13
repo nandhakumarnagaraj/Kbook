@@ -1,10 +1,14 @@
 package com.khanabook.lite.pos.data.repository
 
 import androidx.work.WorkManager
+import com.google.gson.Gson
 import com.khanabook.lite.pos.data.local.dao.BillDao
+import com.khanabook.lite.pos.data.local.dao.KotEventDao
 import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.local.entity.BillItemEntity
 import com.khanabook.lite.pos.data.local.entity.BillPaymentEntity
+import com.khanabook.lite.pos.data.local.entity.KotEventEntity
+import com.khanabook.lite.pos.data.local.entity.KotEventType
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager
@@ -20,8 +24,15 @@ class BillRepository(
         private val inventoryConsumptionManager: InventoryConsumptionManager? = null,
         private val workManager: WorkManager,
         private val kitchenPrintQueueRepository: KitchenPrintQueueRepository? = null,
+        private val kotEventDao: KotEventDao,
         private val sessionManager: SessionManager
 ) {
+    private val gson = Gson()
+
+    private fun currentTerminalScope(): String =
+        sessionManager.getTerminalId()
+            ?: sessionManager.getTerminalSeries()
+            ?: "LEGACY_UNRESOLVED"
 
     suspend fun insertFullBill(
             bill: BillEntity,
@@ -29,6 +40,9 @@ class BillRepository(
             payments: List<BillPaymentEntity>
     ): Long {
         val billId = billDao.insertFullBill(bill, items, payments)
+        billDao.getBillWithItemsById(billId, sessionManager.getRestaurantId())?.let {
+            recordKotEvent(it.bill, KotEventType.NEW, it.items.filter { item -> !item.isDeleted })
+        }
         
         if (bill.orderStatus.equals("completed", ignoreCase = true) ||
             bill.orderStatus.equals("paid", ignoreCase = true)
@@ -58,12 +72,42 @@ class BillRepository(
     }
 
     suspend fun addBillPayment(payment: BillPaymentEntity) {
-        billDao.insertBillPayment(payment)
+        val parent = billDao.getBillById(payment.billId, sessionManager.getRestaurantId())
+        billDao.insertBillPayment(
+            if (parent != null) {
+                payment.copy(
+                    restaurantId = parent.restaurantId,
+                    deviceId = parent.deviceId,
+                    terminalId = parent.terminalId,
+                    billPublicToken = parent.publicToken,
+                    operationId = payment.operationId ?: parent.operationId
+                )
+            } else {
+                payment
+            }
+        )
         triggerBackgroundSync()
     }
 
     suspend fun addBillPayments(payments: List<BillPaymentEntity>) {
-        billDao.insertBillPayments(payments)
+        val restaurantId = sessionManager.getRestaurantId()
+        val parents = billDao.getBillsByIds(payments.map { it.billId }.distinct(), restaurantId).associateBy { it.id }
+        billDao.insertBillPayments(
+            payments.map { payment ->
+                val parent = parents[payment.billId]
+                if (parent != null) {
+                    payment.copy(
+                        restaurantId = parent.restaurantId,
+                        deviceId = parent.deviceId,
+                        terminalId = parent.terminalId,
+                        billPublicToken = parent.publicToken,
+                        operationId = payment.operationId ?: parent.operationId
+                    )
+                } else {
+                    payment
+                }
+            }
+        )
         triggerBackgroundSync()
     }
 
@@ -89,7 +133,7 @@ class BillRepository(
 
     fun getDraftBills(): Flow<List<BillEntity>> {
         return sessionManager.restaurantId.flatMapLatest { restaurantId ->
-            billDao.getDraftBills(restaurantId)
+            billDao.getDraftBills(restaurantId, currentTerminalScope())
         }
     }
 
@@ -106,7 +150,7 @@ class BillRepository(
 
     fun getPendingOnlineBillsFlow(): Flow<List<BillEntity>> {
         return sessionManager.restaurantId.flatMapLatest { restaurantId ->
-            billDao.getPendingOnlineBillsFlow(restaurantId)
+            billDao.getPendingOnlineBillsFlow(restaurantId, currentTerminalScope())
         }
     }
 
@@ -284,20 +328,86 @@ class BillRepository(
 
     suspend fun insertBillItems(items: List<BillItemEntity>) {
         billDao.insertBillItems(items)
+        items.groupBy { it.billId }.forEach { (billId, insertedItems) ->
+            billDao.getBillById(billId, sessionManager.getRestaurantId())?.let { bill ->
+                recordKotEvent(bill, KotEventType.ADD, insertedItems.filter { !it.isDeleted })
+            }
+        }
         triggerBackgroundSync()
     }
 
     suspend fun updateBillItem(item: BillItemEntity) {
+        val existing = billDao.getBillItemsByIds(listOf(item.id), sessionManager.getRestaurantId()).firstOrNull()
         billDao.updateBillItem(item)
+        val bill = billDao.getBillById(item.billId, sessionManager.getRestaurantId())
+        if (existing != null && bill != null) {
+            when {
+                item.quantity > existing.quantity ->
+                    recordKotEvent(bill, KotEventType.ADD, listOf(item.copy(quantity = item.quantity - existing.quantity)))
+                item.quantity < existing.quantity ->
+                    recordKotEvent(bill, KotEventType.VOID, listOf(existing.copy(quantity = existing.quantity - item.quantity)))
+            }
+        }
         triggerBackgroundSync()
     }
 
     suspend fun deleteBillItemById(id: Long) {
+        val existing = billDao.getBillItemsByIds(listOf(id), sessionManager.getRestaurantId()).firstOrNull()
+        val bill = existing?.let { billDao.getBillById(it.billId, sessionManager.getRestaurantId()) }
+        if (existing != null && bill != null) {
+            recordKotEvent(bill, KotEventType.VOID, listOf(existing))
+        }
         billDao.deleteBillItemById(id)
         triggerBackgroundSync()
     }
 
     fun getActiveDraftBillsFlow(): kotlinx.coroutines.flow.Flow<List<BillEntity>> {
-        return billDao.getActiveDraftBillsFlow(sessionManager.getRestaurantId())
+        return billDao.getActiveDraftBillsFlow(sessionManager.getRestaurantId(), currentTerminalScope())
+    }
+
+    private suspend fun recordKotEvent(
+        bill: BillEntity,
+        eventType: String,
+        items: List<BillItemEntity>
+    ) {
+        val publicToken = bill.publicToken?.takeIf { it.isNotBlank() } ?: return
+        if (items.isEmpty()) return
+        val localDeviceId = sessionManager.getDeviceId()
+        if (!bill.deviceId.isNullOrBlank() && bill.deviceId != localDeviceId) return
+        if (!isKitchenPrintableStatus(bill.orderStatus)) return
+
+        val revision = (kotEventDao.getMaxRevisionForBill(publicToken) + 1L).toString()
+        kotEventDao.insert(
+            KotEventEntity(
+                publicToken = publicToken,
+                kotRevision = revision,
+                eventType = eventType,
+                itemSnapshotJson = serializeKotItems(items),
+                originatingDeviceId = localDeviceId,
+                isPrinted = false,
+                createdAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    private fun isKitchenPrintableStatus(status: String): Boolean =
+        status.equals("draft", ignoreCase = true) ||
+            status.equals("completed", ignoreCase = true) ||
+            status.equals("paid", ignoreCase = true)
+
+    private fun serializeKotItems(items: List<BillItemEntity>): String {
+        return gson.toJson(items.map { item ->
+            mapOf(
+                "id" to item.id,
+                "menuItemId" to item.menuItemId,
+                "itemName" to item.itemName,
+                "variantId" to item.variantId,
+                "variantName" to item.variantName,
+                "price" to item.price,
+                "quantity" to item.quantity,
+                "itemTotal" to item.itemTotal,
+                "specialInstruction" to item.specialInstruction
+            )
+        })
     }
 }

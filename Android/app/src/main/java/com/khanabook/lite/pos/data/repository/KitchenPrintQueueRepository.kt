@@ -35,11 +35,14 @@ class KitchenPrintQueueRepository(
     ) {
         val now = System.currentTimeMillis()
         val existing = kitchenPrintQueueDao.getByBillAndPrinter(billId, printerMac)
+        val terminalIdentity = sessionManager.getTerminalIdentity()
         kitchenPrintQueueDao.upsert(
             KitchenPrintQueueEntity(
                 id = existing?.id ?: 0,
                 billId = billId,
                 restaurantId = existing?.restaurantId ?: sessionManager.getRestaurantId(),
+                terminalId = existing?.terminalId ?: terminalIdentity?.terminalId,
+                deviceId = existing?.deviceId ?: terminalIdentity?.deviceId ?: sessionManager.getDeviceId(),
                 printerMac = printerMac,
                 attempts = when {
                     incrementAttempts && existing != null -> existing.attempts + 1
@@ -53,6 +56,9 @@ class KitchenPrintQueueRepository(
                     else -> existing?.lastAttemptAt
                 },
                 publicToken = publicToken ?: existing?.publicToken,
+                billPublicToken = publicToken ?: existing?.billPublicToken,
+                printEventToken = existing?.printEventToken
+                    ?: listOfNotNull(publicToken, kotRevision, now.toString()).joinToString(":"),
                 kotRevision = kotRevision ?: existing?.kotRevision,
                 createdAt = existing?.createdAt ?: now,
                 updatedAt = now

@@ -75,6 +75,7 @@ interface BillDao {
           AND payment_status = 'pending'
           AND order_type = 'dine_in'
           AND is_deleted = 0
+          AND COALESCE(terminal_id, created_terminal_id, terminal_series, 'LEGACY_UNRESOLVED') = :terminalId
           AND NOT EXISTS (
               SELECT 1
               FROM bill_payments
@@ -84,7 +85,7 @@ interface BillDao {
           )
         ORDER BY updated_at DESC
     """)
-    fun getActiveDraftBillsFlow(restaurantId: Long): Flow<List<BillEntity>>
+    fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
 
     @Query("SELECT * FROM bill_items WHERE bill_id = :billId AND restaurant_id = :restaurantId AND sent_to_kot = 0 AND is_deleted = 0")
     suspend fun getUnsentItemsForBill(billId: Long, restaurantId: Long): List<BillItemEntity>
@@ -178,6 +179,7 @@ interface BillDao {
         WHERE order_status = 'draft'
           AND restaurant_id = :restaurantId
           AND is_deleted = 0
+          AND COALESCE(terminal_id, created_terminal_id, terminal_series, 'LEGACY_UNRESOLVED') = :terminalId
           AND NOT EXISTS (
               SELECT 1
               FROM bill_payments
@@ -186,7 +188,7 @@ interface BillDao {
                 AND bill_payments.is_deleted = 0
           )
     """)
-    fun getDraftBills(restaurantId: Long): Flow<List<BillEntity>>
+    fun getDraftBills(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
 
     @Query("""
         SELECT * FROM bills
@@ -221,12 +223,13 @@ interface BillDao {
           AND payment_status = 'pending'
           AND restaurant_id = :restaurantId
           AND is_deleted = 0
+          AND COALESCE(terminal_id, created_terminal_id, terminal_series, 'LEGACY_UNRESOLVED') = :terminalId
           AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos'
           )
         ORDER BY created_at DESC
     """)
-    fun getPendingOnlineBillsFlow(restaurantId: Long): Flow<List<BillEntity>>
+    fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
 
     @Query("UPDATE bills SET order_status = :status WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun updateOrderStatus(id: Long, status: String, restaurantId: Long)
@@ -297,7 +300,17 @@ interface BillDao {
                 deviceId = bill.deviceId
             )
         }
-        val paymentsWithId = payments.map { it.copy(billId = billId, restaurantId = bill.restaurantId, deviceId = bill.deviceId) }
+        val paymentsWithId = payments.map {
+            it.copy(
+                billId = billId,
+                restaurantId = bill.restaurantId,
+                deviceId = bill.deviceId,
+                terminalId = bill.terminalId,
+                billPublicToken = bill.publicToken,
+                operationId = it.operationId ?: bill.operationId,
+                syncStatus = if (it.isSynced) "synced" else "pending"
+            )
+        }
         insertBillItems(itemsWithId)
         insertBillPayments(paymentsWithId)
         return billId
@@ -312,7 +325,11 @@ interface BillDao {
             it.copy(
                 billId = bill.id,
                 restaurantId = bill.restaurantId,
-                deviceId = bill.deviceId
+                deviceId = bill.deviceId,
+                terminalId = bill.terminalId,
+                billPublicToken = bill.publicToken,
+                operationId = it.operationId ?: bill.operationId,
+                syncStatus = if (it.isSynced) "synced" else "pending"
             )
         }
         insertBillPayments(paymentsWithId)

@@ -880,6 +880,9 @@ class MasterSyncProcessor @Inject constructor(
                         id = assignedId,
                         restaurantId = remoteBill.restaurantId ?: 0L,
                         deviceId = remoteBill.deviceId.orFallback(""),
+                        terminalId = remoteBill.terminalId,
+                        createdTerminalId = remoteBill.createdTerminalId ?: remoteBill.terminalId,
+                        createdDeviceId = remoteBill.createdDeviceId ?: remoteBill.deviceId,
                         dailyOrderId = remoteBill.dailyOrderId ?: 0,
                         dailyOrderDisplay = remoteBill.dailyOrderDisplay.orFallback(""),
                         lifetimeOrderId = remoteBill.lifetimeOrderId,
@@ -914,7 +917,11 @@ class MasterSyncProcessor @Inject constructor(
                         cancelReason = remoteBill.cancelReason.orFallback(""),
                         publicToken = remoteBill.publicToken,
                         // Server-owned: null if no refund has been recorded on this bill.
-                        refundAmount = remoteBill.refundAmount?.toString()
+                        refundAmount = remoteBill.refundAmount?.toString(),
+                        currentOwnerTerminalId = remoteBill.currentOwnerTerminalId?.takeUnless { it.isBlank() },
+                        version = remoteBill.version ?: 0L,
+                        lockStatus = remoteBill.lockStatus?.takeUnless { it.isBlank() } ?: "unlocked",
+                        operationId = remoteBill.operationId
                     )
                 }
             )
@@ -979,7 +986,6 @@ class MasterSyncProcessor @Inject constructor(
         val knownBillIds = billServerIdMap.values.toMutableSet()
 
         if (masterData.billItems.isNotEmpty()) {
-            billDao.deleteAllSyncedBillItems(restaurantId)
             val resolvedBillItems = masterData.billItems.mapNotNull { remoteBillItem ->
                     val localBillId = remoteBillItem.serverBillId?.let { serverId ->
                         billServerIdMap[serverId] ?: serverId
@@ -1034,11 +1040,13 @@ class MasterSyncProcessor @Inject constructor(
             ) { remoteBillItem ->
                 "billItemId=${remoteBillItem.id}, billId=${remoteBillItem.billId}, serverBillId=${remoteBillItem.serverBillId}"
             }
+            resolvedBillItems.mapNotNull { it.serverId }.takeIf { it.isNotEmpty() }?.let { serverIds ->
+                billDao.deleteSyncedBillItemsByServerIds(serverIds, restaurantId)
+            }
             billDao.insertSyncedBillItems(resolvedBillItems)
         }
 
         if (masterData.billPayments.isNotEmpty()) {
-            billDao.deleteAllSyncedBillPayments(restaurantId)
             val resolvedBillPayments = masterData.billPayments.mapNotNull { remoteBillPayment ->
                     val localBillId = remoteBillPayment.serverBillId?.let { serverId ->
                         billServerIdMap[serverId] ?: serverId
@@ -1055,12 +1063,16 @@ class MasterSyncProcessor @Inject constructor(
                         createdAt = remoteBillPayment.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteBillPayment.restaurantId ?: 0L,
                         deviceId = remoteBillPayment.deviceId.orFallback(""),
+                        terminalId = remoteBillPayment.terminalId,
+                        billPublicToken = remoteBillPayment.billPublicToken,
+                        operationId = remoteBillPayment.operationId,
                         isSynced = true,
                         updatedAt = remoteBillPayment.updatedAt ?: System.currentTimeMillis(),
                         isDeleted = remoteBillPayment.isDeleted ?: false,
                         serverId = remoteBillPayment.serverId,
                         serverBillId = remoteBillPayment.serverBillId,
-                        serverUpdatedAt = remoteBillPayment.serverUpdatedAt ?: 0L
+                        serverUpdatedAt = remoteBillPayment.serverUpdatedAt ?: 0L,
+                        version = remoteBillPayment.version ?: 0L
                     )
                     }
                 }
@@ -1075,6 +1087,9 @@ class MasterSyncProcessor @Inject constructor(
             ) { remoteBillPayment ->
                 "billPaymentId=${remoteBillPayment.id}, billId=${remoteBillPayment.billId}, serverBillId=${remoteBillPayment.serverBillId}"
             }
+            resolvedBillPayments.mapNotNull { it.serverId }.takeIf { it.isNotEmpty() }?.let { serverIds ->
+                billDao.deleteSyncedBillPaymentsByServerIds(serverIds, restaurantId)
+            }
             billDao.insertSyncedBillPayments(resolvedBillPayments)
         }
 
@@ -1083,7 +1098,6 @@ class MasterSyncProcessor @Inject constructor(
         // profile's counters can be stale (lagging behind the latest bills).
         val currentProfile = if (restaurantId > 0) restaurantDao.getProfile(restaurantId) else restaurantDao.getProfile()
         if (currentProfile != null && masterData.bills.isNotEmpty()) {
-            val maxLifetime = masterData.bills.maxOfOrNull { it.lifetimeOrderId ?: 0L } ?: 0L
             val timezone = "Asia/Kolkata"
             val today = java.time.LocalDate.now(java.time.ZoneId.of(timezone)).toString()
             val maxDailyToday = masterData.bills
@@ -1095,12 +1109,10 @@ class MasterSyncProcessor @Inject constructor(
                 }
                 .maxOfOrNull { it.dailyOrderId ?: 0L } ?: 0L
 
-            val correctedLifetime = maxOf(currentProfile.lifetimeOrderCounter, maxLifetime)
             val correctedDaily = maxOf(currentProfile.dailyOrderCounter, maxDailyToday)
-            if (correctedLifetime != currentProfile.lifetimeOrderCounter || correctedDaily != currentProfile.dailyOrderCounter) {
-                Log.i("MasterSyncProcessor", "Correcting counters after pull: lifetime ${currentProfile.lifetimeOrderCounter}→$correctedLifetime, daily ${currentProfile.dailyOrderCounter}→$correctedDaily")
+            if (correctedDaily != currentProfile.dailyOrderCounter) {
+                Log.i("MasterSyncProcessor", "Correcting daily counter after pull: ${currentProfile.dailyOrderCounter}→$correctedDaily")
                 restaurantDao.saveProfile(currentProfile.copy(
-                    lifetimeOrderCounter = correctedLifetime,
                     dailyOrderCounter = correctedDaily,
                     isSynced = true,
                     updatedAt = System.currentTimeMillis()

@@ -3,6 +3,7 @@ package com.khanabook.lite.pos.data.local
 import android.content.Context
 import android.util.Log
 import androidx.room.Room
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.data.local.AppDatabase
 import com.khanabook.lite.pos.di.DatabaseModule
 import com.khanabook.lite.pos.domain.manager.SessionManager
@@ -49,16 +50,39 @@ class DatabaseProvider @Inject constructor(
                 migrateLegacyDataIfNecessary(restaurantId)
             }
 
-            activeDatabase = buildDatabaseWithName(context, dbName)
-            databaseState.value = activeDatabase
-            Log.i(tag, "Opened database instance: $dbName")
+            try {
+                Log.i(
+                    tag,
+                    "Opening database expectedRoomVersion=58 appVersion=${BuildConfig.VERSION_NAME} " +
+                        "restaurant=${maskRestaurantId(restaurantId)} terminal=${sessionManager.getTerminalId() ?: "none"} " +
+                        "device=${sessionManager.getDeviceId().takeLast(6)} db=$dbName"
+                )
+                activeDatabase = buildDatabaseWithName(context, dbName)
+                databaseState.value = activeDatabase
+                Log.i(tag, "Opened database instance: $dbName")
+            } catch (e: Exception) {
+                Log.e(
+                    tag,
+                    "Database open failed expectedRoomVersion=58 appVersion=${BuildConfig.VERSION_NAME} " +
+                        "restaurant=${maskRestaurantId(restaurantId)} terminal=${sessionManager.getTerminalId() ?: "none"} " +
+                        "device=${sessionManager.getDeviceId().takeLast(6)} db=$dbName",
+                    e
+                )
+                throw e
+            }
         }
         return activeDatabase!!
     }
 
     fun warmUpDatabase() {
-        val database = getDatabase()
-        database.openHelper.writableDatabase
+        try {
+            val database = getDatabase()
+            database.openHelper.writableDatabase
+            Log.i(tag, "Database warm-up completed expectedRoomVersion=58")
+        } catch (e: Exception) {
+            Log.e(tag, "Database warm-up failed expectedRoomVersion=58", e)
+            throw e
+        }
     }
 
     @Synchronized
@@ -111,9 +135,20 @@ class DatabaseProvider @Inject constructor(
                 AppDatabase.MIGRATION_49_50,
                 AppDatabase.MIGRATION_50_51,
                 AppDatabase.MIGRATION_51_52,
-                AppDatabase.MIGRATION_52_53
+                AppDatabase.MIGRATION_52_53,
+                AppDatabase.MIGRATION_53_54,
+                AppDatabase.MIGRATION_54_55,
+                AppDatabase.MIGRATION_55_56,
+                AppDatabase.MIGRATION_56_57,
+                AppDatabase.MIGRATION_57_58
             )
             .build()
+    }
+
+    private fun maskRestaurantId(restaurantId: Long): String {
+        if (restaurantId <= 0L) return "none"
+        val value = restaurantId.toString()
+        return if (value.length <= 4) "****" else "****${value.takeLast(4)}"
     }
 
     private fun migrateLegacyDataIfNecessary(restaurantId: Long) {

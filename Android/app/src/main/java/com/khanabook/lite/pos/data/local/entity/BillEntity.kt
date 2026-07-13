@@ -17,7 +17,14 @@ import com.google.gson.annotations.SerializedName
             Index(value = ["created_by"]),
             Index(value = ["order_status"]),
             Index(value = ["created_at"]),
-            Index(value = ["daily_order_id"])
+            Index(value = ["daily_order_id"]),
+            Index(
+                value = ["restaurant_id", "public_token"],
+                name = "index_bills_restaurant_public_token",
+                unique = true
+            ),
+            Index(value = ["restaurant_id", "terminal_id", "created_at"]),
+            Index(value = ["restaurant_id", "financial_year", "invoice_series", "invoice_sequence"])
         ]
 )
 data class BillEntity(
@@ -26,6 +33,12 @@ data class BillEntity(
         @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
         @SerializedName("deviceId")
         @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",
+        @SerializedName("terminalId")
+        @ColumnInfo(name = "terminal_id", defaultValue = "NULL") val terminalId: String? = null,
+        @SerializedName("createdTerminalId")
+        @ColumnInfo(name = "created_terminal_id", defaultValue = "NULL") val createdTerminalId: String? = null,
+        @SerializedName("createdDeviceId")
+        @ColumnInfo(name = "created_device_id", defaultValue = "NULL") val createdDeviceId: String? = null,
         @SerializedName("dailyOrderId")
         @ColumnInfo(name = "daily_order_id") val dailyOrderId: Long,
         @SerializedName("dailyOrderDisplay")
@@ -107,7 +120,15 @@ data class BillEntity(
     @ColumnInfo(name = "invoice_number", defaultValue = "NULL") val invoiceNumber: String? = null,
     // Server-owned. Null means no refund has been recorded. Never written by Android push.
     @SerializedName("refundAmount")
-    @ColumnInfo(name = "refund_amount", defaultValue = "NULL") val refundAmount: String? = null
+    @ColumnInfo(name = "refund_amount", defaultValue = "NULL") val refundAmount: String? = null,
+    @SerializedName("currentOwnerTerminalId")
+    @ColumnInfo(name = "current_owner_terminal_id", defaultValue = "NULL") val currentOwnerTerminalId: String? = null,
+    @SerializedName("version")
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0L,
+    @SerializedName("lockStatus")
+    @ColumnInfo(name = "lock_status", defaultValue = "'unlocked'") val lockStatus: String = "unlocked",
+    @SerializedName("operationId")
+    @ColumnInfo(name = "operation_id", defaultValue = "NULL") val operationId: String? = null
 )
 
 fun BillEntity.getInvoiceNumberDisplay(): String {
