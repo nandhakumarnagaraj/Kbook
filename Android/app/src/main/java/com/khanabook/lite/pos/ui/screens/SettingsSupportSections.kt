@@ -88,6 +88,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
     val enteredPin by appLockViewModel.enteredPin.collectAsStateWithLifecycle()
     val pinError by appLockViewModel.errorMessage.collectAsStateWithLifecycle()
     var showConfirmDialog by remember { mutableStateOf(false) }
+    var showHardWipeDialog by remember { mutableStateOf(false) }
     var showPinDialog by remember { mutableStateOf(false) }
     var pinPurpose by remember { mutableStateOf<String?>(null) }
     val isPinEnabled = remember(logoutState) { appLockViewModel.isPinEnabled() }
@@ -108,6 +109,7 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
                     when (pinPurpose) {
                         "start_logout" -> viewModel.initiateLogout()
                         "force_logout" -> viewModel.forceLogoutDespiteWarning()
+                        "clear_device" -> viewModel.clearDeviceDataAndLogout()
                     }
                     pinPurpose = null
                 }
@@ -247,6 +249,38 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
         }
     }
 
+    if (showHardWipeDialog) {
+        KhanaBookDialog(
+            onDismissRequest = { showHardWipeDialog = false },
+            title = "Clear This Device?",
+            content = {
+                Text(
+                    "This removes the local database from this device and signs you out. Use this only after confirming all important data is synced.",
+                    color = TextLight,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        ) {
+            TextButton(onClick = { showHardWipeDialog = false }) {
+                Text("Cancel", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+            }
+            TextButton(
+                onClick = {
+                    showHardWipeDialog = false
+                    if (isPinEnabled) {
+                        appLockViewModel.clearPin()
+                        pinPurpose = "clear_device"
+                        showPinDialog = true
+                    } else {
+                        viewModel.clearDeviceDataAndLogout()
+                    }
+                }
+            ) {
+                Text("Clear Device", color = DangerRed, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+            }
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth().padding(spacing.medium),
         verticalArrangement = Arrangement.spacedBy(spacing.medium)
@@ -265,6 +299,13 @@ fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel
             Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(iconSize.small))
             Spacer(modifier = Modifier.width(spacing.small))
             Text("Sign Out", style = MaterialTheme.typography.labelLarge)
+        }
+        TextButton(
+            onClick = { if (!isLoading) showHardWipeDialog = true },
+            enabled = !isLoading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Clear device data and sign out", color = DangerRed, style = MaterialTheme.typography.labelMedium)
         }
     }
 }

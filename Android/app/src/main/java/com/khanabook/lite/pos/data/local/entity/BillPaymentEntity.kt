@@ -34,6 +34,13 @@ data class BillPaymentEntity(
     @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
     @SerializedName("deviceId")
     @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",
+    @SerializedName("terminalId")
+    @ColumnInfo(name = "terminal_id", defaultValue = "NULL") val terminalId: String? = null,
+    @SerializedName("billPublicToken")
+    @ColumnInfo(name = "bill_public_token", defaultValue = "NULL") val billPublicToken: String? = null,
+    @SerializedName("operationId")
+    @ColumnInfo(name = "operation_id", defaultValue = "NULL") val operationId: String? = null,
+    @ColumnInfo(name = "sync_status", defaultValue = "'pending'") val syncStatus: String = "pending",
     @SerializedName("isSynced")
     @ColumnInfo(name = "is_synced", defaultValue = "0") val isSynced: Boolean = false,
     @SerializedName("updatedAt")
@@ -48,7 +55,9 @@ data class BillPaymentEntity(
     // Gateway fields — populated only for gateway-verified payments. Manual payments leave these null.
     @SerializedName("gatewayTxnId") @ColumnInfo(name = "gateway_txn_id") val gatewayTxnId: String? = null,
     @SerializedName("gatewayStatus") @ColumnInfo(name = "gateway_status") val gatewayStatus: String? = null,
-    @SerializedName("verifiedBy") @ColumnInfo(name = "verified_by", defaultValue = "'manual'") val verifiedBy: String = "manual"
+    @SerializedName("verifiedBy") @ColumnInfo(name = "verified_by", defaultValue = "'manual'") val verifiedBy: String = "manual",
+    @SerializedName("version")
+    @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0L
 )
 
 

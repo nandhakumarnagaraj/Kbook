@@ -200,11 +200,9 @@ class SettingsViewModel @Inject constructor(
                 val maxDailyToday = billDao.getMaxDailyOrderIdBetween(restaurantId, sessionManager.getDeviceId(), startTime, endTime)
 
                 // Only the daily order counter is repaired now. Invoice numbers use the
-                // per-terminal invoice sequence, not the legacy lifetime counter, so we
-                // pass 0 (raiseCountersAtLeast never lowers an existing value).
-                restaurantRepository.raiseCountersAtLeast(
+                // per-terminal invoice sequence, not the legacy lifetime counter.
+                restaurantRepository.raiseDailyCounterAtLeast(
                     dailyCounter = maxDailyToday,
-                    lifetimeCounter = 0L,
                     date = today.toString()
                 )
                 loadDuplicateIdHealth(

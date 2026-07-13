@@ -36,6 +36,15 @@ interface KotEventDao {
     @Query("SELECT COUNT(*) FROM kot_events WHERE public_token = :publicToken")
     suspend fun getEventCountForBill(publicToken: String): Int
 
+    @Query("SELECT COALESCE(MAX(CAST(kot_revision AS INTEGER)), 0) FROM kot_events WHERE public_token = :publicToken")
+    suspend fun getMaxRevisionForBill(publicToken: String): Long
+
+    @Query("SELECT * FROM kot_events WHERE public_token = :publicToken AND is_printed = 0 ORDER BY CAST(kot_revision AS INTEGER) DESC LIMIT 1")
+    suspend fun getLatestUnprintedEvent(publicToken: String): KotEventEntity?
+
+    @Query("UPDATE kot_events SET is_printed = 1 WHERE public_token = :publicToken AND is_printed = 0")
+    suspend fun markUnprintedEventsPrinted(publicToken: String): Int
+
     @Query(
         "SELECT * FROM kot_events WHERE public_token = :publicToken AND kot_revision = :kotRevision LIMIT 1"
     )

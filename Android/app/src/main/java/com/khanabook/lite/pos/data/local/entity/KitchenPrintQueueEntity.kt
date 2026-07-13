@@ -23,6 +23,10 @@ data class KitchenPrintQueueEntity(
     val billId: Long,
     @ColumnInfo(name = "restaurant_id", defaultValue = "0")
     val restaurantId: Long = 0,
+    @ColumnInfo(name = "terminal_id", defaultValue = "NULL")
+    val terminalId: String? = null,
+    @ColumnInfo(name = "device_id", defaultValue = "NULL")
+    val deviceId: String? = null,
     @ColumnInfo(name = "printer_mac")
     val printerMac: String,
     val attempts: Int = 0,
@@ -34,6 +38,10 @@ data class KitchenPrintQueueEntity(
     val lastAttemptAt: Long? = null,
     @ColumnInfo(name = "public_token")
     val publicToken: String? = null,
+    @ColumnInfo(name = "bill_public_token", defaultValue = "NULL")
+    val billPublicToken: String? = null,
+    @ColumnInfo(name = "print_event_token", defaultValue = "NULL")
+    val printEventToken: String? = null,
     @ColumnInfo(name = "kot_revision")
     val kotRevision: String? = null,
     @ColumnInfo(name = "created_at")

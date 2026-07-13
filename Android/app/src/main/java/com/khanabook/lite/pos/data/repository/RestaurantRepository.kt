@@ -26,7 +26,7 @@ class RestaurantRepository(
                         restaurantId = restaurantId,
                         deviceId = sessionManager.getDeviceId(),
                         dailyOrderCounter = maxOf(profile.dailyOrderCounter, current?.dailyOrderCounter ?: 0L),
-                        lifetimeOrderCounter = maxOf(profile.lifetimeOrderCounter, current?.lifetimeOrderCounter ?: 0L),
+                        lifetimeOrderCounter = profile.lifetimeOrderCounter,
                         isSynced = false,
                         updatedAt = System.currentTimeMillis()
                 )
@@ -66,12 +66,11 @@ class RestaurantRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun raiseCountersAtLeast(dailyCounter: Long, lifetimeCounter: Long, date: String) {
+    suspend fun raiseDailyCounterAtLeast(dailyCounter: Long, date: String) {
         val restaurantId = sessionManager.getRestaurantId()
-        restaurantDao.raiseCountersAtLeast(
+        restaurantDao.raiseDailyCounterAtLeast(
             restaurantId = restaurantId,
             dailyCounter = dailyCounter,
-            lifetimeCounter = lifetimeCounter,
             date = date,
             updatedAt = System.currentTimeMillis()
         )

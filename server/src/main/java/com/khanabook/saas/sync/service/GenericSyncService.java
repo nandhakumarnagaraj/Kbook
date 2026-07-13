@@ -228,6 +228,11 @@ public class GenericSyncService {
 						log.warn("Skipping record with NULL restaurantId for device: {}", deviceId);
 						continue;
 					}
+					if (incomingRecord instanceof Bill bill
+							&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo) {
+						validateBillNumberConflicts(targetTenantId, bill, billRepo);
+						validateTerminalOwnership(targetTenantId, bill);
+					}
 
 					T existingRecord = null;
 					if (incomingRecord.getLocalId() != null) {
@@ -501,6 +506,23 @@ public class GenericSyncService {
 										+ " already exists for " + incomingBill.getLastResetDate()
 										+ ". Resolve it in Sync Center.");
 					});
+		}
+	}
+
+	private void validateTerminalOwnership(Long tenantId, Bill incomingBill) {
+		if (incomingBill.getTerminalSeries() == null || incomingBill.getTerminalSeries().isBlank()) {
+			return;
+		}
+		RestaurantTerminal terminal = terminalRepository
+				.findByRestaurantIdAndTerminalSeries(tenantId, incomingBill.getTerminalSeries())
+				.orElseThrow(() -> new IllegalStateException("Terminal is not registered for this restaurant"));
+		if (Boolean.FALSE.equals(terminal.getIsActive())) {
+			throw new IllegalStateException("Terminal is inactive");
+		}
+		if (incomingBill.getTerminalId() == null || incomingBill.getTerminalId().isBlank()) {
+			incomingBill.setTerminalId(terminal.getId() != null ? terminal.getId().toString() : terminal.getTerminalSeries());
+		} else if (terminal.getId() != null && !incomingBill.getTerminalId().equals(terminal.getId().toString())) {
+			throw new IllegalStateException("Terminal identity does not match invoice series");
 		}
 	}
 

@@ -9,6 +9,7 @@ data class BillSyncDto(
     val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,
     @SerializedName("deviceId") val deviceId: String,
+    @SerializedName("terminalId") val terminalId: String? = null,
     @SerializedName("localId") val localId: Long,
     @SerializedName("serverId") val serverId: Long?,
     @SerializedName("dailyOrderId") val dailyOrderId: Long,
@@ -42,6 +43,8 @@ data class BillSyncDto(
     @SerializedName("isDeleted") val isDeleted: Boolean,
     @SerializedName("lastResetDate") val lastResetDate: String,
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
+    @SerializedName("version") val version: Long = 0L,
+    @SerializedName("operationId") val operationId: String? = null,
     // refundAmount is intentionally absent from the push DTO.
     // It is a server-owned field written only by admin (markManualRefund).
     // Android receives it on pull but must never push it back.
@@ -52,6 +55,7 @@ data class BillItemSyncDto(
     val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,
     @SerializedName("deviceId") val deviceId: String,
+    @SerializedName("terminalId") val terminalId: String? = null,
     @SerializedName("localId") val localId: Long,
     @SerializedName("serverId") val serverId: Long?,
     @SerializedName("billId") val billId: Long,
@@ -69,12 +73,14 @@ data class BillItemSyncDto(
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("isDeleted") val isDeleted: Boolean,
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
+    @SerializedName("version") val version: Long = 0L,
 )
 
 data class BillPaymentSyncDto(
     val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,
     @SerializedName("deviceId") val deviceId: String,
+    @SerializedName("terminalId") val terminalId: String? = null,
     @SerializedName("localId") val localId: Long,
     @SerializedName("serverId") val serverId: Long?,
     @SerializedName("billId") val billId: Long,
@@ -88,6 +94,8 @@ data class BillPaymentSyncDto(
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("isDeleted") val isDeleted: Boolean,
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
+    @SerializedName("operationId") val operationId: String? = null,
+    @SerializedName("version") val version: Long = 0L,
 )
 
 data class CategorySyncDto(

@@ -42,8 +42,14 @@ public class RestaurantTerminal {
 	@Column(name = "terminal_series", nullable = false)
 	private String terminalSeries;
 
+	@Column(name = "terminal_name")
+	private String terminalName;
+
 	@Column(name = "device_id")
 	private String deviceId;
+
+	@Column(name = "is_active", nullable = false)
+	private Boolean isActive = true;
 
 	@Column(name = "created_at")
 	private Long createdAt;

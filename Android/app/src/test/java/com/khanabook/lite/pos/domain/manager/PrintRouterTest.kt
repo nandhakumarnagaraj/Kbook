@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.domain.manager
 
 import android.content.Context
 import com.khanabook.lite.pos.data.local.dao.BillDao
+import com.khanabook.lite.pos.data.local.dao.KotEventDao
 import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.local.entity.BillItemEntity
 import com.khanabook.lite.pos.data.local.entity.PrinterProfileEntity
@@ -39,6 +40,7 @@ class PrintRouterTest {
     private val printerManager: BluetoothPrinterManager = mockk(relaxed = true)
     private val kitchenQueueManager: KitchenPrintQueueManager = mockk(relaxed = true)
     private val billDao: BillDao = mockk(relaxed = true)
+    private val kotEventDao: KotEventDao = mockk(relaxed = true)
     private val sessionManager: SessionManager = mock()
 
     private lateinit var router: PrintRouter
@@ -109,7 +111,7 @@ class PrintRouterTest {
         every { printerManager.connectedDeviceMac } returns kotlinx.coroutines.flow.MutableStateFlow(null)
         whenever(sessionManager.getDeviceId()).thenReturn("")
 
-        router = PrintRouter(context, printerProfileRepository, printerManager, kitchenQueueManager, billDao, sessionManager)
+        router = PrintRouter(context, printerProfileRepository, printerManager, kitchenQueueManager, billDao, kotEventDao, sessionManager)
     }
 
     @After

@@ -127,14 +127,13 @@ class TenantRestaurantDao @Inject constructor(
         dao.updateLifetimeCounter(restaurantId, counter, updatedAt)
     }
 
-    override suspend fun raiseCountersAtLeast(
+    override suspend fun raiseDailyCounterAtLeast(
         restaurantId: Long,
         dailyCounter: Long,
-        lifetimeCounter: Long,
         date: String,
         updatedAt: Long
     ) {
-        dao.raiseCountersAtLeast(restaurantId, dailyCounter, lifetimeCounter, date, updatedAt)
+        dao.raiseDailyCounterAtLeast(restaurantId, dailyCounter, date, updatedAt)
     }
 
     override suspend fun updateLogoPath(restaurantId: Long, path: String?, updatedAt: Long) {
@@ -441,14 +440,16 @@ class TenantBillDao @Inject constructor(
         return databaseProvider.activeDatabaseFlow.flatMapLatest { block(it) }
     }
 
-    override fun getDraftBills(restaurantId: Long): Flow<List<BillEntity>> = runFlow { it.billDao().getDraftBills(restaurantId) }
-    override fun getActiveDraftBillsFlow(restaurantId: Long): Flow<List<BillEntity>> = runFlow { it.billDao().getActiveDraftBillsFlow(restaurantId) }
+    override fun getDraftBills(restaurantId: Long, terminalId: String): Flow<List<BillEntity>> =
+        runFlow { it.billDao().getDraftBills(restaurantId, terminalId) }
+    override fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>> =
+        runFlow { it.billDao().getActiveDraftBillsFlow(restaurantId, terminalId) }
     override suspend fun getUnsentItemsForBill(billId: Long, restaurantId: Long): List<BillItemEntity> = dao.getUnsentItemsForBill(billId, restaurantId)
     override suspend fun markItemsSentToKot(itemIds: List<Long>, restaurantId: Long) = dao.markItemsSentToKot(itemIds, restaurantId)
     override suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long): BillEntity? = dao.getLatestPendingOnlineBill(restaurantId, ownerUserId)
     override suspend fun getLatestPendingOnlineBill(restaurantId: Long): BillEntity? = dao.getLatestPendingOnlineBill(restaurantId)
-    override fun getPendingOnlineBillsFlow(restaurantId: Long): Flow<List<BillEntity>> =
-        runFlow { it.billDao().getPendingOnlineBillsFlow(restaurantId) }
+    override fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>> =
+        runFlow { it.billDao().getPendingOnlineBillsFlow(restaurantId, terminalId) }
     override fun getSyncQuarantineCountFlow(restaurantId: Long): Flow<Int> =
         runFlow { it.billDao().getSyncQuarantineCountFlow(restaurantId) }
     override fun getSyncQuarantineRecordsFlow(restaurantId: Long): Flow<List<SyncQuarantineEntity>> =
@@ -668,5 +669,8 @@ class TenantKotEventDao @Inject constructor(
     override suspend fun getEventsForBill(publicToken: String): List<KotEventEntity> = dao.getEventsForBill(publicToken)
     override suspend fun markPrinted(publicToken: String, kotRevision: String): Int = dao.markPrinted(publicToken, kotRevision)
     override suspend fun getEventCountForBill(publicToken: String): Int = dao.getEventCountForBill(publicToken)
+    override suspend fun getMaxRevisionForBill(publicToken: String): Long = dao.getMaxRevisionForBill(publicToken)
+    override suspend fun getLatestUnprintedEvent(publicToken: String): KotEventEntity? = dao.getLatestUnprintedEvent(publicToken)
+    override suspend fun markUnprintedEventsPrinted(publicToken: String): Int = dao.markUnprintedEventsPrinted(publicToken)
     override suspend fun getEvent(publicToken: String, kotRevision: String): KotEventEntity? = dao.getEvent(publicToken, kotRevision)
 }

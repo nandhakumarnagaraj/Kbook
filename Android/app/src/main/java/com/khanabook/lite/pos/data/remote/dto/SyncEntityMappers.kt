@@ -20,6 +20,7 @@ fun BillEntity.toSyncDto(serverCreatedBy: Long? = null) = BillSyncDto(
     localDbId       = id,
     restaurantId    = restaurantId,
     deviceId        = deviceId,
+    terminalId      = terminalId,
     localId         = id,
     serverId        = serverId,
     dailyOrderId    = dailyOrderId,
@@ -53,6 +54,8 @@ fun BillEntity.toSyncDto(serverCreatedBy: Long? = null) = BillSyncDto(
     isDeleted       = isDeleted,
     lastResetDate   = lastResetDate,
     serverUpdatedAt = serverUpdatedAt,
+    version         = version,
+    operationId     = operationId,
     // refundAmount intentionally omitted — server-owned field.
     // GenericSyncService ignores the pushed value; server state is authoritative.
     publicToken     = publicToken,
@@ -62,6 +65,7 @@ fun BillItemEntity.toSyncDto() = BillItemSyncDto(
     localDbId       = id,
     restaurantId    = restaurantId,
     deviceId        = deviceId,
+    terminalId      = null,
     localId         = id,
     serverId        = serverId,
     billId          = billId,
@@ -79,12 +83,14 @@ fun BillItemEntity.toSyncDto() = BillItemSyncDto(
     updatedAt       = updatedAt,
     isDeleted       = isDeleted,
     serverUpdatedAt = serverUpdatedAt,
+    version         = 0L,
 )
 
 fun BillPaymentEntity.toSyncDto() = BillPaymentSyncDto(
     localDbId       = id,
     restaurantId    = restaurantId,
     deviceId        = deviceId,
+    terminalId      = terminalId,
     localId         = id,
     serverId        = serverId,
     billId          = billId,
@@ -98,6 +104,8 @@ fun BillPaymentEntity.toSyncDto() = BillPaymentSyncDto(
     updatedAt       = updatedAt,
     isDeleted       = isDeleted,
     serverUpdatedAt = serverUpdatedAt,
+    operationId     = operationId,
+    version         = version,
 )
 
 fun CategoryEntity.toSyncDto() = CategorySyncDto(
