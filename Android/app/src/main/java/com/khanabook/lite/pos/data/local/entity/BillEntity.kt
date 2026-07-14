@@ -24,7 +24,10 @@ import com.google.gson.annotations.SerializedName
                 unique = true
             ),
             Index(value = ["restaurant_id", "terminal_id", "created_at"]),
-            Index(value = ["restaurant_id", "financial_year", "invoice_series", "invoice_sequence"])
+            Index(value = ["restaurant_id", "financial_year", "invoice_series", "invoice_sequence"]),
+            Index(value = ["record_origin"], name = "index_bills_record_origin"),
+            Index(value = ["record_scope"], name = "index_bills_record_scope"),
+            Index(value = ["created_terminal_id", "record_origin", "record_scope"], name = "index_bills_terminal_origin_scope")
         ]
 )
 data class BillEntity(
@@ -127,8 +130,19 @@ data class BillEntity(
     @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0L,
     @SerializedName("lockStatus")
     @ColumnInfo(name = "lock_status", defaultValue = "'unlocked'") val lockStatus: String = "unlocked",
-    @SerializedName("operationId")
-    @ColumnInfo(name = "operation_id", defaultValue = "NULL") val operationId: String? = null
+@SerializedName("operationId")
+    @ColumnInfo(name = "operation_id", defaultValue = "NULL") val operationId: String? = null,
+
+    // Terminal ownership isolation (v60+)
+    // Origin: how this record entered the local database
+    @SerializedName("recordOrigin")
+    @ColumnInfo(name = "record_origin", defaultValue = "'local_created'")
+    val recordOrigin: String = "local_created", // local_created, server_imported, marketplace_imported, transferred
+
+    // Scope: where this record may be used
+    @SerializedName("recordScope")
+    @ColumnInfo(name = "record_scope", defaultValue = "'terminal_operational'")
+    val recordScope: String = "terminal_operational" // terminal_operational, restaurant_history, restaurant_shared, server_only
 )
 
 fun BillEntity.getInvoiceNumberDisplay(): String {

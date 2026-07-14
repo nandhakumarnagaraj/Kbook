@@ -32,6 +32,7 @@ public class SecurityConfig {
 
 	private final JwtRequestFilter jwtRequestFilter;
 	private final RequestIdFilter requestIdFilter;
+	private final TerminalRequestFilter terminalRequestFilter;
 
 	@Value("${cors.allowed-origins:}")
 	private String allowedOriginsRaw;
@@ -132,7 +133,8 @@ public class SecurityConfig {
 						.anyRequest().authenticated())
 
 				.addFilterBefore(requestIdFilter, UsernamePasswordAuthenticationFilter.class)
-				.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+				.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(terminalRequestFilter, JwtRequestFilter.class);
 
 		return http.build();
 	}

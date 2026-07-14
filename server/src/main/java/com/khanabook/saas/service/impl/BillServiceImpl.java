@@ -4,6 +4,7 @@ import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.BillService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
@@ -35,14 +36,38 @@ public class BillServiceImpl implements BillService {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zoneId);
 
 		for (Bill bill : payload) {
-			if (bill.getCreatedTerminalId() == null || bill.getCreatedTerminalId().isBlank()) {
-				bill.setCreatedTerminalId(bill.getTerminalId());
-			}
-			if (bill.getCurrentOwnerTerminalId() == null || bill.getCurrentOwnerTerminalId().isBlank()) {
-				bill.setCurrentOwnerTerminalId(bill.getCreatedTerminalId());
-			}
-			if (bill.getCreatedDeviceId() == null || bill.getCreatedDeviceId().isBlank()) {
-				bill.setCreatedDeviceId(bill.getDeviceId());
+			// Overwrite untrusted client terminal fields from the authenticated terminal
+			// context so invoice numbering (below) and downstream sync use the trusted series.
+			String trustedTerminalId = TenantContext.getCurrentTerminalId();
+			String trustedTerminalSeries = TenantContext.getCurrentTerminalSeries();
+			String trustedDeviceId = TenantContext.getCurrentTerminalDevice();
+			if (trustedTerminalId != null || trustedTerminalSeries != null) {
+				if (trustedTerminalSeries != null) {
+					bill.setTerminalSeries(trustedTerminalSeries);
+				}
+				if (trustedTerminalId != null) {
+					bill.setTerminalId(trustedTerminalId);
+				}
+				if (trustedDeviceId != null) {
+					bill.setCreatedDeviceId(trustedDeviceId);
+					bill.setDeviceId(trustedDeviceId);
+				}
+				if (bill.getCreatedTerminalId() == null || bill.getCreatedTerminalId().isBlank()) {
+					bill.setCreatedTerminalId(trustedTerminalId);
+				}
+				if (bill.getCurrentOwnerTerminalId() == null || bill.getCurrentOwnerTerminalId().isBlank()) {
+					bill.setCurrentOwnerTerminalId(trustedTerminalId);
+				}
+			} else {
+				if (bill.getCreatedTerminalId() == null || bill.getCreatedTerminalId().isBlank()) {
+					bill.setCreatedTerminalId(bill.getTerminalId());
+				}
+				if (bill.getCurrentOwnerTerminalId() == null || bill.getCurrentOwnerTerminalId().isBlank()) {
+					bill.setCurrentOwnerTerminalId(bill.getCreatedTerminalId());
+				}
+				if (bill.getCreatedDeviceId() == null || bill.getCreatedDeviceId().isBlank()) {
+					bill.setCreatedDeviceId(bill.getDeviceId());
+				}
 			}
 			if (bill.getLastResetDate() == null) {
 

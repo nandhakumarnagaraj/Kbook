@@ -9,6 +9,7 @@ import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.service.impl.MenuItemServiceImpl;
+import com.khanabook.saas.service.SecurityAuditService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +39,7 @@ class MenuItemServiceImplTest {
     @Mock private ItemVariantRepository itemVariantRepository;
     @Mock private BillPaymentRepository billPaymentRepository;
     @Mock private RestaurantTerminalRepository terminalRepository;
+    @Mock private SecurityAuditService securityAuditService;
 
     private GenericSyncService genericSyncService;
     private MenuItemServiceImpl service;
@@ -53,7 +55,8 @@ class MenuItemServiceImplTest {
             itemVariantRepository,
             categoryRepo,
             billPaymentRepository,
-            terminalRepository
+            terminalRepository,
+            securityAuditService
         );
         service = new MenuItemServiceImpl(menuItemRepo, categoryRepo, genericSyncService);
     }

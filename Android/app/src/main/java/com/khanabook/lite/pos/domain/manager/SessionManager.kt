@@ -152,7 +152,8 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
             terminalSeries = terminalSeries,
             isActive = prefs.getBoolean(scopedKey("terminal_active"), false),
             registeredAt = prefs.getLong(scopedKey("terminal_registered_at"), 0L).takeIf { it > 0L },
-            lastVerifiedAt = prefs.getLong(scopedKey("terminal_last_verified_at"), 0L).takeIf { it > 0L }
+            lastVerifiedAt = prefs.getLong(scopedKey("terminal_last_verified_at"), 0L).takeIf { it > 0L },
+            terminalToken = securePrefs.getString(scopedKey("terminal_token"), null)
         )
     }
 
@@ -170,6 +171,9 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
             .putLong(scopedKey("terminal_registered_at"), identity.registeredAt ?: 0L)
             .putLong(scopedKey("terminal_last_verified_at"), identity.lastVerifiedAt ?: System.currentTimeMillis())
             .apply()
+        if (!identity.terminalToken.isNullOrBlank()) {
+            securePrefs.putString(scopedKey("terminal_token"), identity.terminalToken)
+        }
     }
 
     fun isTerminalReady(): Boolean {

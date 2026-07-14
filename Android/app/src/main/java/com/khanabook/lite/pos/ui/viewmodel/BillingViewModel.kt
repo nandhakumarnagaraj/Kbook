@@ -492,13 +492,13 @@ class BillingViewModel @Inject constructor(
                 }
 
                 val finalSummary = _billSummary.value
-                if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.value, _partAmount2.value)) {
+if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.value, _partAmount2.value)) {
                     _isLoading.value = false
                     return@withLock null
                 }
                 // UPI QR generation and payment capture must work offline. Reserve the bill
                 // number locally, then let background sync reconcile with the server later.
-                val dailyCounter = restaurantRepository.incrementAndGetDailyCounter()
+                val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(terminalIdentity.terminalId)
                 val zoneId = java.time.ZoneId.of("Asia/Kolkata")
                 val today = java.time.LocalDate.now(zoneId).toString()
                 val terminalSeries = terminalIdentity.terminalSeries
@@ -739,13 +739,13 @@ class BillingViewModel @Inject constructor(
                     return@withLock false
                 }
 
-                val finalSummary = _billSummary.value
+val finalSummary = _billSummary.value
                 if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.value, _partAmount2.value)) {
                     _isLoading.value = false
                     return@withLock false
                 }
 
-                val dailyCounter = restaurantRepository.incrementAndGetDailyCounter()
+                val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(terminalIdentity.terminalId)
                 val zoneId = java.time.ZoneId.of("Asia/Kolkata")
                 val today = java.time.LocalDate.now(zoneId).toString()
                 val terminalSeries = terminalIdentity.terminalSeries
@@ -969,9 +969,9 @@ class BillingViewModel @Inject constructor(
                     return@withLock false
                 }
 
-                val finalSummary = _billSummary.value
+val finalSummary = _billSummary.value
 
-                val dailyCounter = restaurantRepository.incrementAndGetDailyCounter()
+                val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(terminalIdentity.terminalId)
                 val zoneId = java.time.ZoneId.of("Asia/Kolkata")
                 val today = java.time.LocalDate.now(zoneId).toString()
                 val terminalSeries = terminalIdentity.terminalSeries

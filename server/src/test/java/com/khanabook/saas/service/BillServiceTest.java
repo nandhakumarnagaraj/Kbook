@@ -2,6 +2,7 @@ package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.RestaurantProfile;
+import com.khanabook.saas.entity.RestaurantTerminal;
 import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.CategoryRepository;
@@ -9,9 +10,12 @@ import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.impl.BillServiceImpl;
+import com.khanabook.saas.service.SecurityAuditService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,6 +56,9 @@ class BillServiceTest {
     @Mock
     private RestaurantTerminalRepository terminalRepository;
 
+    @Mock
+    private SecurityAuditService securityAuditService;
+
     private GenericSyncService genericSyncService;
     private BillServiceImpl billService;
 
@@ -69,9 +76,29 @@ class BillServiceTest {
             itemVariantRepository,
             categoryRepository,
             billPaymentRepository,
-            terminalRepository
+            terminalRepository,
+            securityAuditService
         );
         billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository, terminalRepository);
+
+        RestaurantTerminal terminal = new RestaurantTerminal();
+        terminal.setId(1L);
+        terminal.setRestaurantId(AUTHENTICATED_RESTAURANT_ID);
+        terminal.setTerminalSeries("A");
+        terminal.setDeviceId(DEVICE_ID);
+        terminal.setIsActive(true);
+        when(terminalRepository.findByRestaurantIdAndTerminalSeries(AUTHENTICATED_RESTAURANT_ID, "A"))
+                .thenReturn(Optional.of(terminal));
+
+        TenantContext.setCurrentTenant(AUTHENTICATED_RESTAURANT_ID);
+        TenantContext.setCurrentTerminalId("1");
+        TenantContext.setCurrentTerminalSeries("A");
+        TenantContext.setCurrentTerminalDevice(DEVICE_ID);
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     private Bill createMobileBill(Long localId, Long updatedAt) {

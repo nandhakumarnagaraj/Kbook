@@ -34,6 +34,12 @@ class BillRepository(
             ?: sessionManager.getTerminalSeries()
             ?: "LEGACY_UNRESOLVED"
 
+    // Terminal ownership isolation (defense-in-depth): only bills created locally on this
+    // terminal are mutable as operational records. Pulled bills (server_imported /
+    // marketplace_imported) are read-only history and must never be mutated here.
+    private fun isLocallyOwned(bill: BillEntity): Boolean =
+        bill.recordScope == "terminal_operational" && bill.recordOrigin == "local_created"
+
     suspend fun insertFullBill(
             bill: BillEntity,
             items: List<BillItemEntity>,
@@ -67,14 +73,41 @@ class BillRepository(
     }
 
     suspend fun updateBill(bill: BillEntity) {
+        // Terminal ownership isolation (defense-in-depth): only locally-owned operational
+        // bills may be mutated. Server-imported / marketplace-imported history is read-only.
+        if (!isLocallyOwned(bill)) return
         billDao.updateBill(bill)
         triggerBackgroundSync()
     }
 
     suspend fun addBillPayment(payment: BillPaymentEntity) {
-        val parent = billDao.getBillById(payment.billId, sessionManager.getRestaurantId())
+        // Terminal ownership isolation: a payment may only be attached to a locally-owned
+        // operational bill. Server-imported / marketplace history must never receive a payment.
+        val parent = billDao.getOperationalBillById(payment.billId, sessionManager.getRestaurantId(), currentTerminalScope())
+            ?: return
+        if (!isLocallyOwned(parent)) return
         billDao.insertBillPayment(
-            if (parent != null) {
+            payment.copy(
+                restaurantId = parent.restaurantId,
+                deviceId = parent.deviceId,
+                terminalId = parent.terminalId,
+                billPublicToken = parent.publicToken,
+                operationId = payment.operationId ?: parent.operationId
+            )
+        )
+        triggerBackgroundSync()
+    }
+
+    suspend fun addBillPayments(payments: List<BillPaymentEntity>) {
+        val restaurantId = sessionManager.getRestaurantId()
+        val terminalId = currentTerminalScope()
+        val parents = billDao.getBillsByIds(payments.map { it.billId }.distinct(), restaurantId).associateBy { it.id }
+        // Drop payments whose parent is not a locally-owned operational bill.
+        val allowed = payments.filter { parents[it.billId]?.let { p -> isLocallyOwned(p) } == true }
+        if (allowed.isEmpty()) return
+        billDao.insertBillPayments(
+            allowed.map { payment ->
+                val parent = parents[payment.billId]!!
                 payment.copy(
                     restaurantId = parent.restaurantId,
                     deviceId = parent.deviceId,
@@ -82,30 +115,6 @@ class BillRepository(
                     billPublicToken = parent.publicToken,
                     operationId = payment.operationId ?: parent.operationId
                 )
-            } else {
-                payment
-            }
-        )
-        triggerBackgroundSync()
-    }
-
-    suspend fun addBillPayments(payments: List<BillPaymentEntity>) {
-        val restaurantId = sessionManager.getRestaurantId()
-        val parents = billDao.getBillsByIds(payments.map { it.billId }.distinct(), restaurantId).associateBy { it.id }
-        billDao.insertBillPayments(
-            payments.map { payment ->
-                val parent = parents[payment.billId]
-                if (parent != null) {
-                    payment.copy(
-                        restaurantId = parent.restaurantId,
-                        deviceId = parent.deviceId,
-                        terminalId = parent.terminalId,
-                        billPublicToken = parent.publicToken,
-                        operationId = payment.operationId ?: parent.operationId
-                    )
-                } else {
-                    payment
-                }
             }
         )
         triggerBackgroundSync()
@@ -115,6 +124,8 @@ class BillRepository(
         bill: BillEntity,
         payments: List<BillPaymentEntity>
     ) {
+        // Terminal ownership isolation (defense-in-depth).
+        if (!isLocallyOwned(bill)) return
         billDao.settleDraftBill(bill, payments)
         triggerBackgroundSync()
     }
@@ -163,8 +174,9 @@ class BillRepository(
 
     suspend fun updateOrderStatus(id: Long, status: String) {
         val restaurantId = sessionManager.getRestaurantId()
-        val current = billDao.getBillById(id, restaurantId) ?: return
-        
+        val current = billDao.getOperationalBillById(id, restaurantId, currentTerminalScope()) ?: return
+        if (!isLocallyOwned(current)) return
+
         
         val wasDeducted = current.orderStatus.equals("completed", ignoreCase = true) || 
                           current.orderStatus.equals("paid", ignoreCase = true)
@@ -188,6 +200,8 @@ class BillRepository(
     }
 
     suspend fun cancelOrder(id: Long, reason: String) {
+        val current = billDao.getOperationalBillById(id, sessionManager.getRestaurantId(), currentTerminalScope()) ?: return
+        if (!isLocallyOwned(current)) return
         billDao.cancelBill(id, reason, System.currentTimeMillis(), sessionManager.getRestaurantId())
         kitchenPrintQueueRepository?.deleteByBillId(id)
         triggerBackgroundSync()
@@ -197,14 +211,16 @@ class BillRepository(
         val cancelled = billDao.cancelStalePendingOnlineDrafts(
             reason = "Superseded by new payment attempt",
             updatedAt = System.currentTimeMillis(),
-            restaurantId = sessionManager.getRestaurantId()
+            restaurantId = sessionManager.getRestaurantId(),
+            terminalId = currentTerminalScope()
         )
         if (cancelled > 0) triggerBackgroundSync()
         return cancelled
     }
 
     suspend fun updatePaymentMode(id: Long, mode: String, partAmount1: String = "0.0", partAmount2: String = "0.0") {
-        val current = billDao.getBillById(id, sessionManager.getRestaurantId()) ?: return
+        val current = billDao.getOperationalBillById(id, sessionManager.getRestaurantId(), currentTerminalScope()) ?: return
+        if (!isLocallyOwned(current)) return
         if (current.orderStatus.equals("cancelled", ignoreCase = true)) return
         billDao.updateBill(
             current.copy(
@@ -219,7 +235,8 @@ class BillRepository(
     }
 
     suspend fun updatePaymentStatus(id: Long, status: String) {
-        val current = billDao.getBillById(id, sessionManager.getRestaurantId()) ?: return
+        val current = billDao.getOperationalBillById(id, sessionManager.getRestaurantId(), currentTerminalScope()) ?: return
+        if (!isLocallyOwned(current)) return
         billDao.updateBill(
             current.copy(
                 paymentStatus = status,
@@ -328,9 +345,15 @@ class BillRepository(
     }
 
     suspend fun insertBillItems(items: List<BillItemEntity>) {
-        billDao.insertBillItems(items)
-        items.groupBy { it.billId }.forEach { (billId, insertedItems) ->
-            billDao.getBillById(billId, sessionManager.getRestaurantId())?.let { bill ->
+        val restaurantId = sessionManager.getRestaurantId()
+        val terminalId = currentTerminalScope()
+        // Only insert items into locally-owned operational bills. History bills are read-only.
+        val parents = billDao.getBillsByIds(items.map { it.billId }.distinct(), restaurantId).associateBy { it.id }
+        val allowed = items.filter { parents[it.billId]?.let { p -> isLocallyOwned(p) } == true }
+        if (allowed.isEmpty()) return
+        billDao.insertBillItems(allowed)
+        allowed.groupBy { it.billId }.forEach { (billId, insertedItems) ->
+            parents[billId]?.let { bill ->
                 recordKotEvent(bill, KotEventType.ADD, insertedItems.filter { !it.isDeleted })
             }
         }
@@ -338,10 +361,12 @@ class BillRepository(
     }
 
     suspend fun updateBillItem(item: BillItemEntity) {
-        val existing = billDao.getBillItemsByIds(listOf(item.id), sessionManager.getRestaurantId()).firstOrNull()
+        val restaurantId = sessionManager.getRestaurantId()
+        val bill = billDao.getOperationalBillById(item.billId, restaurantId, currentTerminalScope()) ?: return
+        if (!isLocallyOwned(bill)) return
+        val existing = billDao.getBillItemsByIds(listOf(item.id), restaurantId).firstOrNull()
         billDao.updateBillItem(item)
-        val bill = billDao.getBillById(item.billId, sessionManager.getRestaurantId())
-        if (existing != null && bill != null) {
+        if (existing != null) {
             when {
                 item.quantity > existing.quantity ->
                     recordKotEvent(bill, KotEventType.ADD, listOf(item.copy(quantity = item.quantity - existing.quantity)))
@@ -353,13 +378,14 @@ class BillRepository(
     }
 
     suspend fun deleteBillItemById(id: Long) {
-        val existing = billDao.getBillItemsByIds(listOf(id), sessionManager.getRestaurantId()).firstOrNull()
-        val bill = existing?.let { billDao.getBillById(it.billId, sessionManager.getRestaurantId()) }
-        if (existing != null && bill != null) {
+        val restaurantId = sessionManager.getRestaurantId()
+        val existing = billDao.getBillItemsByIds(listOf(id), restaurantId).firstOrNull()
+        val bill = existing?.let { billDao.getOperationalBillById(it.billId, restaurantId, currentTerminalScope()) }
+        if (existing != null && bill != null && isLocallyOwned(bill)) {
             recordKotEvent(bill, KotEventType.VOID, listOf(existing))
+            billDao.deleteBillItemById(id)
+            triggerBackgroundSync()
         }
-        billDao.deleteBillItemById(id)
-        triggerBackgroundSync()
     }
 
     fun getActiveDraftBillsFlow(): kotlinx.coroutines.flow.Flow<List<BillEntity>> {

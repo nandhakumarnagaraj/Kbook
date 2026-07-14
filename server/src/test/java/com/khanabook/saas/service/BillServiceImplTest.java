@@ -2,6 +2,7 @@ package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.RestaurantProfile;
+import com.khanabook.saas.entity.RestaurantTerminal;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.repository.CategoryRepository;
@@ -9,9 +10,12 @@ import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.impl.BillServiceImpl;
+import com.khanabook.saas.service.SecurityAuditService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +45,7 @@ class BillServiceImplTest {
     @Mock private CategoryRepository categoryRepository;
     @Mock private BillPaymentRepository billPaymentRepository;
     @Mock private RestaurantTerminalRepository terminalRepository;
+    @Mock private SecurityAuditService securityAuditService;
 
     private GenericSyncService genericSyncService;
     private BillServiceImpl billService;
@@ -49,6 +54,8 @@ class BillServiceImplTest {
 
     private static final Long TENANT_ID = 55L;
     private static final String DEVICE = "PHONE_1";
+    private static final String TERMINAL_SERIES = "A";
+    private static final String TERMINAL_ID = "1";
 
     @BeforeEach
     void setUp() {
@@ -58,9 +65,29 @@ class BillServiceImplTest {
             itemVariantRepository,
             categoryRepository,
             billPaymentRepository,
-            terminalRepository
+            terminalRepository,
+            securityAuditService
         );
         billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository, terminalRepository);
+
+        RestaurantTerminal terminal = new RestaurantTerminal();
+        terminal.setId(1L);
+        terminal.setRestaurantId(TENANT_ID);
+        terminal.setTerminalSeries(TERMINAL_SERIES);
+        terminal.setDeviceId(DEVICE);
+        terminal.setIsActive(true);
+        when(terminalRepository.findByRestaurantIdAndTerminalSeries(TENANT_ID, TERMINAL_SERIES))
+                .thenReturn(Optional.of(terminal));
+
+        TenantContext.setCurrentTenant(TENANT_ID);
+        TenantContext.setCurrentTerminalId(TERMINAL_ID);
+        TenantContext.setCurrentTerminalSeries(TERMINAL_SERIES);
+        TenantContext.setCurrentTerminalDevice(DEVICE);
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.data.local.dao
 
 import androidx.room.*
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
+import com.khanabook.lite.pos.data.local.entity.TerminalDailyCounterEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -132,4 +133,56 @@ interface RestaurantDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedRestaurantProfiles(items: List<RestaurantProfileEntity>)
+
+    // ── Terminal Daily Counter ───────────────────────────────────────────────
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertTerminalDailyCounter(counter: TerminalDailyCounterEntity)
+
+    @Query(
+        "SELECT * FROM terminal_daily_counter WHERE restaurant_id = :restaurantId AND terminal_id = :terminalId AND date = :date LIMIT 1"
+    )
+    suspend fun getTerminalDailyCounter(restaurantId: Long, terminalId: String, date: String): TerminalDailyCounterEntity?
+
+    @Transaction
+    suspend fun incrementAndGetTerminalDailyCounter(restaurantId: Long, terminalId: String): Long {
+        val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+        val today = java.time.LocalDate.now(zoneId).toString()
+        val now = System.currentTimeMillis()
+
+        val existing = getTerminalDailyCounter(restaurantId, terminalId, today)
+        val nextCounter = (existing?.dailyOrderCounter ?: 0L) + 1
+
+        upsertTerminalDailyCounter(TerminalDailyCounterEntity(
+            restaurantId = restaurantId,
+            terminalId = terminalId,
+            date = today,
+            dailyOrderCounter = nextCounter,
+            isSynced = false,
+            updatedAt = now
+        ))
+        return nextCounter
+    }
+
+    @Query(
+        "SELECT * FROM terminal_daily_counter WHERE restaurant_id = :restaurantId AND date = :date"
+    )
+    suspend fun getAllTerminalCountersForDate(restaurantId: Long, date: String): List<TerminalDailyCounterEntity>
+
+    @Query(
+        "UPDATE terminal_daily_counter SET daily_order_counter = MAX(daily_order_counter, :counter), is_synced = 0, updated_at = :updatedAt WHERE restaurant_id = :restaurantId AND terminal_id = :terminalId AND date = :date"
+    )
+    suspend fun raiseTerminalDailyCounterAtLeast(
+        restaurantId: Long,
+        terminalId: String,
+        date: String,
+        counter: Long,
+        updatedAt: Long
+    )
+
+    @Query("SELECT * FROM terminal_daily_counter WHERE is_synced = 0")
+    suspend fun getUnsyncedTerminalDailyCounters(): List<TerminalDailyCounterEntity>
+
+    @Query("UPDATE terminal_daily_counter SET is_synced = 1 WHERE restaurant_id = :restaurantId AND terminal_id = :terminalId AND date = :date")
+    suspend fun markTerminalDailyCounterSynced(restaurantId: Long, terminalId: String, date: String)
 }

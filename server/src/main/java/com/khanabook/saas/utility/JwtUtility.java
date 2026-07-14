@@ -26,6 +26,9 @@ public class JwtUtility {
 	@Value("${jwt.expiration.ms:36000000}")
 	private long expirationMs;
 
+	@Value("${jwt.terminal.expiration.ms:2592000000}")
+	private long terminalExpirationMs;
+
 	private SecretKey getSigningKey() {
 		byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
 		if (secretBytes.length >= 32) {
@@ -112,6 +115,46 @@ public class JwtUtility {
 			return true;
 		} catch (Exception e) {
 			return true;
+		}
+	}
+
+	/**
+	 * Generates a terminal-bound token issued by the /sync/terminal/activate
+	 * endpoint. Carries terminalSeries/terminalId so the backend can trust the
+	 * caller's terminal identity instead of relying on client-submitted values.
+	 */
+	public String generateTerminalToken(String subject, Long restaurantId, String role, String terminalId,
+			String terminalSeries, String deviceId) {
+		Date now = new Date();
+		var builder = Jwts.builder().setId(java.util.UUID.randomUUID().toString()).setSubject(subject)
+				.claim("restaurantId", restaurantId).claim("role", role)
+				.claim("terminalId", terminalId).claim("terminalSeries", terminalSeries)
+				.claim("deviceId", deviceId == null ? "" : deviceId).claim("tokenType", "terminal")
+				.setIssuedAt(now).setExpiration(new Date(now.getTime() + terminalExpirationMs));
+		return builder.signWith(getSigningKey()).compact();
+	}
+
+	public String extractTerminalId(String token) {
+		try {
+			return extractAllClaims(token).get("terminalId", String.class);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	public String extractTerminalSeries(String token) {
+		try {
+			return extractAllClaims(token).get("terminalSeries", String.class);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	public String extractTokenType(String token) {
+		try {
+			return extractAllClaims(token).get("tokenType", String.class);
+		} catch (Exception e) {
+			return null;
 		}
 	}
 }

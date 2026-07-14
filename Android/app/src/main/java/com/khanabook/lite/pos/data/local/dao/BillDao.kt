@@ -68,13 +68,15 @@ interface BillDao {
     @Update
     suspend fun updateBill(bill: BillEntity)
 
-    @Query("""
+@Query("""
         SELECT * FROM bills
         WHERE restaurant_id = :restaurantId
           AND order_status = 'draft'
           AND payment_status = 'pending'
           AND order_type = 'dine_in'
           AND is_deleted = 0
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
           AND (
               current_owner_terminal_id = :terminalId
               OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId)
@@ -88,7 +90,7 @@ interface BillDao {
           )
         ORDER BY updated_at DESC
     """)
-    fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
+fun getActiveDraftBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
 
     @Query("SELECT * FROM bill_items WHERE bill_id = :billId AND restaurant_id = :restaurantId AND sent_to_kot = 0 AND is_deleted = 0")
     suspend fun getUnsentItemsForBill(billId: Long, restaurantId: Long): List<BillItemEntity>
@@ -114,6 +116,34 @@ interface BillDao {
 
     @Query("SELECT * FROM bills WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun getBillById(id: Long, restaurantId: Long): BillEntity?
+
+    // Terminal ownership isolation: a bill that THIS terminal may mutate as an operational
+    // record. Returns null for server-imported / marketplace history, other terminals' bills,
+    // or anything not explicitly local_created + terminal_operational. Mutable workflows must
+    // load bills through this method so a history record can never reach a DAO write.
+    @Query("""
+        SELECT * FROM bills
+        WHERE id = :id AND restaurant_id = :restaurantId AND is_deleted = 0
+          AND record_scope = 'terminal_operational' AND record_origin = 'local_created'
+          AND (current_owner_terminal_id = :terminalId
+               OR (current_owner_terminal_id IS NULL AND created_terminal_id = :terminalId))
+        LIMIT 1
+    """)
+    suspend fun getOperationalBillById(id: Long, restaurantId: Long, terminalId: String): BillEntity?
+
+    // Runtime reconciliation (post-migration / post-activation). The authoritative terminal is
+    // only known at runtime, so this corrects the migration's conservative backfill: this
+    // terminal's own synced completed bills are re-labelled local_created / terminal_operational,
+    // while everything else (including other terminals' pulled bills) stays server_imported
+    // history. Idempotent — safe to call after every activation/pull.
+    @Query("""
+        UPDATE bills
+        SET record_origin = 'local_created', record_scope = 'terminal_operational'
+        WHERE restaurant_id = :restaurantId AND is_deleted = 0 AND is_synced = 1
+          AND created_terminal_id = :terminalId
+          AND (source_channel IS NULL OR source_channel NOT IN ('zomato', 'swiggy', 'own_website'))
+    """)
+    suspend fun reconcileLocalRecordScope(restaurantId: Long, terminalId: String): Int
 
     // Canonical bill lookup by immutable public_token (see PLAN §4.1).
     @Query("SELECT * FROM bills WHERE public_token = :publicToken AND restaurant_id = :restaurantId LIMIT 1")
@@ -179,12 +209,14 @@ interface BillDao {
     )
     suspend fun getBillByDailyIntIdAndDate(dailyId: Long, startTime: Long, endTime: Long, restaurantId: Long, terminalId: String): BillEntity?
 
-    @Query("""
+@Query("""
         SELECT * FROM bills
         WHERE order_status = 'draft'
           AND restaurant_id = :restaurantId
           AND is_deleted = 0
           AND created_terminal_id = :terminalId
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
           AND NOT EXISTS (
               SELECT 1
               FROM bill_payments
@@ -193,22 +225,24 @@ interface BillDao {
                 AND bill_payments.is_deleted = 0
           )
     """)
-    fun getDraftBills(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
+fun getDraftBills(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
 
-    @Query("""
+@Query("""
         SELECT * FROM bills
         WHERE order_status = 'draft'
           AND payment_status = 'pending'
           AND restaurant_id = :restaurantId
           AND owner_user_id = :ownerUserId
           AND created_terminal_id = :terminalId
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
           AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos'
           )
         ORDER BY created_at DESC
         LIMIT 1
     """)
-    suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long, terminalId: String): BillEntity?
+suspend fun getLatestPendingOnlineBill(restaurantId: Long, ownerUserId: Long, terminalId: String): BillEntity?
 
     @Query("""
         SELECT * FROM bills
@@ -216,6 +250,8 @@ interface BillDao {
           AND payment_status = 'pending'
           AND restaurant_id = :restaurantId
           AND created_terminal_id = :terminalId
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
           AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos'
           )
@@ -224,19 +260,21 @@ interface BillDao {
     """)
     suspend fun getLatestPendingOnlineBill(restaurantId: Long, terminalId: String): BillEntity?
 
-    @Query("""
+@Query("""
         SELECT * FROM bills
         WHERE order_status = 'draft'
           AND payment_status = 'pending'
           AND restaurant_id = :restaurantId
           AND is_deleted = 0
           AND created_terminal_id = :terminalId
+          AND record_scope = 'terminal_operational'
+          AND record_origin = 'local_created'
           AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos'
           )
         ORDER BY created_at DESC
     """)
-    fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
+fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List<BillEntity>>
 
     @Query("UPDATE bills SET order_status = :status WHERE id = :id AND restaurant_id = :restaurantId")
     suspend fun updateOrderStatus(id: Long, status: String, restaurantId: Long)
@@ -255,11 +293,12 @@ interface BillDao {
         cancel_reason = :reason, is_synced = 0, updated_at = :updatedAt
         WHERE order_status = 'draft' AND payment_status = 'pending'
         AND restaurant_id = :restaurantId
+        AND created_terminal_id = :terminalId
         AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos'
         )
     """)
-    suspend fun cancelStalePendingOnlineDrafts(reason: String, updatedAt: Long, restaurantId: Long): Int
+    suspend fun cancelStalePendingOnlineDrafts(reason: String, updatedAt: Long, restaurantId: Long, terminalId: String): Int
 
     @Query(
             "SELECT * FROM bills WHERE created_at BETWEEN :startMillis AND :endMillis AND is_deleted = 0 AND restaurant_id = :restaurantId AND created_terminal_id = :terminalId ORDER BY created_at DESC"

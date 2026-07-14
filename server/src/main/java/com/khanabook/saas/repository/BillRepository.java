@@ -49,6 +49,9 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
               AND (
                     b.createdTerminalId = :terminalId
                     OR b.currentOwnerTerminalId = :terminalId
+                    OR LOWER(b.orderStatus) IN ('completed','paid','cancelled')
+                    OR (b.refundAmount IS NOT NULL AND b.refundAmount > 0)
+                    OR (b.sourceChannel IS NOT NULL AND LOWER(b.sourceChannel) IN ('zomato','swiggy','own_website'))
                   )
             """)
     org.springframework.data.domain.Page<Bill> findUpdatedForTerminal(

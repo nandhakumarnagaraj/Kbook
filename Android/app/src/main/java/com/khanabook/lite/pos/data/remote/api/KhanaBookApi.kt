@@ -115,5 +115,6 @@ data class TerminalActivationResponse(
     @SerializedName("terminalSeries") val terminalSeries: String,
     @SerializedName("isActive") val isActive: Boolean? = null,
     @SerializedName("registeredAt") val registeredAt: Long? = null,
-    @SerializedName("lastVerifiedAt") val lastVerifiedAt: Long? = null
+    @SerializedName("lastVerifiedAt") val lastVerifiedAt: Long? = null,
+    @SerializedName("terminalToken") val terminalToken: String? = null
 )

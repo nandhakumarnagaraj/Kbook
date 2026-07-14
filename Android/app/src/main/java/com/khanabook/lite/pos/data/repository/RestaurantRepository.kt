@@ -3,6 +3,7 @@ package com.khanabook.lite.pos.data.repository
 import androidx.work.WorkManager
 import com.khanabook.lite.pos.data.local.dao.RestaurantDao
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
+import com.khanabook.lite.pos.data.local.entity.TerminalDailyCounterEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -107,6 +108,28 @@ class RestaurantRepository(
         val dailyCounter = restaurantDao.incrementAndGetDailyCounter(restaurantId)
         triggerBackgroundSync()
         return dailyCounter
+    }
+
+    // ── Terminal Daily Counter (per-terminal isolation) ────────────────────────
+
+    suspend fun incrementAndGetTerminalDailyCounter(terminalId: String): Long {
+        val restaurantId = sessionManager.getRestaurantId()
+        val dailyCounter = restaurantDao.incrementAndGetTerminalDailyCounter(restaurantId, terminalId)
+        triggerBackgroundSync()
+        return dailyCounter
+    }
+
+    suspend fun getTerminalDailyCounter(terminalId: String, date: String? = null): TerminalDailyCounterEntity? {
+        val restaurantId = sessionManager.getRestaurantId()
+        val targetDate = date ?: java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString()
+        return restaurantDao.getTerminalDailyCounter(restaurantId, terminalId, targetDate)
+    }
+
+    suspend fun raiseTerminalDailyCounterAtLeast(terminalId: String, counter: Long, date: String? = null) {
+        val restaurantId = sessionManager.getRestaurantId()
+        val targetDate = date ?: java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString()
+        restaurantDao.raiseTerminalDailyCounterAtLeast(restaurantId, terminalId, targetDate, counter, System.currentTimeMillis())
+        triggerBackgroundSync()
     }
 
     suspend fun updateLogoPath(path: String?) {

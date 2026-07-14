@@ -108,13 +108,24 @@ class PrintRouter @Inject constructor(
                 }
 
                 // ── KOT Device Ownership Guard ──────────────────────────────────────────
-                // Bills pulled from another terminal must NOT auto-print KOT on this device.
-                // Each terminal only fires KOT events for bills it originated.
-                if (isKitchenTarget && mode == PrintDispatchMode.AUTO) {
+                // Bills pulled from another terminal must NOT print KOT on this device,
+                // whether the KOT is fired automatically (on billing) or reprinted manually
+                // from the order detail screen. Each terminal only fires KOT events for bills
+                // it originated; a pulled bill is read-only history.
+                if (isKitchenTarget && (mode == PrintDispatchMode.AUTO || mode == PrintDispatchMode.MANUAL_KITCHEN_ONLY)) {
+                    val printBill = bill.bill
+                    val locallyOwned =
+                        printBill.recordScope == "terminal_operational" && printBill.recordOrigin == "local_created"
                     val localDeviceId = sessionManager.getDeviceId()
-                    val billOwner = bill.bill.deviceId
-                    if (billOwner != null && billOwner != localDeviceId) {
-                        Log.d(TAG, "Skipping AUTO KOT: bill owned by device=$billOwner, local=$localDeviceId")
+                    // Reject KOT for read-only server/marketplace history, and for bills that
+                    // originated on a different physical device. A terminal may only fire KOT
+                    // for its own locally-owned operational bills.
+                    if (!locallyOwned || (printBill.deviceId != null && printBill.deviceId != localDeviceId)) {
+                        Log.d(
+                            TAG,
+                            "Skipping KOT: not locally owned (scope=${printBill.recordScope}, " +
+                                "origin=${printBill.recordOrigin}, device=${printBill.deviceId}, local=$localDeviceId)"
+                        )
                         return@async Triple(target.role, true, "")
                     }
                 }

@@ -4,6 +4,7 @@ import com.khanabook.saas.entity.*;
 import com.khanabook.saas.repository.*;
 import com.khanabook.saas.service.impl.BillItemServiceImpl;
 import com.khanabook.saas.service.impl.BillPaymentServiceImpl;
+import com.khanabook.saas.service.SecurityAuditService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,7 @@ class BillDependencyResolutionTest {
     @Mock private ItemVariantRepository itemVariantRepo;
     @Mock private CategoryRepository categoryRepo;
     @Mock private RestaurantTerminalRepository terminalRepo;
+    @Mock private SecurityAuditService securityAuditService;
 
     private BillItemServiceImpl billItemService;
     private BillPaymentServiceImpl billPaymentService;
@@ -47,7 +49,8 @@ class BillDependencyResolutionTest {
                 itemVariantRepo,
                 categoryRepo,
                 billPaymentRepo,
-                terminalRepo
+                terminalRepo,
+                securityAuditService
         );
         billItemService = new BillItemServiceImpl(billItemRepo, billRepo, menuItemRepo, itemVariantRepo, gs);
         billPaymentService = new BillPaymentServiceImpl(billPaymentRepo, billRepo, gs);
