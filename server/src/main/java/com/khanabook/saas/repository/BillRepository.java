@@ -25,18 +25,20 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             @Param("terminalSeries") String terminalSeries,
             @Param("financialYear") String financialYear);
 
-    // Every terminal must receive canonical server deltas, including bills it
-    // originally created (for example admin refunds and immutable invoice state).
+    // Restaurant-wide pull (admin / legacy clients without an X-Terminal-Token).
+    // Returns every bill for the restaurant updated since lastSync, unfiltered by
+    // terminal — i.e. NOT terminal-scoped. Never use this for a normal terminal pull;
+    // terminal pulls must use findUpdatedForTerminal.
     @Query("SELECT b FROM Bill b WHERE b.restaurantId = :restaurantId " +
            "AND b.serverUpdatedAt > :lastSyncTimestamp")
-    List<Bill> findUpdatedExcludingOwnActiveOnly(
+    List<Bill> findUpdatedForRestaurantWide(
             @Param("restaurantId") Long restaurantId,
             @Param("lastSyncTimestamp") Long lastSyncTimestamp,
             @Param("deviceId") String deviceId);
 
     @Query("SELECT b FROM Bill b WHERE b.restaurantId = :restaurantId " +
            "AND b.serverUpdatedAt > :lastSyncTimestamp")
-    org.springframework.data.domain.Page<Bill> findUpdatedExcludingOwnActiveOnly(
+    org.springframework.data.domain.Page<Bill> findUpdatedForRestaurantWide(
             @Param("restaurantId") Long restaurantId,
             @Param("lastSyncTimestamp") Long lastSyncTimestamp,
             @Param("deviceId") String deviceId,

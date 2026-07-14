@@ -44,7 +44,10 @@ public abstract class BaseIntegrationTest {
         registry.add("easebuzz.base-url", () -> "https://testpay.easebuzz.in");
 
         registry.add("spring.flyway.enabled",             () -> "false");
-        registry.add("spring.jpa.hibernate.ddl-auto",    () -> "create-drop");
+        // Use "create" (not "create-drop") so the shared in-memory H2 schema survives
+        // context closures between test classes; create-drop drops it and breaks later
+        // tests that reuse the cached context.
+        registry.add("spring.jpa.hibernate.ddl-auto",    () -> "create");
     }
 
     protected void seedSignupOtp(String phoneNumber) {

@@ -16,6 +16,9 @@ import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.service.*;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/sync/master")
@@ -35,6 +38,16 @@ public class MasterSyncController {
 	private final BillPaymentService billPaymentService;
 	private final BillItemRepository billItemRepository;
 	private final BillPaymentRepository billPaymentRepository;
+
+	// Phase C strict mode and the legacy compatibility fallback (Correction 2).
+	// strict=true: a missing terminal token rejects terminal-operational pulls.
+	// compatibility=false: the legacy client-supplied terminal id is no longer trusted;
+	// a missing token is rejected even outside strict mode.
+	@Value("${terminal.sync.strict:false}")
+	private boolean terminalSyncStrict;
+
+	@Value("${terminal.sync.compatibility:true}")
+	private boolean terminalCompatibility;
 
 	@org.springframework.transaction.annotation.Transactional(readOnly = true)
 	@GetMapping("/pull")
@@ -68,6 +81,39 @@ public class MasterSyncController {
 		org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
 				page, size, org.springframework.data.domain.Sort.by("id").ascending());
 
+		// Terminal identity is always taken from the authenticated X-Terminal-Token, never
+		// from the client query parameter. A supplied query terminal id is only honoured as a
+		// legacy fallback while compatibility mode is enabled; any mismatch with the token is
+		// rejected so Terminal B cannot request Terminal A's operational records.
+		String authenticatedTerminalId = TenantContext.getCurrentTerminalId();
+		boolean isAdmin = "KBOOK_ADMIN".equals(role);
+		String effectiveTerminalId;
+		if (authenticatedTerminalId != null && !authenticatedTerminalId.isBlank()) {
+			effectiveTerminalId = authenticatedTerminalId;
+			if (terminalId != null && !terminalId.isBlank() && !terminalId.equals(authenticatedTerminalId)) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+						"Requested terminal does not match authenticated terminal");
+			}
+		} else if (terminalId != null && !terminalId.isBlank()) {
+			if (!terminalCompatibility) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+						"Terminal identity required; compatibility mode is disabled");
+			}
+			effectiveTerminalId = terminalId; // legacy fallback only while compatibility mode is enabled
+		} else {
+			effectiveTerminalId = null;
+		}
+
+		// Terminal-operational pulls (bills/items/payments) require a terminal identity once
+		// strict mode is enabled or compatibility mode is turned off. Admins remain exempt.
+		boolean terminalIdentityRequired = !isAdmin
+				&& (terminalSyncStrict || !terminalCompatibility)
+				&& (effectiveTerminalId == null || effectiveTerminalId.isBlank());
+		if (terminalIdentityRequired) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"Terminal identity required for bill pull: activate a terminal and send X-Terminal-Token");
+		}
+
 		MasterSyncResponseDTO response = new MasterSyncResponseDTO();
 		response.setServerTimestamp(currentServerTime);
 
@@ -88,15 +134,15 @@ public class MasterSyncController {
 		org.springframework.data.domain.Page<com.khanabook.saas.entity.StockLog> stockLogsPage =
 				stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice, pageable);
 		org.springframework.data.domain.Page<com.khanabook.saas.entity.Bill> billsPage =
-				billService.pullData(tenantId, lastSyncTimestamp, deviceId, terminalId, transactionalCrossDevice, pageable);
+				billService.pullData(tenantId, lastSyncTimestamp, deviceId, effectiveTerminalId, transactionalCrossDevice, pageable);
 		java.util.List<com.khanabook.saas.entity.BillItem> billItems =
-				terminalId == null || terminalId.isBlank()
+				effectiveTerminalId == null || effectiveTerminalId.isBlank()
 						? java.util.Collections.emptyList()
-						: billItemRepository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, terminalId);
+						: billItemRepository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, effectiveTerminalId);
 		java.util.List<com.khanabook.saas.entity.BillPayment> billPayments =
-				terminalId == null || terminalId.isBlank()
+				effectiveTerminalId == null || effectiveTerminalId.isBlank()
 						? java.util.Collections.emptyList()
-						: billPaymentRepository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, terminalId);
+						: billPaymentRepository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, effectiveTerminalId);
 
 		response.setStockLogs(SyncMapper.mapList(stockLogsPage.getContent(), StockLogDTO.class));
 		response.setBills(SyncMapper.mapList(billsPage.getContent(), BillDTO.class));

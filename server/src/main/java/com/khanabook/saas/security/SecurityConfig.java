@@ -134,7 +134,10 @@ public class SecurityConfig {
 
 				.addFilterBefore(requestIdFilter, UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
-				.addFilterBefore(terminalRequestFilter, JwtRequestFilter.class);
+				// Terminal token validation must run AFTER JwtRequestFilter so the tenant is
+				// already on TenantContext; otherwise the restaurant/terminal mismatch cross-check
+				// (which reads TenantContext.getCurrentTenant()) can never fire.
+				.addFilterAfter(terminalRequestFilter, JwtRequestFilter.class);
 
 		return http.build();
 	}

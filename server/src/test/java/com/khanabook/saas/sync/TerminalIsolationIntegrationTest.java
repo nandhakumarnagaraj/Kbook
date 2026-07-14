@@ -4,6 +4,8 @@ import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.RestaurantTerminal;
 import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.repository.BillItemRepository;
+import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.utility.JwtUtility;
@@ -16,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -37,6 +40,8 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private BillRepository billRepository;
+    @Autowired private BillItemRepository billItemRepository;
+    @Autowired private BillPaymentRepository billPaymentRepository;
     @Autowired private RestaurantTerminalRepository terminalRepository;
     @Autowired private JwtUtility jwtUtility;
     @Autowired private ObjectMapper objectMapper;
@@ -209,5 +214,152 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
             }
         }
         return false;
+    }
+
+    // ── Child-record (BillItem / BillPayment) terminal isolation ──────────────────
+
+    private String billItemJson(long localId, long updatedAt, long billLocalId) {
+        return """
+            [{
+              "localId": %d,
+              "deviceId": "DEV_A",
+              "restaurantId": %d,
+              "updatedAt": %d,
+              "createdAt": %d,
+              "isDeleted": false,
+              "billId": %d,
+              "menuItemId": 0,
+              "itemName": "Test item",
+              "price": 10.00,
+              "quantity": 1,
+              "itemTotal": 10.00
+            }]
+            """.formatted(localId, RESTAURANT, updatedAt, updatedAt, billLocalId);
+    }
+
+    private String billPaymentJson(long localId, long updatedAt, long billLocalId) {
+        return """
+            [{
+              "localId": %d,
+              "deviceId": "DEV_A",
+              "restaurantId": %d,
+              "updatedAt": %d,
+              "createdAt": %d,
+              "isDeleted": false,
+              "billId": %d,
+              "paymentMode": "cash",
+              "amount": 10.00
+            }]
+            """.formatted(localId, RESTAURANT, updatedAt, updatedAt, billLocalId);
+    }
+
+    private Long serverBillIdOf(long localId) {
+        return billRepository.findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT, "DEV_A", localId)
+                .orElseThrow().getId();
+    }
+
+    @Test
+    void push_billItem_fromTerminalB_rejectedOnTerminalA_bill() throws Exception {
+        String auth = authToken();
+        String tokenA = terminalToken("A");
+        String tokenB = terminalToken("B");
+
+        mockMvc.perform(post("/sync/bills/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftBillJson(1, 1000, null)))
+                .andExpect(status().isOk());
+
+        String body = mockMvc.perform(post("/sync/bills/items/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenB)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(billItemJson(1, 5000, 1)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode resp = objectMapper.readTree(body);
+        assertThat(resp.get("failedLocalIds").size()).isGreaterThanOrEqualTo(1);
+        assertThat(resp.get("successfulLocalIds").size()).isEqualTo(0);
+
+        // No item row should have been written against A's bill.
+        assertThat(billItemRepository.findByRestaurantIdAndServerBillIdInAndServerUpdatedAtGreaterThan(
+                RESTAURANT, List.of(serverBillIdOf(1L)), 0L)).isEmpty();
+    }
+
+    @Test
+    void push_billItem_fromTerminalA_acceptedOnOwnBill() throws Exception {
+        String auth = authToken();
+        String tokenA = terminalToken("A");
+
+        mockMvc.perform(post("/sync/bills/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftBillJson(1, 1000, null)))
+                .andExpect(status().isOk());
+
+        String body = mockMvc.perform(post("/sync/bills/items/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(billItemJson(1, 5000, 1)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode resp = objectMapper.readTree(body);
+        assertThat(resp.get("failedLocalIds").size()).isEqualTo(0);
+        assertThat(resp.get("successfulLocalIds").size()).isEqualTo(1);
+    }
+
+    @Test
+    void push_billPayment_fromTerminalB_rejectedOnTerminalA_bill() throws Exception {
+        String auth = authToken();
+        String tokenA = terminalToken("A");
+        String tokenB = terminalToken("B");
+
+        mockMvc.perform(post("/sync/bills/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftBillJson(1, 1000, null)))
+                .andExpect(status().isOk());
+
+        String body = mockMvc.perform(post("/sync/bills/payments/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenB)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(billPaymentJson(1, 5000, 1)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode resp = objectMapper.readTree(body);
+        assertThat(resp.get("failedLocalIds").size()).isGreaterThanOrEqualTo(1);
+        assertThat(resp.get("successfulLocalIds").size()).isEqualTo(0);
+
+        assertThat(billPaymentRepository.findByRestaurantIdAndServerBillIdInAndServerUpdatedAtGreaterThan(
+                RESTAURANT, List.of(serverBillIdOf(1L)), 0L)).isEmpty();
+    }
+
+    @Test
+    void push_billPayment_fromTerminalA_acceptedOnOwnBill() throws Exception {
+        String auth = authToken();
+        String tokenA = terminalToken("A");
+
+        mockMvc.perform(post("/sync/bills/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftBillJson(1, 1000, null)))
+                .andExpect(status().isOk());
+
+        String body = mockMvc.perform(post("/sync/bills/payments/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(billPaymentJson(1, 5000, 1)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode resp = objectMapper.readTree(body);
+        assertThat(resp.get("failedLocalIds").size()).isEqualTo(0);
+        assertThat(resp.get("successfulLocalIds").size()).isEqualTo(1);
     }
 }
