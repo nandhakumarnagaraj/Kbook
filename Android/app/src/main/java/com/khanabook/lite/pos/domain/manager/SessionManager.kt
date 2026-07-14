@@ -365,7 +365,11 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         if (BuildConfig.DEBUG) {
             Log.d(debugTag, "clearSession")
         }
+        // Remove sensitive tokens from keystore-backed storage.
+        // terminal_token is scoped by restaurantId so we remove the scoped key
+        // before clearing prefs (which would change the scopedKey result).
         securePrefs.remove("auth_token")
+        securePrefs.remove(scopedKey("terminal_token"))
         prefs.edit().clear().apply()
         _restaurantId.value = 0L
         _isSessionExpired.value = true
