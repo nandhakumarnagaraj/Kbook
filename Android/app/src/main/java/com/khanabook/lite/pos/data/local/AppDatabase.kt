@@ -22,9 +22,10 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         SyncQuarantineEntity::class,
                         StockLogEntity::class,
-                        KotEventEntity::class
+                        KotEventEntity::class,
+                        TerminalDailyCounterEntity::class
                 ],
-        version = 58,
+        version = 60,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -731,7 +732,106 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_bills_restaurant_public_token` ON `bills` (`restaurant_id`, `public_token`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_restaurant_id_terminal_id_created_at` ON `bills` (`restaurant_id`, `terminal_id`, `created_at`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_restaurant_id_financial_year_invoice_series_invoice_sequence` ON `bills` (`restaurant_id`, `financial_year`, `invoice_series`, `invoice_sequence`)")
-                android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
+android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
+            }
+        }
+
+        val MIGRATION_58_59 = object : Migration(58, 59) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `terminal_daily_counter` (
+                        `restaurant_id` INTEGER NOT NULL,
+                        `terminal_id` TEXT NOT NULL,
+                        `date` TEXT NOT NULL,
+                        `daily_order_counter` INTEGER NOT NULL DEFAULT 0,
+                        `is_synced` INTEGER NOT NULL DEFAULT 0,
+                        `updated_at` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`restaurant_id`, `terminal_id`, `date`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_terminal_daily_counter_restaurant_date` ON `terminal_daily_counter` (`restaurant_id`, `date`)"
+                )
+            }
+        }
+
+        val MIGRATION_59_60 = object : Migration(59, 60) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add record_origin and record_scope columns to bills table for terminal ownership isolation
+                if (!db.hasColumn("bills", "record_origin")) {
+                    db.execSQL(
+                        "ALTER TABLE `bills` ADD COLUMN `record_origin` TEXT NOT NULL DEFAULT 'local_created'"
+                    )
+                }
+                if (!db.hasColumn("bills", "record_scope")) {
+                    db.execSQL(
+                        "ALTER TABLE `bills` ADD COLUMN `record_scope` TEXT NOT NULL DEFAULT 'terminal_operational'"
+                    )
+                }
+
+                // ── Backfill strategy ──────────────────────────────────────────────────
+                // NOTE: We deliberately do NOT infer "this terminal" from restaurant_profile,
+                // which has no terminal_id column. The authoritative terminal is only known at
+                // runtime (SessionManager), so a one-time runtime reconciliation
+                // (BillRepository.reconcileLocalBillScope) corrects local vs server classification
+                // after the terminal identity is available. Here we apply a conservative,
+                // data-preserving backfill:
+                //   • Unsynced (is_synced=0)           → local_created / terminal_operational
+                //   • In-progress drafts (created_terminal_id set) → local_created / terminal_operational
+                //     (preserves UPI/payment-link drafts that were already pushed but not completed)
+                //   • Marketplace channels             → marketplace_imported / restaurant_shared
+                //   • All other synced history         → server_imported / restaurant_history
+                // No row is deleted and no invoice/sequence is regenerated.
+
+                // 1. Unsynced = locally created operational records (definitely this terminal).
+                db.execSQL("""
+                    UPDATE `bills`
+                    SET `record_origin` = 'local_created',
+                        `record_scope` = 'terminal_operational'
+                    WHERE `is_synced` = 0 AND `is_deleted` = 0
+                """.trimIndent())
+
+                // 2. In-progress drafts remain operational so the user can complete them.
+                //    (Covers both unsynced and already-pushed payment-link drafts.)
+                db.execSQL("""
+                    UPDATE `bills`
+                    SET `record_origin` = 'local_created',
+                        `record_scope` = 'terminal_operational'
+                    WHERE `is_deleted` = 0
+                      AND `order_status` = 'draft'
+                      AND `payment_status` = 'pending'
+                      AND `created_terminal_id` IS NOT NULL
+                """.trimIndent())
+
+                // 3. Marketplace orders are shared, regardless of sync state.
+                db.execSQL("""
+                    UPDATE `bills`
+                    SET `record_origin` = 'marketplace_imported',
+                        `record_scope` = 'restaurant_shared'
+                    WHERE `is_deleted` = 0
+                      AND `source_channel` IN ('zomato', 'swiggy', 'own_website')
+                """.trimIndent())
+
+                // 4. Remaining synced history (defaulted to local_created) is treated as
+                //    read-only server history. The runtime reconciliation re-labels this
+                //    terminal's own completed bills back to local_created / terminal_operational.
+                db.execSQL("""
+                    UPDATE `bills`
+                    SET `record_origin` = 'server_imported',
+                        `record_scope` = 'restaurant_history'
+                    WHERE `is_deleted` = 0
+                      AND `record_origin` = 'local_created'
+                      AND `is_synced` = 1
+                """.trimIndent())
+
+                // Indexes for efficient querying
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_record_origin` ON `bills` (`record_origin`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_record_scope` ON `bills` (`record_scope`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_terminal_origin_scope` ON `bills` (`created_terminal_id`, `record_origin`, `record_scope`)")
+
+                android.util.Log.i("AppDatabase", "MIGRATION_59_60 complete: record_origin + record_scope added")
             }
         }
 

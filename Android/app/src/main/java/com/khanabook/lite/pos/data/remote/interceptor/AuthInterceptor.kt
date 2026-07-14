@@ -35,6 +35,13 @@ class AuthInterceptor @Inject constructor(private val sessionManager: SessionMan
         if (!token.isNullOrBlank() && token.count { it == '.' } >= 2) {
             requestBuilder.addHeader("Authorization", "Bearer $token")
         }
+
+        // Terminal-bound credential issued by /sync/terminal/activate. The server trusts
+        // this (not the client body) for bill ownership, so it must accompany sync calls.
+        val terminalToken = sessionManager.getTerminalIdentity()?.terminalToken
+        if (!terminalToken.isNullOrBlank()) {
+            requestBuilder.addHeader("X-Terminal-Token", terminalToken)
+        }
     }
 
     val response = chain.proceed(requestBuilder.build())

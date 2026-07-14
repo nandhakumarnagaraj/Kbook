@@ -1,8 +1,11 @@
 package com.khanabook.saas.sync;
 
 import com.khanabook.saas.BaseIntegrationTest;
+import com.khanabook.saas.entity.RestaurantTerminal;
 import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.entity.UserRole;
+import com.khanabook.saas.utility.JwtUtility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -16,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Locks in the multi-tenant guard in GenericSyncService#handlePushSync: a bill whose
  * restaurantId differs from the JWT's tenant is auto-corrected and accepted (JWT already
- * enforces tenant scope).
+ * enforces tenant scope). Bill pushes also require a terminal identity (X-Terminal-Token).
  */
 @AutoConfigureMockMvc
 class GenericSyncCrossTenantTest extends BaseIntegrationTest {
@@ -26,6 +29,8 @@ class GenericSyncCrossTenantTest extends BaseIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private BillRepository billRepository;
+    @Autowired private RestaurantTerminalRepository terminalRepository;
+    @Autowired private JwtUtility jwtUtility;
 
     private String billJson(Long restaurantId) {
         return """
@@ -49,14 +54,33 @@ class GenericSyncCrossTenantTest extends BaseIntegrationTest {
             """.formatted(restaurantId);
     }
 
+    private String terminalTokenFor(Long restaurantId) {
+        RestaurantTerminal t = terminalRepository.findByRestaurantIdAndTerminalSeries(restaurantId, "A")
+                .orElseGet(() -> {
+                    RestaurantTerminal nt = new RestaurantTerminal();
+                    nt.setRestaurantId(restaurantId);
+                    nt.setTerminalSeries("A");
+                    nt.setTerminalName("Terminal A");
+                    nt.setDeviceId("DEV_A");
+                    nt.setIsActive(true);
+                    nt.setCreatedAt(System.currentTimeMillis());
+                    nt.setUpdatedAt(System.currentTimeMillis());
+                    return terminalRepository.save(nt);
+                });
+        return jwtUtility.generateTerminalToken("owner", restaurantId, "OWNER",
+                t.getId() != null ? t.getId().toString() : "A", "A", "DEV_A");
+    }
+
     @Test
     void push_billForAnotherRestaurant_isAutoCorrected() throws Exception {
         // Token tenant = RESTAURANT_A, but the bill claims RESTAURANT_B.
         String tokenA = persistUserAndGetToken("owner-a@test.com", RESTAURANT_A, UserRole.OWNER);
         persistUser("owner-b@test.com", RESTAURANT_B, UserRole.OWNER);
+        String terminalToken = terminalTokenFor(RESTAURANT_A);
 
         mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + tokenA)
+                        .header("X-Terminal-Token", terminalToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(billJson(RESTAURANT_B)))
                 .andExpect(status().isOk());
@@ -68,9 +92,11 @@ class GenericSyncCrossTenantTest extends BaseIntegrationTest {
     @Test
     void push_billForOwnRestaurant_isAccepted() throws Exception {
         String tokenA = persistUserAndGetToken("owner-a2@test.com", RESTAURANT_A, UserRole.OWNER);
+        String terminalToken = terminalTokenFor(RESTAURANT_A);
 
         mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + tokenA)
+                        .header("X-Terminal-Token", terminalToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(billJson(RESTAURANT_A)))
                 .andExpect(status().isOk());
@@ -80,15 +106,19 @@ class GenericSyncCrossTenantTest extends BaseIntegrationTest {
     void push_sameDeviceAndLocalIdForDifferentRestaurants_createsSeparateBills() throws Exception {
         String tokenA = persistUserAndGetToken("owner-a3@test.com", RESTAURANT_A, UserRole.OWNER);
         String tokenB = persistUserAndGetToken("owner-b3@test.com", RESTAURANT_B, UserRole.OWNER);
+        String terminalTokenA = terminalTokenFor(RESTAURANT_A);
+        String terminalTokenB = terminalTokenFor(RESTAURANT_B);
 
         mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + tokenA)
+                        .header("X-Terminal-Token", terminalTokenA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(billJson(RESTAURANT_A)))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/sync/bills/push")
                         .header("Authorization", "Bearer " + tokenB)
+                        .header("X-Terminal-Token", terminalTokenB)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(billJson(RESTAURANT_B)))
                 .andExpect(status().isOk());

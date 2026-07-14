@@ -234,6 +234,12 @@ class SettingsViewModel @Inject constructor(
                     ) {
                         throw IllegalStateException("Completed bills need manual review. They were not changed.")
                     }
+                    // Terminal ownership isolation: server-imported / marketplace history is
+                    // read-only. Cancelling another terminal's bill locally would push a
+                    // cancellation back to the server and wrongly cancel the originator's bill.
+                    if (bill.recordScope != "terminal_operational" || bill.recordOrigin != "local_created") {
+                        throw IllegalStateException("This bill is server history and cannot be cancelled from this terminal. Cancel the local duplicate instead.")
+                    }
                     billDao.cancelBill(
                         id = billId,
                         reason = "Marked duplicate from Sync Center",

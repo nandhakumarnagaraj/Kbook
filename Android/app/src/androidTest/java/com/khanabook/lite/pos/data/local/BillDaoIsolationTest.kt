@@ -58,7 +58,12 @@ class BillDaoIsolationTest {
         paymentStatus: String = "paid",
         paymentMode: String = "cash",
         ownerUserId: Long? = null,
-        customerWhatsapp: String? = null
+        customerWhatsapp: String? = null,
+        createdTerminalId: String? = "A",
+        currentOwnerTerminalId: String? = "A",
+        deviceId: String = "dev-A",
+        recordOrigin: String = "local_created",
+        recordScope: String = "terminal_operational"
     ) = BillEntity(
         restaurantId = restaurantId,
         dailyOrderId = 1L,
@@ -71,7 +76,12 @@ class BillDaoIsolationTest {
         orderStatus = orderStatus,
         createdAt = createdAt,
         ownerUserId = ownerUserId,
-        customerWhatsapp = customerWhatsapp
+        customerWhatsapp = customerWhatsapp,
+        createdTerminalId = createdTerminalId,
+        currentOwnerTerminalId = currentOwnerTerminalId,
+        deviceId = deviceId,
+        recordOrigin = recordOrigin,
+        recordScope = recordScope
     )
 
     @Test
@@ -80,11 +90,11 @@ class BillDaoIsolationTest {
         billDao.insertBill(bill(R1, createdAt = 2_000))
         billDao.insertBill(bill(R2, createdAt = 1_500))
 
-        val r1Bills = billDao.getBillsByDateRange(0, 10_000, R1).first()
+        val r1Bills = billDao.getBillsByDateRange(0, 10_000, R1, "A").first()
         assertEquals(2, r1Bills.size)
         assertTrue(r1Bills.all { it.restaurantId == R1 })
 
-        val r2Bills = billDao.getBillsByDateRange(0, 10_000, R2).first()
+        val r2Bills = billDao.getBillsByDateRange(0, 10_000, R2, "B").first()
         assertEquals(1, r2Bills.size)
         assertTrue(r2Bills.all { it.restaurantId == R2 })
     }
@@ -100,12 +110,12 @@ class BillDaoIsolationTest {
                 paymentMode = "upi", ownerUserId = USER_B)
         )
 
-        val forR1UserA = billDao.getLatestPendingOnlineBill(R1, USER_A)
+        val forR1UserA = billDao.getLatestPendingOnlineBill(R1, USER_A, "A")
         assertNotNull(forR1UserA)
         assertEquals(R1, forR1UserA!!.restaurantId)
 
         // Active restaurant R1 must never resolve R2's pending UPI bill, even for a wrong user.
-        val forR1UserB = billDao.getLatestPendingOnlineBill(R1, USER_B)
+        val forR1UserB = billDao.getLatestPendingOnlineBill(R1, USER_B, "A")
         assertNull(forR1UserB)
     }
 
@@ -114,7 +124,7 @@ class BillDaoIsolationTest {
         billDao.insertBill(bill(R1, createdAt = 1_000, customerWhatsapp = "9000000001"))
         billDao.insertBill(bill(R2, createdAt = 2_000, customerWhatsapp = "9000000002"))
 
-        val recents = billDao.getRecentBillsWithCustomers(R1)
+        val recents = billDao.getRecentBillsWithCustomers(R1, "A")
         assertEquals(1, recents.size)
         assertEquals("9000000001", recents.first().customerWhatsapp)
     }
@@ -140,8 +150,129 @@ class BillDaoIsolationTest {
         assertEquals(1, kdsDao.getPendingCountFlow(R1).first())
         assertEquals(1, kdsDao.getPendingCountFlow(R2).first())
 
-        val r1Pending = billDao.getBillsWithPendingKds(R1)
+        val r1Pending = billDao.getBillsWithPendingKds(R1, "A")
         assertEquals(1, r1Pending.size)
         assertEquals(R1, r1Pending.first().restaurantId)
+    }
+
+    // ── Terminal ownership isolation (record_scope / record_origin) ──────────────
+    //
+    // A bill created on Terminal A and pulled onto Terminal B during sync must NOT
+    // appear in Terminal B's operational lists (active drafts, drafts, pending online,
+    // recent orders, KDS). It is read-only restaurant history on B.
+
+    @Test
+    fun getActiveDraftBillsFlow_excludesPulledBillFromOtherTerminal() = runBlocking {
+        // Local operational draft on Terminal A.
+        billDao.insertBill(
+            bill(R1, createdAt = 1_000, orderStatus = "draft", paymentStatus = "pending",
+                createdTerminalId = "A", currentOwnerTerminalId = "A",
+                recordOrigin = "local_created", recordScope = "terminal_operational")
+        )
+        // Same draft pulled onto Terminal B from the server (Terminal A is the origin).
+        billDao.insertBill(
+            bill(R1, createdAt = 1_100, orderStatus = "draft", paymentStatus = "pending",
+                createdTerminalId = "A", currentOwnerTerminalId = "A",
+                deviceId = "dev-A", recordOrigin = "server_imported", recordScope = "restaurant_history")
+        )
+
+        val drafts = billDao.getActiveDraftBillsFlow(R1, "A").first()
+        assertEquals(1, drafts.size)
+        assertEquals("local_created", drafts.first().recordOrigin)
+        assertEquals("terminal_operational", drafts.first().recordScope)
+    }
+
+    @Test
+    fun getDraftBills_excludesPulledBillFromOtherTerminal() = runBlocking {
+        billDao.insertBill(
+            bill(R1, createdAt = 1_000, orderStatus = "draft", paymentStatus = "pending",
+                createdTerminalId = "A", currentOwnerTerminalId = "A",
+                recordOrigin = "local_created", recordScope = "terminal_operational")
+        )
+        billDao.insertBill(
+            bill(R1, createdAt = 1_100, orderStatus = "draft", paymentStatus = "pending",
+                createdTerminalId = "B", currentOwnerTerminalId = "B",
+                recordOrigin = "server_imported", recordScope = "restaurant_history")
+        )
+
+        val drafts = billDao.getDraftBills(R1, "A").first()
+        assertEquals(1, drafts.size)
+        assertEquals("A", drafts.first().createdTerminalId)
+    }
+
+    @Test
+    fun getPendingOnlineBillsFlow_excludesPulledBillFromOtherTerminal() = runBlocking {
+        billDao.insertBill(
+            bill(R1, createdAt = 1_000, orderStatus = "draft", paymentStatus = "pending",
+                paymentMode = "upi", ownerUserId = USER_A,
+                createdTerminalId = "A", currentOwnerTerminalId = "A",
+                recordOrigin = "local_created", recordScope = "terminal_operational")
+        )
+        billDao.insertBill(
+            bill(R1, createdAt = 1_100, orderStatus = "draft", paymentStatus = "pending",
+                paymentMode = "upi", ownerUserId = USER_A,
+                createdTerminalId = "B", currentOwnerTerminalId = "B",
+                recordOrigin = "server_imported", recordScope = "restaurant_history")
+        )
+
+        val pending = billDao.getPendingOnlineBillsFlow(R1, "A").first()
+        assertEquals(1, pending.size)
+        assertEquals("A", pending.first().createdTerminalId)
+    }
+
+    @Test
+    fun getRecentBillsWithCustomers_excludesPulledBillFromOtherTerminal() = runBlocking {
+        billDao.insertBill(
+            bill(R1, createdAt = 1_000, customerWhatsapp = "9000000001",
+                createdTerminalId = "A", recordOrigin = "local_created", recordScope = "terminal_operational")
+        )
+        billDao.insertBill(
+            bill(R1, createdAt = 1_100, customerWhatsapp = "9000000002",
+                createdTerminalId = "B", recordOrigin = "server_imported", recordScope = "restaurant_history")
+        )
+
+        val recents = billDao.getRecentBillsWithCustomers(R1, "A")
+        assertEquals(1, recents.size)
+        assertEquals("9000000001", recents.first().customerWhatsapp)
+    }
+
+    @Test
+    fun getBillsByDateRange_report_excludesPulledBillFromOtherTerminal() = runBlocking {
+        billDao.insertBill(
+            bill(R1, createdAt = 1_000, createdTerminalId = "A",
+                recordOrigin = "local_created", recordScope = "terminal_operational")
+        )
+        billDao.insertBill(
+            bill(R1, createdAt = 1_100, createdTerminalId = "B",
+                recordOrigin = "server_imported", recordScope = "restaurant_history")
+        )
+
+        val report = billDao.getBillsByDateRange(0, 10_000, R1, "A").first()
+        assertEquals(1, report.size)
+        assertEquals("A", report.first().createdTerminalId)
+    }
+
+    @Test
+    fun getBillsWithPendingKds_excludesPulledBillFromOtherTerminal() = runBlocking {
+        val local = billDao.insertBill(
+            bill(R1, createdAt = 1_000, createdTerminalId = "A",
+                recordOrigin = "local_created", recordScope = "terminal_operational")
+        )
+        val pulled = billDao.insertBill(
+            bill(R1, createdAt = 1_100, createdTerminalId = "B",
+                recordOrigin = "server_imported", recordScope = "restaurant_history")
+        )
+        kdsDao.upsert(
+            KitchenPrintQueueEntity(billId = local, restaurantId = R1, printerMac = "AA:BB",
+                dispatchStatus = KitchenPrintDispatchStatus.PENDING)
+        )
+        kdsDao.upsert(
+            KitchenPrintQueueEntity(billId = pulled, restaurantId = R1, printerMac = "BB:CC",
+                dispatchStatus = KitchenPrintDispatchStatus.PENDING)
+        )
+
+        val pending = billDao.getBillsWithPendingKds(R1, "A")
+        assertEquals(1, pending.size)
+        assertEquals("A", pending.first().createdTerminalId)
     }
 }

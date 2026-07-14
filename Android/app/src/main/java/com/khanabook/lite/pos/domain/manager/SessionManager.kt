@@ -34,6 +34,24 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     private val _restaurantId = MutableStateFlow(getRestaurantId())
     val restaurantId: StateFlow<Long> = _restaurantId
 
+    // ── Session state gate ─────────────────────────────────────────────────
+    // Guards against repository/database access when no user is authenticated.
+    // INACTIVE after logout; READY after login completes and DB is switched.
+    private val _sessionState = MutableStateFlow(SessionState.INACTIVE)
+    val sessionState: StateFlow<SessionState> = _sessionState
+
+    fun setSessionState(state: SessionState) {
+        _sessionState.value = state
+        Log.d(debugTag, "SessionState → $state")
+    }
+
+    fun isSessionReady(): Boolean = _sessionState.value == SessionState.READY
+
+    enum class SessionState {
+        INACTIVE,
+        READY
+    }
+
     init {
         migrateLegacySecurePrefsIfNeeded()
     }
@@ -134,7 +152,8 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
             terminalSeries = terminalSeries,
             isActive = prefs.getBoolean(scopedKey("terminal_active"), false),
             registeredAt = prefs.getLong(scopedKey("terminal_registered_at"), 0L).takeIf { it > 0L },
-            lastVerifiedAt = prefs.getLong(scopedKey("terminal_last_verified_at"), 0L).takeIf { it > 0L }
+            lastVerifiedAt = prefs.getLong(scopedKey("terminal_last_verified_at"), 0L).takeIf { it > 0L },
+            terminalToken = securePrefs.getString(scopedKey("terminal_token"), null)
         )
     }
 
@@ -152,6 +171,9 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
             .putLong(scopedKey("terminal_registered_at"), identity.registeredAt ?: 0L)
             .putLong(scopedKey("terminal_last_verified_at"), identity.lastVerifiedAt ?: System.currentTimeMillis())
             .apply()
+        if (!identity.terminalToken.isNullOrBlank()) {
+            securePrefs.putString(scopedKey("terminal_token"), identity.terminalToken)
+        }
     }
 
     fun isTerminalReady(): Boolean {

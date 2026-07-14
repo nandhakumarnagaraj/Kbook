@@ -8,6 +8,7 @@ data class TerminalIdentity(
     val terminalSeries: String,
     val isActive: Boolean,
     val registeredAt: Long?,
-    val lastVerifiedAt: Long?
+    val lastVerifiedAt: Long?,
+    val terminalToken: String? = null
 )
 

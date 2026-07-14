@@ -1,7 +1,10 @@
 package com.khanabook.lite.pos.data.repository
 
 import androidx.work.WorkManager
+import com.khanabook.lite.pos.data.local.DatabaseProvider
+import com.khanabook.lite.pos.data.local.dao.RestaurantDao
 import com.khanabook.lite.pos.data.local.dao.UserDao
+import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.util.enqueueMasterSyncOnce
@@ -22,13 +25,17 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import retrofit2.HttpException
+import java.time.LocalDate
+import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserRepository(
         private val userDao: UserDao,
         private val sessionManager: SessionManager,
         private val workManager: WorkManager,
-        private val api: KhanaBookApi
+        private val api: KhanaBookApi,
+        private val databaseProvider: DatabaseProvider,
+        private val restaurantDao: RestaurantDao
 ) {
     private fun normalizeAllowedRole(role: String?): String {
         return when (role) {
@@ -114,15 +121,22 @@ class UserRepository(
         return try {
             val deviceId = sessionManager.getDeviceId()
             val request = LoginRequest(loginIdInput, passwordPlain, deviceId)
-            
+
             val response = api.login(request)
             val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: loginIdInput
             val userEmail = response.userEmail?.takeIf { it.isNotBlank() } ?: loginId
-
             val allowedRole = normalizeAllowedRole(response.role)
+            val restaurantId = response.restaurantId
 
             sessionManager.saveAuthToken(response.token)
-            sessionManager.saveRestaurantId(response.restaurantId)
+
+            // ── Atomic DB switch ───────────────────────────────────────────────
+            // 1. Detect first-time BEFORE any database operation
+            // 2. Open/switch the target restaurant database silently
+            // 3. THEN publish restaurantId — collectors always see a ready DB
+            val isFirstLogin = !databaseProvider.isDatabaseFileExists(restaurantId)
+            databaseProvider.switchToDatabase(restaurantId)
+            sessionManager.saveRestaurantId(restaurantId)
             sessionManager.saveActiveUserRole(allowedRole)
 
             val localUser = upsertAuthenticatedUser(
@@ -130,11 +144,25 @@ class UserRepository(
                 loginId = loginId,
                 userEmail = userEmail,
                 whatsappNumber = response.whatsappNumber,
-                restaurantId = response.restaurantId,
+                restaurantId = restaurantId,
                 role = allowedRole,
                 authProvider = "PHONE",
                 fallbackPhone = loginIdInput
             )
+
+            // ── First-time vs re-login initialization ──────────────────────────
+            if (isFirstLogin) {
+                sessionManager.saveLastSyncTimestamp(0L)
+                sessionManager.setInitialSyncCompleted(false)
+                val today = LocalDate.now(ZoneId.of("Asia/Kolkata")).toString()
+                if (restaurantDao.getProfile() == null) {
+                    restaurantDao.saveProfile(
+                        RestaurantProfileEntity(lastResetDate = today)
+                    )
+                }
+            } else {
+                sessionManager.setInitialSyncCompleted(true)
+            }
 
             setCurrentUser(localUser)
             Result.success(localUser)
@@ -147,15 +175,19 @@ class UserRepository(
         return try {
             val deviceId = sessionManager.getDeviceId()
             val request = SignupRequest(phoneNumber, name, passwordPlain, otp, deviceId)
-            
+
             val response = api.signup(request)
             val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: phoneNumber
             val userEmail = response.userEmail?.takeIf { it.isNotBlank() } ?: loginId
-
             val allowedRole = normalizeAllowedRole(response.role)
+            val restaurantId = response.restaurantId
 
             sessionManager.saveAuthToken(response.token)
-            sessionManager.saveRestaurantId(response.restaurantId)
+
+            // ── Atomic DB switch ───────────────────────────────────────────────
+            val isFirstLogin = !databaseProvider.isDatabaseFileExists(restaurantId)
+            databaseProvider.switchToDatabase(restaurantId)
+            sessionManager.saveRestaurantId(restaurantId)
             sessionManager.saveActiveUserRole(allowedRole)
 
             val localUser = upsertAuthenticatedUser(
@@ -163,11 +195,24 @@ class UserRepository(
                 loginId = loginId,
                 userEmail = userEmail,
                 whatsappNumber = response.whatsappNumber,
-                restaurantId = response.restaurantId,
+                restaurantId = restaurantId,
                 role = allowedRole,
                 authProvider = "PHONE",
                 fallbackPhone = phoneNumber
             )
+
+            if (isFirstLogin) {
+                sessionManager.saveLastSyncTimestamp(0L)
+                sessionManager.setInitialSyncCompleted(false)
+                val today = LocalDate.now(ZoneId.of("Asia/Kolkata")).toString()
+                if (restaurantDao.getProfile() == null) {
+                    restaurantDao.saveProfile(
+                        RestaurantProfileEntity(lastResetDate = today)
+                    )
+                }
+            } else {
+                sessionManager.setInitialSyncCompleted(true)
+            }
 
             setCurrentUser(localUser)
             Result.success(localUser)
@@ -185,11 +230,15 @@ class UserRepository(
                 response.loginId?.takeIf { it.isNotBlank() }
                     ?: throw IllegalStateException("Auth response missing login identifier")
             val userEmail = response.userEmail?.takeIf { it.isNotBlank() } ?: loginId
-
             val allowedRole = normalizeAllowedRole(response.role)
+            val restaurantId = response.restaurantId
 
             sessionManager.saveAuthToken(response.token)
-            sessionManager.saveRestaurantId(response.restaurantId)
+
+            // ── Atomic DB switch ───────────────────────────────────────────────
+            val isFirstLogin = !databaseProvider.isDatabaseFileExists(restaurantId)
+            databaseProvider.switchToDatabase(restaurantId)
+            sessionManager.saveRestaurantId(restaurantId)
             sessionManager.saveActiveUserRole(allowedRole)
 
             val localUser = upsertAuthenticatedUser(
@@ -197,11 +246,24 @@ class UserRepository(
                 loginId = loginId,
                 userEmail = userEmail,
                 whatsappNumber = response.whatsappNumber,
-                restaurantId = response.restaurantId,
+                restaurantId = restaurantId,
                 role = allowedRole,
                 authProvider = "GOOGLE",
                 googleEmail = userEmail
             )
+
+            if (isFirstLogin) {
+                sessionManager.saveLastSyncTimestamp(0L)
+                sessionManager.setInitialSyncCompleted(false)
+                val today = LocalDate.now(ZoneId.of("Asia/Kolkata")).toString()
+                if (restaurantDao.getProfile() == null) {
+                    restaurantDao.saveProfile(
+                        RestaurantProfileEntity(lastResetDate = today)
+                    )
+                }
+            } else {
+                sessionManager.setInitialSyncCompleted(true)
+            }
 
             setCurrentUser(localUser)
             Result.success(localUser)
@@ -218,6 +280,7 @@ class UserRepository(
             _currentUser.value = user
             if (user != null) {
                 sessionManager.savePersistedLoginId(user.persistedLoginIdentity())
+                sessionManager.setSessionState(SessionManager.SessionState.READY)
             }
         } else {
             val loginId = sessionManager.getPersistedLoginId()
@@ -227,6 +290,7 @@ class UserRepository(
                 user?.let {
                     sessionManager.saveActiveUserId(it.id)
                     sessionManager.saveActiveUserRole(normalizeAllowedRole(it.role))
+                    sessionManager.setSessionState(SessionManager.SessionState.READY)
                 }
             }
         }
@@ -238,10 +302,12 @@ class UserRepository(
             sessionManager.savePersistedLoginId(user.persistedLoginIdentity())
             sessionManager.saveActiveUserId(user.id)
             sessionManager.saveActiveUserRole(normalizeAllowedRole(user.role))
+            sessionManager.setSessionState(SessionManager.SessionState.READY)
             triggerBackgroundSync()
         } else {
             sessionManager.clearPersistedLoginId()
             sessionManager.clearLocalUserSession()
+            sessionManager.setSessionState(SessionManager.SessionState.INACTIVE)
         }
     }
 

@@ -180,41 +180,21 @@ constructor(
 
     private suspend fun handleLoginSuccess(user: UserEntity): Result<Unit> {
         sessionManager.clearLockout()
-        val restaurantId = user.restaurantId
-        val dbFile = context.getDatabasePath("khanabook_lite_db_$restaurantId")
-        val dbExists = dbFile.exists()
         withContext(Dispatchers.IO) {
             databaseProvider.warmUpDatabase()
         }
-        if (!dbExists) {
-            // First time login for this restaurant on this device:
-            // Must bootstrap the database from scratch.
-            sessionManager.saveLastSyncTimestamp(0L)
-            sessionManager.setInitialSyncCompleted(false)
-
-            // Seed a minimal profile row so offline billing works before the first
-            // master sync completes. Without it, incrementAndGetCounters() throws
-            // "Profile not found" and the first offline bill can't be saved.
-            // This local-only seed is marked synced so it does not create a duplicate
-            // server profile before the first master pull replaces it with server data.
-            withContext(Dispatchers.IO) {
-                if (restaurantRepository.getProfile() == null) {
-                    val today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString()
-                    restaurantRepository.seedProfileIfMissing(
-                        RestaurantProfileEntity(lastResetDate = today)
-                    )
-                }
-            }
-        } else {
-            // Re-login: Database exists and has data.
-            // Retain the existing sync timestamp to prevent 409 conflict
-            // and avoid re-downloading all history.
-            sessionManager.setInitialSyncCompleted(true)
-
-            // Trigger an immediate background sync to push any pending/offline bills.
+        // Initialization (first-time vs re-login) is now handled inside
+        // UserRepository.remoteLogin() — the restaurantId is only published
+        // AFTER the target database is open and ready, and the sync state
+        // (timestamp, initialSyncCompleted, profile seed) is already set.
+        //
+        // Here we only schedule the periodic sync job and trigger an
+        // immediate push for any pending offline data on re-login.
+        MasterSyncWorker.schedule(context)
+        val restaurantId = user.restaurantId
+        if (databaseProvider.isDatabaseFileExists(restaurantId)) {
             androidx.work.WorkManager.getInstance(context).enqueueMasterSyncOnce(initialDelaySeconds = 10)
         }
-        MasterSyncWorker.schedule(context)
         return Result.success(Unit)
     }
 

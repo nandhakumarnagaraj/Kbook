@@ -1,6 +1,9 @@
 package com.khanabook.saas;
 
 import com.khanabook.saas.controller.AuthController.*;
+import com.khanabook.saas.entity.RestaurantTerminal;
+import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.utility.JwtUtility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,6 +20,25 @@ class SystemTest extends BaseIntegrationTest {
 
     @LocalServerPort int port;
     @Autowired TestRestTemplate rest;
+    @Autowired RestaurantTerminalRepository terminalRepository;
+    @Autowired JwtUtility jwtUtility;
+
+    private String terminalTokenFor(Long restaurantId) {
+        RestaurantTerminal t = terminalRepository.findByRestaurantIdAndTerminalSeries(restaurantId, "A")
+                .orElseGet(() -> {
+                    RestaurantTerminal nt = new RestaurantTerminal();
+                    nt.setRestaurantId(restaurantId);
+                    nt.setTerminalSeries("A");
+                    nt.setTerminalName("Terminal A");
+                    nt.setDeviceId("DEVICE_SYS");
+                    nt.setIsActive(true);
+                    nt.setCreatedAt(System.currentTimeMillis());
+                    nt.setUpdatedAt(System.currentTimeMillis());
+                    return terminalRepository.save(nt);
+                });
+        String id = t.getId() != null ? t.getId().toString() : "A";
+        return jwtUtility.generateTerminalToken("owner", restaurantId, "OWNER", id, "A", "DEVICE_SYS");
+    }
 
     
 
@@ -214,9 +236,12 @@ class SystemTest extends BaseIntegrationTest {
     @Test
     void billPush_mismatchedTenantId_returns403() {
         String token = signupAndGetToken();
+        Long restaurantId = jwtUtility.extractRestaurantId(token);
+        String terminalToken = terminalTokenFor(restaurantId);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
+        headers.set("X-Terminal-Token", terminalToken);
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         String payload = "[" +

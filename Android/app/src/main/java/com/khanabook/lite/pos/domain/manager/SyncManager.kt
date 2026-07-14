@@ -83,7 +83,8 @@ class SyncManager @Inject constructor(
                         terminalSeries = response.terminalSeries,
                         isActive = response.isActive ?: true,
                         registeredAt = response.registeredAt,
-                        lastVerifiedAt = response.lastVerifiedAt ?: System.currentTimeMillis()
+                        lastVerifiedAt = response.lastVerifiedAt ?: System.currentTimeMillis(),
+                        terminalToken = response.terminalToken
                     )
                 )
                 Log.i(tag, "Terminal activated with series: ${response.terminalSeries}")
@@ -98,6 +99,9 @@ class SyncManager @Inject constructor(
         return syncMutex.withLock {
             try {
                 ensureTerminalActivated()
+                // Re-label this terminal's own synced bills (corrects the v59→60 migration's
+                // conservative backfill now that the authoritative terminal is known).
+                masterSyncProcessor.reconcileLocalBillScope()
                 pullAndPersistMasterData(
                     lastSyncTimestamp = sessionManager.getLastSyncTimestamp(),
                     deviceId = sessionManager.getDeviceId()

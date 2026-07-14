@@ -52,7 +52,7 @@ class SyncManagerTest {
     @Test
     fun `performFullSync returns success when conflict recovery pull succeeds`() = runTest {
         coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException() andThen true
-        coEvery { api.pullMasterSync(0L, "device-1", ignoreDeviceId = true, any(), any()) } returns MasterSyncResponse(serverTimestamp = 42L, hasMore = false)
+        coEvery { api.pullMasterSync(0L, "device-1", any(), true, any(), any()) } returns MasterSyncResponse(serverTimestamp = 42L, hasMore = false)
 
         val result = syncManager.performFullSync()
 
@@ -65,7 +65,7 @@ class SyncManagerTest {
     @Test
     fun `performFullSync returns unresolved conflict when recovery pull fails`() = runTest {
         coEvery { masterSyncProcessor.pushAll() } throws SyncConflictException()
-        coEvery { api.pullMasterSync(0L, "device-1", ignoreDeviceId = true, any(), any()) } throws IllegalStateException("pull failed")
+        coEvery { api.pullMasterSync(0L, "device-1", any(), true, any(), any()) } throws IllegalStateException("pull failed")
 
         val result = syncManager.performFullSync()
 

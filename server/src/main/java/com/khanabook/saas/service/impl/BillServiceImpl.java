@@ -4,12 +4,15 @@ import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
+import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.BillService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -18,6 +21,8 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+
 @Service
 @RequiredArgsConstructor
 public class BillServiceImpl implements BillService {
@@ -25,6 +30,13 @@ public class BillServiceImpl implements BillService {
 	private final GenericSyncService genericSyncService;
 	private final RestaurantProfileRepository restaurantProfileRepository;
 	private final RestaurantTerminalRepository terminalRepository;
+
+	// Phase C strict mode: when true, an OWNER pull without an X-Terminal-Token is
+	// rejected (400). Kept false during rollout so legacy Android clients (no token)
+	// keep working until they are updated. Flip to true only after all tablets ship
+	// the terminal-token build.
+	@Value("${terminal.sync.strict:false}")
+	private boolean terminalSyncStrict;
 
 	@Override
 	@Transactional
@@ -35,14 +47,38 @@ public class BillServiceImpl implements BillService {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zoneId);
 
 		for (Bill bill : payload) {
-			if (bill.getCreatedTerminalId() == null || bill.getCreatedTerminalId().isBlank()) {
-				bill.setCreatedTerminalId(bill.getTerminalId());
-			}
-			if (bill.getCurrentOwnerTerminalId() == null || bill.getCurrentOwnerTerminalId().isBlank()) {
-				bill.setCurrentOwnerTerminalId(bill.getCreatedTerminalId());
-			}
-			if (bill.getCreatedDeviceId() == null || bill.getCreatedDeviceId().isBlank()) {
-				bill.setCreatedDeviceId(bill.getDeviceId());
+			// Overwrite untrusted client terminal fields from the authenticated terminal
+			// context so invoice numbering (below) and downstream sync use the trusted series.
+			String trustedTerminalId = TenantContext.getCurrentTerminalId();
+			String trustedTerminalSeries = TenantContext.getCurrentTerminalSeries();
+			String trustedDeviceId = TenantContext.getCurrentTerminalDevice();
+			if (trustedTerminalId != null || trustedTerminalSeries != null) {
+				if (trustedTerminalSeries != null) {
+					bill.setTerminalSeries(trustedTerminalSeries);
+				}
+				if (trustedTerminalId != null) {
+					bill.setTerminalId(trustedTerminalId);
+				}
+				if (trustedDeviceId != null) {
+					bill.setCreatedDeviceId(trustedDeviceId);
+					bill.setDeviceId(trustedDeviceId);
+				}
+				if (bill.getCreatedTerminalId() == null || bill.getCreatedTerminalId().isBlank()) {
+					bill.setCreatedTerminalId(trustedTerminalId);
+				}
+				if (bill.getCurrentOwnerTerminalId() == null || bill.getCurrentOwnerTerminalId().isBlank()) {
+					bill.setCurrentOwnerTerminalId(trustedTerminalId);
+				}
+			} else {
+				if (bill.getCreatedTerminalId() == null || bill.getCreatedTerminalId().isBlank()) {
+					bill.setCreatedTerminalId(bill.getTerminalId());
+				}
+				if (bill.getCurrentOwnerTerminalId() == null || bill.getCurrentOwnerTerminalId().isBlank()) {
+					bill.setCurrentOwnerTerminalId(bill.getCreatedTerminalId());
+				}
+				if (bill.getCreatedDeviceId() == null || bill.getCreatedDeviceId().isBlank()) {
+					bill.setCreatedDeviceId(bill.getDeviceId());
+				}
 			}
 			if (bill.getLastResetDate() == null) {
 
@@ -112,7 +148,7 @@ public class BillServiceImpl implements BillService {
 		}
 		// Exclude own-device bills to avoid re-downloading what the device already created,
 		// BUT include own-device deleted bills so server-side soft-deletes propagate back.
-		return repository.findUpdatedExcludingOwnActiveOnly(tenantId, lastSyncTimestamp, deviceId);
+		return repository.findUpdatedForRestaurantWide(tenantId, lastSyncTimestamp, deviceId);
 	}
 
 	@Override
@@ -121,13 +157,21 @@ public class BillServiceImpl implements BillService {
 		if (ignoreDeviceId) {
 			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp, pageable);
 		}
-		return repository.findUpdatedExcludingOwnActiveOnly(tenantId, lastSyncTimestamp, deviceId, pageable);
+		return repository.findUpdatedForRestaurantWide(tenantId, lastSyncTimestamp, deviceId, pageable);
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public org.springframework.data.domain.Page<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, String terminalId, boolean ignoreDeviceId, org.springframework.data.domain.Pageable pageable) {
-		if (terminalId != null && !terminalId.isBlank()) {
+		boolean isAdmin = "KBOOK_ADMIN".equals(TenantContext.getCurrentRole());
+		// terminalId is supplied by the controller from TenantContext (X-Terminal-Token),
+		// never from a client query parameter, so it is already server-authoritative.
+		boolean missingTerminal = terminalId == null || terminalId.isBlank();
+		if (missingTerminal && !isAdmin && terminalSyncStrict) {
+			throw new ResponseStatusException(BAD_REQUEST,
+					"Terminal identity required for bill pull: activate a terminal and send X-Terminal-Token");
+		}
+		if (!missingTerminal) {
 			return repository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, terminalId, pageable);
 		}
 		return pullData(tenantId, lastSyncTimestamp, deviceId, ignoreDeviceId, pageable);

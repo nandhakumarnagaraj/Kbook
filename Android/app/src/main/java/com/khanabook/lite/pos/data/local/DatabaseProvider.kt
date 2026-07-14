@@ -33,45 +33,82 @@ class DatabaseProvider @Inject constructor(
         .filterNotNull()
         .distinctUntilChanged()
 
+    /**
+     * Open or create the database for [restaurantId] and make it the active database
+     * for all subsequent DAO calls. Unlike [getDatabase], this method does NOT read
+     * the restaurant ID from [SessionManager] — it accepts it directly, so the caller
+     * can switch databases *before* publishing the new restaurantId to StateFlow
+     * collectors, eliminating the race window where UI sees restaurant B while the
+     * old database (A) is still active.
+     *
+     * Call this first, then [SessionManager.saveRestaurantId], to make the switch atomic
+     * from the app's point of view.
+     */
     @Synchronized
-    fun getDatabase(): AppDatabase {
-        val restaurantId = sessionManager.getRestaurantId()
-        if (activeDatabase == null || activeRestaurantId != restaurantId) {
-            activeDatabase?.close()
-            activeRestaurantId = restaurantId
-            val dbName = if (restaurantId > 0) {
-                "khanabook_lite_db_$restaurantId"
-            } else {
-                "khanabook_lite_db"
-            }
+    fun switchToDatabase(restaurantId: Long): AppDatabase {
+        // Session state guard: warn when database is accessed outside a ready session.
+        // This is a soft guard — initialization flows (e.g. loadPersistedUser) need DB
+        // access before the session is formally READY. The warning helps detect
+        // accidental post-logout access during development.
+        if (!sessionManager.isSessionReady()) {
+            Log.w(tag, "switchToDatabase called while session is ${sessionManager.sessionState.value}. " +
+                "restaurant=$restaurantId. This may indicate stale DB access after logout.")
+        }
+        if (activeDatabase != null && activeRestaurantId == restaurantId) {
+            return activeDatabase!!
+        }
+        activeDatabase?.close()
+        activeRestaurantId = restaurantId
+        val dbName = if (restaurantId > 0) {
+            "khanabook_lite_db_$restaurantId"
+        } else {
+            "khanabook_lite_db"
+        }
 
-            // Check if legacy data needs migration
-            if (restaurantId > 0) {
-                migrateLegacyDataIfNecessary(restaurantId)
-            }
+        // Check if legacy data needs migration (idempotent — skips if target DB exists)
+        if (restaurantId > 0) {
+            migrateLegacyDataIfNecessary(restaurantId)
+        }
 
-            try {
-                Log.i(
-                    tag,
-                    "Opening database expectedRoomVersion=58 appVersion=${BuildConfig.VERSION_NAME} " +
-                        "restaurant=${maskRestaurantId(restaurantId)} terminal=${sessionManager.getTerminalId() ?: "none"} " +
-                        "device=${sessionManager.getDeviceId().takeLast(6)} db=$dbName"
-                )
-                activeDatabase = buildDatabaseWithName(context, dbName)
-                databaseState.value = activeDatabase
-                Log.i(tag, "Opened database instance: $dbName")
-            } catch (e: Exception) {
-                Log.e(
-                    tag,
-                    "Database open failed expectedRoomVersion=58 appVersion=${BuildConfig.VERSION_NAME} " +
-                        "restaurant=${maskRestaurantId(restaurantId)} terminal=${sessionManager.getTerminalId() ?: "none"} " +
-                        "device=${sessionManager.getDeviceId().takeLast(6)} db=$dbName",
-                    e
-                )
-                throw e
-            }
+        try {
+            Log.i(
+                tag,
+                "Switching to database expectedRoomVersion=58 appVersion=${BuildConfig.VERSION_NAME} " +
+                    "restaurant=${maskRestaurantId(restaurantId)} terminal=${sessionManager.getTerminalId() ?: "none"} " +
+                    "device=${sessionManager.getDeviceId().takeLast(6)} db=$dbName"
+            )
+            activeDatabase = buildDatabaseWithName(context, dbName)
+            databaseState.value = activeDatabase
+            Log.i(tag, "Switched to database instance: $dbName")
+        } catch (e: Exception) {
+            Log.e(
+                tag,
+                "Database switch failed expectedRoomVersion=58 appVersion=${BuildConfig.VERSION_NAME} " +
+                    "restaurant=${maskRestaurantId(restaurantId)} terminal=${sessionManager.getTerminalId() ?: "none"} " +
+                    "device=${sessionManager.getDeviceId().takeLast(6)} db=$dbName",
+                e
+            )
+            throw e
         }
         return activeDatabase!!
+    }
+
+    /**
+     * Returns true if a database file already exists for [restaurantId].
+     * Safe to call before [switchToDatabase] — does not touch Room or file I/O
+     * beyond the fast [android.content.Context.getDatabasePath] stat call.
+     */
+    fun isDatabaseFileExists(restaurantId: Long): Boolean {
+        return if (restaurantId > 0L) {
+            context.getDatabasePath("khanabook_lite_db_$restaurantId").exists()
+        } else {
+            context.getDatabasePath("khanabook_lite_db").exists()
+        }
+    }
+
+    @Synchronized
+    fun getDatabase(): AppDatabase {
+        return switchToDatabase(sessionManager.getRestaurantId())
     }
 
     fun warmUpDatabase() {
@@ -91,6 +128,7 @@ class DatabaseProvider @Inject constructor(
         activeDatabase = null
         databaseState.value = null
         activeRestaurantId = -1L
+        sessionManager.setSessionState(SessionManager.SessionState.INACTIVE)
         Log.i(tag, "Closed active database instance")
     }
 
@@ -140,7 +178,9 @@ class DatabaseProvider @Inject constructor(
                 AppDatabase.MIGRATION_54_55,
                 AppDatabase.MIGRATION_55_56,
                 AppDatabase.MIGRATION_56_57,
-                AppDatabase.MIGRATION_57_58
+                AppDatabase.MIGRATION_57_58,
+                AppDatabase.MIGRATION_58_59,
+                AppDatabase.MIGRATION_59_60
             )
             .build()
     }

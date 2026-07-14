@@ -120,6 +120,23 @@ class MasterSyncProcessor @Inject constructor(
         )
     }
 
+    /**
+     * Runtime reconciliation for terminal ownership. The v59→60 migration cannot know which
+     * terminal is "this device" (no terminal column exists on restaurant_profile), so it marks
+     * all synced history conservatively as server_imported. Once the authoritative terminal id
+     * is available from the session, this re-labels this terminal's own synced bills back to
+     * local_created / terminal_operational. Idempotent and safe to call after activation/pull.
+     */
+    suspend fun reconcileLocalBillScope() {
+        val restaurantId = sessionManager.getRestaurantId()
+        val terminalId = sessionManager.getTerminalId() ?: return
+        if (restaurantId <= 0L) return
+        val updated = billDao.reconcileLocalRecordScope(restaurantId, terminalId)
+        if (updated > 0) {
+            Log.i("MasterSyncProcessor", "Reconciled $updated local bill(s) to terminal_operational for terminal=$terminalId")
+        }
+    }
+
     private fun logRepairedRecords(label: String, repaired: List<String>) {
         if (repaired.isEmpty()) return
         val preview = repaired.take(5).joinToString("; ")
@@ -879,7 +896,7 @@ class MasterSyncProcessor @Inject constructor(
                     val createdTerminalId = remoteBill.createdTerminalId
                         ?.takeUnless { it.isBlank() }
                         ?: remoteBill.terminalId?.takeUnless { it.isBlank() }
-                    BillEntity(
+BillEntity(
                         id = assignedId,
                         restaurantId = remoteBill.restaurantId ?: 0L,
                         deviceId = remoteBill.deviceId.orFallback(""),
@@ -926,7 +943,28 @@ class MasterSyncProcessor @Inject constructor(
                             ?: createdTerminalId,
                         version = remoteBill.version ?: 0L,
                         lockStatus = remoteBill.lockStatus?.takeUnless { it.isBlank() } ?: "unlocked",
-                        operationId = remoteBill.operationId
+                        operationId = remoteBill.operationId,
+                        // Terminal ownership isolation: pulled bills are server-imported history
+                        recordOrigin = if (remoteBill.sourceChannel.isNotBlank() &&
+                            remoteBill.sourceChannel.lowercase() in setOf("zomato", "swiggy", "own_website")) {
+                            "marketplace_imported"
+                        } else {
+                            "server_imported"
+                        },
+                        recordScope = if (remoteBill.orderStatus.lowercase() == "draft" &&
+                            remoteBill.paymentStatus.lowercase() == "pending" &&
+                            createdTerminalId == sessionManager.getTerminalId()) {
+                            // If server returns a draft that belongs to THIS terminal, keep it operational
+                            "terminal_operational"
+                        } else {
+                            // All other pulled bills are history/shared
+                            if (remoteBill.sourceChannel.isNotBlank() &&
+                                remoteBill.sourceChannel.lowercase() in setOf("zomato", "swiggy", "own_website")) {
+                                "restaurant_shared"
+                            } else {
+                                "restaurant_history"
+                            }
+                        }
                     )
                 }
             )

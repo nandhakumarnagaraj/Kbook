@@ -5,6 +5,9 @@ import com.khanabook.saas.repository.*;
 import com.khanabook.saas.entity.AuthProvider;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
+import com.khanabook.saas.security.TenantContext;
+import com.khanabook.saas.service.SecurityAuditService;
+import com.khanabook.saas.util.BillTerminalUtil;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import com.khanabook.saas.sync.repository.SyncRepository;
@@ -14,6 +17,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import static org.springframework.http.HttpStatus.*;
 
 import java.util.*;
 import java.util.function.Function;
@@ -31,6 +37,13 @@ public class GenericSyncService {
 	private final CategoryRepository categoryRepository;
 	private final BillPaymentRepository billPaymentRepository;
 	private final RestaurantTerminalRepository terminalRepository;
+	private final SecurityAuditService securityAuditService;
+
+	// Phase C strict mode: when true, bill / bill-item / bill-payment pushes without an
+	// X-Terminal-Token are rejected. KBOOK_ADMIN remains exempt. While false (rollout),
+	// legacy no-token clients keep working via device-based ownership.
+	@org.springframework.beans.factory.annotation.Value("${terminal.sync.strict:false}")
+	private boolean terminalSyncStrict;
 
 	private User findExistingUserByIdentity(Long tenantId, User incomingUser,
 			com.khanabook.saas.repository.UserRepository userRepository) {
@@ -136,6 +149,54 @@ public class GenericSyncService {
 			}
 		}
 
+		boolean payloadHasBill = payload.stream().anyMatch(r -> r instanceof Bill);
+		boolean payloadHasTransactional = payload.stream()
+				.anyMatch(r -> r instanceof Bill || r instanceof BillItem || r instanceof BillPayment);
+
+		// Trusted terminal identity (from the X-Terminal-Token, not the client body).
+		// We resolve and normalize the terminal here so later per-record logic treats the
+		// client terminalId / terminalSeries fields as untrusted and overwrites them from
+		// this context. The context is resolved whenever a terminal token is present — not
+		// only for bill payloads — so child records (BillItem / BillPayment) pushed in their
+		// own request are still scoped to the caller's terminal. A terminal token is only
+		// *required* for bill payloads; child-only and legacy (no-token) payloads fall back
+		// to device-based ownership as before.
+		String trustedTerminalId = null;
+		String trustedTerminalSeries = null;
+		String trustedDeviceId = null;
+		boolean hasTerminalContext = !isKbookAdmin
+				&& (TenantContext.getCurrentTerminalId() != null || TenantContext.getCurrentTerminalSeries() != null);
+		if (hasTerminalContext) {
+			String authTerminalId = TenantContext.getCurrentTerminalId();
+			String authTerminalSeries = TenantContext.getCurrentTerminalSeries();
+			String authDeviceId = TenantContext.getCurrentTerminalDevice();
+			RestaurantTerminal trustedTerminal = (authTerminalSeries != null)
+					? terminalRepository.findByRestaurantIdAndTerminalSeries(tenantId, authTerminalSeries).orElse(null)
+					: terminalRepository.findById(Long.valueOf(authTerminalId)).orElse(null);
+			if (trustedTerminal == null) {
+				securityAuditService.record("SYNC_PUSH", "TERMINAL_UNKNOWN", null, authTerminalId);
+				throw new ResponseStatusException(FORBIDDEN, "Terminal is not registered for this restaurant");
+			}
+			if (Boolean.FALSE.equals(trustedTerminal.getIsActive())) {
+				securityAuditService.record("SYNC_PUSH", "TERMINAL_DISABLED", null,
+						trustedTerminal.getId() != null ? trustedTerminal.getId().toString() : authTerminalSeries);
+				throw new ResponseStatusException(FORBIDDEN, "Terminal is disabled");
+			}
+			trustedTerminalId = trustedTerminal.getId() != null ? trustedTerminal.getId().toString()
+					: trustedTerminal.getTerminalSeries();
+			trustedTerminalSeries = trustedTerminal.getTerminalSeries();
+			trustedDeviceId = trustedTerminal.getDeviceId() != null ? trustedTerminal.getDeviceId() : authDeviceId;
+		} else if (payloadHasTransactional && !isKbookAdmin) {
+			// No terminal token on a transactional payload.
+			// Strict mode rejects it; otherwise legacy no-token clients keep working via
+			// device-based ownership (temporary compatibility — remove after all clients ship
+			// the terminal-token build).
+			if (terminalSyncStrict) {
+				throw new ResponseStatusException(BAD_REQUEST,
+						"Terminal identity required for sync: activate a terminal and send X-Terminal-Token");
+			}
+		}
+
 		Map<String, List<T>> recordsByDevice = payload.stream()
 				.collect(Collectors.groupingBy(record -> record.getDeviceId() != null ? record.getDeviceId() : "unknown"));
 
@@ -220,6 +281,21 @@ public class GenericSyncService {
 						if (bill.getRefundAmount() == null) {
 							bill.setRefundAmount(java.math.BigDecimal.ZERO);
 						}
+
+						// Overwrite untrusted client terminal fields from the authenticated terminal
+						// context. New bills are owned by the calling terminal.
+						if (trustedTerminalId != null) {
+							bill.setTerminalId(trustedTerminalId);
+							bill.setTerminalSeries(trustedTerminalSeries);
+							bill.setCreatedDeviceId(trustedDeviceId);
+							bill.setDeviceId(trustedDeviceId);
+							if (bill.getCreatedTerminalId() == null || bill.getCreatedTerminalId().isBlank()) {
+								bill.setCreatedTerminalId(trustedTerminalId);
+							}
+							if (bill.getCurrentOwnerTerminalId() == null || bill.getCurrentOwnerTerminalId().isBlank()) {
+								bill.setCurrentOwnerTerminalId(trustedTerminalId);
+							}
+						}
 					}
 
 					// For KBOOK_ADMIN, ensure we use the record's restaurantId if tenantId is null
@@ -231,7 +307,6 @@ public class GenericSyncService {
 					if (incomingRecord instanceof Bill bill
 							&& repository instanceof com.khanabook.saas.repository.BillRepository billRepo) {
 						validateBillNumberConflicts(targetTenantId, bill, billRepo);
-						validateTerminalOwnership(targetTenantId, bill);
 					}
 
 					T existingRecord = null;
@@ -277,6 +352,36 @@ public class GenericSyncService {
 					}
 
 					if (existingRecord != null) {
+						if (incomingRecord instanceof Bill incomingBill && existingRecord instanceof Bill existingBill
+								&& trustedTerminalId != null) {
+							String owner = BillTerminalUtil.ownerTerminalId(existingBill);
+							boolean legacy = BillTerminalUtil.isLegacyUnresolved(existingBill);
+							if (owner != null && !owner.equals(trustedTerminalId)) {
+								// A legacy (pre-terminal) bill can still be touched by the tablet that
+								// originally created it, or by an admin; otherwise it is quarantined.
+								boolean allowed = isKbookAdmin
+										|| (legacy && trustedDeviceId != null
+												&& trustedDeviceId.equals(existingBill.getCreatedDeviceId()));
+								if (!allowed) {
+									securityAuditService.record("SYNC_PUSH",
+											legacy ? "LEGACY_BILL_REJECTED" : "CROSS_TERMINAL_UPDATE",
+											incomingBill.getPublicToken() != null
+													? incomingBill.getPublicToken().toString() : null,
+											owner);
+									failedLocalIds.add(incomingRecord.getLocalId());
+									failedReasons.put(incomingRecord.getLocalId(),
+											legacy ? "Legacy bill must be reassigned by admin before modification"
+													: "Bill belongs to another terminal and cannot be modified from this terminal");
+									continue;
+								}
+								// Reclaim the legacy bill to the calling terminal (original tablet / admin).
+								if (legacy) {
+									existingBill.setCurrentOwnerTerminalId(trustedTerminalId);
+								}
+							}
+							incomingBill.setCreatedTerminalId(existingBill.getCreatedTerminalId());
+							incomingBill.setCurrentOwnerTerminalId(existingBill.getCurrentOwnerTerminalId());
+						}
 						if (incomingRecord.getUpdatedAt() >= existingRecord.getUpdatedAt()) {
 
 								if (incomingRecord instanceof User user && existingRecord instanceof User existingUser) {
@@ -336,6 +441,22 @@ public class GenericSyncService {
 							// Relational ID Resolution for Updates
 							resolveRelationalIds(incomingRecord, idMaps);
 
+							// Enforce parent-bill terminal ownership for child records
+							// (BillItem / BillPayment) so one terminal cannot attach or mutate
+							// lines against another terminal's bill.
+							if (incomingRecord instanceof BillItem || incomingRecord instanceof BillPayment) {
+								if (!isChildOwnershipAllowed(incomingRecord, targetTenantId,
+										trustedTerminalId, trustedDeviceId, isKbookAdmin)) {
+									failedLocalIds.add(incomingRecord.getLocalId());
+									failedReasons.put(incomingRecord.getLocalId(),
+											"Record references a bill owned by another terminal");
+									securityAuditService.record("SYNC_PUSH", "CHILD_CROSS_TERMINAL",
+											childParentToken(incomingRecord),
+											childOwnerTerminal(incomingRecord, targetTenantId));
+									continue;
+								}
+							}
+
 							if (incomingRecord instanceof RestaurantProfile incomingProfile
 									&& existingRecord instanceof RestaurantProfile existingProfile) {
 								incomingProfile.setTimezone(DEFAULT_TIMEZONE);
@@ -391,6 +512,22 @@ public class GenericSyncService {
 
 							// Relational ID Resolution for New Records
 						resolveRelationalIds(incomingRecord, idMaps);
+
+						// Enforce parent-bill terminal ownership for child records
+						// (BillItem / BillPayment) so one terminal cannot attach lines to
+						// another terminal's bill.
+						if (incomingRecord instanceof BillItem || incomingRecord instanceof BillPayment) {
+							if (!isChildOwnershipAllowed(incomingRecord, targetTenantId,
+									trustedTerminalId, trustedDeviceId, isKbookAdmin)) {
+								failedLocalIds.add(incomingRecord.getLocalId());
+								failedReasons.put(incomingRecord.getLocalId(),
+										"Record references a bill owned by another terminal");
+								securityAuditService.record("SYNC_PUSH", "CHILD_CROSS_TERMINAL",
+										childParentToken(incomingRecord),
+										childOwnerTerminal(incomingRecord, targetTenantId));
+								continue;
+							}
+						}
 
 						if (incomingRecord instanceof RestaurantProfile incomingProfile) {
 							incomingProfile.setTimezone(DEFAULT_TIMEZONE);
@@ -509,23 +646,6 @@ public class GenericSyncService {
 		}
 	}
 
-	private void validateTerminalOwnership(Long tenantId, Bill incomingBill) {
-		if (incomingBill.getTerminalSeries() == null || incomingBill.getTerminalSeries().isBlank()) {
-			return;
-		}
-		RestaurantTerminal terminal = terminalRepository
-				.findByRestaurantIdAndTerminalSeries(tenantId, incomingBill.getTerminalSeries())
-				.orElseThrow(() -> new IllegalStateException("Terminal is not registered for this restaurant"));
-		if (Boolean.FALSE.equals(terminal.getIsActive())) {
-			throw new IllegalStateException("Terminal is inactive");
-		}
-		if (incomingBill.getTerminalId() == null || incomingBill.getTerminalId().isBlank()) {
-			incomingBill.setTerminalId(terminal.getId() != null ? terminal.getId().toString() : terminal.getTerminalSeries());
-		} else if (terminal.getId() != null && !incomingBill.getTerminalId().equals(terminal.getId().toString())) {
-			throw new IllegalStateException("Terminal identity does not match invoice series");
-		}
-	}
-
 	private boolean isTransactionalIdempotentRetry(BaseSyncEntity incoming, BaseSyncEntity existing) {
 		boolean transactional = incoming instanceof Bill
 				|| incoming instanceof BillItem
@@ -538,6 +658,48 @@ public class GenericSyncService {
 				&& Objects.equals(incoming.getDeviceId(), existing.getDeviceId())
 				&& Objects.equals(incoming.getRestaurantId(), existing.getRestaurantId())
 				&& existing.getId() != null;
+	}
+
+	/**
+	 * Child records (BillItem / BillPayment) may only be written when the resolved parent
+	 * bill is modifiable by the caller's trusted terminal. Resolves the parent by server id
+	 * (set by resolveRelationalIds) and applies the same ownership rules as bill pushes.
+	 */
+	private boolean isChildOwnershipAllowed(BaseSyncEntity record, Long tenantId,
+			String trustedTerminalId, String trustedDeviceId, boolean isAdmin) {
+		Long serverBillId = record instanceof BillItem bi ? bi.getServerBillId()
+				: record instanceof BillPayment bp ? bp.getServerBillId() : null;
+		if (serverBillId == null) {
+			return true; // unresolved parent is rejected by the service-layer failure logic
+		}
+		Optional<Bill> parent = billRepository.findById(serverBillId)
+				.filter(b -> b.getRestaurantId().equals(tenantId));
+		if (parent.isEmpty()) {
+			return true; // missing/foreign parent handled elsewhere
+		}
+		if (BillTerminalUtil.isFinalized(parent.get())) {
+			return false;
+		}
+		return BillTerminalUtil.isModifiableByTerminal(parent.get(), trustedTerminalId, trustedDeviceId, isAdmin);
+	}
+
+	private String childParentToken(BaseSyncEntity record) {
+		Long serverBillId = record instanceof BillItem bi ? bi.getServerBillId()
+				: record instanceof BillPayment bp ? bp.getServerBillId() : null;
+		if (serverBillId == null) return null;
+		return billRepository.findById(serverBillId)
+				.map(b -> b.getPublicToken() != null ? b.getPublicToken().toString() : null)
+				.orElse(null);
+	}
+
+	private String childOwnerTerminal(BaseSyncEntity record, Long tenantId) {
+		Long serverBillId = record instanceof BillItem bi ? bi.getServerBillId()
+				: record instanceof BillPayment bp ? bp.getServerBillId() : null;
+		if (serverBillId == null) return null;
+		return billRepository.findById(serverBillId)
+				.filter(b -> b.getRestaurantId().equals(tenantId))
+				.map(BillTerminalUtil::ownerTerminalId)
+				.orElse(null);
 	}
 
 	private void mergeCounterState(RestaurantProfile incoming, RestaurantProfile existing) {

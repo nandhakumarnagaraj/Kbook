@@ -12,6 +12,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -104,6 +105,17 @@ public class GlobalExceptionHandler {
 		log.warn("Method not allowed [{}]: {}", request.getRequestURI(), e.getMessage());
 		return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(Map.of(
 				"error", "Method not allowed",
+				"path", request.getRequestURI()
+		));
+	}
+
+	@ExceptionHandler(ResponseStatusException.class)
+	public ResponseEntity<Map<String, Object>> handleResponseStatusException(
+			ResponseStatusException e, HttpServletRequest request) {
+		log.warn("Response status exception [{}] [{}]: {}", e.getStatusCode().value(),
+				request.getRequestURI(), e.getReason());
+		return ResponseEntity.status(e.getStatusCode()).body(Map.of(
+				"error", e.getReason() != null ? e.getReason() : e.getStatusCode().toString(),
 				"path", request.getRequestURI()
 		));
 	}
