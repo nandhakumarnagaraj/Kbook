@@ -34,6 +34,24 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     private val _restaurantId = MutableStateFlow(getRestaurantId())
     val restaurantId: StateFlow<Long> = _restaurantId
 
+    // ── Session state gate ─────────────────────────────────────────────────
+    // Guards against repository/database access when no user is authenticated.
+    // INACTIVE after logout; READY after login completes and DB is switched.
+    private val _sessionState = MutableStateFlow(SessionState.INACTIVE)
+    val sessionState: StateFlow<SessionState> = _sessionState
+
+    fun setSessionState(state: SessionState) {
+        _sessionState.value = state
+        Log.d(debugTag, "SessionState → $state")
+    }
+
+    fun isSessionReady(): Boolean = _sessionState.value == SessionState.READY
+
+    enum class SessionState {
+        INACTIVE,
+        READY
+    }
+
     init {
         migrateLegacySecurePrefsIfNeeded()
     }

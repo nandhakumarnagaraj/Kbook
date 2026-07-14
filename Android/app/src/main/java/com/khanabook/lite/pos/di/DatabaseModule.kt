@@ -169,8 +169,10 @@ object DatabaseModule {
         userDao: UserDao,
         sessionManager: SessionManager,
         workManager: androidx.work.WorkManager,
-        api: KhanaBookApi
-    ) = UserRepository(userDao, sessionManager, workManager, api)
+        api: KhanaBookApi,
+        databaseProvider: DatabaseProvider,
+        restaurantDao: RestaurantDao
+    ) = UserRepository(userDao, sessionManager, workManager, api, databaseProvider, restaurantDao)
 
     @Provides
     @Singleton
