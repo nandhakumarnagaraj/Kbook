@@ -199,23 +199,17 @@ fun ReprintKdsScreen(
                 OutlinedTextField(
                     value = invoiceQuery,
                     onValueChange = {
-                        val invoiceNo = it.removePrefix("INV").removePrefix("inv")
-                        if (invoiceNo.isEmpty() || invoiceNo.all { char -> char.isDigit() }) {
-                            invoiceQuery = invoiceNo
-                            showInvoiceError = false
-                        } else {
-                            showInvoiceError = true
-                        }
+                        invoiceQuery = it.trim()
+                        showInvoiceError = false
                     },
-                    label = { Text("Invoice No", color = TextGold) },
-                    prefix = { Text("INV") },
+                    label = { Text("Invoice No (e.g. A01 or INV42)", color = TextGold) },
                     isError = showInvoiceError,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = spacing.medium),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
+                        keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Search
                     ),
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(
@@ -225,7 +219,7 @@ fun ReprintKdsScreen(
                     colors = outlinedSearchFieldColors()
                 )
                 if (showInvoiceError) {
-                    Text("Please enter numbers only", color = DangerRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
+                    Text("Bill not found. Try order number or invoice number.", color = DangerRed, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = spacing.medium))
                 }
 
                 Spacer(modifier = Modifier.height(spacing.medium))

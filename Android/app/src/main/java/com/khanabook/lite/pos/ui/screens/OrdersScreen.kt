@@ -83,8 +83,7 @@ fun OrdersScreen(
     val normalizedInitialSource = remember(initialSource) {
         when {
             initialSource.equals("ONLINE", ignoreCase = true) -> "ONLINE"
-            initialSource.equals("TAKEAWAY", ignoreCase = true) -> "TAKEAWAY"
-            else -> "DINE_IN"
+            else -> "STORE"
         }
     }
     var selectedSource by rememberSaveable(normalizedInitialSource) { mutableStateOf(normalizedInitialSource) }
@@ -95,8 +94,7 @@ fun OrdersScreen(
             } else {
                 when (selectedSource) {
                     "ONLINE" -> row.isOnlineOrder()
-                    "TAKEAWAY" -> row.isTakeawayOrder()
-                    else -> row.isDineInOrder()
+                    else -> !row.isOnlineOrder() // Store = dine-in + takeaway
                 }
             }
         }
@@ -262,15 +260,9 @@ fun OrdersScreen(
                         horizontalArrangement = Arrangement.spacedBy(spacing.small)
                     ) {
                         OrderFilterChip(
-                            label = "Dinein",
-                            isSelected = selectedSource == "DINE_IN",
-                            onClick = { selectedSource = "DINE_IN" },
-                            modifier = Modifier.weight(1f)
-                        )
-                        OrderFilterChip(
-                            label = "Takeaway",
-                            isSelected = selectedSource == "TAKEAWAY",
-                            onClick = { selectedSource = "TAKEAWAY" },
+                            label = "Store Orders",
+                            isSelected = selectedSource == "STORE",
+                            onClick = { selectedSource = "STORE" },
                             modifier = Modifier.weight(1f)
                         )
                         OrderFilterChip(
@@ -321,8 +313,7 @@ fun OrdersScreen(
                             Text(
                                 when (selectedSource) {
                                     "ONLINE" -> "No online orders in this period"
-                                    "TAKEAWAY" -> "No takeaway orders in this period"
-                                    else -> "No dinein orders in this period"
+                                    else -> "No store orders in this period"
                                 },
                                 color = TextGold.copy(alpha = 0.75f),
                                 style = MaterialTheme.typography.titleMedium,
