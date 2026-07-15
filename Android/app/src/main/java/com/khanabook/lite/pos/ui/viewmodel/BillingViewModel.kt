@@ -470,6 +470,15 @@ class BillingViewModel @Inject constructor(
             }
             _isLoading.value = true
             try {
+                // KB-007: Reuse the existing pending online bill if one already exists
+                // for this terminal. This prevents UPI drafts from accumulating across
+                // repeated sheet opens (each open used to create a brand new draft).
+                val existingPending = billRepository.getLatestPendingOnlineBill()
+                if (existingPending != null) {
+                    _isLoading.value = false
+                    return@withLock existingPending.id
+                }
+
                 // Cancel any stale DRAFT+PENDING bills from previous failed attempts before
                 // creating a new one — prevents duplicate drafts from accumulating.
                 billRepository.cancelStalePendingOnlineDrafts()
@@ -630,7 +639,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
 
                 val gTxn = _gatewayTxnId.value
                 val gStatus = _gatewayStatus.value
-                val verifiedBy = if (!gTxn.isNullOrBlank() || !gStatus.isNullOrBlank()) "gateway_return" else "manual"
+                val verifiedBy = if (!gTxn.isNullOrBlank() || !gStatus.isNullOrBlank()) "deep_link_hint" else "manual"
                 val payments = when (_paymentMode.value) {
                     PaymentMode.PART_CASH_UPI -> listOf(
                         BillPaymentEntity(
@@ -816,7 +825,7 @@ val finalSummary = _billSummary.value
                 // Gateway data is attached only to UPI rows; cash/POS rows stay manual.
                 val gTxn = _gatewayTxnId.value
                 val gStatus = _gatewayStatus.value
-                val verifiedBy = if (!gTxn.isNullOrBlank() || !gStatus.isNullOrBlank()) "gateway_return" else "manual"
+                val verifiedBy = if (!gTxn.isNullOrBlank() || !gStatus.isNullOrBlank()) "deep_link_hint" else "manual"
                 fun upi(amount: String) = BillPaymentEntity(
                     billId = 0,
                     paymentMode = PaymentMode.UPI.dbValue,
