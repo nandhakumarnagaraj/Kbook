@@ -630,7 +630,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
 
                 val gTxn = _gatewayTxnId.value
                 val gStatus = _gatewayStatus.value
-                val verifiedBy = if (!gTxn.isNullOrBlank() || !gStatus.isNullOrBlank()) "gateway_return" else "manual"
+                val verifiedBy = if (!gTxn.isNullOrBlank() || !gStatus.isNullOrBlank()) "deep_link_hint" else "manual"
                 val payments = when (_paymentMode.value) {
                     PaymentMode.PART_CASH_UPI -> listOf(
                         BillPaymentEntity(
@@ -816,7 +816,7 @@ val finalSummary = _billSummary.value
                 // Gateway data is attached only to UPI rows; cash/POS rows stay manual.
                 val gTxn = _gatewayTxnId.value
                 val gStatus = _gatewayStatus.value
-                val verifiedBy = if (!gTxn.isNullOrBlank() || !gStatus.isNullOrBlank()) "gateway_return" else "manual"
+                val verifiedBy = if (!gTxn.isNullOrBlank() || !gStatus.isNullOrBlank()) "deep_link_hint" else "manual"
                 fun upi(amount: String) = BillPaymentEntity(
                     billId = 0,
                     paymentMode = PaymentMode.UPI.dbValue,
