@@ -469,6 +469,16 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
     """)
     suspend fun getMaxDailyOrderIdBetween(restaurantId: Long, deviceId: String, startTime: Long, endTime: Long): Long
 
+    @Query("""
+        SELECT COALESCE(MAX(daily_order_id), 0)
+        FROM bills
+        WHERE restaurant_id = :restaurantId
+          AND is_deleted = 0
+          AND created_at BETWEEN :startTime AND :endTime
+          AND (created_terminal_id = :terminalId OR terminal_id = :terminalId)
+    """)
+    suspend fun getMaxDailyOrderIdForTerminalToday(restaurantId: Long, terminalId: String, startTime: Long, endTime: Long): Long
+
     // Highest invoice sequence allocated within a terminal's financial-year series (see PLAN §4.2/§5).
     @Query("""
         SELECT COALESCE(MAX(invoice_sequence), 0)

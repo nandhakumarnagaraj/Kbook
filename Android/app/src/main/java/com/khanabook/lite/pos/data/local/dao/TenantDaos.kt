@@ -525,6 +525,8 @@ class TenantBillDao @Inject constructor(
         dao.getMaxLifetimeOrderId(restaurantId)
     override suspend fun getMaxDailyOrderIdBetween(restaurantId: Long, deviceId: String, startTime: Long, endTime: Long): Long =
         dao.getMaxDailyOrderIdBetween(restaurantId, deviceId, startTime, endTime)
+    override suspend fun getMaxDailyOrderIdForTerminalToday(restaurantId: Long, terminalId: String, startTime: Long, endTime: Long): Long =
+        dao.getMaxDailyOrderIdForTerminalToday(restaurantId, terminalId, startTime, endTime)
 
     override suspend fun reconcileServerAcknowledgedBills(restaurantId: Long): Int = dao.reconcileServerAcknowledgedBills(restaurantId)
     override suspend fun markBillsSyncedByPublicTokens(restaurantId: Long, publicTokens: List<String>): Int = dao.markBillsSyncedByPublicTokens(restaurantId, publicTokens)
