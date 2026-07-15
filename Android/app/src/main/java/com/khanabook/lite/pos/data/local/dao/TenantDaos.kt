@@ -167,6 +167,13 @@ class TenantRestaurantDao @Inject constructor(
     override suspend fun getTerminalDailyCounter(restaurantId: Long, terminalId: String, date: String): TerminalDailyCounterEntity? =
         dao.getTerminalDailyCounter(restaurantId, terminalId, date)
 
+    override suspend fun insertOrIncrementTerminalDailyCounter(restaurantId: Long, terminalId: String, date: String, updatedAt: Long) {
+        dao.insertOrIncrementTerminalDailyCounter(restaurantId, terminalId, date, updatedAt)
+    }
+
+    override suspend fun getTerminalDailyCounterValue(restaurantId: Long, terminalId: String, date: String): Long? =
+        dao.getTerminalDailyCounterValue(restaurantId, terminalId, date)
+
     override suspend fun incrementAndGetTerminalDailyCounter(restaurantId: Long, terminalId: String): Long =
         dao.incrementAndGetTerminalDailyCounter(restaurantId, terminalId)
 

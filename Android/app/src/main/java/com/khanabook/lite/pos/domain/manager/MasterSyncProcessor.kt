@@ -147,20 +147,9 @@ class MasterSyncProcessor @Inject constructor(
             .atStartOfDay(java.time.ZoneId.of(timezone)).toInstant().toEpochMilli() - 1
         val maxLocalDaily = billDao.getMaxDailyOrderIdForTerminalToday(restaurantId, terminalId, startOfDay, endOfDay)
         if (maxLocalDaily > 0L) {
-            val existing = restaurantDao.getTerminalDailyCounter(restaurantId, terminalId, today)
-            if (existing == null || existing.dailyOrderCounter < maxLocalDaily) {
-                restaurantDao.upsertTerminalDailyCounter(
-                    com.khanabook.lite.pos.data.local.entity.TerminalDailyCounterEntity(
-                        restaurantId = restaurantId,
-                        terminalId = terminalId,
-                        date = today,
-                        dailyOrderCounter = maxLocalDaily,
-                        isSynced = true,
-                        updatedAt = System.currentTimeMillis()
-                    )
-                )
-                Log.i("MasterSyncProcessor", "Seeded terminal daily counter from local bills: $maxLocalDaily for terminal=$terminalId")
-            }
+            // Atomic create-or-raise keeps this safe against a concurrent bill creation.
+            restaurantDao.raiseTerminalDailyCounterAtLeast(restaurantId, terminalId, today, maxLocalDaily, System.currentTimeMillis())
+            Log.i("MasterSyncProcessor", "Seeded terminal daily counter from local bills: $maxLocalDaily for terminal=$terminalId")
         }
     }
 
@@ -1204,25 +1193,8 @@ BillEntity(
                     }
                     .maxOfOrNull { it.dailyOrderId ?: 0L } ?: 0L
                 if (maxDailyForTerminal > 0L) {
-                    // Ensure the row exists first (upsert), then raise to at least the pulled max.
-                    val existing = restaurantDao.getTerminalDailyCounter(restaurantId, terminalId, today)
-                    if (existing == null) {
-                        restaurantDao.upsertTerminalDailyCounter(
-                            com.khanabook.lite.pos.data.local.entity.TerminalDailyCounterEntity(
-                                restaurantId = restaurantId,
-                                terminalId = terminalId,
-                                date = today,
-                                dailyOrderCounter = maxDailyForTerminal,
-                                isSynced = true,
-                                updatedAt = System.currentTimeMillis()
-                            )
-                        )
-                    } else if (existing.dailyOrderCounter < maxDailyForTerminal) {
-                        restaurantDao.upsertTerminalDailyCounter(existing.copy(
-                            dailyOrderCounter = maxDailyForTerminal,
-                            updatedAt = System.currentTimeMillis()
-                        ))
-                    }
+                    // Atomic create-or-raise (safe against concurrent bill creation on this device).
+                    restaurantDao.raiseTerminalDailyCounterAtLeast(restaurantId, terminalId, today, maxDailyForTerminal, System.currentTimeMillis())
                     Log.i("MasterSyncProcessor", "Terminal daily counter ensured at least $maxDailyForTerminal for terminal=$terminalId date=$today")
                 }
             }

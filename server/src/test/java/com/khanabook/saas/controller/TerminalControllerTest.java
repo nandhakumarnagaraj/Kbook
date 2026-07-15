@@ -66,7 +66,7 @@ class TerminalControllerTest {
         when(terminalRepository.findByRestaurantIdAndDeviceId(42L, "device-4"))
                 .thenReturn(Optional.empty());
         when(terminalRepository.findByRestaurantIdOrderByIdAsc(42L))
-                .thenReturn(List.of(terminal("A1", "device-1"), terminal("A3", "device-3")));
+                .thenReturn(List.of(terminal("A", "device-1"), terminal("C", "device-3")));
         when(terminalRepository.save(any(RestaurantTerminal.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -74,6 +74,26 @@ class TerminalControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody().terminalSeries()).isEqualTo("B");
+    }
+
+    @Test
+    void activate_usesTprefixedSeriesFor27thTerminal() {
+        // 26 terminals A..Z already exist; the 27th must use the T-prefixed scheme and
+        // must NOT hang the dedup loop (regression for the "T27 collapses to T" bug).
+        List<RestaurantTerminal> all = new java.util.ArrayList<>();
+        for (char c = 'A'; c <= 'Z'; c++) {
+            all.add(terminal(String.valueOf(c), "device-" + c));
+        }
+        when(terminalRepository.findByRestaurantIdAndDeviceId(42L, "device-27"))
+                .thenReturn(Optional.empty());
+        when(terminalRepository.findByRestaurantIdOrderByIdAsc(42L)).thenReturn(all);
+        when(terminalRepository.save(any(RestaurantTerminal.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = controller.activate(new TerminalController.TerminalActivationRequest("device-27"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody().terminalSeries()).isEqualTo("T27");
     }
 
     @Test

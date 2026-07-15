@@ -73,7 +73,6 @@ interface BillDao {
         WHERE restaurant_id = :restaurantId
           AND order_status = 'draft'
           AND payment_status = 'pending'
-          AND order_type = 'dine_in'
           AND is_deleted = 0
           AND record_scope = 'terminal_operational'
           AND record_origin = 'local_created'
@@ -296,6 +295,12 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
         AND created_terminal_id = :terminalId
         AND payment_mode IN (
             'upi', 'part_cash_upi', 'part_upi_pos'
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM bill_items
+            WHERE bill_items.bill_id = bills.id
+              AND bill_items.restaurant_id = :restaurantId
+              AND bill_items.is_deleted = 0
         )
     """)
     suspend fun cancelStalePendingOnlineDrafts(reason: String, updatedAt: Long, restaurantId: Long, terminalId: String): Int
