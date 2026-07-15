@@ -144,24 +144,33 @@ interface RestaurantDao {
     )
     suspend fun getTerminalDailyCounter(restaurantId: Long, terminalId: String, date: String): TerminalDailyCounterEntity?
 
+    // Atomic create-or-increment: a single UPSERT statement, so a concurrent sync-thread
+    // raise (raiseTerminalDailyCounterAtLeast) or another bill creation can never interleave
+    // between the read and the write and lose an update. SQLite serializes the write, so two
+    // callers get strictly increasing, non-duplicate counters.
+    @Query(
+        """
+        INSERT INTO terminal_daily_counter (restaurant_id, terminal_id, date, daily_order_counter, is_synced, updated_at)
+        VALUES (:restaurantId, :terminalId, :date, 1, 0, :updatedAt)
+        ON CONFLICT(`restaurant_id`, `terminal_id`, `date`)
+        DO UPDATE SET daily_order_counter = daily_order_counter + 1, is_synced = 0, updated_at = :updatedAt
+        """
+    )
+    suspend fun insertOrIncrementTerminalDailyCounter(restaurantId: Long, terminalId: String, date: String, updatedAt: Long)
+
+    @Query(
+        "SELECT daily_order_counter FROM terminal_daily_counter WHERE restaurant_id = :restaurantId AND terminal_id = :terminalId AND date = :date"
+    )
+    suspend fun getTerminalDailyCounterValue(restaurantId: Long, terminalId: String, date: String): Long?
+
     @Transaction
     suspend fun incrementAndGetTerminalDailyCounter(restaurantId: Long, terminalId: String): Long {
         val zoneId = java.time.ZoneId.of("Asia/Kolkata")
         val today = java.time.LocalDate.now(zoneId).toString()
         val now = System.currentTimeMillis()
 
-        val existing = getTerminalDailyCounter(restaurantId, terminalId, today)
-        val nextCounter = (existing?.dailyOrderCounter ?: 0L) + 1
-
-        upsertTerminalDailyCounter(TerminalDailyCounterEntity(
-            restaurantId = restaurantId,
-            terminalId = terminalId,
-            date = today,
-            dailyOrderCounter = nextCounter,
-            isSynced = false,
-            updatedAt = now
-        ))
-        return nextCounter
+        insertOrIncrementTerminalDailyCounter(restaurantId, terminalId, today, now)
+        return getTerminalDailyCounterValue(restaurantId, terminalId, today) ?: 1L
     }
 
     @Query(
@@ -169,8 +178,16 @@ interface RestaurantDao {
     )
     suspend fun getAllTerminalCountersForDate(restaurantId: Long, date: String): List<TerminalDailyCounterEntity>
 
+    // Atomic create-or-raise: seeds the counter to at least :counter (used after a pull /
+    // migration when the local counter row is empty or behind the server). Single UPSERT so
+    // it cannot race with incrementAndGetTerminalDailyCounter and lose an update.
     @Query(
-        "UPDATE terminal_daily_counter SET daily_order_counter = MAX(daily_order_counter, :counter), is_synced = 0, updated_at = :updatedAt WHERE restaurant_id = :restaurantId AND terminal_id = :terminalId AND date = :date"
+        """
+        INSERT INTO terminal_daily_counter (restaurant_id, terminal_id, date, daily_order_counter, is_synced, updated_at)
+        VALUES (:restaurantId, :terminalId, :date, :counter, 0, :updatedAt)
+        ON CONFLICT(`restaurant_id`, `terminal_id`, `date`)
+        DO UPDATE SET daily_order_counter = MAX(daily_order_counter, :counter), is_synced = 0, updated_at = :updatedAt
+        """
     )
     suspend fun raiseTerminalDailyCounterAtLeast(
         restaurantId: Long,

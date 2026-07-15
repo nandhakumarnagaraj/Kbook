@@ -229,21 +229,15 @@ fun CallCustomerScreen(
                 OutlinedTextField(
                         value = lifetimeId,
                         onValueChange = { 
-                            val invoiceNo = it.removePrefix("INV").removePrefix("inv")
-                            if (invoiceNo.isEmpty() || invoiceNo.all { char -> char.isDigit() }) {
-                                lifetimeId = invoiceNo
-                                showLifetimeIdError = false
-                            } else {
-                                showLifetimeIdError = true
-                            }
+                            lifetimeId = it.trim()
+                            showLifetimeIdError = false
                         },
-                        label = { Text("Invoice No") },
-                        prefix = { Text("INV") },
+                        label = { Text("Invoice No (e.g. A01 or INV42)") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = outlinedSearchFieldColors(),
                         singleLine = true,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Text,
                                 imeAction = ImeAction.Search
                         ),
                         keyboardActions = androidx.compose.foundation.text.KeyboardActions(
@@ -253,7 +247,7 @@ fun CallCustomerScreen(
                         isError = showLifetimeIdError,
                         supportingText = {
                             if (showLifetimeIdError) {
-                                Text(context.getString(R.string.field_numbers_only))
+                                Text("Bill not found. Try order number or invoice number.")
                             }
                         }
                 )

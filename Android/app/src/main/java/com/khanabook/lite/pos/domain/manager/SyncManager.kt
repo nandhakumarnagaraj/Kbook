@@ -281,7 +281,8 @@ class SyncManager @Inject constructor(
         val pages = mutableListOf<MasterSyncResponse>()
         var page = 0
         var hasMore = true
-        while (hasMore) {
+        val maxPages = 50 // Safety cap: 50 pages × 500 records = 25,000 max records per sync
+        while (hasMore && page < maxPages) {
             val response = api.pullMasterSync(
                 lastSyncTimestamp = lastSyncTimestamp,
                 deviceId = deviceId,
@@ -293,6 +294,9 @@ class SyncManager @Inject constructor(
             pages.add(response)
             hasMore = response.hasMore ?: false
             page++
+        }
+        if (page >= maxPages && hasMore) {
+            Log.w(tag, "Pull sync hit max page cap ($maxPages). Some records may be deferred to next sync cycle.")
         }
         return pages
     }

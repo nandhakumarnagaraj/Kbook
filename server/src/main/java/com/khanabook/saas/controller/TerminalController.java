@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -53,9 +54,27 @@ public class TerminalController {
 			return ResponseEntity.ok(toResponse(existing));
 		}
 
+		// Single-device reinstall recovery: if the restaurant has exactly one terminal
+		// and it hasn't been active in the last hour, reassign it to the new deviceId.
+		// This handles the common case where a small restaurant uninstalls/reinstalls
+		// the app on the same tablet — the device gets a new UUID but should keep its
+		// existing terminal series (A) instead of getting a new one (B).
+		List<RestaurantTerminal> allTerminals = terminalRepository.findByRestaurantIdOrderByIdAsc(restaurantId);
+		if (allTerminals.size() == 1) {
+			RestaurantTerminal sole = allTerminals.get(0);
+			long oneHourAgo = System.currentTimeMillis() - 3_600_000L;
+			boolean isStale = sole.getUpdatedAt() == null || sole.getUpdatedAt() < oneHourAgo;
+			if (isStale && (sole.getIsActive() == null || sole.getIsActive())) {
+				sole.setDeviceId(deviceId);
+				sole.setUpdatedAt(System.currentTimeMillis());
+				RestaurantTerminal saved = terminalRepository.save(sole);
+				return ResponseEntity.ok(toResponse(saved));
+			}
+		}
+
 		Set<String> assignedSeries = new HashSet<>();
-		for (RestaurantTerminal terminal : terminalRepository.findByRestaurantIdOrderByIdAsc(restaurantId)) {
-			if (terminal.getTerminalSeries() != null) {
+		for (RestaurantTerminal terminal : allTerminals) {
+			if (terminal.getTerminalSeries() != null && !terminal.getTerminalSeries().isBlank()) {
 				assignedSeries.add(normalizeSeries(terminal.getTerminalSeries()));
 			}
 		}
@@ -168,14 +187,13 @@ public class TerminalController {
 	}
 
 	private String normalizeSeries(String series) {
-		String trimmed = series == null ? "" : series.trim();
-		if (trimmed.isEmpty()) {
-			return trimmed;
+		if (series == null) {
+			return "";
 		}
-		char first = Character.toUpperCase(trimmed.charAt(0));
-		if (first >= 'A' && first <= 'Z') {
-			return String.valueOf(first);
-		}
-		return trimmed.toUpperCase();
+		// Uppercase only. Do NOT fold a multi-character series such as the T-prefixed ones
+		// generated for the 27th+ terminal (e.g. "T27") down to a single letter — that would
+		// collapse every 27th+ terminal onto "T", make the activation dedup loop spin forever,
+		// and break terminal-to-terminal transfer lookups.
+		return series.trim().toUpperCase();
 	}
 }

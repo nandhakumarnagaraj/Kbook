@@ -6,7 +6,7 @@ import io.github.bucket4j.Refill;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 /**
  * Per-phone-number rate limiter for OTP endpoints.
@@ -18,13 +18,19 @@ public class OtpRateLimiter {
 
     private static final int MAX_OTP_PER_WINDOW = 5;
     private static final Duration WINDOW = Duration.ofMinutes(10);
+    private static final int MAX_BUCKETS = 5000;
 
-    private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private final Map<String, Bucket> buckets = new java.util.LinkedHashMap<>(128, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Bucket> eldest) {
+            return size() > MAX_BUCKETS;
+        }
+    };
 
     /**
      * Returns true if the request is allowed, false if rate limit exceeded.
      */
-    public boolean tryConsume(String phoneNumber) {
+    public synchronized boolean tryConsume(String phoneNumber) {
         Bucket bucket = buckets.computeIfAbsent(phoneNumber, k ->
             Bucket.builder()
                 .addLimit(Bandwidth.classic(MAX_OTP_PER_WINDOW,

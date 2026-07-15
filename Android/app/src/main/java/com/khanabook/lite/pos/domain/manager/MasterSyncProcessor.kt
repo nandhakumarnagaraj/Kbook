@@ -135,6 +135,22 @@ class MasterSyncProcessor @Inject constructor(
         if (updated > 0) {
             Log.i("MasterSyncProcessor", "Reconciled $updated local bill(s) to terminal_operational for terminal=$terminalId")
         }
+
+        // Ensure terminal_daily_counter is seeded from existing local bills for today.
+        // This prevents duplicate daily order numbers after APK update/migration when
+        // the counter table is created fresh but the bills table already has today's orders.
+        val timezone = "Asia/Kolkata"
+        val today = java.time.LocalDate.now(java.time.ZoneId.of(timezone)).toString()
+        val startOfDay = java.time.LocalDate.parse(today)
+            .atStartOfDay(java.time.ZoneId.of(timezone)).toInstant().toEpochMilli()
+        val endOfDay = java.time.LocalDate.parse(today).plusDays(1)
+            .atStartOfDay(java.time.ZoneId.of(timezone)).toInstant().toEpochMilli() - 1
+        val maxLocalDaily = billDao.getMaxDailyOrderIdForTerminalToday(restaurantId, terminalId, startOfDay, endOfDay)
+        if (maxLocalDaily > 0L) {
+            // Atomic create-or-raise keeps this safe against a concurrent bill creation.
+            restaurantDao.raiseTerminalDailyCounterAtLeast(restaurantId, terminalId, today, maxLocalDaily, System.currentTimeMillis())
+            Log.i("MasterSyncProcessor", "Seeded terminal daily counter from local bills: $maxLocalDaily for terminal=$terminalId")
+        }
     }
 
     private fun logRepairedRecords(label: String, repaired: List<String>) {
@@ -1160,6 +1176,27 @@ BillEntity(
                     isSynced = true,
                     updatedAt = System.currentTimeMillis()
                 ))
+            }
+
+            // Also correct the terminal_daily_counter table which BillingViewModel uses.
+            // Group pulled bills by terminal and raise each terminal's counter to at least
+            // the max daily_order_id seen on the server for today. This prevents duplicate
+            // order numbers after APK update/migration when the counter table is fresh.
+            val terminalId = sessionManager.getTerminalId() ?: sessionManager.getTerminalSeries()
+            if (terminalId != null) {
+                val maxDailyForTerminal = masterData.bills
+                    .filter { bill ->
+                        val billDate = java.time.Instant.ofEpochMilli(bill.createdAt ?: 0L)
+                            .atZone(java.time.ZoneId.of(timezone))
+                            .toLocalDate().toString()
+                        billDate == today && (bill.createdTerminalId == terminalId || bill.terminalId == terminalId)
+                    }
+                    .maxOfOrNull { it.dailyOrderId ?: 0L } ?: 0L
+                if (maxDailyForTerminal > 0L) {
+                    // Atomic create-or-raise (safe against concurrent bill creation on this device).
+                    restaurantDao.raiseTerminalDailyCounterAtLeast(restaurantId, terminalId, today, maxDailyForTerminal, System.currentTimeMillis())
+                    Log.i("MasterSyncProcessor", "Terminal daily counter ensured at least $maxDailyForTerminal for terminal=$terminalId date=$today")
+                }
             }
         }
     } // end withTransaction

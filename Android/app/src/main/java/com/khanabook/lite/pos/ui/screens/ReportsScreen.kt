@@ -557,7 +557,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, profile
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = spacing.extraSmall, vertical = spacing.medium),
+                .padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TableCell(row.dailyId, COL_ORDER)
@@ -682,6 +682,13 @@ fun OrderDetailsDialog(
                     DetailRow(invoiceLabel, bill.getInvoiceNumberDisplay())
                     Spacer(modifier = Modifier.height(spacing.small))
                     DetailRow("Date:", DateUtils.formatDisplay(bill.createdAt))
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    val orderTypeDisplay = when (bill.orderType.trim().lowercase()) {
+                        "dine_in", "dine-in" -> "Dine-in"
+                        "takeaway", "take_away" -> "Takeaway"
+                        else -> bill.orderType.replaceFirstChar { it.uppercase() }
+                    }
+                    DetailRow("Order Type:", orderTypeDisplay)
 
                     Spacer(modifier = Modifier.height(spacing.medium))
                     Text("Items:", color = TextGold, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))

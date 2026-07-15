@@ -6,7 +6,7 @@ import io.github.bucket4j.Refill;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 /**
  * Per-IP rate limiter for /auth/login to prevent brute-force attacks.
@@ -17,10 +17,16 @@ public class LoginRateLimiter {
 
     private static final int MAX_ATTEMPTS = 10;
     private static final Duration WINDOW = Duration.ofMinutes(15);
+    private static final int MAX_BUCKETS = 5000;
 
-    private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private final Map<String, Bucket> buckets = new java.util.LinkedHashMap<>(128, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Bucket> eldest) {
+            return size() > MAX_BUCKETS;
+        }
+    };
 
-    public boolean tryConsume(String ipAddress) {
+    public synchronized boolean tryConsume(String ipAddress) {
         Bucket bucket = buckets.computeIfAbsent(ipAddress, k ->
             Bucket.builder()
                 .addLimit(Bandwidth.classic(MAX_ATTEMPTS,

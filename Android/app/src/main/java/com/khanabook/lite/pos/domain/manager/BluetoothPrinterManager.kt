@@ -262,9 +262,17 @@ class BluetoothPrinterManager(private val context: Context) {
      * The blocking [BluetoothSocket.connect] runs OUTSIDE [printerMutex] so an offline
      * printer's timeout does not stall operations on other printers. A per-MAC
      * [socketMutex] prevents double-connecting the same device.
+     *
+     * Returns false immediately if Bluetooth runtime permissions have not been granted
+     * (Android 12+ requires BLUETOOTH_CONNECT at runtime). Callers should request
+     * permissions via the UI before invoking this method.
      */
     @Suppress("MissingPermission")
     suspend fun connect(device: BluetoothDevice): Boolean {
+        if (!hasRequiredPermissions()) {
+            Log.w(TAG, "Cannot connect to ${device.address}: missing BLUETOOTH_CONNECT permission")
+            return false
+        }
         ensureConnectionReceiverRegistered()
         val mac = device.address
 
