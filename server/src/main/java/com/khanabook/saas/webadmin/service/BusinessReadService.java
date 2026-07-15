@@ -38,6 +38,7 @@ public class BusinessReadService {
     private final ItemVariantRepository itemVariantRepository;
     private final CategoryRepository categoryRepository;
     private final BillRepository billRepository;
+    private final com.khanabook.saas.service.SecurityAuditService securityAuditService;
 
     @Transactional(readOnly = true)
     public BusinessDashboardResponse getDashboard(Long restaurantId) {
@@ -185,6 +186,14 @@ public class BusinessReadService {
         bill.setUpdatedAt(now);
         bill.setServerUpdatedAt(now);
         billRepository.save(bill);
+
+        // KB-006: Audit trail for all financial write-backs (refunds).
+        securityAuditService.record(
+                "MANUAL_REFUND",
+                "SUCCESS",
+                bill.getPublicToken() != null ? bill.getPublicToken().toString() : String.valueOf(billId),
+                refundAmount != null ? refundAmount.toPlainString() : "0"
+        );
     }
 
     private List<BusinessOrderListItemResponse> buildOrders(List<Bill> bills) {
