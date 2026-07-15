@@ -470,6 +470,15 @@ class BillingViewModel @Inject constructor(
             }
             _isLoading.value = true
             try {
+                // KB-007: Reuse the existing pending online bill if one already exists
+                // for this terminal. This prevents UPI drafts from accumulating across
+                // repeated sheet opens (each open used to create a brand new draft).
+                val existingPending = billRepository.getLatestPendingOnlineBill()
+                if (existingPending != null) {
+                    _isLoading.value = false
+                    return@withLock existingPending.id
+                }
+
                 // Cancel any stale DRAFT+PENDING bills from previous failed attempts before
                 // creating a new one — prevents duplicate drafts from accumulating.
                 billRepository.cancelStalePendingOnlineDrafts()
