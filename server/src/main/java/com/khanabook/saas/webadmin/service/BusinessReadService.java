@@ -232,7 +232,11 @@ public class BusinessReadService {
                 .orderId(bill.getId())
                 .orderCode(bill.getDailyOrderDisplay() != null && !bill.getDailyOrderDisplay().isBlank()
                         ? bill.getDailyOrderDisplay()
-                        : "INV" + bill.getLifetimeOrderId())
+                        : bill.getLifetimeOrderId() != null && bill.getLifetimeOrderId() > 0
+                                ? "INV" + bill.getLifetimeOrderId()
+                                : bill.getInvoiceNumber() != null && !bill.getInvoiceNumber().isBlank()
+                                        ? bill.getInvoiceNumber()
+                                        : "ORD-" + bill.getId())
                 .customerName(bill.getCustomerName())
                 .customerContact(bill.getCustomerWhatsapp())
                 .orderStatus(normalizeLabel(bill.getOrderStatus()))
