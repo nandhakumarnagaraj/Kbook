@@ -413,6 +413,11 @@ public class GenericSyncService {
 										user.setIsActive(existingUser.getIsActive() != null ? existingUser.getIsActive() : true);
 									}
 
+									// SECURITY: role is server-owned. A sync push can NEVER escalate
+									// or change a user's role. Only KBOOK_ADMIN via web-admin may do so.
+									// Always preserve the existing role regardless of what the client sends.
+									user.setRole(existingUser.getRole());
+
 									// Prevent duplicate email/phone numbers from crashing the batch sync
 										if (repository instanceof com.khanabook.saas.repository.UserRepository) {
 										com.khanabook.saas.repository.UserRepository userRepo = (com.khanabook.saas.repository.UserRepository) repository;
@@ -512,6 +517,12 @@ public class GenericSyncService {
 
 							// Relational ID Resolution for New Records
 						resolveRelationalIds(incomingRecord, idMaps);
+
+						// SECURITY: new users created via sync are always OWNER.
+						// Only KBOOK_ADMIN can create admin users (via web-admin, not sync).
+						if (incomingRecord instanceof User newUser && !isKbookAdmin) {
+							newUser.setRole(com.khanabook.saas.entity.UserRole.OWNER);
+						}
 
 						// Enforce parent-bill terminal ownership for child records
 						// (BillItem / BillPayment) so one terminal cannot attach lines to
