@@ -135,14 +135,28 @@ public class MasterSyncController {
 				stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, transactionalCrossDevice, pageable);
 		org.springframework.data.domain.Page<com.khanabook.saas.entity.Bill> billsPage =
 				billService.pullData(tenantId, lastSyncTimestamp, deviceId, effectiveTerminalId, transactionalCrossDevice, pageable);
-		java.util.List<com.khanabook.saas.entity.BillItem> billItems =
+		java.util.List<Long> pulledBillIds = billsPage.getContent().stream()
+				.map(com.khanabook.saas.entity.Bill::getId)
+				.filter(java.util.Objects::nonNull)
+				.toList();
+		java.util.List<com.khanabook.saas.entity.BillItem> terminalUpdatedBillItems =
 				effectiveTerminalId == null || effectiveTerminalId.isBlank()
 						? java.util.Collections.emptyList()
 						: billItemRepository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, effectiveTerminalId);
-		java.util.List<com.khanabook.saas.entity.BillPayment> billPayments =
+		java.util.List<com.khanabook.saas.entity.BillPayment> terminalUpdatedBillPayments =
 				effectiveTerminalId == null || effectiveTerminalId.isBlank()
 						? java.util.Collections.emptyList()
 						: billPaymentRepository.findUpdatedForTerminal(tenantId, lastSyncTimestamp, effectiveTerminalId);
+		java.util.List<com.khanabook.saas.entity.BillItem> pulledBillItems = pulledBillIds.isEmpty()
+				? java.util.Collections.emptyList()
+				: billItemRepository.findByRestaurantIdAndServerBillIdIn(tenantId, pulledBillIds);
+		java.util.List<com.khanabook.saas.entity.BillPayment> pulledBillPayments = pulledBillIds.isEmpty()
+				? java.util.Collections.emptyList()
+				: billPaymentRepository.findByRestaurantIdAndServerBillIdIn(tenantId, pulledBillIds);
+		java.util.List<com.khanabook.saas.entity.BillItem> billItems = mergeById(
+				terminalUpdatedBillItems, pulledBillItems);
+		java.util.List<com.khanabook.saas.entity.BillPayment> billPayments = mergeById(
+				terminalUpdatedBillPayments, pulledBillPayments);
 
 		response.setStockLogs(SyncMapper.mapList(stockLogsPage.getContent(), StockLogDTO.class));
 		response.setBills(SyncMapper.mapList(billsPage.getContent(), BillDTO.class));
@@ -172,5 +186,26 @@ public class MasterSyncController {
 				menuItemsCount, itemVariantsCount, stockLogsCount, billsCount, billItemsCount, billPaymentsCount);
 
 		return ResponseEntity.ok(response);
+	}
+
+	private static <T> java.util.List<T> mergeById(java.util.List<T> first, java.util.List<T> second) {
+		java.util.LinkedHashMap<Object, T> merged = new java.util.LinkedHashMap<>();
+		for (T item : first) {
+			merged.put(entityId(item), item);
+		}
+		for (T item : second) {
+			merged.putIfAbsent(entityId(item), item);
+		}
+		return new java.util.ArrayList<>(merged.values());
+	}
+
+	private static Object entityId(Object entity) {
+		if (entity instanceof com.khanabook.saas.entity.BillItem item && item.getId() != null) {
+			return item.getId();
+		}
+		if (entity instanceof com.khanabook.saas.entity.BillPayment payment && payment.getId() != null) {
+			return payment.getId();
+		}
+		return System.identityHashCode(entity);
 	}
 }

@@ -128,6 +128,22 @@ class MasterSyncTerminalIsolationTest extends BaseIntegrationTest {
 			""".formatted(localId, RESTAURANT, updatedAt, updatedAt, billLocalId);
 	}
 
+	private String billPaymentJson(long localId, long updatedAt, long billLocalId) {
+		return """
+			[{
+			  "localId": %d,
+			  "deviceId": "DEV_A",
+			  "restaurantId": %d,
+			  "updatedAt": %d,
+			  "createdAt": %d,
+			  "isDeleted": false,
+			  "billId": %d,
+			  "paymentMode": "cash",
+			  "amount": 100.00
+			}]
+			""".formatted(localId, RESTAURANT, updatedAt, updatedAt, billLocalId);
+	}
+
 	private void pushBill(String token, String json) throws Exception {
 		mockMvc.perform(post("/sync/bills/push")
 						.header("Authorization", "Bearer " + authToken())
@@ -146,11 +162,24 @@ class MasterSyncTerminalIsolationTest extends BaseIntegrationTest {
 				.andExpect(status().isOk());
 	}
 
+	private void pushPayment(String token, String json) throws Exception {
+		mockMvc.perform(post("/sync/bills/payments/push")
+						.header("Authorization", "Bearer " + authToken())
+						.header("X-Terminal-Token", token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(json))
+				.andExpect(status().isOk());
+	}
+
 	private JsonNode masterPull(String token, String queryTerminalId) throws Exception {
+		return masterPull(token, queryTerminalId, 0L);
+	}
+
+	private JsonNode masterPull(String token, String queryTerminalId, long lastSyncTimestamp) throws Exception {
 		var builder = get("/sync/master/pull")
 				.header("Authorization", "Bearer " + authToken())
 				.header("X-Terminal-Token", token)
-				.param("lastSyncTimestamp", "0")
+				.param("lastSyncTimestamp", Long.toString(lastSyncTimestamp))
 				.param("deviceId", "DEV_A")
 				.param("ignoreDeviceId", "false");
 		if (queryTerminalId != null) {
@@ -167,6 +196,15 @@ class MasterSyncTerminalIsolationTest extends BaseIntegrationTest {
 		for (JsonNode n : array) {
 			JsonNode pt = n.get("publicToken");
 			if (pt != null && pt.asText().equals(token)) return true;
+		}
+		return false;
+	}
+
+	private boolean containsPaymentLocalId(JsonNode array, long localId) {
+		if (array == null || !array.isArray()) return false;
+		for (JsonNode n : array) {
+			JsonNode id = n.get("localId");
+			if (id != null && id.asLong() == localId) return true;
 		}
 		return false;
 	}
@@ -230,6 +268,25 @@ class MasterSyncTerminalIsolationTest extends BaseIntegrationTest {
 		pushBill(tokenA, completedBillJson(1, 3000, token));
 		JsonNode pull = masterPull(tokenB, null);
 		assertThat(containsPublicToken(pull.get("bills"), token)).isTrue();
+	}
+
+	@Test
+	void completedHistoryPull_includesOlderPaymentsWhenParentBillUpdated() throws Exception {
+		String tokenA = terminalToken("A");
+		String tokenB = terminalToken("B");
+		pushBill(tokenA, draftBillJson(1, 1000));
+		String token = billRepository.findByRestaurantIdAndDeviceIdAndLocalId(RESTAURANT, "DEV_A", 1L)
+				.orElseThrow().getPublicToken().toString();
+		pushPayment(tokenA, billPaymentJson(77, 1500, 1));
+
+		long afterPaymentSyncCursor = System.currentTimeMillis();
+		Thread.sleep(5);
+
+		pushBill(tokenA, completedBillJson(1, 3000, token));
+		JsonNode pull = masterPull(tokenB, null, afterPaymentSyncCursor);
+
+		assertThat(containsPublicToken(pull.get("bills"), token)).isTrue();
+		assertThat(containsPaymentLocalId(pull.get("billPayments"), 77)).isTrue();
 	}
 
 	@Test
