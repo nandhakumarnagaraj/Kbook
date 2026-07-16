@@ -54,17 +54,17 @@ public class TerminalController {
 			return ResponseEntity.ok(toResponse(existing));
 		}
 
-		// Single-device reinstall recovery: if the restaurant has exactly one terminal
-		// and it hasn't been active in the last hour, reassign it to the new deviceId.
-		// This handles the common case where a small restaurant uninstalls/reinstalls
-		// the app on the same tablet — the device gets a new UUID but should keep its
-		// existing terminal series (A) instead of getting a new one (B).
+		// Single-device reinstall recovery: if the restaurant has exactly one terminal,
+		// reassign it to the new deviceId. A fresh install generates a new device UUID, so
+		// the activation lookup by deviceId misses. This handles the common case where a
+		// small restaurant uninstalls/reinstalls the app on the same tablet — it should keep
+		// its existing terminal series (A) and bill history instead of getting a new one (B).
+		// No staleness guard: an actively-used device would otherwise be forced onto a new
+		// terminal and lose access to its own bills.
 		List<RestaurantTerminal> allTerminals = terminalRepository.findByRestaurantIdOrderByIdAsc(restaurantId);
 		if (allTerminals.size() == 1) {
 			RestaurantTerminal sole = allTerminals.get(0);
-			long oneHourAgo = System.currentTimeMillis() - 3_600_000L;
-			boolean isStale = sole.getUpdatedAt() == null || sole.getUpdatedAt() < oneHourAgo;
-			if (isStale && (sole.getIsActive() == null || sole.getIsActive())) {
+			if (sole.getIsActive() == null || sole.getIsActive()) {
 				sole.setDeviceId(deviceId);
 				sole.setUpdatedAt(System.currentTimeMillis());
 				RestaurantTerminal saved = terminalRepository.save(sole);
