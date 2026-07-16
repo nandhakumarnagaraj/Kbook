@@ -21,8 +21,8 @@ services:
       CDN_BASE_PATH: /var/www/cdn.kbook.iadv.cloud/restaurants/
       CDN_TMP_PATH: /var/www/cdn.kbook.iadv.cloud/tmp/
       CDN_URL_PREFIX: https://kbook.iadv.cloud/cdn/
-      SPRINGDOC_API_DOCS_ENABLED: "true"
-      SPRINGDOC_SWAGGER_UI_ENABLED: "true"
+      SPRINGDOC_API_DOCS_ENABLED: "false"
+      SPRINGDOC_SWAGGER_UI_ENABLED: "false"
     command: ["sh", "-c", "sleep 3 && java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom -jar app.jar"]
     volumes:
       - /var/www/kbook.iadv.cloud/server/uploads:/app/uploads

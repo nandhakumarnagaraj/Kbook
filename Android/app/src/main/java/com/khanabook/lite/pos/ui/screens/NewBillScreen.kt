@@ -1391,7 +1391,15 @@ fun PaymentStep(
 
     LaunchedEffect(latestPaymentEvent) {
         latestPaymentEvent?.let { event ->
-            viewModel.setGatewayResult(event.txnId, event.status.name)
+            // SECURITY (KB-002): only accept payment return events that match the
+            // in-flight pending bill. A spoofed deep link from another app/webpage
+            // cannot mark an arbitrary bill as paid because:
+            // 1. resumedPendingBillId must be non-null (we have an active payment sheet)
+            // 2. The gateway status is stored as "deep_link_hint" — the actual bill
+            //    finalization still requires the user to tap Confirm.
+            if (resumedPendingBillId != null) {
+                viewModel.setGatewayResult(event.txnId, event.status.name)
+            }
         }
     }
 

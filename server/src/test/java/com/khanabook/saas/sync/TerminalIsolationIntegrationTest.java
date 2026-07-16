@@ -362,4 +362,84 @@ class TerminalIsolationIntegrationTest extends BaseIntegrationTest {
         assertThat(resp.get("failedLocalIds").size()).isEqualTo(0);
         assertThat(resp.get("successfulLocalIds").size()).isEqualTo(1);
     }
+
+    // ── Dine-in "settle draft" flow: complete the bill, then push its payment ──────
+    // Regression for the deadlock where the owning terminal's payment was rejected
+    // because completing the order had already marked the parent bill finalized.
+
+    @Test
+    void push_billPayment_fromOwningTerminal_acceptedAfterBillCompleted() throws Exception {
+        String auth = authToken();
+        String tokenA = terminalToken("A");
+
+        // 1. Terminal A creates the dine-in draft (already synced to the server).
+        mockMvc.perform(post("/sync/bills/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftBillJson(1, 1000, null)))
+                .andExpect(status().isOk());
+        UUID token = publicTokenOf(1);
+
+        // 2. Completing the payment pushes the bill update first -> bill becomes finalized.
+        mockMvc.perform(post("/sync/bills/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(completedBillJson(1, 3000, token.toString())))
+                .andExpect(status().isOk());
+
+        // 3. The payment for that now-finalized bill must still be accepted from its owner.
+        String body = mockMvc.perform(post("/sync/bills/payments/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(billPaymentJson(1, 5000, 1)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode resp = objectMapper.readTree(body);
+        assertThat(resp.get("failedLocalIds").size()).isEqualTo(0);
+        assertThat(resp.get("successfulLocalIds").size()).isEqualTo(1);
+
+        // The payment row is persisted against A's bill.
+        assertThat(billPaymentRepository.findByRestaurantIdAndServerBillIdInAndServerUpdatedAtGreaterThan(
+                RESTAURANT, List.of(serverBillIdOf(1L)), 0L)).isNotEmpty();
+    }
+
+    @Test
+    void push_billPayment_fromOtherTerminal_stillRejectedAfterBillCompleted() throws Exception {
+        String auth = authToken();
+        String tokenA = terminalToken("A");
+        String tokenB = terminalToken("B");
+
+        mockMvc.perform(post("/sync/bills/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(draftBillJson(1, 1000, null)))
+                .andExpect(status().isOk());
+        UUID token = publicTokenOf(1);
+
+        mockMvc.perform(post("/sync/bills/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(completedBillJson(1, 3000, token.toString())))
+                .andExpect(status().isOk());
+
+        // A DIFFERENT terminal must NOT be able to attach a payment to A's finalized bill.
+        String body = mockMvc.perform(post("/sync/bills/payments/push")
+                        .header("Authorization", "Bearer " + auth)
+                        .header("X-Terminal-Token", tokenB)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(billPaymentJson(1, 5000, 1)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode resp = objectMapper.readTree(body);
+        assertThat(resp.get("failedLocalIds").size()).isGreaterThanOrEqualTo(1);
+        assertThat(resp.get("successfulLocalIds").size()).isEqualTo(0);
+
+        assertThat(billPaymentRepository.findByRestaurantIdAndServerBillIdInAndServerUpdatedAtGreaterThan(
+                RESTAURANT, List.of(serverBillIdOf(1L)), 0L)).isEmpty();
+    }
 }

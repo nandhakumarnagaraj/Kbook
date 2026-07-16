@@ -960,8 +960,15 @@ BillEntity(
                         version = remoteBill.version ?: 0L,
                         lockStatus = remoteBill.lockStatus?.takeUnless { it.isBlank() } ?: "unlocked",
                         operationId = remoteBill.operationId,
-                        // Terminal ownership isolation: pulled bills are server-imported history
-                        recordOrigin = if (remoteBill.sourceChannel.isNotBlank() &&
+                        // Terminal ownership isolation: pulled bills are server-imported history,
+                        // EXCEPT a still-open draft that belongs to THIS terminal — keep it
+                        // local_created so it survives the push/pull round-trip in Active Orders
+                        // (mirrors the recordScope exception below).
+                        recordOrigin = if (remoteBill.orderStatus.lowercase() == "draft" &&
+                            remoteBill.paymentStatus.lowercase() == "pending" &&
+                            createdTerminalId == sessionManager.getTerminalId()) {
+                            "local_created"
+                        } else if (remoteBill.sourceChannel.isNotBlank() &&
                             remoteBill.sourceChannel.lowercase() in setOf("zomato", "swiggy", "own_website")) {
                             "marketplace_imported"
                         } else {
