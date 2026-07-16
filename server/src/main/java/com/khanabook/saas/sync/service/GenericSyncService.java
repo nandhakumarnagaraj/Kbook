@@ -688,10 +688,41 @@ public class GenericSyncService {
 		if (parent.isEmpty()) {
 			return true; // missing/foreign parent handled elsewhere
 		}
-		if (BillTerminalUtil.isFinalized(parent.get())) {
-			return false;
+		Bill parentBill = parent.get();
+		if (BillTerminalUtil.isFinalized(parentBill)) {
+			// A finalized bill is immutable history for OTHER terminals. But the owning
+			// terminal (or admin) must still be able to attach the payment/items that
+			// finalize its own order — e.g. dine-in "create draft → complete payment",
+			// where completing the order is what marks the bill completed/paid. Blocking
+			// this created a deadlock: the payment could never sync because its own
+			// completion had already marked the parent finalized.
+			return isOwnerTerminalOrAdmin(parentBill, trustedTerminalId, trustedDeviceId, isAdmin);
 		}
-		return BillTerminalUtil.isModifiableByTerminal(parent.get(), trustedTerminalId, trustedDeviceId, isAdmin);
+		return BillTerminalUtil.isModifiableByTerminal(parentBill, trustedTerminalId, trustedDeviceId, isAdmin);
+	}
+
+	/**
+	 * True when the caller's trusted terminal owns the bill (or is admin, or the bill has
+	 * no recorded owner / legacy client without terminal token). Used to permit the owning
+	 * terminal to attach the child record that finalizes its own order.
+	 */
+	private boolean isOwnerTerminalOrAdmin(Bill parent, String trustedTerminalId,
+			String trustedDeviceId, boolean isAdmin) {
+		if (isAdmin) {
+			return true;
+		}
+		String owner = BillTerminalUtil.ownerTerminalId(parent);
+		if (owner == null) {
+			return true; // pre-terminal bill with no owner recorded
+		}
+		if (BillTerminalUtil.LEGACY_UNRESOLVED.equals(owner)) {
+			return trustedDeviceId != null && trustedDeviceId.equals(parent.getCreatedDeviceId());
+		}
+		if (trustedTerminalId == null) {
+			// Legacy no-token client (only reachable when terminal.sync.strict=false).
+			return true;
+		}
+		return owner.equals(trustedTerminalId);
 	}
 
 	private String childParentToken(BaseSyncEntity record) {
