@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/sync/terminal")
@@ -31,6 +32,67 @@ public class TerminalController {
 	private final BillRepository billRepository;
 	private final JwtUtility jwtUtility;
 	private final SecurityAuditService securityAuditService;
+
+	/**
+	 * Returns all terminals for the authenticated restaurant.
+	 * Used after reinstall to show a terminal picker so the user can reclaim their terminal.
+	 */
+	@org.springframework.web.bind.annotation.GetMapping("/list")
+	public ResponseEntity<List<TerminalListItem>> listTerminals() {
+		Long restaurantId = TenantContext.getCurrentTenant();
+		if (restaurantId == null) return ResponseEntity.badRequest().build();
+		List<RestaurantTerminal> terminals = terminalRepository.findByRestaurantIdOrderByIdAsc(restaurantId);
+		List<TerminalListItem> items = terminals.stream()
+				.map(t -> new TerminalListItem(
+						t.getId() != null ? t.getId().toString() : t.getTerminalSeries(),
+						t.getTerminalName(),
+						t.getTerminalSeries(),
+						t.getIsActive(),
+						t.getUpdatedAt()))
+				.collect(Collectors.toList());
+		return ResponseEntity.ok(items);
+	}
+
+	/**
+	 * Reclaim an existing terminal after reinstall. The user picks their terminal from
+	 * the list and this endpoint reassigns the terminal's deviceId to the new installation.
+	 * Issues a fresh terminal token.
+	 */
+	@PostMapping("/reclaim")
+	@Transactional
+	public ResponseEntity<TerminalActivationResponse> reclaim(@RequestBody TerminalReclaimRequest request) {
+		Long restaurantId = TenantContext.getCurrentTenant();
+		if (restaurantId == null || request == null
+				|| request.terminalSeries() == null || request.terminalSeries().isBlank()
+				|| request.deviceId() == null || request.deviceId().isBlank()) {
+			return ResponseEntity.badRequest().build();
+		}
+		String series = normalizeSeries(request.terminalSeries());
+		RestaurantTerminal terminal = terminalRepository.findByRestaurantIdAndTerminalSeries(restaurantId, series)
+				.orElse(null);
+		if (terminal == null) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+		}
+		if (Boolean.FALSE.equals(terminal.getIsActive())) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Terminal is disabled");
+		}
+		// Reassign deviceId to this new installation
+		terminal.setDeviceId(request.deviceId().trim());
+		terminal.setUpdatedAt(System.currentTimeMillis());
+		RestaurantTerminal saved = terminalRepository.save(terminal);
+
+		securityAuditService.record("TERMINAL_RECLAIM", "SUCCESS",
+				saved.getTerminalSeries(), request.deviceId());
+
+		return ResponseEntity.ok(toResponse(saved));
+	}
+
+	public record TerminalListItem(String terminalId, String terminalName, String terminalSeries,
+			Boolean isActive, Long lastActiveAt) {
+	}
+
+	public record TerminalReclaimRequest(String terminalSeries, String deviceId) {
+	}
 
 	@PostMapping("/activate")
 	@Transactional

@@ -103,7 +103,26 @@ interface KhanaBookApi {
 
         @POST("api/v1/sync/terminal/activate")
         suspend fun activateTerminal(@Body request: TerminalActivationRequest): TerminalActivationResponse
+
+        @GET("api/v1/sync/terminal/list")
+        suspend fun listTerminals(): List<TerminalListItem>
+
+        @POST("api/v1/sync/terminal/reclaim")
+        suspend fun reclaimTerminal(@Body request: TerminalReclaimRequest): TerminalActivationResponse
 }
+
+data class TerminalListItem(
+    @SerializedName("terminalId") val terminalId: String,
+    @SerializedName("terminalName") val terminalName: String?,
+    @SerializedName("terminalSeries") val terminalSeries: String,
+    @SerializedName("isActive") val isActive: Boolean?,
+    @SerializedName("lastActiveAt") val lastActiveAt: Long?
+)
+
+data class TerminalReclaimRequest(
+    @SerializedName("terminalSeries") val terminalSeries: String,
+    @SerializedName("deviceId") val deviceId: String
+)
 
 data class TerminalActivationRequest(
     @SerializedName("deviceId") val deviceId: String
