@@ -127,8 +127,12 @@ public class SecurityConfig {
 						.requestMatchers("/actuator/**")
 						.hasRole("KBOOK_ADMIN")
 						.requestMatchers("/admin/**").hasRole("KBOOK_ADMIN")
+						// Terminal management: OWNER and SHOP_ADMIN can manage devices
+						.requestMatchers("/business/terminals/**", "/business/terminal-requests/**")
+						.hasAnyRole("OWNER", "SHOP_ADMIN")
+						// General business APIs: OWNER only (dashboard, orders, menu, staff, refunds)
 						.requestMatchers("/business/**").hasRole("OWNER")
-						.requestMatchers("/sync/**").hasAnyRole("OWNER", "KBOOK_ADMIN")
+						.requestMatchers("/sync/**").hasAnyRole("OWNER", "SHOP_ADMIN", "KBOOK_ADMIN")
 						.requestMatchers("/restaurants/logo").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.anyRequest().authenticated())
 
