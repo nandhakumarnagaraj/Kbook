@@ -13,6 +13,8 @@ public interface BillItemRepository extends SyncRepository<BillItem, Long> {
 
 	List<BillItem> findByServerBillIdAndIsDeletedFalseOrderById(Long serverBillId);
 
+	List<BillItem> findByRestaurantIdAndServerBillIdIn(Long restaurantId, List<Long> serverBillIds);
+
 	List<BillItem> findByRestaurantIdAndServerBillIdInAndServerUpdatedAtGreaterThan(Long restaurantId, List<Long> serverBillIds, Long serverUpdatedAt);
 
 	@Query("""

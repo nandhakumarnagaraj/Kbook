@@ -1,0 +1,23 @@
+name: Gated Tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  testcontainers-gate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run Testcontainers deploy gate
+        run: mvn -B --no-transfer-progress test -Dtest=MultiDeviceInvoiceSyncIntegrationTest,PostgresMigrationSmokeTest
