@@ -26,7 +26,8 @@ import lombok.Setter;
 @Table(name = "restaurant_terminal", uniqueConstraints = {
 		@UniqueConstraint(name = "ux_restaurant_terminal_series", columnNames = { "restaurant_id", "terminal_series" })
 }, indexes = {
-		@Index(name = "idx_restaurant_terminal_restaurant", columnList = "restaurant_id")
+		@Index(name = "idx_restaurant_terminal_restaurant", columnList = "restaurant_id"),
+		@Index(name = "idx_restaurant_terminal_status", columnList = "restaurant_id, status")
 })
 @Getter
 @Setter
@@ -50,6 +51,14 @@ public class RestaurantTerminal {
 
 	@Column(name = "is_active", nullable = false)
 	private Boolean isActive = true;
+
+	/** Lifecycle status: ACTIVE, INACTIVE, REVOKED, RECOVERY_REQUIRED, REPLACED */
+	@Column(name = "status", nullable = false)
+	private String status = "ACTIVE";
+
+	/** Incremented on recovery/deactivation to revoke all previously-issued terminal tokens. */
+	@Column(name = "credential_version", nullable = false)
+	private Long credentialVersion = 1L;
 
 	@Column(name = "created_at")
 	private Long createdAt;
