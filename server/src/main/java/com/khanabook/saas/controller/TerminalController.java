@@ -269,6 +269,8 @@ public class TerminalController {
 			// This covers: reinstall (token lost), or another user who learned the deviceId.
 			//
 			// Check if the most recent request for this device is APPROVED.
+			// If so, complete activation directly and return terminal credentials
+			// (the Android app expects TerminalActivationResponse, not a status message).
 			// Can't use findByRestaurantIdAndDeviceIdAndStatus because multiple
 			// APPROVED records exist when the app restarts before completing activation.
 			// Without this check, every app restart creates a new PENDING request and
@@ -277,9 +279,16 @@ public class TerminalController {
 					restaurantId, deviceId);
 			if (mostRecent.isPresent() && "APPROVED".equals(mostRecent.get().getStatus())) {
 				var approved = mostRecent.get();
-				return ResponseEntity.ok()
-						.body(new TerminalPendingResponse("APPROVED", approved.getId(),
-								"Approved — call complete-activation to obtain credentials"));
+				if (approved.getAssignedTerminalId() != null) {
+					var terminal = terminalRepository.findById(approved.getAssignedTerminalId())
+							.filter(t -> t.getRestaurantId().equals(restaurantId) && "ACTIVE".equals(t.getStatus()))
+							.orElse(null);
+					if (terminal != null && deviceId.equals(terminal.getDeviceId())) {
+						securityAuditService.record("TERMINAL_ACTIVATION_COMPLETED", "SUCCESS",
+								terminal.getTerminalSeries(), deviceId);
+						return ResponseEntity.ok(toResponse(terminal));
+					}
+				}
 			}
 
 			Long userId = TenantContext.getCurrentUserId();
