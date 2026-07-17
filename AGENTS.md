@@ -287,9 +287,24 @@ docker compose --env-file .env -f docker-compose.production.yml logs -n 100 serv
 ./ops/restore_postgres.sh <backup.sql.gz>   # rollback schema if a migration broke boot
 ```
 
+### Web-admin (Angular) deploy
+The frontend is served as static files by Apache from `/var/www/kbook.iadv.cloud/web`
+(NOT part of `deploy-production.sh`, which only handles backend + postgres).
+
+```bash
+cd /var/www/kbook.iadv.cloud
+git pull
+./deploy-web.sh                             # npm ci + ng build + backup docroot + rsync
+# override docroot: WEB_ROOT=/path/to/docroot ./deploy-web.sh
+# reuse existing build: SKIP_BUILD=1 ./deploy-web.sh
+```
+- Build output: `web-admin/dist/khanabook-web-admin/browser/` (Angular 18, `base href="/"`).
+- `deploy-web.sh` backs up the current docroot to `<docroot>.bak.<timestamp>` before syncing.
+- Frontend API base is hardcoded to `https://kbook.iadv.cloud/api/v1` in `environment.prod.ts`.
+
 ### Notes for gstack ship / land-and-deploy
 - Build runs inside the Dockerfile (`mvn package -Dmaven.test.skip=true`); no host Maven needed on VPS.
-- Always `git pull` then `deploy-production.sh`; verify health returns 200 before declaring success.
+- Always `git pull` then `deploy-production.sh` (backend) and/or `deploy-web.sh` (frontend); verify health returns 200 before declaring success.
 - If a Flyway migration runs, JAR rollback is NOT enough — restore the DB backup too.
 - Logs live in the `server` container stdout (docker compose logs), NOT in repo log files
   (`server-run.log` / `web-admin-run.log` in the repo are empty placeholders).
