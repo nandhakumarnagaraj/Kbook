@@ -89,8 +89,9 @@ class BillPullStrictModeTest extends BaseIntegrationTest {
 	}
 
 	@Test
-	void admin_pull_nullTerminal_strict_allowed() throws Exception {
-		pullBillsAndExpect(adminToken(), null, 200);
+	void admin_pull_nullTerminal_strict_rejected_no_sync_access() throws Exception {
+		// KBOOK_ADMIN no longer has access to /sync/bills/** — only /sync/master/pull
+		pullBillsAndExpect(adminToken(), null, 403);
 	}
 
 	@Test

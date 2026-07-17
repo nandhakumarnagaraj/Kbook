@@ -11,6 +11,15 @@ import java.util.Optional;
 public interface RestaurantProfileRepository extends SyncRepository<RestaurantProfile, Long> {
 	Optional<RestaurantProfile> findByRestaurantId(Long restaurantId);
 
+	/**
+	 * Pessimistic write-lock on the restaurant profile row. Used as a stable parent-row
+	 * lock for atomic terminal-count enforcement (5-terminal limit). Two concurrent
+	 * approval transactions both lock this row, serializing the count check.
+	 */
+	@org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+	@Query("SELECT p FROM RestaurantProfile p WHERE p.restaurantId = :restaurantId")
+	Optional<RestaurantProfile> findAndLockByRestaurantId(@org.springframework.data.repository.query.Param("restaurantId") Long restaurantId);
+
 	long countByIsDeletedFalse();
 
 	long countByIsDeletedFalseAndOwnWebsiteEnabledTrue();

@@ -102,11 +102,37 @@ interface KhanaBookApi {
         suspend fun uploadLogo(@Part file: MultipartBody.Part): LogoUploadResponse
 
         @POST("api/v1/sync/terminal/activate")
-        suspend fun activateTerminal(@Body request: TerminalActivationRequest): TerminalActivationResponse
+        suspend fun activateTerminal(@Body request: TerminalActivationRequest): retrofit2.Response<okhttp3.ResponseBody>
+
+        @GET("api/v1/sync/terminal/request-status/{requestId}")
+        suspend fun getTerminalRequestStatus(@retrofit2.http.Path("requestId") requestId: Long): retrofit2.Response<okhttp3.ResponseBody>
+
+        @POST("api/v1/sync/terminal/complete-activation")
+        suspend fun completeActivation(@Body request: CompleteActivationRequest): retrofit2.Response<okhttp3.ResponseBody>
+
+        @GET("api/v1/sync/terminal/list")
+        suspend fun listTerminals(): List<TerminalListItem>
+
+        @POST("api/v1/sync/terminal/reclaim")
+        suspend fun reclaimTerminal(@Body request: TerminalReclaimRequest): TerminalActivationResponse
 }
 
-data class TerminalActivationRequest(
+data class TerminalListItem(
+    @SerializedName("terminalId") val terminalId: String,
+    @SerializedName("terminalName") val terminalName: String?,
+    @SerializedName("terminalSeries") val terminalSeries: String,
+    @SerializedName("isActive") val isActive: Boolean?,
+    @SerializedName("lastActiveAt") val lastActiveAt: Long?
+)
+
+data class TerminalReclaimRequest(
+    @SerializedName("terminalSeries") val terminalSeries: String,
     @SerializedName("deviceId") val deviceId: String
+)
+
+data class TerminalActivationRequest(
+    @SerializedName("deviceId") val deviceId: String,
+    @SerializedName("deviceModel") val deviceModel: String? = null
 )
 
 data class TerminalActivationResponse(
@@ -117,4 +143,18 @@ data class TerminalActivationResponse(
     @SerializedName("registeredAt") val registeredAt: Long? = null,
     @SerializedName("lastVerifiedAt") val lastVerifiedAt: Long? = null,
     @SerializedName("terminalToken") val terminalToken: String? = null
+)
+
+/**
+ * Response when the server returns 202 Accepted (device pending admin approval).
+ */
+data class TerminalPendingResponse(
+    @SerializedName("status") val status: String,
+    @SerializedName("requestId") val requestId: Long?,
+    @SerializedName("message") val message: String?
+)
+
+data class CompleteActivationRequest(
+    @SerializedName("requestId") val requestId: Long,
+    @SerializedName("deviceId") val deviceId: String
 )

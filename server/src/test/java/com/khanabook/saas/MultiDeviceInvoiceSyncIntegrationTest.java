@@ -77,17 +77,21 @@ class MultiDeviceInvoiceSyncIntegrationTest {
     @Autowired private RestaurantTerminalRepository terminalRepository;
     @Autowired private RestaurantProfileRepository restaurantProfileRepository;
     @Autowired private TerminalController terminalController;
+    @Autowired private com.khanabook.saas.service.TerminalManagementService terminalManagementService;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setUp() {
         // Isolate each test: the container is shared across the class.
         jdbcTemplate.update("DELETE FROM bills WHERE restaurant_id = ?", TENANT);
+        jdbcTemplate.update("DELETE FROM device_registration_request WHERE restaurant_id = ?", TENANT);
         jdbcTemplate.update("DELETE FROM restaurant_terminal WHERE restaurant_id = ?", TENANT);
         restaurantProfileRepository.findByRestaurantId(TENANT)
                 .ifPresent(restaurantProfileRepository::delete);
         seedRestaurantProfile();
         TenantContext.setCurrentTenant(TENANT);
+        TenantContext.setCurrentRole("OWNER");
+        TenantContext.setCurrentUserId(1L);
     }
 
     @AfterEach
@@ -205,11 +209,30 @@ class MultiDeviceInvoiceSyncIntegrationTest {
 
     // ---- helpers ----
 
+    /**
+     * Activates a terminal following the production lifecycle:
+     * - First device for OWNER: auto-creates Terminal A (201).
+     * - Additional devices: submits a PENDING request (202), then approves it.
+     */
     private String activateTerminal(String deviceId) {
-        return terminalController
-                .activate(new TerminalController.TerminalActivationRequest(deviceId))
-                .getBody()
-                .terminalSeries();
+        var response = terminalController
+                .activate(new TerminalController.TerminalActivationRequest(deviceId, null));
+
+        if (response.getStatusCode().value() == 200 || response.getStatusCode().value() == 201) {
+            // Already activated or first-terminal auto-create
+            return ((TerminalController.TerminalActivationResponse) response.getBody())
+                    .terminalSeries();
+        }
+
+        if (response.getStatusCode().value() == 202) {
+            // Pending approval — approve it via the management service
+            var pending = (TerminalController.TerminalPendingResponse) response.getBody();
+            var result = terminalManagementService.approveRequest(
+                    pending.requestId(), TENANT, 1L, "OWNER");
+            return result.terminal().getTerminalSeries();
+        }
+
+        throw new IllegalStateException("Unexpected activation response: " + response.getStatusCode());
     }
 
     /**
