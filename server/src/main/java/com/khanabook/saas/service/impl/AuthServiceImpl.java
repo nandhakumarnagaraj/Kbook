@@ -1,5 +1,7 @@
 package com.khanabook.saas.service.impl;
 
+import com.khanabook.saas.utility.AppConstants;
+
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.khanabook.saas.controller.AuthController.AuthResponse;
 import com.khanabook.saas.controller.AuthController.LoginRequest;
@@ -82,9 +84,9 @@ public class AuthServiceImpl implements AuthService {
 		profile.setDeviceId(request.getDeviceId());
 		profile.setLocalId(1L);
 		profile.setShopName(request.getName() + "'s Restaurant");
-		String today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString();
+		String today = java.time.LocalDate.now(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).toString();
 		profile.setLastResetDate(today);
-		profile.setLastResetDateProper(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")));
+		profile.setLastResetDateProper(java.time.LocalDate.now(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)));
 		profile.setLogoVersion(0);
 		profile.setUpiQrVersion(0);
 		profile.setUpdatedAt(System.currentTimeMillis());
@@ -170,9 +172,9 @@ public class AuthServiceImpl implements AuthService {
 					profile.setDeviceId(request.getDeviceId());
 					profile.setLocalId(1L);
 					profile.setShopName((name != null ? name : "User") + "'s Restaurant");
-					String today = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString();
+					String today = java.time.LocalDate.now(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).toString();
 					profile.setLastResetDate(today);
-					profile.setLastResetDateProper(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")));
+					profile.setLastResetDateProper(java.time.LocalDate.now(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)));
 					profile.setLogoVersion(0);
 					profile.setUpiQrVersion(0);
 					profile.setVersion(0L);

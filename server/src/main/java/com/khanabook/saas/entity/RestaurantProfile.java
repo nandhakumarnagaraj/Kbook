@@ -1,5 +1,7 @@
 package com.khanabook.saas.entity;
 
+import com.khanabook.saas.utility.AppConstants;
+
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -155,7 +157,7 @@ public class RestaurantProfile extends BaseSyncEntity {
 	private String orderPaymentFlowMode = "pay_before_food";
 
 	@Column(name = "timezone")
-	private String timezone = "Asia/Kolkata";
+	private String timezone = AppConstants.DEFAULT_TIMEZONE;
 
 	@Column(name = "review_url")
 	private String reviewUrl;

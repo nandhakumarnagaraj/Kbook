@@ -1,5 +1,7 @@
 package com.khanabook.saas.service.impl;
 
+import com.khanabook.saas.utility.AppConstants;
+
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.service.RestaurantProfileService;
@@ -37,7 +39,7 @@ public class RestaurantProfileServiceImpl implements RestaurantProfileService {
 	@Transactional
 	public RestaurantProfileService.CounterResponse incrementAndGetCounters(Long tenantId) {
 		Long now = System.currentTimeMillis();
-		ZoneId zoneId = ZoneId.of("Asia/Kolkata");
+		ZoneId zoneId = ZoneId.of(AppConstants.DEFAULT_TIMEZONE);
 		String today = LocalDate.now(zoneId).toString();
 
 		int updated = repository.incrementCountersAtomic(tenantId, today, now);

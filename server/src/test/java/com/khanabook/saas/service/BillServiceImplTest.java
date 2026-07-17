@@ -78,6 +78,8 @@ class BillServiceImplTest {
         terminal.setIsActive(true);
         when(terminalRepository.findByRestaurantIdAndTerminalSeries(TENANT_ID, TERMINAL_SERIES))
                 .thenReturn(Optional.of(terminal));
+        when(terminalRepository.findAndLockByRestaurantIdAndTerminalSeries(TENANT_ID, TERMINAL_SERIES))
+                .thenReturn(Optional.of(terminal));
 
         TenantContext.setCurrentTenant(TENANT_ID);
         TenantContext.setCurrentTerminalId(TERMINAL_ID);
@@ -170,5 +172,61 @@ class BillServiceImplTest {
         Bill saved = billSaveCaptor.getValue().iterator().next();
         
         assertThat(saved.getLastResetDate()).startsWith("2023-12-31");
+    }
+
+    @Test
+    void pushData_allocatesInvoiceNumberWithinGst16CharLimit() {
+        Bill bill = new Bill();
+        bill.setLocalId(1L);
+        bill.setDeviceId(DEVICE);
+        bill.setRestaurantId(TENANT_ID);
+        bill.setCreatedAt(1704106800000L);
+        bill.setUpdatedAt(1704106800000L);
+        bill.setTerminalSeries(TERMINAL_SERIES);
+
+        RestaurantProfile profile = new RestaurantProfile();
+        profile.setTimezone("Asia/Kolkata");
+        when(profileRepository.findByRestaurantId(TENANT_ID)).thenReturn(Optional.of(profile));
+
+        when(billRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
+            .thenReturn(List.of());
+        when(billRepository.findMaxInvoiceSequence(any(), any(), any())).thenReturn(41L);
+        doAnswer(i -> i.getArgument(0)).when(billRepository).saveAll(any());
+
+        billService.pushData(TENANT_ID, List.of(bill));
+
+        verify(billRepository).saveAll(billSaveCaptor.capture());
+        Bill saved = billSaveCaptor.getValue().iterator().next();
+
+        assertThat(saved.getInvoiceNumber()).isEqualTo("A000042");
+        assertThat(saved.getInvoiceNumber().length()).isLessThanOrEqualTo(16);
+        assertThat(saved.getInvoiceSequence()).isEqualTo(42L);
+    }
+
+    @Test
+    void pushData_invoiceNumberNeverExceedsGstLimitAtHighSequence() {
+        Bill bill = new Bill();
+        bill.setLocalId(2L);
+        bill.setDeviceId(DEVICE);
+        bill.setRestaurantId(TENANT_ID);
+        bill.setCreatedAt(1704106800000L);
+        bill.setUpdatedAt(1704106800000L);
+        bill.setTerminalSeries(TERMINAL_SERIES);
+
+        RestaurantProfile profile = new RestaurantProfile();
+        profile.setTimezone("Asia/Kolkata");
+        when(profileRepository.findByRestaurantId(TENANT_ID)).thenReturn(Optional.of(profile));
+
+        when(billRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
+            .thenReturn(List.of());
+        when(billRepository.findMaxInvoiceSequence(any(), any(), any())).thenReturn(99999999L);
+        doAnswer(i -> i.getArgument(0)).when(billRepository).saveAll(any());
+
+        billService.pushData(TENANT_ID, List.of(bill));
+
+        verify(billRepository).saveAll(billSaveCaptor.capture());
+        Bill saved = billSaveCaptor.getValue().iterator().next();
+
+        assertThat(saved.getInvoiceNumber().length()).isLessThanOrEqualTo(16);
     }
 }

@@ -27,7 +27,8 @@ import com.google.gson.annotations.SerializedName
             Index(value = ["restaurant_id", "financial_year", "invoice_series", "invoice_sequence"]),
             Index(value = ["record_origin"], name = "index_bills_record_origin"),
             Index(value = ["record_scope"], name = "index_bills_record_scope"),
-            Index(value = ["created_terminal_id", "record_origin", "record_scope"], name = "index_bills_terminal_origin_scope")
+            Index(value = ["created_terminal_id", "record_origin", "record_scope"], name = "index_bills_terminal_origin_scope"),
+            Index(value = ["payment_attempt_status"], name = "index_bills_payment_attempt_status")
         ]
 )
 data class BillEntity(
@@ -142,7 +143,14 @@ data class BillEntity(
     // Scope: where this record may be used
     @SerializedName("recordScope")
     @ColumnInfo(name = "record_scope", defaultValue = "'terminal_operational'")
-    val recordScope: String = "terminal_operational" // terminal_operational, restaurant_history, restaurant_shared, server_only
+    val recordScope: String = "terminal_operational", // terminal_operational, restaurant_history, restaurant_shared, server_only
+
+    @SerializedName("paymentAttemptStatus")
+    @ColumnInfo(name = "payment_attempt_status", defaultValue = "'none'")
+    val paymentAttemptStatus: String = "none", // none, in_progress, succeeded, failed
+
+    @SerializedName("paymentAttemptStartedAt")
+    @ColumnInfo(name = "payment_attempt_started_at", defaultValue = "NULL") val paymentAttemptStartedAt: Long? = null
 )
 
 fun BillEntity.getInvoiceNumberDisplay(): String {

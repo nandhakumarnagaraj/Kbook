@@ -1,5 +1,7 @@
 package com.khanabook.saas.webadmin.service;
 
+import com.khanabook.saas.utility.AppConstants;
+
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.entity.MenuItem;
@@ -50,7 +52,7 @@ public class BusinessReadService {
         List<MenuItem> menuItems = getBusinessMenuItems(restaurantId);
         List<Bill> bills = getBusinessBills(restaurantId);
 
-        ZoneId zoneId = ZoneId.of("Asia/Kolkata");
+        ZoneId zoneId = ZoneId.of(AppConstants.DEFAULT_TIMEZONE);
         LocalDate today = LocalDate.now(zoneId);
         long startOfToday = today.atStartOfDay(zoneId).toInstant().toEpochMilli();
 

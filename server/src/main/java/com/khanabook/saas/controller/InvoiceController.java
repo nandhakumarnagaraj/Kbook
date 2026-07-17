@@ -1,5 +1,7 @@
 package com.khanabook.saas.controller;
 
+import com.khanabook.saas.utility.AppConstants;
+
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.BillItem;
 import com.khanabook.saas.entity.RestaurantProfile;
@@ -105,7 +107,7 @@ public class InvoiceController {
                 ? bill.getDailyOrderDisplay() : "";
         String orderCode = dailyOrderDisplay.isEmpty() ? "INV" + bill.getLifetimeOrderId() : dailyOrderDisplay;
         String date = bill.getCreatedAt() != null
-                ? Instant.ofEpochMilli(bill.getCreatedAt()).atZone(ZoneId.of("Asia/Kolkata")).format(DT_FMT)
+                ? Instant.ofEpochMilli(bill.getCreatedAt()).atZone(ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).format(DT_FMT)
                 : "";
         String customerName = blank(bill.getCustomerName());
         String customerPhone = blank(bill.getCustomerWhatsapp());
@@ -133,7 +135,7 @@ public class InvoiceController {
         boolean showWatermark = isPaid || ps.equals("paid") || ps.equals("completed") || ps.equals("success");
         String paidDate = "";
         if (bill.getPaidAt() != null && bill.getPaidAt() > 0) {
-            paidDate = Instant.ofEpochMilli(bill.getPaidAt()).atZone(ZoneId.of("Asia/Kolkata")).format(DT_FMT);
+            paidDate = Instant.ofEpochMilli(bill.getPaidAt()).atZone(ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).format(DT_FMT);
         }
 
         StringBuilder rows = new StringBuilder();
@@ -380,9 +382,9 @@ public class InvoiceController {
         String orderIdStr = dailyOrderDisplay.isEmpty() ? "ORD" + bill.getLifetimeOrderId() : dailyOrderDisplay;
         String invoiceNoStr = "INV" + bill.getLifetimeOrderId();
         String dateShort = bill.getCreatedAt() != null
-                ? Instant.ofEpochMilli(bill.getCreatedAt()).atZone(ZoneId.of("Asia/Kolkata")).format(DT_DATE_FMT) : "";
+                ? Instant.ofEpochMilli(bill.getCreatedAt()).atZone(ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).format(DT_DATE_FMT) : "";
         String timeStr = bill.getCreatedAt() != null
-                ? Instant.ofEpochMilli(bill.getCreatedAt()).atZone(ZoneId.of("Asia/Kolkata")).format(DT_TIME_FMT) : "";
+                ? Instant.ofEpochMilli(bill.getCreatedAt()).atZone(ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).format(DT_TIME_FMT) : "";
 
         h.append("<div class=\"meta\">")
          .append("<div class=\"meta-i\"><span class=\"l\">Order ID</span><span class=\"v\">").append(esc(orderIdStr)).append("</span></div>")

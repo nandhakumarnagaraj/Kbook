@@ -252,3 +252,30 @@ Every page follows this shell:
 - Web admin source: `web-admin/src/`
 - Android tests: `Android/app/src/test/` (unit), `Android/app/src/androidTest/` (instrumented)
 - Server tests: `server/src/test/java/com/khanabook/saas/`
+
+## gstack Routing
+
+gstack is installed globally for OpenCode under `C:\Users\nandh\.config\opencode\skills`.
+When the user asks for a gstack workflow, read and follow the matching skill from that
+directory before acting. Use the `gstack-*` skill names if the host exposes prefixed
+commands.
+
+Route common requests this way:
+- Product ideas, brainstorming, or "is this worth building" -> `gstack-office-hours`
+- Backlog-ready specs, issues, or tickets -> `gstack-spec`
+- Strategy and scope review -> `gstack-plan-ceo-review`
+- Architecture review -> `gstack-plan-eng-review`
+- Design plan review -> `gstack-plan-design-review`
+- Full planning review -> `gstack-autoplan`
+- Bugs, errors, or broken behavior -> `gstack-investigate`
+- Careful/safety mode before risky changes -> `gstack-careful` or `gstack-guard`
+- QA, browser checks, screenshots, or staging validation -> `gstack-qa` or `gstack-qa-only`
+- Code review or diff review -> `gstack-review`
+- Visual polish or UI audit -> `gstack-design-review`
+- Developer experience review -> `gstack-devex-review`
+- Security, OWASP, or threat-model review -> `gstack-cso`
+- Ship, push, PR, or deploy flow -> `gstack-ship` or `gstack-land-and-deploy`
+- Release documentation -> `gstack-document-release`
+- Retrospective or learnings -> `gstack-retro` or `gstack-learn`
+
+If no gstack workflow matches, follow the normal KhanaBook project guide above.

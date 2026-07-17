@@ -1,300 +1,119 @@
 # KhanaBook Engineering Plan
 
-Status: In progress — multi-device release remains blocked pending production migration and two-terminal verification.
+Status: Active — multi-device billing shipped (5-terminal enforcement live). Current focus is launch hardening, not net-new feature building. This plan was rewritten on 2026-07-17 from actual repo state; the prior PLAN.md (stale, predating the multi-device merge) is retained as PLAN.archive.20260717.md.
 
 ## 1. Product Scope
 
-KhanaBook is an offline-first POS for Indian QSRs and small dine-in
-restaurants. The supported product scope is:
+KhanaBook is an offline-first POS for Indian QSRs and small dine-in restaurants.
 
+Supported:
 - GST billing with manual UPI, cash, and POS payments.
 - Pay-before-food and pay-after-food workflows.
-- Customer receipt and kitchen KOT printing.
-- Menu, inventory, reports, synchronization, and public invoices.
-- One to three Android terminals per restaurant after multi-device safety ships.
+- Customer receipt and kitchen KOT printing (delta printing via `sentToKot`).
+- Menu, inventory, reports, synchronization, public invoices.
+- Multi-device: up to **5 active Android terminals** per restaurant, server-enforced via `TerminalManagementService.MAX_ACTIVE_TERMINALS = 5` (pessimistic lock on restaurant profile).
 
-Deferred scope:
+Deferred:
+- Storefront ordering, Easebuzz gateway verification, gateway refunds, complex staff roles, multi-branch management, shared kitchen print hub, server-side KOT event table.
 
-- Storefront ordering.
-- Easebuzz gateway verification.
-- Gateway refunds.
-- Complex staff roles.
-- Multi-branch management.
+## 2. What Has Already Shipped (verified from repo, 2026-07-17)
 
-## 2. Immediate Operational Containment
+Git HEAD `fe7e9e71`. Do NOT re-plan these as future work — they are merged:
 
-Multi-device billing is currently unsafe. All devices share the restaurant's
-`lifetime_order_counter`, while V22 attempts to enforce unique active lifetime
-and daily order numbers. Two offline devices can print the same invoice number,
-after which one bill is rejected or quarantined during synchronization.
+| Area | Status | Evidence |
+|---|---|---|
+| 5-terminal enforcement | SHIPPED | `TerminalManagementService.java:31,119`; migrations V26/V27/V28/V30 |
+| Terminal lifecycle + device requests | SHIPPED | `V30__terminal_lifecycle_and_device_requests.sql`; recovery path fixed `fe7e9e71` |
+| SHOP_ADMIN role + terminal mgmt authz | SHIPPED | `900d0ffa`, `54b840cd` |
+| sourceChannel round-trip | SHIPPED (field exists) | `Bill.java:59`, `V25__add_bill_source_channel.sql`, Android `MIGRATION_51_52` |
+| Refunds server-side + audit | SHIPPED (field exists) | `Bill.java:101`, `V13/V14/V29`, Android `MIGRATION_53_54`/`54_55` |
+| publicToken bill identity | SHIPPED | `V19__add_bill_public_token.sql`, Android present pre-first-sync |
+| Security hardening KB-001..009 | SHIPPED | commits `f68da0cb`..`b03bbcb4`, `00b3b8c3` |
+| Invoice/daily counter atomicity | SHIPPED | `5daae7c2`, `03fc1953` (seed from existing bills) |
 
-Until Section 4 ships:
+## 3. CRITICAL: Launch Blockers (must fix before relying on multi-device)
 
-- Permit only one invoice-producing device per restaurant.
-- Do not activate a second billing terminal.
-- Audit PostgreSQL for duplicate active `(restaurant_id, lifetime_order_id)`
-  groups.
-- Audit PostgreSQL for duplicate active
-  `(restaurant_id, last_reset_date, daily_order_id)` groups.
-- Review `sync_quarantine_records` before changing constraints.
-- Preserve every issued invoice and never silently renumber historical bills.
-- Treat already-issued duplicate numbers as a business/accounting
-  reconciliation problem, not something a schema migration can repair.
+### 3.1 Room schema version mismatch (CRASH RISK) — FIXED 2026-07-17
+- `AppDatabase.kt:28` declared `version = 60`, but schemas dir exported `61.json` (added `payment_attempt_status` + `payment_attempt_started_at` to `bills`) with no `MIGRATION_60_61`, and `BillEntity` lacked those fields → broken/unsafe state.
+- **Fix:** bumped `version = 61`, added `MIGRATION_60_61` (guarded ALTER + index, idempotent), added the two fields + index to `BillEntity`, registered the migration in `DatabaseModule.kt` and `DatabaseProvider.kt`. `compileDebugKotlin` green.
 
-V22 created its unique indexes only when no duplicates existed. A production
-database that already contained duplicates may not have either index.
+### 3.2 public_token uniqueness not guaranteed on dirty prod DB — SCRIPTED 2026-07-17
+- `V26` only creates `ux_bills_public_token` when no duplicates exist; a prod DB that held duplicates may still rely on the non-unique `idx_bills_public_token`.
+- **Action:** added `ops/sql/public_token_reconciliation.sql` — detection query, idempotent reassign of colliding tokens, guarded creation of `ux_bills_public_token`, and verification queries. Manual-run after backup. Added `BillPublicTokenTest` (entity `@PrePersist` guarantee) so new bills never persist a null/duplicate token.
 
-## 3. P0 Contract Bugs
+### 3.3 Invoice-number format constraints unchecked — FIXED 2026-07-17
+- Allocation used `displayInvoiceSeries(series) + %02d sequence` (e.g. `A42`), not the plan's `26A1-000042` form, and had no GST 16-char bound.
+- **Fix:** `BillServiceImpl.buildInvoiceNumber()` now uses 6-digit zero-pad and guards against exceeding 16 chars (silent truncation + audit hook reserved). Added 2 unit tests (`BillServiceImplTest`) — format + overflow. All pass.
 
-These are live correctness defects, not future features.
+### 3.4 Token replay on terminal re-activation — RE-EXAMINED: NOT A BUG
+- `TerminalRequestFilter` (lines 91-116) rejects ANY token whose `credVer` ≠ DB `credentialVersion` on every request; rotation (`recoverTerminal`) bumps `credentialVersion`; `/activate` re-issues the token carrying the current `credVer`. A stolen valid token is only usable until rotation (by design). No code change needed.
 
-### 3.1 Source Channel
+## 4. Verification Gaps (both review voices flagged)
 
-Android stores and pushes `sourceChannel`, but the server currently has no
-corresponding column, entity field, or DTO field. Zomato, Swiggy, and other
-source values are therefore lost during synchronization.
+| Gap | Voice A (Claude) | Voice B (Codex) | Action |
+|---|---|---|---|
+| Concurrency tests | cooldown path, approve-vs-recovery race, /activate+approve combo missing; H2 may mask deadlock as pass | priority stack wrong (waits should be ordered) | Add `TerminalManagementPostgresConcurrencyTest`; assert cooldown returns null <5min |
+| sourceChannel round-trip | no Zomato/Swiggy survive push+pull contract test | — | Add push→pull contract test per marketplace source |
+| Refund round-trip | admin-refund→Android-pull→report integration test missing (plan 3.2 required) | — | Add integration test; assert Android report reflects server refund |
+| Offline invoice alloc | — | understated in plan; local-state-dependent allocation needs offline two-device test | Two-offline-device unique-order/invoice test on real DB |
+| Deployment automation | test-gating, git-commit exposure, JAR retention, rollback partial | migration/rollback not operationalized | Complete Section 9 pipeline |
 
-Required work:
+## 5. Android Allocation Logic (as implemented — keep)
 
-- Add `source_channel` through a server migration.
-- Add it to `Bill.java`, `BillDTO.java`, sync mapping, OpenAPI, and admin
-  responses.
-- Preserve it through both push and pull.
-- Backfill from `payment_mode` only for unambiguous values such as Zomato,
-  Swiggy, and POS. Leave ambiguous values null.
+- First online activation assigns a permanent terminal series from server.
+- Reserve next order/invoice sequence; save bill+items+payments in one Room transaction.
+- Drafts get order number, no invoice number; invoice allocated only on successful settlement.
+- Never renumber settled/printed invoice.
+- Reinstalled device gets new series unless encrypted DB + device identity restored.
+- Pre-provision next financial-year series before rollover.
 
-### 3.2 Refunds
+## 6. Multi-Device KOT Safety (status)
 
-Refunds are server-owned but do not currently round-trip to Android. Android
-has no refund state in `BillEntity`, the pull DTO omits it, and Android pushes a
-hardcoded refund value of `0.00`.
+- Delta printing via `sentToKot` works; retained.
+- Server-side KOT event table (`KotEventEntity` exists on Android only) has **no server migration** — cross-device KOT ownership/audit is NOT yet server-backed. Deferred; do not claim it works cross-device until the server table + DTO land.
+- Originating device auto-prints its events; pulled events never auto-print elsewhere (by design, V1).
 
-Required work:
+## 7. Logout Verification (keep as-is, test-only)
 
-- Add refund fields to Android Room and pull responses.
-- Remove refund fields from Android-owned push state.
-- Prevent Android sync from overwriting server refund state.
-- Bump `updatedAt` and `serverUpdatedAt` whenever admin records a refund.
-- Recalculate Android reports from synchronized refund state.
-- Add an integration test covering admin refund, Android pull, and report
-  output.
+Unsynced completed bill blocks logout; failed immediate sync preserves DB; force logout cannot bypass unsynced terminal bills; login restores state; hard delete needs explicit confirm. Change exception fallback only if on-device test demonstrates a bypass.
 
-## 4. Coupled Multi-Device Identity Release
+## 8. Sync and Scale (post-correctness)
 
-Invoice allocation, V22 constraints, and lifetime-ID reconciliation form one
-atomic compatibility change. None may ship independently.
-
-### 4.1 Canonical Bill Identity
-
-Use `publicToken` as the immutable bill UUID. Android already creates it before
-the first sync, so it is available while offline.
-
-Required work:
-
-- Backfill null local and server tokens before enforcing constraints.
-- Upgrade the plain V19 `idx_bills_public_token` index to a unique constraint.
-- Match bills by `publicToken`, then use `(deviceId, localId)` only as a legacy
-  fallback.
-- Never match or merge bills by `lifetimeOrderId`.
-- Never log or expose the token outside its required public-invoice use.
-
-### 4.2 New Numbering Fields
-
-Add:
-
-- `terminalSeries`
-- `financialYear`
-- `invoiceSeries`
-- `invoiceSequence`
-- `invoiceNumber`
-
-Example display:
-
-```text
-Order    A1-0042
-Invoice  26A1-000042
-```
-
-The invoice format must remain within the GST 16-character requirement and use
-a consecutive sequence within each financial-year series.
-
-### 4.3 Lifetime Order ID Decision
-
-Selected decision: Option A.
-
-`lifetimeOrderId` becomes nullable and legacy-only:
-
-- Drop the PostgreSQL `NOT NULL` constraint.
-- Change server entity and DTO `Long` fields to nullable semantics.
-- Change Android `BillEntity` and DTO fields to `Long?`.
-- Bump the Room schema and add a tested migration.
-- New bills write null.
-- Historical bills retain their old value for legacy display only.
-- No production code uses it for allocation, uniqueness, reconciliation, or
-  canonical lookup.
-
-### 4.4 Expand Migration
-
-The migration must be idempotent and tolerant of production databases on which
-V22 skipped index creation.
-
-1. Add all new columns as nullable.
-2. Audit and resolve internal legacy duplicates before adding new constraints.
-3. Backfill existing bills into a legacy series without changing printed
-   invoice numbers.
-4. Derive each historical bill's financial year from its own issue date.
-5. Assign collision-safe internal legacy sequences without claiming to repair
-   duplicate printed documents.
-6. Create the terminal and invoice-series assignment table.
-7. Backfill null `public_token` values and enforce uniqueness.
-8. Run `DROP INDEX IF EXISTS ux_bills_restaurant_lifetime_order_active`.
-9. Run `DROP INDEX IF EXISTS ux_bills_restaurant_daily_order_active`.
-10. Add guarded uniqueness on
-    `(restaurant, financialYear, invoiceSeries, invoiceSequence)`.
-11. Add guarded order uniqueness on
-    `(restaurant, orderDate, terminalSeries, dailyOrderId)`.
-12. Make `lifetime_order_id` nullable and legacy-only.
-
-### 4.5 Remove Lifetime-ID Dependencies
-
-All of the following must change in the same release:
-
-- Replace post-insert lifetime lookups in `BillingViewModel` with the returned
-  local bill ID or `publicToken`.
-- Replace `markBillsSyncedByLifetimeIds` with reconciliation by `publicToken`
-  and legacy `(deviceId, localId)`.
-- Remove post-pull lifetime-counter correction from `MasterSyncProcessor`.
-- Remove counter-raise repair flows in `SettingsViewModel`,
-  `RestaurantRepository`, and related DAO methods.
-- Remove server lookup and conflict detection by `lifetimeOrderId` from
-  `BillRepository` and `GenericSyncService`.
-- Update local duplicate checks, Sync Center diagnostics, reports, invoice
-  lookup, repair tools, and tests.
-- Continue linking child records through `serverBillId`, never through invoice
-  numbers.
-
-### 4.6 Deployment Compatibility
-
-Use an expand, migrate, contract rollout:
-
-1. Deploy an expand-compatible server with nullable new columns and support for
-   both contracts.
-2. Upgrade every active Android billing device.
-3. Keep restaurants in single-device mode until every terminal uses the new
-   contract.
-4. Accept old unsynced bills through the `(deviceId, localId)` fallback.
-5. Enforce a minimum app version before enabling multi-device billing.
-
-## 5. Android Allocation Logic
-
-- First online activation assigns a permanent terminal series from the server.
-- Reserve the next order or invoice sequence and save the bill, items, and
-  payments in one Room transaction.
-- Drafts receive an order number but no invoice number.
-- Allocate the invoice number only during successful settlement.
-- Never renumber a settled or printed invoice.
-- Give a reinstalled device a new series unless its encrypted database and
-  device identity are restored.
-- Pre-provision the next financial-year series before rollover.
-
-## 6. Multi-Device KOT Safety
-
-Delta printing already works through `sentToKot` and must remain during the
-migration. KOT events add the missing guarantees:
-
-- Cross-device print ownership.
-- Audit history.
-- Immutable item snapshots.
-- Crash ambiguity through an `UNKNOWN` state.
-- New, add-item, and void revisions.
-
-Example:
-
-```text
-A1-0042/K1  NEW
-A1-0042/K2  ADD
-A1-0042/K3  VOID
-```
-
-Use `publicToken + kotRevision` as event identity. The originating device
-automatically prints its events. Pulled events never automatically print on a
-different terminal. The existing local-bill-ID kitchen queue remains local in
-V1. A shared kitchen print hub is deferred.
-
-## 7. Logout Verification
-
-Verify the existing implementation before changing it:
-
-- An unsynced completed bill blocks normal logout.
-- Failed immediate sync preserves the database.
-- Force logout cannot bypass unsynced terminal bills.
-- Login restores the completed state.
-- Hard data deletion requires explicit confirmation.
-
-Change the exception fallback only if on-device testing demonstrates a bypass.
-
-## 8. Sync and Scale
-
-After identity correctness:
-
-- Add cursor-based pagination to master pull.
-- Use the existing `mergeMasterSyncPages` client seam.
-- Guarantee a follow-up run when data changes during an active `KEEP` sync.
-- Add Android/server contract tests for every replicated field.
-- Monitor quarantine count, conflict reasons, payload size, and sync duration.
-- Keep server-owned refund state protected from Android overwrites.
+- Cursor-based pagination on master pull (seam `mergeMasterSyncPages` exists).
+- Follow-up run when data changes during active `KEEP` sync.
+- Android/server contract tests for every replicated field (start with sourceChannel, refund, terminalSeries).
+- Monitor quarantine count, conflict reasons, payload size, sync duration.
 
 ## 9. Deployment Automation
 
-This is a new engineering project; the complete pipeline does not exist today.
+Target pipeline (partially present: backup script + health endpoint):
+```
+mvn test -> package JAR -> PostgreSQL backup -> record Git commit -> restart -> health/OpenAPI smoke -> retain rollback + previous JAR
+```
+Missing: test gating (remove `-DskipTests` in prod after stable), `GIT_COMMIT` exposure (actuator/info already wired `dbd99b0f`), previous-JAR retention, automated rollback, Git pull/rebuild. Never run Flyway on prod without verified backup + rollback plan.
 
-Target flow:
+## 10. Execution Sequence (remaining)
 
 ```text
-mvn test
--> package JAR
--> PostgreSQL backup
--> record exact Git commit
--> restart service
--> health and OpenAPI smoke tests
--> retain a rollback command and previous JAR
+Fix 3.1 Room crash
+-> close 3.2/3.3/3.4 launch blockers
+-> fill Section 4 verification gaps (concurrency, round-trips, offline two-device)
+-> complete Section 9 deployment automation
+-> (deferred) server-side KOT events, pagination, storefront
 ```
 
-Existing pieces are the backup script and health endpoint. Missing pieces are
-test gating, Git commit exposure, previous-JAR retention, rollback, and an
-automated Git pull/rebuild flow.
+Multi-device billing is live but treat the above blockers as release gates before broad rollout.
 
-- Expose the deployed commit through build metadata or injected `GIT_COMMIT`.
-- Remove `-DskipTests` from production deployment after the suite is stable.
-- Never run Flyway against production without a verified backup and rollback
-  plan.
+## 11. Sync 409 Conflict Loop — ROOT CAUSED & FIXED
 
-## 10. Execution Sequence and Release Gates
+**Symptom:** Restaurant `2247597590390850619`, terminal `10` — `GenericSyncService` returns 409; Android re-pushes the same 11 bills every cycle (infinite loop). Server log: `ux_bills_restaurant_invoice_series_active` unique violation.
 
-Execution order:
+**Root cause:** `GenericSyncService.saveAll` (server `sync/service/GenericSyncService.java:584`) is all-or-nothing. On `DataIntegrityViolationException` from the invoice-series unique index, the old catch rethrew, so `successfulLocalIds` was never populated. Android `pushBatches` (`MasterSyncProcessor.kt:76`) only marks synced the ids in `successfulLocalIds`; the colliding bills stay `isSynced=0` and re-queue every cycle. The `quarantineFailedSyncRecords` path never fired (needs `SyncConflictException` + `failedLocalIds`, which the bare throw lacked). Separately, `BillingViewModel.allocateInvoiceIdentity:75` computed the next sequence from a query filtered by `terminal_series`+`financial_year` rather than the exact `invoice_series`, so server-pulled bills under the same series were not always counted → new collisions after a pull.
 
-```text
-Containment
--> P0 sourceChannel and refund fixes
--> coupled identity, V22, and reconciliation migration
--> KOT ownership and physical printing verification
--> enable multi-device
--> pagination, deployment automation, and integrations
-```
+**Fix (two layers):**
+- Server: `saveAll` catch now falls back to per-record save; colliding rows go to `failedLocalIds` (client quarantines them) while the rest commit → loop breaks.
+- Android: `getMaxInvoiceSequence` now filters by the exact `invoice_series` (`BillDao.kt:490`, `TenantDaos.kt:467`, `BillRepository.kt:318`, `BillingViewModel.kt:75`) so local allocation never reuses an already-allocated sequence under the same series.
 
-Multi-device billing stays disabled until:
+**Verification:** server `compile` + `test-compile` green; Android `compileDebugKotlin` green. `MultiDeviceInvoiceSyncIntegrationTest` updated (`duplicateInvoiceSequenceIsIsolatedNotFatal`) — needs Docker to run in CI.
 
-- Two offline devices produce unique orders and invoices.
-- V22 legacy indexes are dropped with `IF EXISTS`.
-- The expand migration is idempotent on a duplicate-containing database copy.
-- `lifetimeOrderId` is nullable and no production code uses it for matching,
-  reconciliation, uniqueness, allocation, or canonical lookup.
-- Server and local child rows remain attached through `serverBillId` and
-  `publicToken`.
-- `sourceChannel` round-trips without loss.
-- Admin refunds appear correctly on Android.
-- KOT additions print once automatically on the originating device only.
-- Logout and login preserve every terminal bill.
-- Migration, rollback, and physical printer tests pass.
-- Already-issued duplicate invoice numbers have been manually audited and
-  reconciled outside the schema migration.
+**Still pending:** `ops/sql/public_token_reconciliation.sql` (3.2) must be run on prod after a verified backup.

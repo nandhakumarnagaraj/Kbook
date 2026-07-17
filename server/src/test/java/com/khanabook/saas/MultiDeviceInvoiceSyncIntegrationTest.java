@@ -185,8 +185,8 @@ class MultiDeviceInvoiceSyncIntegrationTest {
     // ---- Adversarial: the V26 unique index must reject a real collision ----
 
     @Test
-    @DisplayName("A duplicate (series, financial year, sequence) is rejected by the V26 unique index")
-    void duplicateInvoiceSequenceIsRejected() {
+    @DisplayName("A duplicate (series, financial year, sequence) is routed to failedLocalIds WITHOUT failing the whole batch")
+    void duplicateInvoiceSequenceIsIsolatedNotFatal() {
         // Sanity: the guarded index actually got created on this database.
         Integer indexCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM pg_indexes WHERE indexname = 'ux_bills_restaurant_invoice_series_active'",
@@ -196,12 +196,36 @@ class MultiDeviceInvoiceSyncIntegrationTest {
         String seriesA = activateTerminal(DEVICE_A);
         billService.pushData(TENANT, List.of(deviceBill(DEVICE_A, 1L, seriesA, 1L))); // 26A1-000001
 
-        // A different device/local row forced to claim the SAME invoice identity, with a
-        // distinct daily order id so only the invoice-series index can reject it.
+        // Batch of 2: one collides on the V26 invoice-series unique index, the other
+        // is perfectly valid. Before the per-record fallback, saveAll() rolled back
+        // the ENTIRE batch and threw DataIntegrityViolationException, which made the
+        // Android client re-push the same doomed bills forever (infinite 409 loop).
+        // Now only the collider must fail; the valid bill must commit.
         Bill collider = deviceBill(DEVICE_B, 1L, seriesA, 1L); // same 26A1-000001
         collider.setDailyOrderId(999L);
+        Bill valid = deviceBill(DEVICE_B, 2L, seriesA, 50L); // 26A1-000050, free
 
-        assertThatThrownBy(() -> billService.pushData(TENANT, List.of(collider)))
+        PushSyncResponse push = billService.pushData(TENANT, List.of(collider, valid));
+
+        // The whole push no longer throws; only the colliding localId is rejected.
+        assertThat(push.getFailedLocalIds()).containsExactly(collider.getLocalId());
+        assertThat(push.getSuccessfulLocalIds()).containsExactly(valid.getLocalId());
+
+        // The valid bill committed; the colliding one did not.
+        List<Bill> persisted = billRepository.findByRestaurantIdAndIsDeletedFalse(TENANT);
+        assertThat(persisted).hasSize(2);
+        assertThat(persisted).anySatisfy(b -> assertThat(b.getInvoiceNumber()).isEqualTo("26A1-000050"));
+    }
+
+    @Test
+    @DisplayName("A direct saveAll collision still surfaces as DataIntegrityViolationException at the repository layer")
+    void duplicateInvoiceSequenceRepositoryStillRejects() {
+        String seriesA = activateTerminal(DEVICE_A);
+        billService.pushData(TENANT, List.of(deviceBill(DEVICE_A, 1L, seriesA, 1L))); // 26A1-000001
+
+        Bill collider = deviceBill(DEVICE_B, 1L, seriesA, 1L);
+        collider.setDailyOrderId(999L);
+        assertThatThrownBy(() -> billRepository.save(collider))
                 .isInstanceOf(DataIntegrityViolationException.class);
 
         assertThat(billRepository.findByRestaurantIdAndIsDeletedFalse(TENANT)).hasSize(1);

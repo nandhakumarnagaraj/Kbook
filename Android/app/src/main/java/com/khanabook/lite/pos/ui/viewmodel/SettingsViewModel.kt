@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.net.Uri
@@ -193,7 +195,7 @@ class SettingsViewModel @Inject constructor(
                     return@launch
                 }
 
-                val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+                val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
                 val today = java.time.LocalDate.now(zoneId)
                 val startTime = today.atStartOfDay(zoneId).toInstant().toEpochMilli()
                 val endTime = today.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1

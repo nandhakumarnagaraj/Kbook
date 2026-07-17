@@ -1,5 +1,7 @@
 package com.khanabook.saas.sync.service;
 
+import com.khanabook.saas.utility.AppConstants;
+
 import com.khanabook.saas.entity.*;
 import com.khanabook.saas.repository.*;
 import com.khanabook.saas.entity.AuthProvider;
@@ -29,7 +31,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GenericSyncService {
 	private static final Logger log = LoggerFactory.getLogger(GenericSyncService.class);
-	private static final String DEFAULT_TIMEZONE = "Asia/Kolkata";
 
 	private final BillRepository billRepository;
 	private final MenuItemRepository menuItemRepository;
@@ -464,7 +465,7 @@ public class GenericSyncService {
 
 							if (incomingRecord instanceof RestaurantProfile incomingProfile
 									&& existingRecord instanceof RestaurantProfile existingProfile) {
-								incomingProfile.setTimezone(DEFAULT_TIMEZONE);
+								incomingProfile.setTimezone(AppConstants.DEFAULT_TIMEZONE);
 								mergeCounterState(incomingProfile, existingProfile);
 							}
 
@@ -541,7 +542,7 @@ public class GenericSyncService {
 						}
 
 						if (incomingRecord instanceof RestaurantProfile incomingProfile) {
-							incomingProfile.setTimezone(DEFAULT_TIMEZONE);
+							incomingProfile.setTimezone(AppConstants.DEFAULT_TIMEZONE);
 						}
 
 						// Refund default: new bills have no admin refund yet; default to ZERO
@@ -587,12 +588,19 @@ public class GenericSyncService {
 					}
 				}
 			} catch (DataIntegrityViolationException e) {
-				// Log the specific constraint violation details so we can identify
-				// which field or constraint is causing the 409 during bill push.
+				// saveAll is all-or-nothing: a single unique-constraint collision
+				// (e.g. ux_bills_restaurant_invoice_series_active) rolls back the
+				// ENTIRE batch. If we rethrow here the whole push fails and the
+				// colliding bills stay isSynced=false on the device, which makes
+				// Android re-push them on every cycle -> infinite 409 loop.
+				// Instead, fall back to per-record saves so the non-colliding
+				// records commit and only the genuinely conflicting localIds
+				// land in failedLocalIds (which the client quarantines after
+				// conflict recovery). This breaks the loop and preserves data.
 				String causeMessage = e.getMostSpecificCause() != null
 						? e.getMostSpecificCause().getMessage()
 						: e.getMessage();
-				log.error("DataIntegrityViolationException during saveAll for {} records. Cause: {}",
+				log.error("DataIntegrityViolationException during saveAll for {} records; falling back to per-record save. Cause: {}",
 						allRecordsToSave.size(), causeMessage);
 				for (T record : allRecordsToSave) {
 					if (record instanceof Bill bill) {
@@ -605,8 +613,23 @@ public class GenericSyncService {
 								bill.getOrderStatus(), bill.getLastResetDate(),
 								bill.getCreatedBy());
 					}
+					try {
+						T saved = repository.save(record);
+						if (saved.getLocalId() != null && saved.getId() != null) {
+							localToServerIdMap.put(saved.getLocalId(), saved.getId());
+						}
+					} catch (DataIntegrityViolationException recordEx) {
+						String recordCause = recordEx.getMostSpecificCause() != null
+								? recordEx.getMostSpecificCause().getMessage()
+								: recordEx.getMessage();
+						log.warn("Per-record save failed localId={} cause={}",
+								record.getLocalId(), recordCause);
+						if (record.getLocalId() != null) {
+							failedLocalIds.add(record.getLocalId());
+							failedReasons.put(record.getLocalId(), sanitizeFailureReason(recordCause));
+						}
+					}
 				}
-				throw e;
 			}
 		}
 

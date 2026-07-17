@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -65,12 +67,12 @@ class BillingViewModel @Inject constructor(
         val terminalSeries = sessionManager.getTerminalSeries()?.trim()?.takeIf { it.isNotEmpty() }
             ?: return null
         val displaySeries = terminalSeries.first().uppercaseChar().toString()
-        val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+        val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
         val date = java.time.Instant.ofEpochMilli(createdAt).atZone(zoneId).toLocalDate()
         val financialYearStart = if (date.monthValue >= 4) date.year else date.year - 1
         val financialYear = (financialYearStart % 100).toString().padStart(2, '0')
         val invoiceSeries = "$financialYear$terminalSeries"
-        val sequence = billRepository.getMaxInvoiceSequence(terminalSeries, financialYear) + 1L
+        val sequence = billRepository.getMaxInvoiceSequence(invoiceSeries) + 1L
         return InvoiceIdentity(
             financialYear = financialYear,
             invoiceSeries = invoiceSeries,
@@ -508,7 +510,7 @@ if (!validatePaymentLimits(finalSummary.total, _paymentMode.value, _partAmount1.
                 // UPI QR generation and payment capture must work offline. Reserve the bill
                 // number locally, then let background sync reconcile with the server later.
                 val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(terminalIdentity.terminalId)
-                val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+                val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
                 val today = java.time.LocalDate.now(zoneId).toString()
                 val terminalSeries = terminalIdentity.terminalSeries
                 val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter, terminalSeries)
@@ -755,7 +757,7 @@ val finalSummary = _billSummary.value
                 }
 
                 val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(terminalIdentity.terminalId)
-                val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+                val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
                 val today = java.time.LocalDate.now(zoneId).toString()
                 val terminalSeries = terminalIdentity.terminalSeries
                 val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter, terminalSeries)
@@ -981,7 +983,7 @@ val finalSummary = _billSummary.value
 val finalSummary = _billSummary.value
 
                 val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(terminalIdentity.terminalId)
-                val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+                val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
                 val today = java.time.LocalDate.now(zoneId).toString()
                 val terminalSeries = terminalIdentity.terminalSeries
                 val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter, terminalSeries)

@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.domain.util
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
@@ -71,14 +73,14 @@ object DateUtils {
         return Date(timestamp)
     }
 
-    fun getStartOfDay(date: String, timezone: String = "Asia/Kolkata"): Long {
+    fun getStartOfDay(date: String, timezone: String = AppConstants.DEFAULT_TIMEZONE): Long {
         return java.time.LocalDate.parse(date)
             .atStartOfDay(java.time.ZoneId.of(timezone))
             .toInstant()
             .toEpochMilli()
     }
 
-    fun getEndOfDay(date: String, timezone: String = "Asia/Kolkata"): Long {
+    fun getEndOfDay(date: String, timezone: String = AppConstants.DEFAULT_TIMEZONE): Long {
         return java.time.LocalDate.parse(date)
             .atTime(java.time.LocalTime.MAX)
             .atZone(java.time.ZoneId.of(timezone))

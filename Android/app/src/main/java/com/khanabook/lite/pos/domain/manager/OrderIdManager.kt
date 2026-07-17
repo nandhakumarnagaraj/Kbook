@@ -1,11 +1,13 @@
 package com.khanabook.lite.pos.domain.manager
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 /**
  * Manages the generation and resetting of Daily and Lifetime Order IDs.
  */
 object OrderIdManager {
-    private const val INDIA_TIMEZONE = "Asia/Kolkata"
+    private const val INDIA_TIMEZONE = AppConstants.DEFAULT_TIMEZONE
     
     /**
      * Returns the formatted daily order ID (e.g., "01", "10", or "A1-01").

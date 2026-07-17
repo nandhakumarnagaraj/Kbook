@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.data.repository.BillRepository
@@ -139,7 +141,7 @@ class HomeViewModel @Inject constructor(
     val todayStats: StateFlow<HomeStats> = profileFlow
         .filterNotNull()
         .flatMapLatest { profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity ->
-            val zoneId = "Asia/Kolkata"
+            val zoneId = AppConstants.DEFAULT_TIMEZONE
             val today = java.time.LocalDate.now(java.time.ZoneId.of(zoneId)).toString()
             val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(today, zoneId)
             val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(today, zoneId)

@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.domain.manager
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import android.util.Log
 import androidx.room.withTransaction
 import com.khanabook.lite.pos.BuildConfig
@@ -139,7 +141,7 @@ class MasterSyncProcessor @Inject constructor(
         // Ensure terminal_daily_counter is seeded from existing local bills for today.
         // This prevents duplicate daily order numbers after APK update/migration when
         // the counter table is created fresh but the bills table already has today's orders.
-        val timezone = "Asia/Kolkata"
+        val timezone = AppConstants.DEFAULT_TIMEZONE
         val today = java.time.LocalDate.now(java.time.ZoneId.of(timezone)).toString()
         val startOfDay = java.time.LocalDate.parse(today)
             .atStartOfDay(java.time.ZoneId.of(timezone)).toInstant().toEpochMilli()
@@ -623,7 +625,7 @@ class MasterSyncProcessor @Inject constructor(
                         deviceId = remoteProfile.deviceId.orFallback("unknown_device"),
                         isSynced = true,
                         updatedAt = remoteProfile.updatedAt,
-                        timezone = "Asia/Kolkata",
+                        timezone = AppConstants.DEFAULT_TIMEZONE,
                         reviewUrl = remoteProfile.reviewUrl,
                         invoiceFooter = remoteProfile.invoiceFooter,
                         isDeleted = remoteProfile.isDeleted ?: false,
@@ -1164,7 +1166,7 @@ BillEntity(
         // profile's counters can be stale (lagging behind the latest bills).
         val currentProfile = if (restaurantId > 0) restaurantDao.getProfile(restaurantId) else restaurantDao.getProfile()
         if (currentProfile != null && masterData.bills.isNotEmpty()) {
-            val timezone = "Asia/Kolkata"
+            val timezone = AppConstants.DEFAULT_TIMEZONE
             val today = java.time.LocalDate.now(java.time.ZoneId.of(timezone)).toString()
             val maxDailyToday = masterData.bills
                 .filter { bill ->

@@ -315,11 +315,10 @@ class BillRepository(
         return billDao.getBillWithItemsByInvoiceNumber(invoiceNumber, sessionManager.getRestaurantId(), currentTerminalScope())
     }
 
-    suspend fun getMaxInvoiceSequence(terminalSeries: String, financialYear: String): Long {
+    suspend fun getMaxInvoiceSequence(invoiceSeries: String): Long {
         return billDao.getMaxInvoiceSequence(
             restaurantId = sessionManager.getRestaurantId(),
-            terminalSeries = terminalSeries,
-            financialYear = financialYear
+            invoiceSeries = invoiceSeries
         )
     }
 

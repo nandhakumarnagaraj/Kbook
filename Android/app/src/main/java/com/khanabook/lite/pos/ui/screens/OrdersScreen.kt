@@ -7,6 +7,8 @@
 
 package com.khanabook.lite.pos.ui.screens
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -610,9 +612,9 @@ fun OrderTableRow(
     }
     val isTodayBill = remember(row.salesDate) {
         val billDate = java.time.Instant.ofEpochMilli(row.salesDate)
-            .atZone(java.time.ZoneId.of("Asia/Kolkata"))
+            .atZone(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE))
             .toLocalDate()
-        billDate == java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"))
+        billDate == java.time.LocalDate.now(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE))
     }
     val canEdit = !isCancelled && isTodayBill
 

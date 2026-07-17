@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.data.local.entity
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import androidx.room.*
 import com.google.gson.annotations.SerializedName
 
@@ -115,8 +117,8 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "is_synced", defaultValue = "0") val isSynced: Boolean = false,
     @ColumnInfo(name = "updated_at", defaultValue = "0") val updatedAt: Long = System.currentTimeMillis()
 ,
-    @ColumnInfo(name = "timezone", defaultValue = "Asia/Kolkata")
-    val timezone: String? = "Asia/Kolkata",
+    @ColumnInfo(name = "timezone", defaultValue = AppConstants.DEFAULT_TIMEZONE)
+    val timezone: String? = AppConstants.DEFAULT_TIMEZONE,
 
     @ColumnInfo(name = "review_url")
     val reviewUrl: String? = null,

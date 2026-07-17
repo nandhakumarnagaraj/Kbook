@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.data.local.dao
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import androidx.room.*
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.TerminalDailyCounterEntity
@@ -39,7 +41,7 @@ interface RestaurantDao {
     suspend fun incrementAndGetCounters(restaurantId: Long): Pair<Long, Long> {
         val profile = getProfile(restaurantId) ?: throw Exception("Profile not found")
         
-        val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+        val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
         val today = java.time.LocalDate.now(zoneId).toString()
         val isNewDay = profile.lastResetDate != today
         val now = System.currentTimeMillis()
@@ -63,7 +65,7 @@ interface RestaurantDao {
     suspend fun incrementAndGetDailyCounter(restaurantId: Long): Long {
         val profile = getProfile(restaurantId) ?: throw Exception("Profile not found")
 
-        val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+        val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
         val today = java.time.LocalDate.now(zoneId).toString()
         val isNewDay = profile.lastResetDate != today
         val now = System.currentTimeMillis()
@@ -88,7 +90,7 @@ interface RestaurantDao {
     @Transaction
     suspend fun updateCounters(restaurantId: Long, daily: Long, lifetime: Long) {
         val current = getProfile(restaurantId) ?: return
-        val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+        val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
         val today = java.time.LocalDate.now(zoneId).toString()
         saveProfile(current.copy(
             dailyOrderCounter = daily,
@@ -165,7 +167,7 @@ interface RestaurantDao {
 
     @Transaction
     suspend fun incrementAndGetTerminalDailyCounter(restaurantId: Long, terminalId: String): Long {
-        val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+        val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
         val today = java.time.LocalDate.now(zoneId).toString()
         val now = System.currentTimeMillis()
 

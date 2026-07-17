@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.data.repository
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import androidx.work.WorkManager
 import com.khanabook.lite.pos.data.local.dao.RestaurantDao
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
@@ -121,13 +123,13 @@ class RestaurantRepository(
 
     suspend fun getTerminalDailyCounter(terminalId: String, date: String? = null): TerminalDailyCounterEntity? {
         val restaurantId = sessionManager.getRestaurantId()
-        val targetDate = date ?: java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString()
+        val targetDate = date ?: java.time.LocalDate.now(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).toString()
         return restaurantDao.getTerminalDailyCounter(restaurantId, terminalId, targetDate)
     }
 
     suspend fun raiseTerminalDailyCounterAtLeast(terminalId: String, counter: Long, date: String? = null) {
         val restaurantId = sessionManager.getRestaurantId()
-        val targetDate = date ?: java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString()
+        val targetDate = date ?: java.time.LocalDate.now(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).toString()
         restaurantDao.raiseTerminalDailyCounterAtLeast(restaurantId, terminalId, targetDate, counter, System.currentTimeMillis())
         triggerBackgroundSync()
     }

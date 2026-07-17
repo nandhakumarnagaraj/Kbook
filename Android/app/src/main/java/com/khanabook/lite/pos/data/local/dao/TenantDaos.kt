@@ -466,9 +466,8 @@ class TenantBillDao @Inject constructor(
     ): Int = dao.countActiveBillsByDailyIdAndDate(restaurantId, dailyOrderId, startTime, endTime, terminalSeries)
     override suspend fun getMaxInvoiceSequence(
         restaurantId: Long,
-        terminalSeries: String,
-        financialYear: String
-    ): Long = dao.getMaxInvoiceSequence(restaurantId, terminalSeries, financialYear)
+        invoiceSeries: String
+    ): Long = dao.getMaxInvoiceSequence(restaurantId, invoiceSeries)
     override suspend fun getBillsByIds(billIds: List<Long>, restaurantId: Long): List<BillEntity> =
         dao.getBillsByIds(billIds, restaurantId)
     override suspend fun getBillItemsByIds(ids: List<Long>, restaurantId: Long): List<BillItemEntity> =

@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.data.remote.dto
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import com.khanabook.lite.pos.data.local.entity.*
 
 /**
@@ -185,7 +187,7 @@ fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
     fssaiNumber      = fssaiNumber.orEmpty(),
     country          = country.orEmpty(),
     currency         = currency.orEmpty(),
-    timezone         = "Asia/Kolkata",
+    timezone         = AppConstants.DEFAULT_TIMEZONE,
     gstEnabled       = gstEnabled,
     gstin            = gstin.orEmpty(),
     isTaxInclusive   = isTaxInclusive,

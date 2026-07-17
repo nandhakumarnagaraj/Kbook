@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.data.local.dao
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import androidx.room.*
 import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.local.entity.BillItemEntity
@@ -335,7 +337,7 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
             items: List<BillItemEntity>,
             payments: List<BillPaymentEntity>
     ): Long {
-        val zoneId = java.time.ZoneId.of("Asia/Kolkata")
+        val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
         val orderDate = java.time.Instant.ofEpochMilli(bill.createdAt).atZone(zoneId).toLocalDate()
         val startTime = orderDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
         val endTime = orderDate.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
@@ -484,16 +486,20 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
     """)
     suspend fun getMaxDailyOrderIdForTerminalToday(restaurantId: Long, terminalId: String, startTime: Long, endTime: Long): Long
 
-    // Highest invoice sequence allocated within a terminal's financial-year series (see PLAN §4.2/§5).
+    // Highest invoice sequence allocated within a terminal's invoice series.
+    // Filtered by invoice_series (the exact unique-key component, e.g. "25A") rather
+    // than the looser terminal_series + financial_year pair, so a server-pulled bill
+    // under the same series is always counted and local allocation never reuses an
+    // already-allocated sequence (prevents ux_bills_restaurant_invoice_series_active
+    // unique violations / 409 push loops after a pull).
     @Query("""
         SELECT COALESCE(MAX(invoice_sequence), 0)
         FROM bills
         WHERE restaurant_id = :restaurantId
-          AND terminal_series = :terminalSeries
-          AND financial_year = :financialYear
+          AND invoice_series = :invoiceSeries
           AND is_deleted = 0
     """)
-    suspend fun getMaxInvoiceSequence(restaurantId: Long, terminalSeries: String, financialYear: String): Long
+    suspend fun getMaxInvoiceSequence(restaurantId: Long, invoiceSeries: String): Long
 
     // ── Sync reconciliation ────────────────────────────────────────────────────
 

@@ -1,5 +1,7 @@
 package com.khanabook.saas.service.impl;
 
+import com.khanabook.saas.utility.AppConstants;
+
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
@@ -43,7 +45,7 @@ public class BillServiceImpl implements BillService {
 	public PushSyncResponse pushData(Long tenantId, List<Bill> payload) {
 		ZoneId zoneId = restaurantProfileRepository.findByRestaurantId(tenantId)
 				.map(profile -> resolveZoneId(profile.getTimezone()))
-				.orElse(ZoneId.of("Asia/Kolkata"));
+				.orElse(ZoneId.of(AppConstants.DEFAULT_TIMEZONE));
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zoneId);
 
 		for (Bill bill : payload) {
@@ -117,10 +119,12 @@ public class BillServiceImpl implements BillService {
 			bill.setFinancialYear(financialYear);
 			bill.setInvoiceSeries(invoiceSeries);
 			bill.setInvoiceSequence(sequence);
-			bill.setInvoiceNumber(displayInvoiceSeries(terminalSeries) + String.format("%02d", sequence));
+			bill.setInvoiceNumber(buildInvoiceNumber(terminalSeries, sequence));
 			nextBySeries.put(key, sequence + 1L);
 		}
 	}
+
+	private static final int GST_INVOICE_NUMBER_MAX_LENGTH = 16;
 
 	private String displayInvoiceSeries(String terminalSeries) {
 		if (terminalSeries == null || terminalSeries.isBlank()) {
@@ -129,14 +133,22 @@ public class BillServiceImpl implements BillService {
 		return terminalSeries.trim().substring(0, 1).toUpperCase();
 	}
 
+	private String buildInvoiceNumber(String terminalSeries, long sequence) {
+		String candidate = displayInvoiceSeries(terminalSeries) + String.format("%06d", sequence);
+		if (candidate.length() > GST_INVOICE_NUMBER_MAX_LENGTH) {
+			return candidate.substring(0, GST_INVOICE_NUMBER_MAX_LENGTH);
+		}
+		return candidate;
+	}
+
 	private ZoneId resolveZoneId(String timezone) {
 		if (timezone == null || timezone.isBlank()) {
-			return ZoneId.of("Asia/Kolkata");
+			return ZoneId.of(AppConstants.DEFAULT_TIMEZONE);
 		}
 		try {
 			return ZoneId.of(timezone);
 		} catch (RuntimeException ignored) {
-			return ZoneId.of("Asia/Kolkata");
+			return ZoneId.of(AppConstants.DEFAULT_TIMEZONE);
 		}
 	}
 

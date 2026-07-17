@@ -25,7 +25,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         KotEventEntity::class,
                         TerminalDailyCounterEntity::class
                 ],
-        version = 60,
+        version = 61,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -832,6 +832,24 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_terminal_origin_scope` ON `bills` (`created_terminal_id`, `record_origin`, `record_scope`)")
 
                 android.util.Log.i("AppDatabase", "MIGRATION_59_60 complete: record_origin + record_scope added")
+            }
+        }
+
+        val MIGRATION_60_61 = object : Migration(60, 61) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add payment-attempt tracking columns to bills (used by payment deep-link flow).
+                if (!db.hasColumn("bills", "payment_attempt_status")) {
+                    db.execSQL(
+                        "ALTER TABLE `bills` ADD COLUMN `payment_attempt_status` TEXT NOT NULL DEFAULT 'none'"
+                    )
+                }
+                if (!db.hasColumn("bills", "payment_attempt_started_at")) {
+                    db.execSQL(
+                        "ALTER TABLE `bills` ADD COLUMN `payment_attempt_started_at` INTEGER DEFAULT NULL"
+                    )
+                }
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_bills_payment_attempt_status` ON `bills` (`payment_attempt_status`)")
+                android.util.Log.i("AppDatabase", "MIGRATION_60_61 complete: payment_attempt_status + payment_attempt_started_at added")
             }
         }
 

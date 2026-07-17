@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.data.repository
 
+import com.khanabook.lite.pos.domain.util.AppConstants
+
 import androidx.work.WorkManager
 import com.khanabook.lite.pos.data.local.DatabaseProvider
 import com.khanabook.lite.pos.data.local.dao.RestaurantDao
@@ -154,7 +156,7 @@ class UserRepository(
             if (isFirstLogin) {
                 sessionManager.saveLastSyncTimestamp(0L)
                 sessionManager.setInitialSyncCompleted(false)
-                val today = LocalDate.now(ZoneId.of("Asia/Kolkata")).toString()
+                val today = LocalDate.now(ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).toString()
                 if (restaurantDao.getProfile() == null) {
                     restaurantDao.saveProfile(
                         RestaurantProfileEntity(lastResetDate = today)
@@ -204,7 +206,7 @@ class UserRepository(
             if (isFirstLogin) {
                 sessionManager.saveLastSyncTimestamp(0L)
                 sessionManager.setInitialSyncCompleted(false)
-                val today = LocalDate.now(ZoneId.of("Asia/Kolkata")).toString()
+                val today = LocalDate.now(ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).toString()
                 if (restaurantDao.getProfile() == null) {
                     restaurantDao.saveProfile(
                         RestaurantProfileEntity(lastResetDate = today)
@@ -255,7 +257,7 @@ class UserRepository(
             if (isFirstLogin) {
                 sessionManager.saveLastSyncTimestamp(0L)
                 sessionManager.setInitialSyncCompleted(false)
-                val today = LocalDate.now(ZoneId.of("Asia/Kolkata")).toString()
+                val today = LocalDate.now(ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).toString()
                 if (restaurantDao.getProfile() == null) {
                     restaurantDao.saveProfile(
                         RestaurantProfileEntity(lastResetDate = today)
