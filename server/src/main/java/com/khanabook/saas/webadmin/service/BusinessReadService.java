@@ -17,6 +17,8 @@ import com.khanabook.saas.webadmin.dto.BusinessMarketplaceSetupResponse;
 import com.khanabook.saas.webadmin.dto.BusinessMenuListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessOrderListItemResponse;
 import com.khanabook.saas.webadmin.dto.BusinessStaffListItemResponse;
+import com.khanabook.saas.webadmin.dto.MarketplaceConfigRequest;
+import com.khanabook.saas.webadmin.dto.MarketplaceConfigResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -112,6 +114,80 @@ public class BusinessReadService {
                 .paymentManagedByAdmin(true)
                 .subMerchantStatus(null)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public MarketplaceConfigResponse getMarketplaceConfig(Long restaurantId, String zomatoWebhookUrl, String swiggyWebhookUrl) {
+        var profile = restaurantProfileRepository.findByRestaurantId(restaurantId)
+                .filter(existing -> !Boolean.TRUE.equals(existing.getIsDeleted()))
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        return new MarketplaceConfigResponse(
+                Boolean.TRUE.equals(profile.getZomatoEnabled()),
+                maskSecret(profile.getZomatoApiKey()),
+                profile.getZomatoOutletId(),
+                zomatoWebhookUrl,
+                Boolean.TRUE.equals(profile.getSwiggyEnabled()),
+                maskSecret(profile.getSwiggyApiKey()),
+                profile.getSwiggyStoreId(),
+                swiggyWebhookUrl
+        );
+    }
+
+    @Transactional
+    public MarketplaceConfigResponse saveMarketplaceConfig(
+            Long restaurantId,
+            MarketplaceConfigRequest request,
+            String zomatoWebhookUrl,
+            String swiggyWebhookUrl) {
+        var profile = restaurantProfileRepository.findByRestaurantId(restaurantId)
+                .filter(existing -> !Boolean.TRUE.equals(existing.getIsDeleted()))
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        if (request.zomatoApiKey() != null) {
+            profile.setZomatoApiKey(request.zomatoApiKey());
+        }
+        if (request.zomatoWebhookSecret() != null) {
+            profile.setZomatoWebhookSecret(request.zomatoWebhookSecret());
+        }
+        if (request.zomatoEnabled() != null) {
+            profile.setZomatoEnabled(request.zomatoEnabled());
+        }
+        if (request.swiggyApiKey() != null) {
+            profile.setSwiggyApiKey(request.swiggyApiKey());
+        }
+        if (request.swiggyWebhookSecret() != null) {
+            profile.setSwiggyWebhookSecret(request.swiggyWebhookSecret());
+        }
+        if (request.swiggyEnabled() != null) {
+            profile.setSwiggyEnabled(request.swiggyEnabled());
+        }
+
+        long now = System.currentTimeMillis();
+        profile.setUpdatedAt(now);
+        profile.setServerUpdatedAt(now);
+        restaurantProfileRepository.save(profile);
+
+        return new MarketplaceConfigResponse(
+                Boolean.TRUE.equals(profile.getZomatoEnabled()),
+                maskSecret(profile.getZomatoApiKey()),
+                profile.getZomatoOutletId(),
+                zomatoWebhookUrl,
+                Boolean.TRUE.equals(profile.getSwiggyEnabled()),
+                maskSecret(profile.getSwiggyApiKey()),
+                profile.getSwiggyStoreId(),
+                swiggyWebhookUrl
+        );
+    }
+
+    private String maskSecret(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        if (value.length() <= 8) {
+            return "••••••";
+        }
+        return value.substring(0, 4) + "••••••" + value.substring(value.length() - 4);
     }
 
     @Transactional(readOnly = true)

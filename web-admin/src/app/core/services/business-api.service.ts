@@ -33,11 +33,11 @@ export class BusinessApiService {
   }
 
   getMarketplaceConfig() {
-    return this.http.get<MarketplaceConfig>(`${API_BASE_URL}/marketplace/config`);
+    return this.http.get<MarketplaceConfig>(`${API_BASE_URL}/business/marketplace/config`);
   }
 
   saveMarketplaceConfig(payload: MarketplaceConfigRequest) {
-    return this.http.post<MarketplaceConfig>(`${API_BASE_URL}/marketplace/config`, payload);
+    return this.http.post<MarketplaceConfig>(`${API_BASE_URL}/business/marketplace/config`, payload);
   }
 
   getOrders() {

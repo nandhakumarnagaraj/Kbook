@@ -105,6 +105,27 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "swiggy_enabled")
 	private Boolean swiggyEnabled;
 
+	@Column(name = "zomato_outlet_id")
+	private String zomatoOutletId;
+
+	@Column(name = "swiggy_store_id")
+	private String swiggyStoreId;
+
+	@Column(name = "zomato_api_key")
+	private String zomatoApiKey;
+
+	@Column(name = "zomato_webhook_secret")
+	private String zomatoWebhookSecret;
+
+	@Column(name = "swiggy_api_key")
+	private String swiggyApiKey;
+
+	@Column(name = "swiggy_webhook_secret")
+	private String swiggyWebhookSecret;
+
+	@Column(name = "marketplace_notes", columnDefinition = "TEXT")
+	private String marketplaceNotes;
+
 	@Column(name = "own_website_enabled")
 	private Boolean ownWebsiteEnabled;
 
