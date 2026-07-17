@@ -51,8 +51,19 @@ Android/app/*.aab
 # Local dev CDN uploads (not for VCS)
 /cdn/
 
-# Claude Code local session data
+# Claude Code / AI agent session data
 .claude/
+.agents/
+.agnes/
+
+# Skill lock files
+skills-lock.json
+
+# Empty log placeholders
+server-run.log
+server-run.err
+web-admin-run.log
+web-admin-run.err
 
 # macOS
 .DS_Store
