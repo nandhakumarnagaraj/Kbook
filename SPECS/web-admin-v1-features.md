@@ -3,7 +3,14 @@
 **Status:** Draft (backlog-ready)
 **Author:** AI agent (gstack /spec)
 **Branch context:** `main` @ `4ad54d10`
-**Scope decision:** Server-ready frontend features + one server-side fix. Menu/Staff/Profile CRUD and Reports are explicitly deferred (need new server write APIs).
+**Scope decision:** This IS version 1. Per the agreed v1 feature set (manual UPI,
+pay-before/after, dine-in, takeaway, offline+online, OCR menu, dual printer,
+syncing, KOT, SMS/WhatsApp share, shop admin, device management, Swiggy/Zomato),
+the web-admin must cover: device management, OCR menu upload, Swiggy/Zomato
+marketplace config, and invoice view/share. All of these are server-ready today
+except the marketplace write endpoint (a small missing controller). Menu/Staff/
+Profile CRUD and Reports are NOT v1 — they are explicitly out of scope (they need
+new server write APIs and were never claimed as v1 web features).
 
 ---
 
@@ -110,25 +117,24 @@ marketplace page saves successfully (or is clearly read-only if deferred).
 
 ---
 
-## 3. Out of scope (deferred — needs new server write APIs)
+## 3. Out of scope for v1 (NOT deferred-then-built — excluded from v1)
 
-These are named so they are not forgotten, but this spec does NOT build them:
+These were never claimed as v1 web-admin features and require new server write
+APIs. They are excluded from this spec entirely; do not build them in v1.
 
 - **Menu CRUD** (create/edit categories, items, variants, price, availability) —
   server only has sync push/pull (`CategoryController`, `MenuItemController`,
-  `ItemVariantController`), no owner-facing REST write. Needs new
-  `/business/menu` write endpoints.
-- **Staff CRUD** (add/disable user, assign role) — same: sync-only today.
+  `ItemVariantController`), no owner-facing REST write endpoint. Menu is edited on
+  the Android app in v1, not the web.
+- **Staff CRUD** (add/disable user, assign role) — sync-only today; edited on Android.
 - **Shop profile editor** (name, address, GSTIN, FSSAI, UPI/QR, logo, tax, invoice
-  footer) — `RestaurantProfileController` is sync-only.
+  footer) — `RestaurantProfileController` is sync-only; edited on Android.
 - **Reports / analytics page** — no reports API server-side; Android `ReportGenerator`
-  is offline-only. Needs a new `/business/reports` endpoint (date-range, revenue,
-  tax, top items).
-- **SHOP_ADMIN route wiring** beyond terminals — currently no web route grants the
-  SHOP_ADMIN role; this spec grants it for terminals only and leaves the rest
-  OWNER-only for v1.
+  is offline-only. Reporting stays on Android for v1.
+- **Full SHOP_ADMIN route parity** — web grants SHOP_ADMIN access to terminals only
+  for v1; other pages stay OWNER-only.
 
-Recommend a follow-up spec per deferred item rather than bloating this one.
+If any of these become v1, open a separate spec rather than expanding this one.
 
 ---
 
