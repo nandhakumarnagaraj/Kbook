@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-limited-access-page',
@@ -13,8 +14,14 @@ import { Component } from '@angular/core';
           get device management only. Any other legacy user role should be migrated before
           signing in here.
         </p>
+        <p class="muted" style="margin-top: 1rem;">
+          Your account role is: <span class="chip">{{ session()?.role || 'unknown' }}</span>
+        </p>
       </section>
     </div>
   `
 })
-export class LimitedAccessPageComponent {}
+export class LimitedAccessPageComponent {
+  private readonly authService = inject(AuthService);
+  readonly session = this.authService.session;
+}
