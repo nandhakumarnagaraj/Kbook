@@ -132,7 +132,15 @@ public class SecurityConfig {
 						.hasAnyRole("OWNER", "SHOP_ADMIN")
 						// General business APIs: OWNER only (dashboard, orders, menu, staff, refunds)
 						.requestMatchers("/business/**").hasRole("OWNER")
-						.requestMatchers("/sync/**").hasAnyRole("OWNER", "SHOP_ADMIN", "KBOOK_ADMIN")
+						// Terminal onboarding: OWNER and SHOP_ADMIN (activate, list, reclaim, request-status, complete)
+						.requestMatchers("/sync/terminal/**")
+						.hasAnyRole("OWNER", "SHOP_ADMIN")
+						// Master pull: KBOOK_ADMIN may read for support (uses restaurantId override)
+						.requestMatchers(org.springframework.http.HttpMethod.GET, "/sync/master/pull")
+						.hasAnyRole("OWNER", "KBOOK_ADMIN")
+						// Operational sync (bills, menu, payments, master, profile, stock, users, categories):
+						// OWNER only. SHOP_ADMIN and KBOOK_ADMIN must not push or mutate restaurant data.
+						.requestMatchers("/sync/**").hasRole("OWNER")
 						.requestMatchers("/restaurants/logo").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.anyRequest().authenticated())
 

@@ -20,6 +20,9 @@ public interface DeviceRegistrationRequestRepository extends JpaRepository<Devic
 
     Optional<DeviceRegistrationRequest> findByRestaurantIdAndDeviceIdAndStatus(Long restaurantId, String deviceId, String status);
 
+    @Query("SELECT r FROM DeviceRegistrationRequest r WHERE r.restaurantId = :restaurantId AND r.deviceId = :deviceId ORDER BY r.requestedAt DESC LIMIT 1")
+    Optional<DeviceRegistrationRequest> findMostRecentByRestaurantIdAndDeviceId(@Param("restaurantId") Long restaurantId, @Param("deviceId") String deviceId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM DeviceRegistrationRequest r WHERE r.id = :id")
     Optional<DeviceRegistrationRequest> findByIdWithLock(@Param("id") Long id);

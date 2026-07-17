@@ -4,6 +4,7 @@ public class TenantContext {
 
 	private static final ThreadLocal<Long> currentTenant = new ThreadLocal<>();
 	private static final ThreadLocal<String> currentRole = new ThreadLocal<>();
+	private static final ThreadLocal<Long> currentUserId = new ThreadLocal<>();
 	private static final ThreadLocal<String> currentTerminalId = new ThreadLocal<>();
 	private static final ThreadLocal<String> currentTerminalSeries = new ThreadLocal<>();
 	private static final ThreadLocal<String> currentTerminalDevice = new ThreadLocal<>();
@@ -23,6 +24,14 @@ public class TenantContext {
 
 	public static String getCurrentRole() {
 		return currentRole.get();
+	}
+
+	public static void setCurrentUserId(Long userId) {
+		currentUserId.set(userId);
+	}
+
+	public static Long getCurrentUserId() {
+		return currentUserId.get();
 	}
 
 	public static void setCurrentTerminalId(String terminalId) {
@@ -60,6 +69,7 @@ public class TenantContext {
 	public static void clear() {
 		currentTenant.remove();
 		currentRole.remove();
+		currentUserId.remove();
 		currentTerminalId.remove();
 		currentTerminalSeries.remove();
 		currentTerminalDevice.remove();
