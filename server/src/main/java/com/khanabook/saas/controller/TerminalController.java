@@ -268,13 +268,15 @@ public class TerminalController {
 			// prove they are the original installation. Treat as recovery candidate.
 			// This covers: reinstall (token lost), or another user who learned the deviceId.
 			//
-			// First check if admin has already approved a request for this device.
+			// Check if the most recent request for this device is APPROVED.
+			// Can't use findByRestaurantIdAndDeviceIdAndStatus because multiple
+			// APPROVED records exist when the app restarts before completing activation.
 			// Without this check, every app restart creates a new PENDING request and
 			// the device stays stuck even after approval.
-			var approvedRequest = requestRepository.findByRestaurantIdAndDeviceIdAndStatus(
-					restaurantId, deviceId, "APPROVED");
-			if (approvedRequest.isPresent()) {
-				var approved = approvedRequest.get();
+			var mostRecent = requestRepository.findMostRecentByRestaurantIdAndDeviceId(
+					restaurantId, deviceId);
+			if (mostRecent.isPresent() && "APPROVED".equals(mostRecent.get().getStatus())) {
+				var approved = mostRecent.get();
 				return ResponseEntity.ok()
 						.body(new TerminalPendingResponse("APPROVED", approved.getId(),
 								"Approved — call complete-activation to obtain credentials"));
