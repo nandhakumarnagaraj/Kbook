@@ -143,10 +143,18 @@ public class TerminalManagementService {
         RestaurantTerminal terminal;
 
         if (isRecovery && request.getMatchedTerminalId() != null) {
-            // Recovery: rebind existing terminal (no new slot consumed)
+            // Recovery: rebind existing terminal
             terminal = terminalRepository.findById(request.getMatchedTerminalId())
                     .filter(t -> t.getRestaurantId().equals(restaurantId))
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Matched terminal not found"));
+
+            // If transitioning from non-ACTIVE to ACTIVE, enforce the limit
+            if (!"ACTIVE".equals(terminal.getStatus())) {
+                long activeCount = terminalRepository.countByRestaurantIdAndStatus(restaurantId, "ACTIVE");
+                if (activeCount >= MAX_ACTIVE_TERMINALS) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "TERMINAL_LIMIT_REACHED");
+                }
+            }
 
             terminal.setDeviceId(request.getDeviceId());
             terminal.setStatus("ACTIVE");

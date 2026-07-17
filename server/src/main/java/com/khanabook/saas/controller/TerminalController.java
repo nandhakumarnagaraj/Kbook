@@ -19,10 +19,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -208,6 +206,9 @@ public class TerminalController {
 					.body(new TerminalPendingResponse("DEVICE_MISMATCH", null,
 							"Terminal is bound to a different device"));
 		}
+
+		securityAuditService.record("TERMINAL_ACTIVATION_COMPLETED", "SUCCESS",
+				terminal.getTerminalSeries(), deviceId);
 
 		return ResponseEntity.ok(toResponse(terminal));
 	}
@@ -434,21 +435,10 @@ public class TerminalController {
 				terminal.getUpdatedAt(), token);
 	}
 
-	private String seriesForNumber(int number) {
-		if (number >= 1 && number <= 26) {
-			return String.valueOf((char) ('A' + number - 1));
-		}
-		return "T" + number;
-	}
-
 	private String normalizeSeries(String series) {
 		if (series == null) {
 			return "";
 		}
-		// Uppercase only. Do NOT fold a multi-character series such as the T-prefixed ones
-		// generated for the 27th+ terminal (e.g. "T27") down to a single letter — that would
-		// collapse every 27th+ terminal onto "T", make the activation dedup loop spin forever,
-		// and break terminal-to-terminal transfer lookups.
 		return series.trim().toUpperCase();
 	}
 }
