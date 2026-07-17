@@ -3,6 +3,7 @@ package com.khanabook.saas.controller;
 import com.khanabook.saas.entity.DeviceRegistrationRequest;
 import com.khanabook.saas.entity.RestaurantTerminal;
 import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.DeviceRegistrationRequestRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.SecurityAuditService;
@@ -31,6 +32,8 @@ class TerminalControllerTest {
     @Mock
     private BillRepository billRepository;
     @Mock
+    private DeviceRegistrationRequestRepository requestRepository;
+    @Mock
     private JwtUtility jwtUtility;
     @Mock
     private SecurityAuditService securityAuditService;
@@ -44,8 +47,8 @@ class TerminalControllerTest {
         TenantContext.setCurrentTenant(42L);
         TenantContext.setCurrentRole("OWNER");
         TenantContext.setCurrentUserId(1L);
-        controller = new TerminalController(terminalRepository, billRepository, jwtUtility,
-                securityAuditService, terminalManagementService);
+        controller = new TerminalController(terminalRepository, billRepository, requestRepository,
+                jwtUtility, securityAuditService, terminalManagementService);
     }
 
     @AfterEach
