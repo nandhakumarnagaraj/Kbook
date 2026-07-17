@@ -142,7 +142,8 @@ export class SidebarLayoutComponent {
       { label: 'Business Dashboard', path: '/business/dashboard' },
       { label: 'Orders', path: '/business/orders' },
       { label: 'Menu', path: '/business/menu' },
-      { label: 'Staff', path: '/business/staff' }
+      { label: 'Staff', path: '/business/staff' },
+      { label: 'Devices', path: '/business/terminals' }
     ];
     return links;
   });

@@ -7,6 +7,7 @@ import { BusinessDashboardPageComponent } from './pages/business-dashboard/busin
 import { OrdersPageComponent } from './pages/orders/orders-page.component';
 import { MenuPageComponent } from './pages/menu/menu-page.component';
 import { StaffPageComponent } from './pages/staff/staff-page.component';
+import { TerminalsPageComponent } from './pages/terminals/terminals-page.component';
 import { LimitedAccessPageComponent } from './pages/limited-access/limited-access-page.component';
 import { authGuard, roleGuard } from './core/auth/role.guard';
 
@@ -53,6 +54,12 @@ export const routes: Routes = [
         component: StaffPageComponent,
         canActivate: [roleGuard],
         data: { roles: ['OWNER'] }
+      },
+      {
+        path: 'business/terminals',
+        component: TerminalsPageComponent,
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER', 'SHOP_ADMIN'] }
       },
       { path: '', pathMatch: 'full', redirectTo: 'business/dashboard' }
     ]

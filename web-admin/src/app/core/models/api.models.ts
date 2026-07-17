@@ -131,3 +131,41 @@ export interface MarketplaceConfigRequest {
   swiggyEnabled?: boolean;
 }
 
+export interface BusinessTerminal {
+  id: number;
+  terminalSeries: string | null;
+  terminalName: string | null;
+  status: string;
+  isActive: boolean | null;
+  deviceId: string | null;
+  credentialVersion: number | null;
+  createdAt: number | null;
+  updatedAt: number | null;
+}
+
+export interface TerminalRequest {
+  id: number;
+  deviceId: string | null;
+  deviceModel: string | null;
+  deviceName: string | null;
+  requestType: string | null;
+  status: string;
+  matchedTerminalId: number | null;
+  requestedAt: number | null;
+  processedAt: number | null;
+  rejectionReason: string | null;
+  assignedTerminalId: number | null;
+}
+
+export interface RenameTerminalRequest {
+  name: string;
+}
+
+export interface RejectTerminalRequest {
+  reason?: string;
+}
+
+export interface RecoverTerminalRequest {
+  deviceId: string;
+}
+
