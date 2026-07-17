@@ -169,3 +169,23 @@ export interface RecoverTerminalRequest {
   deviceId: string;
 }
 
+export type MenuExtractionStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export interface MenuExtractionJob {
+  id: number;
+  restaurantId: number;
+  status: MenuExtractionStatus;
+  extractedDataJson: string | null;
+  createdAt: string | null;
+  completedAt: string | null;
+  errorMessage: string | null;
+}
+
+export interface MenuExtractionItem {
+  itemName: string;
+  halfPrice?: string;
+  fullPrice?: string;
+  price?: string;
+  description?: string;
+}
+

@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, NgZone } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
-import { BusinessMenuItem } from '../../core/models/api.models';
+import { BusinessMenuItem, MenuExtractionItem, MenuExtractionJob } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 
 @Component({
@@ -17,6 +17,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
         <div class="hero-meta">
           <span class="chip">Catalog Review</span>
           <span class="chip success">Stock Visibility</span>
+          <span class="chip">OCR Import</span>
         </div>
       </section>
 
@@ -136,11 +137,113 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
       <ng-template #loading>
         <div class="panel loading">{{ loaded ? 'No menu items match the current filters.' : 'Loading menu...' }}</div>
       </ng-template>
+
+      <section class="panel filter-panel ocr-panel">
+        <div class="toolbar">
+          <div>
+            <h3>Import Menu from File</h3>
+            <p class="muted">Upload a menu PDF or image (JPG/PNG, max 10 MB). We extract the item table and show a preview.</p>
+          </div>
+          <label class="primary-btn upload-btn">
+            {{ uploading() ? 'Uploading...' : 'Choose file' }}
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" (change)="onFileSelected($event)" [disabled]="uploading()" hidden />
+          </label>
+        </div>
+
+        <div class="loading" *ngIf="uploading()">Uploading menu file...</div>
+
+        <div class="ocr-progress" *ngIf="job() && (job()!.status === 'PENDING' || job()!.status === 'PROCESSING')">
+          <p class="muted">Extracting items... ({{ job()!.status }})</p>
+          <div class="spinner"></div>
+        </div>
+
+        <div class="ocr-error" *ngIf="job() && job()!.status === 'FAILED'">
+          <p class="error-text">Extraction failed: {{ job()!.errorMessage || 'Unknown error' }}</p>
+          <button class="ghost-btn" (click)="resetJob()">Try another file</button>
+        </div>
+
+        <div class="ocr-result" *ngIf="job() && job()!.status === 'COMPLETED'">
+          <div class="result-header">
+            <p class="muted">{{ extractedItems().length }} items extracted.</p>
+            <span class="chip">Preview only</span>
+          </div>
+          <p class="hint-text">
+            Review the extracted items below. Importing into the live menu happens on the
+            Android POS app (sync). This web preview is read-only for v1.
+          </p>
+
+          <div class="panel table-wrap extracted-table" *ngIf="extractedItems().length">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Half</th>
+                  <th>Full</th>
+                  <th>Price</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of extractedItems()">
+                  <td><strong>{{ row.itemName }}</strong></td>
+                  <td>{{ row.halfPrice || '-' }}</td>
+                  <td>{{ row.fullPrice || '-' }}</td>
+                  <td>{{ row.price || '-' }}</td>
+                  <td class="muted">{{ row.description || '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="modal-actions">
+            <button class="ghost-btn" (click)="resetJob()">Done</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="toast" *ngIf="toast()">{{ toast() }}</div>
     </div>
-  `
+  `,
+  styles: [`
+    .ocr-panel { margin-top: 1.25rem; }
+    .upload-btn { display: inline-flex; align-items: center; cursor: pointer; }
+    .primary-btn {
+      background: var(--brand, #b56a2d);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 0.6rem 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .primary-btn:disabled { opacity: 0.6; cursor: default; }
+    .spinner {
+      width: 26px; height: 26px;
+      border: 3px solid rgba(181, 106, 45, 0.25);
+      border-top-color: var(--brand, #b56a2d);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-top: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .ocr-result { margin-top: 0.5rem; }
+    .result-header { display: flex; align-items: center; gap: 0.75rem; }
+    .extracted-table { margin-top: 0.75rem; }
+    .hint-text { color: #6b7280; font-size: 0.85rem; margin: 0.4rem 0 0.75rem; }
+    .modal-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
+    .error-text { color: #b03030; font-size: 0.9rem; }
+    .toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: #24170f; color: #fff;
+      padding: 0.85rem 1.25rem; border-radius: 12px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+      z-index: 1100; max-width: 340px;
+    }
+  `]
 })
 export class MenuPageComponent {
   private readonly api = inject(BusinessApiService);
+  private readonly zone = inject(NgZone);
 
   items: BusinessMenuItem[] = [];
   loaded = false;
@@ -150,6 +253,13 @@ export class MenuPageComponent {
   availabilityFilter: 'ALL' | 'AVAILABLE' | 'UNAVAILABLE' = 'ALL';
   pageSize = 10;
   currentPage = 1;
+
+  readonly uploading = signal(false);
+  readonly job = signal<MenuExtractionJob | null>(null);
+  readonly extractedItems = signal<MenuExtractionItem[]>([]);
+  readonly toast = signal<string | null>(null);
+
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.loadMenu();
@@ -211,6 +321,96 @@ export class MenuPageComponent {
 
   goToPage(page: number): void {
     this.currentPage = Math.min(Math.max(1, page), this.totalPages);
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const allowed = /\.(pdf|jpe?g|png)$/i.test(file.name);
+    if (!allowed) {
+      this.notify('Unsupported file type. Use PDF, JPG, or PNG.');
+      input.value = '';
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      this.notify('File exceeds the 10 MB limit.');
+      input.value = '';
+      return;
+    }
+
+    this.uploading.set(true);
+    this.job.set(null);
+    this.extractedItems.set([]);
+
+    this.api.uploadMenuFile(file).subscribe({
+      next: (res) => {
+        this.uploading.set(false);
+        this.pollJob(res.jobId);
+      },
+      error: (err) => {
+        this.uploading.set(false);
+        const e = err?.error?.error;
+        this.notify(e || 'Upload failed. Please try again.');
+      }
+    });
+
+    input.value = '';
+  }
+
+  private pollJob(jobId: number): void {
+    this.stopPoll();
+    this.pollTimer = setInterval(() => {
+      this.api.getMenuJobStatus(jobId).subscribe({
+        next: (job) => {
+          this.zone.run(() => {
+            this.job.set(job);
+            if (job.status === 'COMPLETED') {
+              this.parseExtracted(job.extractedDataJson);
+              this.stopPoll();
+            } else if (job.status === 'FAILED') {
+              this.stopPoll();
+            }
+          });
+        },
+        error: () => {
+          this.zone.run(() => this.notify('Could not read extraction status.'));
+          this.stopPoll();
+        }
+      });
+    }, 2000);
+  }
+
+  private parseExtracted(json: string | null): void {
+    if (!json) {
+      this.extractedItems.set([]);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(json) as MenuExtractionItem[];
+      this.extractedItems.set(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      this.extractedItems.set([]);
+    }
+  }
+
+  resetJob(): void {
+    this.stopPoll();
+    this.job.set(null);
+    this.extractedItems.set([]);
+  }
+
+  private stopPoll(): void {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+  }
+
+  private notify(message: string): void {
+    this.toast.set(message);
+    setTimeout(() => this.toast.set(null), 2600);
   }
 
   formatCurrencyValue(value: number): string {

@@ -9,6 +9,7 @@ import {
   BusinessTerminal,
   MarketplaceConfig,
   MarketplaceConfigRequest,
+  MenuExtractionJob,
   RecoverTerminalRequest,
   RefundOrderRequest,
   RejectTerminalRequest,
@@ -83,6 +84,19 @@ export class BusinessApiService {
 
   recoverTerminal(terminalId: number, payload: RecoverTerminalRequest) {
     return this.http.post<void>(`${API_BASE_URL}/business/terminals/${terminalId}/recover`, payload);
+  }
+
+  uploadMenuFile(file: File) {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<{ message: string; jobId: number; status: string }>(
+      `${API_BASE_URL}/menus/upload`,
+      form
+    );
+  }
+
+  getMenuJobStatus(jobId: number) {
+    return this.http.get<MenuExtractionJob>(`${API_BASE_URL}/menus/jobs/${jobId}`);
   }
 
 }
