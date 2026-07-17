@@ -138,6 +138,10 @@ export class SidebarLayoutComponent {
       ];
     }
 
+    if (role === 'SHOP_ADMIN') {
+      return [{ label: 'Devices', path: '/business/terminals' }];
+    }
+
     const links: NavLink[] = [
       { label: 'Business Dashboard', path: '/business/dashboard' },
       { label: 'Orders', path: '/business/orders' },

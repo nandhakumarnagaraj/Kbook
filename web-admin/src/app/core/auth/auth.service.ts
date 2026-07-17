@@ -69,6 +69,11 @@ export class AuthService {
       return;
     }
 
+    if (role === 'SHOP_ADMIN') {
+      void this.router.navigate(['/business/terminals']);
+      return;
+    }
+
     void this.router.navigate(['/limited-access']);
   }
 }
