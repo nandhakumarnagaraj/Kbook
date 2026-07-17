@@ -174,7 +174,6 @@ public class AuthController {
 			@Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")
 			private String password;
 
-			@NotBlank(message = "Device ID is required")
 			@Size(max = 128)
 			private String deviceId;
 		}
@@ -186,7 +185,7 @@ public class AuthController {
 			@NotBlank(message = "idToken is required")
 			private String idToken;
 
-			@NotBlank(message = "Device ID is required")
+			@Size(max = 128)
 			@Size(max = 128)
 			private String deviceId;
 		}
