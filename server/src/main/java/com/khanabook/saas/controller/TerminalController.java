@@ -4,6 +4,7 @@ import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.entity.DeviceRegistrationRequest;
 import com.khanabook.saas.entity.RestaurantTerminal;
 import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.DeviceRegistrationRequestRepository;
 import com.khanabook.saas.repository.RestaurantTerminalRepository;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.SecurityAuditService;
@@ -30,6 +31,7 @@ public class TerminalController {
 
 	private final RestaurantTerminalRepository terminalRepository;
 	private final BillRepository billRepository;
+	private final DeviceRegistrationRequestRepository requestRepository;
 	private final JwtUtility jwtUtility;
 	private final SecurityAuditService securityAuditService;
 	private final TerminalManagementService terminalManagementService;
@@ -265,6 +267,19 @@ public class TerminalController {
 			// Case 1c: No terminal token presented — deviceId matches but caller cannot
 			// prove they are the original installation. Treat as recovery candidate.
 			// This covers: reinstall (token lost), or another user who learned the deviceId.
+			//
+			// First check if admin has already approved a request for this device.
+			// Without this check, every app restart creates a new PENDING request and
+			// the device stays stuck even after approval.
+			var approvedRequest = requestRepository.findByRestaurantIdAndDeviceIdAndStatus(
+					restaurantId, deviceId, "APPROVED");
+			if (approvedRequest.isPresent()) {
+				var approved = approvedRequest.get();
+				return ResponseEntity.ok()
+						.body(new TerminalPendingResponse("APPROVED", approved.getId(),
+								"Approved — call complete-activation to obtain credentials"));
+			}
+
 			Long userId = TenantContext.getCurrentUserId();
 			DeviceRegistrationRequest recoveryRequest = terminalManagementService.createOrReuseRegistrationRequest(
 					restaurantId,

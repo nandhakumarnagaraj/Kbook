@@ -6,10 +6,10 @@ SET terminal_name = COALESCE(NULLIF(terminal_name, ''), 'Terminal ' || id::text)
     is_active = COALESCE(is_active, TRUE);
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS terminal_id VARCHAR(255);
-ALTER TABLE restaurant_profile ADD COLUMN IF NOT EXISTS terminal_id VARCHAR(255);
+ALTER TABLE restaurantprofiles ADD COLUMN IF NOT EXISTS terminal_id VARCHAR(255);
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS terminal_id VARCHAR(255);
-ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS terminal_id VARCHAR(255);
-ALTER TABLE item_variants ADD COLUMN IF NOT EXISTS terminal_id VARCHAR(255);
+ALTER TABLE menuitems ADD COLUMN IF NOT EXISTS terminal_id VARCHAR(255);
+ALTER TABLE itemvariants ADD COLUMN IF NOT EXISTS terminal_id VARCHAR(255);
 ALTER TABLE stock_logs ADD COLUMN IF NOT EXISTS terminal_id VARCHAR(255);
 ALTER TABLE bills ADD COLUMN IF NOT EXISTS terminal_id VARCHAR(255);
 ALTER TABLE bill_items ADD COLUMN IF NOT EXISTS terminal_id VARCHAR(255);
