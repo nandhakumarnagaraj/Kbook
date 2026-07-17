@@ -125,13 +125,31 @@ public class JwtUtility {
 	 */
 	public String generateTerminalToken(String subject, Long restaurantId, String role, String terminalId,
 			String terminalSeries, String deviceId) {
+		return generateTerminalToken(subject, restaurantId, role, terminalId, terminalSeries, deviceId, 1L);
+	}
+
+	/**
+	 * Generates a terminal-bound token with credential_version for immediate revocation support.
+	 */
+	public String generateTerminalToken(String subject, Long restaurantId, String role, String terminalId,
+			String terminalSeries, String deviceId, Long credentialVersion) {
 		Date now = new Date();
 		var builder = Jwts.builder().setId(java.util.UUID.randomUUID().toString()).setSubject(subject)
 				.claim("restaurantId", restaurantId).claim("role", role)
 				.claim("terminalId", terminalId).claim("terminalSeries", terminalSeries)
-				.claim("deviceId", deviceId == null ? "" : deviceId).claim("tokenType", "terminal")
+				.claim("deviceId", deviceId == null ? "" : deviceId)
+				.claim("credVer", credentialVersion != null ? credentialVersion : 1L)
+				.claim("tokenType", "terminal")
 				.setIssuedAt(now).setExpiration(new Date(now.getTime() + terminalExpirationMs));
 		return builder.signWith(getSigningKey()).compact();
+	}
+
+	public Long extractCredentialVersion(String token) {
+		try {
+			return extractAllClaims(token).get("credVer", Long.class);
+		} catch (Exception e) {
+			return null;
+		}
 	}
 
 	public String extractTerminalId(String token) {

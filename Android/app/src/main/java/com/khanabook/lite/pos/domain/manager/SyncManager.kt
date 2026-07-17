@@ -71,23 +71,77 @@ class SyncManager @Inject constructor(
             try {
                 Log.i(tag, "Activating terminal series for device...")
                 val deviceId = sessionManager.getDeviceId()
-                val response = api.activateTerminal(com.khanabook.lite.pos.data.remote.api.TerminalActivationRequest(deviceId))
-                val terminalId = response.terminalId?.takeIf { it.isNotBlank() }
-                    ?: response.terminalSeries
-                sessionManager.saveTerminalIdentity(
-                    TerminalIdentity(
-                        restaurantId = sessionManager.getRestaurantId(),
-                        terminalId = terminalId,
-                        deviceId = deviceId,
-                        terminalName = response.terminalName,
-                        terminalSeries = response.terminalSeries,
-                        isActive = response.isActive ?: true,
-                        registeredAt = response.registeredAt,
-                        lastVerifiedAt = response.lastVerifiedAt ?: System.currentTimeMillis(),
-                        terminalToken = response.terminalToken
-                    )
+                val deviceModel = android.os.Build.MODEL
+                val rawResponse = api.activateTerminal(
+                    com.khanabook.lite.pos.data.remote.api.TerminalActivationRequest(deviceId, deviceModel)
                 )
-                Log.i(tag, "Terminal activated with series: ${response.terminalSeries}")
+
+                when (rawResponse.code()) {
+                    200, 201 -> {
+                        // Success — parse TerminalActivationResponse
+                        val body = rawResponse.body()?.string()
+                        if (body.isNullOrBlank()) {
+                            throw IllegalStateException("Empty response from terminal activation")
+                        }
+                        val gson = com.google.gson.Gson()
+                        val response = gson.fromJson(body, com.khanabook.lite.pos.data.remote.api.TerminalActivationResponse::class.java)
+                        val terminalId = response.terminalId?.takeIf { it.isNotBlank() }
+                            ?: response.terminalSeries
+                        sessionManager.saveTerminalIdentity(
+                            TerminalIdentity(
+                                restaurantId = sessionManager.getRestaurantId(),
+                                terminalId = terminalId,
+                                deviceId = deviceId,
+                                terminalName = response.terminalName,
+                                terminalSeries = response.terminalSeries,
+                                isActive = response.isActive ?: true,
+                                registeredAt = response.registeredAt,
+                                lastVerifiedAt = response.lastVerifiedAt ?: System.currentTimeMillis(),
+                                terminalToken = response.terminalToken
+                            )
+                        )
+                        Log.i(tag, "Terminal activated with series: ${response.terminalSeries}")
+                    }
+                    202 -> {
+                        // Pending admin approval
+                        val body = rawResponse.body()?.string()
+                        val gson = com.google.gson.Gson()
+                        val pending = if (!body.isNullOrBlank()) {
+                            gson.fromJson(body, com.khanabook.lite.pos.data.remote.api.TerminalPendingResponse::class.java)
+                        } else null
+                        Log.w(tag, "Terminal activation pending approval: requestId=${pending?.requestId}")
+                        throw com.khanabook.lite.pos.domain.util.TerminalPendingApprovalException(
+                            requestId = pending?.requestId,
+                            rejectionCooldown = false,
+                            message = pending?.message ?: "Device registration is pending admin approval"
+                        )
+                    }
+                    401 -> throw retrofit2.HttpException(rawResponse)
+                    403 -> {
+                        // Terminal has been deactivated
+                        Log.e(tag, "Terminal deactivated by admin")
+                        throw IllegalStateException("Terminal has been deactivated by admin. Contact your shop owner.")
+                    }
+                    429 -> {
+                        // Rejection cooldown — recently rejected, cannot retry yet
+                        val body = rawResponse.body()?.string()
+                        val gson = com.google.gson.Gson()
+                        val pending = if (!body.isNullOrBlank()) {
+                            gson.fromJson(body, com.khanabook.lite.pos.data.remote.api.TerminalPendingResponse::class.java)
+                        } else null
+                        Log.w(tag, "Terminal activation rejected cooldown")
+                        throw com.khanabook.lite.pos.domain.util.TerminalPendingApprovalException(
+                            requestId = null,
+                            rejectionCooldown = true,
+                            message = pending?.message ?: "Device was recently rejected. Please wait before requesting again."
+                        )
+                    }
+                    else -> {
+                        throw retrofit2.HttpException(rawResponse)
+                    }
+                }
+            } catch (e: com.khanabook.lite.pos.domain.util.TerminalPendingApprovalException) {
+                throw e // rethrow — caller must handle
             } catch (e: Exception) {
                 Log.e(tag, "Failed to activate terminal series", e)
                 throw e

@@ -46,6 +46,7 @@ fun InitialSyncScreen(
         when (syncState) {
             is InitialSyncState.Success -> onSyncCompleteNavigateToMain()
             is InitialSyncState.SessionExpired -> onNavigateToLogin()
+            is InitialSyncState.PendingApproval -> {} // stay on this screen
             else -> {}
         }
     }
@@ -150,6 +151,65 @@ fun InitialSyncScreen(
                         Text(
                             "Login Again",
                             color = DarkBrown1,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                }
+                is InitialSyncState.PendingApproval -> {
+                    val pendingState = syncState as InitialSyncState.PendingApproval
+                    // Poll request status using requestId (does NOT create new requests)
+                    LaunchedEffect(pendingState.requestId) {
+                        while (true) {
+                            delay(15_000L)
+                            viewModel.pollRequestStatus()
+                        }
+                    }
+
+                    val composition by rememberLottieComposition(
+                        LottieCompositionSpec.RawRes(R.raw.anim_sync)
+                    )
+                    val lottieProgress by animateLottieCompositionAsState(
+                        composition = composition,
+                        iterations = LottieConstants.IterateForever
+                    )
+
+                    LottieAnimation(
+                        composition = composition,
+                        progress = { lottieProgress },
+                        modifier = Modifier.size(100.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(spacing.large))
+
+                    Text(
+                        "Waiting for Approval",
+                        color = TextLight,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+
+                    Spacer(modifier = Modifier.height(spacing.small))
+
+                    Text(
+                        text = "Your device registration is pending approval from the shop owner. " +
+                                "This screen will automatically update once approved.",
+                        color = TextGold.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(spacing.extraLarge))
+
+                    OutlinedButton(
+                        onClick = { viewModel.pollRequestStatus() },
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().height(56.dp)
+                    ) {
+                        Text(
+                            "Check Again",
+                            color = PrimaryGold,
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             )

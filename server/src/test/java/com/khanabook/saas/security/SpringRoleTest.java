@@ -78,16 +78,17 @@ public class SpringRoleTest extends BaseIntegrationTest {
     }
 
     @Test
-    void givenKbookAdminJwt_whenPostSyncBillsWithAnyTenant_then200() throws Exception {
+    void givenKbookAdminJwt_whenPostSyncBills_thenForbidden() throws Exception {
         String token = persistUserAndGetToken("admin@test.com", 999L, null, UserRole.KBOOK_ADMIN);
         
         String payload = "[{\"localId\":1, \"restaurantId\":99, \"totalAmount\":\"100.00\"}]";
         
+        // KBOOK_ADMIN must NOT have access to operational sync (bill push)
         mockMvc.perform(post("/sync/bills/push")
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden());
     }
 
     @Test

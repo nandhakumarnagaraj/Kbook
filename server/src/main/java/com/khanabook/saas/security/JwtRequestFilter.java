@@ -95,6 +95,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 								TenantContext.setCurrentTenant(restaurantId);
 							}
 
+							TenantContext.setCurrentUserId(user.getId());
+
 							String role = user.getRole().name();
 							TenantContext.setCurrentRole(role);
 
