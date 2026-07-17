@@ -253,6 +253,47 @@ Every page follows this shell:
 - Android tests: `Android/app/src/test/` (unit), `Android/app/src/androidTest/` (instrumented)
 - Server tests: `server/src/test/java/com/khanabook/saas/`
 
+## Deployment (live VPS — Docker Compose)
+
+The production backend runs as a **Docker Compose** stack on the VPS, NOT systemd.
+(A legacy `deploy.sh` + `khanabook.service` systemd path also exists but is superseded
+by the compose stack described in `ops/PRODUCTION_STACK.md`.)
+
+- **Repo root on VPS:** `/var/www/kbook.iadv.cloud`
+- **Stack files:** `docker-compose.production.yml`, `.env` (secrets — never commit)
+- **Backend port:** `127.0.0.1:8081` (not publicly exposed)
+- **Public entry:** Apache proxies `/api/v1/` → `127.0.0.1:8081`
+- **Live health:** `https://kbook.iadv.cloud/api/v1/actuator/health` (open; returns `{"status":"UP"}`)
+- **Android app package (debug):** `com.piquantservices.khanabooklite.debug`
+
+### Deploy flow (run on VPS)
+```bash
+cd /var/www/kbook.iadv.cloud
+git pull                                    # pull latest main
+./deploy-production.sh                      # builds image + up -d postgres, server
+# OR step-by-step:
+docker compose --env-file .env -f docker-compose.production.yml build server
+docker compose --env-file .env -f docker-compose.production.yml up -d postgres server
+curl -fsS http://127.0.0.1:8081/api/v1/actuator/health
+```
+
+### Status / logs / rollback (VPS)
+```bash
+docker compose --env-file .env -f docker-compose.production.yml ps
+docker compose --env-file .env -f docker-compose.production.yml logs -n 100 server
+# 500s surface as: Unhandled exception [errorId=xxxx] [/sync/...] — grep server logs for errorId
+# DB safety:
+./ops/backup_postgres.sh                    # before any deploy that may run a Flyway migration
+./ops/restore_postgres.sh <backup.sql.gz>   # rollback schema if a migration broke boot
+```
+
+### Notes for gstack ship / land-and-deploy
+- Build runs inside the Dockerfile (`mvn package -Dmaven.test.skip=true`); no host Maven needed on VPS.
+- Always `git pull` then `deploy-production.sh`; verify health returns 200 before declaring success.
+- If a Flyway migration runs, JAR rollback is NOT enough — restore the DB backup too.
+- Logs live in the `server` container stdout (docker compose logs), NOT in repo log files
+  (`server-run.log` / `web-admin-run.log` in the repo are empty placeholders).
+
 ## gstack Routing
 
 gstack is installed globally for OpenCode under `C:\Users\nandh\.config\opencode\skills`.

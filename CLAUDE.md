@@ -37,3 +37,20 @@ Key routing rules:
 - Save progress -> `gstack-context-save`
 - Resume context -> `gstack-context-restore`
 - Author a backlog-ready spec/issue -> `gstack-spec`
+
+## Deploy Configuration (configured by /setup-deploy)
+- Platform: Custom VPS (Docker Compose over SSH)
+- Production URL: https://kbook.iadv.cloud
+- Deploy workflow: manual on VPS — `git pull` then `./deploy-production.sh`
+- Deploy status command: `docker compose --env-file .env -f docker-compose.production.yml ps`
+- Merge method: squash
+- Project type: API (Spring Boot) + Android app + Angular web-admin
+- Post-deploy health check: https://kbook.iadv.cloud/api/v1/actuator/health (expects `{"status":"UP"}`)
+
+### Custom deploy hooks
+- Pre-merge: `mvn -f server/pom.xml package -DskipTests` (verify server builds; Android/web-admin build in their own dirs)
+- Deploy trigger: on VPS `/var/www/kbook.iadv.cloud`: `git pull && ./deploy-production.sh` (builds image, `up -d postgres server`, backend on `127.0.0.1:8081`, Apache proxies `/api/v1/`)
+- Deploy status: `docker compose --env-file .env -f docker-compose.production.yml ps` and `... logs -n 100 server`
+- Health check: `curl -fsS https://kbook.iadv.cloud/api/v1/actuator/health`
+- DB safety: run `./ops/backup_postgres.sh` before any deploy that runs a Flyway migration; rollback with `./ops/restore_postgres.sh <backup.sql.gz>` (JAR rollback alone is NOT enough if schema changed)
+- Note: deploys run ON the VPS, not from this dev machine — this machine can only verify via the public health URL
